@@ -14,6 +14,7 @@ lang: en
 mathjax: true
 disableNunjucks: true
 series_order: 4
+series_total: 18
 translationKey: "linear-algebra-4"
 ---
 ![Essence of Linear Algebra (4): The Secrets of Determinants — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/04-the-secrets-of-determinants/illustration_1.png)

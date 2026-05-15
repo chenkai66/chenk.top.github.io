@@ -12,6 +12,7 @@ lang: zh
 description: "数据库存储引擎在底层如何工作——B 树 vs LSM 树、WAL、缓冲池、合并压缩（compaction），以及为何引擎选型从根本上塑造了你的数据库行为。"
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "databases-4"
 ---
 你写的每一条 SQL 语句，最终都会变成写入磁盘的字节流。负责完成这一转换的组件——**存储引擎（Storage Engine）**——对数据库性能的影响，几乎超过其他任何因素。两张结构完全相同、数据也完全一致的表，仅因底层存储引擎不同，性能表现可能天差地别。只有深入理解这一层，才能真正明白**数据库为何如此行为**。

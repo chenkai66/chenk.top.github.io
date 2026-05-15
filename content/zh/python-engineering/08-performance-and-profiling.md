@@ -12,6 +12,7 @@ lang: zh
 description: "通过性能分析定位真实瓶颈，仅在关键路径上应用缓存与向量化，并避免过早优化的陷阱。"
 disableNunjucks: true
 series_order: 8
+series_total: 8
 translationKey: "python-engineering-8"
 ---
 Donald Knuth 那句广为流传的名言常被断章取义。完整原文是：“我们应当忽略微小的效率提升，比如 97% 的情况：过早优化是一切罪恶之源。然而，我们也不应放过那至关重要的 3% 中的良机。”后半句恰恰是重点所在——性能优化并非追求“一切皆快”，而是精准识别真正影响全局的那 3%，并集中资源将其优化。

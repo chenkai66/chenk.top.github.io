@@ -12,6 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 4
+series_total: 10
 description: "openclaw.json walkthrough, model providers, and the Bailian Coding Plan trick."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-4"

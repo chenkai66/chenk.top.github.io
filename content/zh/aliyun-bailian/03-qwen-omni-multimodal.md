@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-bailian
 series_title: "阿里云百炼实战手册"
 series_order: 3
+series_total: 5
 description: "Qwen-Omni 生产实践：四种输入、文档没强调的流式必填，加上一个真实可跑的视频理解示例和合理的像素预算。"
 disableNunjucks: true
 translationKey: "aliyun-bailian-3"

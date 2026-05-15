@@ -14,6 +14,7 @@ mathjax: true
 description: "A rigorous treatment of hypothesis testing, p-values, Type I/II errors, confidence intervals, and multiple testing corrections — including the misinterpretations that trip up even experienced practitioners, with Python implementations."
 disableNunjucks: true
 series_order: 7
+series_total: 8
 translationKey: "probability-statistics-7"
 ---
 

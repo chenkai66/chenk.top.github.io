@@ -12,6 +12,7 @@ mathjax: false
 series: terraform-agents
 series_title: "用 Terraform 在阿里云上部署 AI Agent"
 series_order: 8
+series_total: 8
 description: "把七个 module 拼到一个仓库，跑一次 terraform apply，看一个完整的 Agent runtime——VPC、ECS、RDS、OpenSearch、OSS、LLM 网关、SLS 观测、成本告警——七分钟内起来。真实 apply 输出、module DAG、生产环境完整成本核算，以及可 fork 的起手仓库。"
 disableNunjucks: true
 translationKey: "terraform-agents-8"

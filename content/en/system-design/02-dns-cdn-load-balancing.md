@@ -12,6 +12,7 @@ lang: en
 description: "Every web request begins with DNS resolution, may traverse a CDN edge, and lands on a load balancer before reaching your application. Understanding these three hops is essential to building systems that are fast, reliable, and globally distributed."
 disableNunjucks: true
 series_order: 2
+series_total: 8
 translationKey: "system-design-2"
 ---
 

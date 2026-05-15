@@ -12,6 +12,7 @@ mathjax: true
 description: "自注意力、多头注意力和位置编码在时间序列中的应用。逐步推导数学公式，附 PyTorch 实现和注意力可视化。"
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "time-series-4"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/illustration_1.png)

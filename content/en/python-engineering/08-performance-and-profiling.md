@@ -12,6 +12,7 @@ lang: en
 description: "Profile Python code to find real bottlenecks, apply caching and vectorization where they matter, and avoid the trap of premature optimization."
 disableNunjucks: true
 series_order: 8
+series_total: 8
 translationKey: "python-engineering-8"
 ---
 

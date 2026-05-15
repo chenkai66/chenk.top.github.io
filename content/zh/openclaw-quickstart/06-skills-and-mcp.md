@@ -13,6 +13,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"
 series_order: 6
+series_total: 10
 description: "Skill 不是 Prompt 模板——它是一套完整的 SOP，包括触发条件、工具权限和执行流程。再加上 MCP 把外部能力接入 Agent，从浏览器自动化到数据库查询，一个配置文件搞定。"
 disableNunjucks: true
 translationKey: "openclaw-quickstart-6"

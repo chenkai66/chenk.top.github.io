@@ -8,6 +8,7 @@ tags:
 categories: Algorithm
 series: optimization-theory
 series_order: 10
+series_total: 12
 lang: en
 mathjax: true
 description: "Why does SGD work? We prove the O(1/sqrt(T)) convex rate and the O(1/(mu T)) strongly convex rate from the gradient noise budget. Then variance reduction: SVRG, SAGA, Katyusha — methods that get to the linear rate of full GD using stochastic samples, with complete analysis of why they work."

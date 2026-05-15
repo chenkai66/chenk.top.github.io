@@ -8,6 +8,7 @@ tags:
 categories: Algorithm
 series: optimization-theory
 series_order: 9
+series_total: 12
 lang: en
 mathjax: true
 description: "How interior-point methods became the default solver for convex programming: replace inequalities with a logarithmic barrier, parametrize the central path, and apply Newton's method. Includes the self-concordance machinery and the proof of the celebrated O(sqrt(n) log(1/eps)) iteration complexity."

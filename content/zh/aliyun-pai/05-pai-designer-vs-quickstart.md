@@ -12,6 +12,7 @@ mathjax: false
 series: aliyun-pai
 series_title: "阿里云 PAI 实战手册"
 series_order: 5
+series_total: 5
 description: "PAI-Designer 处理表格 ML 流水线，Model Gallery 一键部署/微调开源模型。一份诚实的决策矩阵：什么时候该跳过 SDK、让 GUI 帮你交付。"
 disableNunjucks: true
 translationKey: "aliyun-pai-5"

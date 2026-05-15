@@ -13,6 +13,7 @@ mathjax: true
 description: "Joint PMFs and PDFs, marginal and conditional distributions, the bivariate normal, transformations via the Jacobian method, convolutions, and order statistics — with proofs and contour plot visualizations."
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "probability-statistics-4"
 ---
 

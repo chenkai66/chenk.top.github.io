@@ -12,6 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 8
+series_total: 10
 description: "Heartbeat patrols and Cron timers — configs for daily briefings and weekly reports."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-8"

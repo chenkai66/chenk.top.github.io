@@ -13,6 +13,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 9
+series_total: 10
 description: "DingTalk, WeCom, WeChat WorkBuddy — a picker matrix with actual config blocks."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-9"

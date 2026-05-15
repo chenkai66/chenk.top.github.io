@@ -13,6 +13,7 @@ lang: en
 description: "The operational side of databases — schema migrations, connection pooling, monitoring, backup strategies, managed database options, and hard-won lessons from production incidents."
 disableNunjucks: true
 series_order: 8
+series_total: 8
 translationKey: "databases-8"
 ---
 

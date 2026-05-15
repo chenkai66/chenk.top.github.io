@@ -13,6 +13,7 @@ lang: en
 description: "Containers solve the 'works on my machine' problem that VMs made expensive. Learn what containers actually are, how they differ from VMs, and run your first one."
 disableNunjucks: true
 series_order: 1
+series_total: 8
 translationKey: "docker-containers-1"
 ---
 

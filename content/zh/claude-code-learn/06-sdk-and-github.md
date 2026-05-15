@@ -12,6 +12,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战入门"
 series_order: 6
+series_total: 10
 description: "SDK 把 Claude Code 从 CLI 变成库。GitHub Action 让它在 PR 上响应 @claude。两者一起把 Claude 放进已经在跑你测试的同一条 CI 流水线——又不交出控制。"
 disableNunjucks: true
 translationKey: "claude-code-learn-6"

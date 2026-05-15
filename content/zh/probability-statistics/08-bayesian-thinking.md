@@ -14,6 +14,7 @@ mathjax: true
 description: "从第一性原理出发的贝叶斯推断：后验分布、共轭先验、Beta-二项模型与正态-正态模型、可信区间、预测分布、MCMC 直观理解，以及与机器学习正则化的深层联系。"
 disableNunjucks: true
 series_order: 8
+series_total: 8
 translationKey: "probability-statistics-8"
 ---
 两位统计学家走进一家酒吧。一人说：“明天下雨的概率是 30%。”另一人反驳道：“概率指的是长期频率；而明天只发生一次，这种说法毫无意义。”第一个人回应：“它量化的是我对这一独特事件的不确定性。”两人就此争论了一整晚。

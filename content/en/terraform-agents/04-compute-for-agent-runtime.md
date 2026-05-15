@@ -14,6 +14,7 @@ mathjax: false
 series: terraform-agents
 series_title: "Terraform for AI Agents on Alibaba Cloud"
 series_order: 4
+series_total: 8
 description: "The three places an agent's main loop can live on Aliyun: a long-running ECS instance with pm2, a Kubernetes pod on ACK, or a Function Compute invocation. The cost-crossover model I use to pick between them, and a real cloud-init bootstrap that goes from bare Ubuntu to running agent in 90 seconds."
 disableNunjucks: true
 translationKey: "terraform-agents-4"

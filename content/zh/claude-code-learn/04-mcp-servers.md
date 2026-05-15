@@ -12,6 +12,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战入门"
 series_order: 4
+series_total: 10
 description: "MCP 是让 Claude Code 伸出文件系统的插件协议。装一个（Playwright），端到端看它跑通，再学会保护它不发疯的权限模型。"
 disableNunjucks: true
 translationKey: "claude-code-learn-4"

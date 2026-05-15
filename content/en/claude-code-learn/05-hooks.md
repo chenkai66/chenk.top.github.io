@@ -12,6 +12,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code Hands-On"
 series_order: 5
+series_total: 10
 description: "Hooks are the shell scripts that run before and after every tool call. PreToolUse can block. PostToolUse can format, lint, log. Five hooks I use on every repo, and the one anti-pattern that bites everyone."
 disableNunjucks: true
 translationKey: "claude-code-learn-5"

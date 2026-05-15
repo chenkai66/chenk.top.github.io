@@ -12,6 +12,7 @@ lang: zh
 description: "REST、gRPC 和 GraphQL 的实用对比 — 涵盖协议设计、真实场景下的权衡取舍、限流算法、幂等性保障，以及一套用于选择合适 API 风格的决策框架。"
 disableNunjucks: true
 series_order: 3
+series_total: 8
 translationKey: "system-design-3"
 ---
 2015 年，Facebook 发布了一篇博客文章，正式介绍 GraphQL，并描述了其移动应用正被海量 REST API 调用所“淹没”。单个新闻信息流页面就需要从帖子、用户、评论、点赞和媒体等多个资源获取数据——每个资源对应一个独立端点，且每个端点返回的数据远超客户端实际所需。这种过度获取（over-fetching）在弱网环境下严重拖垮了移动端性能。GraphQL 是他们的解决方案，但它绝非万能解药。

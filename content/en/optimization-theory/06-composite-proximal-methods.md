@@ -13,6 +13,7 @@ disableNunjucks: true
 translationKey: "optim-06"
 series: optimization-theory
 series_order: 6
+series_total: 12
 aliases:
   - /en/standalone/proximal-operator/
 ---

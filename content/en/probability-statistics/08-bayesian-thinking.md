@@ -14,6 +14,7 @@ mathjax: true
 description: "Bayesian inference from first principles: posterior distributions, conjugate priors, the Beta-Binomial and Normal-Normal models, credible intervals, predictive distributions, MCMC intuition, and deep connections to machine learning regularization."
 disableNunjucks: true
 series_order: 8
+series_total: 8
 translationKey: "probability-statistics-8"
 ---
 

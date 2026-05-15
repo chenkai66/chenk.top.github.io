@@ -12,6 +12,7 @@ mathjax: true
 description: "ARIMA, SARIMA, VAR, GARCH, Prophet, exponential smoothing and the Kalman filter, derived from a single state-space view. With Box-Jenkins workflow, ACF/PACF identification, and runnable Python."
 disableNunjucks: true
 series_order: 1
+series_total: 8
 translationKey: "time-series-1"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/illustration_1.png)

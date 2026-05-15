@@ -12,6 +12,7 @@ mathjax: true
 description: "Cold-start and cross-domain recommendation in depth: the three faces of cold-start, EMCDR/PTUPCDR cross-domain bridges, MeLU/MAML meta-learning, UCB bandits for exploration, and the cold-to-warm production stack."
 disableNunjucks: true
 series_order: 14
+series_total: 16
 translationKey: "recommendation-systems-14"
 ---
 > When Netflix launches in a new country, it inherits millions of users with no history and a catalog with no local ratings. Amazon faces the same issue each time it opens a new product category. Pure collaborative filtering, the workhorse of warm-state recommendations, has nothing to compute. Techniques that make recommendations work in this scenario include: bootstrap heuristics for the first request, meta-learning after a few interactions, cross-domain transfer when a related domain is rich, and bandits to keep exploring once the model is confident. This post walks through these techniques, anchored to the papers they come from.

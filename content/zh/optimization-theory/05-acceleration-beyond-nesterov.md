@@ -8,6 +8,7 @@ tags:
 categories: Algorithm
 series: optimization-theory
 series_order: 5
+series_total: 12
 lang: zh
 mathjax: true
 description: "一阶优化方法“最优”究竟意味着什么？我们证明了与 Nesterov 速率相匹配的紧致下界，将 Polyak 重球法导出为其连续时间极限，构建了统一的 Lyapunov 分析框架以同时涵盖二者，并揭示 Catalyst 元算法如何将任意求解器提升至加速收敛速率。"

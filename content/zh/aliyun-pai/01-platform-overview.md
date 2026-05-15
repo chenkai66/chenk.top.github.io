@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-pai
 series_title: "阿里云 PAI 实战手册"
 series_order: 1
+series_total: 5
 description: "基于官方文档梳理 2026 年阿里云 PAI 的四层服务架构、你真正会用到的五个子产品（DSW、DLC、EAS、Designer、Model Gallery），它们和 ECS、OSS 的关系，以及一套干净的账号/区域/工作空间初始化流程。"
 disableNunjucks: true
 translationKey: "aliyun-pai-1"

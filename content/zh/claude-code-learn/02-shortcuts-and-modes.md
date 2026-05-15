@@ -11,6 +11,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战指南"
 series_order: 2
+series_total: 10
 description: "Shift+Tab 是四态循环，而非简单的开关；思考模式有五个层级；单次 Escape 和双击 Escape 功能截然不同。这五个快捷键，将彻底改变你每天使用 Claude Code 的体验。"
 disableNunjucks: true
 translationKey: "claude-code-learn-2"

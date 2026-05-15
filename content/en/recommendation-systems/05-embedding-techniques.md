@@ -14,6 +14,7 @@ permalink: "en/recommendation-systems-5-embedding-techniques/"
 description: "How modern recommenders learn dense vector representations for users and items: Word2Vec / Item2Vec, Node2Vec, two-tower DSSM and YouTube DNN, negative sampling, FAISS/HNSW serving, and how to evaluate embedding quality. Concept, math, code and production guidance in one place."
 disableNunjucks: true
 series_order: 5
+series_total: 16
 translationKey: "recommendation-systems-5"
 ---
 

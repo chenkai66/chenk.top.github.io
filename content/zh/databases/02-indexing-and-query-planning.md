@@ -12,6 +12,7 @@ lang: zh
 description: "深入剖析 B 树与 B+ 树索引、哈希索引、复合索引、覆盖索引，以及如何阅读 EXPLAIN 输出以诊断慢查询。"
 disableNunjucks: true
 series_order: 2
+series_total: 8
 translationKey: "databases-2"
 ---
 在笔记本上查 1,000 行只需 2 毫秒的查询，到了生产环境面对 5,000 万行数据时，可能暴涨到 45 秒——除非你建对了索引。索引是数据库工具箱里对性能影响最大的单项优化；吃透它，会彻底改变你设计 Schema 和写 SQL 的方式。

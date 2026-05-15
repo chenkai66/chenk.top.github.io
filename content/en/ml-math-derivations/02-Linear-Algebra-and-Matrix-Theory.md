@@ -14,6 +14,7 @@ mathjax: true
 description: "The language of machine learning is linear algebra. This article derives vector spaces, eigendecomposition, SVD, and matrix calculus from first principles -- every tool you need for ML optimization."
 disableNunjucks: true
 series_order: 2
+series_total: 20
 translationKey: "ml-math-derivations-2"
 ---
 ![ML Math Derivations (2): Linear Algebra and Matrix Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/illustration_1.png)

@@ -14,6 +14,7 @@ mathjax: true
 description: "Machine learning is uncertainty modeling. This article derives probability spaces, common distributions, MLE, Bayesian estimation, limit theorems and information theory -- the statistical engine behind every ML model."
 disableNunjucks: true
 series_order: 3
+series_total: 20
 translationKey: "ml-math-derivations-3"
 ---
 ![ML Math Derivations (3): Probability Theory and Statistical Inference — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/03-Probability-Theory-and-Statistical-Inference/illustration_1.png)

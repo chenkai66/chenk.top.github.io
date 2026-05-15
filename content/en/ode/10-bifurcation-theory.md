@@ -15,6 +15,7 @@ mathjax: true
 description: "Bifurcation theory explains how smooth parameter changes cause dramatic qualitative shifts in system behavior. Master saddle-node, transcritical, pitchfork, and Hopf bifurcations through normal forms, stability arguments, and Python visualizations."
 disableNunjucks: true
 series_order: 10
+series_total: 18
 translationKey: "ode-10"
 ---
 A lake stays clear for decades, then turns murky in a single season. A power grid hums along stably, then trips into a cascading blackout in seconds. A column under slowly increasing load is straight, straight, straight — and then suddenly buckles.

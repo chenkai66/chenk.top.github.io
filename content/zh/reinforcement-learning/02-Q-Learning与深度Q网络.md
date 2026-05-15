@@ -17,6 +17,7 @@ mathjax: true
 description: "DQN 如何结合神经网络与 Q-Learning 玩转 Atari——经验回放、目标网络、Double DQN、Dueling DQN、优先经验回放与 Rainbow。"
 disableNunjucks: true
 series_order: 2
+series_total: 12
 translationKey: "reinforcement-learning-2"
 ---
 2013 年 12 月，DeepMind 的一个小团队在 arXiv 上发布了一篇论文，提出了一个令人震撼的成果：一个神经网络仅凭原始像素和游戏得分，就学会了玩七款 Atari 游戏，并在其中六款上超越了此前的最佳表现。没有针对特定游戏设计的特征，也没有手工编写的启发式规则——Pong、Breakout 和 Space Invaders 全都使用同一套架构。这个算法就是 **Deep Q-Network（DQN）**，它正式拉开了深度强化学习时代的序幕。

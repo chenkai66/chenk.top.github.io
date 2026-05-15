@@ -12,6 +12,7 @@ mathjax: true
 description: "How real recommenders juggle clicks, conversions, watch time and revenue at once. Shared-Bottom, ESMM, MMoE, PLE explained from first principles, with PyTorch code, loss-balancing strategies and the gradient-conflict story behind them."
 disableNunjucks: true
 series_order: 9
+series_total: 16
 translationKey: "recommendation-systems-9"
 ---
 A live e-commerce ranker doesn't optimize just one number. The same model that decides which product to show you also predicts, in the same forward pass, whether you will click, add it to your cart, pay for it, return it, or leave a positive review. Each prediction is a different *task* with its own data distribution, scarcity, and incentives. These tasks are tightly coupled: a clicker is more likely to convert, a converter is more likely to write a review, and a high-CTR thumbnail can attract clicks that reduce watch time.

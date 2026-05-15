@@ -12,6 +12,7 @@ mathjax: true
 description: "GRU distills LSTM into two gates for faster training and 25% fewer parameters. Learn when GRU beats LSTM, with formulas, benchmarks, PyTorch code, and a decision matrix."
 disableNunjucks: true
 series_order: 3
+series_total: 8
 translationKey: "time-series-3"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/illustration_1.png)

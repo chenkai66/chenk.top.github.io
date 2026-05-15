@@ -12,6 +12,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战入门"
 series_order: 10
+series_total: 10
 description: "Claude Code 现在有四种扩展机制：斜杠命令、MCP server、Hooks、Skills。Skill 是最新的——一个文件夹、一份 SKILL.md、一段按需加载的指令。它和其他三个怎么分工，给一棵决策树。"
 disableNunjucks: true
 translationKey: "claude-code-learn-10"

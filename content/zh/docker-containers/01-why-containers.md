@@ -13,6 +13,7 @@ lang: zh
 description: "容器解决了虚拟机虽能应对却代价高昂的‘在我机器上能跑’问题。本文将详解容器的本质、它与虚拟机的根本区别，并带你运行第一个容器。"
 disableNunjucks: true
 series_order: 1
+series_total: 8
 translationKey: "docker-containers-1"
 ---
 每位开发者都听过那句经典吐槽：“在我机器上是能跑的。”虚拟机确实解决了这个问题，但代价不菲——动辄数 GB 的内存占用、几分钟的启动时间，以及为每个应用单独部署一整套操作系统。

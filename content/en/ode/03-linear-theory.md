@@ -14,6 +14,7 @@ mathjax: true
 description: "From springs to RLC circuits, the full theory of higher-order linear ODEs: superposition, the Wronskian, characteristic equations, undetermined coefficients, variation of parameters, and the resonance phenomenon."
 disableNunjucks: true
 series_order: 3
+series_total: 18
 translationKey: "ode-3"
 ---
 **A first-order ODE has memory of one number; a second-order ODE has memory of two.** That tiny extra degree of freedom is what lets the same equation describe a plucked guitar string, the suspension of your car, the L-C tank circuit inside an FM radio, and the swaying of a tall building in the wind. In every case the same three regimes appear — oscillate, return-with-a-touch-of-overshoot, or crawl back — and the same algebraic gadget, the *characteristic equation*, predicts which one happens.

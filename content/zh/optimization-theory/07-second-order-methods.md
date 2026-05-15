@@ -8,6 +8,7 @@ tags:
 categories: Algorithm
 series: optimization-theory
 series_order: 7
+series_total: 12
 lang: zh
 mathjax: true
 description: '二阶方法通过利用曲率突破 $\sqrt{\kappa}$ 瓶颈；我们证明牛顿法的局部二次收敛性，从割线条件与低秩更新导出 BFGS，详解适用于中等规模机器学习的 L-BFGS 双循环递推，分析带狗腿法求解的信任域子问题。'

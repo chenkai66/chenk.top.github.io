@@ -12,6 +12,7 @@ lang: zh
 description: "数据库如何通过复制保障高可用性，又如何通过分片实现水平扩展——涵盖主从复制、多主复制、无主复制、分片策略及一致性哈希。"
 disableNunjucks: true
 series_order: 6
+series_total: 8
 translationKey: "databases-6"
 ---
 一台数据库服务器能承载惊人的负载——一个调优良好的 PostgreSQL 实例每秒可处理数万次查询。但终究会遇到瓶颈：可能是读吞吐量超出了单颗 CPU 的能力，需要数据在数据中心火灾中幸存，又或者数据集已经超出单块磁盘的容量。此时，你就需要**复制（Replication）**与**分片（Partitioning / Sharding）**。

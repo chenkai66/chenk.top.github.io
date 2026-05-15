@@ -12,6 +12,7 @@ mathjax: false
 series: aliyun-pai
 series_title: "Aliyun PAI Practical Guide"
 series_order: 5
+series_total: 5
 description: "PAI-Designer for tabular ML pipelines, Model Gallery for one-click open-source model deploy/fine-tune. The honest decision matrix for when to skip the SDK and let the GUI ship for you."
 disableNunjucks: true
 translationKey: "aliyun-pai-5"

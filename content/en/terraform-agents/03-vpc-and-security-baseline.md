@@ -13,6 +13,7 @@ mathjax: false
 series: terraform-agents
 series_title: "Terraform for AI Agents on Alibaba Cloud"
 series_order: 3
+series_total: 8
 description: "The first reusable module — a three-zone VPC with public/private subnets, NAT egress, security groups layered by tier, and KMS keys per data domain. The same code shows up in every agent stack I've shipped, parameterised but otherwise unchanged."
 disableNunjucks: true
 translationKey: "terraform-agents-3"

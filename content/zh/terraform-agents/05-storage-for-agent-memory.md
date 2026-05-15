@@ -14,6 +14,7 @@ mathjax: false
 series: terraform-agents
 series_title: "用 Terraform 在阿里云上部署 AI Agent"
 series_order: 5
+series_total: 8
 description: "Agent 有三种记忆，分别落到三个阿里云服务上：会话用 PolarDB/RDS，embedding 用 OpenSearch 向量版或 pgvector，产物用 OSS。每一层的真实 Terraform，再加上让账单不暴涨的 lifecycle 和备份规则。"
 disableNunjucks: true
 translationKey: "terraform-agents-5"

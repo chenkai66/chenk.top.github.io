@@ -12,6 +12,7 @@ mathjax: true
 description: "推荐系统 Embedding 技术全解：从 Word2Vec、Item2Vec、Node2Vec 到双塔 DSSM 与 YouTube DNN，再到负采样策略与 FAISS/HNSW 近邻检索的工程实践。每节配有可运行的 PyTorch 代码、关键设计权衡与生产经验。"
 disableNunjucks: true
 series_order: 5
+series_total: 16
 translationKey: "recommendation-systems-5"
 ---
 当 Netflix 向刚看完《蝙蝠侠：黑暗骑士》的用户推荐《盗梦空间》时，并非依赖人工编写的“如果看了诺兰的电影，就推荐诺兰其他作品”这类规则，而是依靠几何关系。这两部电影在模型从数十亿次观看行为中学到的 128 维 **嵌入空间** 中距离很近。几何取代了枚举：系统不再通过脆弱的相似性规则逐一比较一部电影与一万五千部其他电影，而是只问一个问题——**这两个向量之间的距离是多少？**

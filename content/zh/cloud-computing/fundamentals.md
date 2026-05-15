@@ -14,6 +14,7 @@ mathjax: false
 description: "工程视角的云计算入门 -- 服务模型（IaaS、PaaS、FaaS、SaaS）、部署拓扑、CapEx vs OpEx 的经济学、地域与可用区、厂商目录，以及配套真实架构案例的决策框架。"
 disableNunjucks: true
 series_order: 1
+series_total: 8
 translationKey: "cloud-computing-1"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/fundamentals/illustration_1.png)

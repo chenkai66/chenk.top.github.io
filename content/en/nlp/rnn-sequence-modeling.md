@@ -13,6 +13,7 @@ mathjax: true
 description: "How RNNs, LSTMs, and GRUs process sequences with memory. We derive vanishing gradients from first principles, build a character-level text generator, and implement a Seq2Seq translator in PyTorch."
 disableNunjucks: true
 series_order: 3
+series_total: 12
 translationKey: "nlp-3"
 ---
 Open Google Translate, swipe-type a message, or dictate a memo to your phone — all these systems consume an ordered stream of tokens and produce another. A feed-forward network processes each input independently, but language is fundamentally **sequential**: the meaning of "mat" in *the cat sat on the mat* depends on every word that came before. Recurrent Neural Networks (RNNs) handle this by maintaining a **hidden state** that evolves as they process each token. The hidden state is the network's running summary of the past — its memory.

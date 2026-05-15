@@ -12,6 +12,7 @@ lang: zh
 description: "深入剖析全栈各层的缓存策略——从 CDN 到数据库缓冲池——涵盖 cache-aside、write-through、write-behind 模式，淘汰策略、惊群效应（thundering herd）缓解方案，以及实用的 Redis 配置。"
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "system-design-4"
 ---
 计算机科学中有个老笑话：最难的两个问题，是缓存失效（cache invalidation）、命名（naming things），以及 off-by-one 错误。这个笑话之所以成立，正是因为缓存失效确实极难处理。但与此同时，缓存又是提升系统性能最有效的单一技术——一个部署得当的缓存，可将延迟降低 100 倍，减少 90% 的数据库负载，并每月节省数千美元的基础设施成本。

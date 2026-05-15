@@ -14,6 +14,7 @@ mathjax: true
 description: "Deterministic yet unpredictable: the Lorenz system, butterfly effect, Lyapunov exponents, strange attractors, and the routes from order to chaos -- with Python simulations throughout."
 disableNunjucks: true
 series_order: 9
+series_total: 18
 translationKey: "ode-9"
 ---
 **In 1961, Edward Lorenz restarted a weather simulation from a rounded-off number — 0.506 instead of 0.506127.** Within simulated weeks the forecast was unrecognisable. That single accident gave us **the butterfly effect** and turned chaos from a metaphor into a science. The lesson is profound and sober: equations that are *exactly* deterministic can still be *practically* unpredictable.

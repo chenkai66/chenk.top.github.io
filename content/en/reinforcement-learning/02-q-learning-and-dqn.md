@@ -17,6 +17,7 @@ mathjax: true
 description: "How DQN combined neural networks with Q-Learning to master Atari games -- covering experience replay, target networks, Double DQN, Dueling DQN, Prioritized Experience Replay, and Rainbow."
 disableNunjucks: true
 series_order: 2
+series_total: 12
 translationKey: "reinforcement-learning-2"
 ---
 In December 2013, a small DeepMind team uploaded a paper to arXiv with a striking claim: a single neural network, trained from raw pixels and the score, learned to play seven Atari games — and beat the previous best on six of them. No game-specific features. No hand-coded heuristics. The same architecture for Pong, Breakout, and Space Invaders. The algorithm was **Deep Q-Network (DQN)**, and it kicked off the deep reinforcement learning era.

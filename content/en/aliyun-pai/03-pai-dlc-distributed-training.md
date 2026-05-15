@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-pai
 series_title: "Aliyun PAI Practical Guide"
 series_order: 3
+series_total: 5
 description: "Submit a real multi-GPU training job on PAI-DLC, understand the resource pools (Lingjun vs general vs preemptible), and use AIMaster + EasyCKPT so a flaky node doesn't cost you a day."
 disableNunjucks: true
 translationKey: "aliyun-pai-3"

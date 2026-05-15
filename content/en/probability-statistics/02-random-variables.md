@@ -13,6 +13,7 @@ mathjax: true
 description: "A rigorous tour of random variables, PMFs, PDFs, CDFs, and every distribution that matters in practice — Bernoulli, Binomial, Poisson, Gaussian, Exponential, Gamma, and Beta — with derivations, proofs, and Python visualizations."
 disableNunjucks: true
 series_order: 2
+series_total: 8
 translationKey: "probability-statistics-2"
 ---
 

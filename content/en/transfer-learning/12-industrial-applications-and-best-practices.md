@@ -15,6 +15,7 @@ mathjax: true
 description: "Series finale. A field guide to shipping transfer learning to production: when to use it, the end-to-end pipeline, compute and dollar economics, four landmark case studies, A/B testing, distribution-shift monitoring, and 12-month ROI."
 disableNunjucks: true
 series_order: 12
+series_total: 12
 translationKey: "transfer-learning-12"
 ---
 

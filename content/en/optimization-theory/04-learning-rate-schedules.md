@@ -14,6 +14,7 @@ disableNunjucks: true
 translationKey: "optim-04"
 series: optimization-theory
 series_order: 4
+series_total: 12
 aliases:
   - /en/standalone/learning-rate-guide/
 ---

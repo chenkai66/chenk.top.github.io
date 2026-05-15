@@ -14,6 +14,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 6
+series_total: 12
 description: "Lock down your cloud: RAM users, groups, roles, and policies. STS for temporary credentials. KMS for encryption. ActionTrail for audit logging. Build a secure multi-team access model with least privilege."
 disableNunjucks: true
 translationKey: "aliyun-fullstack-6"

@@ -11,6 +11,7 @@ lang: en
 description: "Build confidence in your code with pytest fixtures, parametrize, mocking, and coverage. Learn debugging techniques that save hours."
 disableNunjucks: true
 series_order: 3
+series_total: 8
 translationKey: "python-engineering-3"
 ---
 

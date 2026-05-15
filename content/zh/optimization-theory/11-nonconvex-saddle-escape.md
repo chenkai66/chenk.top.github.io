@@ -8,6 +8,7 @@ tags:
 categories: Algorithm
 series: optimization-theory
 series_order: 11
+series_total: 12
 lang: zh
 mathjax: true
 description: "为何 SGD 能在非凸景观下有效训练神经网络？我们证明扰动梯度下降可在多项式时间内逃离严格鞍点，在 Polyak-Łojasiewicz 条件下推导其收敛性，并综述深度学习损失曲面的已知理论结果——过参数化、神经正切核（NTK）及对平坦极小值的隐式偏好。"

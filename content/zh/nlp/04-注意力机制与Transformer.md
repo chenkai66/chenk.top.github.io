@@ -12,6 +12,7 @@ mathjax: true
 description: "从 Seq2Seq 的瓶颈到 Attention Is All You Need，建立缩放点积注意力、多头注意力、位置编码和因果掩码的直觉，并用 PyTorch 从零搭一个完整 Transformer。"
 disableNunjucks: true
 series_order: 4
+series_total: 12
 translationKey: "nlp-4"
 polished_by_qwen_max: true
 ---

@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-bailian
 series_title: "阿里云百炼实战手册"
 series_order: 2
+series_total: 5
 description: "怎么按延迟和成本挑 Qwen 变体、function calling 写对、JSON mode 不再哭，以及 enable_thinking 必须配流式这条文档没明说的事。"
 disableNunjucks: true
 translationKey: "aliyun-bailian-2"

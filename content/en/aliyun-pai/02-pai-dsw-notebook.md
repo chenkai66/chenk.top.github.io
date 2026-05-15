@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-pai
 series_title: "Aliyun PAI Practical Guide"
 series_order: 2
+series_total: 5
 description: "Working with PAI-DSW for real: choosing the right GPU image, mounting OSS so you don't lose checkpoints when the instance restarts, and an MNIST notebook drawn from the official Quick Start that you can copy-paste."
 disableNunjucks: true
 translationKey: "aliyun-pai-2"

@@ -13,6 +13,7 @@ lang: zh
 description: "一次面向实践的四大 NoSQL 家族巡礼——文档型、键值型、宽列式与图数据库，涵盖 CAP 定理及各类模型的适用场景。"
 disableNunjucks: true
 series_order: 5
+series_total: 8
 translationKey: "databases-5"
 ---
 并非所有数据都能被整齐地塞进行与列中。社交网络中的好友关系图、属性千差万别的商品目录、实时排行榜，以及推荐引擎背后的关系网络——这些工作负载都会让关系型数据库显得力不从心。NoSQL 数据库之所以存在，正是因为不同的数据模型能更高效地解决不同类型的问题。关键在于，你要知道该选用哪一种。

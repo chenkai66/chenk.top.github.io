@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-pai
 series_title: "阿里云 PAI 实战手册"
 series_order: 3
+series_total: 5
 description: "在 PAI-DLC 上提交真实多卡训练任务、看懂三种资源池（灵骏、通用、抢占）、用好 AIMaster + EasyCKPT，让一台抽风节点不会让你白干一天。"
 disableNunjucks: true
 translationKey: "aliyun-pai-3"

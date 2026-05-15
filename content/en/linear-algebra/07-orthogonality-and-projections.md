@@ -15,6 +15,7 @@ lang: en
 mathjax: true
 disableNunjucks: true
 series_order: 7
+series_total: 18
 translationKey: "linear-algebra-7"
 ---
 ![Essence of Linear Algebra (7): Orthogonality and Projections — When Vectors Mind Their Own Business — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/illustration_1.png)

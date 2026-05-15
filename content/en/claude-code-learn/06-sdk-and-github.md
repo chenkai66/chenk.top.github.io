@@ -12,6 +12,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code Hands-On"
 series_order: 6
+series_total: 10
 description: "The SDK turns Claude Code from a CLI into a library. GitHub Action makes it answer @claude on PRs. Together they let you put Claude inside the same CI pipeline that already runs your tests — without giving up control."
 disableNunjucks: true
 translationKey: "claude-code-learn-6"

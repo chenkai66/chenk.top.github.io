@@ -12,6 +12,7 @@ lang: en
 description: "A practical guide to message queues and event-driven systems — covering Kafka and RabbitMQ architectures, delivery guarantees, event sourcing, CQRS, dead letter queues, backpressure, and a complete order processing pipeline design."
 disableNunjucks: true
 series_order: 5
+series_total: 8
 translationKey: "system-design-5"
 ---
 

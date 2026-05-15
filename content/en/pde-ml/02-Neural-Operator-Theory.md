@@ -12,6 +12,7 @@ lang: en
 mathjax: true
 disableNunjucks: true
 series_order: 2
+series_total: 8
 series: pde-ml
 translationKey: "pde-ml-2"
 ---

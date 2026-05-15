@@ -14,6 +14,7 @@ mathjax: false
 series: terraform-agents
 series_title: "Terraform for AI Agents on Alibaba Cloud"
 series_order: 5
+series_total: 8
 description: "An agent has three kinds of memory and they map onto three Aliyun services: PolarDB/RDS for sessions, OpenSearch (vector edition) or pgvector for embeddings, OSS for artifacts. Real Terraform for each, plus the lifecycle and backup rules that keep the bill flat."
 disableNunjucks: true
 translationKey: "terraform-agents-5"

@@ -12,6 +12,7 @@ lang: en
 description: "How database storage engines work under the hood — B-tree vs LSM-tree, WAL, buffer pools, compaction, and why your choice of engine shapes everything."
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "databases-4"
 ---
 

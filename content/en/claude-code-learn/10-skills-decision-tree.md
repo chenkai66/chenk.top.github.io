@@ -12,6 +12,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code Hands-On"
 series_order: 10
+series_total: 10
 description: "Skills are the newest extension mechanism in Claude Code: a folder, a SKILL.md, and a body of instructions the model loads on demand. How they differ from slash commands, MCP servers, and hooks — with a decision tree for which one to reach for."
 disableNunjucks: true
 translationKey: "claude-code-learn-10"

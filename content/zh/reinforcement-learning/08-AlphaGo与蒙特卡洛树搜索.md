@@ -14,6 +14,7 @@ mathjax: true
 description: "从 MCTS 到 AlphaGo、AlphaGo Zero、AlphaZero 与 MuZero：UCT 探索-利用、自我对弈训练、在学到的世界模型里规划。附五子棋上的 AlphaZero 完整实现。"
 disableNunjucks: true
 series_order: 8
+series_total: 12
 translationKey: "reinforcement-learning-8"
 ---
 2016 年 3 月，AlphaGo 在首尔以 4 比 1 击败了围棋世界冠军李世石。这不仅是一场体育赛事的爆冷，更标志着人工智能领域一个长达 60 年的目标——让机器击败人类顶尖围棋选手——比大多数预测提前整整十年达成。围棋的合法局面数约为 $10^{170}$，远超可观测宇宙中的原子总数。无论多少暴力搜索都无法破解它。AlphaGo 的胜利源于一种全新思路：用深度神经网络提供“哪些着法值得尝试”的直觉，再由蒙特卡洛树搜索（MCTS）进行深思熟虑式的推演，验证并精炼这种直觉。

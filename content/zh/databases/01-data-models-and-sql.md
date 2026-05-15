@@ -12,6 +12,7 @@ lang: zh
 description: "从零开始深入关系模型、SQL 基础、范式化设计及高级查询模式——掌握流利使用 SQL 所需的一切知识。"
 disableNunjucks: true
 series_order: 1
+series_total: 8
 translationKey: "databases-1"
 ---
 你用过的每一个应用程序，其底层都依赖某种数据模型。一旦选错，接下来三年你可能都在跟数据库搏斗，而不是专注交付新功能。

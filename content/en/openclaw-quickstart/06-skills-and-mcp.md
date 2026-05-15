@@ -13,6 +13,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 6
+series_total: 10
 description: "Write a Skill, attach a Playwright MCP server, and ship a morning-briefing agent."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-6"

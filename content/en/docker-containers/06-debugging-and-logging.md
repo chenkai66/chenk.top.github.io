@@ -13,6 +13,7 @@ lang: en
 description: "Containers hide their internals by design. When something breaks, you need specific tools and techniques to see inside the box without breaking the isolation that makes containers useful."
 disableNunjucks: true
 series_order: 6
+series_total: 8
 translationKey: "docker-containers-6"
 ---
 

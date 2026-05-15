@@ -13,6 +13,7 @@ mathjax: true
 description: "Informer 用 ProbSparse 注意力、编码器蒸馏、生成式解码器把 Transformer 复杂度从 O(L^2) 降到 O(L log L)。完整数学推导、PyTorch 代码与 ETT/气象 benchmark。"
 disableNunjucks: true
 series_order: 8
+series_total: 8
 translationKey: "time-series-8"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/illustration_1.png)

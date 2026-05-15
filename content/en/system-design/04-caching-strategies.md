@@ -12,6 +12,7 @@ lang: en
 description: "A deep dive into caching strategies across every layer of the stack — from CDN to database buffer pools — covering cache-aside, write-through, write-behind patterns, eviction policies, thundering herd mitigation, and practical Redis configurations."
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "system-design-4"
 ---
 

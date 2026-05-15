@@ -13,6 +13,7 @@ mathjax: true
 description: "从零构建概率论：样本空间、柯尔莫哥洛夫公理、条件概率、贝叶斯定理与生日问题——含严格证明与 Python 模拟。"
 disableNunjucks: true
 series_order: 1
+series_total: 8
 translationKey: "probability-statistics-1"
 ---
 每次查看天气预报、运行 A/B 测试或训练神经网络，其底层基础都可追溯至 1933 年安德雷·柯尔莫哥洛夫（Andrey Kolmogorov）建立的概率公理化框架——此前概率论只是赌徒与精算师手边的经验技巧，此后则成为与微积分、代数同等严谨的数学分支。

@@ -12,6 +12,7 @@ lang: zh
 description: "将 Python 代码打包为可分发形式，通过 pip 安装、发布至 PyPI、构建 Docker 镜像，并管理版本号。本指南完整覆盖从本地项目到可安装包的全流程。"
 disableNunjucks: true
 series_order: 7
+series_total: 8
 translationKey: "python-engineering-7"
 ---
 你写了一个实用的小工具，同事找你要。你把文件夹打包成 ZIP 发过去，对方解压后运行 `python main.py`，却报了 `ModuleNotFoundError` —— 因为缺少依赖。他手动装上依赖，结果版本不对；更糟的是，他用的是 Python 3.8，而你的代码里用了 f-string 中的海象运算符（walrus operator），这在 3.8 里根本跑不了。

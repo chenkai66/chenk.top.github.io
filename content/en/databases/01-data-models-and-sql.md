@@ -12,6 +12,7 @@ lang: en
 description: "A ground-up tour of the relational model, SQL fundamentals, normalization, and advanced query patterns — everything you need to speak fluent SQL."
 disableNunjucks: true
 series_order: 1
+series_total: 8
 translationKey: "databases-1"
 ---
 

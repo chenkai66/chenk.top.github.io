@@ -14,6 +14,7 @@ mathjax: false
 description: "从第一性原理理解云原生：容器在内核层面到底做了什么、Kubernetes 怎样工作、Service Mesh 何时值得引入、整套技术栈在生产环境如何拼装。"
 disableNunjucks: true
 series_order: 3
+series_total: 8
 translationKey: "cloud-computing-3"
 polished_by_qwen_max: true
 ---

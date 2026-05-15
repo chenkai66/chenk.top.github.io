@@ -11,6 +11,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code Hands-On"
 series_order: 1
+series_total: 10
 description: "Install Claude Code, understand the three-layer settings.json system, and learn the three quietly powerful primitives: # to write into context, @ to reference files, /init to generate the project memory file."
 disableNunjucks: true
 translationKey: "claude-code-learn-1"

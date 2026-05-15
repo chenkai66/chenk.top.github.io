@@ -12,6 +12,7 @@ mathjax: true
 description: "How LLMs reshape recommendation: enhancers (P5, M6Rec), predictors (TallRec, GenRec), and agents (LlamaRec, ChatREC). Hybrid pipelines, cold-start wins, prompt design, and the cost/quality Pareto frontier."
 disableNunjucks: true
 series_order: 12
+series_total: 16
 translationKey: "recommendation-systems-12"
 ---
 A user opens a movie app and types: *"Something like Inception, but less depressing."* A traditional recommender — collaborative filtering, two-tower DNN, even DIN — sees zero useful tokens here. It has no `like` button to count, no co-watch graph to traverse, no user ID with history. The query has to be turned into IDs before the system can do anything.

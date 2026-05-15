@@ -11,6 +11,7 @@ lang: en
 description: "Learn the foundational skills of system design: back-of-envelope estimation, availability math, SLA definitions, and a repeatable framework for tackling any design problem."
 disableNunjucks: true
 series_order: 1
+series_total: 8
 translationKey: "system-design-1"
 ---
 

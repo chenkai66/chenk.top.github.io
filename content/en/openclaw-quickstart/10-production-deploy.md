@@ -13,6 +13,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 10
+series_total: 10
 description: "ECS, pm2, nginx, acme.sh — plus seven production failure modes and their fixes."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-10"

@@ -11,6 +11,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战指南"
 series_order: 3
+series_total: 10
 description: "斜杠命令将重复性工作流压缩为一行调用；$ARGUMENTS 让它支持参数化；而真正优秀的命令，会自然演变为团队共享的协作语言。"
 disableNunjucks: true
 translationKey: "claude-code-learn-3"

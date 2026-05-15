@@ -12,6 +12,7 @@ mathjax: false
 series: terraform-agents
 series_title: "Terraform for AI Agents on Alibaba Cloud"
 series_order: 2
+series_total: 8
 description: "Pinning the alicloud provider, picking between AK/SK, AssumeRole, and ECS RAM role auth, putting tfstate on OSS with Tablestore locking, and the workspace pattern that keeps dev/staging/prod from stomping each other. Plus the dozen failure modes that bite first-timers."
 disableNunjucks: true
 translationKey: "terraform-agents-2"

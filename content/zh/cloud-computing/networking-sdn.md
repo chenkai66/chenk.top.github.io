@@ -14,6 +14,7 @@ mathjax: false
 description: "VPC、负载均衡、CDN、SDN/NFV、BGP —— 从一个数据包到全球互联，深入云网络的关键旋钮。"
 disableNunjucks: true
 series_order: 5
+series_total: 8
 translationKey: "cloud-computing-5"
 polished_by_qwen_max: true
 ---

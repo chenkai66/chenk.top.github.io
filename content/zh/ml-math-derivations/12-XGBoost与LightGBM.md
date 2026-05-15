@@ -16,6 +16,7 @@ mathjax: true
 description: "从 XGBoost 的二阶泰勒展开到 LightGBM 的直方图加速，本文系统推导两大工业级梯度提升框架——正则化目标函数、分裂增益闭式解、GOSS 单边采样与 EFB 互斥特征绑定的数学原理。"
 disableNunjucks: true
 series_order: 12
+series_total: 20
 translationKey: "ml-math-derivations-12"
 ---
 XGBoost 和 LightGBM 是表格数据领域的两大利器——从 Kaggle 排行榜到风控系统、广告排序和用户流失预测，背后几乎都有它们的身影。两者都基于梯度提升树（Gradient-Boosted Trees，见第 11 篇），但在工程设计上选择了截然不同的方向：

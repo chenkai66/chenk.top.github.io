@@ -12,6 +12,7 @@ mathjax: true
 description: "时间序列的 Transformer 全景：编码器-解码器结构、时序位置编码、O(n^2) 注意力瓶颈、Decoder-only 自回归预测与 Patching 策略。含 Autoformer / FEDformer / Informer / PatchTST 选型与可直接运行的实现。"
 disableNunjucks: true
 series_order: 5
+series_total: 8
 translationKey: "time-series-5"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.png)

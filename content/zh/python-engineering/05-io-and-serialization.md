@@ -11,6 +11,7 @@ lang: zh
 description: "在 Python 中处理文件、路径、编码及各类数据格式。通过实际示例对比 JSON、YAML、TOML、CSV、pickle 和 Parquet。"
 disableNunjucks: true
 series_order: 5
+series_total: 8
 translationKey: "python-engineering-5"
 ---
 大多数程序本质上只是在不同数据格式之间搭管道：读一个 CSV，转换一下，写成 JSON；加载配置文件，校验后传给应用。每个 Python 开发者都写过这类代码，而其中大多数人至少踩过一次编码、路径处理或序列化细节的坑。

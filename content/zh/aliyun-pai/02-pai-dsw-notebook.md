@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-pai
 series_title: "阿里云 PAI 实战手册"
 series_order: 2
+series_total: 5
 description: "PAI-DSW 实战：选对 GPU 镜像、把 OSS 挂好不丢权重、把官方 Quick Start 的 MNIST 完整跑通。再附上一些只在淘宝场景里踩过才知道的坑。"
 disableNunjucks: true
 translationKey: "aliyun-pai-2"

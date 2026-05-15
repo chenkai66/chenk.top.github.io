@@ -12,6 +12,7 @@ lang: en
 description: "A practical guide to data pipeline architectures — covering ETL vs ELT, batch processing with Spark, stream processing with Flink, Lambda vs Kappa architectures, Change Data Capture, and a complete real-time analytics pipeline design."
 disableNunjucks: true
 series_order: 7
+series_total: 8
 translationKey: "system-design-7"
 ---
 

@@ -13,6 +13,7 @@ mathjax: true
 description: "从矩估计到极大似然估计与最大后验估计的点估计方法，涵盖费希尔信息量、克拉美–罗下界，以及解释过拟合与欠拟合的偏差-方差分解。"
 disableNunjucks: true
 series_order: 6
+series_total: 8
 translationKey: "probability-statistics-6"
 ---
 我们此前构建的所有内容——分布、期望、极限定理——都假设参数已知。高斯分布有均值 $\mu$ 和方差 $\sigma^2$；二项分布有 $n$ 次试验和成功概率 $p$。但在实际中，你并不知道 $\mu$ 或 $p$，只能通过观测数据来推断它们。

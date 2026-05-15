@@ -13,6 +13,7 @@ lang: zh
 description: "真实应用绝非单个容器。Docker Compose 允许你用一个 YAML 文件声明式地定义多服务架构——网络、卷、依赖关系，一应俱全。"
 disableNunjucks: true
 series_order: 5
+series_total: 8
 translationKey: "docker-containers-5"
 ---
 前几篇文章介绍了如何使用 `docker run` 运行容器、用 `-p` 参数映射端口、用 `docker network create` 创建网络，以及用 `-v` 挂载卷。现在试想一下：每次启动开发环境时，都要为 Web 服务器、API 后端、数据库、缓存和任务队列分别执行这些操作——这将变得极其繁琐。Docker Compose 将原本需要 20 多条命令完成的工作，简化为一个文件和一条命令：`docker compose up`。

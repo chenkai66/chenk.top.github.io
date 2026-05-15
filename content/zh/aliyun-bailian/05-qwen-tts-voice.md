@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-bailian
 series_title: "阿里云百炼实战手册"
 series_order: 5
+series_total: 5
 description: "Qwen-TTS-Flash 实战：只走原生 API、40+ 音色目录（含粤语 / 川语）、流式合成，以及文档一笔带过的 SSML 行为细节。"
 disableNunjucks: true
 translationKey: "aliyun-bailian-5"

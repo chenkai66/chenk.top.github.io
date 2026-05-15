@@ -16,6 +16,7 @@ mathjax: true
 description: "Mathematical epidemiology from first principles. Build the SIR and SEIR models, derive R0 and the herd-immunity threshold, fit COVID-style scenarios with asymptomatic transmission and time-varying interventions."
 disableNunjucks: true
 series_order: 14
+series_total: 18
 translationKey: "ode-14"
 ---
 **In early 2020 the entire world watched a small system of ordinary differential equations decide policy.** "Flatten the curve" was not a slogan; it was the intuition of a specific equation. *Herd immunity* was not a guess; it was the threshold $1 - 1/R_0$ derived in a single line. The SIR model — four lines of math, written down in 1927 by Kermack and McKendrick — turned out to be precise enough to drive trillion-dollar decisions.

@@ -12,6 +12,7 @@ mathjax: false
 series: aliyun-bailian
 series_title: "Aliyun Bailian Practical Guide"
 series_order: 4
+series_total: 5
 description: "Wanxiang text-to-video and image-to-video for production: the async task pattern, polling with backoff, prompt techniques that survive contact with reality, and the OSS write-through that saves you when result URLs expire."
 disableNunjucks: true
 translationKey: "aliyun-bailian-4"

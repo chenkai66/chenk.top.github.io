@@ -12,6 +12,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code Hands-On"
 series_order: 9
+series_total: 10
 description: "settings.json is the file that decides what Claude can do, where, and with whose credentials. The three layers (user, project, local), the permission grammar, env vars that change behavior, and the precedence order that catches everyone the first time."
 disableNunjucks: true
 translationKey: "claude-code-learn-9"

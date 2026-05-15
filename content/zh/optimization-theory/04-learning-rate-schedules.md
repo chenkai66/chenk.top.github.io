@@ -14,6 +14,7 @@ disableNunjucks: true
 translationKey: "optim-04"
 series: optimization-theory
 series_order: 4
+series_total: 12
 aliases:
   - /zh/standalone/学习率-从入门到大模型训练的终极指南-2026/
 ---

@@ -12,6 +12,7 @@ mathjax: true
 description: "Production recommendation systems serve hundreds of millions of users with sub-100ms latency. This final article covers the industrial multi-stage pipeline (recall, coarse ranking, fine ranking, reranking), feature stores, A/B testing, model optimization, deployment, and team responsibilities -- drawing on patterns from YouTube, TikTok, Taobao, and ByteDance."
 disableNunjucks: true
 series_order: 16
+series_total: 16
 translationKey: "recommendation-systems-16"
 ---
 > The hardest part of a production recommendation system isn't the model. It's the **system around the model**: the feature store that prevents training/serving skew, the canary deployment that catches regressions before they hit 100M users, and the orchestration that meets a 100ms p95 latency budget while running four ML models in sequence. This final article describes the architecture that every major tech company has converged on — and the trade-offs within each layer.

@@ -15,6 +15,7 @@ mathjax: true
 description: "PPO 和 TRPO 的完整推导：从策略优化的不稳定性到信任域约束，PPO 的裁剪技巧，以及 PPO 在 RLHF 中的关键角色。"
 disableNunjucks: true
 series_order: 6
+series_total: 12
 translationKey: "reinforcement-learning-6"
 ---
 策略梯度（第三部分）直接优化策略，绕开了离散的 `argmax` 操作，还能自然处理随机策略。但它存在一个致命缺陷：**一次过大的更新就可能彻底摧毁策略**。更糟的是，由于数据分布与策略紧密耦合，一旦崩溃，几乎无法恢复。

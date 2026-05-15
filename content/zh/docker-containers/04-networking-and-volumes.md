@@ -13,6 +13,7 @@ lang: zh
 description: "容器默认是临时性的——删除后数据即丢失，且运行在隔离的网络中。卷（Volumes）和网络（Networks）是两种关键机制，使容器能接入持久化存储与可通信的外部世界。"
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "docker-containers-4"
 ---
 容器被刻意设计为相互隔离，这正是其核心价值；但实际应用必须能接收外部连接、与数据库通信，并持久化容器重启后仍需保留的数据。Docker 通过**网络（Networking）**（管理容器间及对外通信）和**卷（Volumes）**（实现数据持久化）来满足这些需求；二者配置是否合理，直接决定了环境是仅供演示（demo）还是可用于生产（deployment）。

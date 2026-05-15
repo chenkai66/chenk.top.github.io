@@ -10,6 +10,7 @@ tags:
 categories: LLM Engineering
 series: llm-engineering
 series_order: 2
+series_total: 12
 series_title: "LLM Engineering"
 lang: en
 mathjax: true

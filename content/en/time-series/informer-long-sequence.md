@@ -13,6 +13,7 @@ mathjax: true
 description: "Informer reduces Transformer complexity from O(L^2) to O(L log L) via ProbSparse attention, distilling, and a one-shot generative decoder. Full math, PyTorch code, and ETT/weather benchmarks."
 disableNunjucks: true
 series_order: 8
+series_total: 8
 translationKey: "time-series-8"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/informer-long-sequence/illustration_1.png)

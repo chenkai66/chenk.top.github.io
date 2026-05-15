@@ -13,6 +13,7 @@ mathjax: true
 description: "Point estimation from method of moments through maximum likelihood and MAP, with Fisher information, the Cramer-Rao bound, and the bias-variance decomposition that explains overfitting and underfitting."
 disableNunjucks: true
 series_order: 6
+series_total: 8
 translationKey: "probability-statistics-6"
 ---
 

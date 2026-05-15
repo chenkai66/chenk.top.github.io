@@ -12,6 +12,7 @@ mathjax: false
 series: aliyun-bailian
 series_title: "阿里云百炼实战手册"
 series_order: 4
+series_total: 5
 description: "万相文生视频 / 图生视频上生产：异步任务模式、退避轮询、扛得住现实的 prompt 模式，以及 URL 过期前必做的 OSS 写穿。"
 disableNunjucks: true
 translationKey: "aliyun-bailian-4"

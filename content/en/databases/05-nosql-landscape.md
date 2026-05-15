@@ -13,6 +13,7 @@ lang: en
 description: "A practical tour of the four major NoSQL families — document, key-value, wide-column, and graph — including the CAP theorem and when to use each model."
 disableNunjucks: true
 series_order: 5
+series_total: 8
 translationKey: "databases-5"
 ---
 

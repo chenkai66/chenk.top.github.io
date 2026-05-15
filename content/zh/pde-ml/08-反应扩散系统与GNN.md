@@ -16,6 +16,7 @@ mathjax: true
 description: "深层 GNN 之所以崩溃，是因为它就是图上的扩散方程；图灵 1952 年的反应扩散理论告诉我们如何修好它——也为整个八章 PDE+ML 系列收尾。"
 disableNunjucks: true
 series_order: 8
+series_total: 8
 translationKey: "pde-ml-8"
 ---
 ![偏微分方程与机器学习（八）：反应扩散系统与GNN — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-Reaction-Diffusion-Systems/illustration_1.png)

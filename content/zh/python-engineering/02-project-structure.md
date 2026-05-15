@@ -11,6 +11,7 @@ lang: zh
 description: "学习如何将 Python 代码组织为规范的包，涵盖导入机制、入口点（entry points）和命令行工具开发。从零构建一个真实的命令行应用。"
 disableNunjucks: true
 series_order: 2
+series_total: 8
 translationKey: "python-engineering-2"
 ---
 每个项目都始于单个文件。你写下 `main.py`，它能运行；接着不断添加功能，直到某天猛然发现：这个文件已经膨胀到 1500 行，函数层层嵌套，彼此调用，而它们依赖的全局变量却定义在 800 行开外。代码虽然能跑，但没人（包括未来的你）看得懂。

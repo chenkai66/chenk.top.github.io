@@ -13,6 +13,7 @@ mathjax: true
 description: "From expectation and variance through covariance, correlation, and moment-generating functions to Chebyshev's inequality — the complete toolkit for summarizing random variables, with proofs for every result."
 disableNunjucks: true
 series_order: 3
+series_total: 8
 translationKey: "probability-statistics-3"
 ---
 

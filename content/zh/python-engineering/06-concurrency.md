@@ -11,6 +11,7 @@ lang: zh
 description: "深入理解 GIL，掌握 threading、multiprocessing 和 asyncio。学会为 I/O 密集型与 CPU 密集型任务选择最合适的并发模型。"
 disableNunjucks: true
 series_order: 6
+series_total: 8
 translationKey: "python-engineering-6"
 ---
 你的脚本一次只下载 100 个文件，每个约耗时 2 秒——绝大部分时间在等待服务器响应，总耗时 200 秒，而 CPU 99% 的时间处于空闲状态。你为网络延迟付费，却白白浪费了计算资源，并发编程正是为了解决这个问题而诞生的。

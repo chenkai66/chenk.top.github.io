@@ -14,6 +14,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 11
+series_total: 12
 description: "The complete ML platform on Alibaba Cloud: PAI-DSW for notebooks, PAI-DLC for distributed training, PAI-EAS for model serving, Designer for visual workflows, and Model Gallery. Train and deploy a custom model end-to-end."
 disableNunjucks: true
 translationKey: "aliyun-fullstack-11"

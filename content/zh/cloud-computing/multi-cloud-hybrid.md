@@ -14,6 +14,7 @@ mathjax: false
 description: "系列收官。多云 vs 混合云战略、 6R 迁移框架、混合云网络、跨云数据同步与冲突解决、厂商锁定规避、 RPO/RTO 灾备规划、 FinOps 成本优化，以及决定未来十年的趋势。"
 disableNunjucks: true
 series_order: 8
+series_total: 8
 translationKey: "cloud-computing-8"
 polished_by_qwen_max: true
 ---

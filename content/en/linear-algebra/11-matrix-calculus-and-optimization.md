@@ -15,6 +15,7 @@ lang: en
 mathjax: true
 disableNunjucks: true
 series_order: 11
+series_total: 18
 translationKey: "linear-algebra-11"
 ---
 ![Essence of Linear Algebra (11): Matrix Calculus and Optimization — The Engine Behind Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_1.png)

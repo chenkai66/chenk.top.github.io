@@ -15,6 +15,7 @@ lang: en
 mathjax: true
 disableNunjucks: true
 series_order: 12
+series_total: 18
 translationKey: "linear-algebra-12"
 ---
 ![Essence of Linear Algebra (12): Sparse Matrices and Compressed Sensing — Less Is More — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/illustration_1.png)

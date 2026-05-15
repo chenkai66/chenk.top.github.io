@@ -13,6 +13,7 @@ disableNunjucks: true
 translationKey: "optim-02"
 series: optimization-theory
 series_order: 2
+series_total: 12
 aliases:
   - /en/standalone/lipschitz-continuity-strong-convexity-nesterov/
 ---

@@ -13,6 +13,7 @@ lang: en
 description: "Containers provide isolation, not security. Default Docker configurations run processes as root with full capabilities. This article shows how to lock containers down for production."
 disableNunjucks: true
 series_order: 7
+series_total: 8
 translationKey: "docker-containers-7"
 ---
 

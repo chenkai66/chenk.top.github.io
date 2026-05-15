@@ -12,6 +12,7 @@ mathjax: true
 description: "N-BEATS combines deep learning expressiveness with classical decomposition interpretability. Basis function expansion, double residual stacking, and M4 competition analysis with full PyTorch code."
 disableNunjucks: true
 series_order: 7
+series_total: 8
 translationKey: "time-series-7"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/n-beats/illustration_1.png)

@@ -12,6 +12,7 @@ lang: zh
 description: "每个 Web 请求都始于 DNS 解析，可能途经 CDN 边缘节点，最终抵达负载均衡器，才到达你的应用。理解这三跳机制，是构建快速、可靠、全球分布式系统的基石。"
 disableNunjucks: true
 series_order: 2
+series_total: 8
 translationKey: "system-design-2"
 ---
 2017 年，一家主流云服务商因一条配置错误的 DNS 记录，导致互联网大面积中断数小时——成千上万个网站无法访问，并非因为服务器宕机，而是负责将域名翻译为 IP 地址的系统出了问题。这次事故尖锐地提醒我们：那些被视作理所当然的基础设施——DNS、CDN 和负载均衡器——正是整个系统赖以运转的地基。

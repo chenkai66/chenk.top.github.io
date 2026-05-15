@@ -11,6 +11,7 @@ lang: en
 description: "Understand the GIL, master threading, multiprocessing, and asyncio. Learn which concurrency model to use for I/O-bound vs CPU-bound workloads."
 disableNunjucks: true
 series_order: 6
+series_total: 8
 translationKey: "python-engineering-6"
 ---
 

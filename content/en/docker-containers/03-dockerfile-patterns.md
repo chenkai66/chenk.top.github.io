@@ -13,6 +13,7 @@ lang: en
 description: "A Dockerfile defines how your image is built. The difference between a naive Dockerfile and an optimized one can be 10x in image size and build time."
 disableNunjucks: true
 series_order: 3
+series_total: 8
 translationKey: "docker-containers-3"
 ---
 

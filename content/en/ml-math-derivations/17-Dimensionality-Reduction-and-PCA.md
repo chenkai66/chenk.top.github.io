@@ -18,6 +18,7 @@ mathjax: true
 description: "High-dimensional spaces are hostile to distance-based learning. This article derives PCA from two equivalent angles (max variance and min reconstruction error), and extends to kernel PCA, LDA, t-SNE, and ICA -- with figures that show what each method actually does to the same data."
 disableNunjucks: true
 series_order: 17
+series_total: 20
 translationKey: "ml-math-derivations-17"
 ---
 ![ML Math Derivations (17): Dimensionality Reduction and PCA — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/illustration_1.png)

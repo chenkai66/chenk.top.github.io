@@ -15,6 +15,7 @@ mathjax: false
 description: "A working DevOps engineer's guide: CI/CD pipelines that gate quality, Terraform for reproducible infrastructure, Prometheus + Grafana monitoring, ELK/EFK logging, SRE error budgets, and the operational habits that keep services up at 3 AM."
 disableNunjucks: true
 series_order: 7
+series_total: 8
 translationKey: "cloud-computing-7"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/illustration_1.png)

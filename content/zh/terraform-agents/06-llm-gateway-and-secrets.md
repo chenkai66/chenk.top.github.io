@@ -14,6 +14,7 @@ mathjax: false
 series: terraform-agents
 series_title: "用 Terraform 在阿里云上部署 AI Agent"
 series_order: 6
+series_total: 8
 description: "把所有 LLM 访问收敛到一个网关：按 Agent 限流、请求落 SLS 日志、KMS 之外不留密钥。Terraform 配 API Gateway + ECS 上自托管 LiteLLM，DashScope/OpenAI/Anthropic 的 key 通过 KMS Secrets Manager 自动轮转。"
 disableNunjucks: true
 translationKey: "terraform-agents-6"

@@ -12,6 +12,7 @@ lang: zh
 description: "一份实用的数据管道架构指南——涵盖 ETL vs ELT、Spark 批处理、Flink 流处理、Lambda vs Kappa 架构、变更数据捕获（CDC），以及端到端实时分析管道设计。"
 disableNunjucks: true
 series_order: 7
+series_total: 8
 translationKey: "system-design-7"
 ---
 每秒，一家大型电商平台都会生成数千个数据点：页面浏览、搜索查询、加入购物车事件、下单、库存变更、价格更新、配送状态变化。这些原始数据未经处理时毫无价值——散落在数十个服务中，以不同格式存储，且到达速率不可预测。而将这类原始数据转化为可操作洞察的系统——实时仪表盘、个性化推荐、欺诈检测告警、业务报表——正是**数据管道（Data Pipeline）**。

@@ -8,6 +8,7 @@ tags:
 categories: Algorithm
 series: optimization-theory
 series_order: 5
+series_total: 12
 lang: en
 mathjax: true
 description: "What does it really mean for a first-order method to be optimal? We prove a tight lower bound matching Nesterov's rate, derive Polyak's Heavy-Ball method as the continuous-time limit, build a unified Lyapunov framework that covers both, and show how the Catalyst meta-algorithm bootstraps any solver to the accelerated rate."

@@ -13,6 +13,7 @@ lang: zh
 description: "Docker 镜像并非单一的巨型文件，而是由多个只读分层（layers）堆叠而成，且这些分层可在不同容器间共享。理解分层机制，是实现快速构建与精简镜像的关键。"
 disableNunjucks: true
 series_order: 2
+series_total: 8
 translationKey: "docker-containers-2"
 ---
 第一次运行 `docker pull ubuntu` 时，我本以为会下载一整套操作系统，结果几秒就完成了，体积仅 77 MB——对一个 Linux 发行版来说，这小得不可思议。其中的奥秘正是「分层」（layers）；而一旦理解分层的工作原理，你构建和分发容器的方式也会随之改变。

@@ -13,6 +13,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"
 series_order: 5
+series_total: 10
 description: "把 Agent 从终端搬到聊天工具里：Telegram 十分钟配通、钉钉 Stream 模式免公网 IP、微信 WorkBuddy 桌面桥接。三条路径的完整配置和踩坑记录。"
 disableNunjucks: true
 translationKey: "openclaw-quickstart-5"

@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-bailian
 series_title: "Aliyun Bailian Practical Guide"
 series_order: 5
+series_total: 5
 description: "Qwen-TTS-Flash for production: native-only API, the 40+ voice catalog (including Cantonese and Sichuanese), streaming synthesis, and the SSML quirks that the docs gloss over."
 disableNunjucks: true
 translationKey: "aliyun-bailian-5"

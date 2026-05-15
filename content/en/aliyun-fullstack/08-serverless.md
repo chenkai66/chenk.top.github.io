@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 8
+series_total: 12
 description: "Go serverless on Alibaba Cloud: Function Compute triggers, runtimes, cold starts, and pricing. EventBridge for event routing. API Gateway integration. Build an event-driven image processing pipeline."
 disableNunjucks: true
 translationKey: "aliyun-fullstack-8"

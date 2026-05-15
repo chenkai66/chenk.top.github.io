@@ -12,6 +12,7 @@ lang: zh
 description: "一份详尽指南：涵盖 ACID 特性、隔离级别、MVCC、锁策略及死锁预防——每个概念均附带可运行的 SQL 示例。"
 disableNunjucks: true
 series_order: 3
+series_total: 8
 translationKey: "databases-3"
 ---
 任何处理资金、库存或任何关键状态的应用，最终都会遭遇并发 Bug：两名用户同时抢购最后一件商品；一笔银行转账从一个账户扣款成功，却在向另一账户入账前崩溃；一份报表读取到半更新的数据，输出荒谬的统计结果。事务（Transaction）正是为防止此类故障而生——理解其工作原理，对构建生产级系统而言绝非可选项，而是必修课。

@@ -12,6 +12,7 @@ mathjax: true
 description: "Why do differential equations exist? Starting from cooling coffee and swinging pendulums, build your first ODE intuition and solve one in Python."
 disableNunjucks: true
 series_order: 1
+series_total: 18
 translationKey: "ode-1"
 ---
 **Everything around you is changing.** Coffee cools, populations grow, pendulums swing, viruses spread, stocks oscillate, planets orbit. None of these systems are described by *what something equals* — they are described by *how fast something changes*. That second mode of description is what differential equations are for, and learning to read them is, quite literally, learning to read the language physics and biology are written in.

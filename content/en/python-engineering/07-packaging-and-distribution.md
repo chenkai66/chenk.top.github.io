@@ -12,6 +12,7 @@ lang: en
 description: "Package your Python code for distribution via pip, publish to PyPI, create Docker images, and manage versioning. The complete guide from local project to installable package."
 disableNunjucks: true
 series_order: 7
+series_total: 8
 translationKey: "python-engineering-7"
 ---
 

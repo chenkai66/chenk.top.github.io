@@ -12,6 +12,7 @@ mathjax: true
 description: "A practitioner's guide to real-time recommendation: streaming pipelines (Kafka + Flink), online learning (SGD, FTRL, AdaGrad), bandits (UCB, Thompson Sampling, LinUCB), latency budgets, feature freshness, concept drift, and the cache-vs-compute trade-off you actually tune in production."
 disableNunjucks: true
 series_order: 15
+series_total: 16
 translationKey: "recommendation-systems-15"
 ---
 > A user opens your app at 14:02 and searches for 'trail running shoes'. By 15:30, they've moved on to reading kitchen reviews. A model that retrains nightly still shows them Salomon ads at 16:00 — and that gap is exactly the bug a real-time system fixes. The interesting part isn't 'make it faster' but 'what *should* be fast' — most features add nothing to AUC even when made real-time, and the wrong design point wastes money without improving performance.

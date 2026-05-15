@@ -13,6 +13,7 @@ mathjax: true
 description: "一次严谨的巡礼：涵盖随机变量、概率质量函数（PMF）、概率密度函数（PDF）、累积分布函数（CDF），以及所有在实践中至关重要的分布——Bernoulli、Binomial、Poisson、Gaussian、Exponential、Gamma 和 Beta——含推导、证明与 Python 可视化。"
 disableNunjucks: true
 series_order: 2
+series_total: 8
 translationKey: "probability-statistics-2"
 ---
 在上一篇文章中，我们构建了概率论的公理化基础，你或许会觉得花了太多时间讨论集合与子集——事实的确如此。事件与 σ-代数这套机制虽必不可少，却略显枯燥，无法自然地支持均值计算、离散度度量或数据拟合。

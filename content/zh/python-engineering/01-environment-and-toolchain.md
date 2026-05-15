@@ -11,6 +11,7 @@ lang: zh
 description: "掌握使用 pyenv、虚拟环境及现代依赖管理工具进行 Python 环境管理。彻底告别依赖地狱。"
 disableNunjucks: true
 series_order: 1
+series_total: 8
 translationKey: "python-engineering-1"
 ---
 每位 Python 开发者都经历过这样的时刻：你在同事的机器上运行一段脚本，结果却崩溃了——因为对方用的是 Python 3.8，而你是在 3.11 上写的。更糟的是，你执行了 `pip install` 全局安装某个包，结果意外破坏了一个完全无关的项目。Python 的环境管理体系一旦掌握，其实非常强大，但默认体验却像一片布满地雷的雷区。

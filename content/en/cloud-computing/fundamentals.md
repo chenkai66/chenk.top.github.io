@@ -14,6 +14,7 @@ mathjax: false
 description: "An engineering-grade introduction to cloud computing -- service models (IaaS, PaaS, SaaS, FaaS), deployment topologies, the economics of CapEx vs OpEx, regions and AZs, vendor catalogues and a decision framework with real architecture cases."
 disableNunjucks: true
 series_order: 1
+series_total: 8
 translationKey: "cloud-computing-1"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/fundamentals/illustration_1.png)

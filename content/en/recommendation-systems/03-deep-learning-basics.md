@@ -14,6 +14,7 @@ permalink: en/recommendation-systems-3-deep-learning-basics/
 description: "From MLPs to embeddings to NeuMF, YouTube DNN, and Wide & Deep -- a progressive walkthrough of the deep learning building blocks that power every modern recommender, with verified architectures and runnable PyTorch code."
 disableNunjucks: true
 series_order: 3
+series_total: 16
 translationKey: "recommendation-systems-3"
 ---
 

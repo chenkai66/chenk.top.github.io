@@ -14,6 +14,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 10
+series_total: 12
 description: "The complete LLM toolkit on Alibaba Cloud: Qwen model family, DashScope API (OpenAI-compatible), Wanxiang image/video generation, Qwen TTS, async task patterns, and fine-tuning. Build a multi-modal AI pipeline."
 disableNunjucks: true
 translationKey: "aliyun-fullstack-10"

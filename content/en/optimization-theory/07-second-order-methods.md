@@ -8,6 +8,7 @@ tags:
 categories: Algorithm
 series: optimization-theory
 series_order: 7
+series_total: 12
 lang: en
 mathjax: true
 description: "Second-order methods break the sqrt(kappa) barrier by using curvature. We prove Newton's quadratic local convergence, derive BFGS from a secant condition + low-rank update, walk through L-BFGS's two-loop recursion that makes it the workhorse for medium-scale ML, and analyze trust-region subproblems with the dogleg solution."

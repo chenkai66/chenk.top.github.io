@@ -14,6 +14,7 @@ mathjax: false
 series: terraform-agents
 series_title: "用 Terraform 在阿里云上部署 AI Agent"
 series_order: 7
+series_total: 8
 description: "日志进 SLS、Trace 进 ARMS、指标进 CloudMonitor——全部用 HCL 配，新环境天生带观测。真实救过我项目的四条告警，再加上 SLS 驱动的成本看板，发薪日之前告诉你哪个 Agent 在烧预算。"
 disableNunjucks: true
 translationKey: "terraform-agents-7"

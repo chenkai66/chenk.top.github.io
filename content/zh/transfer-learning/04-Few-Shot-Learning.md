@@ -16,6 +16,7 @@ mathjax: true
 description: "从极少样本中学会新概念：N-way K-shot 评测协议、度量学习（Siamese、Prototypical、Matching、Relation 网络）、元学习（MAML、Reptile）、Episode 训练范式，以及一份可直接运行的 Prototypical 网络实现。"
 disableNunjucks: true
 series_order: 4
+series_total: 12
 translationKey: "transfer-learning-4"
 ---
 给小孩看一张穿山甲的照片，他这辈子都能认出穿山甲；而给深度学习模型看一张照片，它的回答基本是随机瞎猜。小样本学习旨在填补这一差距，使分类器在每类只有 1 到 10 个标注样本的情况下也能正常工作。

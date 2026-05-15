@@ -14,6 +14,7 @@ mathjax: false
 description: "Series finale. Multi-cloud vs hybrid cloud strategy, the 6R migration framework, hybrid networking, cross-cloud data sync and conflict resolution, vendor lock-in mitigation, disaster recovery RPO/RTO planning, FinOps cost optimization, and the trends shaping the next decade."
 disableNunjucks: true
 series_order: 8
+series_total: 8
 translationKey: "cloud-computing-8"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/multi-cloud-hybrid/illustration_1.png)

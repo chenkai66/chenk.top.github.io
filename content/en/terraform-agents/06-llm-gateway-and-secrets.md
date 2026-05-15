@@ -14,6 +14,7 @@ mathjax: false
 series: terraform-agents
 series_title: "Terraform for AI Agents on Alibaba Cloud"
 series_order: 6
+series_total: 8
 description: "Centralise LLM API access through one gateway: per-agent quotas, request logging, and zero secrets outside KMS. Terraform-provisioned API Gateway plus self-hosted LiteLLM on ECS, with DashScope/OpenAI/Anthropic keys rotating automatically through KMS Secrets Manager."
 disableNunjucks: true
 translationKey: "terraform-agents-6"

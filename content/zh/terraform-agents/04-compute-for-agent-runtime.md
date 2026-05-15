@@ -14,6 +14,7 @@ mathjax: false
 series: terraform-agents
 series_title: "用 Terraform 在阿里云上部署 AI Agent"
 series_order: 4
+series_total: 8
 description: "Agent 主循环在阿里云上有三个合理落点：长跑 ECS + pm2、ACK 上的 Kubernetes Pod、函数计算触发式调用。我用来挑选的成本拐点模型，再加一段真实的 cloud-init 脚本，从裸 Ubuntu 到 Agent 跑起来 90 秒搞定。"
 disableNunjucks: true
 translationKey: "terraform-agents-4"

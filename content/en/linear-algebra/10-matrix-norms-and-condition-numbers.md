@@ -14,6 +14,7 @@ lang: en
 mathjax: true
 disableNunjucks: true
 series_order: 10
+series_total: 18
 translationKey: "linear-algebra-10"
 ---
 ![Essence of Linear Algebra (10): Matrix Norms and Condition Numbers — Is Your Linear System Healthy? — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/10-matrix-norms-and-condition-numbers/illustration_1.png)

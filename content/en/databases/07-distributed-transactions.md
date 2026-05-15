@@ -12,6 +12,7 @@ lang: en
 description: "How distributed databases coordinate transactions across machines — two-phase commit, Raft consensus, the Saga pattern, and practical patterns like outbox and CDC."
 disableNunjucks: true
 series_order: 7
+series_total: 8
 translationKey: "databases-7"
 ---
 

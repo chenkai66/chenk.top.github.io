@@ -12,6 +12,7 @@ lang: en
 description: "A practical comparison of REST, gRPC, and GraphQL — covering protocol design, real-world trade-offs, rate limiting algorithms, idempotency, and a decision framework for choosing the right API style."
 disableNunjucks: true
 series_order: 3
+series_total: 8
 translationKey: "system-design-3"
 ---
 

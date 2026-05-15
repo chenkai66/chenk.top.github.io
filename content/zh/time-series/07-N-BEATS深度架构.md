@@ -12,6 +12,7 @@ mathjax: true
 description: "N-BEATS 把深度学习的表达力和经典分解的可解释性合二为一：基函数展开、双重残差堆叠、M4 竞赛分析，以及完整的 PyTorch 代码。"
 disableNunjucks: true
 series_order: 7
+series_total: 8
 translationKey: "time-series-7"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/07-N-BEATS深度架构/illustration_1.png)

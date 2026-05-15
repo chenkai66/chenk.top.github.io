@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-pai
 series_title: "Aliyun PAI Practical Guide"
 series_order: 1
+series_total: 5
 description: "What Aliyun PAI actually is in 2026, the four-layer architecture from the official docs, the five sub-products you'll touch, and a sane account/workspace setup so the rest of the series can skip the boilerplate."
 disableNunjucks: true
 translationKey: "aliyun-pai-1"

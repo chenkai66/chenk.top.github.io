@@ -13,6 +13,7 @@ lang: en
 description: "Containers are ephemeral by default — they lose data when deleted and run in isolated networks. Volumes and networks are the two mechanisms that connect containers to the persistent, communicating world."
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "docker-containers-4"
 ---
 

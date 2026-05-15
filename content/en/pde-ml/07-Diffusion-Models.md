@@ -17,6 +17,7 @@ mathjax: true
 description: "Diffusion models are PDE solvers in disguise. We derive the heat equation, Fokker-Planck, score matching, DDPM, and DDIM from a unified PDE perspective and visualise every step."
 disableNunjucks: true
 series_order: 7
+series_total: 8
 translationKey: "pde-ml-7"
 ---
 ![PDE and ML (7): Diffusion Models and Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/illustration_1.png)

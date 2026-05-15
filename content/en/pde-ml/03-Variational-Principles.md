@@ -13,6 +13,7 @@ lang: en
 mathjax: true
 disableNunjucks: true
 series_order: 3
+series_total: 8
 series: pde-ml
 translationKey: "pde-ml-3"
 ---

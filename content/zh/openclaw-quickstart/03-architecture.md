@@ -12,6 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"
 series_order: 3
+series_total: 10
 description: "Gateway、Pi Agent、工具、技能、记忆和渠道——每一层做什么、怎么配合、为什么在你写自定义技能时这个分层设计很重要。"
 disableNunjucks: true
 translationKey: "openclaw-quickstart-3"

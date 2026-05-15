@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-bailian
 series_title: "Aliyun Bailian Practical Guide"
 series_order: 2
+series_total: 5
 description: "Picking a Qwen variant by latency and cost, function calling done right, JSON mode without tears, and the enable_thinking + streaming requirement that the docs gloss over."
 disableNunjucks: true
 translationKey: "aliyun-bailian-2"

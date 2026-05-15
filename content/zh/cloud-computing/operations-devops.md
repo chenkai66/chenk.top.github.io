@@ -15,6 +15,7 @@ mathjax: false
 description: "工程师视角的 DevOps 实战：能把控质量的 CI/CD、可复现的 Terraform 基础设施、Prometheus + Grafana 监控、ELK / EFK 日志、SRE 错误预算，以及凌晨三点能撑住的运维习惯。"
 disableNunjucks: true
 series_order: 7
+series_total: 8
 translationKey: "cloud-computing-7"
 polished_by_qwen_max: true
 ---

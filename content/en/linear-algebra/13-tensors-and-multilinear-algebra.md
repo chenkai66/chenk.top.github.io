@@ -13,6 +13,7 @@ mathjax: true
 description: "From scalars to high-dimensional data cubes -- tensors generalize vectors and matrices to arbitrary dimensions. Learn CP and Tucker decomposition, see how tensors compress neural networks and power recommender systems, and build intuition with NumPy/TensorLy code."
 disableNunjucks: true
 series_order: 13
+series_total: 18
 translationKey: "linear-algebra-13"
 ---
 If you've used PyTorch or TensorFlow, you've met the word "tensor" hundreds of times. PyTorch calls every array `torch.Tensor`; TensorFlow puts it in the product name. But what *is* a tensor, and why did frameworks borrow this physics-flavored word for what looks like a multi-dimensional array?

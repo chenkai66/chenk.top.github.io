@@ -14,6 +14,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 7
+series_total: 12
 description: "构建全栈可观测性：SLS 日志收集和查询、CloudMonitor 指标和告警、ARMS 分布式追踪。为生产 Web 应用设置完整的监控堆栈。"
 disableNunjucks: true
 translationKey: "aliyun-fullstack-7"

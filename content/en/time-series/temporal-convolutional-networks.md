@@ -12,6 +12,7 @@ mathjax: true
 description: "TCNs use causal dilated convolutions for parallel training and exponential receptive fields. Complete PyTorch implementation with traffic flow and sensor data case studies."
 disableNunjucks: true
 series_order: 6
+series_total: 8
 translationKey: "time-series-6"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/temporal-convolutional-networks/illustration_1.png)

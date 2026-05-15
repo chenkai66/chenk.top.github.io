@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 3
+series_total: 12
 description: "从零开始构建生产网络：VPC 架构、CIDR 规划、跨可用区 VSwitch、安全组防火墙、SLB 负载均衡、NAT 网关出站流量、EIP 公网访问。"
 disableNunjucks: true
 translationKey: "aliyun-fullstack-3"

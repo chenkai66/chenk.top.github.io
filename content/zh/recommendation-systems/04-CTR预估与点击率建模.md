@@ -13,6 +13,7 @@ mathjax: true
 description: "CTR 预估模型全面解析：从 Logistic Regression 到 FM/FFM，再到 DeepFM、xDeepFM、DCN、AutoInt、FiBiNet 等深度学习模型，附 PyTorch 实现与训练策略。"
 disableNunjucks: true
 series_order: 4
+series_total: 16
 translationKey: "recommendation-systems-4"
 ---
 每次你刷信息流、点击商品推荐或观看推荐视频时，背后都有一个 CTR（点击率）模型在决定给你展示什么——这个模型要回答的问题看似简单：

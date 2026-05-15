@@ -8,6 +8,7 @@ tags:
 categories: Algorithm
 series: optimization-theory
 series_order: 9
+series_total: 12
 lang: zh
 mathjax: true
 description: '内点法何以成为凸规划默认求解器：以对数障碍函数替代不等式约束，参数化中心路径，并应用牛顿法；涵盖自协调性理论及著名的 $O(\sqrt{n} \log(1/\varepsilon))$ 迭代复杂度证明。'

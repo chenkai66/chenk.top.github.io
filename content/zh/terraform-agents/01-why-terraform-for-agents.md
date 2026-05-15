@@ -12,6 +12,7 @@ mathjax: false
 series: terraform-agents
 series_title: "用 Terraform 在阿里云上部署 AI Agent"
 series_order: 1
+series_total: 8
 description: "Agent 系统是个移动靶——每个月都有新工具、新记忆库、新区域。手动点控制台撑不到第二个同事入职。本系列第一篇讲为什么要在阿里云上用 Terraform，盘点 alicloud provider 真正覆盖了哪些资源，并把它和 Pulumi、Crossplane、ROS 摆在一起对比，让你第一次就选对。"
 disableNunjucks: true
 translationKey: "terraform-agents-1"

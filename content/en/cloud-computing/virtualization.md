@@ -14,6 +14,7 @@ mathjax: false
 description: "A hands-on guide to virtualization -- hypervisors (VMware, KVM, Xen, Hyper-V), storage and network virtualization, performance tuning, and container comparison."
 disableNunjucks: true
 series_order: 2
+series_total: 8
 translationKey: "cloud-computing-2"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/illustration_1.png)

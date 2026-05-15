@@ -13,6 +13,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"
 series_order: 10
+series_total: 10
 description: "ECS + pm2 + nginx + acme.sh 上线部署，加七个生产环境常见故障及其排查方法。"
 disableNunjucks: true
 translationKey: "openclaw-quickstart-10"

@@ -12,6 +12,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 2
+series_total: 12
 description: "了解 ECS 所需的一切：实例系列（g8、c8、r8、GPU）、定价模型、cloud-init 自动化、安全组、密钥对。从零部署生产就绪的应用服务器。"
 disableNunjucks: true
 translationKey: "aliyun-fullstack-2"

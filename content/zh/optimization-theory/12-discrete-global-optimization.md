@@ -14,6 +14,7 @@ disableNunjucks: true
 translationKey: "optim-12"
 series: optimization-theory
 series_order: 12
+series_total: 12
 aliases:
   - /zh/standalone/solving-constrained-mean-variance-portfolio-optimization-pro/
 ---

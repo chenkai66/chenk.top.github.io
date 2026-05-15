@@ -12,6 +12,7 @@ lang: en
 description: "Deep dive into B-tree and B+tree indexes, hash indexes, composite indexes, covering indexes, and how to read EXPLAIN output to diagnose slow queries."
 disableNunjucks: true
 series_order: 2
+series_total: 8
 translationKey: "databases-2"
 ---
 

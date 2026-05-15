@@ -12,6 +12,7 @@ lang: en
 description: "A thorough guide to ACID properties, isolation levels, MVCC, locking strategies, and deadlock prevention — with concrete SQL examples for every concept."
 disableNunjucks: true
 series_order: 3
+series_total: 8
 translationKey: "databases-3"
 ---
 

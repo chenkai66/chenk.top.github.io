@@ -11,6 +11,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code Hands-On"
 series_order: 3
+series_total: 10
 description: "Slash commands turn repeated workflows into one-line invocations. $ARGUMENTS makes them parameterized. The right ones become your team's shared vocabulary."
 disableNunjucks: true
 translationKey: "claude-code-learn-3"

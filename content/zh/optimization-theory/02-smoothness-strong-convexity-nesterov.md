@@ -13,6 +13,7 @@ disableNunjucks: true
 translationKey: "optim-02"
 series: optimization-theory
 series_order: 2
+series_total: 12
 aliases:
   - /zh/standalone/深入解析非线性优化中的lipschitz连续性-强凸性与加速梯度下降算法/
 ---

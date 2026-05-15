@@ -12,6 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"
 series_order: 7
+series_total: 10
 description: "MEMORY.md 索引、memoryFlush、bge-m3 语义搜索，以及 ContextEngine 的工作原理。"
 disableNunjucks: true
 translationKey: "openclaw-quickstart-7"

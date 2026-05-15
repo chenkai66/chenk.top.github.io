@@ -15,6 +15,7 @@ lang: en
 mathjax: true
 disableNunjucks: true
 series_order: 8
+series_total: 18
 translationKey: "linear-algebra-8"
 ---
 ![Essence of Linear Algebra (8): Symmetric Matrices and Quadratic Forms — The Best Matrices in Town — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/illustration_1.png)

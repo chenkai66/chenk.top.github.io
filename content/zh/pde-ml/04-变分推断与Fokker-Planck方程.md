@@ -14,6 +14,7 @@ mathjax: true
 description: "变分推断与 Langevin MCMC 在连续时间下是同一个 Fokker-Planck PDE：从 SDE 推导密度演化、KL 散度作为 Wasserstein 梯度流、SVGD 粒子方法、对数 Sobolev 不等式给出指数收敛、贝叶斯神经网络应用。"
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "pde-ml-4"
 ---
 ![偏微分方程与机器学习（四）：变分推断与Fokker-Planck方程 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-Variational-Inference/illustration_1.png)

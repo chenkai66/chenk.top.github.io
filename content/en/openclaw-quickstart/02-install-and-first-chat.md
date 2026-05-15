@@ -12,6 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 2
+series_total: 10
 description: "Install OpenClaw, plug in a model provider, and have a working agent in ten minutes."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-2"

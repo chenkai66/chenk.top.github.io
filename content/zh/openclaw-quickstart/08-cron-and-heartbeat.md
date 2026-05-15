@@ -12,6 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"
 series_order: 8
+series_total: 10
 description: "OpenClaw 的两个调度原语——Heartbeat 是带脉搏的巡逻，Cron 是厨房计时器。每日简报、周报、竞品监控的完整配置，以及那个会让你凌晨三点被吵醒的反模式。"
 disableNunjucks: true
 translationKey: "openclaw-quickstart-8"

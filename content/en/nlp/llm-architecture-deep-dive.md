@@ -17,6 +17,7 @@ mathjax: true
 description: "Inside modern LLMs: pre-norm + RMSNorm + SwiGLU + RoPE + GQA, KV cache mechanics, FlashAttention's IO-aware schedule, sparse Mixture-of-Experts, and INT8 / INT4 quantization."
 disableNunjucks: true
 series_order: 9
+series_total: 12
 translationKey: "nlp-9"
 ---
 The 2017 Transformer paper drew one block. Every production LLM today still uses that diagram as a silhouette, but almost every internal piece has been replaced. Pre-norm replaced post-norm. RMSNorm replaced LayerNorm. SwiGLU replaced GELU. Rotary embeddings replaced sinusoids. Multi-head attention became grouped-query attention. The dense FFN sometimes became a sparse mixture of experts. And the inference loop is dominated by a data structure that doesn't appear in the original paper at all: the KV cache.

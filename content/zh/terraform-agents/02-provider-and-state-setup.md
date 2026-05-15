@@ -12,6 +12,7 @@ mathjax: false
 series: terraform-agents
 series_title: "用 Terraform 在阿里云上部署 AI Agent"
 series_order: 2
+series_total: 8
 description: "钉死 alicloud provider 版本，在 AK/SK、AssumeRole、ECS RAM role 三种认证方式之间正确选择，把 tfstate 放到 OSS 并用 Tablestore 加锁，再加上让 dev/staging/prod 不互相踩脚的 workspace 模式。还有初学者第一天必踩的十几个坑。"
 disableNunjucks: true
 translationKey: "terraform-agents-2"

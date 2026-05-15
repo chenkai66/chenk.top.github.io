@@ -17,6 +17,7 @@ mathjax: true
 description: "从 Dyna、MBPO 到 World Models、Dreamer 和 MuZero——学一个环境模型，让智能体在想象中规划，把样本效率提高 10-100 倍。"
 disableNunjucks: true
 series_order: 5
+series_total: 12
 translationKey: "reinforcement-learning-5"
 ---
 到目前为止，我们介绍的所有算法——DQN、REINFORCE、A2C、PPO、SAC——都属于 **Model-Free**（无模型）类型。智能体将环境视为黑盒，不断尝试动作并根据返回的奖励更新策略，完全不关心环境内部如何运作。这种方法确实有效，但代价高昂：DQN 需要大约 **1000 万帧**才能掌握 Atari Pong；OpenAI Five 在 Dota 2 上的训练量相当于 **约 4.5 万年**的自我对弈；AlphaStar 则消耗了数年的 StarCraft 对局数据来训练单个智能体。

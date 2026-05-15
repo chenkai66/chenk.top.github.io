@@ -12,6 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 3
+series_total: 10
 description: "Gateway, Pi Agent, Tools, Skills, Memory, Channels — what each layer does."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-3"

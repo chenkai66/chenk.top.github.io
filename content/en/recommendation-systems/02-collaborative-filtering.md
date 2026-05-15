@@ -11,6 +11,7 @@ mathjax: true
 series: recommendation-systems
 series_title: "Recommendation Systems Series"
 series_order: 2
+series_total: 16
 description: "An in-depth tour of collaborative filtering and matrix factorization: User-CF and Item-CF, similarity metrics, latent-factor models, SVD++, ALS, BPR, and factorization machines — with intuitions, derivations, and runnable Python."
 disableNunjucks: true
 translationKey: "recommendation-systems-2"

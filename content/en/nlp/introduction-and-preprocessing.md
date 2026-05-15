@@ -12,6 +12,7 @@ mathjax: true
 description: "A first-principles introduction to NLP and text preprocessing. We trace the four eras of the field, build the cleaning to vectorization pipeline by hand, and unpack the math behind tokenization, TF-IDF, n-grams, and distributed representations."
 disableNunjucks: true
 series_order: 1
+series_total: 12
 translationKey: "nlp-1"
 ---
 Every time you ask Claude a question, autocomplete a sentence in Gmail, or read a Google Translate page, you're using a stack that took seventy years to build. Natural Language Processing (NLP) is the field that taught machines to read, score, transform, and write human language. Surprisingly, much of the modern NLP stack still relies on preprocessing techniques from decades ago.

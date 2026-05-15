@@ -12,6 +12,7 @@ mathjax: true
 description: "GRU 把 LSTM 精炼为两个门，参数减少 25%，训练快 10--15%。本文用公式、基准测试和决策矩阵告诉你 GRU 何时优于 LSTM。"
 disableNunjucks: true
 series_order: 3
+series_total: 8
 translationKey: "time-series-3"
 ---
 

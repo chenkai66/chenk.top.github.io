@@ -14,6 +14,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 9
+series_total: 12
 description: "From keyword search to AI-powered retrieval: OpenSearch service, vector search for RAG, LLM-powered query rewriting, and hybrid search. Build a product search engine combining vectors and keywords."
 disableNunjucks: true
 translationKey: "aliyun-fullstack-9"

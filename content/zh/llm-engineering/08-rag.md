@@ -10,6 +10,7 @@ tags:
 categories: 大模型工程
 series: llm-engineering
 series_order: 8
+series_total: 12
 series_title: "大模型工程"
 lang: zh
 mathjax: true

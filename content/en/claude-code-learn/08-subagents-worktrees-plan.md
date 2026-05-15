@@ -12,6 +12,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code Hands-On"
 series_order: 8
+series_total: 10
 description: "Three features that change what Claude Code can take on at once: sub-agents for parallel research, worktrees for isolation, plan mode for the moments before you let it touch anything. The boundaries between them, and when each is the wrong answer."
 disableNunjucks: true
 translationKey: "claude-code-learn-8"

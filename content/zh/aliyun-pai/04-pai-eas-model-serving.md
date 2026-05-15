@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-pai
 series_title: "阿里云 PAI 实战手册"
 series_order: 4
+series_total: 5
 description: "PAI-EAS 端到端：基于镜像 + OSS 挂权重的部署方式、三种推理模式、不让账单爆炸的扩缩容配置，以及用服务组做灰度发布。配上来自官方 Quick Start 的 vLLM Qwen3 完整部署示例。"
 disableNunjucks: true
 translationKey: "aliyun-pai-4"

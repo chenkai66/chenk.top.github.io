@@ -12,6 +12,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 1
+series_total: 12
 description: "A no-BS guide to Alibaba Cloud's product ecosystem. We map every major service to its AWS/Azure/GCP equivalent, set up an account from scratch, and deploy our first ECS instance — all in under an hour."
 disableNunjucks: true
 translationKey: "aliyun-fullstack-1"

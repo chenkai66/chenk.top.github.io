@@ -13,6 +13,7 @@ mathjax: true
 description: "The two pillars of probability: the Law of Large Numbers guarantees sample means converge, and the Central Limit Theorem explains why everything looks Gaussian — with proofs, convergence concepts, and Python simulations."
 disableNunjucks: true
 series_order: 5
+series_total: 8
 translationKey: "probability-statistics-5"
 ---
 

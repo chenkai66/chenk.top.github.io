@@ -13,6 +13,7 @@ mathjax: false
 series: terraform-agents
 series_title: "用 Terraform 在阿里云上部署 AI Agent"
 series_order: 3
+series_total: 8
 description: "第一个可复用 module——三可用区 VPC，公私网交换机分层，NAT 出网，按 tier 分层的安全组，再加上按数据域分的 KMS 主密钥。同样的代码出现在我交付过的每一个 Agent stack 里，参数化但本体不变。"
 disableNunjucks: true
 translationKey: "terraform-agents-3"

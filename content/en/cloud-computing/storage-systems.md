@@ -14,6 +14,7 @@ mathjax: false
 description: "From CAP theorem to S3, HDFS, and Ceph -- a deep tour of distributed storage primitives, consistency, replication, erasure coding, and cost optimisation."
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "cloud-computing-4"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/illustration_1.png)

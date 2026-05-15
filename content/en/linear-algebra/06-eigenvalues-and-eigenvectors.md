@@ -14,6 +14,7 @@ lang: en
 mathjax: true
 disableNunjucks: true
 series_order: 6
+series_total: 18
 translationKey: "linear-algebra-6"
 ---
 ![Essence of Linear Algebra (6): Eigenvalues and Eigenvectors — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/06-eigenvalues-and-eigenvectors/illustration_1.png)

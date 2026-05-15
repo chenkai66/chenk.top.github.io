@@ -15,6 +15,7 @@ mathjax: false
 description: "A working engineer's guide to cloud security: shared responsibility, IAM that actually scales, encryption at rest / in transit / in use, zero trust, compliance frameworks, and incident response that you can rehearse."
 disableNunjucks: true
 series_order: 6
+series_total: 8
 translationKey: "cloud-computing-6"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/illustration_1.png)

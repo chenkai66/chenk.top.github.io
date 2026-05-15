@@ -12,6 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"
 series_order: 4
+series_total: 10
 description: "openclaw.json 完全解析：什么时候该用哪个模型服务商，以及为什么阿里云百炼 Coding Plan 是在国内跑重度 Agent 工作负载最划算的方式——每月 200 元，8 个模型任用包括 Claude。"
 disableNunjucks: true
 translationKey: "openclaw-quickstart-4"

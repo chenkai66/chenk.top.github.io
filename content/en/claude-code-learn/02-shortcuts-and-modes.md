@@ -11,6 +11,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code Hands-On"
 series_order: 2
+series_total: 10
 description: "Shift+Tab is a four-state cycle, not a binary. Thinking modes have five levels. Escape and double-Escape do different things. Five shortcuts that reshape how Claude Code feels day-to-day."
 disableNunjucks: true
 translationKey: "claude-code-learn-2"

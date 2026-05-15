@@ -14,6 +14,7 @@ mathjax: true
 description: "When multiple variables interact, you need systems of ODEs. Learn the matrix exponential, eigenvalue-based solutions, phase portrait classification, and applications to coupled oscillators and RLC circuits."
 disableNunjucks: true
 series_order: 6
+series_total: 18
 translationKey: "ode-6"
 ---
 **One equation describes one quantity. The world is rarely that obliging.** Predator and prey populations push each other up and down. Currents and voltages in an RLC network oscillate together. Chemical species in a reaction network feed into one another. The moment two unknowns share an equation, you have a *system*, and a single $y'=ay$ is no longer enough.

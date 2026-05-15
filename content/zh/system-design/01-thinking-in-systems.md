@@ -11,6 +11,7 @@ lang: zh
 description: "掌握系统设计的基础能力：快速估算（back-of-envelope estimation）、可用性数学推导、SLA 定义，以及一套可复用的系统设计框架。"
 disableNunjucks: true
 series_order: 1
+series_total: 8
 translationKey: "system-design-1"
 ---
 一位朋友曾请我帮忙排查一个性能问题。他们的照片分享应用在开发环境运行良好，但一到生产环境就彻底崩溃：数据库过载、API 网关频繁超时，用户大量看到 504 错误。当我问系统每秒处理多少请求时，对方回答“我不知道”；再问预期负载是多少，他说“根本没想过这个问题”。

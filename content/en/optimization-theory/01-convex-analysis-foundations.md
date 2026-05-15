@@ -8,6 +8,7 @@ tags:
 categories: Algorithm
 series: optimization-theory
 series_order: 1
+series_total: 12
 lang: en
 mathjax: true
 description: "The geometric and analytic toolkit that unlocks the rest of the series: convex sets, convex functions, the conjugate (Fenchel) transform, subgradients, and the indicator/support function pair. Includes complete proofs of Jensen's inequality, the projection theorem, and the subdifferential of basic norms."

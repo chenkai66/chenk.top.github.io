@@ -15,6 +15,7 @@ lang: zh
 mathjax: true
 disableNunjucks: true
 series_order: 9
+series_total: 18
 translationKey: "linear-algebra-9"
 polished_by_qwen_max: true
 ---

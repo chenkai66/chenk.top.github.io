@@ -14,6 +14,7 @@ lang: en
 mathjax: true
 disableNunjucks: true
 series_order: 5
+series_total: 18
 translationKey: "linear-algebra-5"
 ---
 ![Essence of Linear Algebra (5): Linear Systems and Column Space — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/illustration_1.png)

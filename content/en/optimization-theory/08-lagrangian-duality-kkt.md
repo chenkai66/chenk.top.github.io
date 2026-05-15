@@ -8,6 +8,7 @@ tags:
 categories: Algorithm
 series: optimization-theory
 series_order: 8
+series_total: 12
 lang: en
 mathjax: true
 description: "How constraints become prices: the Lagrangian, weak duality, Slater's condition for strong duality, the KKT system as necessary and sufficient optimality, and why the SVM dual is much smaller than the SVM primal. Includes complete proofs and the saddle-point characterization."

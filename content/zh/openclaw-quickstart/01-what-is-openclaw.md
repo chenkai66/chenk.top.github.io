@@ -11,6 +11,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"
 series_order: 1
+series_total: 10
 description: "OpenClaw 是什么、跟 ChatGPT/Claude 有什么区别、解决哪些问题。"
 disableNunjucks: true
 translationKey: "openclaw-quickstart-1"

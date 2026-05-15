@@ -12,6 +12,7 @@ mathjax: false
 series: terraform-agents
 series_title: "Terraform for AI Agents on Alibaba Cloud"
 series_order: 8
+series_total: 8
 description: "Stitching the seven modules into one repo, running terraform apply once, and watching a complete agent runtime — VPC, ECS, RDS, OpenSearch, OSS, LLM gateway, SLS observability, cost alarms — come up in seven minutes. Real apply output, the module DAG, full prod cost arithmetic, and the starter repo to fork."
 disableNunjucks: true
 translationKey: "terraform-agents-8"

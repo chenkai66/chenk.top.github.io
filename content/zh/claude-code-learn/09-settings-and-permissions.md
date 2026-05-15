@@ -12,6 +12,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战入门"
 series_order: 9
+series_total: 10
 description: "settings.json 决定了 Claude 能动什么、在哪里、用谁的身份。三层（用户、项目、本地）、权限语法、改变行为的环境变量、以及那条第一次都会咬人的优先级规则。"
 disableNunjucks: true
 translationKey: "claude-code-learn-9"

@@ -12,6 +12,7 @@ lang: zh
 description: "使用 mypy 添加类型安全性，用 ruff 和 black 强制执行代码风格，并通过 pre-commit 钩子自动化检查。让代码评审聚焦于逻辑设计，而非格式细节。"
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "python-engineering-4"
 ---
 代码评审应聚焦于逻辑与架构设计，而不是纠结于单引号还是双引号——这类争论纯粹是浪费工程师的时间。解决方案很简单：让机器处理代码风格，让人专注于逻辑正确性。

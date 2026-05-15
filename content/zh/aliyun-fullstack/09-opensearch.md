@@ -14,6 +14,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 9
+series_total: 12
 description: "从关键词搜索到 AI 驱动检索：OpenSearch 服务、向量搜索 RAG、LLM 查询重写、混合搜索。结合向量和关键词构建产品搜索引擎。"
 disableNunjucks: true
 translationKey: "aliyun-fullstack-9"

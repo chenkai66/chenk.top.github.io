@@ -13,6 +13,7 @@ lang: en
 description: "Single-host Docker breaks down at scale. This article previews container orchestration — Docker Swarm for simplicity, Kubernetes for everything else — and maps out the broader cloud-native ecosystem."
 disableNunjucks: true
 series_order: 8
+series_total: 8
 translationKey: "docker-containers-8"
 ---
 

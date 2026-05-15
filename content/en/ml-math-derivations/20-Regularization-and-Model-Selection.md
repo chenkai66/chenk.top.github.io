@@ -18,6 +18,7 @@ mathjax: true
 description: "The series finale: from the bias-variance decomposition to L1/L2 geometry, dropout as a sub-network sampler, k-fold CV, AIC/BIC, VC bounds, and the modern double-descent phenomenon that broke classical theory."
 disableNunjucks: true
 series_order: 20
+series_total: 20
 translationKey: "ml-math-derivations-20"
 ---
 ![ML Math Derivations (20): Regularization and Model Selection — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/20-Regularization-and-Model-Selection/illustration_1.png)

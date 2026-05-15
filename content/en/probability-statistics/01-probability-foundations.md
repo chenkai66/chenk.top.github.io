@@ -13,6 +13,7 @@ mathjax: true
 description: "Building probability from the ground up: sample spaces, Kolmogorov's axioms, conditional probability, Bayes' theorem, and the birthday problem — with proofs and Python simulations."
 disableNunjucks: true
 series_order: 1
+series_total: 8
 translationKey: "probability-statistics-1"
 ---
 

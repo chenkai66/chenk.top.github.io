@@ -14,6 +14,7 @@ mathjax: false
 description: "虚拟化实战指南 -- Hypervisor（VMware、KVM、Xen、Hyper-V）、存储与网络虚拟化、性能调优以及容器对比。"
 disableNunjucks: true
 series_order: 2
+series_total: 8
 translationKey: "cloud-computing-2"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/illustration_1.png)

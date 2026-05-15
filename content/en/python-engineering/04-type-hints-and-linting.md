@@ -12,6 +12,7 @@ lang: en
 description: "Add type safety with mypy, enforce style with ruff and black, and automate checks with pre-commit hooks. Make code reviews about logic, not formatting."
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "python-engineering-4"
 ---
 

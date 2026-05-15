@@ -14,6 +14,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 10
+series_total: 12
 description: "阿里云完整 LLM 工具包：Qwen 模型系列、DashScope API（兼容 OpenAI）、万象图像/视频生成、Qwen TTS、异步任务模式、微调。构建多模态 AI 流水线。"
 disableNunjucks: true
 translationKey: "aliyun-fullstack-10"

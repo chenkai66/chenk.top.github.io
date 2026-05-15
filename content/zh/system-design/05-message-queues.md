@@ -12,6 +12,7 @@ lang: zh
 description: "一份面向实践的消息队列与事件驱动系统指南——涵盖 Kafka 与 RabbitMQ 架构、投递语义保障、事件溯源（Event Sourcing）、CQRS、死信队列（DLQ）、反压（Backpressure），以及完整的订单处理流水线设计。"
 disableNunjucks: true
 series_order: 5
+series_total: 8
 translationKey: "system-design-5"
 ---
 2011 年，LinkedIn 工程团队正面临许多快速成长公司共有的难题：其单体应用已演变为一张由强耦合服务构成的复杂网络，每个服务都需同步调用另外约六个服务。一旦其中任一服务宕机，级联故障便会迅速蔓延至整个系统；而对某个服务做一次变更发布，则必须协调所有被它调用的服务所属团队。

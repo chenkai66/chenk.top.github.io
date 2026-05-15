@@ -12,6 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"
 series_order: 2
+series_total: 10
 description: "在 macOS 或 Ubuntu 上装好 OpenClaw，接入模型服务商，启动 TUI，十分钟之内得到一个能用的 Agent。顺便解决那个浪费最多时间的 Node 版本坑。"
 disableNunjucks: true
 translationKey: "openclaw-quickstart-2"

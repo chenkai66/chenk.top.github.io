@@ -14,6 +14,7 @@ mathjax: false
 description: "VPC, load balancers, CDN, SDN/NFV, and BGP -- a deep tour of cloud networking from packet to planet, with the production knobs that matter."
 disableNunjucks: true
 series_order: 5
+series_total: 8
 translationKey: "cloud-computing-5"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/illustration_1.png)

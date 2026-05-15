@@ -13,6 +13,7 @@ mathjax: true
 description: "联合概率质量函数（PMF）与概率密度函数（PDF）、边缘分布与条件分布、二元正态分布、基于雅可比行列式的变量变换、卷积、次序统计量——含严格证明与等高线图可视化。"
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "probability-statistics-4"
 ---
 到目前为止，我们研究过的每一种分布都只描述**单个**随机量：一次骰子投掷、一个等待时间、一次测量值。但真正有趣的问题往往涉及**多个变量之间的关系**：学习时长是否能预测考试成绩？不同行业的股票收益率是否相关？两个随机变量之和的行为如何？

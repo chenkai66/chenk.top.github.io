@@ -17,6 +17,7 @@ mathjax: true
 description: "从 PDE 视角统一理解扩散模型：热方程、Fokker-Planck、score matching、DDPM/DDIM、Latent Diffusion，配可视化。"
 disableNunjucks: true
 series_order: 7
+series_total: 8
 translationKey: "pde-ml-7"
 ---
 ![偏微分方程与机器学习（七）：扩散模型与Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-Diffusion-Models/illustration_1.png)

@@ -14,6 +14,7 @@ lang: en
 mathjax: true
 disableNunjucks: true
 series_order: 2
+series_total: 18
 translationKey: "linear-algebra-2"
 ---
 ![Essence of Linear Algebra (2): Linear Combinations and Vector Spaces — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/02-linear-combinations-and-vector-spaces/illustration_1.png)

@@ -12,6 +12,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code Hands-On"
 series_order: 4
+series_total: 10
 description: "MCP is the plug-in protocol that lets Claude Code reach beyond your filesystem. Install one (Playwright), see it work end-to-end, and learn the permission model that keeps it from going feral."
 disableNunjucks: true
 translationKey: "claude-code-learn-4"

@@ -14,6 +14,7 @@ mathjax: false
 description: "从 CAP 定理到 S3、HDFS、Ceph —— 深入剖析分布式存储原语、一致性、副本、纠删码与成本优化。"
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "cloud-computing-4"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/illustration_1.png)

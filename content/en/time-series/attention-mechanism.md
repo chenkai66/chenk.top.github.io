@@ -12,6 +12,7 @@ mathjax: true
 description: "Self-attention, multi-head attention, and positional encoding for time series. Step-by-step math, PyTorch implementations, and visualization techniques for interpretable forecasting."
 disableNunjucks: true
 series_order: 4
+series_total: 8
 translationKey: "time-series-4"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/illustration_1.png)

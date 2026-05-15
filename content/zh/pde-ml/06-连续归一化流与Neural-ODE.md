@@ -16,6 +16,7 @@ mathjax: true
 description: "如何把高斯变成数据分布？本文从 ODE/PDE 理论出发，系统推导 Neural ODE、伴随方法、连续归一化流（FFJORD）与 Flow Matching，并用 7 张图把核心机制画清楚。"
 disableNunjucks: true
 series_order: 6
+series_total: 8
 translationKey: "pde-ml-6"
 ---
 ![偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png)

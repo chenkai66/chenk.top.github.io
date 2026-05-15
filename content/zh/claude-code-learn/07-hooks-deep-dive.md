@@ -12,6 +12,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战入门"
 series_order: 7
+series_total: 10
 description: "从参考仓库的 100 个脚本里挑出 10 个，每一个都给：它做什么、JS 全文、settings.json 的接线方式、它会咬人的地方。PreToolUse 守安全，PostToolUse 做卫生，那些朴素但救命的脚本。"
 disableNunjucks: true
 translationKey: "claude-code-learn-7"

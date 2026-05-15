@@ -14,6 +14,7 @@ lang: en
 mathjax: true
 disableNunjucks: true
 series_order: 3
+series_total: 18
 translationKey: "linear-algebra-3"
 ---
 ![Essence of Linear Algebra (3): Matrices as Linear Transformations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/03-matrices-as-linear-transformations/illustration_1.png)

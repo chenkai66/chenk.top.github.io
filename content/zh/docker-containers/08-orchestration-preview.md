@@ -13,6 +13,7 @@ lang: zh
 description: "单机版 Docker 在规模化时必然失效。本文预览容器编排技术——Docker Swarm 以简洁见长，Kubernetes 则覆盖一切需求，并勾勒更广阔的云原生生态全景。"
 disableNunjucks: true
 series_order: 8
+series_total: 8
 translationKey: "docker-containers-8"
 ---
 本系列此前的内容均围绕**单机版 Docker**展开，即仅在一台机器上运行容器。这种方式非常适合开发、小型项目以及流量适中的应用。然而，一旦你需要服务在服务器宕机时仍能存活、应对突发流量高峰，或实现零停机部署更新，单机版 Docker 就显得力不从心了。而**容器编排（Container Orchestration）**正是为解决这些问题而生，其中 Kubernetes 已成为事实上的行业标准。

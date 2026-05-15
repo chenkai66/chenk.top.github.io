@@ -12,6 +12,7 @@ lang: en
 description: "Three complete system design walkthroughs — a URL shortener, a real-time chat system, and a news feed — each following the full process from requirements and estimation through high-level design, deep dives, and scaling strategies."
 disableNunjucks: true
 series_order: 8
+series_total: 8
 translationKey: "system-design-8"
 ---
 

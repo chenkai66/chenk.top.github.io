@@ -11,6 +11,7 @@ mathjax: false
 series: aliyun-bailian
 series_title: "Aliyun Bailian Practical Guide"
 series_order: 1
+series_total: 5
 description: "A practitioner's tour of Alibaba Cloud Bailian (DashScope) — what's actually in the model catalog, the two endpoint flavors, the async task pattern, and a working sample request to ground the rest of the series."
 disableNunjucks: true
 translationKey: "aliyun-bailian-1"

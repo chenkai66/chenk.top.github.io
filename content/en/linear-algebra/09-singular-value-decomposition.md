@@ -15,6 +15,7 @@ lang: en
 mathjax: true
 disableNunjucks: true
 series_order: 9
+series_total: 18
 translationKey: "linear-algebra-9"
 ---
 ![Essence of Linear Algebra (9): Singular Value Decomposition — The Crown Jewel of Linear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_1.png)

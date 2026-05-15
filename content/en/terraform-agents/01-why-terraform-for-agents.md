@@ -12,6 +12,7 @@ mathjax: false
 series: terraform-agents
 series_title: "Terraform for AI Agents on Alibaba Cloud"
 series_order: 1
+series_total: 8
 description: "Agent systems are a moving target — new tools, new memory stores, new regions every month. Manual console clicks don't survive the second teammate. This first article makes the case for Terraform on Alibaba Cloud, surveys what the alicloud provider actually covers, and compares it to Pulumi, Crossplane, and ROS so you pick the right tool the first time."
 disableNunjucks: true
 translationKey: "terraform-agents-1"

@@ -16,6 +16,7 @@ mathjax: true
 description: "How RLHF turned base language models into ChatGPT and Claude: the SFT→Reward-Model→PPO pipeline, the Bradley-Terry preference model, the DPO closed-form derivation, RLAIF and Constitutional AI, reward hacking and Goodhart's law, and where RL goes next in embodied intelligence."
 disableNunjucks: true
 series_order: 12
+series_total: 12
 translationKey: "reinforcement-learning-12"
 ---
 GPT-3 (June 2020) and ChatGPT (November 2022) share most of their weights. The base model could write fluent prose, complete code, and continue any pattern you gave it. Yet, when asked a simple question, it might ramble, refuse for the wrong reasons, hallucinate citations, or produce toxic content. The two and a half years between GPT-3 and ChatGPT weren't spent on larger transformers. Instead, they focused on **how to make the model useful** — a reinforcement-learning problem.

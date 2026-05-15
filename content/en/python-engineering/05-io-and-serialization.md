@@ -11,6 +11,7 @@ lang: en
 description: "Handle files, paths, encodings, and data formats in Python. Compare JSON, YAML, TOML, CSV, pickle, and Parquet with practical examples."
 disableNunjucks: true
 series_order: 5
+series_total: 8
 translationKey: "python-engineering-5"
 ---
 

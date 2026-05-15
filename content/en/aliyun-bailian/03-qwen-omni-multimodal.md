@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-bailian
 series_title: "Aliyun Bailian Practical Guide"
 series_order: 3
+series_total: 5
 description: "Qwen-Omni for production multimodal: the four input types, the streaming requirement that the docs do not warn you about, and a working video-understanding pipeline with sane pixel budgets."
 disableNunjucks: true
 translationKey: "aliyun-bailian-3"

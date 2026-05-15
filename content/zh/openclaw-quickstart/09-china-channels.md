@@ -13,6 +13,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"
 series_order: 9
+series_total: 10
 description: "钉钉、飞书（已弃用）、企业微信三种模式、微信客服、公众号，以及 WorkBuddy 桌面端桥接。一张选型矩阵和两条在 2026 年真正能跑通的路径的完整配置。"
 disableNunjucks: true
 translationKey: "openclaw-quickstart-9"

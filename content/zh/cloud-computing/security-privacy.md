@@ -15,6 +15,7 @@ mathjax: false
 description: "工程师视角的云安全实战：共担责任、可扩展的 IAM、静态/传输/使用中加密、零信任、合规框架，以及一份可以反复演练的事件响应流程。"
 disableNunjucks: true
 series_order: 6
+series_total: 8
 translationKey: "cloud-computing-6"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/illustration_1.png)

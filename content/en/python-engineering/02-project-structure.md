@@ -11,6 +11,7 @@ lang: en
 description: "Learn how to organize Python code into proper packages with imports, entry points, and CLI tools. Build a real command-line application from scratch."
 disableNunjucks: true
 series_order: 2
+series_total: 8
 translationKey: "python-engineering-2"
 ---
 

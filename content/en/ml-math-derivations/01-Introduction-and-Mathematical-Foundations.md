@@ -14,6 +14,7 @@ mathjax: true
 description: "Why can machines learn from data at all? This first chapter builds the mathematical theory of learning from first principles -- problem formalization, loss surrogates, PAC learning, VC dimension, the bias-variance decomposition and the No Free Lunch theorem."
 disableNunjucks: true
 series_order: 1
+series_total: 20
 translationKey: "ml-math-derivations-1"
 ---
 ![ML Math Derivations (1): Introduction and Mathematical Foundations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/01-Introduction-and-Mathematical-Foundations/illustration_1.png)

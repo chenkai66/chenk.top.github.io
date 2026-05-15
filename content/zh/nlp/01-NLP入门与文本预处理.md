@@ -12,6 +12,7 @@ mathjax: true
 description: "从第一性原理出发的 NLP 入门：梳理四个时代的脉络，亲手搭建从清洗到向量化的完整流水线，把分词、TF-IDF、n-gram 与分布式表示背后的数学讲清楚。"
 disableNunjucks: true
 series_order: 1
+series_total: 12
 translationKey: "nlp-1"
 polished_by_qwen_max: true
 ---

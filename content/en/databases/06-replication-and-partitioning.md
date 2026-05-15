@@ -12,6 +12,7 @@ lang: en
 description: "How databases replicate data for availability and partition data for scale — covering leader-follower, multi-leader, leaderless, sharding strategies, and consistent hashing."
 disableNunjucks: true
 series_order: 6
+series_total: 8
 translationKey: "databases-6"
 ---
 

@@ -14,6 +14,7 @@ mathjax: false
 series: terraform-agents
 series_title: "Terraform for AI Agents on Alibaba Cloud"
 series_order: 7
+series_total: 8
 description: "Logs to SLS, traces to ARMS, metrics to CloudMonitor — all provisioned in HCL so a new env comes pre-instrumented. The four alarms that actually catch real incidents and the SLS-driven cost dashboard that tells you which agent is burning your budget before payday."
 disableNunjucks: true
 translationKey: "terraform-agents-7"

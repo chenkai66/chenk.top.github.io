@@ -11,6 +11,7 @@ lang: zh
 description: "借助 pytest fixture、parametrize、mocking 和覆盖率分析，建立对代码的信心。掌握可节省数小时的调试技巧。"
 disableNunjucks: true
 series_order: 3
+series_total: 8
 translationKey: "python-engineering-3"
 ---
 你只改了一行代码，却导致三个毫不相干的功能崩溃；重构一个函数后，不得不花上两小时手动点击整个应用，只为确认一切是否还正常；周五部署上线，结果半夜就被报警电话叫醒……所有这些，都是同一种病的症状：**没有测试**。

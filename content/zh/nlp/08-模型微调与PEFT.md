@@ -14,6 +14,7 @@ mathjax: true
 description: "深入参数高效微调：LoRA 为什么用低秩更新就够、QLoRA 把 7B 模型塞进 6GB 显存的内存账本、Adapter 与 Prefix-Tuning 的取舍，以及生产环境怎么选。"
 disableNunjucks: true
 series_order: 8
+series_total: 12
 translationKey: "nlp-8"
 polished_by_qwen_max: true
 ---

@@ -12,6 +12,7 @@ mathjax: true
 description: "TCN 用因果膨胀卷积换取并行训练和指数级感受野。完整 PyTorch 实现，附交通流和多变量传感器两个实战案例。"
 disableNunjucks: true
 series_order: 6
+series_total: 8
 translationKey: "time-series-6"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/06-时序卷积网络TCN/illustration_1.png)

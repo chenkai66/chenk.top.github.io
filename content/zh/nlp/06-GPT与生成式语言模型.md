@@ -13,6 +13,7 @@ mathjax: true
 description: "从 GPT-1 到 GPT-4：理解自回归语言建模、解码策略（贪心、束搜索、top-k、top-p）、上下文学习，并用 HuggingFace 构建聊天机器人。"
 disableNunjucks: true
 series_order: 6
+series_total: 12
 translationKey: "nlp-6"
 polished_by_qwen_max: true
 ---

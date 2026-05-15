@@ -10,6 +10,7 @@ description: "Learn Vim by understanding its grammar -- modes, operators + motio
 disableNunjucks: true
 translationKey: "linux-9"
 series_order: 9
+series_total: 9
 series: linux
 ---
 

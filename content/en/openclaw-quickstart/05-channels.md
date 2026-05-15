@@ -13,6 +13,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 5
+series_total: 10
 description: "Telegram in five minutes, DingTalk in fifteen, WeChat via WorkBuddy."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-5"

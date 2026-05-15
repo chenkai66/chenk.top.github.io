@@ -8,6 +8,7 @@ tags:
 categories: Algorithm
 series: optimization-theory
 series_order: 11
+series_total: 12
 lang: en
 mathjax: true
 description: "Why does SGD work for training neural networks despite the non-convex landscape? We prove perturbed GD escapes strict saddles in polynomial time, derive convergence under the Polyak-Lojasiewicz condition, and survey what is provably known about deep learning loss surfaces — over-parameterization, NTK, and the implicit bias toward flat minima."

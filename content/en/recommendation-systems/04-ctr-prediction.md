@@ -14,6 +14,7 @@ permalink: en/recommendation-systems-4-ctr-prediction/
 description: "A practical guide to CTR prediction models -- from Logistic Regression and Factorization Machines to DeepFM, xDeepFM, DCN, AutoInt, and FiBiNet -- with intuitive explanations and PyTorch implementations."
 disableNunjucks: true
 series_order: 4
+series_total: 16
 translationKey: "recommendation-systems-4"
 ---
 

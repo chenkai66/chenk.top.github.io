@@ -11,6 +11,7 @@ lang: en
 description: "Master Python environment management with pyenv, virtual environments, and modern dependency tools. Escape dependency hell for good."
 disableNunjucks: true
 series_order: 1
+series_total: 8
 translationKey: "python-engineering-1"
 ---
 

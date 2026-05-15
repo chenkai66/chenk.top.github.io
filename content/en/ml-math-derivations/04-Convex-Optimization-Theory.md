@@ -14,6 +14,7 @@ mathjax: true
 description: "Nearly every ML algorithm is an optimization problem. This article derives convex sets, convex functions, gradient descent, Newton's method, KKT conditions, and ADMM -- the optimization toolkit for machine learning."
 disableNunjucks: true
 series_order: 4
+series_total: 20
 translationKey: "ml-math-derivations-4"
 ---
 ![ML Math Derivations (4): Convex Optimization Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/illustration_1.png)

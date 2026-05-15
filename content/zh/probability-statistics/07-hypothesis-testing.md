@@ -14,6 +14,7 @@ mathjax: true
 description: "对假设检验、p 值、I 类/II 类错误、置信区间及多重检验校正的严谨讲解——包括连资深实践者都会陷入的常见误读，并附 Python 实现代码。"
 disableNunjucks: true
 series_order: 7
+series_total: 8
 translationKey: "probability-statistics-7"
 ---
 你已经估计了一个参数，也量化了偏差-方差的权衡。现在，一个驱动绝大多数应用统计学的核心问题浮出水面：“这个效应是真实的，还是仅仅是噪声？”

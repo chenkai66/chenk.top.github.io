@@ -8,6 +8,7 @@ tags:
 categories: Algorithm
 series: optimization-theory
 series_order: 10
+series_total: 12
 lang: zh
 mathjax: true
 description: 'SGD 为何有效？我们基于梯度噪声预算证明了其在凸函数下的 $O(1/\sqrt{T})$ 收敛率与强凸函数下的 $O(1/(\mu T))$ 收敛率；进而介绍方差缩减方法——SVRG、SAGA、Katyusha，它们利用随机样本达到全梯度下降的线性收敛速率，并完整解析其理论机理。'

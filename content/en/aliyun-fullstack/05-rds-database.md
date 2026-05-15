@@ -14,6 +14,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 5
+series_total: 12
 description: "RDS MySQL vs PolarDB: when to use which. Instance sizing, read replicas, proxy endpoints, backup/restore, monitoring, slow query analysis. Build a production database with HA and read scaling."
 disableNunjucks: true
 translationKey: "aliyun-fullstack-5"

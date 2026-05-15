@@ -13,6 +13,7 @@ description: "Learn how knowledge graphs supercharge recommendation systems by a
 permalink: "en/recommendation-systems-8-knowledge-graph/"
 disableNunjucks: true
 series_order: 8
+series_total: 16
 translationKey: "recommendation-systems-8"
 ---
 When you search for *The Dark Knight* on a streaming platform, the system doesn't just log that you watched it. It knows that Christian Bale played Batman, Christopher Nolan directed it, it's part of the Batman trilogy, and it shares cinematic DNA with other cerebral action films. This rich semantic web is a **knowledge graph (KG)** — a structured network of entities (movies, actors, directors, genres) connected by typed relations (`acted_in`, `directed_by`, `part_of`).

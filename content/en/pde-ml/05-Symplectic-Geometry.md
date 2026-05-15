@@ -15,6 +15,7 @@ mathjax: true
 description: "Standard neural networks violate conservation laws. This article derives Hamiltonian mechanics, symplectic integrators, HNNs, LNNs, and SympNets from the geometry of phase space."
 disableNunjucks: true
 series_order: 5
+series_total: 8
 translationKey: "pde-ml-5"
 ---
 ![PDE and ML (5): Symplectic Geometry and Structure-Preserving Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/illustration_1.png)

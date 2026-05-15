@@ -16,6 +16,7 @@ mathjax: true
 description: "Learn new concepts from a handful of examples. Covers the N-way K-shot protocol, metric learning (Siamese, Prototypical, Matching, Relation networks), meta-learning (MAML, Reptile), episodic training, miniImageNet benchmarks, and a complete Prototypical Network implementation."
 disableNunjucks: true
 series_order: 4
+series_total: 12
 translationKey: "transfer-learning-4"
 ---
 Show a child one photograph of a pangolin and they will spot pangolins for life. Show a deep learning model one photograph and it will give you a uniformly random guess. Few-shot learning is the field that closes that gap: building classifiers that work with only one to ten labeled examples per class.

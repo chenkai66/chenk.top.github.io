@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 12
+series_total: 12
 description: "The grand finale: codify everything from Parts 1-11 into Terraform modules. VPC, ECS, RDS, OSS, RAM, SLS, Function Compute — all provisioned with one terraform apply. Plus CI/CD with GitHub Actions and cost optimization."
 disableNunjucks: true
 translationKey: "aliyun-fullstack-12"

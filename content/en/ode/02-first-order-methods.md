@@ -14,6 +14,7 @@ mathjax: true
 description: "Master the four main techniques for first-order ODEs: separation of variables, integrating factors, exact equations, and Bernoulli substitution -- with applications to finance, pharmacology, ecology, and circuits."
 disableNunjucks: true
 series_order: 2
+series_total: 18
 translationKey: "ode-2"
 ---
 A bank account, a drug clearing the bloodstream, a tank of brine, a charging capacitor — they all obey the same kind of equation: a first-order ODE. The trick is recognising which of four shapes you are looking at, because each shape has a closed-form move that solves it cleanly. By the end of this chapter you will pattern-match an unfamiliar first-order equation in seconds and know exactly which lever to pull.

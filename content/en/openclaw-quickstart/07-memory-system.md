@@ -12,6 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 7
+series_total: 10
 description: "MEMORY.md as index, memoryFlush, bge-m3 search, and the v2026.3.7 ContextEngine."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-7"

@@ -13,6 +13,7 @@ mathjax: false
 series: aliyun-pai
 series_title: "Aliyun PAI Practical Guide"
 series_order: 4
+series_total: 5
 description: "End-to-end PAI-EAS for production: image-based deploy from OSS-mounted weights, the three inference modes, an autoscaler that doesn't blow your budget, and canary releases via service groups. Includes a working vLLM Qwen3 deployment from the official Quick Start."
 disableNunjucks: true
 translationKey: "aliyun-pai-4"

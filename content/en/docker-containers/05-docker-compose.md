@@ -13,6 +13,7 @@ lang: en
 description: "Real applications aren't single containers. Docker Compose lets you define multi-service architectures in a single YAML file — networks, volumes, dependencies, and all."
 disableNunjucks: true
 series_order: 5
+series_total: 8
 translationKey: "docker-containers-5"
 ---
 

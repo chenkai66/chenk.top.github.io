@@ -14,6 +14,7 @@ mathjax: false
 description: "Why cloud-native exists, what containers actually do at the kernel level, how Kubernetes really works, when service mesh is worth its weight, and how the whole stack fits together in production."
 disableNunjucks: true
 series_order: 3
+series_total: 8
 translationKey: "cloud-computing-3"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/cloud-native-containers/illustration_1.png)

@@ -8,6 +8,7 @@ tags:
 categories: Algorithm
 series: optimization-theory
 series_order: 1
+series_total: 12
 lang: zh
 mathjax: true
 description: "解锁本系列后续内容的几何与分析工具包：凸集、凸函数、共轭（Fenchel）变换、次梯度，以及示性函数/支撑函数对；包含詹森不等式、投影定理及基本范数次微分的完整证明。"

@@ -11,6 +11,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战入门"
 series_order: 1
+series_total: 10
 description: "完成 Claude Code 安装，掌握三层 settings.json 配置机制，并熟练运用三个低调却极其强大的原语：`#` 将内容写入项目记忆文件、`@` 引用本地文件、`/init` 自动生成项目记忆文件 CLAUDE.md。"
 disableNunjucks: true
 translationKey: "claude-code-learn-1"

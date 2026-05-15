@@ -14,6 +14,7 @@ permalink: "en/recommendation-systems-6-sequential-recommendation/"
 description: "How recommenders use the order of user actions to predict the next one. Markov chains, GRU4Rec, Caser, SASRec, BERT4Rec, BST, and SR-GNN, with implementations and intuition."
 disableNunjucks: true
 series_order: 6
+series_total: 16
 translationKey: "recommendation-systems-6"
 ---
 

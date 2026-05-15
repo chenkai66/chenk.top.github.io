@@ -13,6 +13,7 @@ mathjax: true
 description: "从提示结构、思维链到 Self-Consistency 与 ReAct：一套关于 In-Context Learning 的工作原理、必须正面应对的方差问题，以及能扩展到生产系统的提示模式。"
 disableNunjucks: true
 series_order: 7
+series_total: 12
 translationKey: "nlp-7"
 polished_by_qwen_max: true
 ---

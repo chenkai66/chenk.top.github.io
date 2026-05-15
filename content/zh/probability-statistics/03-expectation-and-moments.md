@@ -13,6 +13,7 @@ mathjax: true
 description: "从期望与方差，到协方差、相关系数与矩生成函数，再到切比雪夫不等式——涵盖随机变量总结性刻画的完整工具箱，所有结论均附严格证明。"
 disableNunjucks: true
 series_order: 3
+series_total: 8
 translationKey: "probability-statistics-3"
 ---
 概率分布是对随机变量的**完整描述**——它告诉你每个可能结果出现的概率。但“完整”往往意味着繁琐。当有人问：“这座城市的人平均身高是多少？”，你不会递给他一个密度函数，而是说：“大约 170 厘米，上下浮动约 10 厘米。” 平均值与离散程度（spread）就已捕捉了实践中最核心的信息。

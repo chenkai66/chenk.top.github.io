@@ -12,6 +12,7 @@ mathjax: false
 series: claude-code-learn
 series_title: "Claude Code Hands-On"
 series_order: 7
+series_total: 10
 description: "Picking ten hooks out of the 100 in the reference repo and walking through each: what it does, the actual JS, the settings.json wire-up, and where it bites. PreToolUse for safety, PostToolUse for hygiene, the boring ones that earn their keep."
 disableNunjucks: true
 translationKey: "claude-code-learn-7"

@@ -14,6 +14,7 @@ disableNunjucks: true
 translationKey: "optim-03"
 series: optimization-theory
 series_order: 3
+series_total: 12
 aliases:
   - /zh/standalone/优化算法的演进-从梯度下降到adam/
 ---

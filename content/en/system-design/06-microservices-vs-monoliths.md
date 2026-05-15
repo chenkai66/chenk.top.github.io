@@ -12,6 +12,7 @@ lang: en
 description: "An honest assessment of monoliths vs microservices — covering the distributed systems tax, service boundary design with DDD, inter-service communication patterns, circuit breakers, service mesh, API gateways, and a practical decision framework."
 disableNunjucks: true
 series_order: 6
+series_total: 8
 translationKey: "system-design-6"
 ---
 
