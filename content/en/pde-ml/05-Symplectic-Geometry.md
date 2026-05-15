@@ -164,7 +164,7 @@ A neural ODE learns $\dot{\mathbf{z}} = f_\theta(\mathbf{z})$ with no constraint
 ### The HNN trick (Greydanus, Dzamba, Yosinski, 2019)
 
 Don't learn the vector field. Learn the **scalar Hamiltonian** $H_\theta : \mathbb{R}^{2n} \to \mathbb{R}$ and recover the dynamics by autodiff:
-$$\dot{\mathbf{q}} = \frac{\partial H_\theta}{\partial \mathbf{p}}, \qquad \dot{\mathbf{p}} = -\frac{\partial H_\theta}{\partial \mathbf{q}}. \tag{8}$$
+$$\dot{\mathbf{q}} = \frac{\partial H_\theta}{\partial \mathbf{p}}, \qquad \dot{\mathbf{p}} = -\frac{\partial H_\theta}{\partial \mathbf{q}}. \tag{7}$$
 Two consequences are immediate:
 
 1. **Energy is conserved by construction.** $\frac{dH_\theta}{dt} = (\nabla H_\theta)^\top J\,(\nabla H_\theta) = 0$ regardless of how good $H_\theta$ is.
@@ -176,7 +176,7 @@ Two consequences are immediate:
 ### Training loss
 
 If you have phase-space samples with derivatives $\{(\mathbf{q}_t, \mathbf{p}_t, \dot{\mathbf{q}}_t, \dot{\mathbf{p}}_t)\}$:
-$$\mathcal{L}(\theta) \;=\; \sum_{t} \Big\| \partial_{\mathbf{p}} H_\theta - \dot{\mathbf{q}}_t \Big\|^2 + \Big\| \partial_{\mathbf{q}} H_\theta + \dot{\mathbf{p}}_t \Big\|^2. \tag{9}$$
+$$\mathcal{L}(\theta) \;=\; \sum_{t} \Big\| \partial_{\mathbf{p}} H_\theta - \dot{\mathbf{q}}_t \Big\|^2 + \Big\| \partial_{\mathbf{q}} H_\theta + \dot{\mathbf{p}}_t \Big\|^2. \tag{8}$$
 If only state samples $(\mathbf{q}_t, \mathbf{p}_t)$ are available, integrate (8) inside the loss with an adjoint-friendly ODE solver (Neural-ODE style) and compare integrated trajectories.
 
 ### Reference implementation
@@ -300,7 +300,7 @@ HNNs need both position **and** momentum. In many practical settings (a video of
 Given a learnable scalar $L_\theta(\mathbf{q}, \dot{\mathbf{q}})$, the equations of motion are
 $$\frac{d}{dt}\frac{\partial L_\theta}{\partial \dot{\mathbf{q}}} \;-\; \frac{\partial L_\theta}{\partial \mathbf{q}} \;=\; 0,$$
 which after one application of the chain rule gives
-$$\boxed{\;\ddot{\mathbf{q}} \;=\; \big(\nabla_{\dot q} \nabla_{\dot q} L_\theta\big)^{-1} \!\Big[\nabla_q L_\theta - \big(\nabla_{\dot q} \nabla_{q} L_\theta\big)\dot{\mathbf{q}}\Big].\;} \tag{10}$$
+$$\boxed{\;\ddot{\mathbf{q}} \;=\; \big(\nabla_{\dot q} \nabla_{\dot q} L_\theta\big)^{-1} \!\Big[\nabla_q L_\theta - \big(\nabla_{\dot q} \nabla_{q} L_\theta\big)\dot{\mathbf{q}}\Big].\;} \tag{9}$$
 The right-hand side is computed by a single forward pass plus one Hessian via autodiff, and the matrix inverse is $\mathcal{O}(n^3)$ in the configuration dimension (cheap for $n \lesssim 100$). Because $L_\theta$ is a scalar that defines a Hamiltonian system via the Legendre transform, the resulting dynamics is symplectic.
 
 ### LNN vs HNN at a glance

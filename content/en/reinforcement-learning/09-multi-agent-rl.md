@@ -219,11 +219,15 @@ Three families of solutions, in order of complexity.
 
 The simplest fix is to compute, for each agent $i$, the **counterfactual difference**
 $$
-D_i = R(s, a) - R(s, (a_{-i}, c_i)),$$where $c_i$ is a default action (e.g. "do nothing"). Each agent's effective reward is what the team got *because* of agent $i$'s actual choice, marginalised over a baseline. Difference rewards predate deep RL by 15 years (Wolpert & Tumer, 2002) and remain shockingly effective when you can compute the counterfactual cheaply — for example in any simulator you can roll back.
+D_i = R(s, a) - R(s, (a_{-i}, c_i)),
+$$
+where $c_i$ is a default action (e.g. "do nothing"). Each agent's effective reward is what the team got *because* of agent $i$'s actual choice, marginalised over a baseline. Difference rewards predate deep RL by 15 years (Wolpert & Tumer, 2002) and remain shockingly effective when you can compute the counterfactual cheaply — for example in any simulator you can roll back.
 
 ### Counterfactual baselines (COMA)
 
-When the counterfactual cannot be cheaply rolled, you can *learn* it. COMA computes its advantage as$$A_i(s, a) = Q(s, a) - \sum_{a_i'} \pi_i(a_i' | \tau_i)\, Q(s, (a_{-i}, a_i')),
+When the counterfactual cannot be cheaply rolled, you can *learn* it. COMA computes its advantage as
+$$
+A_i(s, a) = Q(s, a) - \sum_{a_i'} \pi_i(a_i' | \tau_i)\, Q(s, (a_{-i}, a_i')),
 $$
 which marginalises over agent $i$'s alternative actions while holding the rest fixed. The magic is that the marginal $Q$-value uses the *centralised* critic — at training time you have everyone's observation — so the baseline is well-defined even though each agent acts on its own history at test time.
 
