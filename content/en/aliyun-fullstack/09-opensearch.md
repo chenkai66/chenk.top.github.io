@@ -1430,4 +1430,4 @@ This is for a moderately trafficked search service. The LLM costs scale linearly
 
 ## What's Next
 
-Search gets data to users. But the data has to get into the system first, and at scale, that means event-driven architectures. In the next article, we cover message queues and event streaming on Alibaba Cloud — RocketMQ, Kafka, and EventBridge — the infrastructure that connects everything together in a decoupled, scalable way.
+Search gets data to users. But the intelligence behind the search results — and behind chatbots, content generation, and smart summaries — comes from large language models. In the next article, we cover Bailian and DashScope: the Qwen model family, the OpenAI-compatible API, text generation, embeddings, and how to wire LLM capabilities into your Alibaba Cloud stack.

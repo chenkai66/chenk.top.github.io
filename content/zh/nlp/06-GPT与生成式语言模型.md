@@ -27,7 +27,6 @@ polished_by_qwen_max: true
 ---
 
 ## 你将学到什么
-![自然语言处理（六）：GPT与生成式语言模型 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_2.png)
 
 - 仅含解码器的 Transformer 如何通过“预测下一个 token”实现通用人工智能
 - **因果（掩码）自注意力**的关键作用——这是 GPT 与 BERT 的根本区别

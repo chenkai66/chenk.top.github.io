@@ -187,9 +187,9 @@ The well-conditioned matrix maps the input circle to a near-circle (the dashed g
 
 The condition number is the **eccentricity** of the output ellipse:
 $$
-\kappa = \frac{\text{longest semi-axis}}{\text{shortest semi-axis}}.$
+\kappa = \frac{\text{longest semi-axis}}{\text{shortest semi-axis}}.
 $$
-\kappa = 1$ means the ellipse is a circle; $\kappa = \infty$ means it has collapsed to a line segment (the matrix is singular).
+$\kappa = 1$ means the ellipse is a circle; $\kappa = \infty$ means it has collapsed to a line segment (the matrix is singular).
 
 **Quick example.** $A = I$ has $\kappa = 1$. $B = \begin{pmatrix} 1 & 0 \\ 0 & 10^{-5} \end{pmatrix}$ has $\kappa = 10^5$ — it crushes one direction by a factor of $10^5$.
 

@@ -27,7 +27,6 @@ polished_by_qwen_max: true
 ---
 
 ## 你将学到什么
-![自然语言处理（十）：RAG与知识增强系统 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/illustration_2.png)
 
 - 概率分解公式 $P(y\mid q)=\sum_d P(d\mid q)P(y\mid q,d)$ 的含义，以及每一项的实际代价
 - 为何 ANN 索引（HNSW、IVF-PQ、ScaNN）要在召回率和延迟之间权衡，以及何时值得为此付费

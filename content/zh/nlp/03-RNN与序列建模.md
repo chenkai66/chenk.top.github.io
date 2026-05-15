@@ -28,7 +28,6 @@ polished_by_qwen_max: true
 ---
 
 ## 你将学到什么
-![自然语言处理（三）：RNN与序列建模 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/illustration_2.png)
 
 - RNN 是如何通过循环连接和参数共享来维持记忆的
 - 从第一性原理推导梯度消失和梯度爆炸的原因
