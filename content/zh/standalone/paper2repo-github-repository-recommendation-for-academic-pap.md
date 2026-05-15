@@ -98,9 +98,9 @@ $$
 
 WARP （Weighted Approximate-Rank Pairwise）是一种带 rank-aware 权重的 margin 排序损失。对正样本对 $(p, r^+)$ 和采样得到的负样本 $r^-$：
 $$
-\ell(p, r^+, r^-) = L\!\left(\mathrm{rank}(p, r^+)\right) \cdot \big[\gamma - h^p\!\cdot h^{r^+} + h^p\!\cdot h^{r^-}\big]_+$
+\ell(p, r^+, r^-) = L\!\left(\mathrm{rank}(p, r^+)\right) \cdot \big[\gamma - h^p\!\cdot h^{r^+} + h^p\!\cdot h^{r^-}\big]_+
 $$
-[\cdot]_+ = \max(0, \cdot)$ 是 hinge， $L(k) = \sum_{j=1}^{k} 1/j$ 是一个非递减权重——当正样本目前排在很靠后的位置时，权重变大。这里的 rank 是估出来的：不停采样负样本，直到撞见一个违反 margin 的，看采了多少次。
+$[\cdot]_+ = \max(0, \cdot)$ 是 hinge， $L(k) = \sum_{j=1}^{k} 1/j$ 是一个非递减权重——当正样本目前排在很靠后的位置时，权重变大。这里的 rank 是估出来的：不停采样负样本，直到撞见一个违反 margin 的，看采了多少次。
 
 两点工程经验。第一， WARP 单条正样本要配很多负样本，原始论文的做法是无放回采样直到撞见 margin 违例。第二，归一化嵌入下内积就是余弦，取值在 $[-1, 1]$，所以 margin $\gamma$ 是有直观意义的（典型值 0.1 上下）。
 
