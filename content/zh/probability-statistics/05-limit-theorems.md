@@ -26,6 +26,8 @@ translationKey: "probability-statistics-5"
 
 在讨论“收敛”之前，必须先明确定义收敛类型。共有四种主要类型，按强度由弱到强排列如下。
 
+![大数定律收敛动画](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/probstat-05-lln-convergence.gif)
+
 ![大数定律模拟](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-lln-simulation.png)
 
 ### 依分布收敛
@@ -67,6 +69,8 @@ $$\text{L}^2 \implies \text{in probability} \implies \text{in distribution}$$
 $$\bar{X}_n = \frac{1}{n} \sum_{i=1}^n X_i.$$
 则 $\bar{X}_n \xrightarrow{P} \mu$。即，对任意 $\varepsilon > 0$：  
 $$\lim_{n \to \infty} P(|\bar{X}_n - \mu| > \varepsilon) = 0.$$
+![中心极限定理收敛动画](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/probstat-05-clt-convergence.gif)
+
 ![中心极限定理收敛](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-clt-convergence.png)
 
 ### 利用切比雪夫不等式的证明
