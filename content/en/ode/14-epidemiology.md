@@ -61,15 +61,39 @@ The total $S + I + R \equiv N$ is conserved (there are no births or deaths in th
 
 ### The basic reproduction number $R_0$
 
-Linearise around the disease-free equilibrium $(S, I, R) = (N, 0, 0)$. The $I$-equation becomes$$\dot I \approx (\beta - \gamma) I,$$so the disease grows when $\beta > \gamma$, i.e. when$$\boxed{\;R_0 \equiv \frac{\beta}{\gamma} > 1.\;}$$**Threshold theorem.** The disease-free equilibrium is locally stable iff $R_0 < 1$. This number has a beautifully concrete meaning: it is the *expected number of secondary infections caused by one typical infectious individual placed into a fully susceptible population*. If each infected person infects fewer than one other, the chain dies out. If more than one, it explodes — at first.
+Linearise around the disease-free equilibrium $(S, I, R) = (N, 0, 0)$. The $I$-equation becomes
+$$
+\dot I \approx (\beta - \gamma) I,
+$$
+so the disease grows when $\beta > \gamma$, i.e. when
+$$
+\boxed{\;R_0 \equiv \frac{\beta}{\gamma} > 1.\;}
+$$
+**Threshold theorem.** The disease-free equilibrium is locally stable iff $R_0 < 1$. This number has a beautifully concrete meaning: it is the *expected number of secondary infections caused by one typical infectious individual placed into a fully susceptible population*. If each infected person infects fewer than one other, the chain dies out. If more than one, it explodes — at first.
 
 ### What controls the peak?
 
-Divide the $I$- and $S$-equations:$$\frac{dI}{dS} = \frac{\gamma}{\beta S/N} - 1 = \frac{1}{R_0\,S/N} - 1.$$Integrate from $(S_0, I_0) \approx (N, 0)$. With $s = S/N$ and $i = I/N$,$$i(s) = i_0 + (s_0 - s) + \frac{1}{R_0}\ln\frac{s}{s_0}.$$Setting $di/ds = 0$ gives the peak fraction infected at $s = 1/R_0$:$$\boxed{\;I^* \;\approx\; 1 - \frac{1}{R_0} - \frac{\ln R_0}{R_0}.\;}$$And the time of peak is when $S$ first crosses $1/R_0$. **Both** quantities are determined by $R_0$ alone (with $\gamma$ setting the timescale).
+Divide the $I$- and $S$-equations:
+$$
+\frac{dI}{dS} = \frac{\gamma}{\beta S/N} - 1 = \frac{1}{R_0\,S/N} - 1.
+$$
+Integrate from $(S_0, I_0) \approx (N, 0)$. With $s = S/N$ and $i = I/N$,
+$$
+i(s) = i_0 + (s_0 - s) + \frac{1}{R_0}\ln\frac{s}{s_0}.
+$$
+Setting $di/ds = 0$ gives the peak fraction infected at $s = 1/R_0$:
+$$
+\boxed{\;I^* \;\approx\; 1 - \frac{1}{R_0} - \frac{\ln R_0}{R_0}.\;}
+$$
+And the time of peak is when $S$ first crosses $1/R_0$. **Both** quantities are determined by $R_0$ alone (with $\gamma$ setting the timescale).
 
 ### Final size: who escapes?
 
-Letting $t \to \infty$, $I \to 0$ and $S \to S_\infty$. Dividing $\dot S$ by $\dot R$ and integrating yields the transcendental$$\boxed{\;S_\infty = S_0\,\exp\!\bigl[-R_0\,(1 - S_\infty/N)\bigr].\;}$$For $R_0 = 2.5$ and $S_0 \approx N$, the equation gives $S_\infty / N \approx 0.107$ — about 89% of the population is infected by the end. Surprising, but a one-line consequence of the math.
+Letting $t \to \infty$, $I \to 0$ and $S \to S_\infty$. Dividing $\dot S$ by $\dot R$ and integrating yields the transcendental
+$$
+\boxed{\;S_\infty = S_0\,\exp\!\bigl[-R_0\,(1 - S_\infty/N)\bigr].\;}
+$$
+For $R_0 = 2.5$ and $S_0 \approx N$, the equation gives $S_\infty / N \approx 0.107$ — about 89% of the population is infected by the end. Surprising, but a one-line consequence of the math.
 
 ![SIR dynamics, phase portrait, cumulative incidence, and final-size relation.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/14-epidemiology/fig1_sir_model.png)
 
@@ -112,7 +136,11 @@ $R_0$ is *the* lever that determines outcomes. A factor-of-two change in $R_0$ c
 
 ![Ordinary Differential Equations (14): Epidemic Models and Epidemiology — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/14-epidemiology/illustration_2.png)
 
-Move a fraction $v$ of the population from $S$ to $R$ at $t = 0$. The effective reproduction number becomes$$R_e = R_0 \cdot \frac{S(0)}{N} = R_0\,(1 - v).$$For $R_e \leq 1$ we need $v \geq 1 - 1/R_0$. This is the **herd-immunity threshold** (HIT): the minimum fraction that must be immune for an introduced case to die out, on average.
+Move a fraction $v$ of the population from $S$ to $R$ at $t = 0$. The effective reproduction number becomes
+$$
+R_e = R_0 \cdot \frac{S(0)}{N} = R_0\,(1 - v).
+$$
+For $R_e \leq 1$ we need $v \geq 1 - 1/R_0$. This is the **herd-immunity threshold** (HIT): the minimum fraction that must be immune for an introduced case to die out, on average.
 
 | Disease | Typical $R_0$ | HIT |
 |---|---|---|
@@ -124,7 +152,11 @@ Move a fraction $v$ of the population from $S$ to $R$ at $t = 0$. The effective 
 | Mumps | 10 | 90% |
 | Measles | 15 | 93% |
 
-For an **imperfect vaccine** with efficacy $\mathrm{VE} < 1$, the requirement becomes $v\,\mathrm{VE} \geq 1 - 1/R_0$, i.e.$$v \geq \frac{1 - 1/R_0}{\mathrm{VE}}.$$For high-$R_0$ diseases combined with imperfect vaccines this can become *infeasible* ($v > 1$).
+For an **imperfect vaccine** with efficacy $\mathrm{VE} < 1$, the requirement becomes $v\,\mathrm{VE} \geq 1 - 1/R_0$, i.e.
+$$
+v \geq \frac{1 - 1/R_0}{\mathrm{VE}}.
+$$
+For high-$R_0$ diseases combined with imperfect vaccines this can become *infeasible* ($v > 1$).
 
 ![Vaccination effect: I(t) for several coverages, peak vs coverage, HIT vs R0, and the VE-correction.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/14-epidemiology/fig3_vaccination_effect.png)
 
@@ -140,7 +172,15 @@ Many diseases have an **incubation period** — people are infected but not yet 
 $$\dot S = -\frac{\beta SI}{N}, \quad \dot E = \frac{\beta SI}{N} - \sigma E, \quad \dot I = \sigma E - \gamma I, \quad \dot R = \gamma I.$$
 The transition rate $\sigma$ has $1/\sigma$ = average latent duration. The basic reproduction number is unchanged: $R_0 = \beta/\gamma$. So, *do incubation periods matter?*
 
-For the **final size**, no — it is identical to SIR because the long-run dynamics is set by $R_0$ alone. For the **growth rate**, very much yes. Linearising around the disease-free equilibrium gives a 2x2 system with characteristic equation$$r^2 + (\sigma + \gamma)\,r + \sigma(\gamma - \beta) = 0.$$For $R_0 > 1$ the positive root is$$r_{\text{SEIR}} = \frac{1}{2}\!\left[-(\sigma + \gamma) + \sqrt{(\sigma + \gamma)^2 + 4\sigma\gamma(R_0 - 1)}\right] < r_{\text{SIR}} = \beta - \gamma.$$The latent stage **slows the early exponential growth**, even though $R_0$ is unchanged. So at fixed $R_0$, SEIR predicts a later, slightly lower peak than SIR. Equivalently: doubling time depends on the *generation interval* $T_g \approx 1/\sigma + 1/\gamma$, not just on $R_0$.
+For the **final size**, no — it is identical to SIR because the long-run dynamics is set by $R_0$ alone. For the **growth rate**, very much yes. Linearising around the disease-free equilibrium gives a 2x2 system with characteristic equation
+$$
+r^2 + (\sigma + \gamma)\,r + \sigma(\gamma - \beta) = 0.
+$$
+For $R_0 > 1$ the positive root is
+$$
+r_{\text{SEIR}} = \frac{1}{2}\!\left[-(\sigma + \gamma) + \sqrt{(\sigma + \gamma)^2 + 4\sigma\gamma(R_0 - 1)}\right] < r_{\text{SIR}} = \beta - \gamma.
+$$
+The latent stage **slows the early exponential growth**, even though $R_0$ is unchanged. So at fixed $R_0$, SEIR predicts a later, slightly lower peak than SIR. Equivalently: doubling time depends on the *generation interval* $T_g \approx 1/\sigma + 1/\gamma$, not just on $R_0$.
 
 ![SEIR all four compartments, comparison with SIR, varying latent period, and growth rate vs latent duration.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/14-epidemiology/fig4_seir_variant.png)
 
@@ -157,9 +197,19 @@ Real epidemics need more than SEIR. COVID-19 introduced four mathematical wrinkl
 3. **Reporting iceberg.** Only a fraction of true cases gets detected; reported = $\rho \cdot I_s$ with $\rho < 1$.
 4. **Variants.** New strains restart the dynamics with a fresh $R_0$.
 
-A minimal model splits $I$ into $I_a$ (asymptomatic) and $I_s$ (symptomatic):$$\dot S = -\frac{\beta(t)\,(I_s + \kappa I_a)\,S}{N}, \quad \dot E = \frac{\beta(t)\,(I_s + \kappa I_a)\,S}{N} - \sigma E,$$$$\dot I_a = p\,\sigma E - \gamma I_a, \quad \dot I_s = (1 - p)\sigma E - \gamma I_s, \quad \dot R = \gamma(I_a + I_s).
+A minimal model splits $I$ into $I_a$ (asymptomatic) and $I_s$ (symptomatic):
 $$
-The instantaneous **effective reproduction number** is$$R_e(t) = \frac{\beta(t)\,(1 - p + \kappa p)}{\gamma}\,\frac{S(t)}{N}.$$We want $R_e(t) < 1$. Two ways: shrink $\beta$ (interventions) or shrink $S/N$ (immunity).
+\dot S = -\frac{\beta(t)\,(I_s + \kappa I_a)\,S}{N}, \quad \dot E = \frac{\beta(t)\,(I_s + \kappa I_a)\,S}{N} - \sigma E,
+$$
+
+$$
+\dot I_a = p\,\sigma E - \gamma I_a, \quad \dot I_s = (1 - p)\sigma E - \gamma I_s, \quad \dot R = \gamma(I_a + I_s).
+$$
+The instantaneous **effective reproduction number** is
+$$
+R_e(t) = \frac{\beta(t)\,(1 - p + \kappa p)}{\gamma}\,\frac{S(t)}{N}.
+$$
+We want $R_e(t) < 1$. Two ways: shrink $\beta$ (interventions) or shrink $S/N$ (immunity).
 
 ![COVID-style scenario: compartments with intervention timeline, R_e(t), reporting iceberg, counterfactual cumulative incidence.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/14-epidemiology/fig5_covid_example.png)
 
@@ -171,7 +221,9 @@ This is *not* a fit to real data — it is a clean cartoon of the structure that
 
 ## Network and Heterogeneous Models
 
-A homogeneous mean-field SIR is wildly optimistic about who can be reached. Real contacts are highly heterogeneous: most people have a handful of regular contacts; a small minority have hundreds. On a contact network with degree distribution $P(k)$, the basic reproduction number generalises:$$R_0 = \frac{\beta}{\gamma}\,\frac{\langle k^2 \rangle - \langle k \rangle}{\langle k \rangle}.
+A homogeneous mean-field SIR is wildly optimistic about who can be reached. Real contacts are highly heterogeneous: most people have a handful of regular contacts; a small minority have hundreds. On a contact network with degree distribution $P(k)$, the basic reproduction number generalises:
+$$
+R_0 = \frac{\beta}{\gamma}\,\frac{\langle k^2 \rangle - \langle k \rangle}{\langle k \rangle}.
 $$
 For **scale-free networks** ($P(k) \propto k^{-\alpha}$ with $2 < \alpha < 3$), $\langle k^2 \rangle$ diverges with system size. This means the epidemic threshold goes to *zero* — on such networks, even very low transmissibility can sustain an outbreak. **Super-spreaders** dominate the early dynamics in real epidemics; targeting them with contact tracing is disproportionately effective.
 

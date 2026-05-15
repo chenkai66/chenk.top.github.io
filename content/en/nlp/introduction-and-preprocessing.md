@@ -392,7 +392,9 @@ The fatal limitation: `dog bites man` and `man bites dog` produce identical vect
 ### TF-IDF
 
 TF-IDF up-weights words that are frequent in a document but rare in the corpus — a heuristic for "important to this document, but not generic":
-$$\text{TF-IDF}(t, d) = \text{TF}(t, d) \cdot \text{IDF}(t)$$$$\text{IDF}(t) = \log\!\frac{1 + N}{1 + \text{df}(t)} + 1$$
+$$\text{TF-IDF}(t, d) = \text{TF}(t, d) \cdot \text{IDF}(t)$$
+
+$$\text{IDF}(t) = \log\!\frac{1 + N}{1 + \text{df}(t)} + 1$$
 where $N$ is the number of documents and $\text{df}(t)$ is the number of documents containing term $t$. The `+1` smoothing keeps the IDF defined when a term appears in every document (or in none).
 
 ![Bag of Words counts versus TF-IDF weights on the same toy corpus](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig3_bow_vs_tfidf.png)

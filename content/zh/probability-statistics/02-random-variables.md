@@ -60,7 +60,9 @@ $$p_X(x) = P(X = x)$$
 
 ![CDF 比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-cdf-comparison.png)
 $$
-F_X(x) = P(X \leq x) = \sum_{t \leq x} p_X(t) \quad \text{(离散情形)}.$$CDF 是右连续、非减函数，且满足 $\lim_{x \to -\infty} F(x) = 0$ 与 $\lim_{x \to \infty} F(x) = 1$。
+F_X(x) = P(X \leq x) = \sum_{t \leq x} p_X(t) \quad \text{(离散情形)}.
+$$
+CDF 是右连续、非减函数，且满足 $\lim_{x \to -\infty} F(x) = 0$ 与 $\lim_{x \to \infty} F(x) = 1$。
 
 ## 关键离散分布
 
@@ -103,7 +105,9 @@ $$\sum_{k=1}^{\infty} (1-p)^{k-1} p = p \sum_{j=0}^{\infty} (1-p)^j = p \cdot \f
 $$P(X > s+t \mid X > s) = \frac{P(X > s+t)}{P(X > s)} = \frac{(1-p)^{s+t}}{(1-p)^s} = (1-p)^t = P(X > t). \quad \blacksquare$$
 **负二项分布（Negative Binomial Distribution）。** 其推广形式：第 $r$ 次成功所需的试验次数。
 $$
-X \sim \text{NegBin}(r, p), \quad p_X(k) = \binom{k-1}{r-1} p^r (1-p)^{k-r} \text{ for } k = r, r+1, \ldots$$Geometric 分布是 $r = 1$ 的特例。当建模过离散计数数据（方差大于均值）时，负二项分布自然出现，因此在实践中常作为 Poisson 的替代选择。
+X \sim \text{NegBin}(r, p), \quad p_X(k) = \binom{k-1}{r-1} p^r (1-p)^{k-r} \text{ for } k = r, r+1, \ldots
+$$
+Geometric 分布是 $r = 1$ 的特例。当建模过离散计数数据（方差大于均值）时，负二项分布自然出现，因此在实践中常作为 Poisson 的替代选择。
 
 - **均值：** $E[X] = r/p$
 - **方差：** $\text{Var}(X) = r(1-p)/p^2$

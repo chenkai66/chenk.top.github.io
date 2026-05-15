@@ -61,7 +61,9 @@ Consider $\mathbf{x}' = \mathbf{f}(\mathbf{x})$ with equilibrium $\mathbf{x}^*$ 
 
 **Lyapunov stable.** For every $\varepsilon > 0$, there exists $\delta > 0$ such that
 $$
-\|\mathbf{x}(0) - \mathbf{x}^*\| < \delta \;\Longrightarrow\; \|\mathbf{x}(t) - \mathbf{x}^*\| < \varepsilon \;\;\text{for all } t > 0.$$*Intuition: nearby trajectories stay nearby forever.*
+\|\mathbf{x}(0) - \mathbf{x}^*\| < \delta \;\Longrightarrow\; \|\mathbf{x}(t) - \mathbf{x}^*\| < \varepsilon \;\;\text{for all } t > 0.
+$$
+*Intuition: nearby trajectories stay nearby forever.*
 
 **Asymptotically stable.** Lyapunov stable **and** $\mathbf{x}(t) \to \mathbf{x}^*$ as $t \to \infty$.
 *Intuition: nearby trajectories not only stay nearby but eventually return.*
@@ -76,7 +78,9 @@ The **basin of attraction** is the set of all initial conditions that converge t
 
 ## Linearization: The Jacobian Method
 
-Near equilibrium $\mathbf{x}^*$, Taylor-expand and keep the linear part:$$\mathbf{x}' \;\approx\; J(\mathbf{x} - \mathbf{x}^*), \qquad J_{ij} = \frac{\partial f_i}{\partial x_j}\bigg|_{\mathbf{x}^*}.
+Near equilibrium $\mathbf{x}^*$, Taylor-expand and keep the linear part:
+$$
+\mathbf{x}' \;\approx\; J(\mathbf{x} - \mathbf{x}^*), \qquad J_{ij} = \frac{\partial f_i}{\partial x_j}\bigg|_{\mathbf{x}^*}.
 $$
 ### Hartman-Grobman theorem
 
@@ -210,7 +214,11 @@ Hopf is the mechanism behind every self-sustained oscillation in nature — from
 
 ## Application 1: Lotka-Volterra Predator-Prey
 $$x' = ax - bxy, \qquad y' = -cy + dxy$$
-The non-trivial equilibrium $(c/d,\ a/b)$ has Jacobian eigenvalues $\pm i\sqrt{ac}$ — a **center**. The Hartman-Grobman theorem does *not* apply (eigenvalues are imaginary), but a conserved quantity$$H(x,y) = dx - c\ln x + by - a\ln y$$makes every orbit closed. The system has periodic population cycles (right panel of fig 2).
+The non-trivial equilibrium $(c/d,\ a/b)$ has Jacobian eigenvalues $\pm i\sqrt{ac}$ — a **center**. The Hartman-Grobman theorem does *not* apply (eigenvalues are imaginary), but a conserved quantity
+$$
+H(x,y) = dx - c\ln x + by - a\ln y
+$$
+makes every orbit closed. The system has periodic population cycles (right panel of fig 2).
 
 ## Application 2: Inverted Pendulum Control
 

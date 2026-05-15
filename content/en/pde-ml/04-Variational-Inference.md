@@ -57,7 +57,10 @@ $$p(\theta \mid x) \;=\; \frac{p(x \mid \theta)\, p(\theta)}{\int p(x \mid \thet
 but the marginal likelihood in the denominator is intractable for any non-trivial model. Two large families of approximation algorithms address this:
 
 - **Variational inference (VI)**: pick a tractable family $\{q_\phi\}$ and minimise
-  $$\mathrm{KL}\bigl(q_\phi \,\|\, p(\cdot\mid x)\bigr) \;=\; \mathbb{E}_{q_\phi}\!\left[\log \tfrac{q_\phi(\theta)}{p(\theta\mid x)}\right],$$
+  
+$$
+\mathrm{KL}\bigl(q_\phi \,\|\, p(\cdot\mid x)\bigr) \;=\; \mathbb{E}_{q_\phi}\!\left[\log \tfrac{q_\phi(\theta)}{p(\theta\mid x)}\right],
+$$
   equivalently maximising the **Evidence Lower Bound** $\mathrm{ELBO}(\phi) = \mathbb{E}_{q_\phi}[\log p(x\mid\theta)] - \mathrm{KL}(q_\phi \| p(\theta))$.
 
 - **Markov Chain Monte Carlo (MCMC)**: build a Markov chain whose stationary distribution is exactly $p(\cdot\mid x)$. **Langevin dynamics** is the canonical gradient-based instance.

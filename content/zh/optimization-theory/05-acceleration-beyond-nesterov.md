@@ -50,7 +50,10 @@ $$
 
 > **定理（Nesterov, 1983）**。对于任意 $L \geq \mu > 0$ 以及任意 $k \leq (n-1)/2$（其中 $n$ 是维度），存在一个 $L$-光滑 $\mu$-强凸函数 $f$，使得对任意一阶方法，
 >
-> $$f(x_k) - f^\star \geq \frac{\mu (\sqrt{\kappa} - 1)^{2k}}{2 (\sqrt{\kappa} + 1)^{2k}} \|x_0 - x^\star\|_2^2 \cdot \text{（常数因子）}.$$
+> 
+$$
+f(x_k) - f^\star \geq \frac{\mu (\sqrt{\kappa} - 1)^{2k}}{2 (\sqrt{\kappa} + 1)^{2k}} \|x_0 - x^\star\|_2^2 \cdot \text{（常数因子）}.
+$$
 > 特别地，达到 $\epsilon$-精度至少需要 $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ 次迭代。
 
 ### 最坏情况函数

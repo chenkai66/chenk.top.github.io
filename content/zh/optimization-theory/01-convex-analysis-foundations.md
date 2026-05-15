@@ -78,7 +78,10 @@ $$
 本文反复使用如下重要定理：
 
 > **投影定理**．设 $C \subseteq \mathbb{R}^n$ 是非空闭凸集，$y \in \mathbb{R}^n$。则存在唯一一点 $\pi_C(y) \in C$，使得 $\|x - y\|_2$ 在 $x \in C$ 上取得最小值。进一步地，$z = \pi_C(y)$ 当且仅当  
-> $$\langle y - z,\, x - z \rangle \leq 0 \quad \text{对所有 } x \in C \text{ 成立}。$$
+> 
+$$
+\langle y - z,\, x - z \rangle \leq 0 \quad \text{对所有 } x \in C \text{ 成立}。
+$$
 **存在性证明**．令 $d = \inf_{x \in C} \|x - y\|_2$，并取序列 $\{x_k\} \subseteq C$ 满足 $\|x_k - y\|_2 \to d$。我们证明 $\{x_k\}$ 是 Cauchy 列。对向量 $x_k - y$ 与 $x_m - y$ 应用平行四边形恒等式：  
 $$
 \|x_k - x_m\|_2^2 = 2 \|x_k - y\|_2^2 + 2 \|x_m - y\|_2^2 - 4 \left\| \tfrac{x_k + x_m}{2} - y \right\|_2^2.

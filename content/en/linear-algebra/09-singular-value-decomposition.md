@@ -34,7 +34,9 @@ The spectral theorem of [Chapter 8](/en/linear-algebra/08-symmetric-matrices-and
 
 **Singular Value Decomposition (SVD)** handles every one of them. For *any* $m \times n$ matrix $A$,
 $$
-A = U\,\Sigma\,V^{\!\top}.$$This is the most powerful, most universally applicable decomposition in all of linear algebra.
+A = U\,\Sigma\,V^{\!\top}.
+$$
+This is the most powerful, most universally applicable decomposition in all of linear algebra.
 
 ### A photography analogy
 
@@ -68,13 +70,19 @@ Think of a band recording: lead vocal, guitar, bass, drums. Drop a background ha
 
 ### The fundamental theorem
 
-**SVD theorem.** Every $m \times n$ real matrix $A$ admits a factorisation$$A = U\,\Sigma\,V^{\!\top}$$where
+**SVD theorem.** Every $m \times n$ real matrix $A$ admits a factorisation
+$$
+A = U\,\Sigma\,V^{\!\top}
+$$
+where
 
 - $U \in \mathbb{R}^{m\times m}$ is orthogonal (its columns are the **left singular vectors** $u_1, \ldots, u_m$);
 - $V \in \mathbb{R}^{n\times n}$ is orthogonal (its columns are the **right singular vectors** $v_1, \ldots, v_n$);
 - $\Sigma \in \mathbb{R}^{m\times n}$ has the **singular values** $\sigma_1 \ge \sigma_2 \ge \cdots \ge 0$ on its main diagonal and zeros elsewhere.
 
-The "economy" form, used in practice for tall matrices, keeps only the $r = \operatorname{rank}(A)$ nonzero singular values:$$A = U_r\,\Sigma_r\,V_r^{\!\top},\qquad U_r \in \mathbb{R}^{m\times r},\ \Sigma_r \in \mathbb{R}^{r\times r},\ V_r \in \mathbb{R}^{n\times r}.
+The "economy" form, used in practice for tall matrices, keeps only the $r = \operatorname{rank}(A)$ nonzero singular values:
+$$
+A = U_r\,\Sigma_r\,V_r^{\!\top},\qquad U_r \in \mathbb{R}^{m\times r},\ \Sigma_r \in \mathbb{R}^{r\times r},\ V_r \in \mathbb{R}^{n\times r}.
 $$
 Three facts make the singular values special:
 
@@ -108,11 +116,19 @@ Reading the picture:
 - The **left singular vectors** $u_1, u_2$ are the orthonormal directions of those axes.
 - The **singular values** $\sigma_1, \sigma_2$ are the half-lengths of the axes.
 
-In one line:$$A\,v_i \;=\; \sigma_i\, u_i.$$This is the equation that makes everything else work.
+In one line:
+$$
+A\,v_i \;=\; \sigma_i\, u_i.
+$$
+This is the equation that makes everything else work.
 
 ### Outer-product form
 
-There is a wonderful equivalent way to write SVD as a sum of rank-1 building blocks:$$A = \sigma_1 u_1 v_1^{\!\top} + \sigma_2 u_2 v_2^{\!\top} + \cdots + \sigma_r u_r v_r^{\!\top}.$$Each $u_i v_i^{\!\top}$ is a rank-1 matrix, and the singular values are the weights. This perspective is the key to low-rank approximation: keep the largest weights, drop the rest.
+There is a wonderful equivalent way to write SVD as a sum of rank-1 building blocks:
+$$
+A = \sigma_1 u_1 v_1^{\!\top} + \sigma_2 u_2 v_2^{\!\top} + \cdots + \sigma_r u_r v_r^{\!\top}.
+$$
+Each $u_i v_i^{\!\top}$ is a rank-1 matrix, and the singular values are the weights. This perspective is the key to low-rank approximation: keep the largest weights, drop the rest.
 
 ---
 
@@ -120,7 +136,9 @@ There is a wonderful equivalent way to write SVD as a sum of rank-1 building blo
 
 ### The bridge to $A^{\!\top}\!A$ and $AA^{\!\top}$
 
-Eigenvectors of two symmetric matrices give us $V$ and $U$. Multiply out $A = U\Sigma V^{\!\top}$ both ways:$$A^{\!\top}\!A = V\,\Sigma^{\!\top}\!\Sigma\,V^{\!\top}, \qquad AA^{\!\top} = U\,\Sigma\Sigma^{\!\top}\,U^{\!\top}.
+Eigenvectors of two symmetric matrices give us $V$ and $U$. Multiply out $A = U\Sigma V^{\!\top}$ both ways:
+$$
+A^{\!\top}\!A = V\,\Sigma^{\!\top}\!\Sigma\,V^{\!\top}, \qquad AA^{\!\top} = U\,\Sigma\Sigma^{\!\top}\,U^{\!\top}.
 $$
 Both $A^{\!\top}\!A$ and $AA^{\!\top}$ are **symmetric and positive semidefinite**, so the spectral theorem applies. Reading these as spectral decompositions:
 
@@ -145,7 +163,9 @@ In numerical practice nobody computes SVD this way: forming $A^{\!\top}\!A$ squa
 
 For $A = \begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}$:
 $$A^{\!\top}\!A = \begin{pmatrix} 1 & 1 \\ 1 & 2 \end{pmatrix}, \qquad \det(A^{\!\top}\!A - \lambda I) = \lambda^2 - 3\lambda + 1.$$
-So $\lambda = \frac{3 \pm \sqrt{5}}{2}$, giving$$\sigma_1 = \sqrt{\tfrac{3+\sqrt 5}{2}} \approx 1.618, \qquad \sigma_2 = \sqrt{\tfrac{3-\sqrt 5}{2}} \approx 0.618.
+So $\lambda = \frac{3 \pm \sqrt{5}}{2}$, giving
+$$
+\sigma_1 = \sqrt{\tfrac{3+\sqrt 5}{2}} \approx 1.618, \qquad \sigma_2 = \sqrt{\tfrac{3-\sqrt 5}{2}} \approx 0.618.
 $$
 Find the eigenvectors of $A^{\!\top}\!A$ to assemble $V$, then $u_i = A v_i / \sigma_i$ gives $U$. (The product $\sigma_1 \sigma_2 = 1 = |\det A|$ is a useful sanity check.)
 
@@ -188,9 +208,15 @@ The orthonormal basis $\{v_1, \ldots, v_r\}$ of the row space is mapped onto the
 
 ### The Eckart--Young theorem
 
-Truncate the outer-product expansion at $k$ terms:$$A_k = \sigma_1 u_1 v_1^{\!\top} + \cdots + \sigma_k u_k v_k^{\!\top}.
+Truncate the outer-product expansion at $k$ terms:
 $$
-**Theorem (Eckart--Young, 1936).** Among all matrices $B$ of rank at most $k$,$$\|A - A_k\|_F \;=\; \min_{\operatorname{rank}(B) \le k} \|A - B\|_F \;=\; \sqrt{\sigma_{k+1}^{\,2} + \cdots + \sigma_r^{\,2}}.$$The same statement holds in the operator (2-)norm with $\|A - A_k\|_2 = \sigma_{k+1}$.
+A_k = \sigma_1 u_1 v_1^{\!\top} + \cdots + \sigma_k u_k v_k^{\!\top}.
+$$
+**Theorem (Eckart--Young, 1936).** Among all matrices $B$ of rank at most $k$,
+$$
+\|A - A_k\|_F \;=\; \min_{\operatorname{rank}(B) \le k} \|A - B\|_F \;=\; \sqrt{\sigma_{k+1}^{\,2} + \cdots + \sigma_r^{\,2}}.
+$$
+The same statement holds in the operator (2-)norm with $\|A - A_k\|_2 = \sigma_{k+1}$.
 
 So $A_k$ isn't just *a* low-rank approximation — it is **provably optimal**. No clever rank-$k$ matrix can do better.
 
@@ -206,11 +232,23 @@ Top row: the first three rank-1 layers themselves (positive in red, negative in 
 
 ### Energy
 
-Define the matrix's "energy" as its squared Frobenius norm:$$\|A\|_F^2 = \sigma_1^2 + \sigma_2^2 + \cdots + \sigma_r^2.$$The fraction of energy retained by the rank-$k$ approximation is$$\text{energy retained} = \frac{\sigma_1^2 + \cdots + \sigma_k^2}{\sigma_1^2 + \cdots + \sigma_r^2}.$$For most natural data the spectrum decays quickly: a $1000 \times 1000$ photograph might capture 95% of its energy in the first 50 singular values.
+Define the matrix's "energy" as its squared Frobenius norm:
+$$
+\|A\|_F^2 = \sigma_1^2 + \sigma_2^2 + \cdots + \sigma_r^2.
+$$
+The fraction of energy retained by the rank-$k$ approximation is
+$$
+\text{energy retained} = \frac{\sigma_1^2 + \cdots + \sigma_k^2}{\sigma_1^2 + \cdots + \sigma_r^2}.
+$$
+For most natural data the spectrum decays quickly: a $1000 \times 1000$ photograph might capture 95% of its energy in the first 50 singular values.
 
 ### Image compression in numbers
 
-Storing a rank-$k$ approximation costs $k$ singular values plus the first $k$ columns of $U$ and $V$:$$\text{numbers stored} = k\,(m + n + 1).$$For a $500 \times 500$ image with $k = 50$: the original needs $250{,}000$ numbers, the rank-50 approximation needs $50{,}050$ — a 5x reduction with usually imperceptible loss.
+Storing a rank-$k$ approximation costs $k$ singular values plus the first $k$ columns of $U$ and $V$:
+$$
+\text{numbers stored} = k\,(m + n + 1).
+$$
+For a $500 \times 500$ image with $k = 50$: the original needs $250{,}000$ numbers, the rank-50 approximation needs $50{,}050$ — a 5x reduction with usually imperceptible loss.
 
 ![Original vs k=5, 20, 50; spectrum and cumulative-energy curves](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/fig5_image_compression.png)
 
@@ -241,8 +279,12 @@ For $A x = b$, we usually want $x = A^{-1} b$. But $A^{-1}$ exists only when $A$
 
 ### Definition via SVD
 
-If $A = U \Sigma V^{\!\top}$, then$$A^{+} = V \Sigma^{+} U^{\!\top}, \qquad
-\Sigma^{+}_{ii} = \begin{cases} 1/\sigma_i & \sigma_i > 0,\\ 0 & \sigma_i = 0,\end{cases}$$and $\Sigma^{+}$ is transposed to have shape $n \times m$. When $A$ is invertible, $A^{+} = A^{-1}$.
+If $A = U \Sigma V^{\!\top}$, then
+$$
+A^{+} = V \Sigma^{+} U^{\!\top}, \qquad
+\Sigma^{+}_{ii} = \begin{cases} 1/\sigma_i & \sigma_i > 0,\\ 0 & \sigma_i = 0,\end{cases}
+$$
+and $\Sigma^{+}$ is transposed to have shape $n \times m$. When $A$ is invertible, $A^{+} = A^{-1}$.
 
 ### What $A^{+}$ does
 
@@ -280,7 +322,11 @@ print(f"slope={coef[0]:.3f}  intercept={coef[1]:.3f}")
 
 Principal Component Analysis is SVD wearing a statistics hat.
 
-Centre the data matrix $X \in \mathbb{R}^{n\times p}$ (each column has mean zero). Compute its SVD:$$X_c = U \Sigma V^{\!\top}.$$Then:
+Centre the data matrix $X \in \mathbb{R}^{n\times p}$ (each column has mean zero). Compute its SVD:
+$$
+X_c = U \Sigma V^{\!\top}.
+$$
+Then:
 
 - **Principal directions** = columns of $V$ (right singular vectors). These are the orthogonal axes of maximum variance.
 - **Principal scores** = $X_c V = U \Sigma$. These are the data re-expressed in the new basis.
@@ -318,7 +364,9 @@ Netflix, Amazon, and Spotify all face the same question: **how do we predict rat
 
 ### Matrix factorisation
 
-The modelling assumption is that ratings are driven by a small number of **latent factors** — for movies, perhaps "action level," "romance," "humour," "art-house depth." Then$$R \approx U_k \Sigma_k V_k^{\!\top}.
+The modelling assumption is that ratings are driven by a small number of **latent factors** — for movies, perhaps "action level," "romance," "humour," "art-house depth." Then
+$$
+R \approx U_k \Sigma_k V_k^{\!\top}.
 $$
 - A row of $U_k \Sigma_k$ is one user's taste vector.
 - A row of $V_k$ is one item's characteristic vector.

@@ -123,7 +123,9 @@ $$V^\pi(s) = \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') +
 Read it out loud: *the value of being here equals the expected immediate reward plus the discounted value of where I land next*. The tree in the figure is exactly this equation drawn out — the root is the current state, the middle layer is the actions weighted by $\pi$, the leaves are the next states weighted by $P$, and the rewards live on the arrows.
 
 **Bellman optimality equation** (for the best possible policy $\pi^*$):
-$$V^*(s) = \max_a \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') + \gamma V^*(s')\right],$$$$Q^*(s, a) = \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') + \gamma \max_{a'} Q^*(s', a')\right].$$
+$$V^*(s) = \max_a \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') + \gamma V^*(s')\right],$$
+
+$$Q^*(s, a) = \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') + \gamma \max_{a'} Q^*(s', a')\right].$$
 The change is small but everything: the expectation over $\pi$ is replaced by a $\max$. Once you have $Q^*$, the optimal policy falls out trivially:
 $$\pi^*(s) = \arg\max_{a} Q^*(s, a).$$
 ### A Numerical Example
@@ -138,7 +140,9 @@ Let us pin this down with a small two-state MDP, $\{s_1, s_2\}$, one action $a_1
 | $s_2$ | $a_1$ | $s_2$ | 0.3 | 8 |
 
 Plug into Bellman:
-$$V(s_1) = 0.5\,[5 + 0.9 V(s_1)] + 0.5\,[10 + 0.9 V(s_2)],$$$$V(s_2) = 0.7\,[2 + 0.9 V(s_1)] + 0.3\,[8 + 0.9 V(s_2)].$$
+$$V(s_1) = 0.5\,[5 + 0.9 V(s_1)] + 0.5\,[10 + 0.9 V(s_2)],$$
+
+$$V(s_2) = 0.7\,[2 + 0.9 V(s_1)] + 0.3\,[8 + 0.9 V(s_2)].$$
 Rearranging gives a linear system
 $$0.55\,V(s_1) - 0.45\,V(s_2) = 7.5,\qquad -0.63\,V(s_1) + 0.73\,V(s_2) = 3.8,$$
 with solution $V(s_1) \approx 52.3$ and $V(s_2) \approx 50.4$. The values are large because the rewards keep coming forever and $\gamma$ is close to 1; that is the geometric-series effect at work.

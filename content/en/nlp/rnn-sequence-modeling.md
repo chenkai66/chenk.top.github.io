@@ -126,7 +126,9 @@ The GRU (Cho et al., 2014) keeps the gating idea but trims the design. It merges
 $$
 z_t = \sigma(W_z [h_{t-1}, x_t]), \qquad
 r_t = \sigma(W_r [h_{t-1}, x_t]),
-$$$$
+$$
+
+$$
 \tilde{h}_t = \tanh(W [r_t \odot h_{t-1}, x_t]), \qquad
 h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t.
 $$
@@ -156,7 +158,9 @@ A Bidirectional RNN (Schuster & Paliwal, 1997) runs two independent recurrences 
 $$
 \overrightarrow{h}_t = \mathrm{RNN}_\text{fwd}(x_t, \overrightarrow{h}_{t-1}), \qquad
 \overleftarrow{h}_t = \mathrm{RNN}_\text{bwd}(x_t, \overleftarrow{h}_{t+1}),
-$$$$
+$$
+
+$$
 h_t = \big[\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\big].
 $$
 Each per-position representation now sees both directions of context.

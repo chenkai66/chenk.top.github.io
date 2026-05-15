@@ -42,7 +42,9 @@ translationKey: "reparameterization-gumbel-softmax"
 
 考虑一个非常一般的训练目标：在某个分布 $q_\theta(z)$ 上对函数 $f(z)$ 求期望，并对参数 $\theta$ 求导：
 $$
-\mathcal L(\theta) \;=\; \mathbb E_{z\sim q_\theta(z)}\,[\,f(z)\,].$$VAE 里 $f$ 是重建对数似然，强化学习里 $f$ 是回报，离散结构学习里 $f$ 是下游模型的损失。**问题在于**：$\theta$ 同时藏在被积函数和分布里，朴素地“先采一个 $z$，再算 $f(z)$，再 backward”——计算图在采样那一步就断了。
+\mathcal L(\theta) \;=\; \mathbb E_{z\sim q_\theta(z)}\,[\,f(z)\,].
+$$
+VAE 里 $f$ 是重建对数似然，强化学习里 $f$ 是回报，离散结构学习里 $f$ 是下游模型的损失。**问题在于**：$\theta$ 同时藏在被积函数和分布里，朴素地“先采一个 $z$，再算 $f(z)$，再 backward”——计算图在采样那一步就断了。
 
 直接看一段 PyTorch：
 

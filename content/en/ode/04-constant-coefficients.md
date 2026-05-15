@@ -100,7 +100,11 @@ The same trick — fold $e^{at}$ into the kernel — is what makes the *frequenc
 ### Linearity
 $$\mathcal{L}\{a f + b g\} = a F(s) + b G(s).$$
 ### Differentiation — the key to the whole subject
-$$\mathcal{L}\{f'(t)\} = sF(s) - f(0),$$$$\mathcal{L}\{f''(t)\} = s^2 F(s) - s f(0) - f'(0),$$$$\mathcal{L}\{f^{(n)}(t)\} = s^n F(s) - s^{n-1} f(0) - \cdots - f^{(n-1)}(0).$$
+$$\mathcal{L}\{f'(t)\} = sF(s) - f(0),$$
+
+$$\mathcal{L}\{f''(t)\} = s^2 F(s) - s f(0) - f'(0),$$
+
+$$\mathcal{L}\{f^{(n)}(t)\} = s^n F(s) - s^{n-1} f(0) - \cdots - f^{(n-1)}(0).$$
 **Why this matters.** Differentiation in $t$ becomes multiplication by $s$, and the initial conditions appear *as part of the formula*, not as side constraints to be matched later. An $n$-th order linear ODE turns into an $n$-th degree polynomial equation in $s$ that already knows about $y(0), y'(0), \dots$.
 
 The proof is one integration by parts:

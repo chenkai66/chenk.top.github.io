@@ -244,7 +244,9 @@ $$x_i = \frac{\det(A_i)}{\det(A)},$$
 where $A_i$ is $A$ with its $i$-th column replaced by $\vec{b}$.
 
 **Example.**
-$$\begin{cases} 2x + y = 5 \\ 3x + 4y = 11 \end{cases}$$$$\det(A) = 8 - 3 = 5, \quad \det(A_1) = 20 - 11 = 9, \quad \det(A_2) = 22 - 15 = 7,$$
+$$\begin{cases} 2x + y = 5 \\ 3x + 4y = 11 \end{cases}$$
+
+$$\det(A) = 8 - 3 = 5, \quad \det(A_1) = 20 - 11 = 9, \quad \det(A_2) = 22 - 15 = 7,$$
 so $x = 9/5,\; y = 7/5$.
 
 **Caveat.** Cramer's rule is theoretically beautiful but practically slow ($O(n^4)$ at best vs. $O(n^3)$ for elimination). It is the right tool for proving things and for $2\times 2$ or $3\times 3$ symbolic problems, not for actually solving big systems.

@@ -279,7 +279,10 @@ The standard recipe for fitting CP is **Alternating Least Squares (ALS)**: hold 
 
 1. Randomly initialize $\mathbf{A}, \mathbf{B}, \mathbf{C}$.
 2. Update $\mathbf{A}$ holding $\mathbf{B}, \mathbf{C}$ fixed:
-   $$\mathbf{A} \leftarrow \mathbf{X}_{(1)}\, (\mathbf{C} \odot \mathbf{B})\, \bigl[(\mathbf{C}^T \mathbf{C}) * (\mathbf{B}^T \mathbf{B})\bigr]^{\dagger}$$
+   
+$$
+\mathbf{A} \leftarrow \mathbf{X}_{(1)}\, (\mathbf{C} \odot \mathbf{B})\, \bigl[(\mathbf{C}^T \mathbf{C}) * (\mathbf{B}^T \mathbf{B})\bigr]^{\dagger}
+$$
 3. Update $\mathbf{B}$ similarly, then $\mathbf{C}$.
 4. Repeat until the reconstruction error stops shrinking.
 
@@ -501,7 +504,9 @@ The non-negativity constraint forces components to look like *parts* (additive f
 ### Decomposition
 
 **Exercise 5.** Consider the rank-2 tensor $\mathcal{X} = \mathbf{a}_1 \circ \mathbf{b}_1 \circ \mathbf{c}_1 + \mathbf{a}_2 \circ \mathbf{b}_2 \circ \mathbf{c}_2$ with
-$$\mathbf{a}_1 = [1, 0]^T,\; \mathbf{b}_1 = [1, 1, 0]^T,\; \mathbf{c}_1 = [1, 0]^T$$$$\mathbf{a}_2 = [0, 1]^T,\; \mathbf{b}_2 = [0, 1, 1]^T,\; \mathbf{c}_2 = [0, 1]^T$$
+$$\mathbf{a}_1 = [1, 0]^T,\; \mathbf{b}_1 = [1, 1, 0]^T,\; \mathbf{c}_1 = [1, 0]^T$$
+
+$$\mathbf{a}_2 = [0, 1]^T,\; \mathbf{b}_2 = [0, 1, 1]^T,\; \mathbf{c}_2 = [0, 1]^T$$
 (a) Compute several entries of $\mathcal{X}$.
 (b) Write the three factor matrices.
 (c) Compute the mode-1 unfolding $\mathbf{X}_{(1)}$.

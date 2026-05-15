@@ -187,7 +187,9 @@ The trick is mechanical, not mystical. Each generated reasoning token *changes t
 
 A clean way to think about CoT probabilistically: for problem $x$ with answer $a$, marginalize over latent reasoning chains $z$:
 $$
-P(a \mid x) \;=\; \sum_z P(z \mid x)\, P(a \mid x, z).$$Greedy CoT picks one $z$ and hopes it is right. **Self-consistency** ([Section 5](#a-working-theory-of-in-context-learning)) approximates the sum by sampling many $z$.
+P(a \mid x) \;=\; \sum_z P(z \mid x)\, P(a \mid x, z).
+$$
+Greedy CoT picks one $z$ and hopes it is right. **Self-consistency** ([Section 5](#a-working-theory-of-in-context-learning)) approximates the sum by sampling many $z$.
 
 When CoT helps and when it does not:
 
@@ -284,7 +286,9 @@ A single CoT chain can take a wrong turn at step 2 and propagate the mistake. Se
 
 ![Self-consistency: many paths, one vote](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/fig7_self_consistency.png)
 
-Formally, given problem $x$ and $k$ sampled chains $z_1, \dots, z_k$ each yielding answer $a_i$:$$\hat{a} \;=\; \arg\max_a \sum_{i=1}^{k} \mathbb{1}[a_i = a].
+Formally, given problem $x$ and $k$ sampled chains $z_1, \dots, z_k$ each yielding answer $a_i$:
+$$
+\hat{a} \;=\; \arg\max_a \sum_{i=1}^{k} \mathbb{1}[a_i = a].
 $$
 This is a Monte Carlo approximation to the marginal $\sum_z P(z \mid x)\, P(a \mid x, z)$. It works because **errors tend to be diverse but correctness tends to be convergent** — many wrong reasoning paths land on different wrong answers, while correct paths agree.
 

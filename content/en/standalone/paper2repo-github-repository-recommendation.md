@@ -66,7 +66,9 @@ Both towers use the same CNN-over-words recipe.
 1. **Tokenize** the description, abstract, or tag list to a sequence $\{x_1, \dots, x_n\}$, then map each token to a $d$-dimensional pretrained vector (GloVe in the paper).
 2. **Convolve** with multiple window sizes $h \in \{2, 3, 4\}$ and $k$ filters per width:
    $$
-   c_i = \sigma(W \cdot x_{i:i+h-1} + b)$$3. **Max-over-time pool** each filter to a scalar, concatenate to a fixed-size feature vector.
+   c_i = \sigma(W \cdot x_{i:i+h-1} + b)
+$$
+3. **Max-over-time pool** each filter to a scalar, concatenate to a fixed-size feature vector.
 4. **Tags** are unordered, so average their word vectors and project through a fully-connected layer to the same dimension as the description features.
 5. **Fuse** the description and tag features (sum or concatenate) to obtain the repository representation.
 
@@ -74,9 +76,17 @@ Paper abstracts go through the same encoder with the tag branch disabled. Both e
 
 ## Constrained GCN
 
-A standard GCN layer is$$H^{(l+1)} = \sigma\!\left(\tilde D^{-1/2}\tilde A\tilde D^{-1/2}\,H^{(l)}\,W^{(l)}\right)$$where $\tilde A = A + I$ adds self-loops and $\tilde D$ is its degree matrix. Run this $L$ times on each graph and you get paper embeddings $h^p$ and repo embeddings $h^r$. They are useful for in-graph tasks (citation prediction on the paper side, co-star prediction on the repo side), but they live in two unrelated $d$-dimensional spaces - dot products across towers are meaningless.
+A standard GCN layer is
+$$
+H^{(l+1)} = \sigma\!\left(\tilde D^{-1/2}\tilde A\tilde D^{-1/2}\,H^{(l)}\,W^{(l)}\right)
+$$
+where $\tilde A = A + I$ adds self-loops and $\tilde D$ is its degree matrix. Run this $L$ times on each graph and you get paper embeddings $h^p$ and repo embeddings $h^r$. They are useful for in-graph tasks (citation prediction on the paper side, co-star prediction on the repo side), but they live in two unrelated $d$-dimensional spaces - dot products across towers are meaningless.
 
-The "constrained" in constrained GCN is what fixes that. For every bridged pair $(i, i)$ we require$$h^{p}_{i}\!\cdot h^{r}_{i} \;\geq\; 1 - \delta, \qquad \delta \approx 10^{-3}.$$With both embeddings $\ell_2$-normalized, the dot product is the cosine similarity, and the constraint says: bridged paper-repo pairs should be near-identical in direction. Since the two towers share no parameters, the only way to satisfy this is for the GCNs and encoders to learn aligned axes.
+The "constrained" in constrained GCN is what fixes that. For every bridged pair $(i, i)$ we require
+$$
+h^{p}_{i}\!\cdot h^{r}_{i} \;\geq\; 1 - \delta, \qquad \delta \approx 10^{-3}.
+$$
+With both embeddings $\ell_2$-normalized, the dot product is the cosine similarity, and the constraint says: bridged paper-repo pairs should be near-identical in direction. Since the two towers share no parameters, the only way to satisfy this is for the GCNs and encoders to learn aligned axes.
 
 ## Two training forces
 
@@ -86,13 +96,25 @@ Figure 3(a) shows the ranking force. Embeddings live on the unit sphere. For a p
 
 ### WARP ranking loss
 
-WARP (Weighted Approximate-Rank Pairwise) is a margin-based ranking loss with a rank-aware weight. For a positive pair $(p, r^+)$ and a sampled negative $r^-$,$$\ell(p, r^+, r^-) = L\!\left(\mathrm{rank}(p, r^+)\right) \cdot \big[\gamma - h^p\!\cdot h^{r^+} + h^p\!\cdot h^{r^-}\big]_+$$where $[\cdot]_+ = \max(0, \cdot)$ is the hinge and $L(k) = \sum_{j=1}^{k} 1/j$ is a non-decreasing weight that grows when the positive is ranked far down. The rank is estimated by sampling negatives until one violates the margin and counting how many were tried.
+WARP (Weighted Approximate-Rank Pairwise) is a margin-based ranking loss with a rank-aware weight. For a positive pair $(p, r^+)$ and a sampled negative $r^-$,
+$$
+\ell(p, r^+, r^-) = L\!\left(\mathrm{rank}(p, r^+)\right) \cdot \big[\gamma - h^p\!\cdot h^{r^+} + h^p\!\cdot h^{r^-}\big]_+
+$$
+where $[\cdot]_+ = \max(0, \cdot)$ is the hinge and $L(k) = \sum_{j=1}^{k} 1/j$ is a non-decreasing weight that grows when the positive is ranked far down. The rank is estimated by sampling negatives until one violates the margin and counting how many were tried.
 
 Two practical points. First, WARP needs many negatives per positive - the original paper uses sampling-without-replacement until a margin violator is found. Second, on normalized embeddings the dot product is cosine in $[-1, 1]$, so the margin $\gamma$ is naturally interpretable (typical values are around 0.1).
 
 ### Removing the Lagrangian hyperparameter
 
-The full objective is the WARP loss plus the alignment constraint. A textbook Lagrangian formulation would give$$\min \sum_{(p,r^+,r^-)} \ell(p, r^+, r^-) \;+\; \lambda \cdot C_e$$where $C_e$ is the mean alignment error$$C_e = \frac{1}{|B|}\sum_{i \in B} \big[(1 - \delta) - h^{p}_{i}\!\cdot h^{r}_{i}\big]_+,$$$|B|$ is the number of bridged pairs, and $\lambda$ trades off the two terms. The problem is that as training progresses the magnitude of both terms drifts, so any fixed $\lambda$ ends up either drowning the ranking loss or letting the constraint go slack. paper2repo replaces the additive Lagrangian with a multiplicative one:$$\mathcal{L} = \left(\sum_{(p,r^+,r^-)} \ell(p, r^+, r^-)\right) \cdot (1 + C_e).
+The full objective is the WARP loss plus the alignment constraint. A textbook Lagrangian formulation would give
+$$
+\min \sum_{(p,r^+,r^-)} \ell(p, r^+, r^-) \;+\; \lambda \cdot C_e
+$$
+where $C_e$ is the mean alignment error
+$$
+C_e = \frac{1}{|B|}\sum_{i \in B} \big[(1 - \delta) - h^{p}_{i}\!\cdot h^{r}_{i}\big]_+,$$$|B|$ is the number of bridged pairs, and $\lambda$ trades off the two terms. The problem is that as training progresses the magnitude of both terms drifts, so any fixed $\lambda$ ends up either drowning the ranking loss or letting the constraint go slack. paper2repo replaces the additive Lagrangian with a multiplicative one:
+$$
+\mathcal{L} = \left(\sum_{(p,r^+,r^-)} \ell(p, r^+, r^-)\right) \cdot (1 + C_e).
 $$
 Because $h^p$ and $h^r$ are normalized, $C_e \in [0, 2]$ is bounded and on the same scale as a multiplicative factor. When the constraint is satisfied ($C_e \to 0$) the multiplier collapses to 1 and the loss is pure WARP. When the constraint is violated the entire ranking loss is amplified, which forces the optimizer to fix alignment first. There is no $\lambda$ to tune.
 

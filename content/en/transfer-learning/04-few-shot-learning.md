@@ -152,9 +152,15 @@ MAML's idea is simple and surprisingly effective: search for an initialization $
 For each sampled task $\mathcal{T}_i$ (with its own support and query sets):
 
 1. **Inner loop (per-task adaptation).** Take one (or a few) gradient steps on the support loss:
-   $$\theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{\text{support}}(\theta).$$
+   
+$$
+\theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{\text{support}}(\theta).
+$$
 2. **Outer loop (meta-update).** Evaluate the *adapted* parameters on the query set and update the initialization:
-   $$\theta \leftarrow \theta - \beta \nabla_\theta \sum_i \mathcal{L}_{\mathcal{T}_i}^{\text{query}}(\theta_i').$$
+   
+$$
+\theta \leftarrow \theta - \beta \nabla_\theta \sum_i \mathcal{L}_{\mathcal{T}_i}^{\text{query}}(\theta_i').
+$$
 The outer-loop gradient differentiates *through* the inner-loop update, which involves second derivatives of the support loss with respect to $\theta$ — a Hessian-vector product.
 
 #### First-order approximation (FOMAML)

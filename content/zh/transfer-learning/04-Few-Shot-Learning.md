@@ -152,9 +152,15 @@ MAML 的思想简单却惊人有效：寻找一个初始化参数 $\theta$，使
 对每个采样任务 $\mathcal{T}_i$（含支持集与查询集）：
 
 1. **内环**（任务自适应）：在支持集损失上执行一步（或几步）梯度更新：
-   $$\theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{\text{support}}(\theta).$$
+   
+$$
+\theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{\text{support}}(\theta).
+$$
 2. **外环**（元更新）：用适配后的参数 $\theta_i'$ 在查询集上评估损失，并更新初始化：
-   $$\theta \leftarrow \theta - \beta \nabla_\theta \sum_i \mathcal{L}_{\mathcal{T}_i}^{\text{query}}(\theta_i').$$
+   
+$$
+\theta \leftarrow \theta - \beta \nabla_\theta \sum_i \mathcal{L}_{\mathcal{T}_i}^{\text{query}}(\theta_i').
+$$
 外环梯度需穿过内环更新，涉及支持集损失对 $\theta$ 的二阶导数——即 Hessian-向量乘积。
 
 #### 一阶近似（FOMAML）

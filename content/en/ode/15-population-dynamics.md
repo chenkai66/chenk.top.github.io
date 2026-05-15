@@ -50,9 +50,15 @@ Let $N(t)$ be a population size.
 
 **Logistic** (Verhulst 1838). Add density-dependent crowding:
 $$
-\boxed{\;\dot N = r N\!\left(1 - \frac{N}{K}\right).\;}$$The carrying capacity $K$ is a stable fixed point; $0$ is unstable. The closed-form solution is the famous S-curve $N(t) = K / (1 + ((K - N_0)/N_0) e^{-rt})$, with maximum growth rate $rK/4$ at $N = K/2$.
+\boxed{\;\dot N = r N\!\left(1 - \frac{N}{K}\right).\;}
+$$
+The carrying capacity $K$ is a stable fixed point; $0$ is unstable. The closed-form solution is the famous S-curve $N(t) = K / (1 + ((K - N_0)/N_0) e^{-rt})$, with maximum growth rate $rK/4$ at $N = K/2$.
 
-**Allee effect** (1931). Some species need a *minimum* density to grow at all — mate finding, group defence, cooperative hunting. The strong-Allee logistic:$$\dot N = r N\!\left(1 - \frac{N}{K}\right)\!\left(\frac{N}{A} - 1\right).$$Now $0$ is stable, $A$ is an unstable threshold, and $K$ is stable. Below $A$ the population goes extinct; above $A$ it grows toward $K$. This is **bistability**: a single equation with two basins of attraction.
+**Allee effect** (1931). Some species need a *minimum* density to grow at all — mate finding, group defence, cooperative hunting. The strong-Allee logistic:
+$$
+\dot N = r N\!\left(1 - \frac{N}{K}\right)\!\left(\frac{N}{A} - 1\right).
+$$
+Now $0$ is stable, $A$ is an unstable threshold, and $K$ is stable. Below $A$ the population goes extinct; above $A$ it grows toward $K$. This is **bistability**: a single equation with two basins of attraction.
 
 The Allee effect explains why some endangered species fail to recover even after habitat is restored, and why introducing a small founding population for re-wilding often fails. The math is identical to the cubic potential of mechanics; the dynamics is gradient descent in a double-well landscape.
 
@@ -64,7 +70,11 @@ The Allee effect explains why some endangered species fail to recover even after
 
 ## Predator-Prey: Lotka-Volterra
 
-Two species: prey $x$, predator $y$.$$\boxed{\;\dot x = \alpha x - \beta x y, \qquad \dot y = \delta x y - \gamma y.\;}$$- $\alpha$: prey intrinsic growth (no predators)
+Two species: prey $x$, predator $y$.
+$$
+\boxed{\;\dot x = \alpha x - \beta x y, \qquad \dot y = \delta x y - \gamma y.\;}
+$$
+- $\alpha$: prey intrinsic growth (no predators)
 - $\gamma$: predator death rate (no prey)
 - $\beta, \delta$: encounter rates
 
@@ -72,7 +82,11 @@ Setting derivatives to zero gives two equilibria: extinction $(0, 0)$ — a sadd
 
 ### A conserved quantity
 
-Define$$H(x, y) = \delta x - \gamma\ln x + \beta y - \alpha\ln y.$$A direct calculation shows $\dot H = 0$ along solutions. So every Lotka-Volterra orbit lies on a level set of $H$. The level sets are *closed curves* around the centre, which is why solutions are periodic (and why the centre is genuinely neutral, not stable).
+Define
+$$
+H(x, y) = \delta x - \gamma\ln x + \beta y - \alpha\ln y.
+$$
+A direct calculation shows $\dot H = 0$ along solutions. So every Lotka-Volterra orbit lies on a level set of $H$. The level sets are *closed curves* around the centre, which is why solutions are periodic (and why the centre is genuinely neutral, not stable).
 
 This conservation is fragile: any small perturbation of the equations destroys it. Real ecosystems do not satisfy Lotka-Volterra exactly, so real cycles are typically *limit cycles* (under Holling responses below) rather than the LV continuum of cycles.
 
@@ -119,7 +133,11 @@ The arithmetic: at fixed predator-prey parameters, the Hopf bifurcation occurs w
 
 ## Two-Species Competition
 
-Two species drawing on the same resource pool:$$\dot N_1 = r_1 N_1\!\left(1 - \frac{N_1 + \alpha_{12} N_2}{K_1}\right), \qquad \dot N_2 = r_2 N_2\!\left(1 - \frac{N_2 + \alpha_{21} N_1}{K_2}\right).$$The dimensionless **competition coefficients** $\alpha_{ij}$ measure how much one individual of species $j$ depresses the per-capita growth of species $i$, *relative to one of its own*.
+Two species drawing on the same resource pool:
+$$
+\dot N_1 = r_1 N_1\!\left(1 - \frac{N_1 + \alpha_{12} N_2}{K_1}\right), \qquad \dot N_2 = r_2 N_2\!\left(1 - \frac{N_2 + \alpha_{21} N_1}{K_2}\right).
+$$
+The dimensionless **competition coefficients** $\alpha_{ij}$ measure how much one individual of species $j$ depresses the per-capita growth of species $i$, *relative to one of its own*.
 
 The system has up to four equilibria:
 
@@ -147,7 +165,11 @@ The competitive exclusion principle (Gause 1934) is the corollary: two species w
 
 ## Age-Structured Models
 
-Real populations have age structure. The **Leslie matrix** model discretises age and time in equal steps, $n_t = (n_t^{(0)}, n_t^{(1)}, \dots, n_t^{(m)})$:$$\boxed{\;n_{t+1} = L\,n_t,\quad L = \begin{pmatrix} F_0 & F_1 & \cdots & F_m \\ P_0 & 0 & \cdots & 0 \\ 0 & P_1 & \cdots & 0 \\ \vdots & & \ddots & \vdots \\ 0 & 0 & P_{m-1} & 0 \end{pmatrix}.\;}$$- $F_i$ = age-$i$ fertility (offspring per timestep)
+Real populations have age structure. The **Leslie matrix** model discretises age and time in equal steps, $n_t = (n_t^{(0)}, n_t^{(1)}, \dots, n_t^{(m)})$:
+$$
+\boxed{\;n_{t+1} = L\,n_t,\quad L = \begin{pmatrix} F_0 & F_1 & \cdots & F_m \\ P_0 & 0 & \cdots & 0 \\ 0 & P_1 & \cdots & 0 \\ \vdots & & \ddots & \vdots \\ 0 & 0 & P_{m-1} & 0 \end{pmatrix}.\;}
+$$
+- $F_i$ = age-$i$ fertility (offspring per timestep)
 - $P_i$ = survival probability from age $i$ to age $i + 1$
 
 This is just $n_{t+1} = L\,n_t$; the long-run dynamics is governed by the **dominant eigenvalue** $\lambda$ of $L$:
@@ -183,7 +205,11 @@ print('Stable age distribution:', np.abs(vec[:, i].real / vec[:, i].real.sum()))
 
 ## Metapopulations: Many Patches
 
-When a species lives in *patches* (forest fragments, ponds, islands) rather than one continuous habitat, what matters is not the local population in each patch but the **fraction of patches occupied**. Levins (1969) wrote down the simplest such model:$$\boxed{\;\dot p = c\,p\,(1 - p) - e\,p,\;}$$where $p$ is the fraction occupied, $c$ is the colonisation rate (per occupied patch, into empty patches) and $e$ is the local extinction rate. The equilibrium is $p^* = 1 - e/c$ (positive iff $c > e$).
+When a species lives in *patches* (forest fragments, ponds, islands) rather than one continuous habitat, what matters is not the local population in each patch but the **fraction of patches occupied**. Levins (1969) wrote down the simplest such model:
+$$
+\boxed{\;\dot p = c\,p\,(1 - p) - e\,p,\;}
+$$
+where $p$ is the fraction occupied, $c$ is the colonisation rate (per occupied patch, into empty patches) and $e$ is the local extinction rate. The equilibrium is $p^* = 1 - e/c$ (positive iff $c > e$).
 
 This is structurally identical to the SIS infection model, with patches as "individuals" and colonisation as "transmission". The metapopulation persists iff $c > e$ — a regional extinction threshold.
 
@@ -195,7 +221,13 @@ The lesson for conservation: even if every individual habitat patch is healthy, 
 
 ![Ordinary Differential Equations (15): Population Dynamics — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/15-population-dynamics/illustration_2.png)
 
-The **Fisher equation** (Fisher 1937; Kolmogorov-Petrovskii-Piskunov 1937) marries logistic growth to diffusion:$$\boxed{\;\partial_t N = D\,\partial_x^2 N + r N\!\left(1 - \frac{N}{K}\right).\;}$$With initial condition compactly supported, the front of the population spreads at a deterministic asymptotic speed:$$c_{\min} = 2\sqrt{D r}.
+The **Fisher equation** (Fisher 1937; Kolmogorov-Petrovskii-Piskunov 1937) marries logistic growth to diffusion:
+$$
+\boxed{\;\partial_t N = D\,\partial_x^2 N + r N\!\left(1 - \frac{N}{K}\right).\;}
+$$
+With initial condition compactly supported, the front of the population spreads at a deterministic asymptotic speed:
+$$
+c_{\min} = 2\sqrt{D r}.
 $$
 The proof, in two lines: linearise the leading edge ($N \ll K$); a travelling-wave ansatz $N = e^{-\lambda(x - ct)}$ requires $c = D\lambda + r/\lambda$, minimised over $\lambda$ at $c_{\min} = 2\sqrt{Dr}$. (The actual selected speed *is* the linear minimum — this is the celebrated *KPP selection principle*.)
 

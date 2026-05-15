@@ -176,7 +176,10 @@ For non-convex problems, KKT is necessary (with constraint qualification) but no
 The Lagrangian gives a **min-max** game between primal player ($x$, minimizing) and dual player ($\lambda, \nu$, maximizing).
 
 > **Theorem (Saddle-point principle).** Strong duality holds and $(x^\star, \lambda^\star, \nu^\star)$ is a primal-dual optimum iff $(x^\star, \lambda^\star, \nu^\star)$ is a saddle point of $L$:
-> $$L(x^\star, \lambda, \nu) \leq L(x^\star, \lambda^\star, \nu^\star) \leq L(x, \lambda^\star, \nu^\star) \quad \forall x, \forall \lambda \geq 0, \nu.$$
+> 
+$$
+L(x^\star, \lambda, \nu) \leq L(x^\star, \lambda^\star, \nu^\star) \leq L(x, \lambda^\star, \nu^\star) \quad \forall x, \forall \lambda \geq 0, \nu.
+$$
 The right inequality is primal optimality of $x^\star$ given the multipliers; the left is dual optimality.
 
 

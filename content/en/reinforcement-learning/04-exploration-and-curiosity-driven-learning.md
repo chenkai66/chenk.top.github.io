@@ -154,7 +154,9 @@ The left half of the figure above shows the three components:
 1. **Encoder $\phi$** (CNN) maps $s_t$ to a feature vector $\phi(s_t)$.
 2. **Forward model $\hat f$** predicts the next features from current features and action: $\hat\phi_{t+1} = \hat f(\phi(s_t), a_t)$. Its squared error
    $$
-   r^{\text{int}}_t = \eta \,\bigl\| \hat\phi_{t+1} - \phi(s_{t+1}) \bigr\|^2$$   *is* the intrinsic reward.
+   r^{\text{int}}_t = \eta \,\bigl\| \hat\phi_{t+1} - \phi(s_{t+1}) \bigr\|^2
+$$
+   *is* the intrinsic reward.
 3. **Inverse model $g$** predicts the action from a pair of consecutive features: $\hat a_t = g(\phi(s_t), \phi(s_{t+1}))$. Its loss flows back into the encoder $\phi$.
 
 Step 3 is the magic ingredient. The inverse model can only succeed if $\phi$ retains information that *changes between $s_t$ and $s_{t+1}$ as a function of the agent's action*. Static background pixels, TV noise, and other action-independent distractions get filtered out of $\phi$ because they do not help predict $a_t$. Once they are gone, the forward model cannot mistake them for novelty.

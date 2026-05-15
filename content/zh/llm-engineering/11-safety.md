@@ -47,7 +47,9 @@ RLHF 背后的 Bradley-Terry 模型（[第 4 章](/zh/llm-engineering/04-post-tr
 $$\Pr(y_w \succ y_l | x) = \sigma(r_\phi(x, y_w) - r_\phi(x, y_l))$$
 从偏好对 $(x, y_w, y_l)$ 中训练奖励模型 $r_\phi$，其中 $y_w$ 是被选中的响应，$y_l$ 是被拒绝的响应。随后通过 PPO 或 DPO 优化策略，在 KL 散度约束下最大化 $r_\phi$：
 $$
-\max_\theta \; \mathbb{E}_{x \sim D, y \sim \pi_\theta(\cdot|x)} \big[ r_\phi(x, y) \big] - \beta \cdot \mathrm{KL}\big(\pi_\theta \,\|\, \pi_\text{ref}\big)$$KL 项的作用是让策略靠近参考模型（通常是 SFT 初始化后的模型）。这项约束的实际作用远超其表面价值——它是防止策略在奖励模型中寻找病态捷径的唯一屏障。若 $beta$ 设得太低，会导致 reward hacking；设得太高，策略又几乎无法更新。
+\max_\theta \; \mathbb{E}_{x \sim D, y \sim \pi_\theta(\cdot|x)} \big[ r_\phi(x, y) \big] - \beta \cdot \mathrm{KL}\big(\pi_\theta \,\|\, \pi_\text{ref}\big)
+$$
+KL 项的作用是让策略靠近参考模型（通常是 SFT 初始化后的模型）。这项约束的实际作用远超其表面价值——它是防止策略在奖励模型中寻找病态捷径的唯一屏障。若 $beta$ 设得太低，会导致 reward hacking；设得太高，策略又几乎无法更新。
 
 训练信号本质上是 *人类（或 AI 代理）的偏好*，但这也会让模型学会一些你并未期望的行为：
 

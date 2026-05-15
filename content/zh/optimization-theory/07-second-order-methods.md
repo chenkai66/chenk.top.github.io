@@ -59,7 +59,10 @@ $$
 ### 局部二次收敛性
 
 > **定理**：设 $f$ 二阶连续可微，其 Hessian 矩阵 $\nabla^2 f$ 是 $L$-Lipschitz 连续的（即 $\|\nabla^2 f(x) - \nabla^2 f(y)\| \leq L \|x - y\|$），且在驻点 $x^\star$ 处满足 $\nabla^2 f(x^\star) \succeq \mu I$。则当初始点 $x_0$ 足够接近 $x^\star$ 时，牛顿法满足如下收敛界：
-> $$\|x_{k+1} - x^\star\|_2 \leq \frac{L}{2 \mu} \|x_k - x^\star\|_2^2.$$
+> 
+$$
+\|x_{k+1} - x^\star\|_2 \leq \frac{L}{2 \mu} \|x_k - x^\star\|_2^2.
+$$
 **证明**：由牛顿步定义，
 $$
 x_{k+1} - x^\star = x_k - x^\star - [\nabla^2 f(x_k)]^{-1} \nabla f(x_k).

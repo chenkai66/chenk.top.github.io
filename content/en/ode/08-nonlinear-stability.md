@@ -137,7 +137,11 @@ $$x' = \alpha x - \beta xy, \qquad y' = \delta xy - \gamma y$$
 - Trivial equilibrium $(0,0)$: saddle
 - Coexistence equilibrium $(\gamma/\delta,\ \alpha/\beta)$: Jacobian eigenvalues $\pm i\sqrt{\alpha\gamma}$ (a center)
 
-The conserved quantity$$H(x,y) = \delta x - \gamma\ln x + \beta y - \alpha\ln y$$makes every orbit closed. Time-series and phase-plane look like this:
+The conserved quantity
+$$
+H(x,y) = \delta x - \gamma\ln x + \beta y - \alpha\ln y
+$$
+makes every orbit closed. Time-series and phase-plane look like this:
 
 ![Lotka-Volterra: time-series oscillation (left) and closed orbits encircling the center (right).](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/08-nonlinear-stability/fig2_lotka_volterra.png)
 *Left: predator (red) lags prey (blue) by a quarter period — the textbook ecological cycle. Right: a family of nested closed orbits around the center $(c/d,\ a/b)$. Different starting conditions live on different orbits forever.*

@@ -170,7 +170,10 @@ KKT 条件在最优解处成立**仅当满足某种约束规范（constraint qua
 拉格朗日函数定义了一个**极小-极大博弈**（min-max game）：原始玩家 $x$ 力求最小化，对偶玩家 $(\lambda, \nu)$ 力求最大化。
 
 > **定理（鞍点原理）。** 强对偶性成立，且 $(x^\star, \lambda^\star, \nu^\star)$ 是原始-对偶最优解，**当且仅当** $(x^\star, \lambda^\star, \nu^\star)$ 是 $L$ 的一个鞍点：
-> $$L(x^\star, \lambda, \nu) \leq L(x^\star, \lambda^\star, \nu^\star) \leq L(x, \lambda^\star, \nu^\star) \quad \forall x,\ \forall \lambda \geq 0,\ \nu.$$
+> 
+$$
+L(x^\star, \lambda, \nu) \leq L(x^\star, \lambda^\star, \nu^\star) \leq L(x, \lambda^\star, \nu^\star) \quad \forall x,\ \forall \lambda \geq 0,\ \nu.
+$$
 右侧不等式表示：给定乘子 $(\lambda^\star, \nu^\star)$，$x^\star$ 是原始最优；左侧不等式表示：$(\lambda^\star, \nu^\star)$ 是对偶最优。
 
 

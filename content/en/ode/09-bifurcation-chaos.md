@@ -113,7 +113,11 @@ Two trajectories that start a *ten-billionth* apart — $[1, 1, 1]$ and $[1 + 10
 ![Butterfly effect: two close trajectories on the attractor; their x-components diverge; separation grows exponentially.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/09-bifurcation-chaos/fig2_sensitivity_initial_conditions.png)
 *Top: two trajectories starting $10^{-8}$ apart, traced on the attractor (blue and red). Bottom-left: $x(t)$ for both — visually identical at first, then unrecognisable. Bottom-right: separation distance grows exponentially $\sim e^{\lambda t}$ until it saturates at the size of the attractor. The slope of the green dashed line **is** the largest Lyapunov exponent.*
 
-This is **why weather forecasts fail after about two weeks.** With measurement error $\varepsilon_0$, system size $L$, and Lyapunov exponent $\lambda$,$$T_{\text{predict}} \;\approx\; \frac{1}{\lambda}\,\ln\!\frac{L}{\varepsilon_0}.$$For the atmosphere $\lambda \approx 1/\text{day}$ and $\ln(L/\varepsilon_0) \approx 15$, giving $T \approx 15$ days. No improvement in models can push past this — only better measurements widen the gap inside the logarithm.
+This is **why weather forecasts fail after about two weeks.** With measurement error $\varepsilon_0$, system size $L$, and Lyapunov exponent $\lambda$,
+$$
+T_{\text{predict}} \;\approx\; \frac{1}{\lambda}\,\ln\!\frac{L}{\varepsilon_0}.
+$$
+For the atmosphere $\lambda \approx 1/\text{day}$ and $\ln(L/\varepsilon_0) \approx 15$, giving $T \approx 15$ days. No improvement in models can push past this — only better measurements widen the gap inside the logarithm.
 
 ### Ensemble view
 
@@ -127,7 +131,8 @@ A single trajectory tells you the worst case. An *ensemble* tells you the distri
 ## Lyapunov Exponents: Quantifying Chaos
 
 The **largest Lyapunov exponent** measures the average exponential rate of separation:
-$$\lambda_1 \;=\; \lim_{t\to\infty}\frac{1}{t}\,\ln\frac{|\delta\mathbf{x}(t)|}{|\delta\mathbf{x}(0)|}.
+$$
+\lambda_1 \;=\; \lim_{t\to\infty}\frac{1}{t}\,\ln\frac{|\delta\mathbf{x}(t)|}{|\delta\mathbf{x}(0)|}.
 $$
 
 | Sign | Behaviour |

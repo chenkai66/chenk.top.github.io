@@ -57,7 +57,10 @@ $$p(\theta \mid x) \;=\; \frac{p(x \mid \theta)\, p(\theta)}{\int p(x \mid \thet
 但分母中的边际似然在非平凡模型下通常不可积。为此，两大类近似算法应运而生：
 
 - **变分推断（VI）**：选取一个易处理的分布族 $\{q_\phi\}$，并最小化
-  $$\mathrm{KL}\bigl(q_\phi \,\|\, p(\cdot\mid x)\bigr) \;=\; \mathbb{E}_{q_\phi}\!\left[\log \tfrac{q_\phi(\theta)}{p(\theta\mid x)}\right],$$
+  
+$$
+\mathrm{KL}\bigl(q_\phi \,\|\, p(\cdot\mid x)\bigr) \;=\; \mathbb{E}_{q_\phi}\!\left[\log \tfrac{q_\phi(\theta)}{p(\theta\mid x)}\right],
+$$
   等价于最大化 **证据下界（ELBO）** $\mathrm{ELBO}(\phi) = \mathbb{E}_{q_\phi}[\log p(x\mid\theta)] - \mathrm{KL}(q_\phi \| p(\theta))$。
 
 - **马尔可夫链蒙特卡洛（MCMC）**：构造一个平稳分布恰好为 $p(\cdot\mid x)$ 的马尔可夫链。**Langevin 动力学** 是其中基于梯度的经典代表。

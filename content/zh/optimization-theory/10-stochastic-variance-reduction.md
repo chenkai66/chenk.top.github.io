@@ -73,7 +73,10 @@ $$
 ## 凸情形收敛率：$O(1/\sqrt{T})$
 
 > **定理**。设 $f$ 是凸函数，且满足上述方差界。取常数步长 $\eta = R / (\sigma \sqrt{T})$，并从满足 $\|x_0 - x^\star\|_2 \leq R$ 的初始点 $x_0$ 出发，则经过 $T$ 轮迭代后，有  
-> $$\mathbb{E}[f(\bar x_T) - f^\star] \leq \frac{R \sigma}{\sqrt{T}},$$
+> 
+$$
+\mathbb{E}[f(\bar x_T) - f^\star] \leq \frac{R \sigma}{\sqrt{T}},
+$$
 > 其中 $\bar x_T = \frac{1}{T} \sum_{t=0}^{T-1} x_t$ 为迭代点的运行平均。
 
 **证明**。对 $x_t$ 取条件期望：  
@@ -109,7 +112,10 @@ $$
 ## 强凸情形下的收敛速率：$O(1/T)$
 
 > **定理**。假设 $f$ 是 $\mu$-强凸函数，且满足方差界 $\mathbb{E}[\|\nabla f_i(x) - \nabla f(x)\|_2^2] \leq \sigma^2$。取步长 $\eta_t = 2 / (\mu (t + 1))$，则经过 $T$ 次迭代后，
-> $$\mathbb{E}[\|x_T - x^\star\|_2^2] \leq \frac{4 \sigma^2}{\mu^2 T}.$$
+> 
+$$
+\mathbb{E}[\|x_T - x^\star\|_2^2] \leq \frac{4 \sigma^2}{\mu^2 T}.
+$$
 **证明概要**。令 $a_t = \mathbb{E}[\|x_t - x^\star\|_2^2]$。利用强凸性不等式 $\langle \nabla f(x_t), x_t - x^\star \rangle \geq \mu \|x_t - x^\star\|_2^2$，并结合方差控制，可得如下递推关系：
 $$
 a_{t+1} \leq (1 - 2 \eta_t \mu) a_t + \eta_t^2 \sigma^2 + \eta_t^2 L^2 a_t,
@@ -185,7 +191,10 @@ $$
 ### SVRG 收敛性分析
 
 > **定理（Johnson–Zhang，2013）**：假设每个 $f_i$ 是 $L$-光滑的，且 $f$ 是 $\mu$-强凸的。取步长 $\eta = \frac{1}{10 L}$，并令 epoch 长度 $m$ 足够大（具体地，$m \geq 100 L / \mu$），则 SVRG 几何收敛：
-> $$\mathbb{E}[f(\tilde w_{s+1}) - f^\star] \leq 0.5 \cdot \mathbb{E}[f(\tilde w_s) - f^\star].$$
+> 
+$$
+\mathbb{E}[f(\tilde w_{s+1}) - f^\star] \leq 0.5 \cdot \mathbb{E}[f(\tilde w_s) - f^\star].
+$$
 **证明概要**：$g_t$ 的方差满足  
 $$
 \mathbb{E}\|g_t - \nabla f(x_t)\|_2^2 \leq L (f(x_t) - f^\star) + L (f(\tilde w_s) - f^\star).

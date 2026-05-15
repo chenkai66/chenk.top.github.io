@@ -294,7 +294,9 @@ Caser stacks two filter families on the $t \times d$ embedding matrix $\mathbf{E
 - **Vertical filters** sweep the embedding dimension to capture **point-level patterns** — latent features of individual items aggregated across time.
 $$
 \mathbf{c}_h = \text{ReLU}(\text{Conv}_h(\mathbf{E})) \quad\text{(horizontal, height } h\text{)}
-$$$$
+$$
+
+$$
 \mathbf{c}_v = \text{ReLU}(\text{Conv}_v(\mathbf{E})) \quad\text{(vertical, full height)}
 $$
 The two outputs are pooled, concatenated, and pushed through a fully-connected head.
@@ -651,9 +653,13 @@ $$
 $$
 \mathbf{z}_v = \sigma(\mathbf{W}_z \mathbf{m}_v + \mathbf{U}_z \mathbf{h}_v),\quad
 \mathbf{r}_v = \sigma(\mathbf{W}_r \mathbf{m}_v + \mathbf{U}_r \mathbf{h}_v)
-$$$$
+$$
+
+$$
 \tilde{\mathbf{h}}_v = \tanh(\mathbf{W}_h \mathbf{m}_v + \mathbf{U}_h (\mathbf{r}_v \odot \mathbf{h}_v))
-$$$$
+$$
+
+$$
 \mathbf{h}_v = (1 - \mathbf{z}_v) \odot \mathbf{h}_v + \mathbf{z}_v \odot \tilde{\mathbf{h}}_v
 $$
 > **Plain English.** Each item "talks" to the items that appeared right before or after it in the session. After a few rounds of message passing, every item's representation has absorbed information about its local neighbourhood in the session graph. The session is then summarised by attention-pooling the node embeddings.

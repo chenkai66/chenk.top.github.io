@@ -119,7 +119,10 @@ $$f(x, y) = \frac{1}{2\pi \sigma_X \sigma_Y \sqrt{1 - \rho^2}} \exp\left(-\frac{
 关键性质：
 1. 两个边缘分布均为正态：$X \sim \mathcal{N}(\mu_X, \sigma_X^2)$，$Y \sim \mathcal{N}(\mu_Y, \sigma_Y^2)$；
 2. 所有条件分布均为正态：  
-   $$X | Y = y \sim \mathcal{N}\left(\mu_X + \rho \frac{\sigma_X}{\sigma_Y}(y - \mu_Y), \sigma_X^2(1 - \rho^2)\right)$$
+   
+$$
+X | Y = y \sim \mathcal{N}\left(\mu_X + \rho \frac{\sigma_X}{\sigma_Y}(y - \mu_Y), \sigma_X^2(1 - \rho^2)\right)
+$$
 3. $X$ 与 $Y$ 独立 **当且仅当** $\rho = 0$。
 
 性质 3 是二元正态分布特有的。一般情况下，$\rho = 0$ **并不意味着** 独立；但对于联合正态变量，它确实等价于独立。

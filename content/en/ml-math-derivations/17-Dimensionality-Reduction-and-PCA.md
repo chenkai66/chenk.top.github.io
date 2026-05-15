@@ -185,7 +185,9 @@ PCA ignores labels. If your downstream task is classification, this is wasteful:
 ### Two-class derivation
 
 With two classes $C_1, C_2$ of sizes $N_1, N_2$ and class means $\boldsymbol{\mu}_1, \boldsymbol{\mu}_2$, define
-$$\mathbf{S}_B = (\boldsymbol{\mu}_1 - \boldsymbol{\mu}_2)(\boldsymbol{\mu}_1 - \boldsymbol{\mu}_2)^\top \quad \text{(between-class scatter)}$$$$\mathbf{S}_W = \sum_{c=1}^{2} \sum_{i \in C_c}(\mathbf{x}_i - \boldsymbol{\mu}_c)(\mathbf{x}_i - \boldsymbol{\mu}_c)^\top \quad \text{(within-class scatter)}$$
+$$\mathbf{S}_B = (\boldsymbol{\mu}_1 - \boldsymbol{\mu}_2)(\boldsymbol{\mu}_1 - \boldsymbol{\mu}_2)^\top \quad \text{(between-class scatter)}$$
+
+$$\mathbf{S}_W = \sum_{c=1}^{2} \sum_{i \in C_c}(\mathbf{x}_i - \boldsymbol{\mu}_c)(\mathbf{x}_i - \boldsymbol{\mu}_c)^\top \quad \text{(within-class scatter)}$$
 Maximise **Fisher's criterion** — the ratio of the projected between-class to within-class variance:
 $$J(\mathbf{w}) = \frac{\mathbf{w}^\top \mathbf{S}_B\, \mathbf{w}}{\mathbf{w}^\top \mathbf{S}_W\, \mathbf{w}}. \tag{4}$$
 Setting $\nabla J = 0$ gives the generalised eigenvalue problem $\mathbf{S}_B \mathbf{w} = \lambda\, \mathbf{S}_W \mathbf{w}$; using the rank-$1$ structure of $\mathbf{S}_B$ this collapses to the closed form

@@ -75,7 +75,10 @@ These two assumptions (unbiased + bounded variance) are the SGD axioms. The stre
 ## Convex rate: $O(1/\sqrt{T})$
 
 > **Theorem.** Suppose $f$ is convex and the variance bound holds. With constant step $\eta = R / (\sigma \sqrt{T})$ and starting from $x_0$ with $\|x_0 - x^\star\|_2 \leq R$, after $T$ iterations:
-> $$\mathbb{E}[f(\bar x_T) - f^\star] \leq \frac{R \sigma}{\sqrt{T}},$$
+> 
+$$
+\mathbb{E}[f(\bar x_T) - f^\star] \leq \frac{R \sigma}{\sqrt{T}},
+$$
 > where $\bar x_T = \frac{1}{T} \sum_{t=0}^{T-1} x_t$ is the running average.
 
 **Proof.** Take expectation conditional on $x_t$:
@@ -107,7 +110,10 @@ The $O(1/\sqrt{T})$ rate is **the** classical SGD rate. Notice it depends on $\s
 ## Strongly convex rate: $O(1/T)$
 
 > **Theorem.** Suppose $f$ is $\mu$-strongly convex and the variance bound holds with $\sigma^2$. With step $\eta_t = 2 / (\mu (t + 1))$, after $T$ iterations,
-> $$\mathbb{E}[\|x_T - x^\star\|_2^2] \leq \frac{4 \sigma^2}{\mu^2 T}.$$
+> 
+$$
+\mathbb{E}[\|x_T - x^\star\|_2^2] \leq \frac{4 \sigma^2}{\mu^2 T}.
+$$
 **Proof sketch.** Define $a_t = \mathbb{E}[\|x_t - x^\star\|_2^2]$. The strong-convexity inequality $\langle \nabla f(x_t), x_t - x^\star \rangle \geq \mu \|x_t - x^\star\|_2^2$, combined with variance, gives the recursion
 $$
 a_{t+1} \leq (1 - 2 \eta_t \mu) a_t + \eta_t^2 \sigma^2 + \eta_t^2 L^2 a_t,
@@ -183,7 +189,10 @@ This is what gives the linear convergence rate.
 ### SVRG convergence
 
 > **Theorem (Johnson--Zhang 2013).** Suppose each $f_i$ is $L$-smooth and $f$ is $\mu$-strongly convex. With $\eta = \frac{1}{10 L}$ and $m$ chosen large enough (specifically $m \geq 100 L / \mu$), SVRG converges geometrically:
-> $$\mathbb{E}[f(\tilde w_{s+1}) - f^\star] \leq 0.5 \cdot \mathbb{E}[f(\tilde w_s) - f^\star].$$
+> 
+$$
+\mathbb{E}[f(\tilde w_{s+1}) - f^\star] \leq 0.5 \cdot \mathbb{E}[f(\tilde w_s) - f^\star].
+$$
 **Proof sketch.** The variance of $g_t$ satisfies
 $$
 \mathbb{E}\|g_t - \nabla f(x_t)\|_2^2 \leq L (f(x_t) - f^\star) + L (f(\tilde w_s) - f^\star).

@@ -82,7 +82,10 @@ The intersection rule is the most useful in practice — it is the reason a poly
 A theorem we will use repeatedly:
 
 > **Projection theorem.** Let $C \subseteq \mathbb{R}^n$ be a non-empty closed convex set and $y \in \mathbb{R}^n$. There exists a unique point $\pi_C(y) \in C$ minimizing $\|x - y\|_2$ over $x \in C$. Moreover, $z = \pi_C(y)$ if and only if
-> $$\langle y - z, x - z \rangle \leq 0 \quad \text{for all } x \in C.$$
+> 
+$$
+\langle y - z, x - z \rangle \leq 0 \quad \text{for all } x \in C.
+$$
 **Proof of existence.** Let $d = \inf_{x \in C} \|x - y\|_2$ and pick a sequence $\{x_k\} \subseteq C$ with $\|x_k - y\|_2 \to d$. We show $\{x_k\}$ is Cauchy. By the parallelogram identity applied to $x_k - y$ and $x_m - y$,
 $$
 \|x_k - x_m\|_2^2 = 2 \|x_k - y\|_2^2 + 2 \|x_m - y\|_2^2 - 4 \left\| \tfrac{x_k + x_m}{2} - y \right\|_2^2.

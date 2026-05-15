@@ -92,15 +92,25 @@ Different norms are different rulers measuring the same vector. If a sequence co
 
 ### Frobenius norm — treat the matrix as one long vector
 
-For an $m\times n$ matrix $A$,$$\|A\|_F = \sqrt{\sum_{i,j} a_{ij}^2}.$$Just flatten every entry into a single long vector and compute its $L^2$ norm.
+For an $m\times n$ matrix $A$,
+$$
+\|A\|_F = \sqrt{\sum_{i,j} a_{ij}^2}.
+$$
+Just flatten every entry into a single long vector and compute its $L^2$ norm.
 
 **Image analogy.** Picture $A$ as a grayscale image, each entry a pixel intensity. The Frobenius norm is the image's *total energy*. It is the standard yardstick for "how different are these two matrices?" in everything from image-compression error to weight-update norms in neural networks.
 
-**Connection to singular values.**$$\|A\|_F = \sqrt{\sigma_1^2 + \sigma_2^2 + \cdots + \sigma_r^2}.$$So Frobenius is a *root-sum-of-squares* over **all** singular values — it cares about every direction $A$ stretches.
+**Connection to singular values.**
+$$
+\|A\|_F = \sqrt{\sigma_1^2 + \sigma_2^2 + \cdots + \sigma_r^2}.
+$$
+So Frobenius is a *root-sum-of-squares* over **all** singular values — it cares about every direction $A$ stretches.
 
 ### Induced norms — the maximum amplification
 
-The **induced norm** (or operator norm) measures the largest factor by which $A$ can stretch a unit vector:$$\|A\| = \max_{\|\vec{x}\| = 1} \|A\vec{x}\|.
+The **induced norm** (or operator norm) measures the largest factor by which $A$ can stretch a unit vector:
+$$
+\|A\| = \max_{\|\vec{x}\| = 1} \|A\vec{x}\|.
 $$
 Think of $A$ as a magnifying lens: the induced norm asks *what is the biggest zoom this lens can apply?* If $\|A\|_2 = 3$, there exists some input direction whose length triples after applying $A$.
 
@@ -136,7 +146,11 @@ For the matrix shown, $\|A\|_2 = \sigma_1 \approx 2.78$ but $\|A\|_F \approx 2.9
 
 ### Submultiplicativity
 
-For induced norms,$$\|AB\| \leq \|A\|\,\|B\|.$$Two transformations applied in sequence cannot amplify a vector by more than the product of their individual amplifications. This single inequality is what lets us prove convergence of iterative algorithms — and what controls the worst-case error of repeated multiplication in deep networks.
+For induced norms,
+$$
+\|AB\| \leq \|A\|\,\|B\|.
+$$
+Two transformations applied in sequence cannot amplify a vector by more than the product of their individual amplifications. This single inequality is what lets us prove convergence of iterative algorithms — and what controls the worst-case error of repeated multiplication in deep networks.
 
 ---
 
@@ -144,7 +158,15 @@ For induced norms,$$\|AB\| \leq \|A\|\,\|B\|.$$Two transformations applied in se
 
 ### Definition
 
-For an invertible matrix $A$,$$\kappa(A) = \|A\|\,\|A^{-1}\|.$$The **spectral condition number** (almost always the one you want):$$\kappa_2(A) = \frac{\sigma_{\max}}{\sigma_{\min}}.$$The ratio of the largest to smallest singular value.
+For an invertible matrix $A$,
+$$
+\kappa(A) = \|A\|\,\|A^{-1}\|.
+$$
+The **spectral condition number** (almost always the one you want):
+$$
+\kappa_2(A) = \frac{\sigma_{\max}}{\sigma_{\min}}.
+$$
+The ratio of the largest to smallest singular value.
 
 **Allergy analogy.**
 - $\kappa \approx 1$: a healthy immune system. A draft does nothing.
@@ -163,7 +185,11 @@ The well-conditioned matrix maps the input circle to a near-circle (the dashed g
 
 ### Geometric meaning in one line
 
-The condition number is the **eccentricity** of the output ellipse:$$\kappa = \frac{\text{longest semi-axis}}{\text{shortest semi-axis}}.$$$\kappa = 1$ means the ellipse is a circle; $\kappa = \infty$ means it has collapsed to a line segment (the matrix is singular).
+The condition number is the **eccentricity** of the output ellipse:
+$$
+\kappa = \frac{\text{longest semi-axis}}{\text{shortest semi-axis}}.$
+$$
+\kappa = 1$ means the ellipse is a circle; $\kappa = \infty$ means it has collapsed to a line segment (the matrix is singular).
 
 **Quick example.** $A = I$ has $\kappa = 1$. $B = \begin{pmatrix} 1 & 0 \\ 0 & 10^{-5} \end{pmatrix}$ has $\kappa = 10^5$ — it crushes one direction by a factor of $10^5$.
 
@@ -175,7 +201,11 @@ The condition number is the **eccentricity** of the output ellipse:$$\kappa = \f
 
 ### The Hilbert matrix
 
-The poster child for ill-conditioning is the **Hilbert matrix**$$H_{ij} = \frac{1}{i+j-1}.$$Its condition number grows terrifyingly fast.
+The poster child for ill-conditioning is the **Hilbert matrix**
+$$
+H_{ij} = \frac{1}{i+j-1}.
+$$
+Its condition number grows terrifyingly fast.
 
 | Size $n$ | $\kappa(H_n)$ | Reliable digits in double precision |
 |---|---|---|
@@ -221,7 +251,9 @@ The left panel shows two 20×20 matrices: a benign one with a flat singular spec
 
 Suppose we solve $A\vec{x} = \vec{b}$ but the right-hand side is contaminated by a small $\delta\vec{b}$. How much does the solution change?
 
-The classical bound:$$\frac{\|\delta\vec{x}\|}{\|\vec{x}\|} \;\leq\; \kappa(A)\,\frac{\|\delta\vec{b}\|}{\|\vec{b}\|}.
+The classical bound:
+$$
+\frac{\|\delta\vec{x}\|}{\|\vec{x}\|} \;\leq\; \kappa(A)\,\frac{\|\delta\vec{b}\|}{\|\vec{b}\|}.
 $$
 The condition number is the **maximum amplification factor** for relative error.
 
@@ -238,7 +270,11 @@ For $\kappa \approx 2$, the cloud is a tiny ring centred on the true $x$ — amp
 
 ### Matrix perturbation
 
-If the matrix $A$ itself is perturbed by $\delta A$,$$\frac{\|\delta\vec{x}\|}{\|\vec{x}\|} \;\leq\; \kappa(A)\left(\frac{\|\delta A\|}{\|A\|} + \frac{\|\delta\vec{b}\|}{\|\vec{b}\|}\right).$$Same condition number, same penalty: errors in the matrix entries get amplified by $\kappa(A)$ too.
+If the matrix $A$ itself is perturbed by $\delta A$,
+$$
+\frac{\|\delta\vec{x}\|}{\|\vec{x}\|} \;\leq\; \kappa(A)\left(\frac{\|\delta A\|}{\|A\|} + \frac{\|\delta\vec{b}\|}{\|\vec{b}\|}\right).
+$$
+Same condition number, same penalty: errors in the matrix entries get amplified by $\kappa(A)$ too.
 
 ### Rule of thumb: lost digits
 
@@ -257,7 +293,11 @@ If $\kappa(A) \approx 10^k$, solving $A\vec{x} = \vec{b}$ in double precision lo
 
 ### Definition
 
-The **spectral radius** is the largest eigenvalue magnitude:$$\rho(A) = \max_i |\lambda_i|.$$It is bounded above by every matrix norm: $\rho(A) \leq \|A\|$ for any $\|\cdot\|$.
+The **spectral radius** is the largest eigenvalue magnitude:
+$$
+\rho(A) = \max_i |\lambda_i|.
+$$
+It is bounded above by every matrix norm: $\rho(A) \leq \|A\|$ for any $\|\cdot\|$.
 
 ### The convergence criterion
 
@@ -269,7 +309,11 @@ The fixed-point iteration $\vec{x}_{k+1} = B\vec{x}_k + \vec{c}$ converges from 
 
 ### The Neumann series
 
-If $\rho(A) < 1$,$$(I - A)^{-1} = I + A + A^2 + A^3 + \cdots,$$the matrix analogue of $\frac{1}{1-x} = 1 + x + x^2 + \cdots$. Useful in perturbation analysis and for cheap inverse approximations when $A$ is small.
+If $\rho(A) < 1$,
+$$
+(I - A)^{-1} = I + A + A^2 + A^3 + \cdots,
+$$
+the matrix analogue of $\frac{1}{1-x} = 1 + x + x^2 + \cdots$. Useful in perturbation analysis and for cheap inverse approximations when $A$ is small.
 
 ---
 
@@ -277,7 +321,11 @@ If $\rho(A) < 1$,$$(I - A)^{-1} = I + A + A^2 + A^3 + \cdots,$$the matrix analog
 
 ### Why normal equations are dangerous
 
-Least squares $\min_{\vec{x}}\|A\vec{x} - \vec{b}\|$ has the textbook solution via the **normal equations** $A^TA\hat{\vec{x}} = A^T\vec{b}$. The catch is fatal:$$\kappa(A^TA) = \kappa(A)^2.$$If $A$ has $\kappa = 10^{6}$, the normal equations have $\kappa = 10^{12}$ — you have manufactured your own catastrophe.
+Least squares $\min_{\vec{x}}\|A\vec{x} - \vec{b}\|$ has the textbook solution via the **normal equations** $A^TA\hat{\vec{x}} = A^T\vec{b}$. The catch is fatal:
+$$
+\kappa(A^TA) = \kappa(A)^2.
+$$
+If $A$ has $\kappa = 10^{6}$, the normal equations have $\kappa = 10^{12}$ — you have manufactured your own catastrophe.
 
 ### QR: the stable alternative
 
@@ -301,7 +349,11 @@ Three things to notice. (1) QR and SVD track each other; they ride the $\varepsi
 
 ### The idea
 
-Solve $A\vec{x} = \vec{b}$ but $\kappa(A)$ is huge. Find an easy-to-invert $M$ and solve instead$$M^{-1}A\vec{x} = M^{-1}\vec{b}.$$If $M \approx A$, then $M^{-1}A \approx I$ and $\kappa(M^{-1}A) \approx 1$.
+Solve $A\vec{x} = \vec{b}$ but $\kappa(A)$ is huge. Find an easy-to-invert $M$ and solve instead
+$$
+M^{-1}A\vec{x} = M^{-1}\vec{b}.
+$$
+If $M \approx A$, then $M^{-1}A \approx I$ and $\kappa(M^{-1}A) \approx 1$.
 
 **Analogy.** Trying to weigh an elephant on a kitchen scale is hopeless — but if you know the elephant's weight to within a kilogram, you only need the scale to measure the deviation. Preconditioning takes a problem that lives at the wrong scale and shifts it to one your tools can handle.
 
@@ -326,7 +378,11 @@ The stiffness matrix $K$ in structural mechanics has $\kappa(K) \propto h^{-2}$ 
 
 ### Image deblurring
 
-In $\vec{y} = B\vec{x} + \text{noise}$, the blur operator $B$ is typically extremely ill-conditioned: the inverse problem amplifies high-frequency noise. **Tikhonov regularisation** replaces the inverse problem with$$\min_{\vec{x}} \|B\vec{x} - \vec{y}\|^2 + \lambda\|\vec{x}\|^2.$$The regularisation parameter $\lambda$ trades fidelity for stability and effectively replaces $\sigma_{\min}$ with $\sqrt{\sigma_{\min}^2 + \lambda}$ inside the condition number — even a small $\lambda$ can rescue the problem.
+In $\vec{y} = B\vec{x} + \text{noise}$, the blur operator $B$ is typically extremely ill-conditioned: the inverse problem amplifies high-frequency noise. **Tikhonov regularisation** replaces the inverse problem with
+$$
+\min_{\vec{x}} \|B\vec{x} - \vec{y}\|^2 + \lambda\|\vec{x}\|^2.
+$$
+The regularisation parameter $\lambda$ trades fidelity for stability and effectively replaces $\sigma_{\min}$ with $\sqrt{\sigma_{\min}^2 + \lambda}$ inside the condition number — even a small $\lambda$ can rescue the problem.
 
 ### Deep learning: vanishing and exploding gradients
 
@@ -338,7 +394,9 @@ The fixes — Batch Normalization, careful initialisation (Xavier, He), residual
 
 ### Regularisation in machine learning
 
-Ridge regression adds $\lambda I$ to $X^TX$:$$\kappa(X^TX + \lambda I) = \frac{\sigma_1^2 + \lambda}{\sigma_n^2 + \lambda}.
+Ridge regression adds $\lambda I$ to $X^TX$:
+$$
+\kappa(X^TX + \lambda I) = \frac{\sigma_1^2 + \lambda}{\sigma_n^2 + \lambda}.
 $$
 Even a modest $\lambda$ can cut the condition number by orders of magnitude. The same idea (Levenberg–Marquardt, trust regions, weight decay) reappears all over optimisation.
 

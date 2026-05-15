@@ -192,7 +192,9 @@ For a real symmetric matrix $A$, the following are equivalent.
 1. **Eigenvalue test.** All $\lambda_i > 0$.
 2. **Sylvester's criterion.** Every leading principal minor is positive:
    $$
-   a_{11} > 0, \quad \begin{vmatrix} a_{11} & a_{12} \\ a_{21} & a_{22}\end{vmatrix} > 0, \quad \ldots, \quad \det(A) > 0.$$3. **Cholesky exists.** $A = L L^T$ for some lower-triangular $L$ with positive diagonal.
+   a_{11} > 0, \quad \begin{vmatrix} a_{11} & a_{12} \\ a_{21} & a_{22}\end{vmatrix} > 0, \quad \ldots, \quad \det(A) > 0.
+$$
+3. **Cholesky exists.** $A = L L^T$ for some lower-triangular $L$ with positive diagonal.
 4. **Pivot test.** Gaussian elimination on $A$ produces $n$ positive pivots.
 
 In numerical practice, attempting a Cholesky factorization is the **most reliable** test: it succeeds if and only if $A$ is PD, and it gives you a useful factorization for free.

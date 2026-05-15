@@ -51,7 +51,10 @@ $$
 This captures GD, Heavy-Ball, Nesterov, conjugate gradient, and basically every method that only queries $\nabla f$ at the visited points.
 
 > **Theorem (Nesterov, 1983).** For every $L \geq \mu > 0$ and every $k \leq (n-1)/2$ (where $n$ is the dimension), there exists an $L$-smooth $\mu$-strongly convex function $f$ such that for any first-order method,
-> $$f(x_k) - f^\star \geq \frac{\mu (\sqrt{\kappa} - 1)^{2k}}{2 (\sqrt{\kappa} + 1)^{2k}} \|x_0 - x^\star\|_2^2 \cdot \text{(constant factor)}.$$
+> 
+$$
+f(x_k) - f^\star \geq \frac{\mu (\sqrt{\kappa} - 1)^{2k}}{2 (\sqrt{\kappa} + 1)^{2k}} \|x_0 - x^\star\|_2^2 \cdot \text{(constant factor)}.
+$$
 > In particular, achieving $\epsilon$-accuracy requires at least $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ iterations.
 
 ### The worst-case function

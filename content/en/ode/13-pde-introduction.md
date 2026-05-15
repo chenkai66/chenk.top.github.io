@@ -63,7 +63,9 @@ Why exactly these three? Because *every* linear second-order PDE in two variable
 
 For the general second-order operator
 $$
-A\,u_{xx} + 2B\,u_{xy} + C\,u_{yy} + (\text{lower order}) = 0,$$form the discriminant $\Delta = B^2 - AC$. Then:
+A\,u_{xx} + 2B\,u_{xy} + C\,u_{yy} + (\text{lower order}) = 0,
+$$
+form the discriminant $\Delta = B^2 - AC$. Then:
 
 | $\Delta$ | Type | Canonical example | Real characteristics? |
 |---|---|---|---|
@@ -91,11 +93,23 @@ Even though the parabolic "infinite speed" is unphysical for real materials, the
 
 ### Derivation in one paragraph
 
-Conservation of energy in a thin rod with cross-section $A$ and density-specific-heat product $\rho c_p$ says$$\rho c_p \frac{\partial u}{\partial t} = -\frac{\partial q}{\partial x},$$where $q$ is heat flux. Fourier's law $q = -k\,u_x$ closes the loop:$$u_t = \alpha\,u_{xx}, \qquad \alpha = \frac{k}{\rho c_p}.$$The diffusivity $\alpha$ has units $\text{length}^2 / \text{time}$ — the only natural way to combine $k$, $\rho$, $c_p$.
+Conservation of energy in a thin rod with cross-section $A$ and density-specific-heat product $\rho c_p$ says
+$$
+\rho c_p \frac{\partial u}{\partial t} = -\frac{\partial q}{\partial x},
+$$
+where $q$ is heat flux. Fourier's law $q = -k\,u_x$ closes the loop:
+$$
+u_t = \alpha\,u_{xx}, \qquad \alpha = \frac{k}{\rho c_p}.
+$$
+The diffusivity $\alpha$ has units $\text{length}^2 / \text{time}$ — the only natural way to combine $k$, $\rho$, $c_p$.
 
 ### Separation of variables
 
-Take $u(0, t) = u(L, t) = 0$ and a smooth initial condition $u(x, 0) = f(x)$. Try the product ansatz $u(x, t) = X(x)\,T(t)$:$$\frac{T'}{\alpha T} = \frac{X''}{X} = -\lambda \quad (\text{constant}).$$The two sides depend on *different* variables, so the only way they can be equal is to be *the same constant*. We get
+Take $u(0, t) = u(L, t) = 0$ and a smooth initial condition $u(x, 0) = f(x)$. Try the product ansatz $u(x, t) = X(x)\,T(t)$:
+$$
+\frac{T'}{\alpha T} = \frac{X''}{X} = -\lambda \quad (\text{constant}).
+$$
+The two sides depend on *different* variables, so the only way they can be equal is to be *the same constant*. We get
 $$X'' + \lambda X = 0, \qquad T' + \alpha\lambda\,T = 0.$$
 The Dirichlet boundary conditions select $\lambda_n = (n\pi/L)^2$ with eigenfunctions $X_n(x) = \sin(n\pi x / L)$, and the time factor is $T_n(t) = e^{-\alpha \lambda_n t}$. Superposition recovers the full solution as a Fourier sine series:
 $$\boxed{\;u(x, t) = \sum_{n=1}^\infty b_n\,\sin\!\frac{n\pi x}{L}\,e^{-\alpha (n\pi / L)^2 t},\quad b_n = \frac{2}{L}\int_0^L f(x)\sin\!\frac{n\pi x}{L}\,dx.\;}$$
@@ -120,7 +134,11 @@ Each ingredient of the recipe deserves its own picture. The eigenfunctions are s
 
 Discretise $x_j = j\,\Delta x$ and $t^n = n\,\Delta t$. Three workhorse schemes, each a one-line update plus a stability story:
 
-**FTCS (Forward Time, Centred Space).** Explicit, $O(\Delta t, \Delta x^2)$:$$u_j^{n+1} = u_j^n + r\,(u_{j+1}^n - 2u_j^n + u_{j-1}^n), \qquad r = \frac{\alpha\,\Delta t}{\Delta x^2}.$$Von Neumann analysis (substitute $u_j^n = \xi^n e^{ik j \Delta x}$ and demand $|\xi| \leq 1$) gives the stability constraint $r \leq 1/2$. Halving $\Delta x$ forces $\Delta t$ to be quartered — accuracy is cheap, stability is expensive.
+**FTCS (Forward Time, Centred Space).** Explicit, $O(\Delta t, \Delta x^2)$:
+$$
+u_j^{n+1} = u_j^n + r\,(u_{j+1}^n - 2u_j^n + u_{j-1}^n), \qquad r = \frac{\alpha\,\Delta t}{\Delta x^2}.
+$$
+Von Neumann analysis (substitute $u_j^n = \xi^n e^{ik j \Delta x}$ and demand $|\xi| \leq 1$) gives the stability constraint $r \leq 1/2$. Halving $\Delta x$ forces $\Delta t$ to be quartered — accuracy is cheap, stability is expensive.
 
 **BTCS (Backward Time, Centred Space).** Implicit, $O(\Delta t, \Delta x^2)$, **unconditionally stable**: $|\xi| \leq 1$ for any $r > 0$. Each step solves a tridiagonal system.
 
@@ -159,7 +177,9 @@ def crank_nicolson_heat(f, alpha, L, T_end, Nx=101, Nt=400):
 
 ### d'Alembert and the light cone
 
-For the infinite line $u_{tt} = c^2 u_{xx}$ with $u(x, 0) = f(x),\ u_t(x, 0) = g(x)$,$$\boxed{\;u(x, t) = \frac{1}{2}\bigl[f(x - ct) + f(x + ct)\bigr] + \frac{1}{2c}\int_{x - ct}^{x + ct} g(s)\,ds.\;}
+For the infinite line $u_{tt} = c^2 u_{xx}$ with $u(x, 0) = f(x),\ u_t(x, 0) = g(x)$,
+$$
+\boxed{\;u(x, t) = \frac{1}{2}\bigl[f(x - ct) + f(x + ct)\bigr] + \frac{1}{2c}\int_{x - ct}^{x + ct} g(s)\,ds.\;}
 $$
 Two observations rewrite the meaning of "wave":
 
@@ -168,11 +188,17 @@ Two observations rewrite the meaning of "wave":
 
 ### Standing waves on a finite string
 
-For a finite string with $u(0, t) = u(L, t) = 0$, separation of variables gives sines in space and **oscillating** sines / cosines in time:$$u(x, t) = \sum_{n=1}^\infty \bigl[a_n \cos(n\pi c\,t/L) + b_n \sin(n\pi c\,t/L)\bigr]\sin(n\pi x/L).$$The $n$th mode oscillates at frequency $\omega_n = n\pi c / L$. Mode 1 is the fundamental; modes $n \geq 2$ are harmonics. This is why a clarinet sounds different from a violin even at the same pitch — the *amplitudes* of the harmonics differ.
+For a finite string with $u(0, t) = u(L, t) = 0$, separation of variables gives sines in space and **oscillating** sines / cosines in time:
+$$
+u(x, t) = \sum_{n=1}^\infty \bigl[a_n \cos(n\pi c\,t/L) + b_n \sin(n\pi c\,t/L)\bigr]\sin(n\pi x/L).
+$$
+The $n$th mode oscillates at frequency $\omega_n = n\pi c / L$. Mode 1 is the fundamental; modes $n \geq 2$ are harmonics. This is why a clarinet sounds different from a violin even at the same pitch — the *amplitudes* of the harmonics differ.
 
 ### Numerical scheme and the CFL condition
 
-The leapfrog scheme, $O(\Delta t^2, \Delta x^2)$:$$u_j^{n+1} = 2u_j^n - u_j^{n-1} + \sigma^2(u_{j+1}^n - 2u_j^n + u_{j-1}^n), \qquad \sigma = \frac{c\,\Delta t}{\Delta x}.
+The leapfrog scheme, $O(\Delta t^2, \Delta x^2)$:
+$$
+u_j^{n+1} = 2u_j^n - u_j^{n-1} + \sigma^2(u_{j+1}^n - 2u_j^n + u_{j-1}^n), \qquad \sigma = \frac{c\,\Delta t}{\Delta x}.
 $$
 Von Neumann analysis gives the famous **CFL condition** $\sigma \leq 1$. The geometric reading is gorgeous: the *numerical* domain of dependence at $(x, t)$ — the lattice points the scheme can possibly use — must contain the *physical* domain of dependence $[x - ct, x + ct]$. If $\sigma > 1$, the physical signal arrives faster than the numerical mesh can carry it, and the scheme blows up.
 
@@ -190,13 +216,19 @@ $\nabla^2 u = u_{xx} + u_{yy} = 0$ describes a steady distribution — temperatu
 
 ### Two structural results
 
-**Maximum principle.** If $u$ is harmonic on a bounded domain $\Omega$, then$$\min_{\partial\Omega} u \leq u(\mathbf{x}) \leq \max_{\partial\Omega} u \quad \text{for all } \mathbf{x} \in \Omega.$$The interior cannot be hotter than the hottest point on the boundary (and not colder than the coldest). The proof, in two lines, is a corollary of the **mean-value property**: $u(\mathbf{x}_0)$ equals the average of $u$ over any disc centred at $\mathbf{x}_0$ that fits in $\Omega$. An interior maximum would have to equal its neighbours — so the maximum is constant in a neighbourhood, and a connectedness argument propagates it to the boundary.
+**Maximum principle.** If $u$ is harmonic on a bounded domain $\Omega$, then
+$$
+\min_{\partial\Omega} u \leq u(\mathbf{x}) \leq \max_{\partial\Omega} u \quad \text{for all } \mathbf{x} \in \Omega.
+$$
+The interior cannot be hotter than the hottest point on the boundary (and not colder than the coldest). The proof, in two lines, is a corollary of the **mean-value property**: $u(\mathbf{x}_0)$ equals the average of $u$ over any disc centred at $\mathbf{x}_0$ that fits in $\Omega$. An interior maximum would have to equal its neighbours — so the maximum is constant in a neighbourhood, and a connectedness argument propagates it to the boundary.
 
 **Uniqueness.** Two solutions with the same boundary data have a difference whose boundary values vanish — and by the maximum principle the difference is identically zero. So a Laplace BVP has *exactly* one solution.
 
 ### Numerics: the five-point stencil
 
-Approximating both second derivatives by central differences gives$$u_{i, j} = \frac{1}{4}\bigl(u_{i+1, j} + u_{i-1, j} + u_{i, j+1} + u_{i, j-1}\bigr).
+Approximating both second derivatives by central differences gives
+$$
+u_{i, j} = \frac{1}{4}\bigl(u_{i+1, j} + u_{i-1, j} + u_{i, j+1} + u_{i, j-1}\bigr).
 $$
 The discrete maximum principle is just an averaging statement — and it gives the recipe: starting from any guess, repeatedly replace each interior value by the average of its neighbours (Jacobi / Gauss-Seidel). For square grids of size $N$ this needs $O(N^2)$ iterations; **SOR** with optimal relaxation parameter brings it down to $O(N \log N)$. For real work one uses multigrid or sparse direct solvers, but the iterative method is what the maximum principle *suggests*.
 

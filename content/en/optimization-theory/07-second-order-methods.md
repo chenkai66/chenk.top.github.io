@@ -63,7 +63,10 @@ Geometrically: Newton's method approximates $f$ by the local quadratic and jumps
 ### Quadratic local convergence
 
 > **Theorem.** Suppose $f$ is twice continuously differentiable, $\nabla^2 f$ is $L$-Lipschitz (i.e., $\|\nabla^2 f(x) - \nabla^2 f(y)\| \leq L \|x - y\|$), and $\nabla^2 f(x^\star) \succeq \mu I$ at a stationary point $x^\star$. Then for $x_0$ close enough to $x^\star$, Newton's method converges with
-> $$\|x_{k+1} - x^\star\|_2 \leq \frac{L}{2 \mu} \|x_k - x^\star\|_2^2.$$
+> 
+$$
+\|x_{k+1} - x^\star\|_2 \leq \frac{L}{2 \mu} \|x_k - x^\star\|_2^2.
+$$
 **Proof.** By definition of the Newton step,
 $$
 x_{k+1} - x^\star = x_k - x^\star - [\nabla^2 f(x_k)]^{-1} \nabla f(x_k).

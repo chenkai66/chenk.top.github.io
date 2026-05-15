@@ -250,7 +250,9 @@ def scaled_dot_product_attention(Q, K, V, mask=None):
 ### Multi-head: many subspaces in parallel
 
 One attention head learns one notion of "relevance". Real language wants many — syntactic, semantic, positional. Multi-head attention runs $h$ heads in parallel, each in a $d_k = d_{\rm model}/h$ subspace, then mixes them.
-$$\mathrm{MultiHead}(\mathbf{X}) = \mathrm{Concat}(\text{head}_1, \ldots, \text{head}_h)\,\mathbf{W}^O$$$$\text{head}_i = \mathrm{Attention}(\mathbf{X}\mathbf{W}_i^Q,\,\mathbf{X}\mathbf{W}_i^K,\,\mathbf{X}\mathbf{W}_i^V)$$
+$$\mathrm{MultiHead}(\mathbf{X}) = \mathrm{Concat}(\text{head}_1, \ldots, \text{head}_h)\,\mathbf{W}^O$$
+
+$$\text{head}_i = \mathrm{Attention}(\mathbf{X}\mathbf{W}_i^Q,\,\mathbf{X}\mathbf{W}_i^K,\,\mathbf{X}\mathbf{W}_i^V)$$
 The projection matrices $\mathbf{W}^Q, \mathbf{W}^K, \mathbf{W}^V$ carve up the $d_{\rm model}$-dimensional embedding into $h$ disjoint subspaces; $\mathbf{W}^O$ glues the head outputs back together.
 
 ```python

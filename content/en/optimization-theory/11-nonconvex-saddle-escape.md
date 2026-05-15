@@ -98,7 +98,10 @@ The idea: at a stationary point with negative eigenvalue, a random perturbation 
 
 
 > **Theorem (Jin et al. 2017).** For an $L$-smooth, $\rho$-Hessian-Lipschitz function with the strict saddle property, perturbed GD finds an $\epsilon$-second-order stationary point (i.e., $\|\nabla f\| \leq \epsilon$ and $\lambda_{\min}(\nabla^2 f) \geq -\sqrt{\rho \epsilon}$) in
-> $$O\left( \frac{L \, (f(x_0) - f^\star)}{\epsilon^2} \log^4 d \right) \text{ iterations.}$$
+> 
+$$
+O\left( \frac{L \, (f(x_0) - f^\star)}{\epsilon^2} \log^4 d \right) \text{ iterations.}
+$$
 This is the same dependence on $\epsilon$ as plain GD's first-order convergence — the polylog factor is the only price for the second-order guarantee.
 
 The proof is intricate but the intuition is clean: count "stuck epochs" (where the function value barely decreases) and show that each one ends with high probability after $O(\log^4 d)$ iterations of perturbed GD. Each stuck epoch happens at a near-stationary point, and the post-perturbation trajectory escapes if $\lambda_{\min}(\nabla^2 f) < -\sqrt{\rho \epsilon}$.
@@ -127,7 +130,10 @@ PL is **weaker than strong convexity** — every $\mu$-strongly convex function 
 
 
 > **Theorem.** If $f$ is $L$-smooth and satisfies the PL inequality with $\mu$, GD with step $\eta = 1/L$ converges linearly:
-> $$f(x_T) - f^\star \leq (1 - \mu / L)^T (f(x_0) - f^\star).$$
+> 
+$$
+f(x_T) - f^\star \leq (1 - \mu / L)^T (f(x_0) - f^\star).
+$$
 **Proof.** By smoothness,
 $$
 f(x_{t+1}) \leq f(x_t) + \nabla f(x_t)^\top (x_{t+1} - x_t) + \tfrac{L}{2} \|x_{t+1} - x_t\|_2^2 = f(x_t) - \tfrac{1}{2 L} \|\nabla f(x_t)\|_2^2.

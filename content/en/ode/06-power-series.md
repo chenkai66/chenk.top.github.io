@@ -83,7 +83,10 @@ A subtle warning: $e^{A+B} = e^A e^B$ holds **only** when $AB=BA$. This is the m
 
 1. **Power series**, truncated. Cheap conceptually, terrible numerically when $\|At\|$ is large.
 2. **Eigendecomposition.** If $A$ is diagonalizable as $A=PDP^{-1}$ with $D=\mathrm{diag}(\lambda_i)$, then
-   $$e^{At} = P\,\mathrm{diag}(e^{\lambda_1 t},\dots,e^{\lambda_n t})\,P^{-1}.$$
+   
+$$
+e^{At} = P\,\mathrm{diag}(e^{\lambda_1 t},\dots,e^{\lambda_n t})\,P^{-1}.
+$$
    This is the structural formula every theoretical argument leans on.
 3. **Padé with scaling and squaring.** The industrial method — used by `scipy.linalg.expm`, MATLAB's `expm`, etc. Compute $e^{At/2^s}$ from a Padé rational approximant, then square $s$ times. Robust for large $\|At\|$.
 

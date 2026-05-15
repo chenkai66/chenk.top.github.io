@@ -51,7 +51,9 @@ Hunting for these "invariant directions" is one of the most powerful moves in al
 
 For an $n \times n$ matrix $A$, if there exists a **non-zero** vector $\vec{v}$ and a scalar $\lambda$ such that
 $$
-A\vec{v} = \lambda\vec{v},$$then $\vec{v}$ is an **eigenvector** of $A$ and $\lambda$ is the corresponding **eigenvalue**.
+A\vec{v} = \lambda\vec{v},
+$$
+then $\vec{v}$ is an **eigenvector** of $A$ and $\lambda$ is the corresponding **eigenvalue**.
 
 The word "eigen" is German for "own" or "intrinsic." Eigenvectors are the matrix's own private set of directions.
 
@@ -112,27 +114,45 @@ In other words, a shear has exactly one direction that survives — the horizont
 
 ## Finding Eigenvalues: the Characteristic Equation
 
-Rearranging $A\vec{v} = \lambda\vec{v}$ gives$$(A - \lambda I)\vec{v} = \vec{0}.$$For a *non-zero* $\vec{v}$ to satisfy this, the matrix $A - \lambda I$ must be **singular**, meaning$$\det(A - \lambda I) = 0.$$This is the **characteristic equation**. It is a polynomial of degree $n$ in $\lambda$, so by the fundamental theorem of algebra it has exactly $n$ roots in $\mathbb{C}$ (counted with multiplicity). Those roots are the eigenvalues.
+Rearranging $A\vec{v} = \lambda\vec{v}$ gives
+$$
+(A - \lambda I)\vec{v} = \vec{0}.
+$$
+For a *non-zero* $\vec{v}$ to satisfy this, the matrix $A - \lambda I$ must be **singular**, meaning
+$$
+\det(A - \lambda I) = 0.
+$$
+This is the **characteristic equation**. It is a polynomial of degree $n$ in $\lambda$, so by the fundamental theorem of algebra it has exactly $n$ roots in $\mathbb{C}$ (counted with multiplicity). Those roots are the eigenvalues.
 
 ### Full worked example
 
 Find the eigenvalues and eigenvectors of $A = \bigl(\begin{smallmatrix}4&2\\1&3\end{smallmatrix}\bigr)$.
 
-**Step 1 — characteristic polynomial.**$$\det\begin{pmatrix}4-\lambda&2\\1&3-\lambda\end{pmatrix} = (4-\lambda)(3-\lambda) - 2 = \lambda^2 - 7\lambda + 10 = 0.
+**Step 1 — characteristic polynomial.**
+$$
+\det\begin{pmatrix}4-\lambda&2\\1&3-\lambda\end{pmatrix} = (4-\lambda)(3-\lambda) - 2 = \lambda^2 - 7\lambda + 10 = 0.
 $$
 **Step 2 — solve.** $(\lambda - 5)(\lambda - 2) = 0$, so $\lambda_1 = 5$ and $\lambda_2 = 2$.
 
 **Step 3 — eigenvectors.**
 
-For $\lambda_1 = 5$:$$(A - 5I)\vec{v} = \begin{pmatrix}-1&2\\1&-2\end{pmatrix}\vec{v} = \vec{0}\;\Longrightarrow\; v_1 = 2v_2,\;\; \vec{v}_1 = (2, 1).
+For $\lambda_1 = 5$:
 $$
-For $\lambda_2 = 2$:$$(A - 2I)\vec{v} = \begin{pmatrix}2&2\\1&1\end{pmatrix}\vec{v} = \vec{0}\;\Longrightarrow\; v_1 = -v_2,\;\; \vec{v}_2 = (-1, 1).
+(A - 5I)\vec{v} = \begin{pmatrix}-1&2\\1&-2\end{pmatrix}\vec{v} = \vec{0}\;\Longrightarrow\; v_1 = 2v_2,\;\; \vec{v}_1 = (2, 1).
+$$
+For $\lambda_2 = 2$:
+$$
+(A - 2I)\vec{v} = \begin{pmatrix}2&2\\1&1\end{pmatrix}\vec{v} = \vec{0}\;\Longrightarrow\; v_1 = -v_2,\;\; \vec{v}_2 = (-1, 1).
 $$
 **Verification.** $A(2,1)^T = (10,5)^T = 5\,(2,1)^T$. ✓
 
 ### Two free sanity checks
 
-For *any* $n \times n$ matrix,$$\operatorname{tr}(A) = \lambda_1 + \cdots + \lambda_n,\qquad \det(A) = \lambda_1\cdots\lambda_n.$$For our example: $\operatorname{tr}(A) = 7 = 5+2$ and $\det(A) = 10 = 5\cdot 2$. Always check this — it catches arithmetic mistakes in seconds.
+For *any* $n \times n$ matrix,
+$$
+\operatorname{tr}(A) = \lambda_1 + \cdots + \lambda_n,\qquad \det(A) = \lambda_1\cdots\lambda_n.
+$$
+For our example: $\operatorname{tr}(A) = 7 = 5+2$ and $\det(A) = 10 = 5\cdot 2$. Always check this — it catches arithmetic mistakes in seconds.
 
 ### Visualising eigenvectors of a $2\times 2$ matrix
 
@@ -150,7 +170,11 @@ The grid in the right panel is sheared and stretched, but the green and purple l
 
 ### The core idea
 
-Suppose $A$ has $n$ linearly independent eigenvectors $\vec{v}_1, \ldots, \vec{v}_n$ with eigenvalues $\lambda_1, \ldots, \lambda_n$. Pack the eigenvectors into the columns of a matrix $P$ and put the eigenvalues on the diagonal of $D$. Then$$A = P D P^{-1}.$$The transformation $A$ has been *factored* into three pieces: change to the eigenbasis, scale each eigen-axis independently, change back.
+Suppose $A$ has $n$ linearly independent eigenvectors $\vec{v}_1, \ldots, \vec{v}_n$ with eigenvalues $\lambda_1, \ldots, \lambda_n$. Pack the eigenvectors into the columns of a matrix $P$ and put the eigenvalues on the diagonal of $D$. Then
+$$
+A = P D P^{-1}.
+$$
+The transformation $A$ has been *factored* into three pieces: change to the eigenbasis, scale each eigen-axis independently, change back.
 
 ### Picture: three steps that compose to $A$
 
@@ -178,7 +202,11 @@ In the middle panel the transformation is just $D$ — you stretch the x-axis by
 
 ### Rotations have no real eigenvectors
 
-The 90-degree rotation matrix is$$A = \begin{pmatrix}0&-1\\1&0\end{pmatrix},$$with characteristic equation $\lambda^2 + 1 = 0$, giving $\lambda = \pm i$. There is no real eigenvector, and that is geometrically obvious: a 90-degree rotation moves *every* direction in the real plane.
+The 90-degree rotation matrix is
+$$
+A = \begin{pmatrix}0&-1\\1&0\end{pmatrix},
+$$
+with characteristic equation $\lambda^2 + 1 = 0$, giving $\lambda = \pm i$. There is no real eigenvector, and that is geometrically obvious: a 90-degree rotation moves *every* direction in the real plane.
 
 ![Every real vector gets rotated off its span; iterating traces a circle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/06-eigenvalues-and-eigenvectors/fig5_complex_eigenvalues.png)
 
@@ -186,7 +214,11 @@ The left panel shows that no matter which direction you try, $R$ kicks it off it
 
 ### General rotation
 
-For rotation by angle $\theta$,$$R_\theta = \begin{pmatrix}\cos\theta&-\sin\theta\\\sin\theta&\cos\theta\end{pmatrix},\qquad \lambda = \cos\theta \pm i\sin\theta = e^{\pm i\theta}.$$That is Euler's formula falling out of a determinant. The modulus $|\lambda| = 1$ encodes the fact that rotation preserves length.
+For rotation by angle $\theta$,
+$$
+R_\theta = \begin{pmatrix}\cos\theta&-\sin\theta\\\sin\theta&\cos\theta\end{pmatrix},\qquad \lambda = \cos\theta \pm i\sin\theta = e^{\pm i\theta}.
+$$
+That is Euler's formula falling out of a determinant. The modulus $|\lambda| = 1$ encodes the fact that rotation preserves length.
 
 ### Complex eigenvalues come in conjugate pairs
 
@@ -206,11 +238,19 @@ This is exactly why an undamped pendulum swings forever, why a damped one settle
 
 ## Power Iteration: Finding the Dominant Eigenvector
 
-Most large-scale eigenvalue problems do not need *all* eigenvalues — you just want the biggest one. The cheapest algorithm is a one-liner:$$\vec{v}_{k+1} = \frac{A\vec{v}_k}{\|A\vec{v}_k\|}.$$Start with anything (almost any starting vector works), apply $A$, normalise, repeat. The iterates converge to the dominant eigenvector.
+Most large-scale eigenvalue problems do not need *all* eigenvalues — you just want the biggest one. The cheapest algorithm is a one-liner:
+$$
+\vec{v}_{k+1} = \frac{A\vec{v}_k}{\|A\vec{v}_k\|}.
+$$
+Start with anything (almost any starting vector works), apply $A$, normalise, repeat. The iterates converge to the dominant eigenvector.
 
 ![Power iteration: every starting direction snaps onto the dominant eigen-line](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/06-eigenvalues-and-eigenvectors/fig6_power_iteration.png)
 
-Three different starts — three different colours — all wind up on the same green line. Why does this work? Expand $\vec{v}_0$ in the eigenbasis as $\sum_i c_i \vec{v}_i$. Then$$A^k\vec{v}_0 = \sum_i c_i \lambda_i^k \vec{v}_i.$$After $k$ iterations the term with the largest $|\lambda_i|$ dominates the rest by the factor $(|\lambda_1|/|\lambda_2|)^k$. Normalising kills the absolute scale, and what remains is the dominant eigenvector. Convergence is geometric in the spectral *gap* $|\lambda_2|/|\lambda_1|$ — bigger gap, faster convergence.
+Three different starts — three different colours — all wind up on the same green line. Why does this work? Expand $\vec{v}_0$ in the eigenbasis as $\sum_i c_i \vec{v}_i$. Then
+$$
+A^k\vec{v}_0 = \sum_i c_i \lambda_i^k \vec{v}_i.
+$$
+After $k$ iterations the term with the largest $|\lambda_i|$ dominates the rest by the factor $(|\lambda_1|/|\lambda_2|)^k$. Normalising kills the absolute scale, and what remains is the dominant eigenvector. Convergence is geometric in the spectral *gap* $|\lambda_2|/|\lambda_1|$ — bigger gap, faster convergence.
 
 ```python
 import numpy as np
@@ -248,7 +288,9 @@ print(qr_algorithm(np.array([[4, 2], [1, 3]])))   # [5, 2]
 
 Split a species into age classes; let $\vec{p}_t$ count the population in each class at time $t$. The **Leslie matrix** $L$ has fertilities along the top row and survival probabilities on the sub-diagonal, and the model is just $\vec{p}_{t+1} = L\vec{p}_t$.
 
-For three age classes (juvenile, adult, elderly):$$L = \begin{pmatrix}0&2&0.5\\0.6&0&0\\0&0.8&0\end{pmatrix}.
+For three age classes (juvenile, adult, elderly):
+$$
+L = \begin{pmatrix}0&2&0.5\\0.6&0&0\\0&0.8&0\end{pmatrix}.
 $$
 ```python
 import numpy as np
@@ -265,9 +307,17 @@ The **dominant eigenvalue** decides everything: $|\lambda_1| > 1$ means the popu
 
 Larry Page and Sergey Brin asked: how do you measure a page's importance? Their answer: **a page is important if important pages link to it.** That definition is recursive, and recursion of this shape is solved by an eigenvector.
 
-Build the link matrix $H$ where $H_{ij} = 1/L_j$ when page $j$ links to page $i$ (and $L_j$ is the number of outlinks from $j$). The PageRank vector $\vec{r}$ satisfies$$\vec{r} = H\vec{r},$$which is exactly $H\vec{r} = 1\cdot\vec{r}$ — the eigenvector for eigenvalue 1.
+Build the link matrix $H$ where $H_{ij} = 1/L_j$ when page $j$ links to page $i$ (and $L_j$ is the number of outlinks from $j$). The PageRank vector $\vec{r}$ satisfies
+$$
+\vec{r} = H\vec{r},
+$$
+which is exactly $H\vec{r} = 1\cdot\vec{r}$ — the eigenvector for eigenvalue 1.
 
-To guarantee convergence and handle dangling pages, Google adds a damping factor $d = 0.85$:$$G = dH + \frac{1-d}{n}\,\mathbf{1}\mathbf{1}^T.$$Power iteration on $G$ then converges to PageRank. Operationally PageRank *is* power iteration on a sparse matrix with billions of rows.
+To guarantee convergence and handle dangling pages, Google adds a damping factor $d = 0.85$:
+$$
+G = dH + \frac{1-d}{n}\,\mathbf{1}\mathbf{1}^T.
+$$
+Power iteration on $G$ then converges to PageRank. Operationally PageRank *is* power iteration on a sparse matrix with billions of rows.
 
 ```python
 import numpy as np
@@ -287,7 +337,19 @@ print("PageRank:", r)
 
 ## Application 3: Fibonacci and the Golden Ratio
 
-Write the Fibonacci recurrence as a matrix iteration:$$\begin{pmatrix}F_{n+1}\\F_n\end{pmatrix} = \begin{pmatrix}1&1\\1&0\end{pmatrix}^n \begin{pmatrix}1\\0\end{pmatrix}.$$The eigenvalues of $\bigl(\begin{smallmatrix}1&1\\1&0\end{smallmatrix}\bigr)$ are$$\phi = \tfrac{1+\sqrt 5}{2}\approx 1.618 \quad\text{(the golden ratio)},\qquad \hat\phi = \tfrac{1-\sqrt 5}{2}\approx -0.618.$$Diagonalising and reading off the first component gives **Binet's formula**:$$F_n = \frac{\phi^n - \hat\phi^n}{\sqrt 5}.$$Since $|\hat\phi| < 1$, the second term decays and $F_{n+1}/F_n \to \phi$. The golden ratio is not a coincidence — it is the dominant eigenvalue of the Fibonacci matrix.
+Write the Fibonacci recurrence as a matrix iteration:
+$$
+\begin{pmatrix}F_{n+1}\\F_n\end{pmatrix} = \begin{pmatrix}1&1\\1&0\end{pmatrix}^n \begin{pmatrix}1\\0\end{pmatrix}.
+$$
+The eigenvalues of $\bigl(\begin{smallmatrix}1&1\\1&0\end{smallmatrix}\bigr)$ are
+$$
+\phi = \tfrac{1+\sqrt 5}{2}\approx 1.618 \quad\text{(the golden ratio)},\qquad \hat\phi = \tfrac{1-\sqrt 5}{2}\approx -0.618.
+$$
+Diagonalising and reading off the first component gives **Binet's formula**:
+$$
+F_n = \frac{\phi^n - \hat\phi^n}{\sqrt 5}.
+$$
+Since $|\hat\phi| < 1$, the second term decays and $F_{n+1}/F_n \to \phi$. The golden ratio is not a coincidence — it is the dominant eigenvalue of the Fibonacci matrix.
 
 ---
 
@@ -313,7 +375,11 @@ This is the **spectral theorem**, and it is the reason that PCA, image compressi
 
 ### Spectral decomposition
 
-Every real symmetric matrix unpacks into a sum of rank-one pieces:$$A = \lambda_1\,\vec{q}_1\vec{q}_1^T + \lambda_2\,\vec{q}_2\vec{q}_2^T + \cdots + \lambda_n\,\vec{q}_n\vec{q}_n^T.$$Truncating the sum after the $k$ largest $|\lambda_i|$ gives the best rank-$k$ approximation to $A$ in the Frobenius norm — the engine of low-rank denoising and compression.
+Every real symmetric matrix unpacks into a sum of rank-one pieces:
+$$
+A = \lambda_1\,\vec{q}_1\vec{q}_1^T + \lambda_2\,\vec{q}_2\vec{q}_2^T + \cdots + \lambda_n\,\vec{q}_n\vec{q}_n^T.
+$$
+Truncating the sum after the $k$ largest $|\lambda_i|$ gives the best rank-$k$ approximation to $A$ in the Frobenius norm — the engine of low-rank denoising and compression.
 
 ### Positive definiteness
 
@@ -341,7 +407,9 @@ In optimisation, the Hessian of an objective at a critical point being positive 
 | $cA$ | $c\lambda_i$ | $\vec{v}_i$ (same) |
 | $A^T$ (real) | $\lambda_i$ | generally different |
 
-And the global identities:$$\operatorname{tr}(A) = \sum_i \lambda_i, \qquad \det(A) = \prod_i \lambda_i, \qquad A \text{ invertible} \iff \text{all } \lambda_i \neq 0.
+And the global identities:
+$$
+\operatorname{tr}(A) = \sum_i \lambda_i, \qquad \det(A) = \prod_i \lambda_i, \qquad A \text{ invertible} \iff \text{all } \lambda_i \neq 0.
 $$
 ### Similar matrices
 

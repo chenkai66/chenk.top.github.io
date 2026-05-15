@@ -288,7 +288,9 @@ LoRA dominated 2022–2024 because the recipe was simple and the numbers held up
 
 ### DoRA: decompose the weight, then LoRA the direction
 
-DoRA (Liu et al., 2024) starts from the observation that any weight matrix can be written as a magnitude-times-direction pair: $W = m \cdot \frac{V}{\|V\|}$. Full fine-tuning updates *both*; LoRA implicitly conflates them. DoRA freezes the magnitude $m$ as a learnable scalar per output channel and applies low-rank updates to $V$ alone:$$W' = (m + \Delta m) \cdot \frac{W + \Delta V}{\|W + \Delta V\|}.
+DoRA (Liu et al., 2024) starts from the observation that any weight matrix can be written as a magnitude-times-direction pair: $W = m \cdot \frac{V}{\|V\|}$. Full fine-tuning updates *both*; LoRA implicitly conflates them. DoRA freezes the magnitude $m$ as a learnable scalar per output channel and applies low-rank updates to $V$ alone:
+$$
+W' = (m + \Delta m) \cdot \frac{W + \Delta V}{\|W + \Delta V\|}.
 $$
 On Llama-2-7B reasoning benchmarks DoRA closes about half the gap between LoRA and full fine-tuning at the same parameter count. Cost: a single extra `Linear(out_dim, 1)` per adapted matrix and a normalisation in the forward pass — negligible at inference because you can fuse it back into $W$ once training stops.
 
