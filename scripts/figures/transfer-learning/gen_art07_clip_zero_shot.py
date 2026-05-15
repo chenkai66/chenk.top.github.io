@@ -36,11 +36,11 @@ def draw_box(cx, cy, w, h, top, sub, color, fill="white"):
                           linewidth=1.6, edgecolor=color, facecolor=fill)
     ax.add_patch(rect)
     if top:
-        ax.text(cx, cy + (0.13 if sub else 0), top, ha="center", va="center",
-                fontsize=11, color=color, fontweight="bold")
+        ax.text(cx, cy + (0.15 if sub else 0), top, ha="center", va="center",
+                fontsize=10.5, color=color, fontweight="bold")
     if sub:
-        ax.text(cx, cy - 0.22, sub, ha="center", va="center",
-                fontsize=8.5, color="#4a5568")
+        ax.text(cx, cy - 0.24, sub, ha="center", va="center",
+                fontsize=7.5, color="#4a5568")
 
 def arrow(x1, y1, x2, y2, color="#7f8c8d"):
     a = FancyArrowPatch((x1, y1), (x2, y2),
@@ -52,7 +52,7 @@ def arrow(x1, y1, x2, y2, color="#7f8c8d"):
 y_top = 5.4
 draw_box(1.0, y_top, 1.4, 0.9, "image", "", GRAY)
 draw_box(3.2, y_top, 1.6, 0.9, "image\nencoder", "ViT / ResNet", BLUE)
-draw_box(5.5, y_top, 1.6, 0.9, "$I$", "image embedding", BLUE)
+draw_box(5.5, y_top, 1.9, 0.95, "$I$", "image embedding", BLUE)
 arrow(1.0 + 0.7, y_top, 3.2 - 0.8, y_top, BLUE)
 arrow(3.2 + 0.8, y_top, 5.5 - 0.8, y_top, BLUE)
 
@@ -70,7 +70,7 @@ ax.text(1.0, y_bot - 0.6, "prompt template", ha="center", va="center",
         fontsize=8.5, color="#4a5568")
 
 draw_box(3.2, y_bot, 1.6, 0.9, "text\nencoder", "Transformer", PURPLE)
-draw_box(5.5, y_bot, 1.6, 0.9, "$T_1,\\ldots,T_K$", "text embeddings", PURPLE)
+draw_box(5.5, y_bot, 1.9, 0.95, "$T_1,\\ldots,T_K$", "text embeddings", PURPLE)
 arrow(1.0 + prompt_w/2, y_bot, 3.2 - 0.8, y_bot, PURPLE)
 arrow(3.2 + 0.8, y_bot, 5.5 - 0.8, y_bot, PURPLE)
 
