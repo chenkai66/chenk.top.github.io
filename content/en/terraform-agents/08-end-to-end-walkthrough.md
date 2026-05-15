@@ -488,11 +488,11 @@ Prod, full HA, cross-region DR, real traffic — this is the number you cite whe
 | Observability| SLS                                     | 30 GB ingest, 90d retain      |         450 |
 | Observability| ARMS APM                                | 1 env, 50M spans              |         600 |
 | Observability| CloudMonitor                            | host metrics + 20 custom      |          30 |
-| **Subtotal — infra**                                                                   |    **8,230** |
+| **Subtotal — infra** | | |    **8,230** |
 | LLM API      | DashScope Qwen-max                      | 50M input, 12M output tokens  |        3500 |
 | LLM API      | Anthropic / OpenAI fallback             | 5M input, 1M output tokens    |         800 |
-| **Subtotal — LLM**                                                                     |    **4,300** |
-| **TOTAL prod / month**                                                                 |   **¥12,530** |
+| **Subtotal — LLM** | | |    **4,300** |
+| **TOTAL prod / month** | | |   **¥12,530** |
 
 Four observations from real bills:
 
