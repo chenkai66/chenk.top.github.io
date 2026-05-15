@@ -1136,4 +1136,4 @@ The hardcoded API key that kicked off this article cost me a weekend and a modes
 
 ## What's Next
 
-In [Part 7](/en/aliyun-fullstack/07-observability), we move to the storage layer: OSS for object storage, NAS for shared filesystems, and the block storage options that back your ECS instances. We will build on the security foundations from this article — every bucket gets SSE-KMS, every access goes through RAM roles, and nothing gets a permanent AccessKey.
+In [Part 7](/en/aliyun-fullstack/07-observability), we move to observability: SLS for centralized logging, CloudMonitor for infrastructure metrics and alerting, and the dashboards that tie them together. We will build on the security foundations from this article — every log project gets proper RAM policies, and alerting rules catch the suspicious access patterns we learned to prevent here.

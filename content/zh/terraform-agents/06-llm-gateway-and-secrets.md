@@ -90,6 +90,9 @@ resource "alicloud_kms_secret" "llm" {
 
 网关所在的 ECS 实例或函数计算需要权限读取这些密钥——而且**仅限**这些密钥：
 
+![集中式 API 网关将请求路由到多个 LLM 端点](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/wanxiang_api_gateway.png)
+
+
 ```hcl
 resource "alicloud_ram_role" "gateway" {
   name = "agent-gateway-${terraform.workspace}"

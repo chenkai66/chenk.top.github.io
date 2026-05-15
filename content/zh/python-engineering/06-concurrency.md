@@ -555,6 +555,8 @@ asyncio.run(main())
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
 
+import aiohttp
+
 
 def cpu_work(data: bytes) -> dict:
     """CPU 密集型处理（在独立进程中运行）。"""

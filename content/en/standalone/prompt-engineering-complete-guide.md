@@ -334,7 +334,7 @@ Strategy 2 — few-shot with valid examples — works when the schema is simple.
 
 ### Code generation with self-test
 
-```python
+````python
 def generate_code(task: str, language: str = "python", tests=None) -> str:
     prompt = f"""Write {language} code for this task.
 
@@ -355,7 +355,7 @@ Provide complete, runnable code:
         if not all(r.passed for r in results):
             code = debug_and_fix(code, results, prompt)
     return code
-```
+````
 
 The pattern is *generate → test → repair*. The repair prompt feeds the failing test back to the model with the original instructions intact.
 

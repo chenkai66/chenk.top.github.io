@@ -1131,4 +1131,4 @@ aliyun oss bucket-encryption --method put \
 
 ## 下一步
 
-在 [第 7 部分](/zh/aliyun-fullstack/07-observability) 里，我们要进入存储层了：对象存储 OSS、共享文件系统 NAS，以及支撑 ECS 的块存储选项。我们会沿用本文打下的安全基础——每个 Bucket 都开 SSE-KMS，所有访问走 RAM 角色，绝不用永久 AccessKey。
+在 [第 7 部分](/zh/aliyun-fullstack/07-observability) 里，我们要进入可观测性了：SLS 做集中日志、CloudMonitor 做基础设施指标与告警，以及把它们串起来的仪表盘。我们会沿用本文打下的安全基础——每个日志项目都配好 RAM 策略，告警规则能捕捉到我们这里学过的那些可疑访问模式。

@@ -562,6 +562,8 @@ The decision depends on your workload type:
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
 
+import aiohttp
+
 
 def cpu_work(data: bytes) -> dict:
     """CPU-intensive processing (runs in separate process)."""
@@ -594,11 +596,10 @@ async def main():
 
 ## Real Benchmark: Sequential vs Threaded vs Async
 
-```python
-"""Benchmark: download 20 URLs with different concurrency models."""
-
 ![Concurrency benchmark](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-benchmark.png)
 
+```python
+"""Benchmark: download 20 URLs with different concurrency models."""
 
 import asyncio
 import time

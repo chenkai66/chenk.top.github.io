@@ -463,7 +463,7 @@ services:
 | 用途 | Compose 文件内变量替换 | 向容器注入变量 |
 | 加载方 | `docker compose` CLI | 容器运行时 |
 | 语法 | `KEY=VALUE` | `KEY=VALUE` |
-| 在 Compose 文件中可用 | 是（`${VAR}`） \|否 \|
+| 在 Compose 文件中可用 | 是（`${VAR}`） | 否 |
 | 在容器内可用 | 仅当同时出现在 `environment:` 中 | 是 |
 
 ### 默认值与必需变量
