@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/optimization-theory/>优化理论</a>
 · 第 10 篇</div><h1>优化理论（十）：随机优化与方差缩减</h1><p class=deck>SGD 为何有效？我们基于梯度噪声预算证明了其在凸函数下的 $O(1/\sqrt{T})$ 收敛率与强凸函数下的 $O(1/(\mu T))$ 收敛率；进而介绍方差缩减方法——SVRG、SAGA、Katyusha，它们利用随机样本达到全梯度下降的线性收敛速率，并完整解析其理论机理。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-09-27>September 27, 2022</time> · 16 分钟 · 3754 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/optimization/ class=tag>#Optimization</a><a href=/zh/tags/stochastic-methods/ class=tag>#Stochastic Methods</a></div><a class="pill pill-outline" href=/en/optimization-theory/10-stochastic-variance-reduction/>Read in English →</a></div></header><div class=prose><p>随机梯度下降（SGD）每步只采样单个分量梯度，计算代价远低于全梯度方法——但噪声的代价是什么？能否在保持随机采样优势的同时获得确定性方法的快速收敛？本文从「噪声预算」视角出发，量化这一权衡，并推导解决方案。</p><span class=math-block>$$
+<span class=meta-line><time datetime=2022-09-27>September 27, 2022</time> · 16 分钟 · 3949 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/optimization/ class=tag>#Optimization</a><a href=/zh/tags/stochastic-methods/ class=tag>#Stochastic Methods</a></div><a class="pill pill-outline" href=/en/optimization-theory/10-stochastic-variance-reduction/>Read in English →</a></div></header><div class=prose><p>随机梯度下降（SGD）每步只采样单个分量梯度，计算代价远低于全梯度方法——但噪声的代价是什么？能否在保持随机采样优势的同时获得确定性方法的快速收敛？本文从「噪声预算」视角出发，量化这一权衡，并推导解决方案。</p><span class=math-block>$$
 \min_x f(x) := \frac{1}{n} \sum_{i=1}^n f_i(x),
 $$</span><p><strong>确定性梯度下降</strong>（full GD）每步计算代价为 <span class=math-inline>$O(n)$</span>
 ，但收敛步数为 <span class=math-inline>$O(\kappa \log(1/\epsilon))$</span>
@@ -49,7 +49,14 @@ $</span>
 称为<strong>梯度方差预算</strong>（gradient variance budget）。</li></ul><p>这两条假设（无偏性 + 有界方差）构成了 SGD 的公理基础。由此导出的收敛界强度，取决于目标函数 <span class=math-inline>$f$</span>
 所具备的额外结构（如凸性、强凸性、光滑性等）。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig1.png alt="病态二次函数上 SGD 与全梯度下降的轨迹对比" loading=lazy decoding=async class=content-image></figure><em>全梯度下降沿确定性路径平稳下降；SGD 则在同方向上呈现噪声锯齿轨迹。每步 SGD 的扰动幅度正由噪声预算 <span class=math-inline>$\sigma^2$</span>
 所控制。</em></p><hr><h2 id=凸情形收敛率o1sqrtt class=heading-anchor>凸情形收敛率：<span class=math-inline>$O(1/\sqrt{T})$</span>
-<a href=#%e5%87%b8%e6%83%85%e5%bd%a2%e6%94%b6%e6%95%9b%e7%8e%87o1sqrtt class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><blockquote><span class=math-block>$$\mathbb{E}[f(\bar x_T) - f^\star] \leq \frac{R \sigma}{\sqrt{T}},$$</span><p>其中 <span class=math-inline>$\bar x_T = \frac{1}{T} \sum_{t=0}^{T-1} x_t$</span>
+<a href=#%e5%87%b8%e6%83%85%e5%bd%a2%e6%94%b6%e6%95%9b%e7%8e%87o1sqrtt class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><blockquote><p><strong>定理</strong>。设 <span class=math-inline>$f$</span>
+是凸函数，且满足上述方差界。取常数步长 <span class=math-inline>$\eta = R / (\sigma \sqrt{T})$</span>
+，并从满足 <span class=math-inline>$\|x_0 - x^\star\|_2 \leq R$</span>
+的初始点 <span class=math-inline>$x_0$</span>
+出发，则经过 <span class=math-inline>$T$</span>
+轮迭代后，有</p></blockquote><span class=math-block>$$
+\mathbb{E}[f(\bar x_T) - f^\star] \leq \frac{R \sigma}{\sqrt{T}},
+$$</span><blockquote><p>其中 <span class=math-inline>$\bar x_T = \frac{1}{T} \sum_{t=0}^{T-1} x_t$</span>
 为迭代点的运行平均。</p></blockquote><span class=math-block>$$
 \mathbb{E}\|x_{t+1} - x^\star\|_2^2 = \|x_t - x^\star\|_2^2 - 2 \eta \langle \nabla f(x_t), x_t - x^\star \rangle + \eta^2 \mathbb{E}\|\nabla f_{i_t}(x_t)\|_2^2.
 $$</span>
@@ -75,7 +82,14 @@ $$</span><p>若将 <span class=math-inline>$G^2 + \sigma^2$</span>
 ，而与函数的光滑常数 <span class=math-inline>$L$</span>
 或条件数 <span class=math-inline>$\kappa$</span>
 无关。因此，只要步长选取恰当，SGD 对噪声具有鲁棒性，但收敛速度较慢。</p><hr><h2 id=强凸情形下的收敛速率o1t class=heading-anchor>强凸情形下的收敛速率：<span class=math-inline>$O(1/T)$</span>
-<a href=#%e5%bc%ba%e5%87%b8%e6%83%85%e5%bd%a2%e4%b8%8b%e7%9a%84%e6%94%b6%e6%95%9b%e9%80%9f%e7%8e%87o1t class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><blockquote><span class=math-block>$$\mathbb{E}[\|x_T - x^\star\|_2^2] \leq \frac{4 \sigma^2}{\mu^2 T}.$$</span>
+<a href=#%e5%bc%ba%e5%87%b8%e6%83%85%e5%bd%a2%e4%b8%8b%e7%9a%84%e6%94%b6%e6%95%9b%e9%80%9f%e7%8e%87o1t class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><blockquote><p><strong>定理</strong>。假设 <span class=math-inline>$f$</span>
+是 <span class=math-inline>$\mu$</span>
+-强凸函数，且满足方差界 <span class=math-inline>$\mathbb{E}[\|\nabla f_i(x) - \nabla f(x)\|_2^2] \leq \sigma^2$</span>
+。取步长 <span class=math-inline>$\eta_t = 2 / (\mu (t + 1))$</span>
+，则经过 <span class=math-inline>$T$</span>
+次迭代后，</p></blockquote><span class=math-block>$$
+\mathbb{E}[\|x_T - x^\star\|_2^2] \leq \frac{4 \sigma^2}{\mu^2 T}.
+$$</span>
 <span class=math-block>$$
 a_{t+1} \leq (1 - 2 \eta_t \mu) a_t + \eta_t^2 \sigma^2 + \eta_t^2 L^2 a_t,
 $$</span><p>其中最后一项源于对梯度模长的界：对 <span class=math-inline>$L$</span>
@@ -84,7 +98,7 @@ $$</span><p>其中最后一项源于对梯度模长的界：对 <span class=math
 。当 <span class=math-inline>$\eta_t = 2/(\mu(t+1))$</span>
 足够小时，<span class=math-inline>$L^2$</span>
 项可忽略，通过归纳法即得 <span class=math-inline>$a_t = O(1/(\mu^2 t))$</span>
-。</p></blockquote><p>最优步长按 <span class=math-inline>$1/t$</span>
+。</p><p>最优步长按 <span class=math-inline>$1/t$</span>
 衰减——这正是 Robbins–Monro（1951）提出的经典步长调度方案，也是所有现代自适应 SGD 步长策略（如 AdaGrad、Adam）的理论基础。</p><h3 id=为何在强凸函数上-sgd-不能使用常数步长 class=heading-anchor>为何在强凸函数上 SGD 不能使用常数步长？<a href=#%e4%b8%ba%e4%bd%95%e5%9c%a8%e5%bc%ba%e5%87%b8%e5%87%bd%e6%95%b0%e4%b8%8a-sgd-%e4%b8%8d%e8%83%bd%e4%bd%bf%e7%94%a8%e5%b8%b8%e6%95%b0%e6%ad%a5%e9%95%bf class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>若采用常数步长 <span class=math-inline>$\eta_t = \eta$</span>
 ，上述递推式存在不动点 <span class=math-inline>$a^\star = \eta \sigma^2 / (2 \mu)$</span>
 。此时迭代点 <span class=math-inline>$x_t$</span>
@@ -141,13 +155,22 @@ $$</span><p>其性质如下：</p><ul><li><strong>无偏性</strong>：<span cla
 时，有 <span class=math-inline>$\nabla f_{i_t}(x_t) - \nabla f_{i_t}(\tilde w_s) \to 0$</span>
 ，故噪声消失。</li></ul><p>正是这一特性赋予了 SVRG 线性收敛速率。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig3.png alt="同一点处 SGD 与 SVRG 的随机梯度样本对比" loading=lazy decoding=async class=content-image></figure><em>每条浅色箭头是一次随机梯度采样，加粗蓝色箭头表示真实梯度 <span class=math-inline>$\nabla f(x)$</span>
 。SGD（橙色）样本在均值附近大幅散布；SVRG（绿色）样本紧密聚集——控制变量 <span class=math-inline>$-\nabla f_{i_t}(\tilde w_s) + \tilde g_s$</span>
-抵消了大部分方差。</em></p><h3 id=svrg-收敛性分析 class=heading-anchor>SVRG 收敛性分析<a href=#svrg-%e6%94%b6%e6%95%9b%e6%80%a7%e5%88%86%e6%9e%90 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><blockquote><span class=math-block>$$\mathbb{E}[f(\tilde w_{s+1}) - f^\star] \leq 0.5 \cdot \mathbb{E}[f(\tilde w_s) - f^\star].$$</span>
+抵消了大部分方差。</em></p><h3 id=svrg-收敛性分析 class=heading-anchor>SVRG 收敛性分析<a href=#svrg-%e6%94%b6%e6%95%9b%e6%80%a7%e5%88%86%e6%9e%90 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><blockquote><p><strong>定理（Johnson–Zhang，2013）</strong>：假设每个 <span class=math-inline>$f_i$</span>
+是 <span class=math-inline>$L$</span>
+-光滑的，且 <span class=math-inline>$f$</span>
+是 <span class=math-inline>$\mu$</span>
+-强凸的。取步长 <span class=math-inline>$\eta = \frac{1}{10 L}$</span>
+，并令 epoch 长度 <span class=math-inline>$m$</span>
+足够大（具体地，<span class=math-inline>$m \geq 100 L / \mu$</span>
+），则 SVRG 几何收敛：</p></blockquote><span class=math-block>$$
+\mathbb{E}[f(\tilde w_{s+1}) - f^\star] \leq 0.5 \cdot \mathbb{E}[f(\tilde w_s) - f^\star].
+$$</span>
 <span class=math-block>$$
 \mathbb{E}\|g_t - \nabla f(x_t)\|_2^2 \leq L (f(x_t) - f^\star) + L (f(\tilde w_s) - f^\star).
 $$</span><p>此即<strong>共轭光滑性（co-coercivity）引理</strong>。将其代入标准 SGD 分析框架（参见<a href=#%e5%89%8d%e7%bd%ae%e7%9f%a5%e8%af%86>第 2 节</a>
 ），但将此处所得的 <span class=math-inline>$\sigma^2$</span>
 上界代入，并仔细追踪一个 SVRG epoch 的全过程，即可导出关于 <span class=math-inline>$f(\tilde w_s) - f^\star$</span>
-的收缩不等式。</p></blockquote><h3 id=总计算代价 class=heading-anchor>总计算代价<a href=#%e6%80%bb%e8%ae%a1%e7%ae%97%e4%bb%a3%e4%bb%b7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+的收缩不等式。</p><h3 id=总计算代价 class=heading-anchor>总计算代价<a href=#%e6%80%bb%e8%ae%a1%e7%ae%97%e4%bb%a3%e4%bb%b7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 O\big((n + L/\mu) \log(1/\epsilon)\big) = O\big((n + \kappa) \log(1/\epsilon)\big).
 $$</span><p>对比其他方法：</p><ul><li><strong>全梯度下降（Full GD）</strong>：<span class=math-inline>$O(n \kappa \log(1/\epsilon))$</span>
 —— <span class=math-inline>$n$</span>
@@ -216,5 +239,5 @@ $$</span><p>当 <span class=math-inline>$\kappa \gg n$</span>
 <span class=chapter-title>优化理论（九）：内点法与自和谐障碍函数</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>10</span>
 <span class=chapter-title>优化理论（十）：随机优化与方差缩减</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/optimization-theory/11-nonconvex-saddle-escape/><span class=chapter-num>11</span>
 <span class=chapter-title>优化理论（十一）：非凸优化与鞍点逃逸</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/optimization-theory/12-discrete-global-optimization/><span class=chapter-num>12</span>
-<span class=chapter-title>优化理论（十二）：离散与全局优化</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>16 min</strong></div><div class=row><span>字数</span><strong>3754</strong></div><div class=row><span>写于</span><strong>Sep 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>优化理论（十二）：离散与全局优化</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>16 min</strong></div><div class=row><span>字数</span><strong>3949</strong></div><div class=row><span>写于</span><strong>Sep 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

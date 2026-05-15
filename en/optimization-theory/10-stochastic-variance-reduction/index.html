@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/optimization-theory/>Optimization Theory</a>
 · Chapter 10</div><h1>Optimization (10): Stochastic Optimization and Variance Reduction</h1><p class=deck>Why does SGD work? We prove the O(1/sqrt(T)) convex rate and the O(1/(mu T)) strongly convex rate from the gradient noise budget. Then variance reduction: SVRG, SAGA, Katyusha — methods that get to the linear rate of full GD using stochastic samples, with complete analysis of why they work.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-09-27>September 27, 2022</time> · 18 min read · 1825 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/ml/ class=tag>#ML</a><a href=/en/tags/optimization/ class=tag>#Optimization</a><a href=/en/tags/stochastic-methods/ class=tag>#Stochastic Methods</a></div><a class="pill pill-outline" href=/zh/optimization-theory/10-stochastic-variance-reduction/>阅读中文版 →</a></div></header><div class=prose><p>Stochastic gradient descent samples a single component gradient per step — far cheaper than full GD, but at what cost in convergence? Can we retain the cheap per-iteration cost while recovering the fast rate of deterministic methods? This article quantifies the tradeoff from a noise-budget perspective and derives the solution.</p><span class=math-block>$$
+<span class=meta-line><time datetime=2022-09-27>September 27, 2022</time> · 20 min read · 1929 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/ml/ class=tag>#ML</a><a href=/en/tags/optimization/ class=tag>#Optimization</a><a href=/en/tags/stochastic-methods/ class=tag>#Stochastic Methods</a></div><a class="pill pill-outline" href=/zh/optimization-theory/10-stochastic-variance-reduction/>阅读中文版 →</a></div></header><div class=prose><p>Stochastic gradient descent samples a single component gradient per step — far cheaper than full GD, but at what cost in convergence? Can we retain the cheap per-iteration cost while recovering the fast rate of deterministic methods? This article quantifies the tradeoff from a noise-budget perspective and derives the solution.</p><span class=math-block>$$
 \min_x f(x) := \frac{1}{n} \sum_{i=1}^n f_i(x),
 $$</span><p>deterministic gradient descent costs <span class=math-inline>$O(n)$</span>
 per step but converges in <span class=math-inline>$O(\kappa \log(1/\epsilon))$</span>
@@ -49,7 +49,14 @@ where <span class=math-inline>$\sigma^2$</span>
 is the <strong>gradient variance</strong> budget.</li></ul><p>These two assumptions (unbiased + bounded variance) are the SGD axioms. The strength of the resulting bounds depends on what additional structure <span class=math-inline>$f$</span>
 has.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig1.png alt="SGD vs Full GD trajectories on an ill-conditioned 2D quadratic" loading=lazy decoding=async class=content-image></figure><em>Full GD follows a smooth, deterministic descent path; SGD takes a noisy zigzag in expectation around the same direction. The variance of each SGD step is what the noise budget <span class=math-inline>$\sigma^2$</span>
 controls.</em></p><hr><h2 id=convex-rate-o1sqrtt class=heading-anchor>Convex rate: <span class=math-inline>$O(1/\sqrt{T})$</span>
-<a href=#convex-rate-o1sqrtt class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><blockquote><span class=math-block>$$\mathbb{E}[f(\bar x_T) - f^\star] \leq \frac{R \sigma}{\sqrt{T}},$$</span><p>where <span class=math-inline>$\bar x_T = \frac{1}{T} \sum_{t=0}^{T-1} x_t$</span>
+<a href=#convex-rate-o1sqrtt class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><blockquote><p><strong>Theorem.</strong> Suppose <span class=math-inline>$f$</span>
+is convex and the variance bound holds. With constant step <span class=math-inline>$\eta = R / (\sigma \sqrt{T})$</span>
+and starting from <span class=math-inline>$x_0$</span>
+with <span class=math-inline>$\|x_0 - x^\star\|_2 \leq R$</span>
+, after <span class=math-inline>$T$</span>
+iterations:</p></blockquote><span class=math-block>$$
+\mathbb{E}[f(\bar x_T) - f^\star] \leq \frac{R \sigma}{\sqrt{T}},
+$$</span><blockquote><p>where <span class=math-inline>$\bar x_T = \frac{1}{T} \sum_{t=0}^{T-1} x_t$</span>
 is the running average.</p></blockquote><span class=math-block>$$
 \mathbb{E}\|x_{t+1} - x^\star\|_2^2 = \|x_t - x^\star\|_2^2 - 2 \eta \langle \nabla f(x_t), x_t - x^\star \rangle + \eta^2 \mathbb{E}\|\nabla f_{i_t}(x_t)\|_2^2.
 $$</span>
@@ -73,7 +80,14 @@ into the noise) gives the form above. <span class=math-inline>$\blacksquare$</sp
 rate is <strong>the</strong> classical SGD rate. Notice it depends on <span class=math-inline>$\sigma^2$</span>
 , not on the smoothness or condition number of <span class=math-inline>$f$</span>
 . SGD with proper step sizes is robust to noise but slow.</p><hr><h2 id=strongly-convex-rate-o1t class=heading-anchor>Strongly convex rate: <span class=math-inline>$O(1/T)$</span>
-<a href=#strongly-convex-rate-o1t class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><blockquote><span class=math-block>$$\mathbb{E}[\|x_T - x^\star\|_2^2] \leq \frac{4 \sigma^2}{\mu^2 T}.$$</span>
+<a href=#strongly-convex-rate-o1t class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><blockquote><p><strong>Theorem.</strong> Suppose <span class=math-inline>$f$</span>
+is <span class=math-inline>$\mu$</span>
+-strongly convex and the variance bound holds with <span class=math-inline>$\sigma^2$</span>
+. With step <span class=math-inline>$\eta_t = 2 / (\mu (t + 1))$</span>
+, after <span class=math-inline>$T$</span>
+iterations,</p></blockquote><span class=math-block>$$
+\mathbb{E}[\|x_T - x^\star\|_2^2] \leq \frac{4 \sigma^2}{\mu^2 T}.
+$$</span>
 <span class=math-block>$$
 a_{t+1} \leq (1 - 2 \eta_t \mu) a_t + \eta_t^2 \sigma^2 + \eta_t^2 L^2 a_t,
 $$</span><p>where the last term comes from bounding <span class=math-inline>$\|\nabla f(x_t)\|_2 \leq L \|x_t - x^\star\|_2$</span>
@@ -82,7 +96,7 @@ for <span class=math-inline>$L$</span>
 . With <span class=math-inline>$\eta_t = 2/(\mu(t+1))$</span>
 small enough that the <span class=math-inline>$L^2$</span>
 term is negligible, induction gives <span class=math-inline>$a_t = O(1/(\mu^2 t))$</span>
-.</p></blockquote><p>The optimal step decays as <span class=math-inline>$1/t$</span>
+.</p><p>The optimal step decays as <span class=math-inline>$1/t$</span>
 — this is <strong>Robbins&ndash;Monro</strong>&rsquo;s classical 1951 schedule and is the basis of all modern adaptive step size schemes for SGD.</p><h3 id=why-constant-step-size-doesnt-work-for-sgd-on-strongly-convex-f class=heading-anchor>Why constant step size doesn&rsquo;t work for SGD on strongly convex <span class=math-inline>$f$</span>
 <a href=#why-constant-step-size-doesnt-work-for-sgd-on-strongly-convex-f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>If <span class=math-inline>$\eta_t = \eta$</span>
 constant, the recursion has a fixed point at <span class=math-inline>$a^\star = \eta \sigma^2 / (2 \mu)$</span>
@@ -137,12 +151,21 @@ $$</span><p>Properties:</p><ul><li><strong>Unbiased</strong>: <span class=math-i
 , <span class=math-inline>$\nabla f_{i_t}(x_t) - \nabla f_{i_t}(\tilde w_s) \to 0$</span>
 , so the noise vanishes.</li></ul><p>This is what gives the linear convergence rate.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig3.png alt="SGD vs SVRG gradient samples around a fixed point" loading=lazy decoding=async class=content-image></figure><em>Each light arrow is one stochastic gradient sample; the bold blue arrow is the true <span class=math-inline>$\nabla f(x)$</span>
 . SGD samples (orange) scatter widely around the mean; SVRG samples (green) cluster tightly because the control variate <span class=math-inline>$-\nabla f_{i_t}(\tilde w_s) + \tilde g_s$</span>
-cancels most of the variance.</em></p><h3 id=svrg-convergence class=heading-anchor>SVRG convergence<a href=#svrg-convergence class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><blockquote><span class=math-block>$$\mathbb{E}[f(\tilde w_{s+1}) - f^\star] \leq 0.5 \cdot \mathbb{E}[f(\tilde w_s) - f^\star].$$</span>
+cancels most of the variance.</em></p><h3 id=svrg-convergence class=heading-anchor>SVRG convergence<a href=#svrg-convergence class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><blockquote><p><strong>Theorem (Johnson&ndash;Zhang 2013).</strong> Suppose each <span class=math-inline>$f_i$</span>
+is <span class=math-inline>$L$</span>
+-smooth and <span class=math-inline>$f$</span>
+is <span class=math-inline>$\mu$</span>
+-strongly convex. With <span class=math-inline>$\eta = \frac{1}{10 L}$</span>
+and <span class=math-inline>$m$</span>
+chosen large enough (specifically <span class=math-inline>$m \geq 100 L / \mu$</span>
+), SVRG converges geometrically:</p></blockquote><span class=math-block>$$
+\mathbb{E}[f(\tilde w_{s+1}) - f^\star] \leq 0.5 \cdot \mathbb{E}[f(\tilde w_s) - f^\star].
+$$</span>
 <span class=math-block>$$
 \mathbb{E}\|g_t - \nabla f(x_t)\|_2^2 \leq L (f(x_t) - f^\star) + L (f(\tilde w_s) - f^\star).
 $$</span><p>This is the <strong>co-coercivity</strong> lemma. Plugging it into the SGD analysis (as in section 2 but with this bound on <span class=math-inline>$\sigma^2$</span>
 ) and tracking carefully through one SVRG epoch gives a contraction in <span class=math-inline>$f(\tilde w_s) - f^\star$</span>
-.</p></blockquote><h3 id=total-cost class=heading-anchor>Total cost<a href=#total-cost class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Each SVRG epoch costs <span class=math-inline>$n + m$</span>
+.</p><h3 id=total-cost class=heading-anchor>Total cost<a href=#total-cost class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Each SVRG epoch costs <span class=math-inline>$n + m$</span>
 gradient evaluations. Number of epochs to reach <span class=math-inline>$\epsilon$</span>
 : <span class=math-inline>$\log(1/\epsilon)$</span>
 . Total: <span class=math-inline>$O((n + L/\mu) \log(1/\epsilon)) = O((n + \kappa) \log(1/\epsilon))$</span>
@@ -209,5 +232,5 @@ strongly convex) come directly from a noise-budget argument. Variance reduction 
 <span class=chapter-title>Optimization (9): Interior-Point Methods and Self-Concordant Barriers</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>10</span>
 <span class=chapter-title>Optimization (10): Stochastic Optimization and Variance Reduction</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/11-nonconvex-saddle-escape/><span class=chapter-num>11</span>
 <span class=chapter-title>Optimization (11): Non-Convex Optimization and Saddle Escape</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/12-discrete-global-optimization/><span class=chapter-num>12</span>
-<span class=chapter-title>Optimization (12): Discrete and Global Optimization</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>18 min</strong></div><div class=row><span>Word count</span><strong>1825</strong></div><div class=row><span>Published</span><strong>Sep 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Optimization (12): Discrete and Global Optimization</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>20 min</strong></div><div class=row><span>Word count</span><strong>1929</strong></div><div class=row><span>Published</span><strong>Sep 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>
