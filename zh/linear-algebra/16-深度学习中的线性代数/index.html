@@ -276,11 +276,11 @@ $$</span><p>在线性层 <span class=math-inline>$\mathbf{y} = \mathbf{W}\mathbf
 </span></span></code></pre></td></tr></table></div></div><p>朴素注意力的时间复杂度是 <span class=math-inline>$O(n^2 d_k)$</span>
 ，内存占用是 <span class=math-inline>$O(n^2)$</span>
 ——长序列下 <span class=math-inline>$n\times n$</span>
-的得分矩阵成为瓶颈。FlashAttention 通过分块重新组织计算，避免这个矩阵进入 HBM；数学上完全等价，但对内存层级更友好。</p><h2 id=组合起来一个-transformer-block class=heading-anchor>组合起来：一个 Transformer Block<a href=#%e7%bb%84%e5%90%88%e8%b5%b7%e6%9d%a5%e4%b8%80%e4%b8%aa-transformer-block class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Transformer 的编码器层其实就四个固定部分。</p><ul><li><strong>多头自注意力</strong>（<a href="#%e6%b3%a8%e6%84%8f%e5%8a%9b-=-%e7%94%a8%e4%b8%89%e6%ac%a1%e7%9f%a9%e9%98%b5%e4%b9%98%e6%b3%95%e5%ae%9e%e7%8e%b0%e8%bd%af%e6%9f%a5%e8%a1%a8">第 4 节</a>
+的得分矩阵成为瓶颈。FlashAttention 通过分块重新组织计算，避免这个矩阵进入 HBM；数学上完全等价，但对内存层级更友好。</p><h2 id=组合起来一个-transformer-block class=heading-anchor>组合起来：一个 Transformer Block<a href=#%e7%bb%84%e5%90%88%e8%b5%b7%e6%9d%a5%e4%b8%80%e4%b8%aa-transformer-block class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Transformer 的编码器层其实就四个固定部分。</p><ul><li><strong>多头自注意力</strong>（<a href=#%e6%b3%a8%e6%84%8f%e5%8a%9b--%e7%94%a8%e4%b8%89%e6%ac%a1%e7%9f%a9%e9%98%b5%e4%b9%98%e6%b3%95%e5%ae%9e%e7%8e%b0%e8%bd%af%e6%9f%a5%e8%a1%a8>第 4 节</a>
 ）。</li><li><strong>逐位置 FFN</strong>：一个两层的 MLP，对每个 token 独立操作，先扩展再投影：
 <span class=math-inline>$\mathrm{FFN}(\mathbf{x}) = \mathbf{W}_2\,\mathrm{ReLU}(\mathbf{W}_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2$</span></li><li><strong>残差连接</strong>：每个子层输出 <span class=math-inline>$\mathbf{x} + \mathrm{sublayer}(\mathbf{x})$</span>
 。雅可比矩阵变成 <span class=math-inline>$\mathbf{I} + \mathbf{J}$</span>
-，特征值集中在 1 附近——梯度始终有条畅通的反向捷径。</li><li><strong>层归一化</strong>（<a href=#%e5%bd%92%e4%b8%80%e5%8c%96%ef%bc%9a%e6%b2%bf%e4%b8%8d%e5%90%8c%e8%bd%b4%e5%81%9a%e6%a0%87%e5%87%86%e5%8c%96>第 6 节</a>
+，特征值集中在 1 附近——梯度始终有条畅通的反向捷径。</li><li><strong>层归一化</strong>（<a href=#%e5%bd%92%e4%b8%80%e5%8c%96%e6%b2%bf%e4%b8%8d%e5%90%8c%e8%bd%b4%e5%81%9a%e6%a0%87%e5%87%86%e5%8c%96>第 6 节</a>
 ）。</li></ul><p>解码器多了<strong>交叉注意力</strong>（query 来自解码器，key 和 value 来自编码器）和一个<strong>因果 mask</strong>，把未来位置的得分置零：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>causal_mask</span><span class=p>(</span><span class=n>seq_len</span><span class=p>):</span>
