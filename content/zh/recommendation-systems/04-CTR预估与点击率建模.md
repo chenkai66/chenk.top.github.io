@@ -33,6 +33,8 @@ translationKey: "recommendation-systems-4"
 
 ---
 
+![wanxiang illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/illustration_1.png)
+
 ## 你将学到什么
 
 - CTR 预估问题的本质，以及它**为什么**特别难（不只是标签不平衡的分类问题）
@@ -172,6 +174,8 @@ def train_lr(X_train, y_train, X_val, y_val, epochs=100, lr=0.01):
 这三个缺陷直接推动了后续模型的发展，如 FM 的出现。
 
 ---
+
+![wanxiang illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/illustration_2.png)
 
 ## Factorization Machines（FM）：自动二阶交互
 

@@ -22,6 +22,8 @@ translationKey: "recommendation-systems-5"
 
 ---
 
+![wanxiang illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/illustration_1.png)
+
 ## 你将学到什么
 
 - **Embedding 到底是什么**——为什么“低维”是其核心价值
@@ -412,6 +414,8 @@ def co_occurrence_graph(interactions, min_jaccard=0.1, max_users=None):
 > **工程提醒**：上面的双重循环复杂度是 $O(N^2)$。真实场景中，我会先按用户建倒排索引，按用户遍历，只在共享用户的物品对之间产生候选边，复杂度降到 $O(\sum_u |I_u|^2)$，实战中效率高几个数量级。
 
 ---
+
+![wanxiang illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/illustration_2.png)
 
 ## 双塔模型：用户和物品分开编码
 

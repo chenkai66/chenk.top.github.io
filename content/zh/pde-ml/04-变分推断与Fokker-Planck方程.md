@@ -139,6 +139,8 @@ $$
 
 ![Langevin动力学: 200个粒子在双势阱中采样并收敛至Gibbs平衡态](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-变分推断与Fokker-Planck方程/anim_langevin_sampling.gif)
 
+![wanxiang illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/illustration_2.png)
+
 用于从 $p^\star \propto e^{-V}$ 采样的 **过阻尼 Langevin 方程** 为：
 $$dX_t = -\nabla V(X_t)\, dt + \sqrt{2\tau}\, dW_t.$$
 其离散形式——**未校正 Langevin 算法（ULA）**——采用 Euler-Maruyama 格式：
