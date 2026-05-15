@@ -1009,4 +1009,4 @@ DashScope 在典型阿里云架构中的位置如下：
 8. **立即设置预算告警。** 别等有人忘记关闭调试循环跑了一整夜。
 
 ## 下一步
-[Part 11](/zh/aliyun-fullstack/11-pai-ml-platform) 将聚焦阿里云安全：RAM 策略、KMS 密钥管理、安全中心和 WAF。本文涉及的每个 API Key、每次 DashScope 调用、每个 OSS Bucket 都需妥善的安全保障——这正是我们下一步的方向。
+[第 11 部分](/zh/aliyun-fullstack/11-pai-ml-platform) 将聚焦机器学习平台层：PAI-DSW 交互式 Notebook、PAI-DLC 分布式训练、PAI-EAS 模型服务。本文通过 DashScope 微调和部署的每个模型，都可以在 PAI 上进行规模化训练和弹性伸缩部署——这正是我们下一步的方向。

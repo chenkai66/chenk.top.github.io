@@ -1019,4 +1019,4 @@ Every piece of this stack is covered in this series. DashScope is the brain; the
 
 ## What's Next
 
-[Part 11](/en/aliyun-fullstack/11-pai-ml-platform) covers security on Alibaba Cloud: RAM policies, KMS for key management, Security Center, and WAF. Every API key, every DashScope call, every OSS bucket from this article needs proper security — and that is where we are headed next.
+[Part 11](/en/aliyun-fullstack/11-pai-ml-platform) covers the ML platform layer: PAI-DSW for interactive notebooks, PAI-DLC for distributed training, and PAI-EAS for model serving. Every model we fine-tuned or deployed via DashScope in this article can be trained at scale and served with autoscaling on PAI — and that is where we are headed next.
