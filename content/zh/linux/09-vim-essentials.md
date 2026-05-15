@@ -10,6 +10,7 @@ description: "不靠死记快捷键学 Vim —— 而是掌握它的语法：模
 disableNunjucks: true
 translationKey: "linux-9"
 series_order: 9
+series_total: 9
 series: linux
 ---
 大多数人放弃 Vim，是因为试图死记硬背快捷键——这完全走错了方向。Vim 本质上是一门**小型语言**：只要掌握它的语法——**操作符 + 动作（operator + motion）**——你就能表达任意编辑意图，从此再也不用打开速查表。本指南将带你掌握日常使用频率高达 80% 的 Vim 核心功能，并说明剩下的 20% 如何自然地从同一套基础规则中推导出来。

@@ -11,6 +11,7 @@ mathjax: false
 description: "看懂主板布局、理清 CPU 直连与芯片组域的 PCIe 通道分配、理解 GPU 的 SIMT 执行模型、对比 DDR/GDDR/HBM 显存，以及挑对显示接口。"
 disableNunjucks: true
 series_order: 4
+series_total: 6
 translationKey: "computer-fundamentals-4"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/04-motherboard-gpu/illustration_1.png)

@@ -11,6 +11,7 @@ mathjax: false
 description: "深入剖析网卡的 PHY/MAC/DMA 流水线、TCP 三次握手、网络拓扑、电源 80 PLUS 效率曲线、数据中心 PUE、组件功耗层次以及 UPS 体系结构。"
 disableNunjucks: true
 series_order: 5
+series_total: 6
 translationKey: "computer-fundamentals-5"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/illustration_1.png)

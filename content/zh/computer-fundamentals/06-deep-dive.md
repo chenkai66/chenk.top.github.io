@@ -11,6 +11,7 @@ mathjax: false
 description: "系列收官篇。我们从单个组件抽身出来，看整台机器：CPU、缓存、内存、存储、IO、加速器是怎么连在一起的；为什么硬件感知的代码能快 100 倍；怎么读 perf 计数器；以及计算的下一站——chiplet、硅光、量子。"
 disableNunjucks: true
 series_order: 6
+series_total: 6
 translationKey: "computer-fundamentals-6"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/illustration_1.png)

@@ -11,6 +11,7 @@ mathjax: false
 description: "从存储金字塔到 DRAM 单元、从虚拟内存到 TLB、从 ECC 到 NUMA 与多通道——一条指令背后的内存系统全景。"
 disableNunjucks: true
 series_order: 2
+series_total: 6
 translationKey: "computer-fundamentals-2"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/02-memory/illustration_1.png)

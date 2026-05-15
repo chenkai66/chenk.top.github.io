@@ -11,6 +11,7 @@ mathjax: false
 description: "理解数据单位（位与字节）、CPU 架构、五级流水线、缓存层级、分支预测、乱序执行、多核与 SMT、Intel vs AMD 差异，以及如何选购合适的处理器。"
 disableNunjucks: true
 series_order: 1
+series_total: 6
 translationKey: "computer-fundamentals-1"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/01-cpu/illustration_1.png)
