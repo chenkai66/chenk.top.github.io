@@ -7,7 +7,7 @@ tags:
   - Fokker-Planck
   - ELBO
   - Langevin Dynamics
-categories: Scientific Computing
+categories: PDE and Machine Learning
 series: pde-ml
 lang: en
 mathjax: true

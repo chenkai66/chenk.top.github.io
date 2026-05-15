@@ -1,13 +1,13 @@
 ---
 date: 2024-05-16 09:00:00
-title: "PDE and ML (2): and Machine Learning (2) — Neural Operator Theory"
+title: "PDE and ML (2): Neural Operator Theory"
 description: "DeepONet vs FNO from a function-space view: resolution invariance, error bounds, failure modes."
 tags:
   - PDE
   - Neural Operator
   - FNO
   - DeepONet
-categories: Scientific Computing
+categories: PDE and Machine Learning
 lang: en
 mathjax: true
 disableNunjucks: true
