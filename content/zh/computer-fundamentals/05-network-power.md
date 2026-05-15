@@ -54,8 +54,6 @@ translationKey: "computer-fundamentals-5"
 - **RSS**（接收侧扩展）——通过 Toeplitz 哈希算法将不同流量分布到多个 CPU 核心。如果没有 RSS，单条 25 GbE 流量可能打满一个核心，导致整台机器性能瓶颈。  
 - **VLAN 标签**和**SR-IOV**——后者允许将一张物理网卡虚拟为多个虚拟功能（VF），每个虚拟机独占一个 VF，从而绕过 hypervisor 的软件交换路径。
 
-![网络硬件架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/fig1_nic_architecture.png)
-
 ## 千兆网络“缩水”到百兆？问题可能出在这儿
 
 如果你发现千兆网络（1000BASE-T）只能跑到 100 Mbps，别急着怀疑配置问题，罪魁祸首往往是网线。千兆以太网需要网线中的四对线芯全部正常工作，而较老的 CAT5 标准只保证两对线芯能稳定传输。更糟糕的是，市面上一些低价跳线为了节省成本，往往在规格上偷工减料，表面上标着 CAT5e，实际性能却达不到要求。解决这个问题的关键是更换网线，而不是折腾软件。

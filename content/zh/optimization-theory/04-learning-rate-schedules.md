@@ -58,8 +58,6 @@ $$\theta_{t+1} = \theta_t - \eta \cdot \tilde g_t,$$
 ### 从一维抛物线开始（最干净的直觉）
 
 
-![Three learning-rate regimes on a 1-D quadratic loss](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig1_lr_regimes.png)
-
 考虑最简单的非平凡损失：
 $$L(\theta) = \tfrac{1}{2} a \theta^2, \qquad a > 0.$$
 梯度是 $\nabla L(\theta) = a\theta$，所以梯度下降的递推为：
@@ -94,8 +92,6 @@ $$L(\theta_{t+1}) \leq L(\theta_t) - \eta\left(1 - \tfrac{\eta L}{2}\right) \|\n
 
 ### 为什么必须有调度
 
-
-![Common learning-rate schedules: cosine, step, linear, WSD](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig2_lr_schedules.png)
 
 真实网络里，曲率、梯度噪声、甚至 Hessian 的特征向量都会随训练变化。**不存在一个固定的常数学习率，能够在整个训练过程中始终保持最优性能。** 一个典型的调度通常包含三个阶段：
 
@@ -199,8 +195,6 @@ $$\eta_t = \eta_{\min} + (\eta_{\max} - \eta_{\min}) \cdot \tfrac{1}{2}\left[1 +
 ### WSD：Warmup–Stable–Decay（现代 LLM 默认）
 
 
-![Typical LLM pretraining schedule (GPT-3 / LLaMA style)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig7_llm_schedule.png)
-
 Hägele et al. 2024（*Scaling Laws and Compute-Optimal Training Beyond Fixed Training Durations*）等工作把 **WSD** 推成了主流：
 
 - **Warmup**——和以前一样；
@@ -216,8 +210,6 @@ Hägele et al. 2024（*Scaling Laws and Compute-Optimal Training Beyond Fixed Tr
 ### Cosine vs WSD vs Schedule-Free 速览
 
 
-![Schedule-free vs cosine: competitive without specifying T](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig6_schedule_free.png)
-
 | 调度 | 优点 | 缺点 | 适合 |
 |---|---|---|---|
 | **Cosine** | 平滑、久经考验 | 需要事先知道 $T$ | 训练长度固定 |
@@ -228,8 +220,6 @@ Hägele et al. 2024（*Scaling Laws and Compute-Optimal Training Beyond Fixed Tr
 
 ## LR range test：200 个 batch 找到你的上限
 
-
-![LR range test: pick 0.3-1× the stability edge](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig3_lr_range_test.png)
 
 挑选 $\eta_{\max}$ 最有用的工具，最初由 Smith 2015（*Cyclical Learning Rates*）提出：
 
@@ -284,8 +274,6 @@ def lr_range_test(model, loader, loss_fn, optimizer,
 ## 不同优化器，曲线长得不一样
 
 
-![Adam vs SGD under the same warmup-cosine schedule](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig4_adam_vs_sgd.png)
-
 同一条调度套到不同优化器上，得到的 loss 曲线并不一样。下图把同一条 warmup-cosine 调度同时应用到 AdamW 和 SGD-with-momentum 的合成任务上：AdamW 早期下降更快，SGD 往往后段才追上来，且对峰值 LR 更敏感。
 
 ![Adam vs SGD 在同一条 warmup-cosine 调度下的对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/学习率-从入门到大模型训练的终极指南-2026/fig4_adam_vs_sgd.png)
@@ -301,8 +289,6 @@ def lr_range_test(model, loader, loss_fn, optimizer,
 
 ## Layer-wise / 判别式 LR：微调的杀手锏
 
-
-![Layer-wise discriminative LR for fine-tuning, ULMFiT style](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig5_layerwise_lr.png)
 
 微调预训练模型时，底层已经学会了如何提取好的特征——你不希望大学习率把它们冲掉；高层是随机的、任务特定的，需要更大的更新。ULMFiT（Howard & Ruder 2018）把这件事系统化为 **判别式学习率（discriminative learning rates）**：顶层用一个小的基础 LR，每往下一组就除以一个因子（通常 2.6 或 0.8）。
 

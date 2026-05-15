@@ -28,8 +28,6 @@ polished_by_qwen_max: true
 ---
 
 ## 你将学到什么
-![自然语言处理（四）：注意力机制与Transformer — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_2.png)
-
 - 为什么固定长度的上下文向量会让传统的 Seq2Seq 模型在处理长句子时力不从心，而注意力机制又是如何扭转这一局面的
 - Bahdanau 和 Luong 注意力：从经典注意力到自注意力的思想桥梁
 - Query、 Key 和 Value 的抽象概念解析，缩放点积注意力的核心原理，以及 $\sqrt{d_k}$ 这一缩放因子的作用

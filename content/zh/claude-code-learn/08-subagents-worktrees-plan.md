@@ -450,11 +450,7 @@ Claude：[ExitWorktree: action="keep"]
 
 Claude 在 `extract-auth` worktree 中完整执行抽离，每一步都生成独立的 commit：
 
-![Claude Code 实战（8）：子代理、工作树和计划模式 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/illustration_1.png)
-
 #### 第五步：退出并合并
-
-![Plan 模式生命周期：阅读、计划、批准、执行](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/fig5.png)
 
 整个重构过程全程隔离。如果中途出错，我随时可以用 `remove` 彻底回退，主分支零污染。
 
