@@ -126,7 +126,8 @@ A single trajectory tells you the worst case. An *ensemble* tells you the distri
 
 ## Lyapunov Exponents: Quantifying Chaos
 
-The **largest Lyapunov exponent** measures the average exponential rate of separation:$$\lambda_1 \;=\; \lim_{t\to\infty}\frac{1}{t}\,\ln\frac{|\delta\mathbf{x}(t)|}{|\delta\mathbf{x}(0)|}.
+The **largest Lyapunov exponent** measures the average exponential rate of separation:
+$$\lambda_1 \;=\; \lim_{t\to\infty}\frac{1}{t}\,\ln\frac{|\delta\mathbf{x}(t)|}{|\delta\mathbf{x}(0)|}.
 $$
 
 | Sign | Behaviour |

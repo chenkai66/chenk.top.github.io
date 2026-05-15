@@ -102,7 +102,9 @@ Every GNN, however dressed up, is a variation of the same three-step recipe:
 3. **Update.** The target blends the aggregate with its own previous state.
 
 Formally, at layer $l$, node $v$ updates as:
-$$\mathbf{m}_v^{(l)} = \mathrm{AGGREGATE}^{(l)}\!\bigl(\{\mathbf{h}_u^{(l-1)} : u\in\mathcal{N}(v)\}\bigr)$$$$\mathbf{h}_v^{(l)} = \mathrm{UPDATE}^{(l)}\!\bigl(\mathbf{h}_v^{(l-1)},\; \mathbf{m}_v^{(l)}\bigr)$$
+$$\mathbf{m}_v^{(l)} = \mathrm{AGGREGATE}^{(l)}\!\bigl(\{\mathbf{h}_u^{(l-1)} : u\in\mathcal{N}(v)\}\bigr)$$
+
+$$\mathbf{h}_v^{(l)} = \mathrm{UPDATE}^{(l)}\!\bigl(\mathbf{h}_v^{(l-1)},\; \mathbf{m}_v^{(l)}\bigr)$$
 In plain English: *"Look at what your neighbours know, summarise it, then blend it with what you already know."* Stack $L$ layers and each node sees its $L$-hop neighbourhood.
 
 **Telephone analogy.** Imagine a game of telephone where every person whispers to all their friends simultaneously. After one round you know what your friends think; after two, what your friends' friends think. GNNs do exactly that with learned, differentiable functions.
@@ -303,7 +305,9 @@ GraphSAGE has two key ideas:
 2. **Learned aggregation.** Apply a trainable function (mean, LSTM, max-pool) to the sampled neighbours.
 
 For node $v$ at layer $l$:
-$$\mathbf{h}_{\mathcal{N}(v)}^{(l)} = \mathrm{AGGREGATE}^{(l)}\!\bigl(\{\mathbf{h}_u^{(l-1)} : u\in\mathcal{N}_{\text{sampled}}(v)\}\bigr)$$$$\mathbf{h}_v^{(l)} = \sigma\!\bigl(\mathbf{W}^{(l)}\cdot[\mathbf{h}_v^{(l-1)} \,\|\, \mathbf{h}_{\mathcal{N}(v)}^{(l)}]\bigr)$$
+$$\mathbf{h}_{\mathcal{N}(v)}^{(l)} = \mathrm{AGGREGATE}^{(l)}\!\bigl(\{\mathbf{h}_u^{(l-1)} : u\in\mathcal{N}_{\text{sampled}}(v)\}\bigr)$$
+
+$$\mathbf{h}_v^{(l)} = \sigma\!\bigl(\mathbf{W}^{(l)}\cdot[\mathbf{h}_v^{(l-1)} \,\|\, \mathbf{h}_{\mathcal{N}(v)}^{(l)}]\bigr)$$
 In plain English: *"Sample some neighbours, summarise their features, concatenate with your own, push through a linear layer."*
 
 | Aggregator | How it works |
@@ -444,7 +448,9 @@ The answer, on collaborative filtering, is **it works better.** The graph struct
 ### Architecture
 
 LightGCN uses the simplest possible aggregation:
-$$\mathbf{e}_u^{(l+1)} = \sum_{i\in\mathcal{N}(u)} \frac{1}{\sqrt{|\mathcal{N}(u)|\cdot|\mathcal{N}(i)|}}\; \mathbf{e}_i^{(l)}$$$$\mathbf{e}_i^{(l+1)} = \sum_{u\in\mathcal{N}(i)} \frac{1}{\sqrt{|\mathcal{N}(u)|\cdot|\mathcal{N}(i)|}}\; \mathbf{e}_u^{(l)}$$
+$$\mathbf{e}_u^{(l+1)} = \sum_{i\in\mathcal{N}(u)} \frac{1}{\sqrt{|\mathcal{N}(u)|\cdot|\mathcal{N}(i)|}}\; \mathbf{e}_i^{(l)}$$
+
+$$\mathbf{e}_i^{(l+1)} = \sum_{u\in\mathcal{N}(i)} \frac{1}{\sqrt{|\mathcal{N}(u)|\cdot|\mathcal{N}(i)|}}\; \mathbf{e}_u^{(l)}$$
 In plain English: *"Average your neighbours' embeddings (normalised by degrees). No activation, no weight matrix. That is one layer."*
 
 The final embedding combines all layers:

@@ -214,7 +214,7 @@ change the model":
    $O(n \cdot d^2)$.
 3. **Patching** (PatchTST, autoformer-style series decomposition):
    *shorten the sequence itself* by grouping consecutive steps into
-   patches. We come back to this in [Section 7](#the-on^2-bottleneck).
+   patches. We come back to this in [Section 7](#the-on2-bottleneck).
 4. **Decoder-only with KV cache** ([Section 6](#what-multi-head-attention-learns)): you still pay $O(n^2)$
    in training, but inference is incremental.
 

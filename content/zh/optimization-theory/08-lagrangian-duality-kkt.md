@@ -248,7 +248,7 @@ $$
 
 ## 参考文献
 
-- Boyd & Vandenberghe, *Convex Optimization*, [第 5 章](/zh/optimization-theory/05-acceleration-beyond-nesterov/) —— 经典教材，所有例子均有详尽推导；
-- Bertsekas, *Convex Optimization Theory*, [第 5 章](/zh/optimization-theory/05-acceleration-beyond-nesterov/) —— 从更抽象的对偶理论视角给出严格证明；
+- Boyd & Vandenberghe, *Convex Optimization*, 第 5 章 —— 经典教材，所有例子均有详尽推导；
+- Bertsekas, *Convex Optimization Theory*, 第 5 章 —— 从更抽象的对偶理论视角给出严格证明；
 - Rockafellar, *Conjugate Duality and Optimization*, 1974 —— 基于共轭函数的深层对偶理论；
 - Shalev-Shwartz & Zhang, *Stochastic Dual Coordinate Ascent for Regularized Loss Minimization*, JMLR 14, 2013 —— 大规模机器学习中的对偶优化方法。
