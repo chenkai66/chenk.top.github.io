@@ -214,6 +214,8 @@ jobs:
 
 ## 使用 Terraform 实现基础设施即代码（IaC）
 
+![Terraform 工作流](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig_terraform_pipeline_en.png)
+
 基础设施即代码（IaC）意味着生产环境完全由版本受控的代码文件定义，而非依赖某位工程师上周二在控制台点击出的临时状态。Terraform 是目前最主流的 IaC 工具，因为它支持多云厂商、采用声明式语法，并提供关键的预览步骤（`plan`），可在任何变更实际发生前清晰展示“将要创建、修改或销毁哪些资源”。
 
 ### 核心工作流
@@ -1042,6 +1044,8 @@ echo "非生产环境已启动，时间：$(date)"
 ---
 
 ## GitOps：以 Git 作为唯一真实源
+
+![GitOps with ArgoCD/Flux](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig_gitops_argocd_en.png)
 
 GitOps 删掉了一类能力（直接 `kubectl apply`），也删掉了一类错误。集群自动 reconcile 到配置仓库的内容，改集群的唯一方法是改 Git。
 
