@@ -1,19 +1,19 @@
 ---
-title: "LeetCode (10): Patterns: Greedy Algorithms"
-date: 2022-09-13 09:00:00
+title: "LeetCode (9): Patterns: Greedy Algorithms"
+date: 2022-08-29 09:00:00
 tags:
   - LeetCode
   - Algorithms
   - Data Structures
 categories: LeetCode
 series: leetcode
-series_order: 10
+series_order: 9
 series_total: 10
 lang: en
 mathjax: false
 description: "When does picking the locally best option give the global optimum? A working tour of greedy algorithms with proofs (exchange argument), classic problems (Jump Game, Gas Station, Interval Scheduling, Task Scheduler, Partition Labels), and a clear rule for when greedy fails."
 disableNunjucks: true
-translationKey: "leetcode-10"
+translationKey: "leetcode-9"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/09-greedy/illustration_1.png)
 

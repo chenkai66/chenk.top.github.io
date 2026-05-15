@@ -473,7 +473,7 @@ Sorted roughly by difficulty within each group.
 
 ## References
 
-- *Introduction to Algorithms* — Chapter 10, Elementary Data Structures.
+- *Introduction to Algorithms* — the Elementary Data Structures chapter.
 - *Cracking the Coding Interview* — [Chapter 2](/en/leetcode/two-pointers/), Linked Lists.
 - VisuAlgo — Linked List visualization: https://visualgo.net/en/list
 - LeetCode Linked List tag — 100+ curated problems for practice.

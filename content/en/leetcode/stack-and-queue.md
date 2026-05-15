@@ -1,19 +1,19 @@
 ---
-title: "LeetCode (9): Patterns: Stack and Queue"
-date: 2022-08-29 09:00:00
+title: "LeetCode (10): Patterns: Stack and Queue"
+date: 2022-09-13 09:00:00
 tags:
   - LeetCode
   - Algorithms
   - Data Structures
 categories: LeetCode
 series: leetcode
-series_order: 9
+series_order: 10
 series_total: 10
 lang: en
 mathjax: false
 description: "Master stack and queue applications: valid parentheses, monotonic stack for next greater element, BFS with queues, priority queues for top-K problems, and deque for sliding window maximum."
 disableNunjucks: true
-translationKey: "leetcode-9"
+translationKey: "leetcode-10"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/10-stack-queue/illustration_1.png)
 

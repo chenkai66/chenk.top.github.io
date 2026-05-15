@@ -582,23 +582,6 @@ PINNs do not aim to replace FEM. Their real role is to make **prior physics a fi
 ---
 
 
-## When NOT to use PINNs
-
-PINNs are not a universal solver. Here are concrete scenarios where they fail or where alternatives are strictly better:
-
-**1. Stiff dynamical systems.** Consider the Van der Pol oscillator at $\mu = 1000$ or chemical kinetics with timescales spanning $10^6$. The loss landscape becomes extremely ill-conditioned because the network must simultaneously resolve fast transients and slow dynamics. Classical stiff ODE solvers (BDF, implicit Runge-Kutta) handle this trivially with adaptive timestepping.
-
-**2. Sharp discontinuities and shocks.** The Euler equations of gas dynamics develop contact discontinuities and shocks. Neural networks are smooth function approximators -- they cannot represent a true discontinuity without Gibbs-like oscillations. Godunov-type finite volume methods with Riemann solvers are purpose-built for this. PINNs require shock-capturing tricks (entropy viscosity, domain decomposition at the shock) that negate their simplicity.
-
-**3. High accuracy requirements ($< 10^{-6}$ relative error).** If your application demands machine-precision solutions (e.g., orbital mechanics, reference benchmarks), PINNs cannot compete with spectral methods or high-order FEM. The optimization landscape has many local minima, and SGD-based training introduces irreducible noise floors.
-
-**4. Large-scale 3D problems with existing meshes.** If you already have a mature FEM pipeline with validated meshes, switching to PINNs gains nothing. The mesh-free advantage only matters when meshing is the bottleneck (e.g., patient-specific biomedical geometries, topology optimization loops).
-
-**5. Real-time control without pre-training.** PINNs require minutes-to-hours of training per new PDE instance. For real-time model predictive control, you need either pre-trained neural operators (which amortize cost) or reduced-order models.
-
-**Decision heuristic:** Ask yourself: (a) Is meshing hard? (b) Do I need to solve an inverse problem? (c) Is the dimensionality $> 3$? If none of these are true, a classical solver is almost certainly faster, more accurate, and easier to validate.
-
-
 ## Handing off to the next chapters
 
 Reading PINN as "constraint embedded in the loss function" makes the rest of the series fall into place:

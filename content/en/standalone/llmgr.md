@@ -265,22 +265,6 @@ There may be one-stage schedules that work (joint training with weighted losses,
 - Interaction data is so dense that cold-start is not your bottleneck
 - Cost envelope cannot fit even a LoRA-tuned 7B model
 
-## Cost arithmetic: why precomputed embeddings dominate
-
-The headline claim "do not run the LLM per request" deserves real numbers, because this is the line that decides whether LLMGR is a research artifact or a deployable system.
-
-Take a catalogue of 1 M items, an LLM that produces 1024-dim embeddings at 50 ms / item on a single A100, and a GNN that runs at 5 ms / batch of 256 sessions on the same GPU.
-
-**On-the-fly LLM per request.** Each session has 5-20 items. At 20 items, a request needs 20 × 50 ms = 1 second of LLM compute alone, before the GNN even sees the data. Throughput on one A100 collapses to about 50 RPS, with $p_{99}$ latency in the 1.2-1.5 s range. Putting a second A100 inline doubles cost and roughly doubles throughput. This is the configuration most "LLM-augmented recommender" demos accidentally ship.
-
-**Precomputed item embeddings + GNN at request time.** All 1 M item embeddings are computed once, in 1{,}000{,}000 × 50 ms ≈ 14 hours wall-clock on a single A100, costing about \$30 of GPU rental. The result is a 4 GB tensor that lives in GPU memory or on a fast object store. At request time, the GNN looks up 20 vectors (a no-op), runs message passing, and produces a recommendation in 5-10 ms. Throughput on the same A100 is now 5{,}000-10{,}000 RPS, two orders of magnitude better.
-
-**Refresh cost.** New items added daily need only their text re-embedded — typically 1{,}000-10{,}000 items per day for a real catalogue, or 1-10 minutes of GPU time. A nightly cron can absorb this without disrupting serving. Item-text edits trigger re-embedding only for the affected rows; bulk catalogue changes can be batched into a weekend job.
-
-**The break-even point.** Precomputation only loses to per-request inference when more than ~50 % of session items are new and have not been embedded yet. That is essentially never true at steady state. The only realistic scenarios where on-the-fly LLM makes sense are flash-sale launches with thousands of fresh SKUs at once, and even then a 5-minute precomputation lag is usually acceptable.
-
-This cost gap — two orders of magnitude — is the practical reason LLMGR's architecture survives. A design that requires running a 7B-parameter LLM per request is a design that cannot leave a GPU farm. A design that uses the LLM as an *offline feature extractor* and a small GNN as the online ranker can run on a single mid-sized GPU per region, which is the only way recommendation systems in production actually look.
-
 ## Where LLMGR breaks: scenarios to avoid
 
 The architecture is not a universal recommender. Three regimes where it underperforms simpler baselines:
