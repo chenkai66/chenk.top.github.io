@@ -1184,7 +1184,7 @@ output "developer_group_name" {
 
 ## 模块：监控
 
-监控模块主要搞定 SLS （Simple Log Service）的 Project 和 Logstore，实现日志集中管理，再加上 CloudMonitor 的告警规则。这一步算是把 Part 7 里聊的可观测性层给彻底代码化了。
+监控模块主要搞定 SLS （Simple Log Service）的 Project 和 Logstore，实现日志集中管理，再加上 CloudMonitor 的告警规则。这一步算是把 [Part 7](/zh/aliyun-fullstack/07-observability/) 里聊的可观测性层给彻底代码化了。
 
 ### modules/monitoring/main.tf
 
