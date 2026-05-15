@@ -112,7 +112,9 @@ $$
 $$
 where $C_e$ is the mean alignment error
 $$
-C_e = \frac{1}{|B|}\sum_{i \in B} \big[(1 - \delta) - h^{p}_{i}\!\cdot h^{r}_{i}\big]_+,$$$|B|$ is the number of bridged pairs, and $\lambda$ trades off the two terms. The problem is that as training progresses the magnitude of both terms drifts, so any fixed $\lambda$ ends up either drowning the ranking loss or letting the constraint go slack. paper2repo replaces the additive Lagrangian with a multiplicative one:
+C_e = \frac{1}{|B|}\sum_{i \in B} \big[(1 - \delta) - h^{p}_{i}\!\cdot h^{r}_{i}\big]_+,
+$$
+$|B|$ is the number of bridged pairs, and $\lambda$ trades off the two terms. The problem is that as training progresses the magnitude of both terms drifts, so any fixed $\lambda$ ends up either drowning the ranking loss or letting the constraint go slack. paper2repo replaces the additive Lagrangian with a multiplicative one:
 $$
 \mathcal{L} = \left(\sum_{(p,r^+,r^-)} \ell(p, r^+, r^-)\right) \cdot (1 + C_e).
 $$

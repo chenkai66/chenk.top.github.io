@@ -112,7 +112,9 @@ $$
 $$
 其中 $C_e$ 是平均对齐误差
 $$
-C_e = \frac{1}{|B|}\sum_{i \in B} \big[(1 - \delta) - h^{p}_{i}\!\cdot h^{r}_{i}\big]_+,$$$|B|$ 是桥接对数量， $\lambda$ 控制两项的权衡。问题是训练过程中两项的量级会不停漂移，固定一个 $\lambda$ 要么把排序损失压死，要么让约束放空。 paper2repo 把加性的拉格朗日换成乘性的：
+C_e = \frac{1}{|B|}\sum_{i \in B} \big[(1 - \delta) - h^{p}_{i}\!\cdot h^{r}_{i}\big]_+,
+$$
+$|B|$ 是桥接对数量， $\lambda$ 控制两项的权衡。问题是训练过程中两项的量级会不停漂移，固定一个 $\lambda$ 要么把排序损失压死，要么让约束放空。 paper2repo 把加性的拉格朗日换成乘性的：
 $$
 \mathcal{L} = \left(\sum_{(p,r^+,r^-)} \ell(p, r^+, r^-)\right) \cdot (1 + C_e).
 $$
