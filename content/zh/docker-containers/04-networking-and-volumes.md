@@ -377,7 +377,7 @@ docker run -v /home/user/config:/app/config:ro myapp
 | 初始化填充 | 是（首次使用时，容器内容会复制进卷） | 否（宿主机内容直接覆盖容器内容） |
 | 权限管理 | Docker 自动处理所有权 | 需手动管理 |
 | macOS 性能 | 更优（使用 gRPC FUSE/VirtioFS） | 大型目录树下可能较慢 |
-| 备份方式 | `docker run --rm -v mydata:/data -v $(pwd):/backup alpine tar czf /backup/data.tar.gz /data` \|标准宿主机备份工具 \|
+| 备份方式 | `docker run --rm -v mydata:/data -v $(pwd):/backup alpine tar czf /backup/data.tar.gz /data` | 标准宿主机备份工具 |
 | 典型用途 | 生产环境数据持久化 | 开发（实时重载） |
 
 ### tmpfs 挂载
