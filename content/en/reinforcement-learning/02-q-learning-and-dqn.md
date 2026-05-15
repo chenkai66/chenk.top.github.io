@@ -464,4 +464,4 @@ The post-DQN variants each add a clean fix to a clean failure: Double DQN remove
 - Bellemare, M., Dabney, W., & Munos, R. (2017). A Distributional Perspective on Reinforcement Learning. *ICML*.
 - Fortunato, M., et al. (2018). Noisy Networks for Exploration. *ICLR*.
 - Hessel, M., et al. (2018). Rainbow: Combining Improvements in Deep Reinforcement Learning. *AAAI*.
-- Sutton, R. S., & Barto, A. G. (2018). *Reinforcement Learning: An Introduction* (2nd ed.). MIT Press. — [Chapter 11](/en/reinforcement-learning/11-hierarchical-and-meta-rl/) for the Deadly Triad.
+- Sutton, R. S., & Barto, A. G. (2018). *Reinforcement Learning: An Introduction* (2nd ed.). MIT Press. — Chapter 11 for the Deadly Triad.

@@ -248,7 +248,7 @@ The cost is the second expectation. Computing $\mathbb{E}_{\pi_\theta}$ requires
 
 ### Reward ambiguity
 
-Even with the max-entropy regulariser, $\hat r$ is recovered up to **shaping invariances**: adding a potential function $\Phi(s') - \Phi(s)$ leaves the optimal policy unchanged but changes $r$. The recovered reward is therefore a useful _ranking_ over states, not an absolute scale. Adversarial inverse RL (§5.2) explicitly disentangles the shaping component.
+Even with the max-entropy regulariser, $\hat r$ is recovered up to **shaping invariances**: adding a potential function $\Phi(s') - \Phi(s)$ leaves the optimal policy unchanged but changes $r$. The recovered reward is therefore a useful _ranking_ over states, not an absolute scale. Adversarial inverse RL (AIRL, below) explicitly disentangles the shaping component.
 
 ---
 
@@ -277,6 +277,7 @@ class GAIL:
 
     def __init__(self, state_dim, action_dim, hidden_dim=256, continuous=False):
         self.continuous = continuous
+        self.action_dim = action_dim
         in_dim = state_dim + action_dim
         self.discriminator = nn.Sequential(
             nn.Linear(in_dim, hidden_dim), nn.Tanh(),
