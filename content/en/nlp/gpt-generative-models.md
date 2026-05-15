@@ -89,7 +89,7 @@ At inference time the model produces one token at a time. Three things happen at
 2. **Convert logits to a probability distribution** over the vocabulary (with optional temperature).
 3. **Choose** the next token (deterministically or by sampling), append it, and repeat until you hit `<eos>` or a length limit.
 
-The bottom panel above shows the next-token distribution after the prompt `"The cat sat on the"`: `mat` wins with ~42% probability, but plenty of probability mass is sprinkled across plausible alternatives (`floor`, `couch`, `sofa`, ...). Whether your model writes the same thing every time, or surprises you, depends entirely on **how you sample from this distribution** — which we get to in [Section 4](#the-gpt-family-5-years-$\sim$10000$\times$-growth).
+The bottom panel above shows the next-token distribution after the prompt `"The cat sat on the"`: `mat` wins with ~42% probability, but plenty of probability mass is sprinkled across plausible alternatives (`floor`, `couch`, `sofa`, ...). Whether your model writes the same thing every time, or surprises you, depends entirely on **how you sample from this distribution** — which we get to in [Section 4](#the-gpt-family-5-years-sim10000times-growth).
 
 > **A practical note on speed**. Naïvely, generating $T$ tokens means running $T$ forward passes whose cost grows quadratically with sequence length — prohibitive. In practice every implementation uses a **KV cache**: keys and values from past tokens are stored once and reused, so each new token only triggers attention against cached vectors. This turns generation from $O(T^3)$ into $O(T^2)$ aggregate FLOPs and is the reason real systems are usable at all.
 

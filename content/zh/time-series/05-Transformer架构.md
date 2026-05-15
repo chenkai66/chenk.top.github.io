@@ -167,7 +167,7 @@ $$
 
 1. **稀疏注意力**（Longformer、BigBird、Informer 的 ProbSparse）：仅计算 $(q, k)$ 对的稀疏子集，复杂度降至 $O(n \cdot w)$，其中 $w$ 为窗口大小或选中 key 数。
 2. **线性注意力**（Performer、Linformer、Nystromformer）：用可分解核函数替代 softmax，使复杂度变为 $O(n \cdot d^2)$。
-3. **分块（Patching）**（PatchTST、Autoformer 式序列分解）：**直接缩短序列长度**，将连续时间步聚合成 patch。[第 7 节](#On²-瓶颈)将详述。
+3. **分块（Patching）**（PatchTST、Autoformer 式序列分解）：**直接缩短序列长度**，将连续时间步聚合成 patch。[第 7 节](#on-瓶颈)将详述。
 4. **仅解码器 + KV 缓存**（见[第 6 节](#多头注意力学到了什么)）：训练仍为 $O(n^2)$，但推理可增量进行。
 
 实践中，若 lookback 窗口小于 2k、预测步长仅数百，朴素注意力完全够用。超出此范围，**分块是最具性价比的改进**——通常既能显著降低计算开销，又能提升精度。

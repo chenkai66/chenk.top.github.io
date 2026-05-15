@@ -104,7 +104,7 @@ $$
 若 $\nabla^2 f(x_k) \not\succeq 0$，牛顿方向可能指向上升方向。常见修正策略包括：
 
 - **修正 Cholesky 分解（Modified Cholesky）**：对 $\nabla^2 f$ 加上最小的对角扰动矩阵 $E$，使得 $\nabla^2 f + E \succ 0$；所得方向仍是下降方向，且尽可能贴近原始牛顿方向；
-- **信赖域法（Trust region）**（见[第 4 节](#拟牛顿法：割线方程)）：显式限制步长大小，并在信赖域内优化方向；该方法天然适用于处理不定 Hessian；
+- **信赖域法（Trust region）**（见[第 4 节](#拟牛顿法割线方程)）：显式限制步长大小，并在信赖域内优化方向；该方法天然适用于处理不定 Hessian；
 - **三次正则化（Cubic regularization）**（Nesterov & Polyak, 2006）：改而最小化模型  
   $\nabla f^\top d + \tfrac{1}{2} d^\top \nabla^2 f \, d + \tfrac{M}{6} \|d\|^3$。该方法具备全局收敛性，且可收敛至二阶临界点（即梯度为零、Hessian 半正定的点）。
 

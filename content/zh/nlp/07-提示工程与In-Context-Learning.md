@@ -178,7 +178,7 @@ few_shot = """将句子的情感分类为 positive、negative 或 neutral：
 $$
 P(a \mid x) \;=\; \sum_z P(z \mid x)\, P(a \mid x, z).
 $$
-贪心 CoT 是选择一个 $z$ 并希望它是正确的。**Self-Consistency**（[第 5 节](#ICL-的工作原理猜想)）则是通过采样多个 $z$ 来近似求和。
+贪心 CoT 是选择一个 $z$ 并希望它是正确的。**Self-Consistency**（[第 5 节](#icl-的工作原理猜想)）则是通过采样多个 $z$ 来近似求和。
 
 CoT 在什么时候有用，什么时候反而拖后腿：
 

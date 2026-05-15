@@ -285,7 +285,7 @@ The cost of vanilla attention is $O(n^2 d_k)$ in time and $O(n^2)$ in memory —
 
 A Transformer encoder layer is just four ingredients in a fixed pattern.
 
-- **Multi-head self-attention** ([Section 4](#attention-is-a-soft-lookup-—-done-with-three-matmuls)).
+- **Multi-head self-attention** ([Section 4](#attention-is-a-soft-lookup--done-with-three-matmuls)).
 - **Position-wise FFN.** A two-layer MLP, applied independently at each token position, that expands and re-projects:
 $$\mathrm{FFN}(\mathbf{x}) = \mathbf{W}_2\,\mathrm{ReLU}(\mathbf{W}_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2$$
 - **Residual connections.** Every sublayer outputs $\mathbf{x} + \mathrm{sublayer}(\mathbf{x})$. The Jacobian becomes $\mathbf{I} + \mathbf{J}$, with eigenvalues clustered near 1 — gradients always have an unobstructed shortcut backwards.

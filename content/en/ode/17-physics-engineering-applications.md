@@ -233,7 +233,7 @@ Lesson: **a parameter going to zero rarely simplifies the numerics**. This is th
 
 ## Data-Driven Modelling: SINDy and Koopman
 
-[Section 6](#structural-vibration-—-buildings-bridges-tuned-mass-dampers) made the case that one ODE skeleton describes five phenomena. In real engineering, when a new system shows up the equation may not be derivable. You go from data to equation.
+[Section 6](#structural-vibration--buildings-bridges-tuned-mass-dampers) made the case that one ODE skeleton describes five phenomena. In real engineering, when a new system shows up the equation may not be derivable. You go from data to equation.
 
 **SINDy (Sparse Identification of Nonlinear Dynamics).** Brunton et al. (2016). Given a time series $\{x(t_i)\}$, numerically differentiate to get $\dot x$. Build a feature library $\Theta(x) = [1, x, x^2, \sin x, \dots]$ and solve
 $$ \dot x = \Theta(x)\,\xi,\quad \min \|\dot x - \Theta(x)\xi\|_2^2 + \lambda \|\xi\|_1. $$
