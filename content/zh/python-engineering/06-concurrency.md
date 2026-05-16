@@ -65,6 +65,24 @@ print(counter)
 | CPU 密集型（数学计算、解析） | 无加速效果（GIL 阻塞并行执行） | 表现良好（独立进程，各自拥有 GIL） |
 | 混合型 | 取决于 I/O 与 CPU 比例 | 通常更稳妥的选择 |
 
+
+### 未来：Free-Threaded Python（3.13+）
+
+PEP 703 引入了实验性的无 GIL CPython 构建。从 Python 3.13 开始，你可以安装"free-threaded"构建（`python3.13t`），实现线程级真正并行执行：
+
+```bash
+# 安装 free-threaded 构建（实验性）
+$ pyenv install 3.13.0t
+
+# 检查 GIL 是否已禁用
+$ python3.13t -c "import sys; print(sys._is_gil_enabled())"
+False
+```
+
+GIL 禁用后，前面的线程示例在 CPU 密集型任务上确实能获得真正的并行加速。然而截至 2025 年，生态系统仍在适配——许多 C 扩展假设 GIL 存在，可能会崩溃或产生错误结果。目前仅适合实验，不建议用于生产环境。计划在 Python 3.15 或 3.16 中将 free-threading 设为默认。
+
+当前实践建议不变：I/O 用线程，CPU 用进程，高并发 I/O 用 asyncio。
+
 ## Threading：面向 I/O 密集型任务的并发
 
 线程共享同一内存空间，开销轻量。由于 GIL 在 I/O 操作期间会释放，因此线程非常适合网络请求、文件操作和数据库查询等场景。
@@ -533,6 +551,345 @@ async def main():
 
 
 asyncio.run(main())
+```
+
+## 现代 asyncio 模式（Python 3.11+）
+
+Python 3.9–3.11 引入了三个从根本上改善异步代码的特性。如果你使用 3.11+，优先选择这些新模式。
+
+### asyncio.to_thread()：无样板代码运行阻塞操作
+
+Python 3.9 之前，在异步上下文中运行阻塞代码需要 `loop.run_in_executor()`。现在有了更简洁的方式：
+
+```python
+import asyncio
+import time
+
+
+def blocking_io() -> str:
+    """模拟阻塞 I/O 操作（遗留库、文件 I/O 等）。"""
+    time.sleep(2)
+    return "阻塞调用的结果"
+
+
+async def main():
+    # 旧方式（冗长）：
+    # loop = asyncio.get_event_loop()
+    # result = await loop.run_in_executor(None, blocking_io)
+
+    # 新方式（Python 3.9+）：
+    result = await asyncio.to_thread(blocking_io)
+    print(result)
+
+    # 并发运行多个阻塞调用：
+    results = await asyncio.gather(
+        asyncio.to_thread(blocking_io),
+        asyncio.to_thread(blocking_io),
+        asyncio.to_thread(blocking_io),
+    )
+    # 总共约 2 秒，而非 6 秒
+
+
+asyncio.run(main())
+```
+
+当你需要从异步代码中调用同步库（数据库驱动、文件解析器、遗留 SDK）而不阻塞事件循环时，使用 `asyncio.to_thread()`。
+
+### asyncio.TaskGroup：结构化并发
+
+`asyncio.gather()` 有一个问题：如果某个任务抛出异常，其他任务会继续运行（或被不一致地取消）。`TaskGroup`（Python 3.11+）通过**结构化并发**解决了这个问题——组内所有任务保证在代码块退出前完成：
+
+```python
+import asyncio
+
+
+async def fetch(url: str) -> str:
+    await asyncio.sleep(1)
+    if "bad" in url:
+        raise ValueError(f"无效 URL: {url}")
+    return f"内容: {url}"
+
+
+async def main():
+    try:
+        async with asyncio.TaskGroup() as tg:
+            task1 = tg.create_task(fetch("https://example.com/a"))
+            task2 = tg.create_task(fetch("https://example.com/b"))
+            task3 = tg.create_task(fetch("https://example.com/bad"))
+    except* ValueError as eg:
+        # ExceptionGroup：统一处理所有 ValueError
+        for exc in eg.exceptions:
+            print(f"捕获: {exc}")
+    else:
+        print(task1.result(), task2.result(), task3.result())
+
+
+asyncio.run(main())
+```
+
+与 `gather()` 的关键区别：
+
+| 特性 | `asyncio.gather()` | `asyncio.TaskGroup` |
+|------|--------------------|--------------------|
+| 失败时取消 | 仅在 `return_exceptions=False` 时 | 始终取消剩余任务 |
+| 异常处理 | 第一个异常传播，其余丢失 | `ExceptionGroup` 收集全部 |
+| 清理保证 | 无——任务可能泄漏 | 有——块退出时所有任务已完成 |
+| 动态创建任务 | 否（固定列表） | 是（块内 `tg.create_task()`） |
+| Python 版本 | 3.4+ | 3.11+ |
+
+**Python 3.11+ 的新代码优先使用 `TaskGroup` 而非 `gather()`。** 它能防止困扰 `gather()` 代码的"发射后不管"类 bug。
+
+### gather() 中的异常处理
+
+如果需要支持 Python < 3.11，显式处理 `gather()` 中的失败：
+
+```python
+import asyncio
+
+
+async def risky_download(url: str) -> str:
+    await asyncio.sleep(1)
+    if "fail" in url:
+        raise ConnectionError(f"无法连接 {url}")
+    return f"OK: {url}"
+
+
+async def main():
+    urls = ["https://a.com", "https://fail.com", "https://b.com"]
+
+    # 方案 1：return_exceptions=True（收集全部，手动检查）
+    results = await asyncio.gather(
+        *[risky_download(url) for url in urls],
+        return_exceptions=True,
+    )
+    for url, result in zip(urls, results):
+        if isinstance(result, Exception):
+            print(f"失败 {url}: {result}")
+        else:
+            print(f"成功 {url}: {result}")
+
+
+asyncio.run(main())
+```
+
+输出：
+
+```text
+成功 https://a.com: OK: https://a.com
+失败 https://fail.com: 无法连接 https://fail.com
+成功 https://b.com: OK: https://b.com
+```
+
+### 生产环境模式
+
+#### 指数退避重试
+
+网络请求不可避免会失败。成熟的重试机制使用指数退避来避免压垮下游服务：
+
+```python
+import asyncio
+import random
+from typing import TypeVar, Callable, Awaitable
+
+T = TypeVar("T")
+
+async def retry_with_backoff(
+    func: Callable[[], Awaitable[T]],
+    max_retries: int = 3,
+    base_delay: float = 1.0,
+    max_delay: float = 60.0,
+) -> T:
+    """带指数退避和抖动的重试。"""
+    for attempt in range(max_retries + 1):
+        try:
+            return await func()
+        except Exception as e:
+            if attempt == max_retries:
+                raise
+            delay = min(base_delay * (2 ** attempt), max_delay)
+            jitter = random.uniform(0, delay * 0.1)
+            await asyncio.sleep(delay + jitter)
+
+# 使用示例
+async def fetch_data():
+    result = await retry_with_backoff(
+        lambda: api_client.get("/unstable-endpoint"),
+        max_retries=5,
+        base_delay=0.5,
+    )
+```
+
+关键设计要点：
+- **指数增长**：每次失败后等待时间翻倍，避免短时间内大量重试
+- **随机抖动**：防止"惊群效应"——多个客户端在同一时刻同时重试
+- **最大延迟上限**：防止退避时间无限增长
+
+#### 令牌桶限速器
+
+当调用有 QPS 限制的外部 API 时，令牌桶算法是最灵活的限速方案：
+
+```python
+import asyncio
+import time
+
+class TokenBucket:
+    """异步令牌桶限速器。"""
+
+    def __init__(self, rate: float, capacity: int):
+        self.rate = rate          # 每秒补充令牌数
+        self.capacity = capacity  # 桶容量
+        self.tokens = capacity
+        self.last_refill = time.monotonic()
+        self._lock = asyncio.Lock()
+
+    async def acquire(self, tokens: int = 1):
+        async with self._lock:
+            self._refill()
+            while self.tokens < tokens:
+                wait = (tokens - self.tokens) / self.rate
+                await asyncio.sleep(wait)
+                self._refill()
+            self.tokens -= tokens
+
+    def _refill(self):
+        now = time.monotonic()
+        elapsed = now - self.last_refill
+        self.tokens = min(self.capacity, self.tokens + elapsed * self.rate)
+        self.last_refill = now
+
+# 使用：限制为每秒 10 次请求
+limiter = TokenBucket(rate=10, capacity=10)
+
+async def rate_limited_request(url: str):
+    await limiter.acquire()
+    return await http_client.get(url)
+```
+
+#### 优雅关闭
+
+生产服务需要在接收到终止信号时干净地关闭——完成进行中的请求，释放资源：
+
+```python
+import asyncio
+import signal
+
+class GracefulShutdown:
+    def __init__(self):
+        self._shutdown_event = asyncio.Event()
+
+    def install_handlers(self):
+        loop = asyncio.get_running_loop()
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            loop.add_signal_handler(sig, self._shutdown_event.set)
+
+    async def wait(self):
+        await self._shutdown_event.wait()
+
+async def main():
+    shutdown = GracefulShutdown()
+    shutdown.install_handlers()
+
+    workers = [asyncio.create_task(worker(i)) for i in range(4)]
+
+    # 等待关闭信号
+    await shutdown.wait()
+    print("收到关闭信号，等待任务完成...")
+
+    # 给 worker 时间完成当前工作
+    for w in workers:
+        w.cancel()
+    await asyncio.gather(*workers, return_exceptions=True)
+    print("干净关闭完成")
+```
+
+#### 异步生产者-消费者
+
+`asyncio.Queue` 天然适合解耦数据生产和消费，实现背压控制：
+
+```python
+import asyncio
+from dataclasses import dataclass
+
+@dataclass
+class WorkItem:
+    url: str
+    priority: int = 0
+
+async def producer(queue: asyncio.Queue, urls: list[str]):
+    for url in urls:
+        await queue.put(WorkItem(url=url))
+    # 发送毒丸通知消费者退出
+    await queue.put(None)
+
+async def consumer(queue: asyncio.Queue, consumer_id: int):
+    while True:
+        item = await queue.get()
+        if item is None:
+            await queue.put(None)  # 传递给下一个消费者
+            break
+        try:
+            result = await process(item.url)
+            print(f"消费者 {consumer_id}: 处理完成 {item.url}")
+        except Exception as e:
+            print(f"消费者 {consumer_id}: 处理失败 {item.url}: {e}")
+        finally:
+            queue.task_done()
+
+async def pipeline(urls: list[str], num_consumers: int = 5):
+    queue: asyncio.Queue = asyncio.Queue(maxsize=100)  # 背压：最多缓冲100项
+
+    async with asyncio.TaskGroup() as tg:
+        tg.create_task(producer(queue, urls))
+        for i in range(num_consumers):
+            tg.create_task(consumer(queue, i))
+```
+
+`maxsize=100` 提供**背压**：当队列满时，生产者会自动暂停，防止内存无限增长。
+
+### 测试异步代码
+
+#### 使用 pytest-asyncio
+
+```python
+import pytest
+import asyncio
+
+@pytest.mark.asyncio
+async def test_fetch_user():
+    user = await fetch_user(user_id=42)
+    assert user.name == "Alice"
+
+@pytest.mark.asyncio
+async def test_concurrent_fetches():
+    users = await asyncio.gather(
+        fetch_user(1),
+        fetch_user(2),
+        fetch_user(3),
+    )
+    assert len(users) == 3
+```
+
+#### Mock 异步函数
+
+```python
+from unittest.mock import AsyncMock, patch
+
+@pytest.mark.asyncio
+async def test_with_mock_api():
+    mock_client = AsyncMock()
+    mock_client.get.return_value = {"status": "ok", "data": [1, 2, 3]}
+
+    result = await fetch_data(client=mock_client)
+    assert result == [1, 2, 3]
+    mock_client.get.assert_called_once_with("/api/data")
+
+@pytest.mark.asyncio
+async def test_timeout_handling():
+    mock_client = AsyncMock()
+    mock_client.get.side_effect = asyncio.TimeoutError()
+
+    with pytest.raises(ServiceUnavailableError):
+        await fetch_data(client=mock_client)
 ```
 
 ## 如何选择正确的并发模型？

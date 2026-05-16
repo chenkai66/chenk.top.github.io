@@ -67,6 +67,24 @@ Wait, the GIL does not prevent this? Correct. `counter += 1` compiles to multipl
 | CPU-bound (math, parsing) | No speedup (GIL blocks parallel execution) | Works well (separate processes, separate GILs) |
 | Mixed | Depends on ratio | Usually the safe choice |
 
+
+### The Future: Free-Threaded Python (3.13+)
+
+PEP 703 introduced an experimental build of CPython without the GIL. Starting with Python 3.13, you can install a "free-threaded" build (`python3.13t`) that allows true parallel thread execution:
+
+```bash
+# Install free-threaded build (experimental)
+$ pyenv install 3.13.0t
+
+# Check if GIL is disabled
+$ python3.13t -c "import sys; print(sys._is_gil_enabled())"
+False
+```
+
+With the GIL disabled, the threading example from above actually achieves true parallel speedup on CPU-bound work. However, as of 2025 the ecosystem is still adapting — many C extensions assume the GIL exists and may crash or produce incorrect results. Use it for experiments, not production. The plan is to make free-threading the default in Python 3.15 or 3.16.
+
+For now, the practical advice remains unchanged: use threads for I/O, processes for CPU, asyncio for high-concurrency I/O.
+
 ## Threading: I/O-Bound Concurrency
 
 Threads share the same memory space and are lightweight. The GIL releases during I/O operations, making them effective for network calls, file operations, and database queries.
@@ -542,6 +560,399 @@ async def main():
 asyncio.run(main())
 ```
 
+## Modern asyncio Patterns (Python 3.11+)
+
+Python 3.9–3.11 introduced three features that fundamentally improve async code. If you are on 3.11+, prefer these over the older patterns.
+
+### asyncio.to_thread(): Run Blocking Code Without Boilerplate
+
+Before 3.9, running blocking code in an async context required `loop.run_in_executor()`. Now there is a simpler way:
+
+```python
+import asyncio
+import time
+
+
+def blocking_io() -> str:
+    """Simulate a blocking I/O operation (legacy library, file I/O, etc.)."""
+    time.sleep(2)
+    return "result from blocking call"
+
+
+async def main():
+    # Old way (verbose):
+    # loop = asyncio.get_event_loop()
+    # result = await loop.run_in_executor(None, blocking_io)
+
+    # New way (Python 3.9+):
+    result = await asyncio.to_thread(blocking_io)
+    print(result)
+
+    # Run multiple blocking calls concurrently:
+    results = await asyncio.gather(
+        asyncio.to_thread(blocking_io),
+        asyncio.to_thread(blocking_io),
+        asyncio.to_thread(blocking_io),
+    )
+    # Takes ~2s total, not 6s
+
+
+asyncio.run(main())
+```
+
+Use `asyncio.to_thread()` when you need to call a synchronous library (database driver, file parser, legacy SDK) from async code without blocking the event loop.
+
+### asyncio.TaskGroup: Structured Concurrency
+
+`asyncio.gather()` has a problem: if one task raises an exception, other tasks keep running (or get cancelled inconsistently). `TaskGroup` (Python 3.11+) fixes this with **structured concurrency** — all tasks in a group are guaranteed to finish before the block exits:
+
+```python
+import asyncio
+
+
+async def fetch(url: str) -> str:
+    await asyncio.sleep(1)
+    if "bad" in url:
+        raise ValueError(f"Bad URL: {url}")
+    return f"Content of {url}"
+
+
+async def main():
+    try:
+        async with asyncio.TaskGroup() as tg:
+            task1 = tg.create_task(fetch("https://example.com/a"))
+            task2 = tg.create_task(fetch("https://example.com/b"))
+            task3 = tg.create_task(fetch("https://example.com/bad"))
+    except* ValueError as eg:
+        # ExceptionGroup: one handler for all ValueErrors
+        for exc in eg.exceptions:
+            print(f"Caught: {exc}")
+    else:
+        # All tasks succeeded
+        print(task1.result(), task2.result(), task3.result())
+
+
+asyncio.run(main())
+```
+
+Key differences from `gather()`:
+
+| Feature | `asyncio.gather()` | `asyncio.TaskGroup` |
+|---------|--------------------|--------------------|
+| Cancel on failure | Only with `return_exceptions=False` | Always cancels remaining tasks |
+| Exception handling | First exception propagates, rest lost | `ExceptionGroup` collects all |
+| Cleanup guarantee | No — tasks may leak | Yes — all tasks done when block exits |
+| Dynamic task creation | No (fixed list) | Yes (`tg.create_task()` inside the block) |
+| Python version | 3.4+ | 3.11+ |
+
+**Prefer `TaskGroup` over `gather()` for new code on Python 3.11+.** It prevents the "fire-and-forget" bugs that plague `gather()`-based code.
+
+### Exception Handling in gather()
+
+If you must support Python < 3.11, handle failures in `gather()` explicitly:
+
+```python
+import asyncio
+
+
+async def risky_download(url: str) -> str:
+    await asyncio.sleep(1)
+    if "fail" in url:
+        raise ConnectionError(f"Cannot reach {url}")
+    return f"OK: {url}"
+
+
+async def main():
+    urls = ["https://a.com", "https://fail.com", "https://b.com"]
+
+    # Option 1: return_exceptions=True (collect all, check manually)
+    results = await asyncio.gather(
+        *[risky_download(url) for url in urls],
+        return_exceptions=True,
+    )
+    for url, result in zip(urls, results):
+        if isinstance(result, Exception):
+            print(f"FAILED {url}: {result}")
+        else:
+            print(f"OK {url}: {result}")
+
+    # Option 2: return_exceptions=False (default) — first exception cancels all
+    # This is usually NOT what you want for independent tasks
+
+
+asyncio.run(main())
+```
+
+Output:
+
+```text
+OK https://a.com: OK: https://a.com
+FAILED https://fail.com: Cannot reach https://fail.com
+OK https://b.com: OK: https://b.com
+```
+
+
+## Production Patterns
+
+Real-world async code needs retry logic, rate limiting, and graceful shutdown. These patterns come up in every production service.
+
+### Retry with Exponential Backoff
+
+```python
+import asyncio
+import random
+
+import aiohttp
+
+
+async def fetch_with_retry(
+    session: aiohttp.ClientSession,
+    url: str,
+    max_retries: int = 3,
+    base_delay: float = 1.0,
+) -> str:
+    """Fetch URL with exponential backoff on failure."""
+    for attempt in range(max_retries + 1):
+        try:
+            async with session.get(url) as response:
+                response.raise_for_status()
+                return await response.text()
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            if attempt == max_retries:
+                raise
+            delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+            print(f"Retry {attempt + 1}/{max_retries} for {url} in {delay:.1f}s: {e}")
+            await asyncio.sleep(delay)
+    raise RuntimeError("unreachable")
+
+
+async def main():
+    timeout = aiohttp.ClientTimeout(total=10)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        content = await fetch_with_retry(session, "https://httpbin.org/status/200")
+        print(f"Got {len(content)} bytes")
+
+
+asyncio.run(main())
+```
+
+The jitter (`random.uniform(0, 1)`) prevents thundering herd problems when many clients retry simultaneously.
+
+### Rate Limiting with Token Bucket
+
+A semaphore limits concurrency (how many requests run at once). A token bucket limits throughput (how many requests per second):
+
+```python
+import asyncio
+import time
+
+
+class TokenBucket:
+    """Rate limiter: allows N requests per second."""
+
+    def __init__(self, rate: float, burst: int = 1):
+        self.rate = rate
+        self.burst = burst
+        self.tokens = float(burst)
+        self.last_refill = time.monotonic()
+        self._lock = asyncio.Lock()
+
+    async def acquire(self) -> None:
+        async with self._lock:
+            now = time.monotonic()
+            elapsed = now - self.last_refill
+            self.tokens = min(self.burst, self.tokens + elapsed * self.rate)
+            self.last_refill = now
+
+            if self.tokens < 1:
+                wait = (1 - self.tokens) / self.rate
+                await asyncio.sleep(wait)
+                self.tokens = 0
+            else:
+                self.tokens -= 1
+
+
+async def api_call(bucket: TokenBucket, request_id: int) -> str:
+    await bucket.acquire()
+    print(f"[{time.strftime('%H:%M:%S')}] Request {request_id}")
+    return f"result-{request_id}"
+
+
+async def main():
+    bucket = TokenBucket(rate=5, burst=2)
+    tasks = [api_call(bucket, i) for i in range(15)]
+    results = await asyncio.gather(*tasks)
+    print(f"Completed {len(results)} requests")
+
+
+asyncio.run(main())
+```
+
+### Graceful Shutdown
+
+Production services need to finish in-flight work before exiting:
+
+```python
+import asyncio
+import signal
+
+
+class Worker:
+    def __init__(self):
+        self.running = True
+        self.tasks: set[asyncio.Task] = set()
+
+    async def process(self, item: str) -> None:
+        await asyncio.sleep(2)
+        print(f"Processed: {item}")
+
+    async def run(self) -> None:
+        items = iter(range(100))
+        while self.running:
+            try:
+                item = next(items)
+            except StopIteration:
+                break
+            task = asyncio.create_task(self.process(f"item-{item}"))
+            self.tasks.add(task)
+            task.add_done_callback(self.tasks.discard)
+            await asyncio.sleep(0.5)
+
+    async def shutdown(self) -> None:
+        self.running = False
+        if self.tasks:
+            print(f"Waiting for {len(self.tasks)} in-flight tasks...")
+            await asyncio.gather(*self.tasks, return_exceptions=True)
+        print("Shutdown complete.")
+
+
+async def main():
+    worker = Worker()
+    loop = asyncio.get_event_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(
+            sig, lambda: asyncio.create_task(worker.shutdown())
+        )
+    await worker.run()
+    await worker.shutdown()
+
+
+asyncio.run(main())
+```
+
+### Async Producer-Consumer with asyncio.Queue
+
+```python
+import asyncio
+import random
+
+
+async def producer(queue: asyncio.Queue[str], producer_id: int) -> None:
+    for i in range(5):
+        item = f"P{producer_id}-item-{i}"
+        await queue.put(item)
+        await asyncio.sleep(random.uniform(0.1, 0.5))
+
+
+async def consumer(queue: asyncio.Queue[str], consumer_id: int) -> int:
+    count = 0
+    while True:
+        item = await asyncio.wait_for(queue.get(), timeout=2.0)
+        await asyncio.sleep(random.uniform(0.2, 0.8))
+        print(f"Consumer {consumer_id} processed: {item}")
+        count += 1
+        queue.task_done()
+    return count
+
+
+async def main():
+    queue: asyncio.Queue[str] = asyncio.Queue(maxsize=10)
+
+    producers = [asyncio.create_task(producer(queue, i)) for i in range(2)]
+    consumers = [asyncio.create_task(consumer(queue, i)) for i in range(3)]
+
+    await asyncio.gather(*producers)
+    await queue.join()
+
+    for c in consumers:
+        c.cancel()
+
+    print("All items processed.")
+
+
+asyncio.run(main())
+```
+
+## Testing Async Code
+
+### pytest-asyncio
+
+```bash
+(.venv) $ pip install pytest-asyncio
+```
+
+```python
+import asyncio
+import pytest
+
+
+async def fetch_data(url: str) -> dict:
+    await asyncio.sleep(0.1)
+    return {"url": url, "status": 200}
+
+
+@pytest.mark.asyncio
+async def test_fetch_data():
+    result = await fetch_data("https://example.com")
+    assert result["status"] == 200
+
+
+@pytest.mark.asyncio
+async def test_concurrent_fetch():
+    urls = [f"https://example.com/{i}" for i in range(5)]
+    results = await asyncio.gather(*[fetch_data(url) for url in urls])
+    assert len(results) == 5
+    assert all(r["status"] == 200 for r in results)
+
+
+@pytest.mark.asyncio
+async def test_timeout():
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(asyncio.sleep(10), timeout=0.1)
+```
+
+### Mocking Async Functions
+
+```python
+from unittest.mock import AsyncMock, patch
+import pytest
+
+
+async def send_notification(user_id: int, message: str) -> bool:
+    ...
+
+
+async def process_order(order_id: int) -> str:
+    await send_notification(user_id=42, message=f"Order {order_id} confirmed")
+    return "completed"
+
+
+@pytest.mark.asyncio
+async def test_process_order():
+    with patch(
+        "myapp.orders.send_notification", new_callable=AsyncMock
+    ) as mock_notify:
+        mock_notify.return_value = True
+        result = await process_order(123)
+        assert result == "completed"
+        mock_notify.assert_called_once_with(
+            user_id=42, message="Order 123 confirmed"
+        )
+```
+
+`AsyncMock` (Python 3.8+) creates a mock that is awaitable, so `await mock_notify(...)` works correctly in tests.
+
+
 ## When to Use Which
 
 The decision depends on your workload type:
@@ -551,6 +962,7 @@ The decision depends on your workload type:
 - Large number of concurrent tasks (50+): `asyncio`
 - Simple scripts, one-off tasks: `ThreadPoolExecutor`
 - Web servers, long-running services: `asyncio`
+- Calling a sync library from async code: `asyncio.to_thread()`
 
 **CPU-bound work (math, image processing, parsing):**
 - Always: `ProcessPoolExecutor` or `multiprocessing.Pool`
