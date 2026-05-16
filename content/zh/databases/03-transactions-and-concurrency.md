@@ -533,6 +533,142 @@ def purchase_product(product_id: int, quantity: int):
 | 死锁风险 | 是 | 否 |
 | 最佳适用场景 | 高争用数据（库存、余额） | 低争用数据（用户资料、配置项） |
 
+## 保存点：部分回滚
+
+保存点允许撤销事务的一部分而不中止整个事务。对于某一步可能失败但其他步骤应保留的复杂工作流至关重要。
+
+```sql
+BEGIN;
+
+INSERT INTO orders (user_id, total) VALUES (1, 99.99);
+
+SAVEPOINT before_items;
+
+INSERT INTO order_items (order_id, product_id, qty) VALUES (1001, 42, 1);
+INSERT INTO order_items (order_id, product_id, qty) VALUES (1001, 99, 1);
+-- 产品 99 缺货
+
+ROLLBACK TO SAVEPOINT before_items;
+-- 订单仍存在，商品行已撤销
+
+INSERT INTO order_items (order_id, product_id, qty) VALUES (1001, 42, 1);
+
+COMMIT;  -- 含 1 件商品的订单成功提交
+```
+
+### 应用代码中的保存点
+
+```python
+async def create_order_with_fallback(conn, user_id: int, items: list[dict]):
+    async with conn.transaction():
+        order_id = await conn.fetchval(
+            "INSERT INTO orders (user_id) VALUES ($1) RETURNING order_id", user_id
+        )
+        for item in items:
+            try:
+                async with conn.transaction():  # 自动创建保存点
+                    await conn.execute(
+                        "INSERT INTO order_items (order_id, product_id, qty) "
+                        "VALUES ($1, $2, $3)",
+                        order_id, item["product_id"], item["qty"]
+                    )
+            except Exception:
+                pass  # 这个商品失败，外层事务继续
+```
+
+在 asyncpg/psycopg3 中，嵌套的 `async with conn.transaction()` 自动创建保存点。
+
+## 咨询锁：应用级协调
+
+咨询锁（Advisory Lock）是数据库管理的锁，不锁定任何表或行——它锁定应用自定义的任意资源。数据库只提供协调机制。
+
+```sql
+-- 获取排他咨询锁（如已被持有则阻塞）
+SELECT pg_advisory_lock(12345);
+
+-- 尝试获取（不阻塞，返回 true/false）
+SELECT pg_try_advisory_lock(12345);
+
+-- 释放
+SELECT pg_advisory_unlock(12345);
+```
+
+### 使用场景
+
+```python
+# 防止定时任务重复执行
+async def run_scheduled_task(conn, task_id: int):
+    acquired = await conn.fetchval("SELECT pg_try_advisory_lock($1)", task_id)
+    if not acquired:
+        return  # 另一个实例正在运行
+
+    try:
+        await do_expensive_work()
+    finally:
+        await conn.execute("SELECT pg_advisory_unlock($1)", task_id)
+
+# 防止 "获取或创建" 模式的竞态条件
+async def get_or_create_user(conn, email: str):
+    lock_key = hash(email) % (2**31)
+    await conn.execute("SELECT pg_advisory_lock($1)", lock_key)
+    try:
+        user = await conn.fetchrow("SELECT * FROM users WHERE email = $1", email)
+        if user is None:
+            user = await conn.fetchrow(
+                "INSERT INTO users (email) VALUES ($1) RETURNING *", email
+            )
+        return user
+    finally:
+        await conn.execute("SELECT pg_advisory_unlock($1)", lock_key)
+```
+
+### 咨询锁 vs 行锁 vs 外部锁
+
+| 特性 | 行锁 (FOR UPDATE) | 咨询锁 | Redis/外部锁 |
+|------|-------------------|--------|-------------|
+| 作用范围 | 单行 | 任意资源 | 任意资源 |
+| 自动释放 | COMMIT/ROLLBACK 时 | 会话结束时 | TTL 到期 |
+| 跨表 | 否 | 是 | 是 |
+| 死锁检测 | 是 | 是 | 否（需 TTL） |
+| 性能 | 快 | 快 | 网络往返 |
+
+## 可串行化快照隔离（SSI）
+
+PostgreSQL 的 `SERIALIZABLE` 隔离级别使用 SSI——一种巧妙的算法，在不阻塞读取的情况下检测潜在的串行化异常。
+
+### 写偏斜示例
+
+```sql
+-- 医生值班调度：至少一名医生必须在岗
+-- 两名医生同时尝试下班
+
+-- 事务 A（Smith 医生）：
+BEGIN ISOLATION LEVEL SERIALIZABLE;
+SELECT count(*) FROM doctors WHERE on_call = true;  -- 看到 2
+UPDATE doctors SET on_call = false WHERE name = 'Smith';
+COMMIT;  -- 成功
+
+-- 事务 B（Jones 医生），并发执行：
+BEGIN ISOLATION LEVEL SERIALIZABLE;
+SELECT count(*) FROM doctors WHERE on_call = true;  -- 看到 2
+UPDATE doctors SET on_call = false WHERE name = 'Jones';
+COMMIT;  -- 串行化失败！回滚。
+```
+
+在 Read Committed 下两个事务都会成功——导致零医生值班。SSI 检测到依赖环并中止一个事务。
+
+### 何时使用 SERIALIZABLE
+
+| 场景 | 建议级别 |
+|------|---------|
+| 金融转账 | SERIALIZABLE（防止双花） |
+| 库存管理 | SERIALIZABLE 或显式锁 |
+| 只读分析 | READ COMMITTED（性能） |
+| 通用 CRUD | READ COMMITTED（默认，足够） |
+| 预订/预约 | SERIALIZABLE（防止超卖） |
+
+代价：约 5-10% 更多的事务中止需要应用重试。换来的是无需显式锁定的正确性。
+
 ## 真实案例：并发银行转账
 
 让我们整合所有知识，构建一个真实的银行转账场景。

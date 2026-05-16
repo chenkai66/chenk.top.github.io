@@ -541,6 +541,165 @@ def purchase_product(product_id: int, quantity: int):
 | Deadlock risk | Yes | No |
 | Best for | High-contention data (inventory, balances) | Low-contention data (user profiles, settings) |
 
+## Savepoints: Partial Rollback
+
+Savepoints let you undo part of a transaction without aborting the whole thing. Essential for complex workflows where one step might fail but others should persist.
+
+```sql
+BEGIN;
+
+INSERT INTO orders (user_id, total) VALUES (1, 99.99);
+-- order_id = 1001 assigned
+
+SAVEPOINT before_items;
+
+INSERT INTO order_items (order_id, product_id, qty) VALUES (1001, 42, 1);
+INSERT INTO order_items (order_id, product_id, qty) VALUES (1001, 99, 1);
+-- Oops, product 99 is out of stock (foreign key fails or business logic check)
+
+ROLLBACK TO SAVEPOINT before_items;
+-- order still exists, items are gone
+
+-- Try again with just the available product
+INSERT INTO order_items (order_id, product_id, qty) VALUES (1001, 42, 1);
+
+COMMIT;  -- order with 1 item committed successfully
+```
+
+### Savepoints in Application Code
+
+```python
+async def create_order_with_fallback(conn, user_id: int, items: list[dict]):
+    async with conn.transaction():
+        order_id = await conn.fetchval(
+            "INSERT INTO orders (user_id) VALUES ($1) RETURNING order_id", user_id
+        )
+
+        for item in items:
+            try:
+                async with conn.transaction():  # creates savepoint
+                    await conn.execute(
+                        "INSERT INTO order_items (order_id, product_id, qty) "
+                        "VALUES ($1, $2, $3)",
+                        order_id, item["product_id"], item["qty"]
+                    )
+            except Exception:
+                # This item failed, but the outer transaction continues
+                pass
+
+        # Commit whatever items succeeded
+```
+
+In asyncpg/psycopg3, nested `async with conn.transaction()` automatically creates savepoints.
+
+## Advisory Locks: Application-Level Coordination
+
+Advisory locks are database-managed locks that don't lock any table or row — they lock an arbitrary application-defined resource. The database just provides the coordination mechanism.
+
+```sql
+-- Acquire an exclusive advisory lock (blocks if already held)
+SELECT pg_advisory_lock(12345);
+
+-- Try without blocking (returns true/false)
+SELECT pg_try_advisory_lock(12345);
+
+-- Release
+SELECT pg_advisory_unlock(12345);
+```
+
+### Use Cases
+
+```python
+# Prevent duplicate cron job execution
+async def run_scheduled_task(conn, task_id: int):
+    acquired = await conn.fetchval(
+        "SELECT pg_try_advisory_lock($1)", task_id
+    )
+    if not acquired:
+        return  # another instance is already running
+
+    try:
+        await do_expensive_work()
+    finally:
+        await conn.execute("SELECT pg_advisory_unlock($1)", task_id)
+
+# Prevent race condition in "get or create" pattern
+async def get_or_create_user(conn, email: str):
+    lock_key = hash(email) % (2**31)  # advisory lock takes bigint
+    await conn.execute("SELECT pg_advisory_lock($1)", lock_key)
+    try:
+        user = await conn.fetchrow("SELECT * FROM users WHERE email = $1", email)
+        if user is None:
+            user = await conn.fetchrow(
+                "INSERT INTO users (email) VALUES ($1) RETURNING *", email
+            )
+        return user
+    finally:
+        await conn.execute("SELECT pg_advisory_unlock($1)", lock_key)
+```
+
+### Advisory Locks vs Row Locks vs Application Locks
+
+| Feature | Row locks (SELECT FOR UPDATE) | Advisory locks | Redis/external locks |
+|---------|-------------------------------|----------------|---------------------|
+| Scope | Single row | Arbitrary resource | Arbitrary resource |
+| Auto-release | On COMMIT/ROLLBACK | On session end (or explicit) | On TTL expiry |
+| Cross-table | No | Yes | Yes |
+| Cross-database | No | No | Yes |
+| Deadlock detection | Yes (database handles) | Yes (database handles) | No (need TTL) |
+| Performance | Fast | Fast | Network round-trip |
+
+## Serializable Snapshot Isolation (SSI)
+
+The `SERIALIZABLE` isolation level in PostgreSQL uses SSI — a clever algorithm that detects potential serialization anomalies without blocking reads.
+
+### How SSI Works
+
+```text
+Normal MVCC (Read Committed / Repeatable Read):
+  - Readers never block writers
+  - Writers never block readers
+  - But anomalies are possible (write skew, phantom reads)
+
+SSI adds:
+  - Track read dependencies between transactions
+  - If a cycle is detected → abort one transaction
+  - Still non-blocking! (optimistic approach)
+```
+
+### Write Skew Example
+
+```sql
+-- Doctor on-call scheduling: at least one doctor must be on call
+-- Two doctors try to go off-call simultaneously
+
+-- Transaction A (Dr. Smith):
+BEGIN ISOLATION LEVEL SERIALIZABLE;
+SELECT count(*) FROM doctors WHERE on_call = true;  -- sees 2
+UPDATE doctors SET on_call = false WHERE name = 'Smith';
+COMMIT;  -- succeeds
+
+-- Transaction B (Dr. Jones), running concurrently:
+BEGIN ISOLATION LEVEL SERIALIZABLE;
+SELECT count(*) FROM doctors WHERE on_call = true;  -- sees 2
+UPDATE doctors SET on_call = false WHERE name = 'Jones';
+COMMIT;  -- SERIALIZATION FAILURE! Rolled back.
+```
+
+Under Read Committed, both transactions would succeed — leaving zero doctors on call. SSI detects the dependency cycle and aborts one transaction.
+
+### When to Use SERIALIZABLE
+
+| Use case | Recommended level |
+|----------|------------------|
+| Financial transfers | SERIALIZABLE (prevents double-spend) |
+| Inventory management | SERIALIZABLE or explicit locking |
+| Read-heavy analytics | READ COMMITTED (performance) |
+| General CRUD | READ COMMITTED (default, sufficient) |
+| Booking/reservation | SERIALIZABLE (prevents overbooking) |
+
+The cost: ~5-10% more aborted transactions that your application must retry. In exchange, you get correctness without explicit locking.
+
 ## Real Example: Concurrent Bank Transfer
 
 Let us put it all together with a realistic bank transfer scenario.
