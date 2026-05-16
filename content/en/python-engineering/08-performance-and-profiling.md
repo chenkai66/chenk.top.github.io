@@ -891,7 +891,7 @@ asyncio.run(detect_blocking(), debug=True)
 
 With debug mode, asyncio prints warnings like:
 
-```
+```text
 Executing <Task ...> took 0.354 seconds
 ```
 

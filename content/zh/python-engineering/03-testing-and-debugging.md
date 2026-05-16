@@ -754,7 +754,7 @@ TestSet = SetMachine.TestCase
 
 Hypothesis 会将失败输入收缩至仍能触发 Bug 的最小示例：
 
-```
+```text
 Falsifying example: test_parse_date(
     s='0000-00-00',  # 从 '9812-23-71' 收缩而来
 )

@@ -762,7 +762,7 @@ TestSet = SetMachine.TestCase
 
 Hypothesis shrinks the failing input to the smallest example that still fails:
 
-```
+```text
 Falsifying example: test_parse_date(
     s='0000-00-00',  # Shrunk from '9812-23-71'
 )

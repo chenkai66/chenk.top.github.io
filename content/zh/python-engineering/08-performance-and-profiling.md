@@ -874,7 +874,7 @@ asyncio.run(detect_blocking(), debug=True)
 
 调试模式下 asyncio 输出类似警告：
 
-```
+```text
 Executing <Task ...> took 0.354 seconds
 ```
 
