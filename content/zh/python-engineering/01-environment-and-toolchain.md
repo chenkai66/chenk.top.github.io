@@ -401,6 +401,298 @@ ruff
 (.venv) $ pip-sync requirements.txt requirements-dev.txt
 ```
 
+## uv：现代替代方案（2024+）
+
+[uv](https://github.com/astral-sh/uv) 是基于 Rust 的 Python 包管理器，单一二进制文件替代 pip、pip-tools、virtualenv 和 pyenv。速度比 pip 快 10-100 倍，覆盖完整工作流。
+
+### 安装
+
+```bash
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# macOS (Homebrew)
+brew install uv
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+### Python 版本管理（替代 pyenv）
+
+```bash
+# 安装 Python 版本
+$ uv python install 3.11 3.12 3.13
+
+# 为项目锁定版本
+$ uv python pin 3.12
+Pinned `.python-version` to `3.12`
+
+# 列出已安装版本
+$ uv python list
+```
+
+uv 下载预编译的 Python 二进制文件——无需编译，不像 pyenv 需要从源码构建。
+
+### 项目初始化
+
+```bash
+# 创建新项目（含 pyproject.toml）
+$ uv init my-api
+$ cd my-api
+
+# 在已有目录中初始化
+$ cd existing-project
+$ uv init
+```
+
+自动创建 `pyproject.toml`（PEP 621 元数据）和 `uv.lock` 锁文件。
+
+### 依赖管理
+
+```bash
+# 添加依赖（自动创建 venv、解析、锁定、安装——一步完成）
+$ uv add requests flask "pydantic>=2.0"
+
+# 添加开发依赖
+$ uv add --dev pytest ruff mypy
+
+# 移除依赖
+$ uv remove flask
+
+# 同步环境至锁文件状态
+$ uv sync
+
+# 升级指定包
+$ uv lock --upgrade-package requests
+$ uv sync
+```
+
+`uv add` 一条命令完成了以前需要编辑 `requirements.in` → 运行 `pip-compile` → 运行 `pip-sync` 三步才能做到的事。
+
+### 运行命令
+
+```bash
+# 在项目环境中运行（自动同步依赖）
+$ uv run python main.py
+$ uv run pytest
+$ uv run ruff check .
+
+# 临时运行工具（无需永久安装）
+$ uvx ruff check .
+$ uvx black .
+```
+
+### 从 pip-tools 迁移
+
+```bash
+# 导入已有 requirements.in
+$ uv add $(cat requirements.in | grep -v "^#" | grep -v "^-")
+
+# 或直接基于 pyproject.toml（uv 直接读取 [project.dependencies]）
+```
+
+### uv.lock 与 requirements.txt 对比
+
+| 维度 | requirements.txt (pip-tools) | uv.lock |
+|------|------------------------------|---------|
+| 格式 | 纯文本，pip 兼容 | TOML，uv 专用 |
+| 跨平台 | 单平台解析 | 多平台同时解析 |
+| 哈希验证 | 可选（`--generate-hashes`） | 始终包含 |
+| 速度 | 秒级 | 毫秒级 |
+| 解析策略 | 平台特定 | 通用（为所有平台一次性解析） |
+
+`uv.lock` 同时为所有平台解析依赖。Linux 开发者和 macOS 开发者使用同一个锁文件，自动获得各自平台兼容的包。
+
+### 何时选择 uv vs pip-tools
+
+| 场景 | 建议 |
+|------|------|
+| 新项目（2024+） | **uv** — 更快、更简单、工具链更少 |
+| 已有成熟 CI 的老项目 | **pip-tools** — 久经验证，无迁移风险 |
+| 发布到 PyPI 的库 | **uv** 或 **Poetry** — 均支持构建和发布 |
+| 企业环境（工具审批严格） | **pip-tools** — pip 之外零外部依赖 |
+| Docker 构建（层缓存敏感） | **uv** — 确定性安装，速度极快 |
+
+## CI/CD：验证依赖锁文件
+
+锁文件只有与声明的依赖保持同步才有效。CI 应自动验证这一点。
+
+### GitHub Actions：锁文件新鲜度检查
+
+```yaml
+# .github/workflows/deps.yml
+name: Dependency Check
+
+on:
+  pull_request:
+    paths:
+      - "pyproject.toml"
+      - "requirements*.in"
+      - "uv.lock"
+      - "requirements*.txt"
+
+jobs:
+  check-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 方案 A：uv
+      - uses: astral-sh/setup-uv@v4
+      - run: uv lock --check  # 若 uv.lock 过期则失败
+
+      # 方案 B：pip-tools
+      # - run: pip install pip-tools
+      # - run: pip-compile --quiet requirements.in
+      # - run: git diff --exit-code requirements.txt
+```
+
+`uv lock --check` 在锁文件会发生变化时返回错误码 1——即有人修改了 `pyproject.toml` 但忘记更新锁文件。
+
+### Dependabot / Renovate 集成
+
+```yaml
+# .github/dependabot.yml（用于 pip-tools）
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+# 对于 uv：Renovate 自 v39 起原生支持 uv.lock
+```
+
+### CI 中的安全审计
+
+```yaml
+# 检查锁定依赖中的已知漏洞
+- run: uv pip audit  # 或: pip-audit -r requirements.txt
+```
+
+## Docker：使用锁定依赖的可复现构建
+
+Docker 镜像应在任何时间、任何地点构建都产生相同结果。这要求谨慎处理 Python 依赖。
+
+### 多阶段构建模式
+
+```dockerfile
+# 阶段 1：构建依赖（含编译工具）
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# 阶段 2：运行时（最小化镜像）
+FROM python:3.12-slim AS runtime
+
+COPY --from=builder /install /usr/local
+COPY src/ /app/src/
+
+WORKDIR /app
+USER nobody
+CMD ["python", "-m", "my_api"]
+```
+
+### Docker + uv（更快构建）
+
+```dockerfile
+FROM python:3.12-slim
+
+# 安装 uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+
+# 安装依赖（锁文件不变则使用缓存层）
+RUN uv sync --frozen --no-dev --no-editable
+
+COPY src/ ./src/
+USER nobody
+CMD ["uv", "run", "python", "-m", "my_api"]
+```
+
+`--frozen` 拒绝更新锁文件——如果过期，构建直接失败，而非静默安装不同版本。
+
+### 层缓存策略
+
+```dockerfile
+# 错误：任何源码改动都使依赖缓存失效
+COPY . .
+RUN pip install -r requirements.txt
+
+# 正确：依赖层在锁文件不变时复用
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+```
+
+先复制依赖文件 → 安装 → 再复制源码。只要 `requirements.txt`（或 `uv.lock`）未变，Docker 就复用缓存的依赖层。
+
+## 环境变量与 .env 文件
+
+生产应用通常需要运行时配置（API 密钥、数据库 URL）。绝不要硬编码。
+
+### python-dotenv
+
+```bash
+(.venv) $ pip install python-dotenv
+```
+
+```python
+# settings.py
+from pathlib import Path
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # 读取项目根目录的 .env 文件
+
+DATABASE_URL = os.environ["DATABASE_URL"]
+API_KEY = os.environ["API_KEY"]
+DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
+```
+
+```bash
+# .env（加入 .gitignore！）
+DATABASE_URL=postgresql://user:pass@localhost:5432/mydb
+API_KEY=sk-development-key-here
+DEBUG=true
+```
+
+```bash
+# .env.example（提交到版本库——展示所需变量但不含真实值）
+DATABASE_URL=postgresql://user:pass@host:5432/dbname
+API_KEY=your-api-key-here
+DEBUG=false
+```
+
+### Pydantic Settings（类型安全配置）
+
+大型应用使用 Pydantic 在启动时验证环境变量：
+
+```python
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    database_url: str
+    api_key: str
+    debug: bool = False
+    max_connections: int = 10
+    allowed_origins: list[str] = ["http://localhost:3000"]
+
+    class Config:
+        env_file = ".env"
+
+# 若必需变量缺失，启动时立即失败并给出清晰错误
+settings = Settings()
+```
+
+提供类型验证、默认值和明确的配置错误提示。
+
 ## Poetry、pip-tools 和 PDM
 
 | 特性 | pip-tools | Poetry | PDM |

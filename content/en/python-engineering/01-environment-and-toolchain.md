@@ -409,6 +409,299 @@ The `-c requirements.txt` constrains dev deps to be compatible with production d
 (.venv) $ pip-sync requirements.txt requirements-dev.txt
 ```
 
+## uv: The Modern Alternative (2024+)
+
+[uv](https://github.com/astral-sh/uv) is a Rust-based Python package manager that replaces pip, pip-tools, virtualenv, and pyenv in a single binary. It is 10-100x faster than pip and handles the entire workflow.
+
+### Installation
+
+```bash
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# macOS (Homebrew)
+brew install uv
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+### Python Version Management (replaces pyenv)
+
+```bash
+# Install Python versions
+$ uv python install 3.11 3.12 3.13
+
+# Pin version for a project
+$ uv python pin 3.12
+Pinned `.python-version` to `3.12`
+
+# List installed versions
+$ uv python list
+```
+
+uv downloads pre-built Python binaries — no compilation needed, unlike pyenv which builds from source.
+
+### Project Initialization
+
+```bash
+# Create a new project with pyproject.toml
+$ uv init my-api
+$ cd my-api
+
+# Or initialize in an existing directory
+$ cd existing-project
+$ uv init
+```
+
+This creates a `pyproject.toml` with PEP 621 metadata and a `uv.lock` lockfile.
+
+### Dependency Management
+
+```bash
+# Add a dependency (auto-creates venv, resolves, locks, installs)
+$ uv add requests flask "pydantic>=2.0"
+
+# Add dev dependency
+$ uv add --dev pytest ruff mypy
+
+# Remove a dependency
+$ uv remove flask
+
+# Sync environment to match lockfile exactly
+$ uv sync
+
+# Upgrade a specific package
+$ uv lock --upgrade-package requests
+$ uv sync
+```
+
+`uv add` does in one command what previously required editing `requirements.in`, running `pip-compile`, and running `pip-sync`.
+
+### Running Commands
+
+```bash
+# Run a script in the project environment (auto-syncs first)
+$ uv run python main.py
+$ uv run pytest
+$ uv run ruff check .
+
+# Run a tool without installing it permanently
+$ uvx ruff check .
+$ uvx black .
+```
+
+### Migration from pip-tools
+
+```bash
+# Import existing requirements.in
+$ uv add $(cat requirements.in | grep -v "^#" | grep -v "^-")
+
+# Or start fresh from pyproject.toml
+# uv reads [project.dependencies] directly
+```
+
+### uv.lock vs requirements.txt
+
+| Aspect | requirements.txt (pip-tools) | uv.lock |
+|--------|------------------------------|---------|
+| Format | Plain text, pip-compatible | TOML, uv-specific |
+| Cross-platform | Single platform | Multi-platform resolution |
+| Hash verification | Optional (`--generate-hashes`) | Always included |
+| Speed | Seconds | Milliseconds |
+| Resolution | Platform-specific | Universal (resolves for all platforms at once) |
+
+The `uv.lock` file resolves dependencies for all platforms simultaneously. A Linux developer and a macOS developer using the same lockfile get compatible (but potentially different) packages for their platform — automatically.
+
+### When to Use uv vs pip-tools
+
+| Scenario | Recommendation |
+|----------|---------------|
+| New projects (2024+) | **uv** — faster, simpler, fewer tools to manage |
+| Legacy projects with established CI | **pip-tools** — proven, no migration risk |
+| Libraries published to PyPI | **uv** or **Poetry** — both handle build+publish |
+| Corporate environments with strict tool approval | **pip-tools** — zero external dependencies beyond pip |
+| Docker builds where layer caching matters | **uv** — deterministic, fast installs |
+
+## CI/CD: Verifying Your Dependency Lock
+
+A lockfile only works if it stays in sync with your declared dependencies. CI should verify this automatically.
+
+### GitHub Actions: Lock File Freshness Check
+
+```yaml
+# .github/workflows/deps.yml
+name: Dependency Check
+
+on:
+  pull_request:
+    paths:
+      - "pyproject.toml"
+      - "requirements*.in"
+      - "uv.lock"
+      - "requirements*.txt"
+
+jobs:
+  check-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Option A: uv
+      - uses: astral-sh/setup-uv@v4
+      - run: uv lock --check  # Fails if uv.lock is outdated
+
+      # Option B: pip-tools
+      # - run: pip install pip-tools
+      # - run: pip-compile --quiet requirements.in
+      # - run: git diff --exit-code requirements.txt
+```
+
+`uv lock --check` exits with code 1 if `uv.lock` would change — meaning someone edited `pyproject.toml` but forgot to update the lockfile.
+
+### Dependabot / Renovate Integration
+
+```yaml
+# .github/dependabot.yml (for pip-tools)
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+# For uv: Renovate supports uv.lock natively since v39
+```
+
+### Security Auditing in CI
+
+```yaml
+# Check for known vulnerabilities in locked dependencies
+- run: uv pip audit  # or: pip-audit -r requirements.txt
+```
+
+## Docker: Reproducible Builds with Pinned Dependencies
+
+Docker images should produce identical results regardless of when or where they are built. This requires careful handling of Python dependencies.
+
+### Multi-Stage Build Pattern
+
+```dockerfile
+# Stage 1: Build dependencies (with build tools)
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# Stage 2: Runtime (minimal image)
+FROM python:3.12-slim AS runtime
+
+COPY --from=builder /install /usr/local
+COPY src/ /app/src/
+
+WORKDIR /app
+USER nobody
+CMD ["python", "-m", "my_api"]
+```
+
+### Docker + uv (Faster Builds)
+
+```dockerfile
+FROM python:3.12-slim
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies (cached layer if lockfile unchanged)
+RUN uv sync --frozen --no-dev --no-editable
+
+COPY src/ ./src/
+USER nobody
+CMD ["uv", "run", "python", "-m", "my_api"]
+```
+
+`--frozen` refuses to update the lockfile — if it is outdated, the build fails rather than silently installing different versions.
+
+### Layer Caching Strategy
+
+```dockerfile
+# BAD: any source change invalidates dependency cache
+COPY . .
+RUN pip install -r requirements.txt
+
+# GOOD: dependencies cached unless lockfile changes
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+```
+
+Copy dependency files first, install, then copy source. Docker reuses the cached dependency layer as long as `requirements.txt` (or `uv.lock`) hasn't changed.
+
+## Environment Variables and .env Files
+
+Production applications often need runtime configuration (API keys, database URLs). Never hardcode these.
+
+### python-dotenv
+
+```bash
+(.venv) $ pip install python-dotenv
+```
+
+```python
+# settings.py
+from pathlib import Path
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # Reads .env file in project root
+
+DATABASE_URL = os.environ["DATABASE_URL"]
+API_KEY = os.environ["API_KEY"]
+DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
+```
+
+```bash
+# .env (gitignored!)
+DATABASE_URL=postgresql://user:pass@localhost:5432/mydb
+API_KEY=sk-development-key-here
+DEBUG=true
+```
+
+```bash
+# .env.example (committed — shows required variables without real values)
+DATABASE_URL=postgresql://user:pass@host:5432/dbname
+API_KEY=your-api-key-here
+DEBUG=false
+```
+
+### Pydantic Settings (Type-Safe Configuration)
+
+For larger applications, use Pydantic to validate environment variables at startup:
+
+```python
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    database_url: str
+    api_key: str
+    debug: bool = False
+    max_connections: int = 10
+    allowed_origins: list[str] = ["http://localhost:3000"]
+
+    class Config:
+        env_file = ".env"
+
+# Fails fast at startup if required vars are missing
+settings = Settings()
+```
+
+This gives you type validation, default values, and clear error messages when configuration is wrong.
+
 ## Poetry vs pip-tools vs PDM
 
 | Feature | pip-tools | Poetry | PDM |
