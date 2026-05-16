@@ -232,6 +232,230 @@ Read key "account:1":
 
 For keys that are rarely read, an **anti-entropy process** runs in the background, comparing data between replicas and fixing discrepancies.
 
+## Conflict Resolution in Multi-Master Replication
+
+When multiple nodes accept writes simultaneously, conflicts are inevitable. The question is not *whether* conflicts happen, but *how to resolve them*.
+
+### Types of Write Conflicts
+
+| Conflict type | Example | Difficulty |
+|---------------|---------|------------|
+| Update-Update | Two users edit the same product description | Common, hard |
+| Insert-Insert | Two nodes create a record with same natural key | Medium |
+| Delete-Update | Node A deletes a row, Node B updates it | Medium |
+| Schema conflict | Node A adds a column, Node B adds a different one | Rare, manual resolution |
+
+### Resolution Strategies
+
+#### Last-Writer-Wins (LWW)
+
+The simplest strategy: each write carries a timestamp, the latest wins.
+
+```sql
+-- Each row has a version timestamp
+CREATE TABLE products (
+    product_id INT PRIMARY KEY,
+    name VARCHAR(200),
+    price DECIMAL(10,2),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- On conflict: keep the newer write
+INSERT INTO products (product_id, name, price, updated_at)
+VALUES (42, 'Widget', 19.99, '2024-03-15 10:30:00+00')
+ON CONFLICT (product_id)
+DO UPDATE SET
+    name = EXCLUDED.name,
+    price = EXCLUDED.price,
+    updated_at = EXCLUDED.updated_at
+WHERE products.updated_at < EXCLUDED.updated_at;
+```
+
+**Problem:** LWW silently discards the "losing" write. If two users update different fields of the same row at the same time, one update is completely lost.
+
+#### CRDTs (Conflict-Free Replicated Data Types)
+
+CRDTs are data structures designed to be merged without conflicts by mathematical guarantee:
+
+| CRDT type | Behavior | Use case |
+|-----------|----------|----------|
+| G-Counter | Only increments, merge = take max per node | Page views, like counts |
+| PN-Counter | Increment and decrement | Shopping cart quantities |
+| LWW-Register | Single value, last write wins | User profile fields |
+| OR-Set (Observed-Remove Set) | Add/remove elements, concurrent adds survive | Tags, feature flags |
+| MV-Register (Multi-Value) | Keeps all concurrent values for app-level resolution | Collaborative editing |
+
+```python
+# G-Counter: each node maintains its own counter
+class GCounter:
+    def __init__(self, node_id: str):
+        self.node_id = node_id
+        self.counts: dict[str, int] = {}
+
+    def increment(self):
+        self.counts[self.node_id] = self.counts.get(self.node_id, 0) + 1
+
+    def value(self) -> int:
+        return sum(self.counts.values())
+
+    def merge(self, other: "GCounter"):
+        """Merge is commutative, associative, idempotent."""
+        for node, count in other.counts.items():
+            self.counts[node] = max(self.counts.get(node, 0), count)
+```
+
+#### Application-Level Resolution
+
+For complex domains, store all conflicting versions and let the application (or user) decide:
+
+```sql
+-- Store conflicts explicitly
+CREATE TABLE document_versions (
+    doc_id INT,
+    version_id UUID DEFAULT gen_random_uuid(),
+    content TEXT,
+    author VARCHAR(50),
+    written_at TIMESTAMPTZ,
+    is_conflict BOOLEAN DEFAULT FALSE,
+    resolved_by UUID REFERENCES document_versions(version_id),
+    PRIMARY KEY (doc_id, version_id)
+);
+
+-- Application presents conflicting versions to user for manual merge
+```
+
+## Read Replica Patterns
+
+Read replicas handle query scaling, but using them correctly requires understanding replication lag.
+
+### Connection Routing
+
+```python
+import random
+
+class DatabaseRouter:
+    def __init__(self, primary: str, replicas: list[str]):
+        self.primary = primary
+        self.replicas = replicas
+
+    def get_connection(self, operation: str, consistency: str = "eventual"):
+        """Route to primary or replica based on operation type."""
+        if operation in ("INSERT", "UPDATE", "DELETE"):
+            return self.primary
+
+        if consistency == "strong":
+            return self.primary  # reads-after-writes need primary
+
+        return random.choice(self.replicas)
+```
+
+### Handling Replication Lag
+
+The critical problem: a user writes data, then immediately reads it — but the read hits a replica that hasn't received the write yet.
+
+```python
+import time
+
+class SessionConsistency:
+    """Guarantee read-your-own-writes per session."""
+
+    def __init__(self, router: DatabaseRouter):
+        self.router = router
+        self.last_write_time: float = 0
+        self.lag_threshold: float = 2.0  # seconds
+
+    def get_read_connection(self):
+        if time.time() - self.last_write_time < self.lag_threshold:
+            return self.router.primary  # too recent, use primary
+        return self.router.get_connection("SELECT")
+
+    def record_write(self):
+        self.last_write_time = time.time()
+```
+
+### Replica Lag Monitoring
+
+```sql
+-- PostgreSQL: check replication lag
+SELECT
+    client_addr,
+    state,
+    sent_lsn,
+    write_lsn,
+    flush_lsn,
+    replay_lsn,
+    pg_wal_lsn_diff(sent_lsn, replay_lsn) AS replay_lag_bytes,
+    reply_time
+FROM pg_stat_replication;
+
+-- MySQL: check seconds behind master
+SHOW SLAVE STATUS\G
+-- Look for: Seconds_Behind_Master
+```
+
+## Automated Failover
+
+Manual failover at 3 AM is the nightmare scenario. Production databases need automated promotion with minimal downtime.
+
+### PostgreSQL: Patroni
+
+[Patroni](https://github.com/patroni/patroni) uses consensus (etcd/ZooKeeper/Consul) to manage PostgreSQL HA:
+
+```yaml
+# patroni.yml
+scope: my-cluster
+name: node1
+
+etcd3:
+  hosts: etcd1:2379,etcd2:2379,etcd3:2379
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    maximum_lag_on_failover: 1048576  # 1MB max lag for promotion
+
+postgresql:
+  listen: 0.0.0.0:5432
+  data_dir: /var/lib/postgresql/data
+  parameters:
+    max_connections: 200
+    synchronous_commit: "on"
+```
+
+Failover sequence:
+1. Leader fails health check → etcd lease expires (30s TTL)
+2. Patroni candidates check their replication lag
+3. Most up-to-date replica acquires leader lock in etcd
+4. New leader promotes itself (`pg_promote()`)
+5. Other replicas reconfigure to follow new leader
+6. HAProxy/PgBouncer routes traffic to new primary
+
+### MySQL: Orchestrator / InnoDB Cluster
+
+```bash
+# orchestrator detects primary failure and promotes replica
+$ orchestrator-client -c recover -i dead-primary:3306
+
+# MySQL InnoDB Cluster (Group Replication)
+# Auto-elects new primary from group members
+mysqlsh> cluster = dba.getCluster()
+mysqlsh> cluster.status()
+```
+
+### Failover Checklist
+
+| Step | Action | Automated? |
+|------|--------|------------|
+| Detection | Health check fails N times | Yes (Patroni/MHA) |
+| Fencing | Prevent split-brain (STONITH) | Yes |
+| Promotion | Replica becomes primary | Yes |
+| Routing | Update DNS/proxy | Yes (HAProxy/Consul) |
+| Notification | Alert on-call | Yes (PagerDuty webhook) |
+| Catchup | Other replicas follow new primary | Yes |
+| Validation | Verify writes succeed on new primary | Semi-auto |
+| Post-mortem | Investigate root cause | Manual |
+
 ## Partitioning (Sharding)
 
 Replication puts the same data on multiple machines. Partitioning puts *different* data on different machines. This lets you:

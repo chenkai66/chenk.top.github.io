@@ -230,6 +230,202 @@ R = 2（读取需从 2 个节点获取响应）
 
 对于极少被读取的键，系统后台运行**反熵进程（anti-entropy process）**，定期比对副本间数据并修复差异。
 
+## 多主复制中的冲突解决
+
+当多个节点同时接受写入时，冲突不可避免。问题不是冲突*是否*发生，而是*如何解决*。
+
+### 写冲突类型
+
+| 冲突类型 | 示例 | 难度 |
+|----------|------|------|
+| 更新-更新 | 两用户同时编辑同一产品描述 | 常见，困难 |
+| 插入-插入 | 两节点创建相同自然键的记录 | 中等 |
+| 删除-更新 | 节点 A 删除行，节点 B 更新它 | 中等 |
+| 模式冲突 | 节点 A 加列，节点 B 加不同列 | 罕见，需人工处理 |
+
+### 解决策略
+
+#### 最后写入者胜出（LWW）
+
+最简单的策略：每次写入携带时间戳，最新的获胜。
+
+```sql
+CREATE TABLE products (
+    product_id INT PRIMARY KEY,
+    name VARCHAR(200),
+    price DECIMAL(10,2),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 冲突时保留较新的写入
+INSERT INTO products (product_id, name, price, updated_at)
+VALUES (42, 'Widget', 19.99, '2024-03-15 10:30:00+00')
+ON CONFLICT (product_id)
+DO UPDATE SET
+    name = EXCLUDED.name,
+    price = EXCLUDED.price,
+    updated_at = EXCLUDED.updated_at
+WHERE products.updated_at < EXCLUDED.updated_at;
+```
+
+**问题：** LWW 静默丢弃"失败"的写入。两个用户同时更新同一行的不同字段时，一个更新会完全丢失。
+
+#### CRDT（无冲突复制数据类型）
+
+CRDT 是设计上保证可无冲突合并的数据结构：
+
+| CRDT 类型 | 行为 | 用途 |
+|-----------|------|------|
+| G-Counter | 只增不减，合并取各节点最大值 | 页面访问量、点赞数 |
+| PN-Counter | 可增可减 | 购物车数量 |
+| LWW-Register | 单值，最后写入获胜 | 用户资料字段 |
+| OR-Set | 添加/删除元素，并发添加存活 | 标签、功能开关 |
+
+```python
+class GCounter:
+    """G-Counter：每个节点维护自己的计数器。"""
+    def __init__(self, node_id: str):
+        self.node_id = node_id
+        self.counts: dict[str, int] = {}
+
+    def increment(self):
+        self.counts[self.node_id] = self.counts.get(self.node_id, 0) + 1
+
+    def value(self) -> int:
+        return sum(self.counts.values())
+
+    def merge(self, other: "GCounter"):
+        """合并满足交换律、结合律、幂等性。"""
+        for node, count in other.counts.items():
+            self.counts[node] = max(self.counts.get(node, 0), count)
+```
+
+#### 应用层解决
+
+复杂业务场景下，存储所有冲突版本让应用（或用户）决定：
+
+```sql
+CREATE TABLE document_versions (
+    doc_id INT,
+    version_id UUID DEFAULT gen_random_uuid(),
+    content TEXT,
+    author VARCHAR(50),
+    written_at TIMESTAMPTZ,
+    is_conflict BOOLEAN DEFAULT FALSE,
+    PRIMARY KEY (doc_id, version_id)
+);
+```
+
+## 读副本使用模式
+
+读副本处理查询扩展，但正确使用需要理解复制延迟。
+
+### 连接路由
+
+```python
+import random
+
+class DatabaseRouter:
+    def __init__(self, primary: str, replicas: list[str]):
+        self.primary = primary
+        self.replicas = replicas
+
+    def get_connection(self, operation: str, consistency: str = "eventual"):
+        if operation in ("INSERT", "UPDATE", "DELETE"):
+            return self.primary
+        if consistency == "strong":
+            return self.primary
+        return random.choice(self.replicas)
+```
+
+### 处理复制延迟
+
+关键问题：用户写入数据后立即读取——但读请求命中了尚未收到该写入的副本。
+
+```python
+import time
+
+class SessionConsistency:
+    """保证每个会话的读自己写。"""
+
+    def __init__(self, router: DatabaseRouter):
+        self.router = router
+        self.last_write_time: float = 0
+        self.lag_threshold: float = 2.0  # 秒
+
+    def get_read_connection(self):
+        if time.time() - self.last_write_time < self.lag_threshold:
+            return self.router.primary  # 太近，用主库
+        return self.router.get_connection("SELECT")
+
+    def record_write(self):
+        self.last_write_time = time.time()
+```
+
+### 副本延迟监控
+
+```sql
+-- PostgreSQL：检查复制延迟
+SELECT
+    client_addr, state,
+    pg_wal_lsn_diff(sent_lsn, replay_lsn) AS replay_lag_bytes
+FROM pg_stat_replication;
+
+-- MySQL：检查落后秒数
+SHOW SLAVE STATUS\G
+-- 关注: Seconds_Behind_Master
+```
+
+## 自动化故障切换
+
+凌晨 3 点手动切换是噩梦场景。生产数据库需要最小停机时间的自动提升。
+
+### PostgreSQL: Patroni
+
+[Patroni](https://github.com/patroni/patroni) 使用共识（etcd/ZooKeeper）管理 PostgreSQL 高可用：
+
+```yaml
+# patroni.yml
+scope: my-cluster
+name: node1
+
+etcd3:
+  hosts: etcd1:2379,etcd2:2379,etcd3:2379
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    maximum_lag_on_failover: 1048576  # 提升时最大允许 1MB 延迟
+
+postgresql:
+  listen: 0.0.0.0:5432
+  parameters:
+    max_connections: 200
+    synchronous_commit: "on"
+```
+
+故障切换序列：
+1. 主节点健康检查失败 → etcd 租约过期（30s TTL）
+2. Patroni 候选节点检查各自复制延迟
+3. 延迟最小的副本获取 etcd 领导锁
+4. 新主节点自我提升（`pg_promote()`）
+5. 其他副本重新配置为跟随新主节点
+6. HAProxy/PgBouncer 将流量路由到新主库
+
+### 故障切换检查清单
+
+| 步骤 | 动作 | 是否自动化 |
+|------|------|-----------|
+| 检测 | 健康检查 N 次失败 | 是 |
+| 隔离 | 防止脑裂（STONITH） | 是 |
+| 提升 | 副本变主节点 | 是 |
+| 路由 | 更新 DNS/代理 | 是（HAProxy/Consul） |
+| 通知 | 告警值班人员 | 是 |
+| 追赶 | 其他副本跟随新主 | 是 |
+| 验证 | 确认新主写入成功 | 半自动 |
+| 复盘 | 调查根因 | 人工 |
+
 ## 分片（Partitioning / Sharding）
 
 复制将**相同数据**放在多台机器上；分片则将**不同数据**放在不同机器上。这使你能够：
