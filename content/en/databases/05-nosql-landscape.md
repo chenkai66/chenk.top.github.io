@@ -462,6 +462,229 @@ RETURN DISTINCT fofof.name
 // Performance depends on the number of results, not the total graph size.
 ```
 
+## Time-Series Databases
+
+Time-series data — metrics, IoT sensor readings, financial ticks, application logs — has unique access patterns: write-heavy, append-only, queries almost always filter by time range, and old data can be downsampled or expired.
+
+### Why Not Just PostgreSQL?
+
+PostgreSQL *can* store time-series data, but at scale it struggles:
+
+| Challenge | RDBMS approach | Time-series DB approach |
+|-----------|---------------|------------------------|
+| Billions of rows | Table bloat, slow vacuum | Partitioned by time, automatic retention |
+| Write throughput | WAL bottleneck at >100K rows/s | Batched append, LSM/columnar |
+| Range queries | B-tree seeks per row | Sequential scan of time-ordered chunks |
+| Data retention | Manual DELETE + vacuum | Automatic TTL policies |
+| Aggregation | Full scan or materialized views | Pre-computed rollups |
+
+### TimescaleDB (PostgreSQL Extension)
+
+TimescaleDB adds time-series superpowers to PostgreSQL — you keep full SQL compatibility:
+
+```sql
+-- Create a hypertable (auto-partitioned by time)
+CREATE TABLE metrics (
+    time TIMESTAMPTZ NOT NULL,
+    host VARCHAR(50),
+    cpu_usage FLOAT,
+    memory_usage FLOAT,
+    disk_io FLOAT
+);
+
+SELECT create_hypertable('metrics', 'time');
+
+-- Insert works exactly like normal PostgreSQL
+INSERT INTO metrics VALUES
+(NOW(), 'web-01', 72.3, 84.1, 12.5),
+(NOW(), 'web-02', 45.8, 62.4, 8.2);
+
+-- Time-bucket aggregation (unique to TimescaleDB)
+SELECT
+    time_bucket('5 minutes', time) AS bucket,
+    host,
+    AVG(cpu_usage) AS avg_cpu,
+    MAX(cpu_usage) AS peak_cpu
+FROM metrics
+WHERE time > NOW() - INTERVAL '1 hour'
+GROUP BY bucket, host
+ORDER BY bucket DESC;
+
+-- Continuous aggregates (materialized, auto-refreshed)
+CREATE MATERIALIZED VIEW hourly_metrics
+WITH (timescaledb.continuous) AS
+SELECT
+    time_bucket('1 hour', time) AS hour,
+    host,
+    AVG(cpu_usage) AS avg_cpu,
+    percentile_cont(0.95) WITHIN GROUP (ORDER BY cpu_usage) AS p95_cpu
+FROM metrics
+GROUP BY hour, host;
+
+-- Data retention policy (auto-delete data older than 90 days)
+SELECT add_retention_policy('metrics', INTERVAL '90 days');
+```
+
+### InfluxDB
+
+InfluxDB uses a custom query language (Flux) optimized for time-series operations:
+
+```flux
+from(bucket: "monitoring")
+  |> range(start: -1h)
+  |> filter(fn: (r) => r._measurement == "cpu" and r.host == "web-01")
+  |> aggregateWindow(every: 5m, fn: mean)
+  |> yield()
+```
+
+### Choosing a Time-Series Database
+
+| Database | Best for | Query language | Deployment |
+|----------|----------|----------------|------------|
+| TimescaleDB | Teams already on PostgreSQL | SQL (full) | Extension (self-host or cloud) |
+| InfluxDB | Metrics/monitoring pipelines | Flux / InfluxQL | Standalone / Cloud |
+| QuestDB | Ultra-low-latency ingestion | SQL subset | Standalone |
+| ClickHouse | Analytics on event data | SQL (extended) | Standalone / Cloud |
+| Prometheus | Pull-based metrics collection | PromQL | Standalone (with remote storage) |
+
+## Vector Databases
+
+Vector databases store high-dimensional embeddings and support similarity search. They power semantic search, recommendation systems, RAG (Retrieval-Augmented Generation), and image retrieval.
+
+### How Vector Search Works
+
+Traditional databases find exact matches. Vector databases find the *nearest neighbors* in embedding space:
+
+```text
+Query: "How to deploy a Python app?"
+                                        Cosine similarity
+Embedding → [0.23, -0.14, 0.87, ...]  ─────────────────→  Top-K results
+                                        0.94: "Deploying Flask to production"
+                                        0.91: "Python app Docker guide"
+                                        0.87: "CI/CD pipeline setup"
+```
+
+### Index Types
+
+| Algorithm | Speed | Accuracy | Memory | Best for |
+|-----------|-------|----------|--------|----------|
+| Flat (brute force) | Slow | 100% | Low | <100K vectors |
+| IVF (Inverted File) | Fast | ~95% | Medium | 100K-10M vectors |
+| HNSW (Hierarchical NSW) | Very fast | ~98% | High | General purpose |
+| PQ (Product Quantization) | Fast | ~90% | Very low | Billions of vectors |
+
+### Milvus / Zilliz
+
+```python
+from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType
+
+# Connect
+connections.connect(host="localhost", port="19530")
+
+# Define schema
+fields = [
+    FieldSchema("id", DataType.INT64, is_primary=True),
+    FieldSchema("text", DataType.VARCHAR, max_length=1000),
+    FieldSchema("embedding", DataType.FLOAT_VECTOR, dim=1536),
+]
+schema = CollectionSchema(fields)
+collection = Collection("documents", schema)
+
+# Create HNSW index
+collection.create_index("embedding", {
+    "index_type": "HNSW",
+    "metric_type": "COSINE",
+    "params": {"M": 16, "efConstruction": 200},
+})
+
+# Search
+results = collection.search(
+    data=[query_embedding],  # your 1536-dim vector
+    anns_field="embedding",
+    param={"metric_type": "COSINE", "params": {"ef": 100}},
+    limit=10,
+    output_fields=["text"],
+)
+```
+
+### pgvector (PostgreSQL Extension)
+
+For teams already on PostgreSQL who want vector search without a new database:
+
+```sql
+-- Enable extension
+CREATE EXTENSION vector;
+
+-- Table with vector column
+CREATE TABLE documents (
+    id SERIAL PRIMARY KEY,
+    content TEXT,
+    embedding vector(1536)  -- OpenAI ada-002 dimension
+);
+
+-- HNSW index for fast similarity search
+CREATE INDEX ON documents
+USING hnsw (embedding vector_cosine_ops)
+WITH (m = 16, ef_construction = 200);
+
+-- Semantic search
+SELECT id, content, 1 - (embedding <=> $1) AS similarity
+FROM documents
+ORDER BY embedding <=> $1  -- <=> is cosine distance
+LIMIT 10;
+```
+
+### When to Use a Dedicated Vector DB vs pgvector
+
+| Factor | pgvector | Dedicated (Milvus, Pinecone, Qdrant) |
+|--------|----------|---------------------------------------|
+| Vector count | <5M | Millions to billions |
+| Existing stack | Already on PostgreSQL | Greenfield or specialized |
+| Hybrid queries | SQL + vector in one query | Separate systems |
+| Throughput | Moderate (~1K QPS) | High (~100K QPS) |
+| Filtering | Full SQL WHERE clause | Metadata filtering (limited) |
+| Operational cost | Zero (extension) | New infrastructure |
+
+## Multi-Model Databases
+
+Some databases support multiple data models in a single system, eliminating the need to synchronize between separate databases.
+
+### Examples
+
+| Database | Models supported | Use case |
+|----------|-----------------|----------|
+| PostgreSQL + extensions | Relational, Document (jsonb), Vector (pgvector), Time-series (TimescaleDB), Graph (Apache AGE) | "Everything database" for medium scale |
+| ArangoDB | Document, Graph, Key-Value | Applications needing graph + document |
+| SurrealDB | Document, Graph, Relational | New projects wanting flexibility |
+| FaunaDB | Document, Relational, Temporal | Serverless, multi-region |
+| CosmosDB | Document, Graph, Key-Value, Column-family, Table | Azure ecosystem |
+
+### The PostgreSQL Ecosystem Approach
+
+Instead of learning a new database, extend PostgreSQL:
+
+```sql
+-- Document model (jsonb)
+CREATE TABLE products (id SERIAL PRIMARY KEY, data JSONB);
+
+-- Time-series (TimescaleDB)
+CREATE TABLE metrics (time TIMESTAMPTZ, value FLOAT);
+SELECT create_hypertable('metrics', 'time');
+
+-- Vector search (pgvector)
+CREATE TABLE embeddings (id INT, vec vector(768));
+
+-- Graph queries (Apache AGE)
+LOAD 'age';
+SELECT * FROM cypher('social', $$ MATCH (a)-[:FOLLOWS]->(b) RETURN a, b $$) AS (a agtype, b agtype);
+
+-- Full-text search (built-in)
+CREATE INDEX idx_fts ON articles USING GIN (to_tsvector('english', content));
+SELECT * FROM articles WHERE to_tsvector('english', content) @@ to_tsquery('database & vector');
+```
+
+One deployment, one backup strategy, one connection pool, full ACID across all models. The tradeoff: each extension is competent but not best-in-class at extreme scale.
+
 ## The CAP Theorem
 
 The CAP theorem states that a distributed system can provide at most two of these three guarantees:

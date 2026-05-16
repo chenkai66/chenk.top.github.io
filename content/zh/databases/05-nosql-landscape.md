@@ -457,6 +457,214 @@ RETURN DISTINCT fofof.name
 // 性能取决于结果数量，而非图的总规模。
 ```
 
+## 时序数据库
+
+时序数据——监控指标、IoT 传感器读数、金融行情、应用日志——具有独特的访问模式：写多读少、只追加、查询几乎总是按时间范围过滤、旧数据可降采样或过期。
+
+### 为什么不直接用 PostgreSQL？
+
+PostgreSQL *可以*存储时序数据，但在规模化时遇到困难：
+
+| 挑战 | RDBMS 方式 | 时序数据库方式 |
+|------|-----------|--------------|
+| 数十亿行 | 表膨胀，vacuum 缓慢 | 按时间分区，自动保留策略 |
+| 写入吞吐 | WAL 瓶颈（>10万行/秒） | 批量追加，LSM/列式 |
+| 范围查询 | B-tree 逐行寻址 | 时间有序块顺序扫描 |
+| 数据保留 | 手动 DELETE + vacuum | 自动 TTL 策略 |
+| 聚合 | 全表扫描或物化视图 | 预计算汇总 |
+
+### TimescaleDB（PostgreSQL 扩展）
+
+TimescaleDB 为 PostgreSQL 添加时序超能力——保持完整 SQL 兼容性：
+
+```sql
+-- 创建超表（按时间自动分区）
+CREATE TABLE metrics (
+    time TIMESTAMPTZ NOT NULL,
+    host VARCHAR(50),
+    cpu_usage FLOAT,
+    memory_usage FLOAT,
+    disk_io FLOAT
+);
+
+SELECT create_hypertable('metrics', 'time');
+
+-- 时间桶聚合（TimescaleDB 特有）
+SELECT
+    time_bucket('5 minutes', time) AS bucket,
+    host,
+    AVG(cpu_usage) AS avg_cpu,
+    MAX(cpu_usage) AS peak_cpu
+FROM metrics
+WHERE time > NOW() - INTERVAL '1 hour'
+GROUP BY bucket, host
+ORDER BY bucket DESC;
+
+-- 连续聚合（物化，自动刷新）
+CREATE MATERIALIZED VIEW hourly_metrics
+WITH (timescaledb.continuous) AS
+SELECT
+    time_bucket('1 hour', time) AS hour,
+    host,
+    AVG(cpu_usage) AS avg_cpu,
+    percentile_cont(0.95) WITHIN GROUP (ORDER BY cpu_usage) AS p95_cpu
+FROM metrics
+GROUP BY hour, host;
+
+-- 数据保留策略（自动删除 90 天前的数据）
+SELECT add_retention_policy('metrics', INTERVAL '90 days');
+```
+
+### InfluxDB
+
+InfluxDB 使用为时序优化的查询语言 Flux：
+
+```flux
+from(bucket: "monitoring")
+  |> range(start: -1h)
+  |> filter(fn: (r) => r._measurement == "cpu" and r.host == "web-01")
+  |> aggregateWindow(every: 5m, fn: mean)
+  |> yield()
+```
+
+### 时序数据库选型
+
+| 数据库 | 最佳场景 | 查询语言 | 部署方式 |
+|--------|----------|----------|----------|
+| TimescaleDB | 已在用 PostgreSQL 的团队 | SQL（完整） | 扩展（自建或云） |
+| InfluxDB | 监控指标管道 | Flux / InfluxQL | 独立 / 云 |
+| QuestDB | 超低延迟摄入 | SQL 子集 | 独立部署 |
+| ClickHouse | 事件数据分析 | SQL（扩展） | 独立 / 云 |
+| Prometheus | 拉取式指标采集 | PromQL | 独立（配远端存储） |
+
+## 向量数据库
+
+向量数据库存储高维嵌入向量并支持相似度搜索。它们驱动语义搜索、推荐系统、RAG（检索增强生成）和图像检索。
+
+### 向量搜索工作原理
+
+传统数据库查找精确匹配。向量数据库查找嵌入空间中的*最近邻*：
+
+```text
+查询: "如何部署 Python 应用？"
+                                          余弦相似度
+嵌入 → [0.23, -0.14, 0.87, ...]  ──────────────→  Top-K 结果
+                                        0.94: "Flask 生产部署指南"
+                                        0.91: "Python 应用 Docker 教程"
+                                        0.87: "CI/CD 流水线配置"
+```
+
+### 索引类型
+
+| 算法 | 速度 | 精度 | 内存 | 适用 |
+|------|------|------|------|------|
+| Flat（暴力搜索） | 慢 | 100% | 低 | <10万向量 |
+| IVF（倒排索引） | 快 | ~95% | 中 | 10万-1000万 |
+| HNSW（分层可导航小世界） | 很快 | ~98% | 高 | 通用场景 |
+| PQ（乘积量化） | 快 | ~90% | 很低 | 十亿级向量 |
+
+### Milvus / Zilliz
+
+```python
+from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType
+
+connections.connect(host="localhost", port="19530")
+
+fields = [
+    FieldSchema("id", DataType.INT64, is_primary=True),
+    FieldSchema("text", DataType.VARCHAR, max_length=1000),
+    FieldSchema("embedding", DataType.FLOAT_VECTOR, dim=1536),
+]
+schema = CollectionSchema(fields)
+collection = Collection("documents", schema)
+
+# 创建 HNSW 索引
+collection.create_index("embedding", {
+    "index_type": "HNSW",
+    "metric_type": "COSINE",
+    "params": {"M": 16, "efConstruction": 200},
+})
+
+# 搜索
+results = collection.search(
+    data=[query_embedding],
+    anns_field="embedding",
+    param={"metric_type": "COSINE", "params": {"ef": 100}},
+    limit=10,
+    output_fields=["text"],
+)
+```
+
+### pgvector（PostgreSQL 扩展）
+
+已在用 PostgreSQL 的团队想要向量搜索但不想引入新数据库时：
+
+```sql
+CREATE EXTENSION vector;
+
+CREATE TABLE documents (
+    id SERIAL PRIMARY KEY,
+    content TEXT,
+    embedding vector(1536)
+);
+
+-- HNSW 索引
+CREATE INDEX ON documents
+USING hnsw (embedding vector_cosine_ops)
+WITH (m = 16, ef_construction = 200);
+
+-- 语义搜索
+SELECT id, content, 1 - (embedding <=> $1) AS similarity
+FROM documents
+ORDER BY embedding <=> $1
+LIMIT 10;
+```
+
+### 专用向量数据库 vs pgvector
+
+| 因素 | pgvector | 专用（Milvus, Pinecone, Qdrant） |
+|------|----------|----------------------------------|
+| 向量数量 | <500万 | 百万至数十亿 |
+| 已有架构 | 已在用 PostgreSQL | 全新项目或专用场景 |
+| 混合查询 | SQL + 向量一条查询 | 分离系统 |
+| 吞吐量 | 中等（~1K QPS） | 高（~100K QPS） |
+| 过滤 | 完整 SQL WHERE | 元数据过滤（有限） |
+| 运维成本 | 零（扩展） | 新增基础设施 |
+
+## 多模型数据库
+
+部分数据库在单一系统中支持多种数据模型，免去多个数据库之间的同步。
+
+### 示例
+
+| 数据库 | 支持的模型 | 适用场景 |
+|--------|-----------|----------|
+| PostgreSQL + 扩展 | 关系、文档(jsonb)、向量(pgvector)、时序(TimescaleDB)、图(AGE) | 中等规模的"万能数据库" |
+| ArangoDB | 文档、图、键值 | 需要图+文档的应用 |
+| SurrealDB | 文档、图、关系 | 追求灵活性的新项目 |
+| CosmosDB | 文档、图、键值、列族、表 | Azure 生态 |
+
+### PostgreSQL 生态方式
+
+不必学习新数据库，扩展 PostgreSQL 即可：
+
+```sql
+-- 文档模型
+CREATE TABLE products (id SERIAL PRIMARY KEY, data JSONB);
+
+-- 时序（TimescaleDB）
+CREATE TABLE metrics (time TIMESTAMPTZ, value FLOAT);
+SELECT create_hypertable('metrics', 'time');
+
+-- 向量搜索（pgvector）
+CREATE TABLE embeddings (id INT, vec vector(768));
+
+-- 全文搜索（内置）
+CREATE INDEX idx_fts ON articles USING GIN (to_tsvector('english', content));
+```
+
+一套部署、一套备份策略、一个连接池、所有模型完整 ACID。代价：每个扩展称职但在极端规模下非同类最强。
+
 ## CAP 定理
 
 CAP 定理指出：一个分布式系统最多只能同时满足以下三个保证中的两项：
