@@ -625,6 +625,243 @@ Downloaded: data.csv
 
 同时，`python -m my_downloader` 也能运行，这得益于 `__main__.py` 的存在。
 
+## Monorepo：一个仓库管理多个包
+
+项目壮大后，往往会衍生出多个相关包：核心库、CLI 工具、Web API、公共工具集。Monorepo 将它们放在一起，共享 CI 并同步发版。
+
+### Monorepo 布局
+
+```text
+my-platform/
+  packages/
+    core/
+      src/core/
+        __init__.py
+        models.py
+        database.py
+      pyproject.toml
+      tests/
+    api/
+      src/api/
+        __init__.py
+        routes.py
+        middleware.py
+      pyproject.toml
+      tests/
+    cli/
+      src/cli/
+        __init__.py
+        commands.py
+      pyproject.toml
+      tests/
+  pyproject.toml          # 工作区根配置（uv/hatch）
+  uv.lock                 # 所有包共用一个锁文件
+  .python-version
+```
+
+### uv 工作区
+
+uv 原生支持工作区。根 `pyproject.toml` 声明成员包：
+
+```toml
+# 根 pyproject.toml
+[tool.uv.workspace]
+members = ["packages/*"]
+```
+
+每个成员有自己的 `pyproject.toml`，可交叉引用兄弟包：
+
+```toml
+# packages/api/pyproject.toml
+[project]
+name = "my-platform-api"
+version = "0.1.0"
+dependencies = [
+    "my-platform-core",  # 引用兄弟包
+    "fastapi>=0.100",
+]
+
+[tool.uv.sources]
+my-platform-core = { workspace = true }
+```
+
+命令在工作区层级运作：
+
+```bash
+# 安装工作区所有包
+$ uv sync
+
+# 为指定包运行测试
+$ uv run --package my-platform-api pytest
+
+# 为指定包添加依赖
+$ uv add --package my-platform-cli typer
+```
+
+### 何时选择 Monorepo vs 独立仓库
+
+| 因素 | Monorepo | 独立仓库 |
+|------|----------|----------|
+| 团队规模 | 中小型（1-10 人） | 大型（多个独立团队） |
+| 发版节奏 | 各包同步发版 | 独立发版周期 |
+| 共享代码 | 大量跨包引用 | 耦合度低 |
+| CI 复杂度 | 一条流水线测试全部 | 各仓独立 CI，单个更简单 |
+| 版本管理 | 同步版本号 | 独立语义化版本 |
+| 依赖管理 | 单一锁文件 | 各仓独立锁文件 |
+
+## 命名空间包
+
+命名空间包允许多个独立发行版共享同一导入路径。常见于插件系统和大型组织。
+
+### 隐式命名空间包（PEP 420）
+
+Python 3.3 起，任何没有 `__init__.py` 的目录即为命名空间包：
+
+```text
+# 包 A（可独立安装）
+company-auth/
+  src/
+    company/        # 没有 __init__.py
+      auth/
+        __init__.py
+        login.py
+
+# 包 B（可独立安装）
+company-billing/
+  src/
+    company/        # 没有 __init__.py
+      billing/
+        __init__.py
+        invoice.py
+```
+
+两个包都安装后：
+
+```python
+from company.auth import login
+from company.billing import invoice
+```
+
+`company` 命名空间是共享的，无需任何一方"拥有"它。
+
+### 命名空间包规则
+
+1. 共享目录（`company/`）**不能**有 `__init__.py`
+2. 子包（`auth/`、`billing/`）**必须**有 `__init__.py`
+3. 各发行版独立安装到同一命名空间
+4. 使用 `find_namespace_packages()` 或配置 `[tool.setuptools.packages.find]`：
+
+```toml
+# company-auth 的 pyproject.toml
+[tool.setuptools.packages.find]
+where = ["src"]
+```
+
+### 基于 Entry Points 的插件架构
+
+命名空间包配合 entry points 可实现可发现的插件系统：
+
+```toml
+# 插件包的 pyproject.toml
+[project.entry-points."my_app.plugins"]
+csv_export = "my_plugin_csv:CsvExporter"
+json_export = "my_plugin_json:JsonExporter"
+```
+
+```python
+# 主应用：发现所有已安装插件
+from importlib.metadata import entry_points
+
+def load_plugins():
+    plugins = {}
+    for ep in entry_points(group="my_app.plugins"):
+        plugins[ep.name] = ep.load()
+    return plugins
+
+# 返回: {"csv_export": <class CsvExporter>, "json_export": <class JsonExporter>}
+```
+
+用户通过 pip 安装插件，主应用无需在构建时知道它们的存在。
+
+## Typer：现代 CLI（类型注解 → 命令行）
+
+[Typer](https://typer.tiangolo.com/) 从类型注解自动生成 CLI 接口。无需装饰器，无需参数解析样板代码：
+
+```python
+# src/my_tool/cli.py
+import typer
+from pathlib import Path
+from enum import Enum
+
+app = typer.Typer(help="文件处理工具箱")
+
+class Format(str, Enum):
+    json = "json"
+    csv = "csv"
+    parquet = "parquet"
+
+@app.command()
+def convert(
+    input_file: Path,
+    output_format: Format = Format.json,
+    verbose: bool = False,
+    limit: int = typer.Option(0, help="最大行数（0=不限）"),
+):
+    """将文件转换为另一种格式。"""
+    if verbose:
+        typer.echo(f"Converting {input_file} → {output_format.value}")
+    # ... 转换逻辑
+
+@app.command()
+def validate(
+    files: list[Path],
+    strict: bool = typer.Option(False, "--strict", "-s"),
+):
+    """验证一个或多个数据文件。"""
+    for f in files:
+        if not f.exists():
+            typer.echo(f"✗ {f}: not found", err=True)
+            raise typer.Exit(1)
+        typer.echo(f"✓ {f}: valid")
+
+if __name__ == "__main__":
+    app()
+```
+
+使用效果：
+
+```bash
+$ my-tool convert data.csv --output-format parquet --verbose
+Converting data.csv → parquet
+
+$ my-tool validate *.json --strict
+✓ users.json: valid
+✓ config.json: valid
+
+$ my-tool --help
+Usage: my-tool [OPTIONS] COMMAND [ARGS]...
+
+  文件处理工具箱
+
+Commands:
+  convert   将文件转换为另一种格式。
+  validate  验证一个或多个数据文件。
+```
+
+### argparse vs click vs Typer 对比
+
+| 特性 | argparse | click | Typer |
+|------|----------|-------|-------|
+| 标准库 | 是 | 否 | 否 |
+| 类型注解驱动 | 否 | 否 | 是（核心理念） |
+| 子命令 | 配置繁琐 | `@group.command()` | `app.command()` |
+| Shell 补全 | 需手写 | 插件支持 | 内置 |
+| 富文本输出 | 否 | 部分 | 是（通过 Rich） |
+| 学习曲线 | 中等 | 低 | 极低 |
+| 测试 | 手动解析 | CliRunner | CliRunner（继承自 click） |
+
+**建议：** 新 CLI 项目选 Typer（最简洁、最现代）。需要高级插件系统用 click。零依赖脚本用 argparse。
+
 ## 常见导入错误及修复方案
 
 | 错误信息 | 原因 | 解决方法 |

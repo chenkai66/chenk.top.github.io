@@ -631,6 +631,243 @@ Downloaded: data.csv
 
 And `python -m my_downloader` also works because of `__main__.py`.
 
+## Monorepo: Multiple Packages in One Repository
+
+As projects grow, you often end up with multiple related packages: a core library, a CLI tool, a web API, and shared utilities. A monorepo keeps them together with shared CI and synchronized releases.
+
+### Monorepo Layout
+
+```text
+my-platform/
+  packages/
+    core/
+      src/core/
+        __init__.py
+        models.py
+        database.py
+      pyproject.toml
+      tests/
+    api/
+      src/api/
+        __init__.py
+        routes.py
+        middleware.py
+      pyproject.toml
+      tests/
+    cli/
+      src/cli/
+        __init__.py
+        commands.py
+      pyproject.toml
+      tests/
+  pyproject.toml          # workspace root (uv/hatch)
+  uv.lock                 # single lockfile for all packages
+  .python-version
+```
+
+### uv Workspaces
+
+uv supports workspaces natively. The root `pyproject.toml` declares member packages:
+
+```toml
+# Root pyproject.toml
+[tool.uv.workspace]
+members = ["packages/*"]
+```
+
+Each member has its own `pyproject.toml` with cross-references:
+
+```toml
+# packages/api/pyproject.toml
+[project]
+name = "my-platform-api"
+version = "0.1.0"
+dependencies = [
+    "my-platform-core",  # references sibling package
+    "fastapi>=0.100",
+]
+
+[tool.uv.sources]
+my-platform-core = { workspace = true }
+```
+
+Commands work at the workspace level:
+
+```bash
+# Install all packages in the workspace
+$ uv sync
+
+# Run tests for one package
+$ uv run --package my-platform-api pytest
+
+# Add a dependency to a specific package
+$ uv add --package my-platform-cli typer
+```
+
+### When to Use a Monorepo vs Separate Repos
+
+| Factor | Monorepo | Separate repos |
+|--------|----------|----------------|
+| Team size | Small-medium (1-10 devs) | Large (many independent teams) |
+| Release cadence | Packages released together | Independent release cycles |
+| Shared code | Heavy cross-package imports | Minimal coupling |
+| CI complexity | One pipeline tests everything | Per-repo CI, simpler individually |
+| Version management | Synchronized versions | Independent semver |
+| Dependency management | Single lockfile | Per-repo lockfiles |
+
+## Namespace Packages
+
+Namespace packages allow multiple distributions to contribute to the same import path. This is common in plugin systems and large organizations.
+
+### Implicit Namespace Packages (PEP 420)
+
+Since Python 3.3, any directory without `__init__.py` is a namespace package:
+
+```text
+# Package A (installable separately)
+company-auth/
+  src/
+    company/        # NO __init__.py
+      auth/
+        __init__.py
+        login.py
+
+# Package B (installable separately)
+company-billing/
+  src/
+    company/        # NO __init__.py
+      billing/
+        __init__.py
+        invoice.py
+```
+
+After installing both:
+
+```python
+from company.auth import login
+from company.billing import invoice
+```
+
+The `company` namespace is shared without either package "owning" it.
+
+### Rules for Namespace Packages
+
+1. The shared directory (`company/`) must **not** have `__init__.py`
+2. Sub-packages (`auth/`, `billing/`) **must** have `__init__.py`
+3. Each distribution installs into the same namespace independently
+4. Use `find_namespace_packages()` or configure `[tool.setuptools.packages.find]`:
+
+```toml
+# pyproject.toml for company-auth
+[tool.setuptools.packages.find]
+where = ["src"]
+```
+
+### Plugin Architecture with Entry Points
+
+Namespace packages work well with entry points for discoverable plugins:
+
+```toml
+# In plugin package's pyproject.toml
+[project.entry-points."my_app.plugins"]
+csv_export = "my_plugin_csv:CsvExporter"
+json_export = "my_plugin_json:JsonExporter"
+```
+
+```python
+# In the main application: discover all installed plugins
+from importlib.metadata import entry_points
+
+def load_plugins():
+    plugins = {}
+    for ep in entry_points(group="my_app.plugins"):
+        plugins[ep.name] = ep.load()
+    return plugins
+
+# Returns: {"csv_export": <class CsvExporter>, "json_export": <class JsonExporter>}
+```
+
+This pattern lets users install plugins via pip without the main application knowing about them at build time.
+
+## Typer: Modern CLI (Type Hints → CLI)
+
+[Typer](https://typer.tiangolo.com/) generates CLI interfaces from type annotations. No decorators, no argument parsing boilerplate:
+
+```python
+# src/my_tool/cli.py
+import typer
+from pathlib import Path
+from enum import Enum
+
+app = typer.Typer(help="File processing toolkit")
+
+class Format(str, Enum):
+    json = "json"
+    csv = "csv"
+    parquet = "parquet"
+
+@app.command()
+def convert(
+    input_file: Path,
+    output_format: Format = Format.json,
+    verbose: bool = False,
+    limit: int = typer.Option(0, help="Max rows (0=unlimited)"),
+):
+    """Convert a file to another format."""
+    if verbose:
+        typer.echo(f"Converting {input_file} → {output_format.value}")
+    # ... conversion logic
+
+@app.command()
+def validate(
+    files: list[Path],
+    strict: bool = typer.Option(False, "--strict", "-s"),
+):
+    """Validate one or more data files."""
+    for f in files:
+        if not f.exists():
+            typer.echo(f"✗ {f}: not found", err=True)
+            raise typer.Exit(1)
+        typer.echo(f"✓ {f}: valid")
+
+if __name__ == "__main__":
+    app()
+```
+
+Usage:
+
+```bash
+$ my-tool convert data.csv --output-format parquet --verbose
+Converting data.csv → parquet
+
+$ my-tool validate *.json --strict
+✓ users.json: valid
+✓ config.json: valid
+
+$ my-tool --help
+Usage: my-tool [OPTIONS] COMMAND [ARGS]...
+
+  File processing toolkit
+
+Commands:
+  convert   Convert a file to another format.
+  validate  Validate one or more data files.
+```
+
+### argparse vs click vs Typer
+
+| Feature | argparse | click | Typer |
+|---------|----------|-------|-------|
+| Standard library | Yes | No | No |
+| Type annotations | No | No | Yes (core concept) |
+| Subcommands | Verbose setup | `@group.command()` | `app.command()` |
+| Shell completion | Manual | Plugin | Built-in |
+| Rich output | No | Partial | Yes (via Rich) |
+| Learning curve | Medium | Low | Very low |
+| Testing | Manual parsing | CliRunner | CliRunner (inherited) |
+
+**Recommendation:** Use Typer for new CLIs (simplest, most modern). Use click if you need advanced plugin systems. Use argparse only for zero-dependency scripts.
+
 ## Common Import Errors and Fixes
 
 | Error | Cause | Fix |
