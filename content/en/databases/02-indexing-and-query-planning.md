@@ -519,6 +519,153 @@ CREATE INDEX idx_events_timerange ON events USING gist (time_range);
 | GiST | Geometric, range, nearest-neighbor | `<<`, `>>`, `&&`, `@>`, `<->` |
 | BRIN | Large, naturally ordered tables | `<`, `>`, `=` (with reduced precision) |
 
+## BRIN Indexes: Block Range Indexes
+
+BRIN indexes are tiny indexes for naturally ordered data (timestamps, auto-incrementing IDs). Instead of indexing every row, they store min/max values per block range (typically 128 pages).
+
+### How BRIN Works
+
+```text
+Block range 1 (pages 0-127):   min_date = 2024-01-01, max_date = 2024-01-15
+Block range 2 (pages 128-255): min_date = 2024-01-15, max_date = 2024-01-31
+Block range 3 (pages 256-383): min_date = 2024-02-01, max_date = 2024-02-14
+...
+```
+
+When you query `WHERE date > '2024-02-01'`, PostgreSQL skips entire block ranges whose max_date is before the threshold.
+
+```sql
+-- Create BRIN index (orders inserted roughly in time order)
+CREATE INDEX idx_orders_created_brin ON orders
+USING BRIN (created_at) WITH (pages_per_range = 64);
+
+-- Compare sizes
+SELECT pg_size_pretty(pg_relation_size('idx_orders_created_brin')) AS brin_size;
+-- Result: 48 kB (vs 2.1 GB for equivalent B-tree on 100M rows)
+```
+
+### When BRIN Excels vs Fails
+
+| Condition | BRIN performance | B-tree performance |
+|-----------|-----------------|-------------------|
+| Data physically sorted by index column | Excellent (skip entire ranges) | Good |
+| Data randomly ordered | Terrible (every range matches) | Good |
+| Table size 100M+ rows | ~1000x smaller index | Works but huge index |
+| Point lookups (WHERE id = X) | Slow (scan matching ranges) | Fast (single path) |
+| Range scans on sorted data | Fast | Fast |
+
+**Rule:** BRIN works when correlation between row position and column value is high. Check with:
+
+```sql
+SELECT correlation FROM pg_stats
+WHERE tablename = 'orders' AND attname = 'created_at';
+-- Result: 0.98 → excellent for BRIN. Below 0.5 → don't bother
+```
+
+## Bloom Filters in Databases
+
+Bloom filters answer "is this element possibly in the set?" with zero false negatives and tunable false positive rate. Databases use them to avoid unnecessary disk reads.
+
+### Where Bloom Filters Appear
+
+| Database | Usage |
+|----------|-------|
+| PostgreSQL (bloom extension) | Multi-column equality filters |
+| RocksDB / LevelDB | Skip SSTable files that can't contain the key |
+| Cassandra | Skip SSTables during reads |
+| HBase | Skip HFiles |
+| Parquet files | Skip row groups |
+
+### PostgreSQL Bloom Index
+
+```sql
+CREATE EXTENSION bloom;
+
+-- Bloom index: efficient for multi-column equality queries
+-- where you don't know which columns will be queried
+CREATE INDEX idx_logs_bloom ON logs USING bloom (
+    user_id, session_id, action, status_code
+) WITH (length=80, col1=2, col2=2, col3=4, col4=2);
+
+-- This single index accelerates ANY combination:
+SELECT * FROM logs WHERE user_id = 42 AND status_code = 500;
+SELECT * FROM logs WHERE action = 'login' AND session_id = 'abc';
+SELECT * FROM logs WHERE user_id = 42;
+```
+
+A B-tree composite index only helps queries that use a prefix of the index columns. A bloom index helps with any combination, at the cost of higher false positive rate.
+
+## Index Maintenance and Bloat
+
+Indexes degrade over time. Dead tuples from updates/deletes leave holes. Understanding and managing bloat is essential for production databases.
+
+### Detecting Index Bloat (PostgreSQL)
+
+```sql
+-- Check index bloat using pgstattuple extension
+CREATE EXTENSION pgstattuple;
+
+SELECT
+    indexrelname AS index_name,
+    pg_size_pretty(pg_relation_size(indexrelid)) AS index_size,
+    idx_scan AS scans,
+    idx_tup_read AS tuples_read
+FROM pg_stat_user_indexes
+WHERE schemaname = 'public'
+ORDER BY pg_relation_size(indexrelid) DESC
+LIMIT 10;
+
+-- Detailed bloat estimate
+SELECT * FROM pgstatindex('idx_orders_user_id');
+-- avg_leaf_density < 50% → significant bloat
+```
+
+### REINDEX
+
+```sql
+-- Rebuild a bloated index (locks the table briefly)
+REINDEX INDEX idx_orders_user_id;
+
+-- CONCURRENTLY: rebuild without locking (PostgreSQL 12+)
+REINDEX INDEX CONCURRENTLY idx_orders_user_id;
+
+-- Rebuild ALL indexes on a table
+REINDEX TABLE CONCURRENTLY orders;
+```
+
+### Unused Index Detection
+
+```sql
+-- Find indexes that haven't been scanned since last stats reset
+SELECT
+    schemaname, tablename, indexname,
+    pg_size_pretty(pg_relation_size(indexrelid)) AS size,
+    idx_scan AS scans_since_reset
+FROM pg_stat_user_indexes
+WHERE idx_scan = 0
+  AND pg_relation_size(indexrelid) > 1048576  -- > 1MB
+ORDER BY pg_relation_size(indexrelid) DESC;
+```
+
+Every unused index consumes disk space and slows down every INSERT/UPDATE/DELETE. Drop them aggressively (after verifying with production traffic).
+
+### Automated Index Recommendations
+
+```sql
+-- PostgreSQL: pg_qualstats tracks predicate usage
+CREATE EXTENSION pg_qualstats;
+
+-- After collecting data for a week, find missing indexes:
+SELECT
+    v.relname AS table,
+    v.attnames AS columns,
+    v.execution_count,
+    v.queryid
+FROM pg_qualstats_indexes_recommandations() v
+ORDER BY v.execution_count DESC
+LIMIT 20;
+```
+
 ## Practical Index Design Workflow
 
 When you have a slow query, follow this process:

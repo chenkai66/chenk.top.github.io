@@ -499,6 +499,126 @@ CREATE INDEX idx_events_timerange ON events USING gist (time_range);
 | GiST | 几何、区间、最近邻 | `<<`, `>>`, `&&`, `@>`, `<->` |
 | BRIN | 大型、天然有序的表 | `<`, `>`, `=`（精度略降） |
 
+## BRIN 索引：块范围索引
+
+BRIN 索引是为自然有序数据（时间戳、自增 ID）设计的极小索引。它不索引每一行，而是存储每个块范围（通常 128 页）的最小/最大值。
+
+### BRIN 工作原理
+
+```text
+块范围 1 (第 0-127 页):   min_date = 2024-01-01, max_date = 2024-01-15
+块范围 2 (第 128-255 页): min_date = 2024-01-15, max_date = 2024-01-31
+块范围 3 (第 256-383 页): min_date = 2024-02-01, max_date = 2024-02-14
+```
+
+查询 `WHERE date > '2024-02-01'` 时，PostgreSQL 跳过 max_date 早于阈值的整个块范围。
+
+```sql
+-- 创建 BRIN 索引（订单大致按时间顺序插入）
+CREATE INDEX idx_orders_created_brin ON orders
+USING BRIN (created_at) WITH (pages_per_range = 64);
+
+-- 对比大小
+SELECT pg_size_pretty(pg_relation_size('idx_orders_created_brin')) AS brin_size;
+-- 结果: 48 kB（相比等效 B-tree 在 1 亿行上需要 2.1 GB）
+```
+
+### BRIN 适用 vs 不适用
+
+| 条件 | BRIN 表现 | B-tree 表现 |
+|------|----------|------------|
+| 数据物理上按索引列排序 | 优秀（跳过整个范围） | 良好 |
+| 数据随机排列 | 糟糕（每个范围都匹配） | 良好 |
+| 表超过 1 亿行 | 索引小约 1000 倍 | 可用但索引巨大 |
+| 点查询 (WHERE id = X) | 慢（扫描匹配范围） | 快（单路径） |
+
+**规则：** 行位置与列值的相关性高时 BRIN 才有效。用以下查询检查：
+
+```sql
+SELECT correlation FROM pg_stats
+WHERE tablename = 'orders' AND attname = 'created_at';
+-- 结果: 0.98 → 非常适合 BRIN。低于 0.5 → 不要用
+```
+
+## 数据库中的布隆过滤器
+
+布隆过滤器回答"这个元素可能在集合中吗？"——零假阴性，可调假阳性率。数据库用它避免不必要的磁盘读取。
+
+### 布隆过滤器的应用
+
+| 数据库 | 用途 |
+|--------|------|
+| PostgreSQL (bloom 扩展) | 多列等值过滤 |
+| RocksDB / LevelDB | 跳过不可能包含目标键的 SSTable |
+| Cassandra | 读取时跳过 SSTable |
+| Parquet 文件 | 跳过行组 |
+
+### PostgreSQL Bloom 索引
+
+```sql
+CREATE EXTENSION bloom;
+
+-- Bloom 索引：多列等值查询的高效方案
+CREATE INDEX idx_logs_bloom ON logs USING bloom (
+    user_id, session_id, action, status_code
+) WITH (length=80, col1=2, col2=2, col3=4, col4=2);
+
+-- 这单个索引加速任意列组合：
+SELECT * FROM logs WHERE user_id = 42 AND status_code = 500;
+SELECT * FROM logs WHERE action = 'login' AND session_id = 'abc';
+```
+
+B-tree 复合索引只对使用索引列前缀的查询有效。Bloom 索引对任何组合都有效，代价是更高的假阳性率。
+
+## 索引维护与膨胀
+
+索引随时间退化。更新/删除留下的死元组造成空洞。理解和管理膨胀是生产数据库的必备技能。
+
+### 检测索引膨胀（PostgreSQL）
+
+```sql
+CREATE EXTENSION pgstattuple;
+
+SELECT
+    indexrelname AS index_name,
+    pg_size_pretty(pg_relation_size(indexrelid)) AS index_size,
+    idx_scan AS scans
+FROM pg_stat_user_indexes
+WHERE schemaname = 'public'
+ORDER BY pg_relation_size(indexrelid) DESC
+LIMIT 10;
+
+-- 详细膨胀估算
+SELECT * FROM pgstatindex('idx_orders_user_id');
+-- avg_leaf_density < 50% → 严重膨胀
+```
+
+### REINDEX
+
+```sql
+-- 重建膨胀的索引（短暂锁表）
+REINDEX INDEX idx_orders_user_id;
+
+-- CONCURRENTLY：不锁表重建（PostgreSQL 12+）
+REINDEX INDEX CONCURRENTLY idx_orders_user_id;
+```
+
+### 未使用索引检测
+
+```sql
+-- 查找自上次统计重置以来未被扫描的索引
+SELECT
+    indexname,
+    pg_size_pretty(pg_relation_size(indexrelid)) AS size,
+    idx_scan AS scans_since_reset
+FROM pg_stat_user_indexes
+WHERE idx_scan = 0
+  AND pg_relation_size(indexrelid) > 1048576  -- > 1MB
+ORDER BY pg_relation_size(indexrelid) DESC;
+```
+
+每个未使用的索引占用磁盘空间并拖慢每个 INSERT/UPDATE/DELETE。验证生产流量后果断删除。
+
 ## 实用索引设计流程
 
 遇到慢查询时，请遵循以下流程：
