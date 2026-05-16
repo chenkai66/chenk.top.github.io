@@ -369,6 +369,410 @@ class OrderSaga:
                 raise SagaFailedError(f"Step failed: {e}")
 ```
 
+## 时钟同步与全局排序
+
+分布式事务需要对操作顺序达成一致。但分布式系统没有共享时钟——每个节点各自维护时钟，而且会漂移。本节解释生产系统如何解决排序问题。
+
+### 时钟问题
+
+```text
+节点 A 的时钟: 14:00:00.000
+节点 B 的时钟: 14:00:00.003  (快 3ms)
+节点 C 的时钟: 13:59:59.997  (慢 3ms)
+
+事务 T1 在节点 A 提交，时间戳 "14:00:00.001"
+事务 T2 在节点 B 提交，时间戳 "14:00:00.002"
+
+T1 真的发生在 T2 之前吗？仅凭时间戳无法判断。
+如果 A 的时钟偏慢，T2 可能实际上先提交的。
+```
+
+物理时钟不足以确定顺序。三种方案解决这个问题：
+
+### Lamport 时钟与向量时钟
+
+```text
+Lamport 时钟：单一计数器，每个事件递增
+  - 若事件 A 导致事件 B → L(A) < L(B)
+  - 但：L(A) < L(B) 不意味着 A 导致了 B（并发事件获得任意顺序）
+
+向量时钟：每个节点一个计数器，追踪因果历史
+  节点 A: [3, 1, 2]  → "看过自己 3 个事件，B 的 1 个，C 的 2 个"
+  节点 B: [2, 4, 2]  → "看过 A 的 2 个，自己 4 个事件，C 的 2 个"
+
+  比较：若 VA 的所有分量 ≤ VB → A 因果先于 B
+       若某些 VA[i] > VB[i] 且某些 VA[j] < VB[j] → 并发
+```
+
+向量时钟能实现因果一致性，但不提供全序。对于可串行化分布式事务，需要更强的机制。
+
+### 混合逻辑时钟（HLC）
+
+CockroachDB 和 YugabyteDB 使用 HLC——物理时间与逻辑计数器的组合：
+
+```text
+HLC = (physical_time, logical_counter)
+
+规则：
+1. 本地事件：hlc.physical = max(hlc.physical, wall_clock); hlc.logical = 0
+2. 发送消息：在消息中包含 hlc
+3. 收到消息：hlc.physical = max(local.physical, msg.physical, wall_clock)
+   若物理时间相等：hlc.logical = max(local.logical, msg.logical) + 1
+
+结果：HLC ≈ 物理时钟时间，但具有因果排序保证
+约束：HLC 始终在 max_clock_offset 内接近真实时间
+```
+
+```go
+// CockroachDB 的不确定性区间
+// 读取时，事务必须考虑其他节点在时钟不确定窗口内写入的值
+
+type ReadTimestamp struct {
+    ReadTS     hlc.Timestamp  // "我在此时间开始读"
+    MaxOffset  time.Duration  // "时钟可能偏差这么多"
+    // 不确定性区间：[ReadTS, ReadTS + MaxOffset]
+    // 此区间内的值可能在我们之前写入
+}
+
+// 若在不确定性区间内发现值：
+// 方案 1：推进读时间戳（以更高 ts 重启事务）
+// 方案 2：若写事务仍在进行中，等待它完成
+```
+
+CockroachDB 的时钟偏移默认值为 500ms。保持 NTP 紧凑（< 250ms）可减少事务重启。
+
+### Google Spanner 与 TrueTime
+
+Spanner 用硬件解决时钟问题：每个数据中心部署 GPS 接收器和原子钟，提供有界不确定性的时间 API。
+
+```text
+TrueTime API：
+  TT.now() → 返回区间 [earliest, latest]
+  TT.after(t) → 若 t 确定在过去则返回 true
+  TT.before(t) → 若 t 确定在未来则返回 true
+
+典型不确定性：ε ≈ 1-7ms（平均 ~4ms）
+  GPS + 原子钟同步将漂移保持在极小范围
+```
+
+Spanner 的提交协议使用 TrueTime 分配全局有意义的时间戳：
+
+```text
+Commit-wait 协议：
+  1. 事务 T 获取所有锁，执行写入
+  2. 协调者选择提交时间戳 s = TT.now().latest
+  3. 协调者等待直到 TT.after(s) 为 true
+     （最多等待 2ε ≈ 7ms，等不确定性过去）
+  4. 释放锁，响应客户端
+
+保证：若 T1 在 T2 开始之前提交（物理时间），
+     则 T1 的时间戳 < T2 的时间戳
+     → 外部一致性（线性一致）
+```
+
+```text
+为什么 commit-wait 有效：
+
+T1 在时间 t_commit 以 s1 = TT.now().latest 提交
+  → 真实提交时间 ≤ s1（因为 s1 是最晚可能时间）
+  → 等待直到 TT.after(s1)：真实时间现在确定 > s1
+
+T2 在时间 t_start > t_commit 开始（物理时间）
+  → T2 在某个 ≥ t_start 的时刻选取 s2 = TT.now().latest
+  → s2 ≥ t_start 时的真实时间 > s1（因为我们等待了）
+  → s1 < s2 有保证！
+```
+
+| 系统 | 时钟机制 | 不确定性 | 排序保证 |
+|------|---------|---------|---------|
+| Spanner | GPS + 原子钟（TrueTime） | 1-7ms | 外部一致性（线性一致） |
+| CockroachDB | NTP + HLC | ~250-500ms | 可串行化（非严格线性一致） |
+| YugabyteDB | NTP + HLC | 可配置 | 可串行化 |
+| TiDB | TSO（集中式时间戳预言机） | 0（单点） | 线性一致（但 TSO 是瓶颈） |
+
+### 实际影响
+
+```sql
+-- CockroachDB：检查时钟偏移健康状态
+SHOW CLUSTER SETTING server.clock.max_offset;  -- 默认 500ms
+
+-- 若时钟漂移超过 max_offset，节点会自行终止以保护正确性
+-- 监控所有节点的 NTP 偏移：
+-- $ chronyc tracking | grep "Last offset"
+
+-- Spanner：用户无需关心时钟问题，但要为此付费
+-- 只读事务可通过快照读避免 commit-wait：
+SELECT * FROM orders
+WHERE created_at > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 HOUR)
+-- Spanner 自动选择安全的读取时间戳
+```
+
+## 生产级 Saga 实现
+
+前面展示的 Saga 伪代码捕获了概念，但生产环境的 Saga 需要：持久化状态、幂等步骤、带退避的重试、超时处理和可观测性。以下是生产级模式。
+
+### 状态机设计
+
+```text
+Saga 状态：
+┌─────────┐     ┌──────────┐     ┌────────────┐     ┌───────────┐
+│ STARTED │────►│ RUNNING  │────►│ COMPLETING │────►│ COMPLETED │
+└─────────┘     └──────────┘     └────────────┘     └───────────┘
+                     │
+                     ▼
+               ┌──────────────┐     ┌────────────┐
+               │ COMPENSATING │────►│  FAILED    │
+               └──────────────┘     └────────────┘
+                     │
+                     ▼
+               ┌──────────────┐
+               │ COMP_FAILED  │  ← 需要人工介入
+               └──────────────┘
+```
+
+### Saga 状态数据库 Schema
+
+```sql
+CREATE TABLE sagas (
+    saga_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    saga_type VARCHAR(100) NOT NULL,      -- 'order_creation', 'payment_refund'
+    state VARCHAR(20) NOT NULL DEFAULT 'STARTED',
+    context JSONB NOT NULL DEFAULT '{}',  -- 步骤间共享数据
+    current_step INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deadline_at TIMESTAMPTZ,              -- 全局超时
+    error_message TEXT
+);
+
+CREATE TABLE saga_steps (
+    saga_id UUID REFERENCES sagas(saga_id),
+    step_index INT NOT NULL,
+    step_name VARCHAR(100) NOT NULL,
+    state VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    -- PENDING → EXECUTING → SUCCEEDED / FAILED
+    -- COMPENSATING → COMPENSATED / COMP_FAILED
+    request_payload JSONB,
+    response_payload JSONB,
+    attempts INT NOT NULL DEFAULT 0,
+    max_attempts INT NOT NULL DEFAULT 3,
+    last_attempted_at TIMESTAMPTZ,
+    idempotency_key UUID NOT NULL DEFAULT gen_random_uuid(),
+    PRIMARY KEY (saga_id, step_index)
+);
+
+CREATE INDEX idx_sagas_stuck ON sagas (state, updated_at)
+    WHERE state IN ('RUNNING', 'COMPENSATING');
+```
+
+### 编排器实现
+
+```python
+import asyncio
+import uuid
+from datetime import datetime, timedelta
+from dataclasses import dataclass
+from enum import Enum
+from typing import Callable, Any
+
+class StepState(Enum):
+    PENDING = "PENDING"
+    EXECUTING = "EXECUTING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    COMPENSATING = "COMPENSATING"
+    COMPENSATED = "COMPENSATED"
+
+@dataclass
+class SagaStepDef:
+    name: str
+    action: Callable  # async (context, idempotency_key) -> result
+    compensation: Callable  # async (context, idempotency_key) -> None
+    max_attempts: int = 3
+    timeout_seconds: int = 30
+
+class SagaOrchestrator:
+    def __init__(self, db_pool, steps: list[SagaStepDef]):
+        self.db = db_pool
+        self.steps = steps
+
+    async def execute(self, saga_type: str, initial_context: dict) -> str:
+        saga_id = str(uuid.uuid4())
+        async with self.db.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO sagas (saga_id, saga_type, state, context, deadline_at)
+                VALUES ($1, $2, 'RUNNING', $3, $4)
+            """, saga_id, saga_type, initial_context,
+                datetime.utcnow() + timedelta(minutes=5))
+
+            for i, step in enumerate(self.steps):
+                await conn.execute("""
+                    INSERT INTO saga_steps (saga_id, step_index, step_name, max_attempts)
+                    VALUES ($1, $2, $3, $4)
+                """, saga_id, i, step.name, step.max_attempts)
+
+        await self._run_forward(saga_id)
+        return saga_id
+
+    async def _run_forward(self, saga_id: str):
+        saga = await self._load_saga(saga_id)
+
+        for i in range(saga["current_step"], len(self.steps)):
+            step_def = self.steps[i]
+            step_row = await self._load_step(saga_id, i)
+
+            success = await self._execute_step_with_retry(
+                saga_id, i, step_def, saga["context"], step_row["idempotency_key"]
+            )
+
+            if not success:
+                await self._compensate(saga_id, i - 1)
+                return
+
+            await self._advance_step(saga_id, i + 1)
+
+        await self._mark_completed(saga_id)
+
+    async def _execute_step_with_retry(
+        self, saga_id, step_index, step_def, context, idempotency_key
+    ) -> bool:
+        for attempt in range(step_def.max_attempts):
+            try:
+                await self._update_step_state(saga_id, step_index, "EXECUTING")
+                result = await asyncio.wait_for(
+                    step_def.action(context, idempotency_key),
+                    timeout=step_def.timeout_seconds
+                )
+                context.update(result or {})
+                await self._update_step_state(
+                    saga_id, step_index, "SUCCEEDED", response=result
+                )
+                return True
+            except asyncio.TimeoutError:
+                await self._record_attempt(saga_id, step_index, "timeout")
+            except Exception as e:
+                await self._record_attempt(saga_id, step_index, str(e))
+                if attempt < step_def.max_attempts - 1:
+                    await asyncio.sleep(2 ** attempt)  # 指数退避
+
+        await self._update_step_state(saga_id, step_index, "FAILED")
+        return False
+
+    async def _compensate(self, saga_id: str, from_step: int):
+        await self._update_saga_state(saga_id, "COMPENSATING")
+
+        for i in range(from_step, -1, -1):
+            step_def = self.steps[i]
+            step_row = await self._load_step(saga_id, i)
+            if step_row["state"] != "SUCCEEDED":
+                continue
+
+            try:
+                await self._update_step_state(saga_id, i, "COMPENSATING")
+                await asyncio.wait_for(
+                    step_def.compensation(
+                        await self._load_context(saga_id),
+                        step_row["idempotency_key"]
+                    ),
+                    timeout=step_def.timeout_seconds
+                )
+                await self._update_step_state(saga_id, i, "COMPENSATED")
+            except Exception as e:
+                await self._update_step_state(saga_id, i, "COMP_FAILED")
+                await self._update_saga_state(saga_id, "COMP_FAILED")
+                await self._alert_manual_intervention(saga_id, i, e)
+                return
+
+        await self._update_saga_state(saga_id, "FAILED")
+```
+
+### 僵死 Saga 恢复
+
+如果编排器在执行中途崩溃，Saga 会卡住。后台清扫器负责恢复：
+
+```python
+async def sweep_stuck_sagas(db_pool, orchestrator, interval_seconds=60):
+    """后台任务：恢复卡住的 Saga。"""
+    while True:
+        async with db_pool.acquire() as conn:
+            stuck = await conn.fetch("""
+                SELECT saga_id, state, current_step, saga_type
+                FROM sagas
+                WHERE state IN ('RUNNING', 'COMPENSATING')
+                AND updated_at < NOW() - INTERVAL '2 minutes'
+                FOR UPDATE SKIP LOCKED
+                LIMIT 10
+            """)
+            for saga in stuck:
+                if saga["state"] == "RUNNING":
+                    await orchestrator._run_forward(saga["saga_id"])
+                elif saga["state"] == "COMPENSATING":
+                    await orchestrator._compensate(
+                        saga["saga_id"], saga["current_step"]
+                    )
+
+            # 处理超时的 Saga
+            expired = await conn.fetch("""
+                UPDATE sagas SET state = 'COMPENSATING'
+                WHERE state = 'RUNNING' AND deadline_at < NOW()
+                RETURNING saga_id, current_step
+            """)
+            for saga in expired:
+                await orchestrator._compensate(
+                    saga["saga_id"], saga["current_step"]
+                )
+
+        await asyncio.sleep(interval_seconds)
+```
+
+### Saga 步骤的幂等性
+
+每个 Saga 步骤必须幂等——安全重试而无副作用：
+
+```python
+async def charge_payment(context: dict, idempotency_key: str) -> dict:
+    """Saga 步骤：向客户收费。通过 idempotency_key 实现幂等。"""
+    response = await payment_api.create_charge(
+        amount=context["total"],
+        customer_id=context["user_id"],
+        idempotency_key=str(idempotency_key),  # 支付服务端去重
+    )
+    return {"payment_id": response["id"], "charge_status": response["status"]}
+
+
+async def refund_payment(context: dict, idempotency_key: str):
+    """补偿：退款。同样幂等。"""
+    if "payment_id" not in context:
+        return  # 收费从未发生
+    await payment_api.refund(
+        payment_id=context["payment_id"],
+        idempotency_key=f"refund-{idempotency_key}",
+    )
+```
+
+### Saga 可观测性
+
+```sql
+-- 仪表板查询：Saga 健康概览
+SELECT
+    saga_type,
+    state,
+    count(*) AS count,
+    avg(EXTRACT(EPOCH FROM (updated_at - created_at))) AS avg_duration_sec
+FROM sagas
+WHERE created_at > NOW() - INTERVAL '1 hour'
+GROUP BY saga_type, state
+ORDER BY saga_type, state;
+
+-- 查找需要人工介入的卡住 Saga
+SELECT s.saga_id, s.saga_type, s.state, s.error_message,
+       ss.step_name, ss.step_index, ss.state AS step_state
+FROM sagas s
+JOIN saga_steps ss ON s.saga_id = ss.saga_id
+WHERE s.state = 'COMP_FAILED'
+ORDER BY s.created_at;
+```
+
 ## 线性一致性（Linearizability） vs. 可串行化（Serializability）
 
 这两个术语常被混淆，但描述的是完全不同的保证。
