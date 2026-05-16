@@ -494,6 +494,119 @@ ORDER BY month;
 - Oracle 的内存列存储（In-Memory Column Store）
 - SQL Server 的列存储索引（Columnstore Indexes）
 
+## 页面布局内部结构
+
+理解数据在磁盘上的物理存储方式，能解释为什么有些查询快、有些慢。
+
+### PostgreSQL 页面结构（8KB）
+
+```text
+┌─────────────────────────────────┐
+│ Page Header (24 字节)           │ ← 页面 LSN、校验和、标志
+├─────────────────────────────────┤
+│ Item Pointers (每个 4 字节)     │ ← 指向元组偏移的数组
+├─────────────────────────────────┤
+│         空闲空间                 │
+├─────────────────────────────────┤
+│ Tuple 3（变长）                 │ ← 实际行数据（向上增长）
+│ Tuple 2                        │
+│ Tuple 1                        │
+├─────────────────────────────────┤
+│ Special Space（索引专用）        │
+└─────────────────────────────────┘
+```
+
+关键含义：
+- **最大行大小约 2KB**，超过后 TOAST 介入（压缩或外联存储大值）
+- **Item Pointers** 是稳定的：索引指向 (页面, 偏移)，HOT 更新可在页面内移动元组而无需更新索引
+- **空闲空间** 决定 UPDATE 能否就地完成（HOT）还是需要新页面
+
+### InnoDB 页面结构（16KB）
+
+InnoDB 按**主键顺序**存储行（聚簇索引）。这就是主键选择对性能影响巨大的原因——随机 UUID 每次插入都导致页面分裂。
+
+### IO 访问模式
+
+| 模式 | 原因 | 性能 |
+|------|------|------|
+| 顺序扫描 | 全表扫描、聚簇键范围查询 | 快（OS 预取，SSD ~1GB/s） |
+| 随机读取 | 索引查找、非聚簇访问 | 慢（SSD ~10K IOPS） |
+| 顺序写入 | 聚簇表的 INSERT、WAL | 快 |
+| 随机写入 | 更新分散行、索引维护 | 慢 |
+
+### TOAST：大值存储
+
+```sql
+-- > 约 2KB 的值自动 TOAST 处理
+CREATE TABLE documents (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(200),    -- 内联（短）
+    body TEXT,             -- 很可能被 TOAST（压缩，外联）
+    metadata JSONB         -- 取决于大小
+);
+
+-- 检查 TOAST 使用
+SELECT relname,
+    pg_size_pretty(pg_relation_size(reltoastrelid)) AS toast_size
+FROM pg_class
+WHERE reltoastrelid != 0
+ORDER BY pg_relation_size(reltoastrelid) DESC;
+```
+
+## Vacuum 与 Compaction
+
+PostgreSQL 的 MVCC 在每次 UPDATE 和 DELETE 时创建死元组。Vacuum 回收这些空间。没有它，表会无限增长。
+
+### Vacuum 工作方式
+
+```text
+1. VACUUM（常规）：
+   - 标记死元组为可重用
+   - 不缩小磁盘文件
+   - 不锁表
+   - 与查询并发运行
+
+2. VACUUM FULL：
+   - 将整个表重写到新文件
+   - 向 OS 归还磁盘空间
+   - 锁表（不能读写！）
+   - 仅作为最后手段使用
+```
+
+### Autovacuum 调优
+
+```sql
+-- 检查 autovacuum 是否跟得上
+SELECT relname, n_dead_tup, last_autovacuum
+FROM pg_stat_user_tables
+WHERE n_dead_tup > 1000
+ORDER BY n_dead_tup DESC;
+
+-- 热表的逐表 autovacuum 调优
+ALTER TABLE orders SET (
+    autovacuum_vacuum_scale_factor = 0.01,  -- 1% 死元组时触发（默认 20%）
+    autovacuum_analyze_scale_factor = 0.005
+);
+```
+
+### LSM Compaction（RocksDB / LevelDB）
+
+LSM 树随时间累积排序段（SSTable）。Compaction 合并它们：
+
+```text
+Level 0: [SST-a] [SST-b] [SST-c]  (重叠，最近写入)
+    ↓ compaction
+Level 1: [SST-1] [SST-2] [SST-3]  (不重叠，有序)
+    ↓ compaction
+Level 2: [SST-A] [SST-B] [SST-C] [SST-D]  (更大，不重叠)
+```
+
+| Compaction 策略 | 行为 | 适用 |
+|----------------|------|------|
+| Leveled（默认） | 最小化读放大 | 读多写少 |
+| Size-tiered | 最小化写放大 | 写多读少 |
+| FIFO | 丢弃最旧数据 | 有 TTL 的时序数据 |
+
 ## 存储引擎性能度量
 
 评估存储引擎时，三个“放大系数（Amplification）”指标最为关键。让我们用具体数字使其具象化。

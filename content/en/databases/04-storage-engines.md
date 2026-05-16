@@ -498,6 +498,146 @@ Most OLTP databases do not use column-oriented storage (InnoDB, PostgreSQL are r
 - Oracle's in-memory column store
 - SQL Server's columnstore indexes
 
+## Page Layout Internals
+
+Understanding how data is physically stored on disk explains why some queries are fast and others are slow.
+
+### PostgreSQL Page Structure (8KB)
+
+```text
+┌─────────────────────────────────┐
+│ Page Header (24 bytes)          │ ← page LSN, checksum, flags
+├─────────────────────────────────┤
+│ Item Pointers (4 bytes each)    │ ← array pointing to tuple offsets
+│ [ptr1] [ptr2] [ptr3] ...       │
+├─────────────────────────────────┤
+│         Free Space              │
+│                                 │
+├─────────────────────────────────┤
+│ Tuple 3 (variable size)        │ ← actual row data (grows upward)
+│ Tuple 2                        │
+│ Tuple 1                        │
+├─────────────────────────────────┤
+│ Special Space (index-specific)  │
+└─────────────────────────────────┘
+```
+
+Key implications:
+- **Maximum row size ~2KB** before TOAST kicks in (compresses or out-of-lines large values)
+- **Item pointers** are stable: indexes point to (page, offset), so HOT updates can move the tuple within the page without updating indexes
+- **Free space** determines whether an UPDATE can happen in-place (HOT) or needs a new page
+
+### InnoDB Page Structure (16KB)
+
+```text
+┌──────────────────────────────────┐
+│ File Header (38 bytes)           │ ← checksum, page number, LSN
+├──────────────────────────────────┤
+│ Page Header (56 bytes)           │ ← slot count, free space pointer
+├──────────────────────────────────┤
+│ Infimum / Supremum Records       │ ← boundary markers
+├──────────────────────────────────┤
+│ User Records (linked list)       │ ← actual rows in primary key order
+│                                  │
+├──────────────────────────────────┤
+│ Free Space                       │
+├──────────────────────────────────┤
+│ Page Directory (slots)           │ ← binary search aid
+├──────────────────────────────────┤
+│ File Trailer (8 bytes)           │ ← integrity check
+└──────────────────────────────────┘
+```
+
+InnoDB stores rows in **primary key order** (clustered index). This is why primary key choice dramatically affects performance — random UUIDs cause page splits on every insert.
+
+### IO Access Patterns
+
+| Pattern | Cause | Performance |
+|---------|-------|-------------|
+| Sequential scan | Full table scan, range on clustered key | Fast (OS prefetch, ~1GB/s SSD) |
+| Random read | Index lookup, unclustered access | Slow (~10K IOPS on SSD) |
+| Sequential write | INSERT into clustered table, WAL | Fast |
+| Random write | UPDATE scattered rows, index maintenance | Slow |
+
+### TOAST: Large Value Storage
+
+```sql
+-- Values > ~2KB are automatically TOASTed
+CREATE TABLE documents (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(200),    -- inline (short)
+    body TEXT,             -- likely TOASTed (compressed, out-of-line)
+    metadata JSONB         -- depends on size
+);
+
+-- Check TOAST usage
+SELECT
+    relname,
+    pg_size_pretty(pg_relation_size(reltoastrelid)) AS toast_size
+FROM pg_class
+WHERE reltoastrelid != 0
+ORDER BY pg_relation_size(reltoastrelid) DESC;
+```
+
+## Vacuum and Compaction
+
+PostgreSQL's MVCC creates dead tuples on every UPDATE and DELETE. Vacuum reclaims this space. Without it, tables grow without bound.
+
+### How Vacuum Works
+
+```text
+1. VACUUM (regular):
+   - Marks dead tuples as reusable
+   - Does NOT shrink the file on disk
+   - Does NOT lock the table
+   - Runs concurrently with queries
+
+2. VACUUM FULL:
+   - Rewrites the entire table to a new file
+   - Reclaims disk space to the OS
+   - LOCKS the table (no reads or writes!)
+   - Use only as last resort
+```
+
+### Autovacuum Tuning
+
+```sql
+-- Check autovacuum is keeping up
+SELECT
+    relname,
+    n_dead_tup,
+    last_vacuum,
+    last_autovacuum,
+    autovacuum_count
+FROM pg_stat_user_tables
+WHERE n_dead_tup > 1000
+ORDER BY n_dead_tup DESC;
+
+-- Per-table autovacuum tuning for hot tables
+ALTER TABLE orders SET (
+    autovacuum_vacuum_scale_factor = 0.01,  -- vacuum when 1% dead (default 20%)
+    autovacuum_analyze_scale_factor = 0.005
+);
+```
+
+### LSM Compaction (RocksDB / LevelDB)
+
+LSM-trees accumulate sorted runs (SSTables) over time. Compaction merges them:
+
+```text
+Level 0: [SST-a] [SST-b] [SST-c]  (overlapping, recent writes)
+    ↓ compaction
+Level 1: [SST-1] [SST-2] [SST-3]  (non-overlapping, sorted)
+    ↓ compaction
+Level 2: [SST-A] [SST-B] [SST-C] [SST-D]  (larger, non-overlapping)
+```
+
+| Compaction strategy | Behavior | Best for |
+|--------------------|----------|----------|
+| Leveled (default) | Minimize read amplification | Read-heavy workloads |
+| Size-tiered | Minimize write amplification | Write-heavy workloads |
+| FIFO | Drop oldest data | Time-series with TTL |
+
 ## Measuring Storage Engine Performance
 
 When evaluating storage engines, three amplification metrics matter most. Let us make them concrete with numbers.
