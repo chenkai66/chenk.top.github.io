@@ -614,6 +614,270 @@ Size and speed comparison for a 1 million row dataset:
 
 Parquet is 8x smaller and 12x faster to read than CSV for this example.
 
+## Streaming Large Files
+
+When files exceed available memory, you must process them in chunks. Python's iterator protocol makes this natural.
+
+### Line-by-Line Processing
+
+```python
+from pathlib import Path
+
+def process_large_log(path: Path) -> dict[str, int]:
+    """Count log levels without loading entire file into memory."""
+    counts: dict[str, int] = {}
+    with open(path, encoding="utf-8") as f:
+        for line in f:  # yields one line at a time
+            level = line.split("|", 2)[1].strip() if "|" in line else "UNKNOWN"
+            counts[level] = counts.get(level, 0) + 1
+    return counts
+```
+
+Python file objects are iterators — `for line in f` reads one line at a time, never loading the full file.
+
+### Chunked Binary Reading
+
+```python
+def sha256_file(path: Path, chunk_size: int = 65536) -> str:
+    """Hash a large file without loading it all into memory."""
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(chunk_size):
+            h.update(chunk)
+    return h.hexdigest()
+```
+
+The walrus operator (`:=`) makes chunk-reading concise. Chunk sizes of 64KB-1MB balance syscall overhead against memory.
+
+### Generator Pipelines
+
+Chain generators to build memory-efficient data pipelines:
+
+```python
+from typing import Iterator
+import gzip
+import json
+
+def read_jsonl_gz(path: Path) -> Iterator[dict]:
+    """Stream records from a gzipped JSON Lines file."""
+    with gzip.open(path, "rt", encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                yield json.loads(line)
+
+def filter_recent(records: Iterator[dict], days: int = 7) -> Iterator[dict]:
+    """Keep only records from the last N days."""
+    from datetime import datetime, timedelta
+    cutoff = datetime.now() - timedelta(days=days)
+    for record in records:
+        if datetime.fromisoformat(record["timestamp"]) > cutoff:
+            yield record
+
+def extract_errors(records: Iterator[dict]) -> Iterator[dict]:
+    """Keep only error-level records."""
+    for record in records:
+        if record.get("level") == "ERROR":
+            yield record
+
+# Compose: nothing runs until you iterate
+pipeline = extract_errors(filter_recent(read_jsonl_gz(Path("app.jsonl.gz"))))
+
+# Process one record at a time — constant memory regardless of file size
+for error in pipeline:
+    print(f"{error['timestamp']}: {error['message']}")
+```
+
+### Memory-Mapped Files
+
+For random-access patterns on large files, `mmap` maps file contents directly into virtual memory:
+
+```python
+import mmap
+from pathlib import Path
+
+def search_in_large_file(path: Path, pattern: bytes) -> list[int]:
+    """Find all occurrences of pattern in a large file using mmap."""
+    offsets = []
+    with open(path, "rb") as f:
+        with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+            pos = 0
+            while True:
+                pos = mm.find(pattern, pos)
+                if pos == -1:
+                    break
+                offsets.append(pos)
+                pos += 1
+    return offsets
+```
+
+The OS handles paging — only accessed regions are loaded into physical RAM.
+
+## Protocol Buffers: Schema-First Serialization
+
+[Protocol Buffers](https://protobuf.dev/) (protobuf) define data structures in `.proto` schema files. Code generation ensures type safety across languages.
+
+### When to Use Protobuf vs JSON
+
+| Factor | JSON | Protobuf |
+|--------|------|----------|
+| Human readable | Yes | No (binary) |
+| Schema enforcement | No (optional with JSON Schema) | Yes (required) |
+| Size | Large (text + keys repeated) | Small (binary, field numbers) |
+| Speed | Slow (parse text) | Fast (decode binary) |
+| Language support | Universal | Code-gen for 10+ languages |
+| Evolution | Fragile (rename breaks) | Safe (field numbers stable) |
+| Best for | APIs, config, debugging | Inter-service comms, storage |
+
+### Defining a Schema
+
+```protobuf
+// user.proto
+syntax = "proto3";
+
+message User {
+  int32 id = 1;
+  string name = 2;
+  string email = 3;
+  repeated string tags = 4;
+
+  enum Role {
+    UNKNOWN = 0;
+    ADMIN = 1;
+    USER = 2;
+  }
+  Role role = 5;
+}
+
+message UserList {
+  repeated User users = 1;
+  int32 total = 2;
+}
+```
+
+### Generate Python Code
+
+```bash
+$ pip install grpcio-tools
+$ python -m grpc_tools.protoc -I. --python_out=. --pyi_out=. user.proto
+```
+
+This generates `user_pb2.py` (runtime) and `user_pb2.pyi` (type stubs).
+
+### Using Generated Code
+
+```python
+from user_pb2 import User, UserList
+
+# Create
+user = User(id=1, name="Alice", email="alice@example.com", role=User.ADMIN)
+user.tags.append("staff")
+
+# Serialize (bytes)
+data: bytes = user.SerializeToString()
+print(len(data))  # ~40 bytes (vs ~120 for JSON equivalent)
+
+# Deserialize
+restored = User()
+restored.ParseFromString(data)
+assert restored.name == "Alice"
+
+# JSON conversion (for debugging)
+from google.protobuf.json_format import MessageToJson
+print(MessageToJson(user))
+```
+
+### Schema Evolution Rules
+
+Protobuf handles evolution safely if you follow these rules:
+
+1. **Never reuse field numbers** — deleted fields should be `reserved`
+2. **Add new fields** with new numbers — old code ignores unknown fields
+3. **Don't change field types** — `int32` to `string` breaks existing data
+4. **Use `optional`** for fields that may not always be set
+
+```protobuf
+message User {
+  int32 id = 1;
+  string name = 2;
+  string email = 3;
+  optional string phone = 6;  // added later — old data still works
+  reserved 4, 5;              // previously used, now deleted
+  reserved "old_field_name";
+}
+```
+
+## DuckDB: SQL on Local Files
+
+[DuckDB](https://duckdb.org/) is an in-process analytical database. It reads Parquet, CSV, and JSON files directly — no server, no import step.
+
+### Installation
+
+```bash
+(.venv) $ pip install duckdb
+```
+
+### Query Files Directly
+
+```python
+import duckdb
+
+# Query a CSV file with SQL
+result = duckdb.sql("""
+    SELECT department, COUNT(*) as headcount, AVG(salary) as avg_salary
+    FROM 'employees.csv'
+    GROUP BY department
+    ORDER BY avg_salary DESC
+""").fetchdf()  # Returns a pandas DataFrame
+
+# Query Parquet files (even remote)
+result = duckdb.sql("""
+    SELECT date_trunc('month', created_at) as month, COUNT(*) as orders
+    FROM 'orders/*.parquet'
+    GROUP BY 1
+    ORDER BY 1
+""")
+
+# Query JSON Lines
+result = duckdb.sql("""
+    SELECT json_extract_string(line, '$.user.name') as user_name,
+           json_extract_string(line, '$.action') as action
+    FROM read_json_auto('events.jsonl')
+    WHERE json_extract_string(line, '$.level') = 'ERROR'
+""")
+```
+
+### Convert Between Formats
+
+```python
+import duckdb
+
+# CSV → Parquet (with compression)
+duckdb.sql("""
+    COPY (SELECT * FROM 'large_dataset.csv')
+    TO 'output.parquet' (FORMAT PARQUET, COMPRESSION ZSTD)
+""")
+
+# Parquet → CSV (filtered)
+duckdb.sql("""
+    COPY (SELECT * FROM 'data.parquet' WHERE year = 2024)
+    TO 'filtered.csv' (FORMAT CSV, HEADER)
+""")
+```
+
+### DuckDB vs pandas for File Processing
+
+| Operation | pandas | DuckDB |
+|-----------|--------|--------|
+| Load 1GB CSV | ~30s, 3GB RAM | ~5s, ~200MB RAM |
+| Group-by aggregation | Moderate | Fast (columnar engine) |
+| Join two files | Load both into memory | Stream join, low memory |
+| Filter + export | Load all, filter, export | Push-down filter, minimal I/O |
+| SQL interface | No (pd.read_sql for DB only) | Yes (native SQL) |
+| Learning curve | DataFrame API | SQL |
+
+Use DuckDB when you need SQL semantics, have files too large for RAM, or want to avoid the pandas dependency.
+
 ## Configuration Patterns
 
 ### .env Files with python-dotenv

@@ -606,6 +606,241 @@ df = pd.read_parquet("large_data.parquet", columns=["name", "age"])
 
 在这个例子中，Parquet 比 CSV 小 8 倍，读取速度提升 12 倍。
 
+## 流式处理大文件
+
+文件超出可用内存时，必须分块处理。Python 的迭代器协议让这很自然。
+
+### 逐行处理
+
+```python
+from pathlib import Path
+
+def process_large_log(path: Path) -> dict[str, int]:
+    """统计日志级别——无需将整个文件加载到内存。"""
+    counts: dict[str, int] = {}
+    with open(path, encoding="utf-8") as f:
+        for line in f:  # 每次产出一行
+            level = line.split("|", 2)[1].strip() if "|" in line else "UNKNOWN"
+            counts[level] = counts.get(level, 0) + 1
+    return counts
+```
+
+Python 文件对象本身就是迭代器——`for line in f` 逐行读取，永远不会加载整个文件。
+
+### 分块二进制读取
+
+```python
+def sha256_file(path: Path, chunk_size: int = 65536) -> str:
+    """哈希大文件，不全量加载到内存。"""
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(chunk_size):
+            h.update(chunk)
+    return h.hexdigest()
+```
+
+海象运算符（`:=`）使分块读取简洁。64KB-1MB 的块大小在系统调用开销和内存之间取得平衡。
+
+### 生成器流水线
+
+链式生成器构建内存高效的数据管道：
+
+```python
+from typing import Iterator
+import gzip
+import json
+
+def read_jsonl_gz(path: Path) -> Iterator[dict]:
+    """从 gzip 压缩的 JSON Lines 文件流式读取记录。"""
+    with gzip.open(path, "rt", encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                yield json.loads(line)
+
+def filter_recent(records: Iterator[dict], days: int = 7) -> Iterator[dict]:
+    """只保留最近 N 天的记录。"""
+    from datetime import datetime, timedelta
+    cutoff = datetime.now() - timedelta(days=days)
+    for record in records:
+        if datetime.fromisoformat(record["timestamp"]) > cutoff:
+            yield record
+
+def extract_errors(records: Iterator[dict]) -> Iterator[dict]:
+    """只保留 ERROR 级别记录。"""
+    for record in records:
+        if record.get("level") == "ERROR":
+            yield record
+
+# 组合：在迭代之前什么都不执行
+pipeline = extract_errors(filter_recent(read_jsonl_gz(Path("app.jsonl.gz"))))
+
+# 逐条处理——无论文件多大，内存恒定
+for error in pipeline:
+    print(f"{error['timestamp']}: {error['message']}")
+```
+
+### 内存映射文件
+
+大文件随机访问时，`mmap` 将文件内容直接映射到虚拟内存：
+
+```python
+import mmap
+from pathlib import Path
+
+def search_in_large_file(path: Path, pattern: bytes) -> list[int]:
+    """用 mmap 在大文件中查找所有匹配位置。"""
+    offsets = []
+    with open(path, "rb") as f:
+        with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+            pos = 0
+            while True:
+                pos = mm.find(pattern, pos)
+                if pos == -1:
+                    break
+                offsets.append(pos)
+                pos += 1
+    return offsets
+```
+
+操作系统负责分页——只有被访问的区域才加载到物理 RAM。
+
+## Protocol Buffers：模式优先的序列化
+
+[Protocol Buffers](https://protobuf.dev/)（protobuf）在 `.proto` 模式文件中定义数据结构。代码生成确保跨语言类型安全。
+
+### 何时用 Protobuf vs JSON
+
+| 因素 | JSON | Protobuf |
+|------|------|----------|
+| 人类可读 | 是 | 否（二进制） |
+| 模式强制 | 否（可选 JSON Schema） | 是（必须） |
+| 体积 | 大（文本 + 键名重复） | 小（二进制，字段编号） |
+| 速度 | 慢（解析文本） | 快（解码二进制） |
+| 多语言支持 | 通用 | 代码生成覆盖 10+ 语言 |
+| 模式演进 | 脆弱（重命名即破坏） | 安全（字段编号稳定） |
+| 最佳场景 | API、配置、调试 | 服务间通信、持久存储 |
+
+### 定义模式
+
+```protobuf
+// user.proto
+syntax = "proto3";
+
+message User {
+  int32 id = 1;
+  string name = 2;
+  string email = 3;
+  repeated string tags = 4;
+
+  enum Role {
+    UNKNOWN = 0;
+    ADMIN = 1;
+    USER = 2;
+  }
+  Role role = 5;
+}
+```
+
+### 生成 Python 代码
+
+```bash
+$ pip install grpcio-tools
+$ python -m grpc_tools.protoc -I. --python_out=. --pyi_out=. user.proto
+```
+
+生成 `user_pb2.py`（运行时）和 `user_pb2.pyi`（类型存根）。
+
+### 使用生成的代码
+
+```python
+from user_pb2 import User
+
+# 创建
+user = User(id=1, name="Alice", email="alice@example.com", role=User.ADMIN)
+user.tags.append("staff")
+
+# 序列化（字节）
+data: bytes = user.SerializeToString()
+print(len(data))  # ~40 字节（相比 JSON 等效的 ~120 字节）
+
+# 反序列化
+restored = User()
+restored.ParseFromString(data)
+assert restored.name == "Alice"
+```
+
+### 模式演进规则
+
+遵循以下规则可安全演进 protobuf 模式：
+
+1. **永不复用字段编号** — 删除的字段应标记为 `reserved`
+2. **新字段用新编号** — 旧代码忽略未知字段
+3. **不改变字段类型** — `int32` 改 `string` 会破坏现有数据
+4. **使用 `optional`** — 可能不总是设置的字段
+
+## DuckDB：对本地文件执行 SQL
+
+[DuckDB](https://duckdb.org/) 是进程内分析数据库。直接读取 Parquet、CSV、JSON 文件——无需服务器，无需导入步骤。
+
+### 安装
+
+```bash
+(.venv) $ pip install duckdb
+```
+
+### 直接查询文件
+
+```python
+import duckdb
+
+# 用 SQL 查询 CSV 文件
+result = duckdb.sql("""
+    SELECT department, COUNT(*) as headcount, AVG(salary) as avg_salary
+    FROM 'employees.csv'
+    GROUP BY department
+    ORDER BY avg_salary DESC
+""").fetchdf()  # 返回 pandas DataFrame
+
+# 查询 Parquet 文件（支持通配符）
+result = duckdb.sql("""
+    SELECT date_trunc('month', created_at) as month, COUNT(*) as orders
+    FROM 'orders/*.parquet'
+    GROUP BY 1
+    ORDER BY 1
+""")
+```
+
+### 格式转换
+
+```python
+import duckdb
+
+# CSV → Parquet（带压缩）
+duckdb.sql("""
+    COPY (SELECT * FROM 'large_dataset.csv')
+    TO 'output.parquet' (FORMAT PARQUET, COMPRESSION ZSTD)
+""")
+
+# Parquet → CSV（筛选后）
+duckdb.sql("""
+    COPY (SELECT * FROM 'data.parquet' WHERE year = 2024)
+    TO 'filtered.csv' (FORMAT CSV, HEADER)
+""")
+```
+
+### DuckDB vs pandas
+
+| 操作 | pandas | DuckDB |
+|------|--------|--------|
+| 加载 1GB CSV | ~30s, 3GB RAM | ~5s, ~200MB RAM |
+| 分组聚合 | 中等 | 快（列式引擎） |
+| 两文件 JOIN | 两者全量加载 | 流式 join，低内存 |
+| 筛选+导出 | 全量加载→筛选→导出 | 下推筛选，最小 I/O |
+| SQL 接口 | 无 | 原生 SQL |
+
+文件太大无法放入 RAM、需要 SQL 语义、或想避免 pandas 依赖时，用 DuckDB。
+
 ## 配置模式
 
 ### 使用 `python-dotenv` 处理 `.env` 文件
