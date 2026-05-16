@@ -338,6 +338,274 @@ Use `# type: ignore[error-code]` to suppress specific errors temporarily:
 result = some_untyped_function()  # type: ignore[no-untyped-call]
 ```
 
+## Advanced Type Features (Python 3.10+)
+
+Python's type system has evolved rapidly. These features solve real problems that basic annotations cannot express.
+
+### ParamSpec: Preserving Function Signatures
+
+When writing decorators, `ParamSpec` preserves the exact parameter types of the wrapped function:
+
+```python
+from typing import ParamSpec, TypeVar, Callable
+from functools import wraps
+import time
+
+P = ParamSpec("P")
+R = TypeVar("R")
+
+def timing(func: Callable[P, R]) -> Callable[P, R]:
+    """Decorator that logs execution time without losing type info."""
+    @wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        start = time.perf_counter()
+        result = func(*args, **kwargs)
+        elapsed = time.perf_counter() - start
+        print(f"{func.__name__} took {elapsed:.3f}s")
+        return result
+    return wrapper
+
+@timing
+def fetch_user(user_id: int, include_posts: bool = False) -> dict:
+    ...
+
+# mypy knows: fetch_user(user_id=42, include_posts=True) -> dict
+# mypy catches: fetch_user("wrong")  # Error: str is not int
+```
+
+Without `ParamSpec`, decorated functions lose their type signatures and mypy treats them as `(*args: Any, **kwargs: Any) -> Any`.
+
+### TypeVarTuple: Variadic Generics
+
+`TypeVarTuple` (Python 3.11+) types functions that accept a variable number of typed arguments:
+
+```python
+from typing import TypeVarTuple, Unpack
+
+Ts = TypeVarTuple("Ts")
+
+def first_of(*args: Unpack[Ts]) -> tuple[Unpack[Ts]]:
+    return args
+
+# Type checker knows:
+result = first_of(1, "hello", 3.14)
+# result: tuple[int, str, float]
+```
+
+Practical use case — typed middleware chains:
+
+```python
+from typing import TypeVarTuple, Generic, Unpack, Callable
+
+Ts = TypeVarTuple("Ts")
+
+class Pipeline(Generic[Unpack[Ts]]):
+    """Type-safe pipeline where each stage's output feeds the next."""
+    def __init__(self, *stages: Unpack[Ts]):
+        self.stages = stages
+```
+
+### TypeGuard and TypeIs
+
+Narrow types in conditional branches:
+
+```python
+from typing import TypeGuard, TypeIs
+
+def is_string_list(val: list[object]) -> TypeGuard[list[str]]:
+    """After this returns True, mypy knows val is list[str]."""
+    return all(isinstance(x, str) for x in val)
+
+def process(data: list[object]):
+    if is_string_list(data):
+        # mypy knows: data is list[str] here
+        print(", ".join(data))  # No error
+```
+
+`TypeIs` (Python 3.13+) is stricter than `TypeGuard` — it narrows in both the `if` and `else` branches.
+
+### @override Decorator (Python 3.12+)
+
+Explicitly mark methods that override a parent class method. mypy will error if the parent method is renamed or removed:
+
+```python
+from typing import override
+
+class Animal:
+    def speak(self) -> str:
+        return "..."
+
+class Dog(Animal):
+    @override
+    def speak(self) -> str:
+        return "Woof"
+
+    @override
+    def eat(self) -> None:  # Error: Animal has no method 'eat'
+        ...
+```
+
+## Pydantic: Runtime Validation from Type Hints
+
+[Pydantic](https://docs.pydantic.dev/) bridges static type hints and runtime validation. Define your data model once, get parsing, validation, and serialization for free.
+
+### Basic Models
+
+```python
+from pydantic import BaseModel, Field, field_validator
+from datetime import datetime
+
+class UserCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    email: str
+    age: int = Field(ge=0, le=150)
+    created_at: datetime = Field(default_factory=datetime.now)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        if "@" not in v:
+            raise ValueError("invalid email format")
+        return v.lower()
+
+# Automatic parsing and validation
+user = UserCreate(name="Alice", email="ALICE@Example.COM", age=30)
+print(user.email)  # "alice@example.com" (transformed)
+
+# Validation error with details
+try:
+    UserCreate(name="", email="bad", age=-1)
+except ValidationError as e:
+    print(e.errors())
+    # [{'type': 'string_too_short', 'loc': ('name',), ...},
+    #  {'type': 'value_error', 'loc': ('email',), ...},
+    #  {'type': 'greater_than_equal', 'loc': ('age',), ...}]
+```
+
+### Nested Models and Generics
+
+```python
+from pydantic import BaseModel
+from typing import Generic, TypeVar
+
+T = TypeVar("T")
+
+class Pagination(BaseModel, Generic[T]):
+    items: list[T]
+    total: int
+    page: int
+    per_page: int
+
+    @property
+    def has_next(self) -> bool:
+        return self.page * self.per_page < self.total
+
+class Order(BaseModel):
+    id: int
+    product: str
+    quantity: int
+
+# Type-safe paginated response
+response = Pagination[Order](
+    items=[Order(id=1, product="Widget", quantity=5)],
+    total=42,
+    page=1,
+    per_page=10,
+)
+```
+
+### Pydantic + FastAPI
+
+FastAPI uses Pydantic models for request/response validation:
+
+```python
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class ItemCreate(BaseModel):
+    name: str
+    price: float = Field(gt=0)
+    tags: list[str] = []
+
+class ItemResponse(BaseModel):
+    id: int
+    name: str
+    price: float
+    tags: list[str]
+
+@app.post("/items", response_model=ItemResponse)
+async def create_item(item: ItemCreate) -> ItemResponse:
+    # item is already validated by Pydantic
+    saved = await db.save(item.model_dump())
+    return ItemResponse(id=saved.id, **item.model_dump())
+```
+
+### Pydantic vs dataclasses vs attrs
+
+| Feature | Pydantic | dataclasses | attrs |
+|---------|----------|-------------|-------|
+| Runtime validation | Yes (core feature) | No | Optional (validators) |
+| Type coercion | Yes (`"42"` → `42`) | No | No |
+| JSON serialization | Built-in | Manual | Manual |
+| Performance | Fast (Rust core in v2) | Fastest (no validation) | Fast |
+| mypy plugin | Yes | Built-in support | Yes |
+| Best for | API boundaries, config | Internal data structures | Internal + validation |
+
+**Guideline:** Use Pydantic at system boundaries (API inputs, config files, external data). Use dataclasses for internal value objects where you trust the data.
+
+## Dataclass Patterns
+
+### Frozen Dataclasses (Immutable Values)
+
+```python
+from dataclasses import dataclass, field
+
+@dataclass(frozen=True)
+class Point:
+    x: float
+    y: float
+
+    def distance_to(self, other: "Point") -> float:
+        return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2) ** 0.5
+
+p = Point(1.0, 2.0)
+# p.x = 3.0  # Error: FrozenInstanceError
+
+# Hashable → usable as dict keys and in sets
+seen: set[Point] = {Point(0, 0), Point(1, 1)}
+```
+
+### `__post_init__` for Derived Fields
+
+```python
+@dataclass
+class Rectangle:
+    width: float
+    height: float
+    area: float = field(init=False)
+
+    def __post_init__(self):
+        self.area = self.width * self.height
+
+r = Rectangle(width=3, height=4)
+print(r.area)  # 12.0
+```
+
+### Slots (Python 3.10+)
+
+```python
+@dataclass(slots=True)
+class Event:
+    name: str
+    timestamp: float
+    payload: dict
+
+# 20-30% less memory, slightly faster attribute access
+# Cannot add new attributes dynamically
+```
+
 ## Linting with ruff
 
 

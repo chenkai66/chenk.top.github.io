@@ -336,6 +336,250 @@ ignore_missing_imports = true
 result = some_untyped_function()  # type: ignore[no-untyped-call]
 ```
 
+## 高级类型特性（Python 3.10+）
+
+Python 类型系统演进迅速。这些特性解决了基础注解无法表达的真实问题。
+
+### ParamSpec：保留函数签名
+
+编写装饰器时，`ParamSpec` 保留被装饰函数的精确参数类型：
+
+```python
+from typing import ParamSpec, TypeVar, Callable
+from functools import wraps
+import time
+
+P = ParamSpec("P")
+R = TypeVar("R")
+
+def timing(func: Callable[P, R]) -> Callable[P, R]:
+    """记录执行时间且不丢失类型信息的装饰器。"""
+    @wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        start = time.perf_counter()
+        result = func(*args, **kwargs)
+        elapsed = time.perf_counter() - start
+        print(f"{func.__name__} took {elapsed:.3f}s")
+        return result
+    return wrapper
+
+@timing
+def fetch_user(user_id: int, include_posts: bool = False) -> dict:
+    ...
+
+# mypy 知道: fetch_user(user_id=42, include_posts=True) -> dict
+# mypy 报错: fetch_user("wrong")  # Error: str is not int
+```
+
+没有 `ParamSpec`，装饰后的函数会丢失类型签名，mypy 将其视为 `(*args: Any, **kwargs: Any) -> Any`。
+
+### TypeVarTuple：可变参数泛型
+
+`TypeVarTuple`（Python 3.11+）为接受可变数量类型参数的函数提供类型：
+
+```python
+from typing import TypeVarTuple, Unpack
+
+Ts = TypeVarTuple("Ts")
+
+def first_of(*args: Unpack[Ts]) -> tuple[Unpack[Ts]]:
+    return args
+
+# 类型检查器知道：
+result = first_of(1, "hello", 3.14)
+# result: tuple[int, str, float]
+```
+
+### TypeGuard 和 TypeIs
+
+在条件分支中缩窄类型：
+
+```python
+from typing import TypeGuard
+
+def is_string_list(val: list[object]) -> TypeGuard[list[str]]:
+    """返回 True 后，mypy 知道 val 是 list[str]。"""
+    return all(isinstance(x, str) for x in val)
+
+def process(data: list[object]):
+    if is_string_list(data):
+        # mypy 知道: data 是 list[str]
+        print(", ".join(data))  # 无错误
+```
+
+`TypeIs`（Python 3.13+）比 `TypeGuard` 更严格——在 `if` 和 `else` 分支都会缩窄类型。
+
+### @override 装饰器（Python 3.12+）
+
+显式标记重写父类方法。若父类方法被重命名或删除，mypy 会报错：
+
+```python
+from typing import override
+
+class Animal:
+    def speak(self) -> str:
+        return "..."
+
+class Dog(Animal):
+    @override
+    def speak(self) -> str:
+        return "Woof"
+
+    @override
+    def eat(self) -> None:  # 错误: Animal 没有 'eat' 方法
+        ...
+```
+
+## Pydantic：从类型注解到运行时验证
+
+[Pydantic](https://docs.pydantic.dev/) 桥接静态类型注解与运行时验证。定义一次数据模型，免费获得解析、验证和序列化。
+
+### 基础模型
+
+```python
+from pydantic import BaseModel, Field, field_validator
+from datetime import datetime
+
+class UserCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    email: str
+    age: int = Field(ge=0, le=150)
+    created_at: datetime = Field(default_factory=datetime.now)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        if "@" not in v:
+            raise ValueError("invalid email format")
+        return v.lower()
+
+# 自动解析和验证
+user = UserCreate(name="Alice", email="ALICE@Example.COM", age=30)
+print(user.email)  # "alice@example.com"（已转换）
+
+# 验证错误带详细信息
+try:
+    UserCreate(name="", email="bad", age=-1)
+except ValidationError as e:
+    print(e.errors())
+    # [{'type': 'string_too_short', 'loc': ('name',), ...}, ...]
+```
+
+### 嵌套模型与泛型
+
+```python
+from pydantic import BaseModel
+from typing import Generic, TypeVar
+
+T = TypeVar("T")
+
+class Pagination(BaseModel, Generic[T]):
+    items: list[T]
+    total: int
+    page: int
+    per_page: int
+
+    @property
+    def has_next(self) -> bool:
+        return self.page * self.per_page < self.total
+
+class Order(BaseModel):
+    id: int
+    product: str
+    quantity: int
+
+# 类型安全的分页响应
+response = Pagination[Order](
+    items=[Order(id=1, product="Widget", quantity=5)],
+    total=42, page=1, per_page=10,
+)
+```
+
+### Pydantic + FastAPI
+
+FastAPI 使用 Pydantic 模型进行请求/响应验证：
+
+```python
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class ItemCreate(BaseModel):
+    name: str
+    price: float = Field(gt=0)
+    tags: list[str] = []
+
+@app.post("/items", response_model=ItemResponse)
+async def create_item(item: ItemCreate) -> ItemResponse:
+    # item 已被 Pydantic 验证
+    saved = await db.save(item.model_dump())
+    return ItemResponse(id=saved.id, **item.model_dump())
+```
+
+### Pydantic vs dataclasses vs attrs
+
+| 特性 | Pydantic | dataclasses | attrs |
+|------|----------|-------------|-------|
+| 运行时验证 | 是（核心功能） | 否 | 可选 |
+| 类型强制转换 | 是（`"42"` → `42`） | 否 | 否 |
+| JSON 序列化 | 内置 | 需手写 | 需手写 |
+| 性能 | 快（v2 Rust 核心） | 最快（无验证） | 快 |
+| 最佳场景 | API 边界、配置 | 内部数据结构 | 内部 + 验证 |
+
+**原则：** 系统边界（API 输入、配置文件、外部数据）用 Pydantic。内部值对象用 dataclasses。
+
+## Dataclass 模式
+
+### 冻结 Dataclass（不可变值）
+
+```python
+from dataclasses import dataclass, field
+
+@dataclass(frozen=True)
+class Point:
+    x: float
+    y: float
+
+    def distance_to(self, other: "Point") -> float:
+        return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2) ** 0.5
+
+p = Point(1.0, 2.0)
+# p.x = 3.0  # 错误: FrozenInstanceError
+
+# 可哈希 → 可用作 dict 键和 set 元素
+seen: set[Point] = {Point(0, 0), Point(1, 1)}
+```
+
+### `__post_init__` 计算派生字段
+
+```python
+@dataclass
+class Rectangle:
+    width: float
+    height: float
+    area: float = field(init=False)
+
+    def __post_init__(self):
+        self.area = self.width * self.height
+
+r = Rectangle(width=3, height=4)
+print(r.area)  # 12.0
+```
+
+### Slots（Python 3.10+）
+
+```python
+@dataclass(slots=True)
+class Event:
+    name: str
+    timestamp: float
+    payload: dict
+
+# 减少 20-30% 内存，属性访问略快
+# 不能动态添加新属性
+```
+
 ## 使用 ruff 进行代码检查
 
 ![代码质量流水线：原始代码通过格式化工具进行检查](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/04-code-quality-pipeline-raw-code-passing-through-linter-format.jpg)
