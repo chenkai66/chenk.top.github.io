@@ -724,6 +724,174 @@ Recommendation:
   CPU: 4 cores (for a few hundred QPS)
 ```
 
+## Zero-Downtime Schema Migrations
+
+Regular migrations lock tables and block queries. At scale, even a 30-second lock on a billion-row table causes cascading timeouts. Zero-downtime migrations restructure the database while it serves live traffic.
+
+### The Expand-Contract Pattern
+
+Instead of one destructive migration, use three safe steps:
+
+```text
+Step 1: EXPAND — add new structure alongside old
+Step 2: MIGRATE — backfill data, switch writes to new structure
+Step 3: CONTRACT — remove old structure (after verification)
+```
+
+### Example: Renaming a Column
+
+```sql
+-- WRONG: locks table, breaks running queries
+ALTER TABLE users RENAME COLUMN name TO full_name;
+
+-- RIGHT: expand-contract pattern
+-- Step 1: Add new column
+ALTER TABLE users ADD COLUMN full_name VARCHAR(200);
+
+-- Step 2: Backfill (in batches to avoid long locks)
+UPDATE users SET full_name = name
+WHERE full_name IS NULL
+AND user_id BETWEEN 1 AND 100000;
+-- ... repeat for all ranges
+
+-- Step 3: Application reads from full_name, writes to both
+-- Step 4: After all code deploys, drop old column
+ALTER TABLE users DROP COLUMN name;
+```
+
+### Large Table Migrations with pg_repack
+
+```bash
+# Rebuild a table without exclusive locks (PostgreSQL)
+$ pg_repack --table orders --no-superuser-check -d mydb
+
+# Add a column with default (PostgreSQL 11+ is instant, but older versions lock)
+ALTER TABLE orders ADD COLUMN status VARCHAR(20) DEFAULT 'pending';
+```
+
+### Online DDL Comparison
+
+| Operation | PostgreSQL | MySQL (InnoDB) |
+|-----------|-----------|----------------|
+| ADD COLUMN (no default) | Instant | Instant (8.0+) |
+| ADD COLUMN (with default) | Instant (11+) | Copies table |
+| ADD INDEX | CONCURRENTLY (no lock) | ALGORITHM=INPLACE |
+| DROP COLUMN | Quick | Copies table |
+| CHANGE column type | Copies table (use expand-contract) | Copies table |
+| ADD NOT NULL constraint | Scans table (validate separately) | Copies table |
+
+### Safe Migration Tooling
+
+```yaml
+# Using gh-ost (GitHub Online Schema Migration) for MySQL
+$ gh-ost \
+  --host=replica.db \
+  --database=production \
+  --table=orders \
+  --alter="ADD COLUMN priority INT DEFAULT 0" \
+  --execute
+
+# Using pgroll for PostgreSQL
+$ pgroll start migration.json  # begin expand phase
+$ pgroll complete              # contract after verification
+```
+
+## Observability: Database Dashboards
+
+You cannot optimize what you cannot see. Production databases need real-time dashboards covering these metrics:
+
+### The Four Golden Signals for Databases
+
+| Signal | Metrics | Alert threshold |
+|--------|---------|----------------|
+| **Latency** | p50/p95/p99 query time | p99 > 500ms |
+| **Traffic** | QPS (queries per second) | Sudden 50% drop or 3x spike |
+| **Errors** | Failed queries, deadlocks, connection refused | Any deadlock; error rate > 1% |
+| **Saturation** | Connection pool usage, disk I/O, CPU | Pool > 80%; disk I/O > 70% |
+
+### Key PostgreSQL Metrics to Monitor
+
+```sql
+-- Active connections vs max
+SELECT count(*) AS active, setting::int AS max_connections
+FROM pg_stat_activity, pg_settings
+WHERE pg_settings.name = 'max_connections'
+GROUP BY setting;
+
+-- Cache hit ratio (should be >99%)
+SELECT
+    sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) AS cache_hit_ratio
+FROM pg_statio_user_tables;
+
+-- Transaction rate
+SELECT xact_commit + xact_rollback AS total_txn,
+       xact_rollback AS rollbacks
+FROM pg_stat_database WHERE datname = current_database();
+
+-- Replication lag
+SELECT extract(epoch FROM replay_lag) AS lag_seconds
+FROM pg_stat_replication;
+
+-- Table bloat candidates
+SELECT relname, n_dead_tup, n_live_tup,
+       round(n_dead_tup::numeric / greatest(n_live_tup, 1) * 100, 1) AS dead_pct
+FROM pg_stat_user_tables
+WHERE n_dead_tup > 10000
+ORDER BY n_dead_tup DESC;
+```
+
+### Connection Pool Tuning
+
+```text
+Formula: pool_size = (core_count * 2) + effective_spindle_count
+
+For a 4-core server with SSD:
+  pool_size = (4 * 2) + 1 = 9
+
+Common mistake: setting pool size too high (100+)
+Result: context switching overhead kills throughput
+```
+
+```python
+# PgBouncer config for connection pooling
+[databases]
+mydb = host=127.0.0.1 port=5432 dbname=mydb
+
+[pgbouncer]
+pool_mode = transaction         # release connection after each transaction
+max_client_conn = 1000          # accept many app connections
+default_pool_size = 20          # but only 20 actual DB connections
+reserve_pool_size = 5           # extra for bursts
+reserve_pool_timeout = 3        # seconds before using reserve
+server_idle_timeout = 300       # close idle server connections after 5min
+```
+
+### Alerting Rules (Prometheus/Grafana)
+
+```yaml
+# prometheus alerting rules
+groups:
+  - name: database
+    rules:
+      - alert: HighReplicationLag
+        expr: pg_replication_lag_seconds > 30
+        for: 5m
+        labels:
+          severity: critical
+
+      - alert: ConnectionPoolExhausted
+        expr: pgbouncer_pools_server_active / pgbouncer_pools_server_total > 0.9
+        for: 2m
+        labels:
+          severity: warning
+
+      - alert: HighDeadTupleRatio
+        expr: pg_stat_user_tables_n_dead_tup / pg_stat_user_tables_n_live_tup > 0.2
+        for: 30m
+        labels:
+          severity: warning
+```
+
 ## War Stories: Common Production Incidents
 
 | Incident | Root Cause | Symptom | Fix | Prevention |

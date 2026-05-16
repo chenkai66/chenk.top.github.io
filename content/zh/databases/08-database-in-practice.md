@@ -712,6 +712,143 @@ WAL/binlog：≈ 2–5 GB（滚动）
   CPU：4 核（支撑数百 QPS）
 ```
 
+## 零停机 Schema 迁移
+
+常规迁移锁表并阻塞查询。在大规模场景下，对十亿行表加锁 30 秒就会导致级联超时。零停机迁移在数据库服务实时流量时重构结构。
+
+### 扩展-收缩模式
+
+不做一步破坏性迁移，而用三个安全步骤：
+
+```text
+步骤 1: 扩展（EXPAND）— 在旧结构旁添加新结构
+步骤 2: 迁移（MIGRATE）— 回填数据，写入切换到新结构
+步骤 3: 收缩（CONTRACT）— 验证后移除旧结构
+```
+
+### 示例：重命名列
+
+```sql
+-- 错误：锁表，中断运行中的查询
+ALTER TABLE users RENAME COLUMN name TO full_name;
+
+-- 正确：扩展-收缩模式
+-- 步骤 1：添加新列
+ALTER TABLE users ADD COLUMN full_name VARCHAR(200);
+
+-- 步骤 2：分批回填（避免长时间锁）
+UPDATE users SET full_name = name
+WHERE full_name IS NULL
+AND user_id BETWEEN 1 AND 100000;
+-- ... 对所有范围重复
+
+-- 步骤 3：应用读取 full_name，同时写入两列
+-- 步骤 4：所有代码部署完成后，删除旧列
+ALTER TABLE users DROP COLUMN name;
+```
+
+### 在线 DDL 对比
+
+| 操作 | PostgreSQL | MySQL (InnoDB) |
+|------|-----------|----------------|
+| 加列（无默认值） | 即时 | 即时（8.0+） |
+| 加列（有默认值） | 即时（11+） | 复制表 |
+| 加索引 | CONCURRENTLY（不锁表） | ALGORITHM=INPLACE |
+| 删列 | 快速 | 复制表 |
+| 改列类型 | 复制表（用扩展-收缩） | 复制表 |
+
+### 安全迁移工具
+
+```bash
+# gh-ost（GitHub 在线 Schema 迁移）for MySQL
+$ gh-ost \
+  --host=replica.db \
+  --database=production \
+  --table=orders \
+  --alter="ADD COLUMN priority INT DEFAULT 0" \
+  --execute
+```
+
+## 可观测性：数据库仪表板
+
+看不到的东西无法优化。生产数据库需要覆盖以下指标的实时仪表板：
+
+### 数据库四大黄金信号
+
+| 信号 | 指标 | 告警阈值 |
+|------|------|---------|
+| **延迟** | p50/p95/p99 查询时间 | p99 > 500ms |
+| **流量** | QPS（每秒查询数） | 突然下降 50% 或飙升 3 倍 |
+| **错误** | 失败查询、死锁、连接拒绝 | 任何死锁；错误率 > 1% |
+| **饱和度** | 连接池使用率、磁盘 IO、CPU | 连接池 > 80%；磁盘 IO > 70% |
+
+### PostgreSQL 关键监控指标
+
+```sql
+-- 活跃连接 vs 最大值
+SELECT count(*) AS active, setting::int AS max_connections
+FROM pg_stat_activity, pg_settings
+WHERE pg_settings.name = 'max_connections'
+GROUP BY setting;
+
+-- 缓存命中率（应 >99%）
+SELECT
+    sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) AS cache_hit_ratio
+FROM pg_statio_user_tables;
+
+-- 复制延迟
+SELECT extract(epoch FROM replay_lag) AS lag_seconds
+FROM pg_stat_replication;
+
+-- 表膨胀候选
+SELECT relname, n_dead_tup, n_live_tup,
+       round(n_dead_tup::numeric / greatest(n_live_tup, 1) * 100, 1) AS dead_pct
+FROM pg_stat_user_tables
+WHERE n_dead_tup > 10000
+ORDER BY n_dead_tup DESC;
+```
+
+### 连接池调优
+
+```text
+公式: pool_size = (核心数 * 2) + 有效磁盘轴数
+
+4 核服务器 + SSD：
+  pool_size = (4 * 2) + 1 = 9
+
+常见错误：连接池设太大（100+）
+结果：上下文切换开销拖垮吞吐量
+```
+
+```ini
+# PgBouncer 连接池配置
+[pgbouncer]
+pool_mode = transaction         # 每个事务结束释放连接
+max_client_conn = 1000          # 接受大量应用连接
+default_pool_size = 20          # 但只保持 20 个实际 DB 连接
+reserve_pool_size = 5           # 突发预留
+server_idle_timeout = 300       # 5 分钟后关闭空闲连接
+```
+
+### 告警规则（Prometheus/Grafana）
+
+```yaml
+groups:
+  - name: database
+    rules:
+      - alert: HighReplicationLag
+        expr: pg_replication_lag_seconds > 30
+        for: 5m
+        labels:
+          severity: critical
+
+      - alert: ConnectionPoolExhausted
+        expr: pgbouncer_pools_server_active / pgbouncer_pools_server_total > 0.9
+        for: 2m
+        labels:
+          severity: warning
+```
+
 ## 故障案例（War Stories）：常见生产事故
 
 | 事故 | 根因 | 表象 | 修复 | 预防 |
