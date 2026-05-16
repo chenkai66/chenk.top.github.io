@@ -541,6 +541,229 @@ ORDER BY month;
 | `FIRST_VALUE()` | 窗口帧内第一个值 |
 | `LAST_VALUE()` | 窗口帧内最后一个值 |
 
+## JSON 列：关系模型与文档模型的融合
+
+现代数据库模糊了关系型与文档型的界限。PostgreSQL 的 `jsonb` 和 MySQL 的 `JSON` 类型允许在传统列旁存储半结构化数据——谨慎使用可兼得两者优势。
+
+### 何时使用 JSON 列
+
+| 适合 | 不适合 |
+|------|--------|
+| 用户偏好/设置 | 核心业务实体（订单、用户） |
+| API 响应缓存 | 需要频繁查询的字段 |
+| 不定 schema 的事件元数据 | 需要 JOIN 的字段 |
+| 用户级功能开关 | 需要规范化的数据 |
+| 审计日志上下文 | 有严格完整性约束的数据 |
+
+### PostgreSQL jsonb
+
+```sql
+-- 含 JSONB 列的表，用于存储灵活的元数据
+CREATE TABLE events (
+    event_id BIGSERIAL PRIMARY KEY,
+    event_type VARCHAR(50) NOT NULL,
+    user_id INT REFERENCES users(user_id),
+    payload JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 插入不同结构的事件
+INSERT INTO events (event_type, user_id, payload) VALUES
+('page_view', 1, '{"url": "/products/42", "duration_ms": 3200, "referrer": "google"}'),
+('purchase', 1, '{"order_id": 1001, "items": [{"sku": "KB-01", "qty": 1}], "total": 149.99}'),
+('error', 2, '{"code": 500, "message": "timeout", "stack": "at Connection.query..."}');
+```
+
+### 查询 JSON
+
+```sql
+-- 提取字段（返回文本）
+SELECT payload->>'url' AS url, payload->>'duration_ms' AS ms
+FROM events
+WHERE event_type = 'page_view';
+
+-- 嵌套访问
+SELECT payload->'items'->0->>'sku' AS first_item_sku
+FROM events
+WHERE event_type = 'purchase';
+
+-- 按 JSON 字段过滤
+SELECT *
+FROM events
+WHERE event_type = 'error'
+  AND (payload->>'code')::int >= 500;
+
+-- 包含运算符（使用 GIN 索引）
+SELECT *
+FROM events
+WHERE payload @> '{"code": 500}';
+```
+
+### 索引 JSON
+
+```sql
+-- GIN 索引用于包含查询（@>, ?, ?|, ?&）
+CREATE INDEX idx_events_payload ON events USING GIN (payload);
+
+-- 针对特定 JSON 路径的表达式索引
+CREATE INDEX idx_events_error_code ON events ((payload->>'code'))
+WHERE event_type = 'error';
+```
+
+GIN 索引使 `@>` 包含检查变为 O(log n)，而非扫描每一行。
+
+### 反模式
+
+```sql
+-- 错误：整行都是 JSON（等于用关系数据库模拟文档数据库）
+CREATE TABLE bad_design (
+    id SERIAL PRIMARY KEY,
+    data JSONB  -- 所有东西都塞在这里
+);
+
+-- 正确：将频繁查询的 JSON 字段提升为真实列
+ALTER TABLE events ADD COLUMN error_code INT;
+UPDATE events SET error_code = (payload->>'code')::int WHERE event_type = 'error';
+CREATE INDEX idx_events_error_code ON events (error_code);
+```
+
+经验法则：如果在 WHERE 或 JOIN 中不止偶尔查询某个 JSON 字段，它就该成为真实列。
+
+## 递归 CTE：查询层次化数据
+
+许多真实数据结构是树形的：组织架构、分类层级、嵌套评论、BOM 物料清单。递归 CTE 无需应用层循环即可查询这些结构。
+
+### 语法
+
+```sql
+WITH RECURSIVE cte_name AS (
+    -- 基础条件：起始行
+    SELECT ... FROM table WHERE condition
+
+    UNION ALL
+
+    -- 递归步骤：回连 CTE 自身
+    SELECT ... FROM table JOIN cte_name ON ...
+)
+SELECT * FROM cte_name;
+```
+
+### 示例：分类树
+
+```sql
+CREATE TABLE categories (
+    category_id INT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    parent_id INT REFERENCES categories(category_id)
+);
+
+INSERT INTO categories VALUES
+(1, '全部商品', NULL),
+(2, '电子产品', 1),
+(3, '计算机', 2),
+(4, '笔记本', 3),
+(5, '台式机', 3),
+(6, '手机', 2),
+(7, '家具', 1),
+(8, '办公桌', 7);
+
+-- 查找"电子产品"的所有后代及深度
+WITH RECURSIVE subtree AS (
+    SELECT category_id, name, parent_id, 0 AS depth, name::text AS path
+    FROM categories
+    WHERE name = '电子产品'
+
+    UNION ALL
+
+    SELECT c.category_id, c.name, c.parent_id, s.depth + 1,
+           s.path || ' > ' || c.name
+    FROM categories c
+    JOIN subtree s ON c.parent_id = s.category_id
+)
+SELECT depth, path FROM subtree ORDER BY path;
+```
+
+输出：
+
+```text
+ depth |              path
+-------+----------------------------------
+     0 | 电子产品
+     1 | 电子产品 > 计算机
+     2 | 电子产品 > 计算机 > 台式机
+     2 | 电子产品 > 计算机 > 笔记本
+     1 | 电子产品 > 手机
+```
+
+### 安全：防止无限循环
+
+```sql
+WITH RECURSIVE tree AS (
+    SELECT id, parent_id, ARRAY[id] AS path, false AS cycle
+    FROM nodes WHERE id = 1
+
+    UNION ALL
+
+    SELECT n.id, n.parent_id, t.path || n.id,
+           n.id = ANY(t.path)  -- 检测循环
+    FROM nodes n
+    JOIN tree t ON n.parent_id = t.id
+    WHERE NOT t.cycle  -- 检测到循环则停止
+)
+SELECT * FROM tree WHERE NOT cycle;
+```
+
+## LATERAL Join：正确的关联子查询
+
+`LATERAL` 允许 FROM 子句中的子查询引用前面表的列——相当于 SQL 中的 for-each 循环。它解决了普通 JOIN 难以表达或无法解决的问题。
+
+### Top-N Per Group（每组取前 N）
+
+经典问题：查找每个用户最近的 3 个订单。
+
+```sql
+-- 不用 LATERAL：窗口函数方式（需加载所有订单到内存）
+WITH ranked AS (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at DESC) AS rn
+    FROM orders
+)
+SELECT * FROM ranked WHERE rn <= 3;
+
+-- 用 LATERAL：每个用户扫描 3 行即停（大表更高效）
+SELECT u.user_id, u.full_name, recent.*
+FROM users u
+CROSS JOIN LATERAL (
+    SELECT order_id, total_amount, created_at
+    FROM orders o
+    WHERE o.user_id = u.user_id
+    ORDER BY o.created_at DESC
+    LIMIT 3
+) recent;
+```
+
+LATERAL 版本可利用 `(user_id, created_at DESC)` 索引，每用户扫描 3 行即停。
+
+### 展开 Array/JSON 列
+
+```sql
+-- 解构 JSONB 数组并与关联表 join
+SELECT e.event_id, e.event_type, item->>'sku' AS sku, item->>'qty' AS qty
+FROM events e
+CROSS JOIN LATERAL jsonb_array_elements(e.payload->'items') AS item
+WHERE e.event_type = 'purchase';
+```
+
+### LATERAL vs 关联子查询
+
+| 特性 | 关联子查询 | LATERAL join |
+|------|-----------|-------------|
+| 返回 | 仅单值 | 多行多列 |
+| 用于 | SELECT、WHERE | FROM 子句 |
+| 优化器 | 通常较慢（每行重新执行） | 可作为 join 优化 |
+| 可读性 | 嵌套，难以组合 | 扁平，可组合 |
+
+需要从关联计算中返回多列或多行时，用 LATERAL。
+
 ## 综合实战
 
 以下是一个融合 CTE、JOIN 与窗口函数的真实查询：基于电商 Schema，找出每个品类营收最高的商品，并计算其占该品类总营收的百分比：

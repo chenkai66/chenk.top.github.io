@@ -549,6 +549,294 @@ Common window functions you should know:
 | `FIRST_VALUE()` | First value in the window frame |
 | `LAST_VALUE()` | Last value in the window frame |
 
+## JSON Columns: Relational Meets Document
+
+Modern databases blur the line between relational and document models. PostgreSQL's `jsonb` and MySQL's `JSON` type let you store semi-structured data alongside traditional columns — best of both worlds when used carefully.
+
+### When to Use JSON Columns
+
+| Good fit | Bad fit |
+|----------|---------|
+| User preferences / settings | Core business entities (orders, users) |
+| API response caching | Fields you need to query frequently |
+| Event metadata with varying schema | Fields you need to JOIN on |
+| Feature flags per user | Anything that benefits from normalization |
+| Audit log context | Data with strict integrity constraints |
+
+### PostgreSQL jsonb
+
+```sql
+-- Table with a JSONB column for flexible metadata
+CREATE TABLE events (
+    event_id BIGSERIAL PRIMARY KEY,
+    event_type VARCHAR(50) NOT NULL,
+    user_id INT REFERENCES users(user_id),
+    payload JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Insert events with varying payloads
+INSERT INTO events (event_type, user_id, payload) VALUES
+('page_view', 1, '{"url": "/products/42", "duration_ms": 3200, "referrer": "google"}'),
+('purchase', 1, '{"order_id": 1001, "items": [{"sku": "KB-01", "qty": 1}], "total": 149.99}'),
+('error', 2, '{"code": 500, "message": "timeout", "stack": "at Connection.query..."}');
+```
+
+### Querying JSON
+
+```sql
+-- Extract a field (returns text)
+SELECT payload->>'url' AS url, payload->>'duration_ms' AS ms
+FROM events
+WHERE event_type = 'page_view';
+
+-- Nested access
+SELECT payload->'items'->0->>'sku' AS first_item_sku
+FROM events
+WHERE event_type = 'purchase';
+
+-- Filter on JSON fields
+SELECT *
+FROM events
+WHERE event_type = 'error'
+  AND (payload->>'code')::int >= 500;
+
+-- Containment operator (uses GIN index)
+SELECT *
+FROM events
+WHERE payload @> '{"code": 500}';
+
+-- Check key existence
+SELECT *
+FROM events
+WHERE payload ? 'referrer';
+```
+
+### Indexing JSON
+
+```sql
+-- GIN index for containment queries (@>, ?, ?|, ?&)
+CREATE INDEX idx_events_payload ON events USING GIN (payload);
+
+-- Expression index on a specific JSON path
+CREATE INDEX idx_events_error_code ON events ((payload->>'code'))
+WHERE event_type = 'error';
+```
+
+GIN indexes make `@>` containment checks fast — O(log n) instead of scanning every row.
+
+### MySQL JSON
+
+```sql
+-- MySQL uses -> for extraction (returns JSON), ->> for text
+SELECT payload->>'$.url' AS url
+FROM events
+WHERE event_type = 'page_view';
+
+-- Generated column + index (MySQL's approach to JSON indexing)
+ALTER TABLE events
+ADD COLUMN error_code INT GENERATED ALWAYS AS (payload->>'$.code') VIRTUAL;
+
+CREATE INDEX idx_error_code ON events (error_code);
+```
+
+### Anti-Patterns
+
+```sql
+-- BAD: Entire row is JSON (you just built a document DB with extra steps)
+CREATE TABLE bad_design (
+    id SERIAL PRIMARY KEY,
+    data JSONB  -- everything in here
+);
+
+-- BAD: Querying JSON in WHERE without an index
+SELECT * FROM events
+WHERE payload->>'user_agent' LIKE '%Chrome%';  -- full table scan
+
+-- GOOD: Promote frequently-queried fields to real columns
+ALTER TABLE events ADD COLUMN error_code INT;
+UPDATE events SET error_code = (payload->>'code')::int WHERE event_type = 'error';
+CREATE INDEX idx_events_error_code ON events (error_code);
+```
+
+Rule of thumb: if you query a JSON field in WHERE or JOIN more than occasionally, it should be a real column.
+
+## Recursive CTEs: Querying Hierarchical Data
+
+Many real-world data structures are trees: org charts, category hierarchies, threaded comments, bill-of-materials. Recursive CTEs query these without application-level loops.
+
+### Syntax
+
+```sql
+WITH RECURSIVE cte_name AS (
+    -- Base case: starting rows
+    SELECT ... FROM table WHERE condition
+
+    UNION ALL
+
+    -- Recursive step: join back to the CTE
+    SELECT ... FROM table JOIN cte_name ON ...
+)
+SELECT * FROM cte_name;
+```
+
+### Example: Category Tree
+
+```sql
+CREATE TABLE categories (
+    category_id INT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    parent_id INT REFERENCES categories(category_id)
+);
+
+INSERT INTO categories VALUES
+(1, 'All Products', NULL),
+(2, 'Electronics', 1),
+(3, 'Computers', 2),
+(4, 'Laptops', 3),
+(5, 'Desktops', 3),
+(6, 'Phones', 2),
+(7, 'Furniture', 1),
+(8, 'Desks', 7);
+
+-- Find all descendants of "Electronics" with their depth
+WITH RECURSIVE subtree AS (
+    -- Base: start at Electronics
+    SELECT category_id, name, parent_id, 0 AS depth, name::text AS path
+    FROM categories
+    WHERE name = 'Electronics'
+
+    UNION ALL
+
+    -- Recursive: find children
+    SELECT c.category_id, c.name, c.parent_id, s.depth + 1,
+           s.path || ' > ' || c.name
+    FROM categories c
+    JOIN subtree s ON c.parent_id = s.category_id
+)
+SELECT depth, path FROM subtree ORDER BY path;
+```
+
+Output:
+
+```text
+ depth |              path
+-------+----------------------------------
+     0 | Electronics
+     1 | Electronics > Computers
+     2 | Electronics > Computers > Desktops
+     2 | Electronics > Computers > Laptops
+     1 | Electronics > Phones
+```
+
+### Example: Threaded Comments
+
+```sql
+-- Find a comment thread (all replies to a root comment)
+WITH RECURSIVE thread AS (
+    SELECT comment_id, parent_id, author, body, 0 AS depth
+    FROM comments
+    WHERE comment_id = 42  -- root comment
+
+    UNION ALL
+
+    SELECT c.comment_id, c.parent_id, c.author, c.body, t.depth + 1
+    FROM comments c
+    JOIN thread t ON c.parent_id = t.comment_id
+)
+SELECT depth, repeat('  ', depth) || author || ': ' || left(body, 50) AS display
+FROM thread
+ORDER BY depth, comment_id;
+```
+
+### Safety: Preventing Infinite Loops
+
+```sql
+WITH RECURSIVE tree AS (
+    SELECT id, parent_id, ARRAY[id] AS path, false AS cycle
+    FROM nodes WHERE id = 1
+
+    UNION ALL
+
+    SELECT n.id, n.parent_id, t.path || n.id,
+           n.id = ANY(t.path)  -- detect cycle
+    FROM nodes n
+    JOIN tree t ON n.parent_id = t.id
+    WHERE NOT t.cycle  -- stop if cycle detected
+)
+SELECT * FROM tree WHERE NOT cycle;
+```
+
+## LATERAL Joins: Correlated Subqueries Done Right
+
+`LATERAL` lets a subquery in the FROM clause reference columns from preceding tables — like a for-each loop in SQL. This solves problems that are awkward or impossible with regular JOINs.
+
+### Top-N Per Group
+
+The classic problem: find the 3 most recent orders per user.
+
+```sql
+-- Without LATERAL: window function approach (loads all orders into memory)
+WITH ranked AS (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at DESC) AS rn
+    FROM orders
+)
+SELECT * FROM ranked WHERE rn <= 3;
+
+-- With LATERAL: stops after 3 per user (more efficient for large tables)
+SELECT u.user_id, u.full_name, recent.*
+FROM users u
+CROSS JOIN LATERAL (
+    SELECT order_id, total_amount, created_at
+    FROM orders o
+    WHERE o.user_id = u.user_id
+    ORDER BY o.created_at DESC
+    LIMIT 3
+) recent;
+```
+
+The LATERAL version can use an index on `(user_id, created_at DESC)` and stops scanning after 3 rows per user.
+
+### Expanding Array/JSON Columns
+
+```sql
+-- Unnest a JSONB array and join with referenced table
+SELECT e.event_id, e.event_type, item->>'sku' AS sku, item->>'qty' AS qty
+FROM events e
+CROSS JOIN LATERAL jsonb_array_elements(e.payload->'items') AS item
+WHERE e.event_type = 'purchase';
+```
+
+### Dependent Calculations
+
+```sql
+-- For each product, compute running stats from the last 30 days of orders
+SELECT p.name, stats.*
+FROM products p
+CROSS JOIN LATERAL (
+    SELECT
+        COUNT(*) AS orders_30d,
+        COALESCE(SUM(oi.quantity), 0) AS units_30d,
+        COALESCE(AVG(oi.unit_price), 0) AS avg_price_30d
+    FROM order_items oi
+    JOIN orders o ON oi.order_id = o.order_id
+    WHERE oi.product_id = p.product_id
+      AND o.created_at > NOW() - INTERVAL '30 days'
+) stats
+ORDER BY stats.units_30d DESC;
+```
+
+### LATERAL vs Correlated Subqueries
+
+| Feature | Correlated subquery | LATERAL join |
+|---------|--------------------|----|
+| Returns | Single value only | Multiple rows and columns |
+| Used in | SELECT, WHERE | FROM clause |
+| Optimizer | Often slower (re-executed per row) | Can be optimized like a join |
+| Readability | Nested, hard to compose | Flat, composable |
+
+Use LATERAL when you need multiple columns or rows from a correlated computation.
+
 ## Putting It All Together
 
 Here is a real-world query that combines CTEs, JOINs, and window functions. Given our e-commerce schema, find the top product in each category by total revenue, along with what percentage of category revenue it represents:
