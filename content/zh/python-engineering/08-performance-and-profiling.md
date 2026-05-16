@@ -677,6 +677,246 @@ $ python setup.py build_ext --inplace
 
 Cython 是一个庞大主题。对大多数应用而言，本文前述的优化技术（向量化、缓存、生成器）已足够。**仅当通过性能分析确认某个热点循环确实是瓶颈，且 NumPy 因计算逻辑难以向量化而无法提供帮助时，才考虑 Cython。**
 
+## Scalene：现代一体化性能分析器
+
+[Scalene](https://github.com/plasma-umass/scalene) 同时分析 CPU 时间、内存分配和 GPU 使用。不同于 cProfile，它区分 Python 时间与原生（C/Rust）时间，且无需修改代码。
+
+### 安装和使用
+
+```bash
+(.venv) $ pip install scalene
+
+# 分析脚本
+$ scalene my_script.py
+
+# 指定选项分析
+$ scalene --cpu --memory --reduced-profile my_script.py
+
+# 只分析特定函数
+$ scalene --profile-only my_module.hot_function my_script.py
+```
+
+### 解读 Scalene 输出
+
+```text
+               Time          Memory
+File           Python  Native  Peak   Net     Line
+my_module.py
+  15           0.2%    0.1%           +3.2MB  data = pd.read_csv("big.csv")
+  16           45.1%   12.3%          +0.0MB  result = data.groupby("key").agg(...)
+  17           0.0%    0.0%   128MB   -3.2MB  del data
+  18           8.4%    22.1%          +1.1MB  output = compute_features(result)
+```
+
+Scalene 提供的关键洞察（cProfile 无法给出）：
+
+| 指标 | 告诉你什么 |
+|------|-----------|
+| Python vs 原生时间 | 优化方向是重写 Python 代码还是换库 |
+| 每行内存分配 | 哪些行造成 GC 压力 |
+| 拷贝量 | 多少数据被不必要地复制 |
+| GPU 利用率 | GPU 内核是否实际被使用 |
+
+### Scalene vs 其他分析器
+
+| 分析器 | CPU | 内存 | GPU | 开销 | 代码修改 |
+|--------|-----|------|-----|------|----------|
+| cProfile | 函数级 | 否 | 否 | 2-5x | 无 |
+| line_profiler | 行级 | 否 | 否 | 10-30x | 需 `@profile` |
+| memory_profiler | 否 | 行级 | 否 | 100x+ | 需 `@profile` |
+| Scalene | 行级 | 行级 | 是 | 10-40% | 无 |
+| py-spy | 函数级 | 否 | 否 | <5% | 无（采样） |
+
+大多数分析任务从 Scalene 开始。生产环境中连 10% 开销都无法接受时用 py-spy。
+
+## Polars：高性能 DataFrame
+
+[Polars](https://pola.rs/) 是用 Rust 编写的 DataFrame 库。大多数操作比 pandas 快 5-100 倍，内存更省，API 更简洁。
+
+### 为什么选 Polars
+
+| 方面 | pandas | Polars |
+|------|--------|--------|
+| 引擎 | C/Python | Rust（SIMD + 多线程） |
+| 内存模型 | 修改时拷贝 | 零拷贝，惰性求值 |
+| 并行 | 默认单线程 | 默认多线程 |
+| 缺失数据 | NaN（仅 float） | Null（任意类型，Arrow 格式） |
+| 字符串处理 | Python 对象 | Arrow 字符串（连续内存） |
+| API 风格 | 可变、命令式 | 不可变、表达式驱动 |
+| 内存占用 | 数据大小的 2-10 倍 | 约等于数据大小 |
+
+### 核心 API
+
+```python
+import polars as pl
+
+# 读取数据
+df = pl.read_csv("sales.csv")
+df = pl.read_parquet("events.parquet")
+
+# 表达式（可组合，惰性友好）
+result = (
+    df.filter(pl.col("amount") > 100)
+    .group_by("category")
+    .agg(
+        pl.col("amount").sum().alias("total"),
+        pl.col("amount").mean().alias("avg"),
+        pl.col("customer_id").n_unique().alias("unique_customers"),
+    )
+    .sort("total", descending=True)
+)
+```
+
+### 惰性求值
+
+Polars 惰性模式构建查询计划，优化后再执行：
+
+```python
+# 惰性：构建计划 → 优化 → 执行
+result = (
+    pl.scan_parquet("data/*.parquet")  # 尚未读取
+    .filter(pl.col("date") > "2024-01-01")
+    .group_by("region")
+    .agg(pl.col("revenue").sum())
+    .sort("revenue", descending=True)
+    .head(10)
+    .collect()  # 执行优化后的计划
+)
+```
+
+优化器应用谓词下推（读取前过滤）、投影下推（只读取需要的列）和公共子表达式消除。
+
+### 何时选择 Polars vs pandas
+
+| 场景 | 建议 |
+|------|------|
+| 数据 > 1GB | **Polars** — 更低内存，更快处理 |
+| 小数据探索性分析 | **pandas** — 教程更多，生态更广 |
+| ETL 管道 | **Polars** — 惰性模式自动优化 |
+| ML 特征工程 | **Polars** — 并行，性能可预测 |
+| 与 sklearn、绘图库交互 | **pandas** — 多数库要求 pandas |
+| 无遗留约束的新项目 | **Polars** — 更干净的 API |
+
+需要时相互转换：
+
+```python
+pandas_df = polars_df.to_pandas()
+polars_df = pl.from_pandas(pandas_df)
+```
+
+## 分析异步代码性能
+
+标准分析器对异步代码显示误导结果——`await` 时间显示为空闲。以下工具正确处理协程。
+
+### aiomonitor：实时异步检查
+
+```python
+import asyncio
+import aiomonitor
+
+async def main():
+    with aiomonitor.start_monitor(port=50101):
+        await run_server()
+
+asyncio.run(main())
+```
+
+通过 telnet 连接检查运行中的任务：
+
+```bash
+$ telnet localhost 50101
+> ps         # 列出所有任务
+> where 12   # 任务 #12 的堆栈追踪
+> cancel 12  # 取消卡住的任务
+```
+
+### 测量 await 耗时
+
+```python
+import time
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
+@asynccontextmanager
+async def measure_async(label: str) -> AsyncIterator[None]:
+    """测量异步代码块的墙钟时间。"""
+    start = time.perf_counter()
+    try:
+        yield
+    finally:
+        elapsed = time.perf_counter() - start
+        print(f"{label}: {elapsed:.3f}s")
+
+async def pipeline():
+    async with measure_async("fetch"):
+        data = await fetch_all_pages()
+    async with measure_async("transform"):
+        result = await transform(data)
+    async with measure_async("upload"):
+        await upload(result)
+```
+
+### 检测事件循环阻塞
+
+事件循环被阻塞意味着同步代码在应该异步的地方运行：
+
+```python
+import asyncio
+
+async def detect_blocking():
+    """事件循环被阻塞超过 100ms 时发出警告。"""
+    loop = asyncio.get_running_loop()
+    loop.slow_callback_duration = 0.1  # 秒
+    loop.set_debug(True)
+
+asyncio.run(detect_blocking(), debug=True)
+```
+
+调试模式下 asyncio 输出类似警告：
+
+```
+Executing <Task ...> took 0.354 seconds
+```
+
+### 异步基准测试模式
+
+```python
+import asyncio
+import time
+
+async def benchmark_concurrent(
+    func,
+    n_requests: int = 100,
+    concurrency: int = 10,
+) -> dict:
+    """用受控并发度基准测试异步函数。"""
+    semaphore = asyncio.Semaphore(concurrency)
+    latencies = []
+
+    async def wrapped():
+        async with semaphore:
+            start = time.perf_counter()
+            await func()
+            latencies.append(time.perf_counter() - start)
+
+    wall_start = time.perf_counter()
+    async with asyncio.TaskGroup() as tg:
+        for _ in range(n_requests):
+            tg.create_task(wrapped())
+    wall_time = time.perf_counter() - wall_start
+
+    latencies.sort()
+    return {
+        "total_requests": n_requests,
+        "concurrency": concurrency,
+        "wall_time": f"{wall_time:.2f}s",
+        "throughput": f"{n_requests / wall_time:.1f} req/s",
+        "p50": f"{latencies[len(latencies)//2]*1000:.1f}ms",
+        "p95": f"{latencies[int(len(latencies)*0.95)]*1000:.1f}ms",
+        "p99": f"{latencies[int(len(latencies)*0.99)]*1000:.1f}ms",
+    }
+```
+
 ## 性能优化检查清单（Performance Optimization Checklist）
 
 优化前，请按顺序回答以下问题：

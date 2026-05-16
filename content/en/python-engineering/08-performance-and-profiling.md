@@ -681,6 +681,259 @@ $ python setup.py build_ext --inplace
 
 Cython is a big topic. For most applications, the optimization techniques earlier in this article (vectorization, caching, generators) are sufficient. Use Cython when you've verified with profiling that a specific hot loop is the bottleneck and NumPy cannot help because the computation is not easily vectorizable.
 
+## Scalene: Modern All-in-One Profiler
+
+[Scalene](https://github.com/plasma-umass/scalene) profiles CPU time, memory allocation, and GPU usage simultaneously. Unlike cProfile, it distinguishes Python time from native (C/Rust) time and requires zero code changes.
+
+### Installation and Usage
+
+```bash
+(.venv) $ pip install scalene
+
+# Profile a script
+$ scalene my_script.py
+
+# Profile with specific options
+$ scalene --cpu --memory --reduced-profile my_script.py
+
+# Profile just one function (via annotation)
+$ scalene --profile-only my_module.hot_function my_script.py
+```
+
+### Reading Scalene Output
+
+```text
+               Time          Memory
+File           Python  Native  Peak   Net     Line
+my_module.py
+  15           0.2%    0.1%           +3.2MB  data = pd.read_csv("big.csv")
+  16           45.1%   12.3%          +0.0MB  result = data.groupby("key").agg(...)
+  17           0.0%    0.0%   128MB   -3.2MB  del data
+  18           8.4%    22.1%          +1.1MB  output = compute_features(result)
+```
+
+Key insights Scalene provides that cProfile cannot:
+
+| Metric | What it tells you |
+|--------|-------------------|
+| Python vs Native time | Whether optimization needs Python rewrite or library swap |
+| Memory allocation per line | Which lines cause GC pressure |
+| Copy volume | How much data is being unnecessarily copied |
+| GPU utilization | Whether GPU kernels are actually used |
+
+### Scalene vs Other Profilers
+
+| Profiler | CPU | Memory | GPU | Overhead | Code changes |
+|----------|-----|--------|-----|----------|--------------|
+| cProfile | Function-level | No | No | 2-5x | None |
+| line_profiler | Line-level | No | No | 10-30x | `@profile` decorator |
+| memory_profiler | No | Line-level | No | 100x+ | `@profile` decorator |
+| Scalene | Line-level | Line-level | Yes | 10-40% | None |
+| py-spy | Function-level | No | No | <5% | None (sampling) |
+
+For most profiling tasks, start with Scalene. Drop to py-spy for production profiling where even 10% overhead is unacceptable.
+
+## Polars: High-Performance DataFrames
+
+[Polars](https://pola.rs/) is a DataFrame library written in Rust. It is 5-100x faster than pandas for most operations, uses less memory, and has a cleaner API.
+
+### Why Polars over pandas
+
+| Aspect | pandas | Polars |
+|--------|--------|--------|
+| Engine | C/Python | Rust (SIMD, multi-threaded) |
+| Memory model | Copies on mutation | Zero-copy, lazy evaluation |
+| Parallelism | Single-threaded by default | Multi-threaded by default |
+| Missing data | NaN (float-only) | Null (any type, Arrow-based) |
+| String handling | Python objects | Arrow strings (contiguous memory) |
+| API style | Mutable, imperative | Immutable, expression-based |
+| Memory usage | 2-10x data size | ~1x data size |
+
+### Core API
+
+```python
+import polars as pl
+
+# Read data
+df = pl.read_csv("sales.csv")
+df = pl.read_parquet("events.parquet")
+
+# Expressions (composable, lazy-friendly)
+result = (
+    df.filter(pl.col("amount") > 100)
+    .group_by("category")
+    .agg(
+        pl.col("amount").sum().alias("total"),
+        pl.col("amount").mean().alias("avg"),
+        pl.col("customer_id").n_unique().alias("unique_customers"),
+    )
+    .sort("total", descending=True)
+)
+```
+
+### Lazy Evaluation
+
+Polars' lazy mode builds a query plan and optimizes before execution:
+
+```python
+# Lazy: build plan, optimize, then execute
+result = (
+    pl.scan_parquet("data/*.parquet")  # doesn't read yet
+    .filter(pl.col("date") > "2024-01-01")
+    .group_by("region")
+    .agg(pl.col("revenue").sum())
+    .sort("revenue", descending=True)
+    .head(10)
+    .collect()  # executes the optimized plan
+)
+```
+
+The optimizer applies predicate pushdown (filter before reading all columns), projection pushdown (read only needed columns), and common subexpression elimination.
+
+### When to Use Polars vs pandas
+
+| Scenario | Recommendation |
+|----------|---------------|
+| Data > 1GB | **Polars** — lower memory, faster processing |
+| Exploratory notebook (small data) | **pandas** — more tutorials, broader ecosystem |
+| ETL pipelines | **Polars** — lazy mode optimizes automatically |
+| ML feature engineering | **Polars** — parallel, predictable performance |
+| Library interop (sklearn, plotting) | **pandas** — most libraries expect it |
+| New projects without legacy constraints | **Polars** — cleaner API, better defaults |
+
+Convert between them when needed:
+
+```python
+# Polars → pandas
+pandas_df = polars_df.to_pandas()
+
+# pandas → Polars
+polars_df = pl.from_pandas(pandas_df)
+```
+
+## Profiling Async Code
+
+Standard profilers show misleading results for async code because `await` time appears as idle. These tools handle coroutines correctly.
+
+### aiomonitor: Live Async Inspection
+
+```bash
+(.venv) $ pip install aiomonitor
+```
+
+```python
+import asyncio
+import aiomonitor
+
+async def main():
+    with aiomonitor.start_monitor(port=50101):
+        # Your application code
+        await run_server()
+
+asyncio.run(main())
+```
+
+Connect via telnet to inspect running tasks:
+
+```bash
+$ telnet localhost 50101
+> ps         # list all tasks
+> where 12   # stacktrace of task #12
+> cancel 12  # cancel a stuck task
+```
+
+### Measuring Await Durations
+
+```python
+import asyncio
+import time
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
+@asynccontextmanager
+async def measure_async(label: str) -> AsyncIterator[None]:
+    """Measure wall-clock time of an async block."""
+    start = time.perf_counter()
+    try:
+        yield
+    finally:
+        elapsed = time.perf_counter() - start
+        print(f"{label}: {elapsed:.3f}s")
+
+async def pipeline():
+    async with measure_async("fetch"):
+        data = await fetch_all_pages()
+
+    async with measure_async("transform"):
+        result = await transform(data)
+
+    async with measure_async("upload"):
+        await upload(result)
+```
+
+### Detecting Event Loop Blocking
+
+A blocked event loop means synchronous code is running where async is expected:
+
+```python
+import asyncio
+
+async def detect_blocking():
+    """Warn when event loop is blocked for >100ms."""
+    loop = asyncio.get_running_loop()
+    loop.slow_callback_duration = 0.1  # seconds
+
+    # Enable debug mode for detailed warnings
+    loop.set_debug(True)
+
+asyncio.run(detect_blocking(), debug=True)
+```
+
+With debug mode, asyncio prints warnings like:
+
+```
+Executing <Task ...> took 0.354 seconds
+```
+
+### Async Benchmark Pattern
+
+```python
+import asyncio
+import time
+
+async def benchmark_concurrent(
+    func,
+    n_requests: int = 100,
+    concurrency: int = 10,
+) -> dict:
+    """Benchmark an async function with controlled concurrency."""
+    semaphore = asyncio.Semaphore(concurrency)
+    latencies = []
+
+    async def wrapped():
+        async with semaphore:
+            start = time.perf_counter()
+            await func()
+            latencies.append(time.perf_counter() - start)
+
+    wall_start = time.perf_counter()
+    async with asyncio.TaskGroup() as tg:
+        for _ in range(n_requests):
+            tg.create_task(wrapped())
+    wall_time = time.perf_counter() - wall_start
+
+    latencies.sort()
+    return {
+        "total_requests": n_requests,
+        "concurrency": concurrency,
+        "wall_time": f"{wall_time:.2f}s",
+        "throughput": f"{n_requests / wall_time:.1f} req/s",
+        "p50": f"{latencies[len(latencies)//2]*1000:.1f}ms",
+        "p95": f"{latencies[int(len(latencies)*0.95)]*1000:.1f}ms",
+        "p99": f"{latencies[int(len(latencies)*0.99)]*1000:.1f}ms",
+    }
+```
+
 ## Performance Optimization Checklist
 
 Before optimizing, ask these questions in order.
