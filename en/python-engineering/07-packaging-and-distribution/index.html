@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/python-engineering/>Python Engineering</a>
 · Chapter 7</div><h1>Python Engineering (7): Packaging — From pip install to PyPI</h1><p class=deck>Package your Python code for distribution via pip, publish to PyPI, create Docker images, and manage versioning. The complete guide from local project to installable package.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-04-24>April 24, 2022</time> · 22 min read · 2219 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/python/ class=tag>#Python</a><a href=/en/tags/packaging/ class=tag>#Packaging</a><a href=/en/tags/docker/ class=tag>#Docker</a><a href=/en/tags/pypi/ class=tag>#PyPI</a></div><a class="pill pill-outline" href=/zh/python-engineering/07-packaging-and-distribution/>阅读中文版 →</a></div></header><div class=prose><p>You wrote a useful utility. A colleague asks you to share it. You zip the folder and email it. They unzip it, run <code>python main.py</code>, and get <code>ModuleNotFoundError</code> because they do not have the dependencies. Then they install the dependencies, but the wrong versions. Then they have Python 3.8 and your f-string walrus operators do not parse.</p><p>Proper packaging eliminates all of this. With <code>pip install your-tool</code>, everything just works: correct dependencies, correct versions, and a clean CLI command.</p><hr><h2 id=package-vs-module-vs-library class=heading-anchor>Package vs Module vs Library<a href=#package-vs-module-vs-library class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>These terms are used loosely, but they have specific meanings in Python:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-packaging-pipeline.png alt="Packaging pipeline" loading=lazy decoding=async class=content-image></figure></p><div class=table-wrap><table><thead><tr><th>Term</th><th>Definition</th><th>Example</th></tr></thead><tbody><tr><td><strong>Module</strong></td><td>A single <code>.py</code> file</td><td><code>utils.py</code></td></tr><tr><td><strong>Package</strong></td><td>A directory with <code>__init__.py</code> containing modules</td><td><code>my_tool/</code> directory</td></tr><tr><td><strong>Library</strong></td><td>A package (or collection of packages) distributed for reuse</td><td><code>requests</code>, <code>flask</code></td></tr><tr><td><strong>Distribution</strong></td><td>An installable archive (wheel or sdist) on PyPI</td><td><code>requests-2.31.0-py3-none-any.whl</code></td></tr><tr><td><strong>Script</strong></td><td>A standalone <code>.py</code> file run directly</td><td><code>download.py</code></td></tr></tbody></table></div><p>When someone says &ldquo;install the requests library,&rdquo; they mean: download the <code>requests</code> distribution from PyPI, which contains the <code>requests</code> package and its subpackages.</p><h2 id=building-distributions class=heading-anchor>Building Distributions<a href=#building-distributions class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Python packages are distributed in two formats:</p><h3 id=sdist-source-distribution class=heading-anchor>sdist (Source Distribution)<a href=#sdist-source-distribution class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>A <code>.tar.gz</code> archive of the source code. The recipient needs a build toolchain to install it (compiler for C extensions, etc.).</p><h3 id=wheel-built-distribution class=heading-anchor>wheel (Built Distribution)<a href=#wheel-built-distribution class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>A <code>.whl</code> file (which is actually a zip archive). Pre-built, no compilation needed. Faster to install. This is what pip uses by default.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-wheel-vs-sdist.png alt="Wheel vs sdist" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2022-04-24>April 24, 2022</time> · 28 min read · 2934 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/python/ class=tag>#Python</a><a href=/en/tags/packaging/ class=tag>#Packaging</a><a href=/en/tags/docker/ class=tag>#Docker</a><a href=/en/tags/pypi/ class=tag>#PyPI</a></div><a class="pill pill-outline" href=/zh/python-engineering/07-packaging-and-distribution/>阅读中文版 →</a></div></header><div class=prose><p>You wrote a useful utility. A colleague asks you to share it. You zip the folder and email it. They unzip it, run <code>python main.py</code>, and get <code>ModuleNotFoundError</code> because they do not have the dependencies. Then they install the dependencies, but the wrong versions. Then they have Python 3.8 and your f-string walrus operators do not parse.</p><p>Proper packaging eliminates all of this. With <code>pip install your-tool</code>, everything just works: correct dependencies, correct versions, and a clean CLI command.</p><hr><h2 id=package-vs-module-vs-library class=heading-anchor>Package vs Module vs Library<a href=#package-vs-module-vs-library class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>These terms are used loosely, but they have specific meanings in Python:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-packaging-pipeline.png alt="Packaging pipeline" loading=lazy decoding=async class=content-image></figure></p><div class=table-wrap><table><thead><tr><th>Term</th><th>Definition</th><th>Example</th></tr></thead><tbody><tr><td><strong>Module</strong></td><td>A single <code>.py</code> file</td><td><code>utils.py</code></td></tr><tr><td><strong>Package</strong></td><td>A directory with <code>__init__.py</code> containing modules</td><td><code>my_tool/</code> directory</td></tr><tr><td><strong>Library</strong></td><td>A package (or collection of packages) distributed for reuse</td><td><code>requests</code>, <code>flask</code></td></tr><tr><td><strong>Distribution</strong></td><td>An installable archive (wheel or sdist) on PyPI</td><td><code>requests-2.31.0-py3-none-any.whl</code></td></tr><tr><td><strong>Script</strong></td><td>A standalone <code>.py</code> file run directly</td><td><code>download.py</code></td></tr></tbody></table></div><p>When someone says &ldquo;install the requests library,&rdquo; they mean: download the <code>requests</code> distribution from PyPI, which contains the <code>requests</code> package and its subpackages.</p><h2 id=building-distributions class=heading-anchor>Building Distributions<a href=#building-distributions class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Python packages are distributed in two formats:</p><h3 id=sdist-source-distribution class=heading-anchor>sdist (Source Distribution)<a href=#sdist-source-distribution class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>A <code>.tar.gz</code> archive of the source code. The recipient needs a build toolchain to install it (compiler for C extensions, etc.).</p><h3 id=wheel-built-distribution class=heading-anchor>wheel (Built Distribution)<a href=#wheel-built-distribution class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>A <code>.whl</code> file (which is actually a zip archive). Pre-built, no compilation needed. Faster to install. This is what pip uses by default.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-wheel-vs-sdist.png alt="Wheel vs sdist" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -490,7 +490,246 @@
 </span></span></span><span class=line><span class=cl><span class=se></span>    -e <span class=nv>DATABASE_URL</span><span class=o>=</span>postgresql://db:5432/mydb <span class=se>\
 </span></span></span><span class=line><span class=cl><span class=se></span>    -e <span class=nv>API_KEY</span><span class=o>=</span>sk-abc123 <span class=se>\
 </span></span></span><span class=line><span class=cl><span class=se></span>    my-tool:0.1.0
-</span></span></code></pre></td></tr></table></div></div><h2 id=poetry-build-and-publish class=heading-anchor>Poetry Build and Publish<a href=#poetry-build-and-publish class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-wheel-vs-sdist-comparison-prebuilt-furniture-vs-ikea-flatpac.jpg alt="Wheel vs sdist comparison prebuilt furniture vs ikea flatpac" loading=lazy decoding=async class=content-image></figure></p><p>If your project uses Poetry instead of setuptools:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><h2 id=modern-build-backends class=heading-anchor>Modern Build Backends<a href=#modern-build-backends class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>The Python packaging ecosystem has moved beyond <code>setuptools</code>. Newer backends are faster, simpler to configure, and handle more use cases.</p><h3 id=hatch-all-in-one-project-manager class=heading-anchor>Hatch: All-in-One Project Manager<a href=#hatch-all-in-one-project-manager class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><a href=https://hatch.pypa.io/ target=_blank rel="noopener noreferrer">Hatch <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+manages environments, builds, and publishing with a single tool:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=c># pyproject.toml</span>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>build-system</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>requires</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;hatchling&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>build-backend</span> <span class=p>=</span> <span class=s2>&#34;hatchling.build&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>name</span> <span class=p>=</span> <span class=s2>&#34;my-library&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>dynamic</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;version&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>hatch</span><span class=p>.</span><span class=nx>version</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>path</span> <span class=p>=</span> <span class=s2>&#34;src/my_library/__init__.py&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>hatch</span><span class=p>.</span><span class=nx>build</span><span class=p>.</span><span class=nx>targets</span><span class=p>.</span><span class=nx>wheel</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>packages</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;src/my_library&#34;</span><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Build</span>
+</span></span><span class=line><span class=cl>$ hatch build
+</span></span><span class=line><span class=cl>dist/my_library-0.1.0-py3-none-any.whl
+</span></span><span class=line><span class=cl>dist/my_library-0.1.0.tar.gz
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Publish</span>
+</span></span><span class=line><span class=cl>$ hatch publish
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Run in isolated environment</span>
+</span></span><span class=line><span class=cl>$ hatch run pytest
+</span></span><span class=line><span class=cl>$ hatch run docs:build
+</span></span></code></pre></td></tr></table></div></div><p>Hatch&rsquo;s environment matrix runs tests across Python versions without tox:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>hatch</span><span class=p>.</span><span class=nx>envs</span><span class=p>.</span><span class=nx>test</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>dependencies</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;pytest&#34;</span><span class=p>,</span> <span class=s2>&#34;pytest-cov&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>hatch</span><span class=p>.</span><span class=nx>envs</span><span class=p>.</span><span class=nx>test</span><span class=p>.</span><span class=nx>matrix</span><span class=p>]]</span>
+</span></span><span class=line><span class=cl><span class=nx>python</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;3.10&#34;</span><span class=p>,</span> <span class=s2>&#34;3.11&#34;</span><span class=p>,</span> <span class=s2>&#34;3.12&#34;</span><span class=p>,</span> <span class=s2>&#34;3.13&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>hatch</span><span class=p>.</span><span class=nx>envs</span><span class=p>.</span><span class=nx>test</span><span class=p>.</span><span class=nx>scripts</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>run</span> <span class=p>=</span> <span class=s2>&#34;pytest {args}&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>cov</span> <span class=p>=</span> <span class=s2>&#34;pytest --cov {args}&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>$ hatch run test:run      <span class=c1># runs on all 4 Python versions</span>
+</span></span><span class=line><span class=cl>$ hatch run test.py3.12:run  <span class=c1># run on specific version</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=uv-build-and-publish class=heading-anchor>uv Build and Publish<a href=#uv-build-and-publish class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>uv handles the full lifecycle without additional tools:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Build wheel and sdist</span>
+</span></span><span class=line><span class=cl>$ uv build
+</span></span><span class=line><span class=cl>Building <span class=nb>source</span> distribution...
+</span></span><span class=line><span class=cl>Building wheel from <span class=nb>source</span> distribution...
+</span></span><span class=line><span class=cl>Successfully built dist/my_lib-0.1.0.tar.gz and dist/my_lib-0.1.0-py3-none-any.whl
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Publish to PyPI</span>
+</span></span><span class=line><span class=cl>$ uv publish
+</span></span><span class=line><span class=cl><span class=c1># Or to a private index:</span>
+</span></span><span class=line><span class=cl>$ uv publish --index-url https://private.pypi.org/simple/
+</span></span></code></pre></td></tr></table></div></div><h3 id=maturin-python--rust-extensions class=heading-anchor>Maturin: Python + Rust Extensions<a href=#maturin-python--rust-extensions class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><a href=https://www.maturin.rs/ target=_blank rel="noopener noreferrer">Maturin <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+builds Python packages containing Rust extensions (via PyO3):</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=c># pyproject.toml</span>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>build-system</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>requires</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;maturin&gt;=1.0,&lt;2.0&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>build-backend</span> <span class=p>=</span> <span class=s2>&#34;maturin&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>name</span> <span class=p>=</span> <span class=s2>&#34;my-fast-lib&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>requires-python</span> <span class=p>=</span> <span class=s2>&#34;&gt;=3.9&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>maturin</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>features</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;pyo3/extension-module&#34;</span><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=c1>// src/lib.rs
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>use</span><span class=w> </span><span class=n>pyo3</span>::<span class=n>prelude</span>::<span class=o>*</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=cp>#[pyfunction]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>fn</span> <span class=nf>fast_sum</span><span class=p>(</span><span class=n>data</span>: <span class=nb>Vec</span><span class=o>&lt;</span><span class=kt>f64</span><span class=o>&gt;</span><span class=p>)</span><span class=w> </span>-&gt; <span class=kt>f64</span> <span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>data</span><span class=p>.</span><span class=n>iter</span><span class=p>().</span><span class=n>sum</span><span class=p>()</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=cp>#[pymodule]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>fn</span> <span class=nf>my_fast_lib</span><span class=p>(</span><span class=n>m</span>: <span class=kp>&amp;</span><span class=nc>Bound</span><span class=o>&lt;</span><span class=nb>&#39;_</span><span class=p>,</span><span class=w> </span><span class=n>PyModule</span><span class=o>&gt;</span><span class=p>)</span><span class=w> </span>-&gt; <span class=nc>PyResult</span><span class=o>&lt;</span><span class=p>()</span><span class=o>&gt;</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>m</span><span class=p>.</span><span class=n>add_function</span><span class=p>(</span><span class=fm>wrap_pyfunction!</span><span class=p>(</span><span class=n>fast_sum</span><span class=p>,</span><span class=w> </span><span class=n>m</span><span class=p>)</span><span class=o>?</span><span class=p>)</span><span class=o>?</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nb>Ok</span><span class=p>(())</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Build and install for development</span>
+</span></span><span class=line><span class=cl>$ maturin develop
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Build wheels for distribution</span>
+</span></span><span class=line><span class=cl>$ maturin build --release
+</span></span></code></pre></td></tr></table></div></div><p>This pattern is how high-performance libraries like <code>pydantic-core</code>, <code>ruff</code>, and <code>polars</code> ship Rust-backed Python packages.</p><h3 id=build-backend-comparison class=heading-anchor>Build Backend Comparison<a href=#build-backend-comparison class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>Backend</th><th>Speed</th><th>Use case</th><th>Rust/C support</th></tr></thead><tbody><tr><td>setuptools</td><td>Slow</td><td>Legacy, complex builds</td><td>Yes (C only)</td></tr><tr><td>hatchling</td><td>Fast</td><td>Pure Python libraries</td><td>No</td></tr><tr><td>flit</td><td>Fast</td><td>Simple pure Python</td><td>No</td></tr><tr><td>maturin</td><td>Fast</td><td>Rust extensions</td><td>Yes (Rust)</td></tr><tr><td>scikit-build-core</td><td>Medium</td><td>C/C++/Fortran extensions</td><td>Yes</td></tr></tbody></table></div><h2 id=reproducible-builds-and-sbom class=heading-anchor>Reproducible Builds and SBOM<a href=#reproducible-builds-and-sbom class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Reproducible builds ensure that building the same source produces bit-for-bit identical outputs. This matters for security auditing and supply chain integrity.</p><h3 id=pinning-build-dependencies class=heading-anchor>Pinning Build Dependencies<a href=#pinning-build-dependencies class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>build-system</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>requires</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;hatchling==1.21.1&#34;</span><span class=p>]</span>  <span class=c># pin exact version</span>
+</span></span><span class=line><span class=cl><span class=nx>build-backend</span> <span class=p>=</span> <span class=s2>&#34;hatchling.build&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=hash-verification class=heading-anchor>Hash Verification<a href=#hash-verification class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># pip-tools: generate hashes for supply chain security</span>
+</span></span><span class=line><span class=cl>$ pip-compile --generate-hashes requirements.in
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Output includes hashes for every package:</span>
+</span></span><span class=line><span class=cl><span class=c1># requests==2.31.0 \</span>
+</span></span><span class=line><span class=cl><span class=c1>#     --hash=sha256:942c5a758f98d790eaed1a29cb6eefc7f0edf3fcb0fce8afe0f44505355fed97</span>
+</span></span></code></pre></td></tr></table></div></div><p>With uv, hashes are always included in <code>uv.lock</code> — no extra flag needed.</p><h3 id=software-bill-of-materials-sbom class=heading-anchor>Software Bill of Materials (SBOM)<a href=#software-bill-of-materials-sbom class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Generate an SBOM for compliance and vulnerability tracking:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Using pip-licenses</span>
+</span></span><span class=line><span class=cl>$ pip install pip-licenses
+</span></span><span class=line><span class=cl>$ pip-licenses --format<span class=o>=</span>json --output-file<span class=o>=</span>sbom.json
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Using cyclonedx (standard SBOM format)</span>
+</span></span><span class=line><span class=cl>$ pip install cyclonedx-bom
+</span></span><span class=line><span class=cl>$ cyclonedx-py environment -o sbom.cdx.json
+</span></span></code></pre></td></tr></table></div></div><p>Attach the SBOM to releases for downstream consumers to audit dependencies.</p><h2 id=conditional-dependencies-and-platform-markers class=heading-anchor>Conditional Dependencies and Platform Markers<a href=#conditional-dependencies-and-platform-markers class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Real-world packages need different dependencies on different platforms or Python versions.</p><h3 id=environment-markers class=heading-anchor>Environment Markers<a href=#environment-markers class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>dependencies</span> <span class=p>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;tomli&gt;=1.0; python_version &lt; &#39;3.11&#39;&#34;</span><span class=p>,</span>  <span class=c># stdlib tomllib in 3.11+</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;colorama&gt;=0.4; sys_platform == &#39;win32&#39;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;uvloop&gt;=0.17; sys_platform != &#39;win32&#39;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;typing-extensions&gt;=4.0; python_version &lt; &#39;3.12&#39;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><p>Common markers:</p><div class=table-wrap><table><thead><tr><th>Marker</th><th>Example values</th></tr></thead><tbody><tr><td><code>python_version</code></td><td><code>'3.10'</code>, <code>'3.11'</code></td></tr><tr><td><code>sys_platform</code></td><td><code>'linux'</code>, <code>'darwin'</code>, <code>'win32'</code></td></tr><tr><td><code>platform_machine</code></td><td><code>'x86_64'</code>, <code>'aarch64'</code></td></tr><tr><td><code>implementation_name</code></td><td><code>'cpython'</code>, <code>'pypy'</code></td></tr></tbody></table></div><h3 id=optional-dependency-groups class=heading-anchor>Optional Dependency Groups<a href=#optional-dependency-groups class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>.</span><span class=nx>optional-dependencies</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>postgres</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;psycopg[binary]&gt;=3.0&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>mysql</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;mysqlclient&gt;=2.0&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>redis</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;redis&gt;=5.0&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>all</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;my-lib[postgres,mysql,redis]&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>dev</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;pytest&#34;</span><span class=p>,</span> <span class=s2>&#34;mypy&#34;</span><span class=p>,</span> <span class=s2>&#34;ruff&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>docs</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;sphinx&#34;</span><span class=p>,</span> <span class=s2>&#34;sphinx-rtd-theme&#34;</span><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Install with specific extras</span>
+</span></span><span class=line><span class=cl>$ pip install <span class=s2>&#34;my-lib[postgres,redis]&#34;</span>
+</span></span><span class=line><span class=cl>$ uv add <span class=s2>&#34;my-lib[all]&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=platform-specific-wheels class=heading-anchor>Platform-Specific Wheels<a href=#platform-specific-wheels class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>For packages with compiled extensions, build wheels for each platform:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># .github/workflows/release.yml using cibuildwheel</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>jobs</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>build</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>strategy</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>matrix</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>os</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>ubuntu-latest, macos-latest, windows-latest]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>steps</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>pypa/cibuildwheel@v2</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>env</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>CIBW_PYTHON</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;cp310 cp311 cp312 cp313&#34;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><a href=https://cibuildwheel.readthedocs.io/ target=_blank rel="noopener noreferrer">cibuildwheel <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+automates building wheels across platforms and Python versions in CI.</p><h2 id=poetry-build-and-publish class=heading-anchor>Poetry Build and Publish<a href=#poetry-build-and-publish class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-wheel-vs-sdist-comparison-prebuilt-furniture-vs-ikea-flatpac.jpg alt="Wheel vs sdist comparison prebuilt furniture vs ikea flatpac" loading=lazy decoding=async class=content-image></figure></p><p>If your project uses Poetry instead of setuptools:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -793,7 +1032,7 @@
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=Python%2bEngineering%2b%25287%2529%253A%2bPackaging%2b%25E2%2580%2594%2bFrom%2bpip%2binstall%2bto%2bPyPI&url=https%253A%252F%252Fwww.chenk.top%252Fen%252Fpython-engineering%252F07-packaging-and-distribution%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fen%252Fpython-engineering%252F07-packaging-and-distribution%252F&title=Python%2bEngineering%2b%25287%2529%253A%2bPackaging%2b%25E2%2580%2594%2bFrom%2bpip%2binstall%2bto%2bPyPI" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/en/python-engineering/07-packaging-and-distribution/ aria-label="Copy article link" title="Copy link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2022-04-24>written <span class=days>…</span> days ago</span></div><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#package-vs-module-vs-library>Package vs Module vs Library</a></li><li><a href=#building-distributions>Building Distributions</a><ul><li><a href=#sdist-source-distribution>sdist (Source Distribution)</a></li><li><a href=#wheel-built-distribution>wheel (Built Distribution)</a></li><li><a href=#inspecting-a-wheel>Inspecting a Wheel</a></li></ul></li><li><a href=#pyprojecttoml-for-packaging>pyproject.toml for Packaging</a><ul><li><a href=#key-sections>Key Sections</a></li><li><a href=#including-data-files>Including Data Files</a></li></ul></li><li><a href=#publishing-to-pypi>Publishing to PyPI</a><ul><li><a href=#testpypi-first>TestPyPI First</a></li><li><a href=#create-pypi-account-and-api-token>Create PyPI Account and API Token</a></li><li><a href=#upload-to-pypi>Upload to PyPI</a></li><li><a href=#pre-upload-checklist>Pre-Upload Checklist</a></li></ul></li><li><a href=#private-package-indexes>Private Package Indexes</a><ul><li><a href=#devpi>devpi</a></li><li><a href=#pip-configuration-for-private-index>pip Configuration for Private Index</a></li></ul></li><li><a href=#docker-images-with-python>Docker Images with Python</a><ul><li><a href=#choosing-a-base-image>Choosing a Base Image</a></li><li><a href=#basic-dockerfile>Basic Dockerfile</a></li><li><a href=#multi-stage-build>Multi-Stage Build</a></li><li><a href=#dockerignore>.dockerignore</a></li><li><a href=#build-and-run>Build and Run</a></li></ul></li><li><a href=#poetry-build-and-publish>Poetry Build and Publish</a></li><li><a href=#versioning>Versioning</a><ul><li><a href=#semver-semantic-versioning>SemVer (Semantic Versioning)</a></li><li><a href=#setting-the-version>Setting the Version</a></li></ul></li><li><a href=#real-example-package-and-publish>Real Example: Package and Publish</a><ul><li><a href=#automating-with-github-actions>Automating with GitHub Actions</a></li></ul></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/python-engineering/ class=series-name>Python Engineering</a>
+<span class=sig-meta data-days-since=2022-04-24>written <span class=days>…</span> days ago</span></div><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#package-vs-module-vs-library>Package vs Module vs Library</a></li><li><a href=#building-distributions>Building Distributions</a><ul><li><a href=#sdist-source-distribution>sdist (Source Distribution)</a></li><li><a href=#wheel-built-distribution>wheel (Built Distribution)</a></li><li><a href=#inspecting-a-wheel>Inspecting a Wheel</a></li></ul></li><li><a href=#pyprojecttoml-for-packaging>pyproject.toml for Packaging</a><ul><li><a href=#key-sections>Key Sections</a></li><li><a href=#including-data-files>Including Data Files</a></li></ul></li><li><a href=#publishing-to-pypi>Publishing to PyPI</a><ul><li><a href=#testpypi-first>TestPyPI First</a></li><li><a href=#create-pypi-account-and-api-token>Create PyPI Account and API Token</a></li><li><a href=#upload-to-pypi>Upload to PyPI</a></li><li><a href=#pre-upload-checklist>Pre-Upload Checklist</a></li></ul></li><li><a href=#private-package-indexes>Private Package Indexes</a><ul><li><a href=#devpi>devpi</a></li><li><a href=#pip-configuration-for-private-index>pip Configuration for Private Index</a></li></ul></li><li><a href=#docker-images-with-python>Docker Images with Python</a><ul><li><a href=#choosing-a-base-image>Choosing a Base Image</a></li><li><a href=#basic-dockerfile>Basic Dockerfile</a></li><li><a href=#multi-stage-build>Multi-Stage Build</a></li><li><a href=#dockerignore>.dockerignore</a></li><li><a href=#build-and-run>Build and Run</a></li></ul></li><li><a href=#modern-build-backends>Modern Build Backends</a><ul><li><a href=#hatch-all-in-one-project-manager>Hatch: All-in-One Project Manager</a></li><li><a href=#uv-build-and-publish>uv Build and Publish</a></li><li><a href=#maturin-python--rust-extensions>Maturin: Python + Rust Extensions</a></li><li><a href=#build-backend-comparison>Build Backend Comparison</a></li></ul></li><li><a href=#reproducible-builds-and-sbom>Reproducible Builds and SBOM</a><ul><li><a href=#pinning-build-dependencies>Pinning Build Dependencies</a></li><li><a href=#hash-verification>Hash Verification</a></li><li><a href=#software-bill-of-materials-sbom>Software Bill of Materials (SBOM)</a></li></ul></li><li><a href=#conditional-dependencies-and-platform-markers>Conditional Dependencies and Platform Markers</a><ul><li><a href=#environment-markers>Environment Markers</a></li><li><a href=#optional-dependency-groups>Optional Dependency Groups</a></li><li><a href=#platform-specific-wheels>Platform-Specific Wheels</a></li></ul></li><li><a href=#poetry-build-and-publish>Poetry Build and Publish</a></li><li><a href=#versioning>Versioning</a><ul><li><a href=#semver-semantic-versioning>SemVer (Semantic Versioning)</a></li><li><a href=#setting-the-version>Setting the Version</a></li></ul></li><li><a href=#real-example-package-and-publish>Real Example: Package and Publish</a><ul><li><a href=#automating-with-github-actions>Automating with GitHub Actions</a></li></ul></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/python-engineering/ class=series-name>Python Engineering</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/01-environment-and-toolchain/><span class=chapter-num>01</span>
 <span class=chapter-title>Python Engineering (1): Environment Setup — pyenv, venv, and Dependency Hell</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/02-project-structure/><span class=chapter-num>02</span>
 <span class=chapter-title>Python Engineering (2): Project Structure — From Script to Package</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/03-testing-and-debugging/><span class=chapter-num>03</span>
@@ -802,5 +1041,5 @@
 <span class=chapter-title>Python Engineering (5): I/O, Serialization, and Data Formats</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/06-concurrency/><span class=chapter-num>06</span>
 <span class=chapter-title>Python Engineering (6): Concurrency — Threads, Processes, and asyncio</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
 <span class=chapter-title>Python Engineering (7): Packaging — From pip install to PyPI</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/08-performance-and-profiling/><span class=chapter-num>08</span>
-<span class=chapter-title>Python Engineering (8): Performance — Profiling, Caching, and Knowing When to Stop</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>22 min</strong></div><div class=row><span>Word count</span><strong>2219</strong></div><div class=row><span>Published</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Python Engineering (8): Performance — Profiling, Caching, and Knowing When to Stop</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>28 min</strong></div><div class=row><span>Word count</span><strong>2934</strong></div><div class=row><span>Published</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

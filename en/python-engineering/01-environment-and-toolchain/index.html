@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/python-engineering/>Python Engineering</a>
 · Chapter 1</div><h1>Python Engineering (1): Environment Setup — pyenv, venv, and Dependency Hell</h1><p class=deck>Master Python environment management with pyenv, virtual environments, and modern dependency tools. Escape dependency hell for good.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-04-10>April 10, 2022</time> · 20 min read · 1972 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/python/ class=tag>#Python</a><a href=/en/tags/environment/ class=tag>#Environment</a><a href=/en/tags/toolchain/ class=tag>#Toolchain</a></div><a class="pill pill-outline" href=/zh/python-engineering/01-environment-and-toolchain/>阅读中文版 →</a></div></header><div class=prose><p>Every Python developer has lived through this moment: you run a script on your colleague&rsquo;s machine and it crashes because they have Python 3.8 while you wrote it on 3.11. Or worse, you <code>pip install</code> something globally and break a completely unrelated project. Python&rsquo;s environment story is powerful once you understand it, but the default experience is a minefield.</p><p>This article walks through the entire toolchain from scratch. By the end, you&rsquo;ll have a reproducible, isolated, and version-pinned setup that works the same way on every machine.</p><hr><h2 id=the-python-version-problem class=heading-anchor>The Python Version Problem<a href=#the-python-version-problem class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Most operating systems come with a system Python. On macOS, it was Python 2.7 (removed in Monterey). On Ubuntu 22.04, it&rsquo;s Python 3.10. This system Python is used by OS-level tools, and installing or upgrading packages in it can break your operating system.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-version-stack.png alt="Version management stack" loading=lazy decoding=async class=content-image></figure></p><p>The core problems:</p><div class=table-wrap><table><thead><tr><th>Problem</th><th>Example</th></tr></thead><tbody><tr><td>System Python is outdated</td><td>Ubuntu 20.04 ships 3.8, you need 3.11 features</td></tr><tr><td>Multiple projects need different versions</td><td>Project A needs 3.9, Project B needs 3.12</td></tr><tr><td>Global pip installs cause conflicts</td><td>Package X needs <code>requests>=2.28</code>, Package Y pins <code>requests==2.25</code></td></tr><tr><td>Reproducibility fails</td><td>&ldquo;Works on my machine&rdquo; because versions differ</td></tr><tr><td>OS tools depend on system Python</td><td><code>apt</code> on Ubuntu uses system Python internally</td></tr></tbody></table></div><p>The solution is a three-layer stack:</p><ol><li><strong>pyenv</strong> manages Python versions (install 3.9, 3.10, and 3.11 side by side)</li><li><strong>venv</strong> isolates per-project dependencies</li><li><strong>pip-tools</strong> or <strong>Poetry</strong> pin exact versions for reproducibility</li></ol><h2 id=pyenv-multiple-python-versions-without-pain class=heading-anchor>pyenv: Multiple Python Versions Without Pain<a href=#pyenv-multiple-python-versions-without-pain class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>pyenv intercepts the <code>python</code> command and redirects it to whichever version you have configured. It does this by inserting shims into your <code>$PATH</code>.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-pyenv-shim.png alt="pyenv shim mechanism" loading=lazy decoding=async class=content-image></figure></p><h3 id=installation class=heading-anchor>Installation<a href=#installation class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>On macOS:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+<span class=meta-line><time datetime=2022-04-10>April 10, 2022</time> · 30 min read · 3084 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/python/ class=tag>#Python</a><a href=/en/tags/environment/ class=tag>#Environment</a><a href=/en/tags/toolchain/ class=tag>#Toolchain</a></div><a class="pill pill-outline" href=/zh/python-engineering/01-environment-and-toolchain/>阅读中文版 →</a></div></header><div class=prose><p>Every Python developer has lived through this moment: you run a script on your colleague&rsquo;s machine and it crashes because they have Python 3.8 while you wrote it on 3.11. Or worse, you <code>pip install</code> something globally and break a completely unrelated project. Python&rsquo;s environment story is powerful once you understand it, but the default experience is a minefield.</p><p>This article walks through the entire toolchain from scratch. By the end, you&rsquo;ll have a reproducible, isolated, and version-pinned setup that works the same way on every machine.</p><hr><h2 id=the-python-version-problem class=heading-anchor>The Python Version Problem<a href=#the-python-version-problem class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Most operating systems come with a system Python. On macOS, it was Python 2.7 (removed in Monterey). On Ubuntu 22.04, it&rsquo;s Python 3.10. This system Python is used by OS-level tools, and installing or upgrading packages in it can break your operating system.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-version-stack.png alt="Version management stack" loading=lazy decoding=async class=content-image></figure></p><p>The core problems:</p><div class=table-wrap><table><thead><tr><th>Problem</th><th>Example</th></tr></thead><tbody><tr><td>System Python is outdated</td><td>Ubuntu 20.04 ships 3.8, you need 3.11 features</td></tr><tr><td>Multiple projects need different versions</td><td>Project A needs 3.9, Project B needs 3.12</td></tr><tr><td>Global pip installs cause conflicts</td><td>Package X needs <code>requests>=2.28</code>, Package Y pins <code>requests==2.25</code></td></tr><tr><td>Reproducibility fails</td><td>&ldquo;Works on my machine&rdquo; because versions differ</td></tr><tr><td>OS tools depend on system Python</td><td><code>apt</code> on Ubuntu uses system Python internally</td></tr></tbody></table></div><p>The solution is a three-layer stack:</p><ol><li><strong>pyenv</strong> manages Python versions (install 3.9, 3.10, and 3.11 side by side)</li><li><strong>venv</strong> isolates per-project dependencies</li><li><strong>pip-tools</strong> or <strong>Poetry</strong> pin exact versions for reproducibility</li></ol><h2 id=pyenv-multiple-python-versions-without-pain class=heading-anchor>pyenv: Multiple Python Versions Without Pain<a href=#pyenv-multiple-python-versions-without-pain class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>pyenv intercepts the <code>python</code> command and redirects it to whichever version you have configured. It does this by inserting shims into your <code>$PATH</code>.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-pyenv-shim.png alt="pyenv shim mechanism" loading=lazy decoding=async class=content-image></figure></p><h3 id=installation class=heading-anchor>Installation<a href=#installation class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>On macOS:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>brew install pyenv
 </span></span></code></pre></td></tr></table></div></div><p>On Linux:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>curl https://pyenv.run <span class=p>|</span> bash
@@ -336,7 +336,328 @@
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip-compile requirements-dev.in
 </span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip-sync requirements.txt requirements-dev.txt
-</span></span></code></pre></td></tr></table></div></div><h2 id=poetry-vs-pip-tools-vs-pdm class=heading-anchor>Poetry vs pip-tools vs PDM<a href=#poetry-vs-pip-tools-vs-pdm class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=table-wrap><table><thead><tr><th>Feature</th><th>pip-tools</th><th>Poetry</th><th>PDM</th></tr></thead><tbody><tr><td>Config file</td><td>requirements.in</td><td>pyproject.toml</td><td>pyproject.toml</td></tr><tr><td>Lock file</td><td>requirements.txt</td><td>poetry.lock</td><td>pdm.lock</td></tr><tr><td>Venv management</td><td>No (manual)</td><td>Yes (auto)</td><td>Yes (auto)</td></tr><tr><td>Build & publish</td><td>No</td><td>Yes</td><td>Yes</td></tr><tr><td>Speed</td><td>Fast</td><td>Moderate</td><td>Fast</td></tr><tr><td>PEP 621 compliant</td><td>N/A</td><td>No (custom format)</td><td>Yes</td></tr><tr><td>Learning curve</td><td>Low</td><td>Medium</td><td>Medium</td></tr><tr><td>Stability</td><td>Very stable</td><td>Stable</td><td>Stable</td></tr><tr><td>Resolver</td><td>pip&rsquo;s resolver</td><td>Custom</td><td>Custom</td></tr></tbody></table></div><p><strong>pip-tools</strong> is the simplest choice: it stays close to pip and adds only what is needed. <strong>Poetry</strong> is popular for libraries and applications that need build+publish. <strong>PDM</strong> follows PEP standards most closely.</p><h2 id=pyprojecttoml-the-modern-standard class=heading-anchor>pyproject.toml: The Modern Standard<a href=#pyprojecttoml-the-modern-standard class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><code>pyproject.toml</code> replaces <code>setup.py</code>, <code>setup.cfg</code>, <code>MANIFEST.in</code>, and most tool-specific config files. It is defined by PEP 518 and PEP 621.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><h2 id=uv-the-modern-alternative-2024 class=heading-anchor>uv: The Modern Alternative (2024+)<a href=#uv-the-modern-alternative-2024 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><a href=https://github.com/astral-sh/uv target=_blank rel="noopener noreferrer">uv <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+is a Rust-based Python package manager that replaces pip, pip-tools, virtualenv, and pyenv in a single binary. It is 10-100x faster than pip and handles the entire workflow.</p><h3 id=installation-2 class=heading-anchor>Installation<a href=#installation-2 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># macOS / Linux</span>
+</span></span><span class=line><span class=cl>curl -LsSf https://astral.sh/uv/install.sh <span class=p>|</span> sh
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># macOS (Homebrew)</span>
+</span></span><span class=line><span class=cl>brew install uv
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Windows</span>
+</span></span><span class=line><span class=cl>powershell -c <span class=s2>&#34;irm https://astral.sh/uv/install.ps1 | iex&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=python-version-management-replaces-pyenv class=heading-anchor>Python Version Management (replaces pyenv)<a href=#python-version-management-replaces-pyenv class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Install Python versions</span>
+</span></span><span class=line><span class=cl>$ uv python install 3.11 3.12 3.13
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Pin version for a project</span>
+</span></span><span class=line><span class=cl>$ uv python pin 3.12
+</span></span><span class=line><span class=cl>Pinned <span class=sb>`</span>.python-version<span class=sb>`</span> to <span class=sb>`</span>3.12<span class=sb>`</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># List installed versions</span>
+</span></span><span class=line><span class=cl>$ uv python list
+</span></span></code></pre></td></tr></table></div></div><p>uv downloads pre-built Python binaries — no compilation needed, unlike pyenv which builds from source.</p><h3 id=project-initialization class=heading-anchor>Project Initialization<a href=#project-initialization class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create a new project with pyproject.toml</span>
+</span></span><span class=line><span class=cl>$ uv init my-api
+</span></span><span class=line><span class=cl>$ <span class=nb>cd</span> my-api
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Or initialize in an existing directory</span>
+</span></span><span class=line><span class=cl>$ <span class=nb>cd</span> existing-project
+</span></span><span class=line><span class=cl>$ uv init
+</span></span></code></pre></td></tr></table></div></div><p>This creates a <code>pyproject.toml</code> with PEP 621 metadata and a <code>uv.lock</code> lockfile.</p><h3 id=dependency-management class=heading-anchor>Dependency Management<a href=#dependency-management class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Add a dependency (auto-creates venv, resolves, locks, installs)</span>
+</span></span><span class=line><span class=cl>$ uv add requests flask <span class=s2>&#34;pydantic&gt;=2.0&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Add dev dependency</span>
+</span></span><span class=line><span class=cl>$ uv add --dev pytest ruff mypy
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Remove a dependency</span>
+</span></span><span class=line><span class=cl>$ uv remove flask
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Sync environment to match lockfile exactly</span>
+</span></span><span class=line><span class=cl>$ uv sync
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Upgrade a specific package</span>
+</span></span><span class=line><span class=cl>$ uv lock --upgrade-package requests
+</span></span><span class=line><span class=cl>$ uv sync
+</span></span></code></pre></td></tr></table></div></div><p><code>uv add</code> does in one command what previously required editing <code>requirements.in</code>, running <code>pip-compile</code>, and running <code>pip-sync</code>.</p><h3 id=running-commands class=heading-anchor>Running Commands<a href=#running-commands class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Run a script in the project environment (auto-syncs first)</span>
+</span></span><span class=line><span class=cl>$ uv run python main.py
+</span></span><span class=line><span class=cl>$ uv run pytest
+</span></span><span class=line><span class=cl>$ uv run ruff check .
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Run a tool without installing it permanently</span>
+</span></span><span class=line><span class=cl>$ uvx ruff check .
+</span></span><span class=line><span class=cl>$ uvx black .
+</span></span></code></pre></td></tr></table></div></div><h3 id=migration-from-pip-tools class=heading-anchor>Migration from pip-tools<a href=#migration-from-pip-tools class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Import existing requirements.in</span>
+</span></span><span class=line><span class=cl>$ uv add <span class=k>$(</span>cat requirements.in <span class=p>|</span> grep -v <span class=s2>&#34;^#&#34;</span> <span class=p>|</span> grep -v <span class=s2>&#34;^-&#34;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Or start fresh from pyproject.toml</span>
+</span></span><span class=line><span class=cl><span class=c1># uv reads [project.dependencies] directly</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=uvlock-vs-requirementstxt class=heading-anchor>uv.lock vs requirements.txt<a href=#uvlock-vs-requirementstxt class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>Aspect</th><th>requirements.txt (pip-tools)</th><th>uv.lock</th></tr></thead><tbody><tr><td>Format</td><td>Plain text, pip-compatible</td><td>TOML, uv-specific</td></tr><tr><td>Cross-platform</td><td>Single platform</td><td>Multi-platform resolution</td></tr><tr><td>Hash verification</td><td>Optional (<code>--generate-hashes</code>)</td><td>Always included</td></tr><tr><td>Speed</td><td>Seconds</td><td>Milliseconds</td></tr><tr><td>Resolution</td><td>Platform-specific</td><td>Universal (resolves for all platforms at once)</td></tr></tbody></table></div><p>The <code>uv.lock</code> file resolves dependencies for all platforms simultaneously. A Linux developer and a macOS developer using the same lockfile get compatible (but potentially different) packages for their platform — automatically.</p><h3 id=when-to-use-uv-vs-pip-tools class=heading-anchor>When to Use uv vs pip-tools<a href=#when-to-use-uv-vs-pip-tools class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>Scenario</th><th>Recommendation</th></tr></thead><tbody><tr><td>New projects (2024+)</td><td><strong>uv</strong> — faster, simpler, fewer tools to manage</td></tr><tr><td>Legacy projects with established CI</td><td><strong>pip-tools</strong> — proven, no migration risk</td></tr><tr><td>Libraries published to PyPI</td><td><strong>uv</strong> or <strong>Poetry</strong> — both handle build+publish</td></tr><tr><td>Corporate environments with strict tool approval</td><td><strong>pip-tools</strong> — zero external dependencies beyond pip</td></tr><tr><td>Docker builds where layer caching matters</td><td><strong>uv</strong> — deterministic, fast installs</td></tr></tbody></table></div><h2 id=cicd-verifying-your-dependency-lock class=heading-anchor>CI/CD: Verifying Your Dependency Lock<a href=#cicd-verifying-your-dependency-lock class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>A lockfile only works if it stays in sync with your declared dependencies. CI should verify this automatically.</p><h3 id=github-actions-lock-file-freshness-check class=heading-anchor>GitHub Actions: Lock File Freshness Check<a href=#github-actions-lock-file-freshness-check class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># .github/workflows/deps.yml</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Dependency Check</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>on</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>pull_request</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>paths</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=s2>&#34;pyproject.toml&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=s2>&#34;requirements*.in&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=s2>&#34;uv.lock&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=s2>&#34;requirements*.txt&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>jobs</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>check-lock</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>runs-on</span><span class=p>:</span><span class=w> </span><span class=l>ubuntu-latest</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>steps</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>actions/checkout@v4</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=c># Option A: uv</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>astral-sh/setup-uv@v4</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>run</span><span class=p>:</span><span class=w> </span><span class=l>uv lock --check </span><span class=w> </span><span class=c># Fails if uv.lock is outdated</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=c># Option B: pip-tools</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=c># - run: pip install pip-tools</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=c># - run: pip-compile --quiet requirements.in</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=c># - run: git diff --exit-code requirements.txt</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><code>uv lock --check</code> exits with code 1 if <code>uv.lock</code> would change — meaning someone edited <code>pyproject.toml</code> but forgot to update the lockfile.</p><h3 id=dependabot--renovate-integration class=heading-anchor>Dependabot / Renovate Integration<a href=#dependabot--renovate-integration class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># .github/dependabot.yml (for pip-tools)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>version</span><span class=p>:</span><span class=w> </span><span class=m>2</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>updates</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=nt>package-ecosystem</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;pip&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>directory</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;/&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>schedule</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>interval</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;weekly&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>open-pull-requests-limit</span><span class=p>:</span><span class=w> </span><span class=m>5</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c># For uv: Renovate supports uv.lock natively since v39</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=security-auditing-in-ci class=heading-anchor>Security Auditing in CI<a href=#security-auditing-in-ci class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># Check for known vulnerabilities in locked dependencies</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=nt>run: uv pip audit  # or</span><span class=p>:</span><span class=w> </span><span class=l>pip-audit -r requirements.txt</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=docker-reproducible-builds-with-pinned-dependencies class=heading-anchor>Docker: Reproducible Builds with Pinned Dependencies<a href=#docker-reproducible-builds-with-pinned-dependencies class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Docker images should produce identical results regardless of when or where they are built. This requires careful handling of Python dependencies.</p><h3 id=multi-stage-build-pattern class=heading-anchor>Multi-Stage Build Pattern<a href=#multi-stage-build-pattern class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># Stage 1: Build dependencies (with build tools)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> python:3.12-slim AS builder</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> requirements.txt .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install --no-cache-dir --prefix<span class=o>=</span>/install -r requirements.txt<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Stage 2: Runtime (minimal image)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> python:3.12-slim AS runtime</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> --from<span class=o>=</span>builder /install /usr/local<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> src/ /app/src/<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>USER</span><span class=s> nobody</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> <span class=p>[</span><span class=s2>&#34;python&#34;</span><span class=p>,</span> <span class=s2>&#34;-m&#34;</span><span class=p>,</span> <span class=s2>&#34;my_api&#34;</span><span class=p>]</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=docker--uv-faster-builds class=heading-anchor>Docker + uv (Faster Builds)<a href=#docker--uv-faster-builds class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=k>FROM</span><span class=s> python:3.12-slim</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Install uv</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> --from<span class=o>=</span>ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> pyproject.toml uv.lock ./<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Install dependencies (cached layer if lockfile unchanged)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> uv sync --frozen --no-dev --no-editable<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> src/ ./src/<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>USER</span><span class=s> nobody</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> <span class=p>[</span><span class=s2>&#34;uv&#34;</span><span class=p>,</span> <span class=s2>&#34;run&#34;</span><span class=p>,</span> <span class=s2>&#34;python&#34;</span><span class=p>,</span> <span class=s2>&#34;-m&#34;</span><span class=p>,</span> <span class=s2>&#34;my_api&#34;</span><span class=p>]</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p><code>--frozen</code> refuses to update the lockfile — if it is outdated, the build fails rather than silently installing different versions.</p><h3 id=layer-caching-strategy class=heading-anchor>Layer Caching Strategy<a href=#layer-caching-strategy class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># BAD: any source change invalidates dependency cache</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> . .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install -r requirements.txt<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># GOOD: dependencies cached unless lockfile changes</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> requirements.txt .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install -r requirements.txt<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> . .<span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>Copy dependency files first, install, then copy source. Docker reuses the cached dependency layer as long as <code>requirements.txt</code> (or <code>uv.lock</code>) hasn&rsquo;t changed.</p><h2 id=environment-variables-and-env-files class=heading-anchor>Environment Variables and .env Files<a href=#environment-variables-and-env-files class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Production applications often need runtime configuration (API keys, database URLs). Never hardcode these.</p><h3 id=python-dotenv class=heading-anchor>python-dotenv<a href=#python-dotenv class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install python-dotenv
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># settings.py</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pathlib</span> <span class=kn>import</span> <span class=n>Path</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>dotenv</span> <span class=kn>import</span> <span class=n>load_dotenv</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>os</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>load_dotenv</span><span class=p>()</span>  <span class=c1># Reads .env file in project root</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>DATABASE_URL</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;DATABASE_URL&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>API_KEY</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;API_KEY&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>DEBUG</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;DEBUG&#34;</span><span class=p>,</span> <span class=s2>&#34;false&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>lower</span><span class=p>()</span> <span class=o>==</span> <span class=s2>&#34;true&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># .env (gitignored!)</span>
+</span></span><span class=line><span class=cl><span class=nv>DATABASE_URL</span><span class=o>=</span>postgresql://user:pass@localhost:5432/mydb
+</span></span><span class=line><span class=cl><span class=nv>API_KEY</span><span class=o>=</span>sk-development-key-here
+</span></span><span class=line><span class=cl><span class=nv>DEBUG</span><span class=o>=</span><span class=nb>true</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># .env.example (committed — shows required variables without real values)</span>
+</span></span><span class=line><span class=cl><span class=nv>DATABASE_URL</span><span class=o>=</span>postgresql://user:pass@host:5432/dbname
+</span></span><span class=line><span class=cl><span class=nv>API_KEY</span><span class=o>=</span>your-api-key-here
+</span></span><span class=line><span class=cl><span class=nv>DEBUG</span><span class=o>=</span><span class=nb>false</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=pydantic-settings-type-safe-configuration class=heading-anchor>Pydantic Settings (Type-Safe Configuration)<a href=#pydantic-settings-type-safe-configuration class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>For larger applications, use Pydantic to validate environment variables at startup:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pydantic_settings</span> <span class=kn>import</span> <span class=n>BaseSettings</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>Settings</span><span class=p>(</span><span class=n>BaseSettings</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>database_url</span><span class=p>:</span> <span class=nb>str</span>
+</span></span><span class=line><span class=cl>    <span class=n>api_key</span><span class=p>:</span> <span class=nb>str</span>
+</span></span><span class=line><span class=cl>    <span class=n>debug</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>    <span class=n>max_connections</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>10</span>
+</span></span><span class=line><span class=cl>    <span class=n>allowed_origins</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;http://localhost:3000&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>class</span> <span class=nc>Config</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>env_file</span> <span class=o>=</span> <span class=s2>&#34;.env&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Fails fast at startup if required vars are missing</span>
+</span></span><span class=line><span class=cl><span class=n>settings</span> <span class=o>=</span> <span class=n>Settings</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><p>This gives you type validation, default values, and clear error messages when configuration is wrong.</p><h2 id=poetry-vs-pip-tools-vs-pdm class=heading-anchor>Poetry vs pip-tools vs PDM<a href=#poetry-vs-pip-tools-vs-pdm class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=table-wrap><table><thead><tr><th>Feature</th><th>pip-tools</th><th>Poetry</th><th>PDM</th></tr></thead><tbody><tr><td>Config file</td><td>requirements.in</td><td>pyproject.toml</td><td>pyproject.toml</td></tr><tr><td>Lock file</td><td>requirements.txt</td><td>poetry.lock</td><td>pdm.lock</td></tr><tr><td>Venv management</td><td>No (manual)</td><td>Yes (auto)</td><td>Yes (auto)</td></tr><tr><td>Build & publish</td><td>No</td><td>Yes</td><td>Yes</td></tr><tr><td>Speed</td><td>Fast</td><td>Moderate</td><td>Fast</td></tr><tr><td>PEP 621 compliant</td><td>N/A</td><td>No (custom format)</td><td>Yes</td></tr><tr><td>Learning curve</td><td>Low</td><td>Medium</td><td>Medium</td></tr><tr><td>Stability</td><td>Very stable</td><td>Stable</td><td>Stable</td></tr><tr><td>Resolver</td><td>pip&rsquo;s resolver</td><td>Custom</td><td>Custom</td></tr></tbody></table></div><p><strong>pip-tools</strong> is the simplest choice: it stays close to pip and adds only what is needed. <strong>Poetry</strong> is popular for libraries and applications that need build+publish. <strong>PDM</strong> follows PEP standards most closely.</p><h2 id=pyprojecttoml-the-modern-standard class=heading-anchor>pyproject.toml: The Modern Standard<a href=#pyprojecttoml-the-modern-standard class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><code>pyproject.toml</code> replaces <code>setup.py</code>, <code>setup.cfg</code>, <code>MANIFEST.in</code>, and most tool-specific config files. It is defined by PEP 518 and PEP 621.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -539,7 +860,7 @@
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=Python%2bEngineering%2b%25281%2529%253A%2bEnvironment%2bSetup%2b%25E2%2580%2594%2bpyenv%252C%2bvenv%252C%2band%2bDependency%2bHell&url=https%253A%252F%252Fwww.chenk.top%252Fen%252Fpython-engineering%252F01-environment-and-toolchain%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fen%252Fpython-engineering%252F01-environment-and-toolchain%252F&title=Python%2bEngineering%2b%25281%2529%253A%2bEnvironment%2bSetup%2b%25E2%2580%2594%2bpyenv%252C%2bvenv%252C%2band%2bDependency%2bHell" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/en/python-engineering/01-environment-and-toolchain/ aria-label="Copy article link" title="Copy link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2022-04-10>written <span class=days>…</span> days ago</span></div><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-python-version-problem>The Python Version Problem</a></li><li><a href=#pyenv-multiple-python-versions-without-pain>pyenv: Multiple Python Versions Without Pain</a><ul><li><a href=#installation>Installation</a></li><li><a href=#installing-python-versions>Installing Python Versions</a></li><li><a href=#setting-the-active-version>Setting the Active Version</a></li></ul></li><li><a href=#virtual-environments-isolating-dependencies>Virtual Environments: Isolating Dependencies</a><ul><li><a href=#creating-a-virtual-environment>Creating a Virtual Environment</a></li><li><a href=#activation>Activation</a></li><li><a href=#why-venv>Why .venv?</a></li><li><a href=#venv-vs-virtualenv-vs-conda>venv vs virtualenv vs conda</a></li></ul></li><li><a href=#pip-the-package-installer>pip: The Package Installer</a><ul><li><a href=#basic-commands>Basic Commands</a></li><li><a href=#requirementstxt>requirements.txt</a></li></ul></li><li><a href=#pip-tools-reproducible-installs>pip-tools: Reproducible Installs</a><ul><li><a href=#installation-1>Installation</a></li><li><a href=#workflow>Workflow</a></li><li><a href=#upgrading>Upgrading</a></li><li><a href=#dev-dependencies>Dev Dependencies</a></li></ul></li><li><a href=#poetry-vs-pip-tools-vs-pdm>Poetry vs pip-tools vs PDM</a></li><li><a href=#pyprojecttoml-the-modern-standard>pyproject.toml: The Modern Standard</a></li><li><a href=#real-workflow-clone-to-running>Real Workflow: Clone to Running</a></li><li><a href=#common-pitfalls>Common Pitfalls</a></li><li><a href=#directory-structure-after-setup>Directory Structure After Setup</a></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/python-engineering/ class=series-name>Python Engineering</a>
+<span class=sig-meta data-days-since=2022-04-10>written <span class=days>…</span> days ago</span></div><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-python-version-problem>The Python Version Problem</a></li><li><a href=#pyenv-multiple-python-versions-without-pain>pyenv: Multiple Python Versions Without Pain</a><ul><li><a href=#installation>Installation</a></li><li><a href=#installing-python-versions>Installing Python Versions</a></li><li><a href=#setting-the-active-version>Setting the Active Version</a></li></ul></li><li><a href=#virtual-environments-isolating-dependencies>Virtual Environments: Isolating Dependencies</a><ul><li><a href=#creating-a-virtual-environment>Creating a Virtual Environment</a></li><li><a href=#activation>Activation</a></li><li><a href=#why-venv>Why .venv?</a></li><li><a href=#venv-vs-virtualenv-vs-conda>venv vs virtualenv vs conda</a></li></ul></li><li><a href=#pip-the-package-installer>pip: The Package Installer</a><ul><li><a href=#basic-commands>Basic Commands</a></li><li><a href=#requirementstxt>requirements.txt</a></li></ul></li><li><a href=#pip-tools-reproducible-installs>pip-tools: Reproducible Installs</a><ul><li><a href=#installation-1>Installation</a></li><li><a href=#workflow>Workflow</a></li><li><a href=#upgrading>Upgrading</a></li><li><a href=#dev-dependencies>Dev Dependencies</a></li></ul></li><li><a href=#uv-the-modern-alternative-2024>uv: The Modern Alternative (2024+)</a><ul><li><a href=#installation-2>Installation</a></li><li><a href=#python-version-management-replaces-pyenv>Python Version Management (replaces pyenv)</a></li><li><a href=#project-initialization>Project Initialization</a></li><li><a href=#dependency-management>Dependency Management</a></li><li><a href=#running-commands>Running Commands</a></li><li><a href=#migration-from-pip-tools>Migration from pip-tools</a></li><li><a href=#uvlock-vs-requirementstxt>uv.lock vs requirements.txt</a></li><li><a href=#when-to-use-uv-vs-pip-tools>When to Use uv vs pip-tools</a></li></ul></li><li><a href=#cicd-verifying-your-dependency-lock>CI/CD: Verifying Your Dependency Lock</a><ul><li><a href=#github-actions-lock-file-freshness-check>GitHub Actions: Lock File Freshness Check</a></li><li><a href=#dependabot--renovate-integration>Dependabot / Renovate Integration</a></li><li><a href=#security-auditing-in-ci>Security Auditing in CI</a></li></ul></li><li><a href=#docker-reproducible-builds-with-pinned-dependencies>Docker: Reproducible Builds with Pinned Dependencies</a><ul><li><a href=#multi-stage-build-pattern>Multi-Stage Build Pattern</a></li><li><a href=#docker--uv-faster-builds>Docker + uv (Faster Builds)</a></li><li><a href=#layer-caching-strategy>Layer Caching Strategy</a></li></ul></li><li><a href=#environment-variables-and-env-files>Environment Variables and .env Files</a><ul><li><a href=#python-dotenv>python-dotenv</a></li><li><a href=#pydantic-settings-type-safe-configuration>Pydantic Settings (Type-Safe Configuration)</a></li></ul></li><li><a href=#poetry-vs-pip-tools-vs-pdm>Poetry vs pip-tools vs PDM</a></li><li><a href=#pyprojecttoml-the-modern-standard>pyproject.toml: The Modern Standard</a></li><li><a href=#real-workflow-clone-to-running>Real Workflow: Clone to Running</a></li><li><a href=#common-pitfalls>Common Pitfalls</a></li><li><a href=#directory-structure-after-setup>Directory Structure After Setup</a></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/python-engineering/ class=series-name>Python Engineering</a>
 <span class=count>8</span></div><ol class=chapter-list><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>01</span>
 <span class=chapter-title>Python Engineering (1): Environment Setup — pyenv, venv, and Dependency Hell</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/02-project-structure/><span class=chapter-num>02</span>
 <span class=chapter-title>Python Engineering (2): Project Structure — From Script to Package</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/03-testing-and-debugging/><span class=chapter-num>03</span>
@@ -548,5 +869,5 @@
 <span class=chapter-title>Python Engineering (5): I/O, Serialization, and Data Formats</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/06-concurrency/><span class=chapter-num>06</span>
 <span class=chapter-title>Python Engineering (6): Concurrency — Threads, Processes, and asyncio</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/07-packaging-and-distribution/><span class=chapter-num>07</span>
 <span class=chapter-title>Python Engineering (7): Packaging — From pip install to PyPI</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/08-performance-and-profiling/><span class=chapter-num>08</span>
-<span class=chapter-title>Python Engineering (8): Performance — Profiling, Caching, and Knowing When to Stop</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>20 min</strong></div><div class=row><span>Word count</span><strong>1972</strong></div><div class=row><span>Published</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Python Engineering (8): Performance — Profiling, Caching, and Knowing When to Stop</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>30 min</strong></div><div class=row><span>Word count</span><strong>3084</strong></div><div class=row><span>Published</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

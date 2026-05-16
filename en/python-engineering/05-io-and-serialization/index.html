@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/python-engineering/>Python Engineering</a>
 · Chapter 5</div><h1>Python Engineering (5): I/O, Serialization, and Data Formats</h1><p class=deck>Handle files, paths, encodings, and data formats in Python. Compare JSON, YAML, TOML, CSV, pickle, and Parquet with practical examples.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-04-19>April 19, 2022</time> · 24 min read · 2400 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/python/ class=tag>#Python</a><a href=/en/tags/serialization/ class=tag>#Serialization</a><a href=/en/tags/data-formats/ class=tag>#Data Formats</a></div><a class="pill pill-outline" href=/zh/python-engineering/05-io-and-serialization/>阅读中文版 →</a></div></header><div class=prose><p>Most programs are just plumbing between data formats. Read a CSV, transform it, write JSON. Load a config file, validate it, pass settings to the application. Every Python developer writes this code, and most of them get encoding, path handling, or serialization subtleties wrong at least once.</p><p>This article covers every common I/O pattern in Python, from basic file reading to columnar data formats, with a focus on the pitfalls that waste your time.</p><hr><h2 id=file-io-the-basics class=heading-anchor>File I/O: The Basics<a href=#file-io-the-basics class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-io-pipeline.png alt="I/O pipeline" loading=lazy decoding=async class=content-image></figure></p><h3 id=opening-files class=heading-anchor>Opening Files<a href=#opening-files class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+<span class=meta-line><time datetime=2022-04-19>April 19, 2022</time> · 34 min read · 3486 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/python/ class=tag>#Python</a><a href=/en/tags/serialization/ class=tag>#Serialization</a><a href=/en/tags/data-formats/ class=tag>#Data Formats</a></div><a class="pill pill-outline" href=/zh/python-engineering/05-io-and-serialization/>阅读中文版 →</a></div></header><div class=prose><p>Most programs are just plumbing between data formats. Read a CSV, transform it, write JSON. Load a config file, validate it, pass settings to the application. Every Python developer writes this code, and most of them get encoding, path handling, or serialization subtleties wrong at least once.</p><p>This article covers every common I/O pattern in Python, from basic file reading to columnar data formats, with a focus on the pitfalls that waste your time.</p><hr><h2 id=file-io-the-basics class=heading-anchor>File I/O: The Basics<a href=#file-io-the-basics class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-io-pipeline.png alt="I/O pipeline" loading=lazy decoding=async class=content-image></figure></p><h3 id=opening-files class=heading-anchor>Opening Files<a href=#opening-files class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -668,7 +668,315 @@
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># Read specific columns (Parquet can skip unused columns)</span>
 </span></span><span class=line><span class=cl><span class=n>df</span> <span class=o>=</span> <span class=n>pd</span><span class=o>.</span><span class=n>read_parquet</span><span class=p>(</span><span class=s2>&#34;large_data.parquet&#34;</span><span class=p>,</span> <span class=n>columns</span><span class=o>=</span><span class=p>[</span><span class=s2>&#34;name&#34;</span><span class=p>,</span> <span class=s2>&#34;age&#34;</span><span class=p>])</span>
-</span></span></code></pre></td></tr></table></div></div><p>Size and speed comparison for a 1 million row dataset:</p><div class=table-wrap><table><thead><tr><th>Format</th><th>File Size</th><th>Write Time</th><th>Read Time</th><th>Read 2 Columns</th></tr></thead><tbody><tr><td>CSV</td><td>120 MB</td><td>8.2s</td><td>5.1s</td><td>5.1s (reads all)</td></tr><tr><td>JSON</td><td>200 MB</td><td>12.5s</td><td>9.8s</td><td>9.8s (reads all)</td></tr><tr><td>Parquet</td><td>15 MB</td><td>1.8s</td><td>0.4s</td><td>0.1s</td></tr></tbody></table></div><p>Parquet is 8x smaller and 12x faster to read than CSV for this example.</p><h2 id=configuration-patterns class=heading-anchor>Configuration Patterns<a href=#configuration-patterns class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=env-files-with-python-dotenv class=heading-anchor>.env Files with python-dotenv<a href=#env-files-with-python-dotenv class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><p>Size and speed comparison for a 1 million row dataset:</p><div class=table-wrap><table><thead><tr><th>Format</th><th>File Size</th><th>Write Time</th><th>Read Time</th><th>Read 2 Columns</th></tr></thead><tbody><tr><td>CSV</td><td>120 MB</td><td>8.2s</td><td>5.1s</td><td>5.1s (reads all)</td></tr><tr><td>JSON</td><td>200 MB</td><td>12.5s</td><td>9.8s</td><td>9.8s (reads all)</td></tr><tr><td>Parquet</td><td>15 MB</td><td>1.8s</td><td>0.4s</td><td>0.1s</td></tr></tbody></table></div><p>Parquet is 8x smaller and 12x faster to read than CSV for this example.</p><h2 id=streaming-large-files class=heading-anchor>Streaming Large Files<a href=#streaming-large-files class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>When files exceed available memory, you must process them in chunks. Python&rsquo;s iterator protocol makes this natural.</p><h3 id=line-by-line-processing class=heading-anchor>Line-by-Line Processing<a href=#line-by-line-processing class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pathlib</span> <span class=kn>import</span> <span class=n>Path</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>process_large_log</span><span class=p>(</span><span class=n>path</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Count log levels without loading entire file into memory.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>counts</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=n>path</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>&#34;utf-8&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>line</span> <span class=ow>in</span> <span class=n>f</span><span class=p>:</span>  <span class=c1># yields one line at a time</span>
+</span></span><span class=line><span class=cl>            <span class=n>level</span> <span class=o>=</span> <span class=n>line</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=s2>&#34;|&#34;</span><span class=p>,</span> <span class=mi>2</span><span class=p>)[</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span> <span class=k>if</span> <span class=s2>&#34;|&#34;</span> <span class=ow>in</span> <span class=n>line</span> <span class=k>else</span> <span class=s2>&#34;UNKNOWN&#34;</span>
+</span></span><span class=line><span class=cl>            <span class=n>counts</span><span class=p>[</span><span class=n>level</span><span class=p>]</span> <span class=o>=</span> <span class=n>counts</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>level</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>counts</span>
+</span></span></code></pre></td></tr></table></div></div><p>Python file objects are iterators — <code>for line in f</code> reads one line at a time, never loading the full file.</p><h3 id=chunked-binary-reading class=heading-anchor>Chunked Binary Reading<a href=#chunked-binary-reading class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>sha256_file</span><span class=p>(</span><span class=n>path</span><span class=p>:</span> <span class=n>Path</span><span class=p>,</span> <span class=n>chunk_size</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>65536</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Hash a large file without loading it all into memory.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=kn>import</span> <span class=nn>hashlib</span>
+</span></span><span class=line><span class=cl>    <span class=n>h</span> <span class=o>=</span> <span class=n>hashlib</span><span class=o>.</span><span class=n>sha256</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=n>path</span><span class=p>,</span> <span class=s2>&#34;rb&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>while</span> <span class=n>chunk</span> <span class=o>:=</span> <span class=n>f</span><span class=o>.</span><span class=n>read</span><span class=p>(</span><span class=n>chunk_size</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>h</span><span class=o>.</span><span class=n>update</span><span class=p>(</span><span class=n>chunk</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>h</span><span class=o>.</span><span class=n>hexdigest</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><p>The walrus operator (<code>:=</code>) makes chunk-reading concise. Chunk sizes of 64KB-1MB balance syscall overhead against memory.</p><h3 id=generator-pipelines class=heading-anchor>Generator Pipelines<a href=#generator-pipelines class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Chain generators to build memory-efficient data pipelines:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>typing</span> <span class=kn>import</span> <span class=n>Iterator</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>gzip</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>json</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>read_jsonl_gz</span><span class=p>(</span><span class=n>path</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Iterator</span><span class=p>[</span><span class=nb>dict</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Stream records from a gzipped JSON Lines file.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>gzip</span><span class=o>.</span><span class=n>open</span><span class=p>(</span><span class=n>path</span><span class=p>,</span> <span class=s2>&#34;rt&#34;</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>&#34;utf-8&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>line</span> <span class=ow>in</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>line</span><span class=o>.</span><span class=n>strip</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>                <span class=k>yield</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>line</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>filter_recent</span><span class=p>(</span><span class=n>records</span><span class=p>:</span> <span class=n>Iterator</span><span class=p>[</span><span class=nb>dict</span><span class=p>],</span> <span class=n>days</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>7</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Iterator</span><span class=p>[</span><span class=nb>dict</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Keep only records from the last N days.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=kn>from</span> <span class=nn>datetime</span> <span class=kn>import</span> <span class=n>datetime</span><span class=p>,</span> <span class=n>timedelta</span>
+</span></span><span class=line><span class=cl>    <span class=n>cutoff</span> <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>now</span><span class=p>()</span> <span class=o>-</span> <span class=n>timedelta</span><span class=p>(</span><span class=n>days</span><span class=o>=</span><span class=n>days</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>record</span> <span class=ow>in</span> <span class=n>records</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>datetime</span><span class=o>.</span><span class=n>fromisoformat</span><span class=p>(</span><span class=n>record</span><span class=p>[</span><span class=s2>&#34;timestamp&#34;</span><span class=p>])</span> <span class=o>&gt;</span> <span class=n>cutoff</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>yield</span> <span class=n>record</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>extract_errors</span><span class=p>(</span><span class=n>records</span><span class=p>:</span> <span class=n>Iterator</span><span class=p>[</span><span class=nb>dict</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n>Iterator</span><span class=p>[</span><span class=nb>dict</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Keep only error-level records.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>record</span> <span class=ow>in</span> <span class=n>records</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>record</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;level&#34;</span><span class=p>)</span> <span class=o>==</span> <span class=s2>&#34;ERROR&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>yield</span> <span class=n>record</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Compose: nothing runs until you iterate</span>
+</span></span><span class=line><span class=cl><span class=n>pipeline</span> <span class=o>=</span> <span class=n>extract_errors</span><span class=p>(</span><span class=n>filter_recent</span><span class=p>(</span><span class=n>read_jsonl_gz</span><span class=p>(</span><span class=n>Path</span><span class=p>(</span><span class=s2>&#34;app.jsonl.gz&#34;</span><span class=p>))))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Process one record at a time — constant memory regardless of file size</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>error</span> <span class=ow>in</span> <span class=n>pipeline</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>error</span><span class=p>[</span><span class=s1>&#39;timestamp&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>error</span><span class=p>[</span><span class=s1>&#39;message&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=memory-mapped-files class=heading-anchor>Memory-Mapped Files<a href=#memory-mapped-files class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>For random-access patterns on large files, <code>mmap</code> maps file contents directly into virtual memory:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>mmap</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pathlib</span> <span class=kn>import</span> <span class=n>Path</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>search_in_large_file</span><span class=p>(</span><span class=n>path</span><span class=p>:</span> <span class=n>Path</span><span class=p>,</span> <span class=n>pattern</span><span class=p>:</span> <span class=nb>bytes</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Find all occurrences of pattern in a large file using mmap.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>offsets</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=n>path</span><span class=p>,</span> <span class=s2>&#34;rb&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>mmap</span><span class=o>.</span><span class=n>mmap</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>fileno</span><span class=p>(),</span> <span class=mi>0</span><span class=p>,</span> <span class=n>access</span><span class=o>=</span><span class=n>mmap</span><span class=o>.</span><span class=n>ACCESS_READ</span><span class=p>)</span> <span class=k>as</span> <span class=n>mm</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>pos</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>            <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>pos</span> <span class=o>=</span> <span class=n>mm</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>pattern</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=n>pos</span> <span class=o>==</span> <span class=o>-</span><span class=mi>1</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=k>break</span>
+</span></span><span class=line><span class=cl>                <span class=n>offsets</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>pos</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>pos</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>offsets</span>
+</span></span></code></pre></td></tr></table></div></div><p>The OS handles paging — only accessed regions are loaded into physical RAM.</p><h2 id=protocol-buffers-schema-first-serialization class=heading-anchor>Protocol Buffers: Schema-First Serialization<a href=#protocol-buffers-schema-first-serialization class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><a href=https://protobuf.dev/ target=_blank rel="noopener noreferrer">Protocol Buffers <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+(protobuf) define data structures in <code>.proto</code> schema files. Code generation ensures type safety across languages.</p><h3 id=when-to-use-protobuf-vs-json class=heading-anchor>When to Use Protobuf vs JSON<a href=#when-to-use-protobuf-vs-json class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>Factor</th><th>JSON</th><th>Protobuf</th></tr></thead><tbody><tr><td>Human readable</td><td>Yes</td><td>No (binary)</td></tr><tr><td>Schema enforcement</td><td>No (optional with JSON Schema)</td><td>Yes (required)</td></tr><tr><td>Size</td><td>Large (text + keys repeated)</td><td>Small (binary, field numbers)</td></tr><tr><td>Speed</td><td>Slow (parse text)</td><td>Fast (decode binary)</td></tr><tr><td>Language support</td><td>Universal</td><td>Code-gen for 10+ languages</td></tr><tr><td>Evolution</td><td>Fragile (rename breaks)</td><td>Safe (field numbers stable)</td></tr><tr><td>Best for</td><td>APIs, config, debugging</td><td>Inter-service comms, storage</td></tr></tbody></table></div><h3 id=defining-a-schema class=heading-anchor>Defining a Schema<a href=#defining-a-schema class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-protobuf data-lang=protobuf><span class=line><span class=cl><span class=c1>// user.proto
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>syntax</span> <span class=o>=</span> <span class=s>&#34;proto3&#34;</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=kd>message</span> <span class=nc>User</span> <span class=p>{</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>int32</span> <span class=n>id</span> <span class=o>=</span> <span class=mi>1</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>name</span> <span class=o>=</span> <span class=mi>2</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>email</span> <span class=o>=</span> <span class=mi>3</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=k>repeated</span> <span class=kt>string</span> <span class=n>tags</span> <span class=o>=</span> <span class=mi>4</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kd>enum</span> <span class=n>Role</span> <span class=p>{</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>    <span class=n>UNKNOWN</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>    <span class=n>ADMIN</span> <span class=o>=</span> <span class=mi>1</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>    <span class=n>USER</span> <span class=o>=</span> <span class=mi>2</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=p>}</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=n>Role</span> <span class=n>role</span> <span class=o>=</span> <span class=mi>5</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=p>}</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=kd>message</span> <span class=nc>UserList</span> <span class=p>{</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=k>repeated</span> <span class=n>User</span> <span class=n>users</span> <span class=o>=</span> <span class=mi>1</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>int32</span> <span class=n>total</span> <span class=o>=</span> <span class=mi>2</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=p>}</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=generate-python-code class=heading-anchor>Generate Python Code<a href=#generate-python-code class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>$ pip install grpcio-tools
+</span></span><span class=line><span class=cl>$ python -m grpc_tools.protoc -I. --python_out<span class=o>=</span>. --pyi_out<span class=o>=</span>. user.proto
+</span></span></code></pre></td></tr></table></div></div><p>This generates <code>user_pb2.py</code> (runtime) and <code>user_pb2.pyi</code> (type stubs).</p><h3 id=using-generated-code class=heading-anchor>Using Generated Code<a href=#using-generated-code class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>user_pb2</span> <span class=kn>import</span> <span class=n>User</span><span class=p>,</span> <span class=n>UserList</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create</span>
+</span></span><span class=line><span class=cl><span class=n>user</span> <span class=o>=</span> <span class=n>User</span><span class=p>(</span><span class=nb>id</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>name</span><span class=o>=</span><span class=s2>&#34;Alice&#34;</span><span class=p>,</span> <span class=n>email</span><span class=o>=</span><span class=s2>&#34;alice@example.com&#34;</span><span class=p>,</span> <span class=n>role</span><span class=o>=</span><span class=n>User</span><span class=o>.</span><span class=n>ADMIN</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>user</span><span class=o>.</span><span class=n>tags</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=s2>&#34;staff&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Serialize (bytes)</span>
+</span></span><span class=line><span class=cl><span class=n>data</span><span class=p>:</span> <span class=nb>bytes</span> <span class=o>=</span> <span class=n>user</span><span class=o>.</span><span class=n>SerializeToString</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>data</span><span class=p>))</span>  <span class=c1># ~40 bytes (vs ~120 for JSON equivalent)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Deserialize</span>
+</span></span><span class=line><span class=cl><span class=n>restored</span> <span class=o>=</span> <span class=n>User</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>restored</span><span class=o>.</span><span class=n>ParseFromString</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>assert</span> <span class=n>restored</span><span class=o>.</span><span class=n>name</span> <span class=o>==</span> <span class=s2>&#34;Alice&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># JSON conversion (for debugging)</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>google.protobuf.json_format</span> <span class=kn>import</span> <span class=n>MessageToJson</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>MessageToJson</span><span class=p>(</span><span class=n>user</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=schema-evolution-rules class=heading-anchor>Schema Evolution Rules<a href=#schema-evolution-rules class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Protobuf handles evolution safely if you follow these rules:</p><ol><li><strong>Never reuse field numbers</strong> — deleted fields should be <code>reserved</code></li><li><strong>Add new fields</strong> with new numbers — old code ignores unknown fields</li><li><strong>Don&rsquo;t change field types</strong> — <code>int32</code> to <code>string</code> breaks existing data</li><li><strong>Use <code>optional</code></strong> for fields that may not always be set</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-protobuf data-lang=protobuf><span class=line><span class=cl><span class=kd>message</span> <span class=nc>User</span> <span class=p>{</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>int32</span> <span class=n>id</span> <span class=o>=</span> <span class=mi>1</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>name</span> <span class=o>=</span> <span class=mi>2</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>email</span> <span class=o>=</span> <span class=mi>3</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=k>optional</span> <span class=kt>string</span> <span class=n>phone</span> <span class=o>=</span> <span class=mi>6</span><span class=p>;</span>  <span class=c1>// added later — old data still works
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=n>reserved</span> <span class=mi>4</span><span class=p>,</span> <span class=mi>5</span><span class=p>;</span>              <span class=c1>// previously used, now deleted
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=n>reserved</span> <span class=s>&#34;old_field_name&#34;</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=p>}</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=duckdb-sql-on-local-files class=heading-anchor>DuckDB: SQL on Local Files<a href=#duckdb-sql-on-local-files class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><a href=https://duckdb.org/ target=_blank rel="noopener noreferrer">DuckDB <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+is an in-process analytical database. It reads Parquet, CSV, and JSON files directly — no server, no import step.</p><h3 id=installation class=heading-anchor>Installation<a href=#installation class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install duckdb
+</span></span></code></pre></td></tr></table></div></div><h3 id=query-files-directly class=heading-anchor>Query Files Directly<a href=#query-files-directly class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>duckdb</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Query a CSV file with SQL</span>
+</span></span><span class=line><span class=cl><span class=n>result</span> <span class=o>=</span> <span class=n>duckdb</span><span class=o>.</span><span class=n>sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>    SELECT department, COUNT(*) as headcount, AVG(salary) as avg_salary
+</span></span></span><span class=line><span class=cl><span class=s2>    FROM &#39;employees.csv&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>    GROUP BY department
+</span></span></span><span class=line><span class=cl><span class=s2>    ORDER BY avg_salary DESC
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>fetchdf</span><span class=p>()</span>  <span class=c1># Returns a pandas DataFrame</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Query Parquet files (even remote)</span>
+</span></span><span class=line><span class=cl><span class=n>result</span> <span class=o>=</span> <span class=n>duckdb</span><span class=o>.</span><span class=n>sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>    SELECT date_trunc(&#39;month&#39;, created_at) as month, COUNT(*) as orders
+</span></span></span><span class=line><span class=cl><span class=s2>    FROM &#39;orders/*.parquet&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>    GROUP BY 1
+</span></span></span><span class=line><span class=cl><span class=s2>    ORDER BY 1
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Query JSON Lines</span>
+</span></span><span class=line><span class=cl><span class=n>result</span> <span class=o>=</span> <span class=n>duckdb</span><span class=o>.</span><span class=n>sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>    SELECT json_extract_string(line, &#39;$.user.name&#39;) as user_name,
+</span></span></span><span class=line><span class=cl><span class=s2>           json_extract_string(line, &#39;$.action&#39;) as action
+</span></span></span><span class=line><span class=cl><span class=s2>    FROM read_json_auto(&#39;events.jsonl&#39;)
+</span></span></span><span class=line><span class=cl><span class=s2>    WHERE json_extract_string(line, &#39;$.level&#39;) = &#39;ERROR&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=convert-between-formats class=heading-anchor>Convert Between Formats<a href=#convert-between-formats class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>duckdb</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># CSV → Parquet (with compression)</span>
+</span></span><span class=line><span class=cl><span class=n>duckdb</span><span class=o>.</span><span class=n>sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>    COPY (SELECT * FROM &#39;large_dataset.csv&#39;)
+</span></span></span><span class=line><span class=cl><span class=s2>    TO &#39;output.parquet&#39; (FORMAT PARQUET, COMPRESSION ZSTD)
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Parquet → CSV (filtered)</span>
+</span></span><span class=line><span class=cl><span class=n>duckdb</span><span class=o>.</span><span class=n>sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>    COPY (SELECT * FROM &#39;data.parquet&#39; WHERE year = 2024)
+</span></span></span><span class=line><span class=cl><span class=s2>    TO &#39;filtered.csv&#39; (FORMAT CSV, HEADER)
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=duckdb-vs-pandas-for-file-processing class=heading-anchor>DuckDB vs pandas for File Processing<a href=#duckdb-vs-pandas-for-file-processing class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>Operation</th><th>pandas</th><th>DuckDB</th></tr></thead><tbody><tr><td>Load 1GB CSV</td><td>~30s, 3GB RAM</td><td>~5s, ~200MB RAM</td></tr><tr><td>Group-by aggregation</td><td>Moderate</td><td>Fast (columnar engine)</td></tr><tr><td>Join two files</td><td>Load both into memory</td><td>Stream join, low memory</td></tr><tr><td>Filter + export</td><td>Load all, filter, export</td><td>Push-down filter, minimal I/O</td></tr><tr><td>SQL interface</td><td>No (pd.read_sql for DB only)</td><td>Yes (native SQL)</td></tr><tr><td>Learning curve</td><td>DataFrame API</td><td>SQL</td></tr></tbody></table></div><p>Use DuckDB when you need SQL semantics, have files too large for RAM, or want to avoid the pandas dependency.</p><h2 id=configuration-patterns class=heading-anchor>Configuration Patterns<a href=#configuration-patterns class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=env-files-with-python-dotenv class=heading-anchor>.env Files with python-dotenv<a href=#env-files-with-python-dotenv class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install python-dotenv
 </span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
@@ -719,7 +1027,7 @@
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=Python%2bEngineering%2b%25285%2529%253A%2bI%252FO%252C%2bSerialization%252C%2band%2bData%2bFormats&url=https%253A%252F%252Fwww.chenk.top%252Fen%252Fpython-engineering%252F05-io-and-serialization%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fen%252Fpython-engineering%252F05-io-and-serialization%252F&title=Python%2bEngineering%2b%25285%2529%253A%2bI%252FO%252C%2bSerialization%252C%2band%2bData%2bFormats" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/en/python-engineering/05-io-and-serialization/ aria-label="Copy article link" title="Copy link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2022-04-19>written <span class=days>…</span> days ago</span></div><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#file-io-the-basics>File I/O: The Basics</a><ul><li><a href=#opening-files>Opening Files</a></li><li><a href=#file-modes>File Modes</a></li><li><a href=#reading-patterns>Reading Patterns</a></li><li><a href=#writing-patterns>Writing Patterns</a></li></ul></li><li><a href=#pathlibpath-modern-file-path-handling>pathlib.Path: Modern File Path Handling</a><ul><li><a href=#common-operations>Common Operations</a></li><li><a href=#ospath-vs-pathlib>os.path vs pathlib</a></li></ul></li><li><a href=#encoding-utf-8-everywhere>Encoding: UTF-8 Everywhere</a><ul><li><a href=#the-problem>The Problem</a></li><li><a href=#the-solution>The Solution</a></li><li><a href=#handling-encoding-errors>Handling Encoding Errors</a></li><li><a href=#bom-byte-order-mark>BOM (Byte Order Mark)</a></li></ul></li><li><a href=#json>JSON</a><ul><li><a href=#reading-and-writing>Reading and Writing</a></li><li><a href=#custom-serializers>Custom Serializers</a></li><li><a href=#command-line-json-tool>Command-Line JSON Tool</a></li></ul></li><li><a href=#yaml>YAML</a><ul><li><a href=#safe_load-vs-load>safe_load vs load</a></li><li><a href=#yaml-gotchas>YAML Gotchas</a></li></ul></li><li><a href=#toml>TOML</a><ul><li><a href=#reading-toml>Reading TOML</a></li><li><a href=#writing-toml>Writing TOML</a></li></ul></li><li><a href=#csv>CSV</a><ul><li><a href=#reading-csv>Reading CSV</a></li><li><a href=#writing-csv>Writing CSV</a></li><li><a href=#csv-edge-cases>CSV Edge Cases</a></li></ul></li><li><a href=#binary-formats>Binary Formats</a><ul><li><a href=#pickle-python-object-serialization>pickle: Python Object Serialization</a></li><li><a href=#struct-binary-data-packing>struct: Binary Data Packing</a></li><li><a href=#msgpack-fast-binary-serialization>msgpack: Fast Binary Serialization</a></li></ul></li><li><a href=#parquet-and-arrow-columnar-data>Parquet and Arrow: Columnar Data</a></li><li><a href=#configuration-patterns>Configuration Patterns</a><ul><li><a href=#env-files-with-python-dotenv>.env Files with python-dotenv</a></li></ul></li><li><a href=#comparison-table-config-file-formats>Comparison Table: Config File Formats</a></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/python-engineering/ class=series-name>Python Engineering</a>
+<span class=sig-meta data-days-since=2022-04-19>written <span class=days>…</span> days ago</span></div><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#file-io-the-basics>File I/O: The Basics</a><ul><li><a href=#opening-files>Opening Files</a></li><li><a href=#file-modes>File Modes</a></li><li><a href=#reading-patterns>Reading Patterns</a></li><li><a href=#writing-patterns>Writing Patterns</a></li></ul></li><li><a href=#pathlibpath-modern-file-path-handling>pathlib.Path: Modern File Path Handling</a><ul><li><a href=#common-operations>Common Operations</a></li><li><a href=#ospath-vs-pathlib>os.path vs pathlib</a></li></ul></li><li><a href=#encoding-utf-8-everywhere>Encoding: UTF-8 Everywhere</a><ul><li><a href=#the-problem>The Problem</a></li><li><a href=#the-solution>The Solution</a></li><li><a href=#handling-encoding-errors>Handling Encoding Errors</a></li><li><a href=#bom-byte-order-mark>BOM (Byte Order Mark)</a></li></ul></li><li><a href=#json>JSON</a><ul><li><a href=#reading-and-writing>Reading and Writing</a></li><li><a href=#custom-serializers>Custom Serializers</a></li><li><a href=#command-line-json-tool>Command-Line JSON Tool</a></li></ul></li><li><a href=#yaml>YAML</a><ul><li><a href=#safe_load-vs-load>safe_load vs load</a></li><li><a href=#yaml-gotchas>YAML Gotchas</a></li></ul></li><li><a href=#toml>TOML</a><ul><li><a href=#reading-toml>Reading TOML</a></li><li><a href=#writing-toml>Writing TOML</a></li></ul></li><li><a href=#csv>CSV</a><ul><li><a href=#reading-csv>Reading CSV</a></li><li><a href=#writing-csv>Writing CSV</a></li><li><a href=#csv-edge-cases>CSV Edge Cases</a></li></ul></li><li><a href=#binary-formats>Binary Formats</a><ul><li><a href=#pickle-python-object-serialization>pickle: Python Object Serialization</a></li><li><a href=#struct-binary-data-packing>struct: Binary Data Packing</a></li><li><a href=#msgpack-fast-binary-serialization>msgpack: Fast Binary Serialization</a></li></ul></li><li><a href=#parquet-and-arrow-columnar-data>Parquet and Arrow: Columnar Data</a></li><li><a href=#streaming-large-files>Streaming Large Files</a><ul><li><a href=#line-by-line-processing>Line-by-Line Processing</a></li><li><a href=#chunked-binary-reading>Chunked Binary Reading</a></li><li><a href=#generator-pipelines>Generator Pipelines</a></li><li><a href=#memory-mapped-files>Memory-Mapped Files</a></li></ul></li><li><a href=#protocol-buffers-schema-first-serialization>Protocol Buffers: Schema-First Serialization</a><ul><li><a href=#when-to-use-protobuf-vs-json>When to Use Protobuf vs JSON</a></li><li><a href=#defining-a-schema>Defining a Schema</a></li><li><a href=#generate-python-code>Generate Python Code</a></li><li><a href=#using-generated-code>Using Generated Code</a></li><li><a href=#schema-evolution-rules>Schema Evolution Rules</a></li></ul></li><li><a href=#duckdb-sql-on-local-files>DuckDB: SQL on Local Files</a><ul><li><a href=#installation>Installation</a></li><li><a href=#query-files-directly>Query Files Directly</a></li><li><a href=#convert-between-formats>Convert Between Formats</a></li><li><a href=#duckdb-vs-pandas-for-file-processing>DuckDB vs pandas for File Processing</a></li></ul></li><li><a href=#configuration-patterns>Configuration Patterns</a><ul><li><a href=#env-files-with-python-dotenv>.env Files with python-dotenv</a></li></ul></li><li><a href=#comparison-table-config-file-formats>Comparison Table: Config File Formats</a></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/python-engineering/ class=series-name>Python Engineering</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/01-environment-and-toolchain/><span class=chapter-num>01</span>
 <span class=chapter-title>Python Engineering (1): Environment Setup — pyenv, venv, and Dependency Hell</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/02-project-structure/><span class=chapter-num>02</span>
 <span class=chapter-title>Python Engineering (2): Project Structure — From Script to Package</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/03-testing-and-debugging/><span class=chapter-num>03</span>
@@ -728,5 +1036,5 @@
 <span class=chapter-title>Python Engineering (5): I/O, Serialization, and Data Formats</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/06-concurrency/><span class=chapter-num>06</span>
 <span class=chapter-title>Python Engineering (6): Concurrency — Threads, Processes, and asyncio</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/07-packaging-and-distribution/><span class=chapter-num>07</span>
 <span class=chapter-title>Python Engineering (7): Packaging — From pip install to PyPI</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/08-performance-and-profiling/><span class=chapter-num>08</span>
-<span class=chapter-title>Python Engineering (8): Performance — Profiling, Caching, and Knowing When to Stop</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>24 min</strong></div><div class=row><span>Word count</span><strong>2400</strong></div><div class=row><span>Published</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Python Engineering (8): Performance — Profiling, Caching, and Knowing When to Stop</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>34 min</strong></div><div class=row><span>Word count</span><strong>3486</strong></div><div class=row><span>Published</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

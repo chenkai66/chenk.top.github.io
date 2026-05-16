@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/python-engineering/>Python 工程实践</a>
 · 第 7 篇</div><h1>Python 工程实践（七）：打包分发 —— 从 pip install 到 PyPI</h1><p class=deck>将 Python 代码打包为可分发形式，通过 pip 安装、发布至 PyPI、构建 Docker 镜像，并管理版本号。本指南完整覆盖从本地项目到可安装包的全流程。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-04-24>April 24, 2022</time> · 16 分钟 · 3653 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/python/ class=tag>#Python</a><a href=/zh/tags/packaging/ class=tag>#Packaging</a><a href=/zh/tags/docker/ class=tag>#Docker</a><a href=/zh/tags/pypi/ class=tag>#PyPI</a></div><a class="pill pill-outline" href=/en/python-engineering/07-packaging-and-distribution/>Read in English →</a></div></header><div class=prose><p>你写了一个实用的小工具，同事找你要。你把文件夹打包成 ZIP 发过去，对方解压后运行 <code>python main.py</code>，却报了 <code>ModuleNotFoundError</code> —— 因为缺少依赖。他手动装上依赖，结果版本不对；更糟的是，他用的是 Python 3.8，而你的代码里用了 f-string 中的海象运算符（walrus operator），这在 3.8 里根本跑不了。</p><p>规范的打包能彻底避免这些问题。只要执行 <code>pip install your-tool</code>，一切自动就绪：依赖版本精准匹配、Python 兼容性有保障，还能直接通过命令行调用。</p><hr><h2 id=包模块与库 class=heading-anchor>包、模块与库<a href=#%e5%8c%85%e6%a8%a1%e5%9d%97%e4%b8%8e%e5%ba%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>这些术语常被混用，但在 Python 中其实各有明确定义：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-packaging-pipeline.png alt=打包流水线 loading=lazy decoding=async class=content-image></figure></p><div class=table-wrap><table><thead><tr><th>术语</th><th>定义</th><th>示例</th></tr></thead><tbody><tr><td><strong>Module （模块）</strong></td><td>单个 <code>.py</code> 文件</td><td><code>utils.py</code></td></tr><tr><td><strong>Package （包）</strong></td><td>包含 <code>__init__.py</code> 的目录，内含多个模块</td><td><code>my_tool/</code> 目录</td></tr><tr><td><strong>Library （库）</strong></td><td>为复用而发布的包（或包集合）</td><td><code>requests</code>, <code>flask</code></td></tr><tr><td><strong>Distribution （分发包）</strong></td><td>可安装的归档文件（wheel 或 sdist），托管于 PyPI</td><td><code>requests-2.31.0-py3-none-any.whl</code></td></tr><tr><td><strong>Script （脚本）</strong></td><td>可直接运行的独立 <code>.py</code> 文件</td><td><code>download.py</code></td></tr></tbody></table></div><p>当有人说“安装 requests 库”，实际意思是：从 PyPI 下载 <code>requests</code> 的分发包，其中包含 <code>requests</code> 包及其子包。</p><h2 id=构建分发包 class=heading-anchor>构建分发包<a href=#%e6%9e%84%e5%bb%ba%e5%88%86%e5%8f%91%e5%8c%85 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Python 包有两种标准分发格式：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-versioning.png alt=语义化版本控制 loading=lazy decoding=async class=content-image></figure></p><h3 id=sdist-源码分发包 class=heading-anchor>sdist （源码分发包）<a href=#sdist-%e6%ba%90%e7%a0%81%e5%88%86%e5%8f%91%e5%8c%85 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>一个 <code>.tar.gz</code> 格式的源码压缩包。接收方需要完整的构建工具链（比如编译 C 扩展所需的编译器）才能安装。</p><h3 id=wheel-预编译分发包 class=heading-anchor>wheel （预编译分发包）<a href=#wheel-%e9%a2%84%e7%bc%96%e8%af%91%e5%88%86%e5%8f%91%e5%8c%85 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><code>.whl</code> 文件（本质是 zip 压缩包），已预先构建好，无需编译，安装更快。<code>pip</code> 默认优先使用 wheel。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-wheel-vs-sdist.png alt="Wheel 与 sdist 比较" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2022-04-24>April 24, 2022</time> · 20 分钟 · 4702 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/python/ class=tag>#Python</a><a href=/zh/tags/packaging/ class=tag>#Packaging</a><a href=/zh/tags/docker/ class=tag>#Docker</a><a href=/zh/tags/pypi/ class=tag>#PyPI</a></div><a class="pill pill-outline" href=/en/python-engineering/07-packaging-and-distribution/>Read in English →</a></div></header><div class=prose><p>你写了一个实用的小工具，同事找你要。你把文件夹打包成 ZIP 发过去，对方解压后运行 <code>python main.py</code>，却报了 <code>ModuleNotFoundError</code> —— 因为缺少依赖。他手动装上依赖，结果版本不对；更糟的是，他用的是 Python 3.8，而你的代码里用了 f-string 中的海象运算符（walrus operator），这在 3.8 里根本跑不了。</p><p>规范的打包能彻底避免这些问题。只要执行 <code>pip install your-tool</code>，一切自动就绪：依赖版本精准匹配、Python 兼容性有保障，还能直接通过命令行调用。</p><hr><h2 id=包模块与库 class=heading-anchor>包、模块与库<a href=#%e5%8c%85%e6%a8%a1%e5%9d%97%e4%b8%8e%e5%ba%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>这些术语常被混用，但在 Python 中其实各有明确定义：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-packaging-pipeline.png alt=打包流水线 loading=lazy decoding=async class=content-image></figure></p><div class=table-wrap><table><thead><tr><th>术语</th><th>定义</th><th>示例</th></tr></thead><tbody><tr><td><strong>Module （模块）</strong></td><td>单个 <code>.py</code> 文件</td><td><code>utils.py</code></td></tr><tr><td><strong>Package （包）</strong></td><td>包含 <code>__init__.py</code> 的目录，内含多个模块</td><td><code>my_tool/</code> 目录</td></tr><tr><td><strong>Library （库）</strong></td><td>为复用而发布的包（或包集合）</td><td><code>requests</code>, <code>flask</code></td></tr><tr><td><strong>Distribution （分发包）</strong></td><td>可安装的归档文件（wheel 或 sdist），托管于 PyPI</td><td><code>requests-2.31.0-py3-none-any.whl</code></td></tr><tr><td><strong>Script （脚本）</strong></td><td>可直接运行的独立 <code>.py</code> 文件</td><td><code>download.py</code></td></tr></tbody></table></div><p>当有人说“安装 requests 库”，实际意思是：从 PyPI 下载 <code>requests</code> 的分发包，其中包含 <code>requests</code> 包及其子包。</p><h2 id=构建分发包 class=heading-anchor>构建分发包<a href=#%e6%9e%84%e5%bb%ba%e5%88%86%e5%8f%91%e5%8c%85 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Python 包有两种标准分发格式：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-versioning.png alt=语义化版本控制 loading=lazy decoding=async class=content-image></figure></p><h3 id=sdist-源码分发包 class=heading-anchor>sdist （源码分发包）<a href=#sdist-%e6%ba%90%e7%a0%81%e5%88%86%e5%8f%91%e5%8c%85 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>一个 <code>.tar.gz</code> 格式的源码压缩包。接收方需要完整的构建工具链（比如编译 C 扩展所需的编译器）才能安装。</p><h3 id=wheel-预编译分发包 class=heading-anchor>wheel （预编译分发包）<a href=#wheel-%e9%a2%84%e7%bc%96%e8%af%91%e5%88%86%e5%8f%91%e5%8c%85 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><code>.whl</code> 文件（本质是 zip 压缩包），已预先构建好，无需编译，安装更快。<code>pip</code> 默认优先使用 wheel。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-wheel-vs-sdist.png alt="Wheel 与 sdist 比较" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -491,7 +491,222 @@
 </span></span></span><span class=line><span class=cl><span class=se></span>    -e <span class=nv>DATABASE_URL</span><span class=o>=</span>postgresql://db:5432/mydb <span class=se>\
 </span></span></span><span class=line><span class=cl><span class=se></span>    -e <span class=nv>API_KEY</span><span class=o>=</span>sk-abc123 <span class=se>\
 </span></span></span><span class=line><span class=cl><span class=se></span>    my-tool:0.1.0
-</span></span></code></pre></td></tr></table></div></div><h2 id=使用-poetry-构建与发布 class=heading-anchor>使用 Poetry 构建与发布<a href=#%e4%bd%bf%e7%94%a8-poetry-%e6%9e%84%e5%bb%ba%e4%b8%8e%e5%8f%91%e5%b8%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-wheel-vs-sdist-comparison-prebuilt-furniture-vs-ikea-flatpac.jpg alt="Wheel 与 sdist 比较：预组装家具 vs 宜家平板包装" loading=lazy decoding=async class=content-image></figure></p><p>如果项目用的是 Poetry 而不是 setuptools：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><h2 id=现代构建后端 class=heading-anchor>现代构建后端<a href=#%e7%8e%b0%e4%bb%a3%e6%9e%84%e5%bb%ba%e5%90%8e%e7%ab%af class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Python 打包生态已不再局限于 <code>setuptools</code>。新一代构建后端更快、配置更简单、覆盖更多场景。</p><h3 id=hatch一体化项目管理器 class=heading-anchor>Hatch：一体化项目管理器<a href=#hatch%e4%b8%80%e4%bd%93%e5%8c%96%e9%a1%b9%e7%9b%ae%e7%ae%a1%e7%90%86%e5%99%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><a href=https://hatch.pypa.io/ target=_blank rel="noopener noreferrer">Hatch <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+用一个工具管理环境、构建和发布：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=c># pyproject.toml</span>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>build-system</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>requires</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;hatchling&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>build-backend</span> <span class=p>=</span> <span class=s2>&#34;hatchling.build&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>name</span> <span class=p>=</span> <span class=s2>&#34;my-library&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>dynamic</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;version&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>hatch</span><span class=p>.</span><span class=nx>version</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>path</span> <span class=p>=</span> <span class=s2>&#34;src/my_library/__init__.py&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>hatch</span><span class=p>.</span><span class=nx>build</span><span class=p>.</span><span class=nx>targets</span><span class=p>.</span><span class=nx>wheel</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>packages</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;src/my_library&#34;</span><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 构建</span>
+</span></span><span class=line><span class=cl>$ hatch build
+</span></span><span class=line><span class=cl>dist/my_library-0.1.0-py3-none-any.whl
+</span></span><span class=line><span class=cl>dist/my_library-0.1.0.tar.gz
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 发布</span>
+</span></span><span class=line><span class=cl>$ hatch publish
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 在隔离环境中运行</span>
+</span></span><span class=line><span class=cl>$ hatch run pytest
+</span></span></code></pre></td></tr></table></div></div><p>Hatch 的环境矩阵无需 tox 即可跨 Python 版本测试：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>hatch</span><span class=p>.</span><span class=nx>envs</span><span class=p>.</span><span class=nx>test</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>dependencies</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;pytest&#34;</span><span class=p>,</span> <span class=s2>&#34;pytest-cov&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>hatch</span><span class=p>.</span><span class=nx>envs</span><span class=p>.</span><span class=nx>test</span><span class=p>.</span><span class=nx>matrix</span><span class=p>]]</span>
+</span></span><span class=line><span class=cl><span class=nx>python</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;3.10&#34;</span><span class=p>,</span> <span class=s2>&#34;3.11&#34;</span><span class=p>,</span> <span class=s2>&#34;3.12&#34;</span><span class=p>,</span> <span class=s2>&#34;3.13&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>hatch</span><span class=p>.</span><span class=nx>envs</span><span class=p>.</span><span class=nx>test</span><span class=p>.</span><span class=nx>scripts</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>run</span> <span class=p>=</span> <span class=s2>&#34;pytest {args}&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>cov</span> <span class=p>=</span> <span class=s2>&#34;pytest --cov {args}&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>$ hatch run test:run         <span class=c1># 在所有 4 个 Python 版本上运行</span>
+</span></span><span class=line><span class=cl>$ hatch run test.py3.12:run  <span class=c1># 指定版本运行</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=uv-构建与发布 class=heading-anchor>uv 构建与发布<a href=#uv-%e6%9e%84%e5%bb%ba%e4%b8%8e%e5%8f%91%e5%b8%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>uv 无需额外工具即可处理完整生命周期：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 构建 wheel 和 sdist</span>
+</span></span><span class=line><span class=cl>$ uv build
+</span></span><span class=line><span class=cl>Successfully built dist/my_lib-0.1.0.tar.gz and dist/my_lib-0.1.0-py3-none-any.whl
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 发布到 PyPI</span>
+</span></span><span class=line><span class=cl>$ uv publish
+</span></span><span class=line><span class=cl><span class=c1># 或发布到私有索引：</span>
+</span></span><span class=line><span class=cl>$ uv publish --index-url https://private.pypi.org/simple/
+</span></span></code></pre></td></tr></table></div></div><h3 id=maturinpython--rust-扩展 class=heading-anchor>Maturin：Python + Rust 扩展<a href=#maturinpython--rust-%e6%89%a9%e5%b1%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><a href=https://www.maturin.rs/ target=_blank rel="noopener noreferrer">Maturin <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+构建包含 Rust 扩展的 Python 包（通过 PyO3）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>build-system</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>requires</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;maturin&gt;=1.0,&lt;2.0&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>build-backend</span> <span class=p>=</span> <span class=s2>&#34;maturin&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>name</span> <span class=p>=</span> <span class=s2>&#34;my-fast-lib&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>requires-python</span> <span class=p>=</span> <span class=s2>&#34;&gt;=3.9&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=c1>// src/lib.rs
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>use</span><span class=w> </span><span class=n>pyo3</span>::<span class=n>prelude</span>::<span class=o>*</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=cp>#[pyfunction]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>fn</span> <span class=nf>fast_sum</span><span class=p>(</span><span class=n>data</span>: <span class=nb>Vec</span><span class=o>&lt;</span><span class=kt>f64</span><span class=o>&gt;</span><span class=p>)</span><span class=w> </span>-&gt; <span class=kt>f64</span> <span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>data</span><span class=p>.</span><span class=n>iter</span><span class=p>().</span><span class=n>sum</span><span class=p>()</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=cp>#[pymodule]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>fn</span> <span class=nf>my_fast_lib</span><span class=p>(</span><span class=n>m</span>: <span class=kp>&amp;</span><span class=nc>Bound</span><span class=o>&lt;</span><span class=nb>&#39;_</span><span class=p>,</span><span class=w> </span><span class=n>PyModule</span><span class=o>&gt;</span><span class=p>)</span><span class=w> </span>-&gt; <span class=nc>PyResult</span><span class=o>&lt;</span><span class=p>()</span><span class=o>&gt;</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>m</span><span class=p>.</span><span class=n>add_function</span><span class=p>(</span><span class=fm>wrap_pyfunction!</span><span class=p>(</span><span class=n>fast_sum</span><span class=p>,</span><span class=w> </span><span class=n>m</span><span class=p>)</span><span class=o>?</span><span class=p>)</span><span class=o>?</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nb>Ok</span><span class=p>(())</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 开发模式构建安装</span>
+</span></span><span class=line><span class=cl>$ maturin develop
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 构建发布用 wheel</span>
+</span></span><span class=line><span class=cl>$ maturin build --release
+</span></span></code></pre></td></tr></table></div></div><p>这正是 <code>pydantic-core</code>、<code>ruff</code>、<code>polars</code> 等高性能库发布 Rust 支持 Python 包的方式。</p><h3 id=构建后端对比 class=heading-anchor>构建后端对比<a href=#%e6%9e%84%e5%bb%ba%e5%90%8e%e7%ab%af%e5%af%b9%e6%af%94 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>后端</th><th>速度</th><th>用途</th><th>Rust/C 支持</th></tr></thead><tbody><tr><td>setuptools</td><td>慢</td><td>遗留项目、复杂构建</td><td>是（仅 C）</td></tr><tr><td>hatchling</td><td>快</td><td>纯 Python 库</td><td>否</td></tr><tr><td>flit</td><td>快</td><td>简单纯 Python</td><td>否</td></tr><tr><td>maturin</td><td>快</td><td>Rust 扩展</td><td>是（Rust）</td></tr><tr><td>scikit-build-core</td><td>中等</td><td>C/C++/Fortran 扩展</td><td>是</td></tr></tbody></table></div><h2 id=可复现构建与-sbom class=heading-anchor>可复现构建与 SBOM<a href=#%e5%8f%af%e5%a4%8d%e7%8e%b0%e6%9e%84%e5%bb%ba%e4%b8%8e-sbom class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>可复现构建确保相同源码产生二进制一致的输出。对安全审计和供应链完整性至关重要。</p><h3 id=锁定构建依赖 class=heading-anchor>锁定构建依赖<a href=#%e9%94%81%e5%ae%9a%e6%9e%84%e5%bb%ba%e4%be%9d%e8%b5%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>build-system</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>requires</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;hatchling==1.21.1&#34;</span><span class=p>]</span>  <span class=c># 锁定精确版本</span>
+</span></span><span class=line><span class=cl><span class=nx>build-backend</span> <span class=p>=</span> <span class=s2>&#34;hatchling.build&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=哈希验证 class=heading-anchor>哈希验证<a href=#%e5%93%88%e5%b8%8c%e9%aa%8c%e8%af%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># pip-tools：为供应链安全生成哈希</span>
+</span></span><span class=line><span class=cl>$ pip-compile --generate-hashes requirements.in
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 输出包含每个包的哈希：</span>
+</span></span><span class=line><span class=cl><span class=c1># requests==2.31.0 \</span>
+</span></span><span class=line><span class=cl><span class=c1>#     --hash=sha256:942c5a758f98d790eaed1a29cb6eefc7f0edf3...</span>
+</span></span></code></pre></td></tr></table></div></div><p>uv 的 <code>uv.lock</code> 始终包含哈希——无需额外标志。</p><h3 id=软件物料清单sbom class=heading-anchor>软件物料清单（SBOM）<a href=#%e8%bd%af%e4%bb%b6%e7%89%a9%e6%96%99%e6%b8%85%e5%8d%95sbom class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>生成 SBOM 用于合规和漏洞追踪：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 使用 cyclonedx（标准 SBOM 格式）</span>
+</span></span><span class=line><span class=cl>$ pip install cyclonedx-bom
+</span></span><span class=line><span class=cl>$ cyclonedx-py environment -o sbom.cdx.json
+</span></span></code></pre></td></tr></table></div></div><p>将 SBOM 附加到发版中，便于下游消费者审计依赖。</p><h2 id=条件依赖与平台标记 class=heading-anchor>条件依赖与平台标记<a href=#%e6%9d%a1%e4%bb%b6%e4%be%9d%e8%b5%96%e4%b8%8e%e5%b9%b3%e5%8f%b0%e6%a0%87%e8%ae%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>真实世界的包在不同平台或 Python 版本上需要不同依赖。</p><h3 id=环境标记 class=heading-anchor>环境标记<a href=#%e7%8e%af%e5%a2%83%e6%a0%87%e8%ae%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>dependencies</span> <span class=p>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;tomli&gt;=1.0; python_version &lt; &#39;3.11&#39;&#34;</span><span class=p>,</span>    <span class=c># 3.11+ 有 stdlib tomllib</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;colorama&gt;=0.4; sys_platform == &#39;win32&#39;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;uvloop&gt;=0.17; sys_platform != &#39;win32&#39;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;typing-extensions&gt;=4.0; python_version &lt; &#39;3.12&#39;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><p>常用标记：</p><div class=table-wrap><table><thead><tr><th>标记</th><th>示例值</th></tr></thead><tbody><tr><td><code>python_version</code></td><td><code>'3.10'</code>、<code>'3.11'</code></td></tr><tr><td><code>sys_platform</code></td><td><code>'linux'</code>、<code>'darwin'</code>、<code>'win32'</code></td></tr><tr><td><code>platform_machine</code></td><td><code>'x86_64'</code>、<code>'aarch64'</code></td></tr><tr><td><code>implementation_name</code></td><td><code>'cpython'</code>、<code>'pypy'</code></td></tr></tbody></table></div><h3 id=可选依赖组 class=heading-anchor>可选依赖组<a href=#%e5%8f%af%e9%80%89%e4%be%9d%e8%b5%96%e7%bb%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>.</span><span class=nx>optional-dependencies</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>postgres</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;psycopg[binary]&gt;=3.0&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>mysql</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;mysqlclient&gt;=2.0&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>redis</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;redis&gt;=5.0&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>all</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;my-lib[postgres,mysql,redis]&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>dev</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;pytest&#34;</span><span class=p>,</span> <span class=s2>&#34;mypy&#34;</span><span class=p>,</span> <span class=s2>&#34;ruff&#34;</span><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 安装指定额外依赖</span>
+</span></span><span class=line><span class=cl>$ pip install <span class=s2>&#34;my-lib[postgres,redis]&#34;</span>
+</span></span><span class=line><span class=cl>$ uv add <span class=s2>&#34;my-lib[all]&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=跨平台-wheel-构建 class=heading-anchor>跨平台 Wheel 构建<a href=#%e8%b7%a8%e5%b9%b3%e5%8f%b0-wheel-%e6%9e%84%e5%bb%ba class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>包含编译扩展的包需要为每个平台构建 wheel：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># .github/workflows/release.yml 使用 cibuildwheel</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>jobs</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>build</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>strategy</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>matrix</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>os</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>ubuntu-latest, macos-latest, windows-latest]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>steps</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>pypa/cibuildwheel@v2</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>env</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>CIBW_PYTHON</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;cp310 cp311 cp312 cp313&#34;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><a href=https://cibuildwheel.readthedocs.io/ target=_blank rel="noopener noreferrer">cibuildwheel <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+自动化跨平台、跨 Python 版本的 wheel 构建。</p><h2 id=使用-poetry-构建与发布 class=heading-anchor>使用 Poetry 构建与发布<a href=#%e4%bd%bf%e7%94%a8-poetry-%e6%9e%84%e5%bb%ba%e4%b8%8e%e5%8f%91%e5%b8%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-wheel-vs-sdist-comparison-prebuilt-furniture-vs-ikea-flatpac.jpg alt="Wheel 与 sdist 比较：预组装家具 vs 宜家平板包装" loading=lazy decoding=async class=content-image></figure></p><p>如果项目用的是 Poetry 而不是 setuptools：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -794,7 +1009,7 @@
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=Python%2b%25E5%25B7%25A5%25E7%25A8%258B%25E5%25AE%259E%25E8%25B7%25B5%25EF%25BC%2588%25E4%25B8%2583%25EF%25BC%2589%25EF%25BC%259A%25E6%2589%2593%25E5%258C%2585%25E5%2588%2586%25E5%258F%2591%2b%25E2%2580%2594%25E2%2580%2594%2b%25E4%25BB%258E%2bpip%2binstall%2b%25E5%2588%25B0%2bPyPI&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpython-engineering%252F07-packaging-and-distribution%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpython-engineering%252F07-packaging-and-distribution%252F&title=Python%2b%25E5%25B7%25A5%25E7%25A8%258B%25E5%25AE%259E%25E8%25B7%25B5%25EF%25BC%2588%25E4%25B8%2583%25EF%25BC%2589%25EF%25BC%259A%25E6%2589%2593%25E5%258C%2585%25E5%2588%2586%25E5%258F%2591%2b%25E2%2580%2594%25E2%2580%2594%2b%25E4%25BB%258E%2bpip%2binstall%2b%25E5%2588%25B0%2bPyPI" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/python-engineering/07-packaging-and-distribution/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2022-04-24>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#包模块与库>包、模块与库</a></li><li><a href=#构建分发包>构建分发包</a><ul><li><a href=#sdist-源码分发包>sdist （源码分发包）</a></li><li><a href=#wheel-预编译分发包>wheel （预编译分发包）</a></li><li><a href=#查看-wheel-内容>查看 wheel 内容</a></li></ul></li><li><a href=#使用-pyprojecttoml-进行打包配置>使用 pyproject.toml 进行打包配置</a><ul><li><a href=#关键配置项说明>关键配置项说明</a></li><li><a href=#包含非-python-数据文件>包含非 Python 数据文件</a></li></ul></li><li><a href=#发布到-pypi>发布到 PyPI</a><ul><li><a href=#先在-testpypi-上测试>先在 TestPyPI 上测试</a></li><li><a href=#创建-pypi-账户与-api-token>创建 PyPI 账户与 API Token</a></li><li><a href=#正式上传至-pypi>正式上传至 PyPI</a></li><li><a href=#发布前检查清单>发布前检查清单</a></li></ul></li><li><a href=#私有包索引private-package-indexes>私有包索引（Private Package Indexes）</a><ul><li><a href=#devpi>devpi</a></li><li><a href=#pip-配置私有索引>pip 配置私有索引</a></li></ul></li><li><a href=#使用-docker-构建-python-镜像>使用 Docker 构建 Python 镜像</a><ul><li><a href=#基础镜像选择>基础镜像选择</a></li><li><a href=#基础-dockerfile>基础 Dockerfile</a></li><li><a href=#多阶段构建multi-stage-build>多阶段构建（Multi-Stage Build）</a></li><li><a href=#dockerignore>.dockerignore</a></li><li><a href=#构建与运行>构建与运行</a></li></ul></li><li><a href=#使用-poetry-构建与发布>使用 Poetry 构建与发布</a></li><li><a href=#版本管理>版本管理</a><ul><li><a href=#语义化版本semver>语义化版本（SemVer）</a></li><li><a href=#版本号设置方式>版本号设置方式</a></li></ul></li><li><a href=#实战示例完整打包与发布流程>实战示例：完整打包与发布流程</a><ul><li><a href=#使用-github-actions-自动化发布>使用 GitHub Actions 自动化发布</a></li></ul></li><li><a href=#下一步>下一步</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/python-engineering/ class=series-name>Python 工程实践</a>
+<span class=sig-meta data-days-since=2022-04-24>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#包模块与库>包、模块与库</a></li><li><a href=#构建分发包>构建分发包</a><ul><li><a href=#sdist-源码分发包>sdist （源码分发包）</a></li><li><a href=#wheel-预编译分发包>wheel （预编译分发包）</a></li><li><a href=#查看-wheel-内容>查看 wheel 内容</a></li></ul></li><li><a href=#使用-pyprojecttoml-进行打包配置>使用 pyproject.toml 进行打包配置</a><ul><li><a href=#关键配置项说明>关键配置项说明</a></li><li><a href=#包含非-python-数据文件>包含非 Python 数据文件</a></li></ul></li><li><a href=#发布到-pypi>发布到 PyPI</a><ul><li><a href=#先在-testpypi-上测试>先在 TestPyPI 上测试</a></li><li><a href=#创建-pypi-账户与-api-token>创建 PyPI 账户与 API Token</a></li><li><a href=#正式上传至-pypi>正式上传至 PyPI</a></li><li><a href=#发布前检查清单>发布前检查清单</a></li></ul></li><li><a href=#私有包索引private-package-indexes>私有包索引（Private Package Indexes）</a><ul><li><a href=#devpi>devpi</a></li><li><a href=#pip-配置私有索引>pip 配置私有索引</a></li></ul></li><li><a href=#使用-docker-构建-python-镜像>使用 Docker 构建 Python 镜像</a><ul><li><a href=#基础镜像选择>基础镜像选择</a></li><li><a href=#基础-dockerfile>基础 Dockerfile</a></li><li><a href=#多阶段构建multi-stage-build>多阶段构建（Multi-Stage Build）</a></li><li><a href=#dockerignore>.dockerignore</a></li><li><a href=#构建与运行>构建与运行</a></li></ul></li><li><a href=#现代构建后端>现代构建后端</a><ul><li><a href=#hatch一体化项目管理器>Hatch：一体化项目管理器</a></li><li><a href=#uv-构建与发布>uv 构建与发布</a></li><li><a href=#maturinpython--rust-扩展>Maturin：Python + Rust 扩展</a></li><li><a href=#构建后端对比>构建后端对比</a></li></ul></li><li><a href=#可复现构建与-sbom>可复现构建与 SBOM</a><ul><li><a href=#锁定构建依赖>锁定构建依赖</a></li><li><a href=#哈希验证>哈希验证</a></li><li><a href=#软件物料清单sbom>软件物料清单（SBOM）</a></li></ul></li><li><a href=#条件依赖与平台标记>条件依赖与平台标记</a><ul><li><a href=#环境标记>环境标记</a></li><li><a href=#可选依赖组>可选依赖组</a></li><li><a href=#跨平台-wheel-构建>跨平台 Wheel 构建</a></li></ul></li><li><a href=#使用-poetry-构建与发布>使用 Poetry 构建与发布</a></li><li><a href=#版本管理>版本管理</a><ul><li><a href=#语义化版本semver>语义化版本（SemVer）</a></li><li><a href=#版本号设置方式>版本号设置方式</a></li></ul></li><li><a href=#实战示例完整打包与发布流程>实战示例：完整打包与发布流程</a><ul><li><a href=#使用-github-actions-自动化发布>使用 GitHub Actions 自动化发布</a></li></ul></li><li><a href=#下一步>下一步</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/python-engineering/ class=series-name>Python 工程实践</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/01-environment-and-toolchain/><span class=chapter-num>01</span>
 <span class=chapter-title>Python 工程实践（一）：环境搭建——pyenv、venv 与依赖地狱</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/02-project-structure/><span class=chapter-num>02</span>
 <span class=chapter-title>Python 工程实践（二）：项目结构 —— 从脚本到包</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/03-testing-and-debugging/><span class=chapter-num>03</span>
@@ -803,5 +1018,5 @@
 <span class=chapter-title>Python 工程实践（五）：I/O、序列化与数据格式</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/06-concurrency/><span class=chapter-num>06</span>
 <span class=chapter-title>Python 工程实践（六）：并发编程 —— 线程、进程与 asyncio</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
 <span class=chapter-title>Python 工程实践（七）：打包分发 —— 从 pip install 到 PyPI</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/08-performance-and-profiling/><span class=chapter-num>08</span>
-<span class=chapter-title>Python 工程实践（八）：性能优化 —— 性能分析、缓存与适时收手</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>16 min</strong></div><div class=row><span>字数</span><strong>3653</strong></div><div class=row><span>写于</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>Python 工程实践（八）：性能优化 —— 性能分析、缓存与适时收手</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>20 min</strong></div><div class=row><span>字数</span><strong>4702</strong></div><div class=row><span>写于</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

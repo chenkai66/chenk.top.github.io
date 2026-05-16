@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/python-engineering/>Python 工程实践</a>
 · 第 5 篇</div><h1>Python 工程实践（五）：I/O、序列化与数据格式</h1><p class=deck>在 Python 中处理文件、路径、编码及各类数据格式。通过实际示例对比 JSON、YAML、TOML、CSV、pickle 和 Parquet。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-04-19>April 19, 2022</time> · 18 分钟 · 4209 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/python/ class=tag>#Python</a><a href=/zh/tags/serialization/ class=tag>#Serialization</a><a href=/zh/tags/data-formats/ class=tag>#Data Formats</a></div><a class="pill pill-outline" href=/en/python-engineering/05-io-and-serialization/>Read in English →</a></div></header><div class=prose><p>大多数程序本质上只是在不同数据格式之间搭管道：读一个 CSV，转换一下，写成 JSON；加载配置文件，校验后传给应用。每个 Python 开发者都写过这类代码，而其中大多数人至少踩过一次编码、路径处理或序列化细节的坑。</p><p>本文将覆盖 Python 中所有常见的 I/O 模式——从基础文件读写到列式数据格式，并重点剖析那些最容易浪费你时间的陷阱。</p><hr><h2 id=文件-io基础操作 class=heading-anchor>文件 I/O：基础操作<a href=#%e6%96%87%e4%bb%b6-io%e5%9f%ba%e7%a1%80%e6%93%8d%e4%bd%9c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-serialization-formats.png alt=序列化格式 loading=lazy decoding=async class=content-image></figure></p><h3 id=打开文件 class=heading-anchor>打开文件<a href=#%e6%89%93%e5%bc%80%e6%96%87%e4%bb%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+<span class=meta-line><time datetime=2022-04-19>April 19, 2022</time> · 24 分钟 · 5851 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/python/ class=tag>#Python</a><a href=/zh/tags/serialization/ class=tag>#Serialization</a><a href=/zh/tags/data-formats/ class=tag>#Data Formats</a></div><a class="pill pill-outline" href=/en/python-engineering/05-io-and-serialization/>Read in English →</a></div></header><div class=prose><p>大多数程序本质上只是在不同数据格式之间搭管道：读一个 CSV，转换一下，写成 JSON；加载配置文件，校验后传给应用。每个 Python 开发者都写过这类代码，而其中大多数人至少踩过一次编码、路径处理或序列化细节的坑。</p><p>本文将覆盖 Python 中所有常见的 I/O 模式——从基础文件读写到列式数据格式，并重点剖析那些最容易浪费你时间的陷阱。</p><hr><h2 id=文件-io基础操作 class=heading-anchor>文件 I/O：基础操作<a href=#%e6%96%87%e4%bb%b6-io%e5%9f%ba%e7%a1%80%e6%93%8d%e4%bd%9c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-serialization-formats.png alt=序列化格式 loading=lazy decoding=async class=content-image></figure></p><h3 id=打开文件 class=heading-anchor>打开文件<a href=#%e6%89%93%e5%bc%80%e6%96%87%e4%bb%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -668,7 +668,265 @@
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># 仅读取特定列（Parquet 可跳过未使用列）</span>
 </span></span><span class=line><span class=cl><span class=n>df</span> <span class=o>=</span> <span class=n>pd</span><span class=o>.</span><span class=n>read_parquet</span><span class=p>(</span><span class=s2>&#34;large_data.parquet&#34;</span><span class=p>,</span> <span class=n>columns</span><span class=o>=</span><span class=p>[</span><span class=s2>&#34;name&#34;</span><span class=p>,</span> <span class=s2>&#34;age&#34;</span><span class=p>])</span>
-</span></span></code></pre></td></tr></table></div></div><p>一个百万行数据集的性能对比：</p><div class=table-wrap><table><thead><tr><th>格式</th><th>文件大小</th><th>写入耗时</th><th>读取耗时</th><th>仅读两列耗时</th></tr></thead><tbody><tr><td>CSV</td><td>120 MB</td><td>8.2s</td><td>5.1s</td><td>5.1s （全量读取）</td></tr><tr><td>JSON</td><td>200 MB</td><td>12.5s</td><td>9.8s</td><td>9.8s （全量读取）</td></tr><tr><td>Parquet</td><td>15 MB</td><td>1.8s</td><td>0.4s</td><td>0.1s</td></tr></tbody></table></div><p>在这个例子中，Parquet 比 CSV 小 8 倍，读取速度提升 12 倍。</p><h2 id=配置模式 class=heading-anchor>配置模式<a href=#%e9%85%8d%e7%bd%ae%e6%a8%a1%e5%bc%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=使用-python-dotenv-处理-env-文件 class=heading-anchor>使用 <code>python-dotenv</code> 处理 <code>.env</code> 文件<a href=#%e4%bd%bf%e7%94%a8-python-dotenv-%e5%a4%84%e7%90%86-env-%e6%96%87%e4%bb%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><p>一个百万行数据集的性能对比：</p><div class=table-wrap><table><thead><tr><th>格式</th><th>文件大小</th><th>写入耗时</th><th>读取耗时</th><th>仅读两列耗时</th></tr></thead><tbody><tr><td>CSV</td><td>120 MB</td><td>8.2s</td><td>5.1s</td><td>5.1s （全量读取）</td></tr><tr><td>JSON</td><td>200 MB</td><td>12.5s</td><td>9.8s</td><td>9.8s （全量读取）</td></tr><tr><td>Parquet</td><td>15 MB</td><td>1.8s</td><td>0.4s</td><td>0.1s</td></tr></tbody></table></div><p>在这个例子中，Parquet 比 CSV 小 8 倍，读取速度提升 12 倍。</p><h2 id=流式处理大文件 class=heading-anchor>流式处理大文件<a href=#%e6%b5%81%e5%bc%8f%e5%a4%84%e7%90%86%e5%a4%a7%e6%96%87%e4%bb%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>文件超出可用内存时，必须分块处理。Python 的迭代器协议让这很自然。</p><h3 id=逐行处理 class=heading-anchor>逐行处理<a href=#%e9%80%90%e8%a1%8c%e5%a4%84%e7%90%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pathlib</span> <span class=kn>import</span> <span class=n>Path</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>process_large_log</span><span class=p>(</span><span class=n>path</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;统计日志级别——无需将整个文件加载到内存。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>counts</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=n>path</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>&#34;utf-8&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>line</span> <span class=ow>in</span> <span class=n>f</span><span class=p>:</span>  <span class=c1># 每次产出一行</span>
+</span></span><span class=line><span class=cl>            <span class=n>level</span> <span class=o>=</span> <span class=n>line</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=s2>&#34;|&#34;</span><span class=p>,</span> <span class=mi>2</span><span class=p>)[</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span> <span class=k>if</span> <span class=s2>&#34;|&#34;</span> <span class=ow>in</span> <span class=n>line</span> <span class=k>else</span> <span class=s2>&#34;UNKNOWN&#34;</span>
+</span></span><span class=line><span class=cl>            <span class=n>counts</span><span class=p>[</span><span class=n>level</span><span class=p>]</span> <span class=o>=</span> <span class=n>counts</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>level</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>counts</span>
+</span></span></code></pre></td></tr></table></div></div><p>Python 文件对象本身就是迭代器——<code>for line in f</code> 逐行读取，永远不会加载整个文件。</p><h3 id=分块二进制读取 class=heading-anchor>分块二进制读取<a href=#%e5%88%86%e5%9d%97%e4%ba%8c%e8%bf%9b%e5%88%b6%e8%af%bb%e5%8f%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>sha256_file</span><span class=p>(</span><span class=n>path</span><span class=p>:</span> <span class=n>Path</span><span class=p>,</span> <span class=n>chunk_size</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>65536</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;哈希大文件，不全量加载到内存。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=kn>import</span> <span class=nn>hashlib</span>
+</span></span><span class=line><span class=cl>    <span class=n>h</span> <span class=o>=</span> <span class=n>hashlib</span><span class=o>.</span><span class=n>sha256</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=n>path</span><span class=p>,</span> <span class=s2>&#34;rb&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>while</span> <span class=n>chunk</span> <span class=o>:=</span> <span class=n>f</span><span class=o>.</span><span class=n>read</span><span class=p>(</span><span class=n>chunk_size</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>h</span><span class=o>.</span><span class=n>update</span><span class=p>(</span><span class=n>chunk</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>h</span><span class=o>.</span><span class=n>hexdigest</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><p>海象运算符（<code>:=</code>）使分块读取简洁。64KB-1MB 的块大小在系统调用开销和内存之间取得平衡。</p><h3 id=生成器流水线 class=heading-anchor>生成器流水线<a href=#%e7%94%9f%e6%88%90%e5%99%a8%e6%b5%81%e6%b0%b4%e7%ba%bf class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>链式生成器构建内存高效的数据管道：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>typing</span> <span class=kn>import</span> <span class=n>Iterator</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>gzip</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>json</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>read_jsonl_gz</span><span class=p>(</span><span class=n>path</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Iterator</span><span class=p>[</span><span class=nb>dict</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;从 gzip 压缩的 JSON Lines 文件流式读取记录。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>gzip</span><span class=o>.</span><span class=n>open</span><span class=p>(</span><span class=n>path</span><span class=p>,</span> <span class=s2>&#34;rt&#34;</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>&#34;utf-8&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>line</span> <span class=ow>in</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>line</span><span class=o>.</span><span class=n>strip</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>                <span class=k>yield</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>line</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>filter_recent</span><span class=p>(</span><span class=n>records</span><span class=p>:</span> <span class=n>Iterator</span><span class=p>[</span><span class=nb>dict</span><span class=p>],</span> <span class=n>days</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>7</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Iterator</span><span class=p>[</span><span class=nb>dict</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;只保留最近 N 天的记录。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=kn>from</span> <span class=nn>datetime</span> <span class=kn>import</span> <span class=n>datetime</span><span class=p>,</span> <span class=n>timedelta</span>
+</span></span><span class=line><span class=cl>    <span class=n>cutoff</span> <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>now</span><span class=p>()</span> <span class=o>-</span> <span class=n>timedelta</span><span class=p>(</span><span class=n>days</span><span class=o>=</span><span class=n>days</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>record</span> <span class=ow>in</span> <span class=n>records</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>datetime</span><span class=o>.</span><span class=n>fromisoformat</span><span class=p>(</span><span class=n>record</span><span class=p>[</span><span class=s2>&#34;timestamp&#34;</span><span class=p>])</span> <span class=o>&gt;</span> <span class=n>cutoff</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>yield</span> <span class=n>record</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>extract_errors</span><span class=p>(</span><span class=n>records</span><span class=p>:</span> <span class=n>Iterator</span><span class=p>[</span><span class=nb>dict</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n>Iterator</span><span class=p>[</span><span class=nb>dict</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;只保留 ERROR 级别记录。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>record</span> <span class=ow>in</span> <span class=n>records</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>record</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;level&#34;</span><span class=p>)</span> <span class=o>==</span> <span class=s2>&#34;ERROR&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>yield</span> <span class=n>record</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 组合：在迭代之前什么都不执行</span>
+</span></span><span class=line><span class=cl><span class=n>pipeline</span> <span class=o>=</span> <span class=n>extract_errors</span><span class=p>(</span><span class=n>filter_recent</span><span class=p>(</span><span class=n>read_jsonl_gz</span><span class=p>(</span><span class=n>Path</span><span class=p>(</span><span class=s2>&#34;app.jsonl.gz&#34;</span><span class=p>))))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 逐条处理——无论文件多大，内存恒定</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>error</span> <span class=ow>in</span> <span class=n>pipeline</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>error</span><span class=p>[</span><span class=s1>&#39;timestamp&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>error</span><span class=p>[</span><span class=s1>&#39;message&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=内存映射文件 class=heading-anchor>内存映射文件<a href=#%e5%86%85%e5%ad%98%e6%98%a0%e5%b0%84%e6%96%87%e4%bb%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>大文件随机访问时，<code>mmap</code> 将文件内容直接映射到虚拟内存：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>mmap</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pathlib</span> <span class=kn>import</span> <span class=n>Path</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>search_in_large_file</span><span class=p>(</span><span class=n>path</span><span class=p>:</span> <span class=n>Path</span><span class=p>,</span> <span class=n>pattern</span><span class=p>:</span> <span class=nb>bytes</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;用 mmap 在大文件中查找所有匹配位置。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>offsets</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=n>path</span><span class=p>,</span> <span class=s2>&#34;rb&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>mmap</span><span class=o>.</span><span class=n>mmap</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>fileno</span><span class=p>(),</span> <span class=mi>0</span><span class=p>,</span> <span class=n>access</span><span class=o>=</span><span class=n>mmap</span><span class=o>.</span><span class=n>ACCESS_READ</span><span class=p>)</span> <span class=k>as</span> <span class=n>mm</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>pos</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>            <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>pos</span> <span class=o>=</span> <span class=n>mm</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>pattern</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=n>pos</span> <span class=o>==</span> <span class=o>-</span><span class=mi>1</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=k>break</span>
+</span></span><span class=line><span class=cl>                <span class=n>offsets</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>pos</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>pos</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>offsets</span>
+</span></span></code></pre></td></tr></table></div></div><p>操作系统负责分页——只有被访问的区域才加载到物理 RAM。</p><h2 id=protocol-buffers模式优先的序列化 class=heading-anchor>Protocol Buffers：模式优先的序列化<a href=#protocol-buffers%e6%a8%a1%e5%bc%8f%e4%bc%98%e5%85%88%e7%9a%84%e5%ba%8f%e5%88%97%e5%8c%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><a href=https://protobuf.dev/ target=_blank rel="noopener noreferrer">Protocol Buffers <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+（protobuf）在 <code>.proto</code> 模式文件中定义数据结构。代码生成确保跨语言类型安全。</p><h3 id=何时用-protobuf-vs-json class=heading-anchor>何时用 Protobuf vs JSON<a href=#%e4%bd%95%e6%97%b6%e7%94%a8-protobuf-vs-json class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>因素</th><th>JSON</th><th>Protobuf</th></tr></thead><tbody><tr><td>人类可读</td><td>是</td><td>否（二进制）</td></tr><tr><td>模式强制</td><td>否（可选 JSON Schema）</td><td>是（必须）</td></tr><tr><td>体积</td><td>大（文本 + 键名重复）</td><td>小（二进制，字段编号）</td></tr><tr><td>速度</td><td>慢（解析文本）</td><td>快（解码二进制）</td></tr><tr><td>多语言支持</td><td>通用</td><td>代码生成覆盖 10+ 语言</td></tr><tr><td>模式演进</td><td>脆弱（重命名即破坏）</td><td>安全（字段编号稳定）</td></tr><tr><td>最佳场景</td><td>API、配置、调试</td><td>服务间通信、持久存储</td></tr></tbody></table></div><h3 id=定义模式 class=heading-anchor>定义模式<a href=#%e5%ae%9a%e4%b9%89%e6%a8%a1%e5%bc%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-protobuf data-lang=protobuf><span class=line><span class=cl><span class=c1>// user.proto
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>syntax</span> <span class=o>=</span> <span class=s>&#34;proto3&#34;</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=kd>message</span> <span class=nc>User</span> <span class=p>{</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>int32</span> <span class=n>id</span> <span class=o>=</span> <span class=mi>1</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>name</span> <span class=o>=</span> <span class=mi>2</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>email</span> <span class=o>=</span> <span class=mi>3</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=k>repeated</span> <span class=kt>string</span> <span class=n>tags</span> <span class=o>=</span> <span class=mi>4</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kd>enum</span> <span class=n>Role</span> <span class=p>{</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>    <span class=n>UNKNOWN</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>    <span class=n>ADMIN</span> <span class=o>=</span> <span class=mi>1</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>    <span class=n>USER</span> <span class=o>=</span> <span class=mi>2</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=p>}</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=n>Role</span> <span class=n>role</span> <span class=o>=</span> <span class=mi>5</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=p>}</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=生成-python-代码 class=heading-anchor>生成 Python 代码<a href=#%e7%94%9f%e6%88%90-python-%e4%bb%a3%e7%a0%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>$ pip install grpcio-tools
+</span></span><span class=line><span class=cl>$ python -m grpc_tools.protoc -I. --python_out<span class=o>=</span>. --pyi_out<span class=o>=</span>. user.proto
+</span></span></code></pre></td></tr></table></div></div><p>生成 <code>user_pb2.py</code>（运行时）和 <code>user_pb2.pyi</code>（类型存根）。</p><h3 id=使用生成的代码 class=heading-anchor>使用生成的代码<a href=#%e4%bd%bf%e7%94%a8%e7%94%9f%e6%88%90%e7%9a%84%e4%bb%a3%e7%a0%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>user_pb2</span> <span class=kn>import</span> <span class=n>User</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 创建</span>
+</span></span><span class=line><span class=cl><span class=n>user</span> <span class=o>=</span> <span class=n>User</span><span class=p>(</span><span class=nb>id</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>name</span><span class=o>=</span><span class=s2>&#34;Alice&#34;</span><span class=p>,</span> <span class=n>email</span><span class=o>=</span><span class=s2>&#34;alice@example.com&#34;</span><span class=p>,</span> <span class=n>role</span><span class=o>=</span><span class=n>User</span><span class=o>.</span><span class=n>ADMIN</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>user</span><span class=o>.</span><span class=n>tags</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=s2>&#34;staff&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 序列化（字节）</span>
+</span></span><span class=line><span class=cl><span class=n>data</span><span class=p>:</span> <span class=nb>bytes</span> <span class=o>=</span> <span class=n>user</span><span class=o>.</span><span class=n>SerializeToString</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>data</span><span class=p>))</span>  <span class=c1># ~40 字节（相比 JSON 等效的 ~120 字节）</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 反序列化</span>
+</span></span><span class=line><span class=cl><span class=n>restored</span> <span class=o>=</span> <span class=n>User</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>restored</span><span class=o>.</span><span class=n>ParseFromString</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>assert</span> <span class=n>restored</span><span class=o>.</span><span class=n>name</span> <span class=o>==</span> <span class=s2>&#34;Alice&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=模式演进规则 class=heading-anchor>模式演进规则<a href=#%e6%a8%a1%e5%bc%8f%e6%bc%94%e8%bf%9b%e8%a7%84%e5%88%99 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>遵循以下规则可安全演进 protobuf 模式：</p><ol><li><strong>永不复用字段编号</strong> — 删除的字段应标记为 <code>reserved</code></li><li><strong>新字段用新编号</strong> — 旧代码忽略未知字段</li><li><strong>不改变字段类型</strong> — <code>int32</code> 改 <code>string</code> 会破坏现有数据</li><li><strong>使用 <code>optional</code></strong> — 可能不总是设置的字段</li></ol><h2 id=duckdb对本地文件执行-sql class=heading-anchor>DuckDB：对本地文件执行 SQL<a href=#duckdb%e5%af%b9%e6%9c%ac%e5%9c%b0%e6%96%87%e4%bb%b6%e6%89%a7%e8%a1%8c-sql class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><a href=https://duckdb.org/ target=_blank rel="noopener noreferrer">DuckDB <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+是进程内分析数据库。直接读取 Parquet、CSV、JSON 文件——无需服务器，无需导入步骤。</p><h3 id=安装 class=heading-anchor>安装<a href=#%e5%ae%89%e8%a3%85 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install duckdb
+</span></span></code></pre></td></tr></table></div></div><h3 id=直接查询文件 class=heading-anchor>直接查询文件<a href=#%e7%9b%b4%e6%8e%a5%e6%9f%a5%e8%af%a2%e6%96%87%e4%bb%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>duckdb</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 用 SQL 查询 CSV 文件</span>
+</span></span><span class=line><span class=cl><span class=n>result</span> <span class=o>=</span> <span class=n>duckdb</span><span class=o>.</span><span class=n>sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>    SELECT department, COUNT(*) as headcount, AVG(salary) as avg_salary
+</span></span></span><span class=line><span class=cl><span class=s2>    FROM &#39;employees.csv&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>    GROUP BY department
+</span></span></span><span class=line><span class=cl><span class=s2>    ORDER BY avg_salary DESC
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>fetchdf</span><span class=p>()</span>  <span class=c1># 返回 pandas DataFrame</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 查询 Parquet 文件（支持通配符）</span>
+</span></span><span class=line><span class=cl><span class=n>result</span> <span class=o>=</span> <span class=n>duckdb</span><span class=o>.</span><span class=n>sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>    SELECT date_trunc(&#39;month&#39;, created_at) as month, COUNT(*) as orders
+</span></span></span><span class=line><span class=cl><span class=s2>    FROM &#39;orders/*.parquet&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>    GROUP BY 1
+</span></span></span><span class=line><span class=cl><span class=s2>    ORDER BY 1
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=格式转换 class=heading-anchor>格式转换<a href=#%e6%a0%bc%e5%bc%8f%e8%bd%ac%e6%8d%a2 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>duckdb</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># CSV → Parquet（带压缩）</span>
+</span></span><span class=line><span class=cl><span class=n>duckdb</span><span class=o>.</span><span class=n>sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>    COPY (SELECT * FROM &#39;large_dataset.csv&#39;)
+</span></span></span><span class=line><span class=cl><span class=s2>    TO &#39;output.parquet&#39; (FORMAT PARQUET, COMPRESSION ZSTD)
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Parquet → CSV（筛选后）</span>
+</span></span><span class=line><span class=cl><span class=n>duckdb</span><span class=o>.</span><span class=n>sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>    COPY (SELECT * FROM &#39;data.parquet&#39; WHERE year = 2024)
+</span></span></span><span class=line><span class=cl><span class=s2>    TO &#39;filtered.csv&#39; (FORMAT CSV, HEADER)
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=duckdb-vs-pandas class=heading-anchor>DuckDB vs pandas<a href=#duckdb-vs-pandas class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>操作</th><th>pandas</th><th>DuckDB</th></tr></thead><tbody><tr><td>加载 1GB CSV</td><td>~30s, 3GB RAM</td><td>~5s, ~200MB RAM</td></tr><tr><td>分组聚合</td><td>中等</td><td>快（列式引擎）</td></tr><tr><td>两文件 JOIN</td><td>两者全量加载</td><td>流式 join，低内存</td></tr><tr><td>筛选+导出</td><td>全量加载→筛选→导出</td><td>下推筛选，最小 I/O</td></tr><tr><td>SQL 接口</td><td>无</td><td>原生 SQL</td></tr></tbody></table></div><p>文件太大无法放入 RAM、需要 SQL 语义、或想避免 pandas 依赖时，用 DuckDB。</p><h2 id=配置模式 class=heading-anchor>配置模式<a href=#%e9%85%8d%e7%bd%ae%e6%a8%a1%e5%bc%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=使用-python-dotenv-处理-env-文件 class=heading-anchor>使用 <code>python-dotenv</code> 处理 <code>.env</code> 文件<a href=#%e4%bd%bf%e7%94%a8-python-dotenv-%e5%a4%84%e7%90%86-env-%e6%96%87%e4%bb%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install python-dotenv
 </span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
@@ -719,7 +977,7 @@
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=Python%2b%25E5%25B7%25A5%25E7%25A8%258B%25E5%25AE%259E%25E8%25B7%25B5%25EF%25BC%2588%25E4%25BA%2594%25EF%25BC%2589%25EF%25BC%259AI%252FO%25E3%2580%2581%25E5%25BA%258F%25E5%2588%2597%25E5%258C%2596%25E4%25B8%258E%25E6%2595%25B0%25E6%258D%25AE%25E6%25A0%25BC%25E5%25BC%258F&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpython-engineering%252F05-io-and-serialization%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpython-engineering%252F05-io-and-serialization%252F&title=Python%2b%25E5%25B7%25A5%25E7%25A8%258B%25E5%25AE%259E%25E8%25B7%25B5%25EF%25BC%2588%25E4%25BA%2594%25EF%25BC%2589%25EF%25BC%259AI%252FO%25E3%2580%2581%25E5%25BA%258F%25E5%2588%2597%25E5%258C%2596%25E4%25B8%258E%25E6%2595%25B0%25E6%258D%25AE%25E6%25A0%25BC%25E5%25BC%258F" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/python-engineering/05-io-and-serialization/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2022-04-19>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#文件-io基础操作>文件 I/O：基础操作</a><ul><li><a href=#打开文件>打开文件</a></li><li><a href=#文件打开模式>文件打开模式</a></li><li><a href=#读取模式>读取模式</a></li><li><a href=#写入模式>写入模式</a></li></ul></li><li><a href=#pathlibpath现代路径处理方式><code>pathlib.Path</code>：现代路径处理方式</a><ul><li><a href=#常见操作>常见操作</a></li><li><a href=#ospath-vs-pathlib><code>os.path</code> vs <code>pathlib</code></a></li></ul></li><li><a href=#编码utf-8-优先原则>编码：UTF-8 优先原则</a><ul><li><a href=#问题所在>问题所在</a></li><li><a href=#解决方案>解决方案</a></li><li><a href=#处理编码错误>处理编码错误</a></li><li><a href=#bom字节顺序标记>BOM（字节顺序标记）</a></li></ul></li><li><a href=#json>JSON</a><ul><li><a href=#读写操作>读写操作</a></li><li><a href=#自定义序列化器>自定义序列化器</a></li><li><a href=#命令行-json-工具>命令行 JSON 工具</a></li></ul></li><li><a href=#yaml>YAML</a><ul><li><a href=#safe_load-vs-load><code>safe_load</code> vs <code>load</code></a></li><li><a href=#yaml-的陷阱>YAML 的陷阱</a></li></ul></li><li><a href=#toml>TOML</a><ul><li><a href=#读取-toml>读取 TOML</a></li><li><a href=#写入-toml>写入 TOML</a></li></ul></li><li><a href=#csv>CSV</a><ul><li><a href=#读取-csv>读取 CSV</a></li><li><a href=#写入-csv>写入 CSV</a></li><li><a href=#csv-边界情况>CSV 边界情况</a></li></ul></li><li><a href=#二进制格式>二进制格式</a><ul><li><a href=#picklepython-对象序列化><code>pickle</code>：Python 对象序列化</a></li><li><a href=#struct二进制数据打包><code>struct</code>：二进制数据打包</a></li><li><a href=#msgpack快速二进制序列化><code>msgpack</code>：快速二进制序列化</a></li></ul></li><li><a href=#parquet-与-arrow列式数据>Parquet 与 Arrow：列式数据</a></li><li><a href=#配置模式>配置模式</a><ul><li><a href=#使用-python-dotenv-处理-env-文件>使用 <code>python-dotenv</code> 处理 <code>.env</code> 文件</a></li></ul></li><li><a href=#配置文件格式对比表>配置文件格式对比表</a></li><li><a href=#下一步>下一步</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/python-engineering/ class=series-name>Python 工程实践</a>
+<span class=sig-meta data-days-since=2022-04-19>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#文件-io基础操作>文件 I/O：基础操作</a><ul><li><a href=#打开文件>打开文件</a></li><li><a href=#文件打开模式>文件打开模式</a></li><li><a href=#读取模式>读取模式</a></li><li><a href=#写入模式>写入模式</a></li></ul></li><li><a href=#pathlibpath现代路径处理方式><code>pathlib.Path</code>：现代路径处理方式</a><ul><li><a href=#常见操作>常见操作</a></li><li><a href=#ospath-vs-pathlib><code>os.path</code> vs <code>pathlib</code></a></li></ul></li><li><a href=#编码utf-8-优先原则>编码：UTF-8 优先原则</a><ul><li><a href=#问题所在>问题所在</a></li><li><a href=#解决方案>解决方案</a></li><li><a href=#处理编码错误>处理编码错误</a></li><li><a href=#bom字节顺序标记>BOM（字节顺序标记）</a></li></ul></li><li><a href=#json>JSON</a><ul><li><a href=#读写操作>读写操作</a></li><li><a href=#自定义序列化器>自定义序列化器</a></li><li><a href=#命令行-json-工具>命令行 JSON 工具</a></li></ul></li><li><a href=#yaml>YAML</a><ul><li><a href=#safe_load-vs-load><code>safe_load</code> vs <code>load</code></a></li><li><a href=#yaml-的陷阱>YAML 的陷阱</a></li></ul></li><li><a href=#toml>TOML</a><ul><li><a href=#读取-toml>读取 TOML</a></li><li><a href=#写入-toml>写入 TOML</a></li></ul></li><li><a href=#csv>CSV</a><ul><li><a href=#读取-csv>读取 CSV</a></li><li><a href=#写入-csv>写入 CSV</a></li><li><a href=#csv-边界情况>CSV 边界情况</a></li></ul></li><li><a href=#二进制格式>二进制格式</a><ul><li><a href=#picklepython-对象序列化><code>pickle</code>：Python 对象序列化</a></li><li><a href=#struct二进制数据打包><code>struct</code>：二进制数据打包</a></li><li><a href=#msgpack快速二进制序列化><code>msgpack</code>：快速二进制序列化</a></li></ul></li><li><a href=#parquet-与-arrow列式数据>Parquet 与 Arrow：列式数据</a></li><li><a href=#流式处理大文件>流式处理大文件</a><ul><li><a href=#逐行处理>逐行处理</a></li><li><a href=#分块二进制读取>分块二进制读取</a></li><li><a href=#生成器流水线>生成器流水线</a></li><li><a href=#内存映射文件>内存映射文件</a></li></ul></li><li><a href=#protocol-buffers模式优先的序列化>Protocol Buffers：模式优先的序列化</a><ul><li><a href=#何时用-protobuf-vs-json>何时用 Protobuf vs JSON</a></li><li><a href=#定义模式>定义模式</a></li><li><a href=#生成-python-代码>生成 Python 代码</a></li><li><a href=#使用生成的代码>使用生成的代码</a></li><li><a href=#模式演进规则>模式演进规则</a></li></ul></li><li><a href=#duckdb对本地文件执行-sql>DuckDB：对本地文件执行 SQL</a><ul><li><a href=#安装>安装</a></li><li><a href=#直接查询文件>直接查询文件</a></li><li><a href=#格式转换>格式转换</a></li><li><a href=#duckdb-vs-pandas>DuckDB vs pandas</a></li></ul></li><li><a href=#配置模式>配置模式</a><ul><li><a href=#使用-python-dotenv-处理-env-文件>使用 <code>python-dotenv</code> 处理 <code>.env</code> 文件</a></li></ul></li><li><a href=#配置文件格式对比表>配置文件格式对比表</a></li><li><a href=#下一步>下一步</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/python-engineering/ class=series-name>Python 工程实践</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/01-environment-and-toolchain/><span class=chapter-num>01</span>
 <span class=chapter-title>Python 工程实践（一）：环境搭建——pyenv、venv 与依赖地狱</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/02-project-structure/><span class=chapter-num>02</span>
 <span class=chapter-title>Python 工程实践（二）：项目结构 —— 从脚本到包</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/03-testing-and-debugging/><span class=chapter-num>03</span>
@@ -728,5 +986,5 @@
 <span class=chapter-title>Python 工程实践（五）：I/O、序列化与数据格式</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/06-concurrency/><span class=chapter-num>06</span>
 <span class=chapter-title>Python 工程实践（六）：并发编程 —— 线程、进程与 asyncio</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/07-packaging-and-distribution/><span class=chapter-num>07</span>
 <span class=chapter-title>Python 工程实践（七）：打包分发 —— 从 pip install 到 PyPI</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/08-performance-and-profiling/><span class=chapter-num>08</span>
-<span class=chapter-title>Python 工程实践（八）：性能优化 —— 性能分析、缓存与适时收手</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>18 min</strong></div><div class=row><span>字数</span><strong>4209</strong></div><div class=row><span>写于</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>Python 工程实践（八）：性能优化 —— 性能分析、缓存与适时收手</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>24 min</strong></div><div class=row><span>字数</span><strong>5851</strong></div><div class=row><span>写于</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>
