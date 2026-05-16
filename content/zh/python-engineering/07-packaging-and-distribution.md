@@ -441,6 +441,226 @@ $ docker run -p 8000:8000 \
     my-tool:0.1.0
 ```
 
+## 现代构建后端
+
+Python 打包生态已不再局限于 `setuptools`。新一代构建后端更快、配置更简单、覆盖更多场景。
+
+### Hatch：一体化项目管理器
+
+[Hatch](https://hatch.pypa.io/) 用一个工具管理环境、构建和发布：
+
+```toml
+# pyproject.toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "my-library"
+dynamic = ["version"]
+
+[tool.hatch.version]
+path = "src/my_library/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/my_library"]
+```
+
+```bash
+# 构建
+$ hatch build
+dist/my_library-0.1.0-py3-none-any.whl
+dist/my_library-0.1.0.tar.gz
+
+# 发布
+$ hatch publish
+
+# 在隔离环境中运行
+$ hatch run pytest
+```
+
+Hatch 的环境矩阵无需 tox 即可跨 Python 版本测试：
+
+```toml
+[tool.hatch.envs.test]
+dependencies = ["pytest", "pytest-cov"]
+
+[[tool.hatch.envs.test.matrix]]
+python = ["3.10", "3.11", "3.12", "3.13"]
+
+[tool.hatch.envs.test.scripts]
+run = "pytest {args}"
+cov = "pytest --cov {args}"
+```
+
+```bash
+$ hatch run test:run         # 在所有 4 个 Python 版本上运行
+$ hatch run test.py3.12:run  # 指定版本运行
+```
+
+### uv 构建与发布
+
+uv 无需额外工具即可处理完整生命周期：
+
+```bash
+# 构建 wheel 和 sdist
+$ uv build
+Successfully built dist/my_lib-0.1.0.tar.gz and dist/my_lib-0.1.0-py3-none-any.whl
+
+# 发布到 PyPI
+$ uv publish
+# 或发布到私有索引：
+$ uv publish --index-url https://private.pypi.org/simple/
+```
+
+### Maturin：Python + Rust 扩展
+
+[Maturin](https://www.maturin.rs/) 构建包含 Rust 扩展的 Python 包（通过 PyO3）：
+
+```toml
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "my-fast-lib"
+requires-python = ">=3.9"
+```
+
+```rust
+// src/lib.rs
+use pyo3::prelude::*;
+
+#[pyfunction]
+fn fast_sum(data: Vec<f64>) -> f64 {
+    data.iter().sum()
+}
+
+#[pymodule]
+fn my_fast_lib(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(fast_sum, m)?)?;
+    Ok(())
+}
+```
+
+```bash
+# 开发模式构建安装
+$ maturin develop
+
+# 构建发布用 wheel
+$ maturin build --release
+```
+
+这正是 `pydantic-core`、`ruff`、`polars` 等高性能库发布 Rust 支持 Python 包的方式。
+
+### 构建后端对比
+
+| 后端 | 速度 | 用途 | Rust/C 支持 |
+|------|------|------|-------------|
+| setuptools | 慢 | 遗留项目、复杂构建 | 是（仅 C） |
+| hatchling | 快 | 纯 Python 库 | 否 |
+| flit | 快 | 简单纯 Python | 否 |
+| maturin | 快 | Rust 扩展 | 是（Rust） |
+| scikit-build-core | 中等 | C/C++/Fortran 扩展 | 是 |
+
+## 可复现构建与 SBOM
+
+可复现构建确保相同源码产生二进制一致的输出。对安全审计和供应链完整性至关重要。
+
+### 锁定构建依赖
+
+```toml
+[build-system]
+requires = ["hatchling==1.21.1"]  # 锁定精确版本
+build-backend = "hatchling.build"
+```
+
+### 哈希验证
+
+```bash
+# pip-tools：为供应链安全生成哈希
+$ pip-compile --generate-hashes requirements.in
+
+# 输出包含每个包的哈希：
+# requests==2.31.0 \
+#     --hash=sha256:942c5a758f98d790eaed1a29cb6eefc7f0edf3...
+```
+
+uv 的 `uv.lock` 始终包含哈希——无需额外标志。
+
+### 软件物料清单（SBOM）
+
+生成 SBOM 用于合规和漏洞追踪：
+
+```bash
+# 使用 cyclonedx（标准 SBOM 格式）
+$ pip install cyclonedx-bom
+$ cyclonedx-py environment -o sbom.cdx.json
+```
+
+将 SBOM 附加到发版中，便于下游消费者审计依赖。
+
+## 条件依赖与平台标记
+
+真实世界的包在不同平台或 Python 版本上需要不同依赖。
+
+### 环境标记
+
+```toml
+[project]
+dependencies = [
+    "tomli>=1.0; python_version < '3.11'",    # 3.11+ 有 stdlib tomllib
+    "colorama>=0.4; sys_platform == 'win32'",
+    "uvloop>=0.17; sys_platform != 'win32'",
+    "typing-extensions>=4.0; python_version < '3.12'",
+]
+```
+
+常用标记：
+
+| 标记 | 示例值 |
+|------|--------|
+| `python_version` | `'3.10'`、`'3.11'` |
+| `sys_platform` | `'linux'`、`'darwin'`、`'win32'` |
+| `platform_machine` | `'x86_64'`、`'aarch64'` |
+| `implementation_name` | `'cpython'`、`'pypy'` |
+
+### 可选依赖组
+
+```toml
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.0"]
+mysql = ["mysqlclient>=2.0"]
+redis = ["redis>=5.0"]
+all = ["my-lib[postgres,mysql,redis]"]
+dev = ["pytest", "mypy", "ruff"]
+```
+
+```bash
+# 安装指定额外依赖
+$ pip install "my-lib[postgres,redis]"
+$ uv add "my-lib[all]"
+```
+
+### 跨平台 Wheel 构建
+
+包含编译扩展的包需要为每个平台构建 wheel：
+
+```yaml
+# .github/workflows/release.yml 使用 cibuildwheel
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: pypa/cibuildwheel@v2
+        env:
+          CIBW_PYTHON: "cp310 cp311 cp312 cp313"
+```
+
+[cibuildwheel](https://cibuildwheel.readthedocs.io/) 自动化跨平台、跨 Python 版本的 wheel 构建。
+
 ## 使用 Poetry 构建与发布
 
 ![Wheel 与 sdist 比较：预组装家具 vs 宜家平板包装](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-wheel-vs-sdist-comparison-prebuilt-furniture-vs-ikea-flatpac.jpg)

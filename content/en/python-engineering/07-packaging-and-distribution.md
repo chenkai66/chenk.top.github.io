@@ -445,6 +445,238 @@ $ docker run -p 8000:8000 \
     my-tool:0.1.0
 ```
 
+## Modern Build Backends
+
+The Python packaging ecosystem has moved beyond `setuptools`. Newer backends are faster, simpler to configure, and handle more use cases.
+
+### Hatch: All-in-One Project Manager
+
+[Hatch](https://hatch.pypa.io/) manages environments, builds, and publishing with a single tool:
+
+```toml
+# pyproject.toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "my-library"
+dynamic = ["version"]
+
+[tool.hatch.version]
+path = "src/my_library/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/my_library"]
+```
+
+```bash
+# Build
+$ hatch build
+dist/my_library-0.1.0-py3-none-any.whl
+dist/my_library-0.1.0.tar.gz
+
+# Publish
+$ hatch publish
+
+# Run in isolated environment
+$ hatch run pytest
+$ hatch run docs:build
+```
+
+Hatch's environment matrix runs tests across Python versions without tox:
+
+```toml
+[tool.hatch.envs.test]
+dependencies = ["pytest", "pytest-cov"]
+
+[[tool.hatch.envs.test.matrix]]
+python = ["3.10", "3.11", "3.12", "3.13"]
+
+[tool.hatch.envs.test.scripts]
+run = "pytest {args}"
+cov = "pytest --cov {args}"
+```
+
+```bash
+$ hatch run test:run      # runs on all 4 Python versions
+$ hatch run test.py3.12:run  # run on specific version
+```
+
+### uv Build and Publish
+
+uv handles the full lifecycle without additional tools:
+
+```bash
+# Build wheel and sdist
+$ uv build
+Building source distribution...
+Building wheel from source distribution...
+Successfully built dist/my_lib-0.1.0.tar.gz and dist/my_lib-0.1.0-py3-none-any.whl
+
+# Publish to PyPI
+$ uv publish
+# Or to a private index:
+$ uv publish --index-url https://private.pypi.org/simple/
+```
+
+### Maturin: Python + Rust Extensions
+
+[Maturin](https://www.maturin.rs/) builds Python packages containing Rust extensions (via PyO3):
+
+```toml
+# pyproject.toml
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "my-fast-lib"
+requires-python = ">=3.9"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+```
+
+```rust
+// src/lib.rs
+use pyo3::prelude::*;
+
+#[pyfunction]
+fn fast_sum(data: Vec<f64>) -> f64 {
+    data.iter().sum()
+}
+
+#[pymodule]
+fn my_fast_lib(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(fast_sum, m)?)?;
+    Ok(())
+}
+```
+
+```bash
+# Build and install for development
+$ maturin develop
+
+# Build wheels for distribution
+$ maturin build --release
+```
+
+This pattern is how high-performance libraries like `pydantic-core`, `ruff`, and `polars` ship Rust-backed Python packages.
+
+### Build Backend Comparison
+
+| Backend | Speed | Use case | Rust/C support |
+|---------|-------|----------|----------------|
+| setuptools | Slow | Legacy, complex builds | Yes (C only) |
+| hatchling | Fast | Pure Python libraries | No |
+| flit | Fast | Simple pure Python | No |
+| maturin | Fast | Rust extensions | Yes (Rust) |
+| scikit-build-core | Medium | C/C++/Fortran extensions | Yes |
+
+## Reproducible Builds and SBOM
+
+Reproducible builds ensure that building the same source produces bit-for-bit identical outputs. This matters for security auditing and supply chain integrity.
+
+### Pinning Build Dependencies
+
+```toml
+[build-system]
+requires = ["hatchling==1.21.1"]  # pin exact version
+build-backend = "hatchling.build"
+```
+
+### Hash Verification
+
+```bash
+# pip-tools: generate hashes for supply chain security
+$ pip-compile --generate-hashes requirements.in
+
+# Output includes hashes for every package:
+# requests==2.31.0 \
+#     --hash=sha256:942c5a758f98d790eaed1a29cb6eefc7f0edf3fcb0fce8afe0f44505355fed97
+```
+
+With uv, hashes are always included in `uv.lock` — no extra flag needed.
+
+### Software Bill of Materials (SBOM)
+
+Generate an SBOM for compliance and vulnerability tracking:
+
+```bash
+# Using pip-licenses
+$ pip install pip-licenses
+$ pip-licenses --format=json --output-file=sbom.json
+
+# Using cyclonedx (standard SBOM format)
+$ pip install cyclonedx-bom
+$ cyclonedx-py environment -o sbom.cdx.json
+```
+
+Attach the SBOM to releases for downstream consumers to audit dependencies.
+
+## Conditional Dependencies and Platform Markers
+
+Real-world packages need different dependencies on different platforms or Python versions.
+
+### Environment Markers
+
+```toml
+[project]
+dependencies = [
+    "tomli>=1.0; python_version < '3.11'",  # stdlib tomllib in 3.11+
+    "colorama>=0.4; sys_platform == 'win32'",
+    "uvloop>=0.17; sys_platform != 'win32'",
+    "typing-extensions>=4.0; python_version < '3.12'",
+]
+```
+
+Common markers:
+
+| Marker | Example values |
+|--------|---------------|
+| `python_version` | `'3.10'`, `'3.11'` |
+| `sys_platform` | `'linux'`, `'darwin'`, `'win32'` |
+| `platform_machine` | `'x86_64'`, `'aarch64'` |
+| `implementation_name` | `'cpython'`, `'pypy'` |
+
+### Optional Dependency Groups
+
+```toml
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.0"]
+mysql = ["mysqlclient>=2.0"]
+redis = ["redis>=5.0"]
+all = ["my-lib[postgres,mysql,redis]"]
+dev = ["pytest", "mypy", "ruff"]
+docs = ["sphinx", "sphinx-rtd-theme"]
+```
+
+```bash
+# Install with specific extras
+$ pip install "my-lib[postgres,redis]"
+$ uv add "my-lib[all]"
+```
+
+### Platform-Specific Wheels
+
+For packages with compiled extensions, build wheels for each platform:
+
+```yaml
+# .github/workflows/release.yml using cibuildwheel
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: pypa/cibuildwheel@v2
+        env:
+          CIBW_PYTHON: "cp310 cp311 cp312 cp313"
+```
+
+[cibuildwheel](https://cibuildwheel.readthedocs.io/) automates building wheels across platforms and Python versions in CI.
+
 ## Poetry Build and Publish
 
 
