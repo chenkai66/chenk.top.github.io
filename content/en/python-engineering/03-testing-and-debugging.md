@@ -660,6 +660,250 @@ Debug a test that just failed, at the point of failure:
 
 This is extremely powerful. You do not need to add `breakpoint()` anywhere. Just run with `--pdb` and pytest will open the debugger at the exact line where the assertion failed, with all local variables intact.
 
+## Property-Based Testing with Hypothesis
+
+Traditional tests check specific examples. Property-based testing checks *invariants* that should hold for any valid input. [Hypothesis](https://hypothesis.readthedocs.io/) generates hundreds of random inputs to find edge cases you would never think to test manually.
+
+### Installation
+
+```bash
+(.venv) $ pip install hypothesis
+```
+
+### Basic Properties
+
+```python
+from hypothesis import given, assume, settings
+from hypothesis import strategies as st
+
+@given(st.lists(st.integers()))
+def test_sort_is_idempotent(xs):
+    """Sorting twice gives the same result as sorting once."""
+    assert sorted(sorted(xs)) == sorted(xs)
+
+@given(st.lists(st.integers()))
+def test_sort_preserves_length(xs):
+    """Sorting does not add or remove elements."""
+    assert len(sorted(xs)) == len(xs)
+
+@given(st.lists(st.integers(), min_size=1))
+def test_sort_result_is_ordered(xs):
+    """Every element is <= the next."""
+    result = sorted(xs)
+    for a, b in zip(result, result[1:]):
+        assert a <= b
+```
+
+Instead of testing `sorted([3, 1, 2]) == [1, 2, 3]`, we test properties that *any* correct sort must satisfy. Hypothesis will try empty lists, single elements, duplicates, negative numbers, huge values, and more.
+
+### Custom Strategies
+
+```python
+from dataclasses import dataclass
+
+@dataclass
+class User:
+    name: str
+    age: int
+    email: str
+
+# Build a strategy for generating Users
+users = st.builds(
+    User,
+    name=st.text(min_size=1, max_size=50),
+    age=st.integers(min_value=0, max_value=150),
+    email=st.emails(),
+)
+
+@given(users)
+def test_user_serialization_roundtrip(user):
+    """Serialize → deserialize should return the original object."""
+    data = serialize(user)
+    restored = deserialize(data)
+    assert restored == user
+```
+
+### Stateful Testing
+
+For systems with state (databases, APIs), Hypothesis can generate sequences of operations:
+
+```python
+from hypothesis.stateful import RuleBasedStateMachine, rule, precondition
+
+class SetMachine(RuleBasedStateMachine):
+    """Test that our CustomSet behaves like Python's built-in set."""
+
+    def __init__(self):
+        super().__init__()
+        self.model = set()         # reference
+        self.actual = CustomSet()  # system under test
+
+    @rule(value=st.integers())
+    def add(self, value):
+        self.model.add(value)
+        self.actual.add(value)
+        assert value in self.actual
+
+    @rule(value=st.integers())
+    def remove(self, value):
+        if value in self.model:
+            self.model.remove(value)
+            self.actual.remove(value)
+        assert value not in self.actual
+
+    @rule()
+    def check_length(self):
+        assert len(self.actual) == len(self.model)
+
+TestSet = SetMachine.TestCase
+```
+
+### When Hypothesis Finds a Bug
+
+Hypothesis shrinks the failing input to the smallest example that still fails:
+
+```
+Falsifying example: test_parse_date(
+    s='0000-00-00',  # Shrunk from '9812-23-71'
+)
+```
+
+It then stores this example in `.hypothesis/` so future runs re-test it. Commit `.hypothesis/examples/` to your repo.
+
+### Settings and Profiles
+
+```python
+from hypothesis import settings, Phase, Verbosity
+
+# Slow but thorough (CI)
+@settings(max_examples=1000, deadline=None)
+@given(st.text())
+def test_thorough(s):
+    ...
+
+# Fast iteration (dev)
+@settings(max_examples=50)
+@given(st.text())
+def test_quick(s):
+    ...
+
+# Configure profiles globally in conftest.py
+settings.register_profile("ci", max_examples=1000)
+settings.register_profile("dev", max_examples=50)
+settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "dev"))
+```
+
+## Snapshot Testing
+
+Snapshot testing captures the output of a function and compares it against a saved "golden" file. Useful for:
+- CLI output formatting
+- Serialization formats (JSON, YAML responses)
+- Template rendering
+- Code generation output
+
+### Using pytest-snapshot (syrupy)
+
+```bash
+(.venv) $ pip install syrupy
+```
+
+```python
+def test_user_json_format(snapshot):
+    user = User(name="Alice", age=30, email="alice@example.com")
+    result = user.to_json(indent=2)
+    assert result == snapshot
+
+def test_error_message(snapshot):
+    with pytest.raises(ValidationError) as exc_info:
+        validate_config({"port": "not_a_number"})
+    assert str(exc_info.value) == snapshot
+
+def test_cli_help_output(snapshot):
+    result = runner.invoke(app, ["--help"])
+    assert result.output == snapshot
+```
+
+First run creates `__snapshots__/` files. Subsequent runs compare against them.
+
+```bash
+# Update snapshots when output intentionally changes
+(.venv) $ pytest --snapshot-update
+```
+
+### When to Use Snapshots vs Assertions
+
+| Approach | Best for | Drawback |
+|----------|----------|----------|
+| Explicit assertions | Logic, calculations, state transitions | Verbose for complex outputs |
+| Snapshots | Formatting, rendering, serialization | Easy to over-approve changes |
+
+Rule of thumb: use snapshots when you care about the *exact shape* of output and would need >5 assertions to verify it manually.
+
+## Detecting Slow Tests
+
+As test suites grow, individual slow tests accumulate and kill feedback loops. Catch them early.
+
+### pytest-duration
+
+```bash
+# Show 10 slowest tests
+(.venv) $ pytest --durations=10
+
+============================= slowest 10 durations =============================
+1.23s call     tests/test_api.py::test_database_migration
+0.89s call     tests/test_export.py::test_large_csv_export
+0.67s setup    tests/test_integration.py::test_full_pipeline
+...
+```
+
+### Enforcing Time Limits
+
+```python
+import pytest
+
+@pytest.mark.timeout(5)
+def test_api_response():
+    """Must complete within 5 seconds."""
+    response = client.get("/api/heavy-endpoint")
+    assert response.status_code == 200
+```
+
+Or globally in `pyproject.toml`:
+
+```toml
+[tool.pytest.ini_options]
+timeout = 30  # seconds — any single test exceeding this fails
+```
+
+### Parallelizing Tests
+
+```bash
+(.venv) $ pip install pytest-xdist
+
+# Run tests across all CPU cores
+(.venv) $ pytest -n auto
+
+# Run tests across 4 workers
+(.venv) $ pytest -n 4
+```
+
+Tests must be independent (no shared state, no fixed ports) to run in parallel. Use fixtures with unique temp directories and random ports.
+
+### CI Optimization Pattern
+
+```yaml
+# .github/workflows/test.yml
+jobs:
+  test:
+    strategy:
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - run: pytest --splits 4 --group ${{ matrix.shard }}
+```
+
+Split tests across multiple CI runners for faster feedback on large suites.
+
 ## Real Example: Testing a Data Processor
 
 Here is a function that processes log entries:

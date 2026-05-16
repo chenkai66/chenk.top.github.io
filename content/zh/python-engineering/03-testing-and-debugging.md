@@ -652,6 +652,250 @@ $ pytest -s tests/test_core.py  # 此时 breakpoint() 将使用 ipdb
 
 这招极其强大：你完全不用手动加 `breakpoint()`。只要加上 `--pdb` 参数，pytest 就会在断言失败的**精确行号**处启动调试器，并保留所有局部变量。
 
+## 基于属性的测试：Hypothesis
+
+传统测试检查特定输入输出。基于属性的测试验证对**任何有效输入**都成立的不变式。[Hypothesis](https://hypothesis.readthedocs.io/) 自动生成数百个随机输入，发现你永远想不到的边界情况。
+
+### 安装
+
+```bash
+(.venv) $ pip install hypothesis
+```
+
+### 基本属性
+
+```python
+from hypothesis import given, assume, settings
+from hypothesis import strategies as st
+
+@given(st.lists(st.integers()))
+def test_sort_is_idempotent(xs):
+    """排序两次和排序一次结果相同。"""
+    assert sorted(sorted(xs)) == sorted(xs)
+
+@given(st.lists(st.integers()))
+def test_sort_preserves_length(xs):
+    """排序不增不减元素。"""
+    assert len(sorted(xs)) == len(xs)
+
+@given(st.lists(st.integers(), min_size=1))
+def test_sort_result_is_ordered(xs):
+    """结果中每个元素都 <= 下一个。"""
+    result = sorted(xs)
+    for a, b in zip(result, result[1:]):
+        assert a <= b
+```
+
+不再测试 `sorted([3, 1, 2]) == [1, 2, 3]`，而是测试任何正确排序都必须满足的属性。Hypothesis 会尝试空列表、单元素、重复值、负数、极大值等各种情况。
+
+### 自定义策略
+
+```python
+from dataclasses import dataclass
+
+@dataclass
+class User:
+    name: str
+    age: int
+    email: str
+
+# 构建 User 对象的生成策略
+users = st.builds(
+    User,
+    name=st.text(min_size=1, max_size=50),
+    age=st.integers(min_value=0, max_value=150),
+    email=st.emails(),
+)
+
+@given(users)
+def test_user_serialization_roundtrip(user):
+    """序列化 → 反序列化应返回原始对象。"""
+    data = serialize(user)
+    restored = deserialize(data)
+    assert restored == user
+```
+
+### 有状态测试
+
+对于有状态的系统（数据库、API），Hypothesis 能生成操作序列：
+
+```python
+from hypothesis.stateful import RuleBasedStateMachine, rule
+
+class SetMachine(RuleBasedStateMachine):
+    """验证 CustomSet 行为与内置 set 一致。"""
+
+    def __init__(self):
+        super().__init__()
+        self.model = set()         # 参考实现
+        self.actual = CustomSet()  # 被测系统
+
+    @rule(value=st.integers())
+    def add(self, value):
+        self.model.add(value)
+        self.actual.add(value)
+        assert value in self.actual
+
+    @rule(value=st.integers())
+    def remove(self, value):
+        if value in self.model:
+            self.model.remove(value)
+            self.actual.remove(value)
+        assert value not in self.actual
+
+    @rule()
+    def check_length(self):
+        assert len(self.actual) == len(self.model)
+
+TestSet = SetMachine.TestCase
+```
+
+### 当 Hypothesis 发现 Bug
+
+Hypothesis 会将失败输入收缩至仍能触发 Bug 的最小示例：
+
+```
+Falsifying example: test_parse_date(
+    s='0000-00-00',  # 从 '9812-23-71' 收缩而来
+)
+```
+
+然后存储在 `.hypothesis/` 中，后续运行自动重测。将 `.hypothesis/examples/` 提交到仓库。
+
+### 配置与 Profile
+
+```python
+from hypothesis import settings, Phase, Verbosity
+
+# 慢但彻底（CI 环境）
+@settings(max_examples=1000, deadline=None)
+@given(st.text())
+def test_thorough(s):
+    ...
+
+# 快速迭代（开发环境）
+@settings(max_examples=50)
+@given(st.text())
+def test_quick(s):
+    ...
+
+# 在 conftest.py 中全局配置 profile
+settings.register_profile("ci", max_examples=1000)
+settings.register_profile("dev", max_examples=50)
+settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "dev"))
+```
+
+## 快照测试
+
+快照测试捕获函数输出并与保存的"黄金"文件比对。适用于：
+- CLI 输出格式
+- 序列化格式（JSON、YAML 响应）
+- 模板渲染
+- 代码生成输出
+
+### 使用 syrupy
+
+```bash
+(.venv) $ pip install syrupy
+```
+
+```python
+def test_user_json_format(snapshot):
+    user = User(name="Alice", age=30, email="alice@example.com")
+    result = user.to_json(indent=2)
+    assert result == snapshot
+
+def test_error_message(snapshot):
+    with pytest.raises(ValidationError) as exc_info:
+        validate_config({"port": "not_a_number"})
+    assert str(exc_info.value) == snapshot
+
+def test_cli_help_output(snapshot):
+    result = runner.invoke(app, ["--help"])
+    assert result.output == snapshot
+```
+
+首次运行创建 `__snapshots__/` 文件。后续运行对比：
+
+```bash
+# 输出有意变更时更新快照
+(.venv) $ pytest --snapshot-update
+```
+
+### 何时用快照 vs 断言
+
+| 方式 | 适用场景 | 缺点 |
+|------|----------|------|
+| 显式断言 | 逻辑、计算、状态转换 | 复杂输出时冗长 |
+| 快照测试 | 格式化、渲染、序列化 | 容易过度批准变更 |
+
+经验法则：当你关心输出的**精确形态**，且手写需要 5 条以上断言时，用快照。
+
+## 检测慢测试
+
+测试套件增长时，慢测试逐渐累积，破坏反馈循环。尽早发现它们。
+
+### pytest 耗时报告
+
+```bash
+# 显示最慢的 10 个测试
+(.venv) $ pytest --durations=10
+
+============================= slowest 10 durations =============================
+1.23s call     tests/test_api.py::test_database_migration
+0.89s call     tests/test_export.py::test_large_csv_export
+0.67s setup    tests/test_integration.py::test_full_pipeline
+...
+```
+
+### 强制时间限制
+
+```python
+import pytest
+
+@pytest.mark.timeout(5)
+def test_api_response():
+    """必须在 5 秒内完成。"""
+    response = client.get("/api/heavy-endpoint")
+    assert response.status_code == 200
+```
+
+或在 `pyproject.toml` 中全局配置：
+
+```toml
+[tool.pytest.ini_options]
+timeout = 30  # 秒——超时的单个测试直接失败
+```
+
+### 并行运行测试
+
+```bash
+(.venv) $ pip install pytest-xdist
+
+# 使用所有 CPU 核心
+(.venv) $ pytest -n auto
+
+# 使用 4 个 worker
+(.venv) $ pytest -n 4
+```
+
+测试必须独立（无共享状态、无固定端口）才能并行。使用 fixture 提供唯一临时目录和随机端口。
+
+### CI 优化模式
+
+```yaml
+# .github/workflows/test.yml
+jobs:
+  test:
+    strategy:
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - run: pytest --splits 4 --group ${{ matrix.shard }}
+```
+
+将测试分片到多个 CI runner，大型套件反馈更快。
+
 ## 真实案例：测试日志处理器
 
 下面是一个处理日志条目的函数：
