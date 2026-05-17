@@ -13,7 +13,7 @@ mathjax: true
 disableNunjucks: true
 series_order: 4
 series_total: 12
-translationKey: "functional-analysis-04"
+translationKey: "functional-analysis-4"
 description: "对偶空间的定义与经典例子，Hahn-Banach 定理的完整证明（解析形式与几何形式），自反空间与 James 定理。"
 ---
 

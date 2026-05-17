@@ -2,10 +2,10 @@
 title: "Abstract Algebra (5): Rings and Ideals — When Multiplication Enters the Picture"
 date: 2021-09-09 09:00:00
 tags:
-  - Abstract Algebra
-  - Ring Theory
-  - Ideals
-  - Mathematics
+  - abstract-algebra
+  - ring-theory
+  - ideals
+  - mathematics
 categories: Mathematics
 series: abstract-algebra
 lang: en

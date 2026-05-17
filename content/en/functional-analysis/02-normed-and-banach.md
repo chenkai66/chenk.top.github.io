@@ -13,7 +13,7 @@ mathjax: true
 disableNunjucks: true
 series_order: 2
 series_total: 12
-translationKey: "functional-analysis-02"
+translationKey: "functional-analysis-2"
 description: "Norm axioms, classical examples, equivalence of norms in finite dimensions, completeness and why it matters, Schauder bases, quotient spaces, and the role of separability."
 ---
 

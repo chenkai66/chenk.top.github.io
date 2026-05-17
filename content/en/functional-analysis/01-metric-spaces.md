@@ -469,3 +469,8 @@ Consider the space of continuous functions $C[0, 1]$ with the supremum metric. S
 *This is Part 1 of the [Functional Analysis](/en/series/functional-analysis/) series (12 articles).*
 
 *Next: [Part 2 — Normed and Banach Spaces](/en/functional-analysis/02-normed-and-banach/)*
+
+## What's next
+
+With metric spaces providing the foundation of distance and convergence, we are ready to add algebraic structure. In the next article, we equip our spaces with a norm — a single function that simultaneously gives us distance and a vector space structure — and discover Banach spaces, where completeness and linearity combine to produce the powerful theorems that make functional analysis tick.
+

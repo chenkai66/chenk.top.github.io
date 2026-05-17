@@ -2,10 +2,10 @@
 title: "Abstract Algebra (6): Polynomial Rings — Factorization and Unique Decomposition"
 date: 2021-09-11 09:00:00
 tags:
-  - Abstract Algebra
-  - Ring Theory
-  - Polynomials
-  - Mathematics
+  - abstract-algebra
+  - ring-theory
+  - polynomials
+  - mathematics
 categories: Mathematics
 series: abstract-algebra
 lang: en

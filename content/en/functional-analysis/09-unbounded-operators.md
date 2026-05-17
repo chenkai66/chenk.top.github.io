@@ -13,7 +13,7 @@ mathjax: true
 disableNunjucks: true
 series_order: 9
 series_total: 12
-translationKey: "functional-analysis-09"
+translationKey: "functional-analysis-9"
 description: "Closed operators, the distinction between symmetric and self-adjoint, deficiency indices, Friedrichs extension, the spectral theorem for unbounded self-adjoint operators, and Stone's theorem."
 ---
 

@@ -238,6 +238,101 @@ In algebraic topology, the fundamental group of a quotient space is often a quot
 
 ---
 
+
+## A Detailed Worked Example: Constructing the Quotient Group \((\mathbb{Z} \times \mathbb{Z})/H\)
+
+To construct the quotient group \((\mathbb{Z} \times \mathbb{Z})/H\) where \(H = \{(a, a) : a \in \mathbb{Z}\}\), we need to understand the structure of the cosets of \(H\) in \(\mathbb{Z} \times \mathbb{Z}\). 
+
+### Step 1: Understanding the Subgroup \(H\)
+The subgroup \(H\) consists of all pairs \((a, a)\) where \(a\) is an integer. This means that \(H\) is the set of all points on the line \(y = x\) in the \(\mathbb{Z} \times \mathbb{Z}\) plane.
+
+### Step 2: Finding Cosets of \(H\)
+A coset of \(H\) in \(\mathbb{Z} \times \mathbb{Z}\) is a set of the form \((m, n) + H\), where \((m, n) \in \mathbb{Z} \times \mathbb{Z}\). Explicitly, this coset is given by:
+\[
+(m, n) + H = \{(m + a, n + a) : a \in \mathbb{Z}\}
+\]
+
+Let's consider some specific examples of cosets:
+
+- For \((0, 0)\):
+  \[
+  (0, 0) + H = \{(a, a) : a \in \mathbb{Z}\} = H
+  \]
+  This is just the subgroup \(H\) itself.
+
+- For \((1, 0)\):
+  \[
+  (1, 0) + H = \{(1 + a, a) : a \in \mathbb{Z}\} = \{(1, 0), (2, 1), (3, 2), \ldots, (0, -1), (-1, -2), \ldots\}
+  \]
+  This coset consists of all points \((x, y)\) such that \(x - y = 1\).
+
+- For \((0, 1)\):
+  \[
+  (0, 1) + H = \{(a, 1 + a) : a \in \mathbb{Z}\} = \{(0, 1), (1, 2), (2, 3), \ldots, (-1, 0), (-2, -1), \ldots\}
+  \]
+  This coset consists of all points \((x, y)\) such that \(y - x = 1\).
+
+In general, for any \((m, n) \in \mathbb{Z} \times \mathbb{Z}\), the coset \((m, n) + H\) can be described as the set of all points \((x, y)\) such that \(x - y = m - n\). Therefore, each coset corresponds to a line parallel to \(y = x\) with a fixed difference \(m - n\).
+
+### Step 3: Describing the Quotient Group
+The quotient group \((\mathbb{Z} \times \mathbb{Z})/H\) consists of all distinct cosets of \(H\) in \(\mathbb{Z} \times \mathbb{Z}\). From the above, we see that each coset is determined by the difference \(m - n\). Thus, the quotient group can be identified with the set of integers \(\mathbb{Z}\), where the coset \((m, n) + H\) corresponds to the integer \(m - n\).
+
+Formally, we have:
+\[
+(\mathbb{Z} \times \mathbb{Z})/H \cong \mathbb{Z}
+\]
+
+### Step 4: Group Operation in the Quotient Group
+The group operation in \((\mathbb{Z} \times \mathbb{Z})/H\) is defined by:
+\[
+((m_1, n_1) + H) + ((m_2, n_2) + H) = (m_1 + m_2, n_1 + n_2) + H
+\]
+This corresponds to the addition of the integers \(m_1 - n_1\) and \(m_2 - n_2\):
+\[
+(m_1 - n_1) + (m_2 - n_2) = (m_1 + m_2) - (n_1 + n_2)
+\]
+
+Thus, the quotient group \((\mathbb{Z} \times \mathbb{Z})/H\) is isomorphic to \(\mathbb{Z}\) with the usual addition of integers.
+
+## Historical Notes on Galois and Noether
+
+The concept of quotient groups, though not explicitly formulated in the modern sense, has its roots in the work of Évariste Galois and Emmy Noether. 
+
+### Évariste Galois (1811-1832)
+Galois, a French mathematician, is best known for his work on the solvability of polynomial equations by radicals. In his work, he introduced the idea of a group, which he used to study the symmetries of the roots of polynomials. Although Galois did not use the term "quotient group," his work laid the foundation for the development of group theory and, by extension, the concept of quotient groups. His ideas were revolutionary and provided a new way to understand the structure of algebraic equations.
+
+### Emmy Noether (1882-1935)
+Emmy Noether, a German mathematician, made significant contributions to abstract algebra, including the formalization of quotient groups. Noether's work on ring theory and her famous Noether's theorems in physics highlighted the importance of symmetry and invariants. She introduced the concept of a quotient group in the context of abstract algebra, providing a rigorous framework for understanding the structure of groups and their subgroups. Noether's insights have had a profound impact on the development of modern algebra and continue to influence mathematical research today.
+
+## The Correspondence Theorem with a Concrete Example
+
+The correspondence theorem, also known as the lattice isomorphism theorem, establishes a one-to-one correspondence between the subgroups of a quotient group \(G/N\) and the subgroups of \(G\) that contain the normal subgroup \(N\). Formally, if \(N\) is a normal subgroup of \(G\), then there is a bijection between the set of subgroups of \(G/N\) and the set of subgroups of \(G\) that contain \(N\).
+
+### Concrete Example: Subgroups of \((\mathbb{Z} \times \mathbb{Z})/H\)
+
+Consider the quotient group \((\mathbb{Z} \times \mathbb{Z})/H\) where \(H = \{(a, a) : a \in \mathbb{Z}\}\). We have already established that \((\mathbb{Z} \times \mathbb{Z})/H \cong \mathbb{Z}\).
+
+#### Subgroups of \(\mathbb{Z}\)
+The subgroups of \(\mathbb{Z}\) are of the form \(k\mathbb{Z}\) for \(k \in \mathbb{Z}\), where \(k\mathbb{Z} = \{kn : n \in \mathbb{Z}\}\).
+
+#### Corresponding Subgroups of \(\mathbb{Z} \times \mathbb{Z}\)
+For each \(k \in \mathbb{Z}\), the corresponding subgroup of \(\mathbb{Z} \times \mathbb{Z}\) that contains \(H\) is:
+\[
+K_k = \{(m, n) \in \mathbb{Z} \times \mathbb{Z} : m - n \in k\mathbb{Z}\}
+\]
+This means that \(K_k\) consists of all pairs \((m, n)\) such that \(m - n\) is a multiple of \(k\).
+
+For example:
+- For \(k = 1\), \(K_1 = \mathbb{Z} \times \mathbb{Z}\) (since \(m - n\) is always an integer).
+- For \(k = 2\), \(K_2 = \{(m, n) : m - n \text{ is even}\}\).
+
+### Verification
+To verify the correspondence, note that:
+- The subgroup \(k\mathbb{Z}\) of \(\mathbb{Z}\) corresponds to the subgroup \(K_k\) of \(\mathbb{Z} \times \mathbb{Z}\) containing \(H\).
+- The quotient group \((\mathbb{Z} \times \mathbb{Z})/K_k\) is isomorphic to \(\mathbb{Z}/(k\mathbb{Z}) \cong \mathbb{Z}_k\), the cyclic group of order \(k\).
+
+Thus, the correspondence theorem provides a clear and systematic way to understand the structure of subgroups in quotient groups, as demonstrated in this concrete example.
+
 ## What's Next
 
 We now have a powerful toolkit: normal subgroups let us build quotients, homomorphisms let us compare groups, and the isomorphism theorems reveal deep structural connections. The next article takes on a different challenge: given a finite group $G$, how can we find subgroups of specific orders? The **Sylow theorems** provide the answer, giving us existence, conjugacy, and counting results for subgroups of prime-power order. These theorems are the sharpest tool available for classifying finite groups, and they build directly on the normal subgroup machinery we've developed here.
