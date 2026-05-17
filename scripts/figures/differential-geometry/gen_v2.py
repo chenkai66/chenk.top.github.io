@@ -19,7 +19,7 @@ C = {
     "blue": "#3b82f6", "green": "#10b981", "gray": "#6b7280", "dark": "#1f2937",
     "light": "#f3f4f6", "pink": "#ec4899", "teal": "#14b8a6",
 }
-DPI = 180
+DPI = 240
 shadow = withSimplePatchShadow(offset=(1.2, -1.2), shadow_rgbFace="#000000", alpha=0.15)
 
 OUT_BASE = "/tmp/dg_figs_v2"

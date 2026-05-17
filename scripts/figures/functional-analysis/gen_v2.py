@@ -75,7 +75,7 @@ def save(fig, slug, name):
     d = os.path.join(OUTROOT, slug)
     os.makedirs(d, exist_ok=True)
     p = os.path.join(d, name + ".png")
-    fig.savefig(p, dpi=180, bbox_inches="tight", facecolor=BG)
+    fig.savefig(p, dpi=240, bbox_inches="tight", facecolor=BG)
     plt.close(fig)
     return p
 
