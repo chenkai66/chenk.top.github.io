@@ -166,6 +166,30 @@ PROMPTS: dict[str, str] = {
         "muted gold accents, Stripe Press book cover aesthetic, contemplative minimalist composition, "
         "soft depth, no text"
     ),
+    "abstract-algebra": (
+        "Editorial scientific illustration of abstract algebraic structures. "
+        "Geometric shapes morphing between symmetry groups, colorful lattice patterns, "
+        "crystalline polyhedra reflecting group theory. "
+        "Style: abstract geometric, magazine-cover aesthetic inspired by Stripe Press and Quanta Magazine. "
+        "Muted warm color palette with deep reds and ambers. "
+        "Clean composition, soft gradients, no text, 16:9."
+    ),
+    "functional-analysis": (
+        "Editorial scientific illustration of infinite-dimensional spaces. "
+        "Nested concentric spheres fading into abstract topology, wave functions, "
+        "operator spectra as luminous rings on a dark field. "
+        "Style: abstract geometric, magazine-cover aesthetic inspired by Stripe Press and Quanta Magazine. "
+        "Muted cool color palette with deep blues and purples. "
+        "Clean composition, soft gradients, no text, 16:9."
+    ),
+    "differential-geometry": (
+        "Editorial scientific illustration of curved spaces and manifolds. "
+        "Smooth surfaces with geodesic curves, Gaussian curvature heat maps, "
+        "a torus and sphere connected by flowing tangent vectors. "
+        "Style: abstract geometric, magazine-cover aesthetic inspired by Stripe Press and Quanta Magazine. "
+        "Muted green and teal color palette. "
+        "Clean composition, soft gradients, no text, 16:9."
+    ),
 }
 
 # ----- logging -----

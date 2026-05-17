@@ -140,6 +140,18 @@ SERIES_META: dict[str, dict] = {
         "name": "Essays and Notes",
         "palette": "warm parchment and ink with muted gold accents",
     },
+    "abstract-algebra": {
+        "name": "Abstract Algebra",
+        "palette": "deep royal purple and warm gold with ivory parchment highlights",
+    },
+    "functional-analysis": {
+        "name": "Functional Analysis",
+        "palette": "cool cerulean and silver with warm pearl accents",
+    },
+    "differential-geometry": {
+        "name": "Differential Geometry",
+        "palette": "warm amber and forest green with deep mahogany accents",
+    },
 }
 
 NEG = (
