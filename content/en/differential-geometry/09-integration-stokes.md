@@ -17,317 +17,269 @@ series_total: 12
 translationKey: "differential-geometry-9"
 ---
 
-In single-variable calculus, the fundamental theorem says that integrating a derivative over an interval equals the boundary difference: $\int_a^b f'(x)\,dx = f(b) - f(a)$. Every "fundamental theorem" you have ever met — Green's theorem, the divergence theorem, the classical Stokes' theorem — is a higher-dimensional version of this same idea. The goal of this article is to state and understand the single result that unifies them all: **Stokes' theorem on manifolds**.
+In single-variable calculus, the fundamental theorem says that integrating a derivative over an interval equals the boundary difference: $\int_a^b f'(x)\,dx = f(b) - f(a)$. The "boundary" of $[a, b]$ is the two-point set $\{a, b\}$, with $b$ counted positively and $a$ negatively. The right-hand side is the integral of $f$ over this signed boundary. The left-hand side is the integral of the derivative over the interval. This is, in essence, every "fundamental theorem" you have ever met — Green's theorem in the plane, the divergence theorem in three dimensions, the classical Stokes' theorem on surfaces. They are all instances of one statement on manifolds: **the integral of $d\omega$ over $M$ equals the integral of $\omega$ over $\partial M$**.
 
-To get there we need two things we do not yet have: a notion of **integration** on manifolds, and a notion of **boundary**. Both require care — a manifold has no ambient coordinates to lean on, so we must build integration intrinsically from differential forms and orientations.
+The goal of this article is to prove and digest this single equation. To get there, we need three things. First, a coherent notion of **orientation** — without it, integrals do not even have signs. Second, a notion of **boundary** with its **induced orientation** — without that, the right-hand side is meaningless. Third, a notion of **integration** of a differential form on a $k$-dimensional submanifold — this requires a careful construction using charts and partitions of unity. With those in hand, Stokes' theorem follows from one local computation plus a partition-of-unity argument.
 
-Before diving in, let us recall where we stand in the series. We have defined smooth manifolds, tangent and cotangent bundles, differential forms, and the exterior derivative $d$. We know that $d^2 = 0$ and that $d$ satisfies the graded Leibniz rule. The exterior derivative is a *local* operation. What we need now is a *global* operation — integration — that converts differential forms into numbers. The interplay between the local $d$ and the global $\int$ is the content of Stokes' theorem.
+The reason this article matters: Stokes' theorem is the *single* result of differential calculus on manifolds. Every other integral theorem is a corollary. Once you understand Stokes, you understand why electromagnetic flux is conserved, why winding numbers are integers, why the Gauss-Bonnet theorem of article 5 holds, and why de Rham cohomology pairs with singular homology. It is the mountain peak of the local theory and the gateway to every global result.
 
 ---
 
-## Integration needs orientation
+## 1. Orientation
 
-### Why orientation matters
+A **tangent space** $T_pM$ is an $n$-dimensional real vector space, and like any such space it admits two equivalence classes of ordered bases (related by orientation-preserving vs. orientation-reversing linear maps). A choice of one class is an **orientation** of $T_pM$. A manifold $M$ is **orientable** if such choices can be made smoothly across the manifold, agreeing on overlaps. An orientation, when it exists, is a global topological choice — there are exactly two orientations on a connected orientable manifold.
 
-Consider trying to integrate a 2-form $\omega$ over a surface $S$ sitting in $\mathbb{R}^3$. At each point we pick a local parametrization, pull $\omega$ back to $\mathbb{R}^2$, and integrate. But a parametrization comes with a choice: do we traverse the surface with the normal pointing "up" or "down"? Reversing the parametrization flips the sign of the integral. For integration to be well-defined, we need a **consistent global choice** — an orientation.
+![Orientation of a manifold via consistent ordered bases](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_v2_09_1_orientation.png)
 
-![Stokes theorem unifies all classical integral theorems](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_fig9_stokes.png)
+**Three equivalent definitions.** A manifold $M$ is orientable if any of the following holds:
+1. There is an atlas of charts whose transition maps all have positive Jacobian determinant.
+2. There is a nowhere-vanishing $n$-form (a "volume form") on $M$.
+3. The frame bundle of $M$ admits a section into the $\mathrm{GL}^+(n)$ subbundle.
 
-
-To make this concrete, consider the unit sphere $S^2$ parametrized in two different ways. Using the standard spherical coordinates $(\theta, \varphi) \mapsto (\sin\theta\cos\varphi, \sin\theta\sin\varphi, \cos\theta)$, the outward normal points away from the origin. If we instead use the map $(\theta, \varphi) \mapsto (\sin\theta\cos\varphi, -\sin\theta\sin\varphi, \cos\theta)$ — note the sign flip in the second component — the induced normal flips direction, and any integral of a 2-form over this parametrization acquires a minus sign. Both parametrizations cover the same surface, but they induce opposite orientations. Integration demands that we pick one and stick with it globally.
-
-### Orientable manifolds
-
-An $n$-dimensional smooth manifold $M$ is **orientable** if there exists a nowhere-vanishing $n$-form $\Omega \in \Omega^n(M)$. Such a form is called a **volume form**. Two volume forms $\Omega$ and $\Omega'$ define the same orientation if $\Omega' = f\Omega$ for some everywhere-positive smooth function $f > 0$. An **oriented manifold** is a manifold together with a choice of equivalence class of volume forms.
+These are equivalent, and each is useful in different contexts. The form-theoretic version (definition 2) is what we will use to define integrals.
 
 **Examples.**
+- Every open subset of $\mathbb{R}^n$ is orientable; the standard volume form $dx^1\wedge\dots\wedge dx^n$ gives a canonical orientation.
+- The sphere $S^n$ is orientable — the outward unit normal contracted with $dx^0\wedge\dots\wedge dx^n$ gives a volume form.
+- The torus $T^n$ is orientable.
+- The **Mobius strip** is non-orientable. Walk around the strip once with a chosen ordered basis; you return with the basis reversed. Equivalently, no nowhere-vanishing 2-form exists on the Mobius strip.
+- The **real projective plane** $\mathbb{RP}^2$ is non-orientable for the same reason. In fact, $\mathbb{RP}^n$ is orientable iff $n$ is odd.
 
-- $\mathbb{R}^n$ is orientable: $\Omega = dx^1 \wedge \cdots \wedge dx^n$ is a global volume form.
-- The sphere $S^n$ is orientable for every $n$. On $S^2 \subset \mathbb{R}^3$, the area form $\omega = x\,dy \wedge dz + y\,dz \wedge dx + z\,dx \wedge dy$ restricted to the sphere is a volume form.
-- The Mobius band is **not** orientable: any attempt to define a consistent normal direction fails when you go around the band once.
+**A concrete check.** Consider $\mathbb{RP}^2$ as the quotient of $S^2$ by the antipodal map $A(x) = -x$. The pullback $A^* (dx\wedge dy\wedge dz) = -dx\wedge dy\wedge dz$ in $\mathbb{R}^3$ — so $A$ reverses orientation on the ambient space, but on the *sphere* the calculation is more subtle. Working with local charts, you find that the antipodal map reverses orientation on $S^2$, so the quotient cannot inherit an orientation. Concrete, mechanical, and fundamentally a topological fact about the equivalence class of bases.
 
-**Equivalent characterization.** $M$ is orientable if and only if we can choose an atlas $\{(U_\alpha, \varphi_\alpha)\}$ such that all transition functions $\varphi_\beta \circ \varphi_\alpha^{-1}$ have positive Jacobian determinant everywhere. This is the condition that local coordinate orientations are globally compatible.
+**Why this matters.** Orientation is not a redundant decoration — it is what makes integrals signed. The integral $\int_a^b f(x)\,dx = -\int_b^a f(x)\,dx$ in 1D is the simplest manifestation: reversing the orientation of the interval flips the sign of the integral. On surfaces and higher-dimensional manifolds, the same phenomenon controls flux signs, charge conservation, and the consistency of Stokes' theorem. Without orientation, you would not even know which side of a surface counts as "outward."
 
-**The orientation double cover.** Every connected non-orientable manifold $M$ has a canonical double cover $\tilde{M}$ that *is* orientable. For the Mobius band, the double cover is a cylinder. For the Klein bottle, the double cover is a torus. The orientation double cover is connected if and only if $M$ is non-orientable; if $M$ is already orientable, the double cover is two disjoint copies of $M$.
+**Non-orientable integration: densities.** When $M$ is non-orientable, you cannot integrate top-degree forms (the sign is ambiguous), but you can integrate **densities** — objects that pick up the *absolute value* of the Jacobian under change of coordinates rather than the signed Jacobian. Densities are how you do integration on non-orientable manifolds. In physics they are usually invisible because spacetime is taken to be orientable, but in mathematical biology and certain topology problems (counting orbits on a Klein bottle, for instance) they are unavoidable.
 
-### Volume forms on Riemannian manifolds
-
-If $M$ carries a Riemannian metric $g$, then an orientation determines a canonical volume form: in local oriented coordinates,
-
-$$\text{vol}_g = \sqrt{\det(g_{ij})}\, dx^1 \wedge \cdots \wedge dx^n.$$
-
-This is the form that, when integrated, gives the Riemannian volume. On the unit sphere $S^2$ with the round metric, $\text{vol}_g = \sin\theta\, d\theta \wedge d\varphi$, which integrates to $4\pi$.
-
-For the hyperbolic plane $\mathbb{H}^2$ with the Poincare upper half-plane metric $g = \frac{dx^2 + dy^2}{y^2}$, the volume form is $\text{vol}_g = \frac{dx \wedge dy}{y^2}$. The "volume" (area) of the region $\{(x,y) : 0 \le x \le 1, y \ge 1\}$ is $\int_0^1 \int_1^\infty \frac{1}{y^2}\,dy\,dx = 1$, a finite number despite the region extending to infinity — a characteristic feature of hyperbolic geometry.
+**Orientability and double covers.** Every connected non-orientable manifold $M$ has a connected orientable double cover $\tilde M \to M$ — the orientable cover. Computations on $M$ can often be lifted to $\tilde M$ where signs make sense. For example, the Mobius strip's orientable double cover is the cylinder; the projective plane's is the sphere. This trick reduces many non-orientable problems to orientable ones at the cost of doubling the data.
 
 ---
 
-## Integration of $n$-forms on oriented manifolds
+## 2. Manifolds with Boundary; Induced Orientation
 
-### Integration on $\mathbb{R}^n$
+A **manifold with boundary** is a topological space locally modeled on the upper half-space $\mathbb{H}^n = \{x \in \mathbb{R}^n : x^n \geq 0\}$. Charts come in two flavors: interior charts (whose images miss the boundary $\{x^n = 0\}$) and boundary charts (whose images touch $\{x^n = 0\}$). The **boundary** $\partial M$ is the set of points sitting on $\{x^n = 0\}$ in some boundary chart. It is an $(n-1)$-dimensional manifold (without boundary).
 
-We start with the base case. If $\omega = f(x)\, dx^1 \wedge \cdots \wedge dx^n$ is a compactly supported $n$-form on an open subset $U \subseteq \mathbb{R}^n$, we define
-
-$$\int_U \omega = \int_U f(x)\, dx^1 \cdots dx^n,$$
-
-where the right-hand side is the ordinary Lebesgue (or Riemann) integral.
-
-### Integration on a manifold via charts
-
-For a compactly supported $n$-form $\omega$ on an oriented $n$-manifold $M$, if $\text{supp}(\omega)$ lies inside a single oriented chart $(U, \varphi)$, we define
-
-$$\int_M \omega = \int_{\varphi(U)} (\varphi^{-1})^*\omega.$$
-
-The pullback $(\varphi^{-1})^*\omega$ is a compactly supported $n$-form on an open subset of $\mathbb{R}^n$, so we know how to integrate it.
-
-**Key fact.** If $(V, \psi)$ is another oriented chart containing $\text{supp}(\omega)$, the change-of-variables formula for integrals (with positive Jacobian, thanks to the orientation) guarantees the same answer. This is precisely why we need orientation: without the positive-Jacobian condition, chart changes could introduce sign flips.
-
-### Partition of unity
-
-In general, $\text{supp}(\omega)$ may not fit inside a single chart. We handle this with a **partition of unity**: a collection of smooth functions $\{\rho_\alpha\}$ subordinate to a locally finite open cover $\{U_\alpha\}$ such that
-
-1. $0 \le \rho_\alpha \le 1$ and $\text{supp}(\rho_\alpha) \subseteq U_\alpha$,
-2. $\sum_\alpha \rho_\alpha = 1$ everywhere on $M$.
-
-We then define
-
-$$\int_M \omega = \sum_\alpha \int_M \rho_\alpha\, \omega,$$
-
-where each $\rho_\alpha\, \omega$ is supported inside $U_\alpha$ and can be integrated via a single chart. A standard argument shows the result is independent of the choice of partition of unity and cover.
-
-**Remark.** The existence of smooth partitions of unity is a fundamental property of smooth manifolds — it is what makes the passage from local to global possible in differential geometry.
-
-### Properties of integration
-
-Several important properties follow directly from the definition:
-
-1. **Linearity:** $\int_M (a\omega + b\eta) = a\int_M \omega + b\int_M \eta$.
-2. **Orientation dependence:** If $\bar{M}$ denotes $M$ with the opposite orientation, then $\int_{\bar{M}} \omega = -\int_M \omega$.
-3. **Diffeomorphism invariance:** If $\phi : N \to M$ is an orientation-preserving diffeomorphism, then $\int_M \omega = \int_N \phi^*\omega$. This is the abstract change-of-variables formula.
-4. **Positivity:** If $\omega$ is a volume form (compatible with the orientation), then $\int_M \omega > 0$.
-
-These properties show that the integral is a well-defined, coordinate-independent operation that respects the geometry of the manifold.
-
----
-
-## Manifolds with boundary
-
-### Definition
-
-A **manifold with boundary** $M$ is a topological space locally modeled on the upper half-space
-
-$$\mathbb{H}^n = \{(x^1, \ldots, x^n) \in \mathbb{R}^n : x^n \ge 0\}.$$
-
-Points that map to the interior of $\mathbb{H}^n$ are interior points of $M$; points that map to the hyperplane $\{x^n = 0\}$ form the **boundary** $\partial M$. The boundary $\partial M$ is itself a smooth $(n-1)$-manifold without boundary.
+![Boundary of an oriented manifold with the induced orientation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_v2_09_2_boundary.png)
 
 **Examples.**
+- Closed disk $\bar D^2 = \{|x| \leq 1\} \subset \mathbb{R}^2$: boundary is $S^1$.
+- Closed ball $\bar B^3$: boundary is $S^2$.
+- Cylinder $S^1 \times [0, 1]$: boundary is $S^1 \times \{0\} \sqcup S^1 \times \{1\}$ — two circles.
+- Mobius strip: boundary is a single circle (which double-covers the central circle).
+- Genus-$g$ handlebody: boundary is a genus-$g$ surface. The 3-dimensional region "inside" a doubly-handled solid has a 2-dimensional surface as its boundary; many constructions in 3-manifold topology start here.
 
-- The closed unit disk $\bar{D}^2 = \{(x,y) : x^2 + y^2 \le 1\}$ is a 2-manifold with boundary $\partial \bar{D}^2 = S^1$.
-- The closed unit ball $\bar{B}^n$ has boundary $\partial \bar{B}^n = S^{n-1}$.
-- A compact surface with a hole punched out, like a cylinder $S^1 \times [0,1]$, has boundary consisting of two circles.
-- A closed interval $[a,b]$ is a 1-manifold with boundary $\partial [a,b] = \{a, b\}$ — just two points.
+**Boundary commutes with itself trivially.** The boundary of a manifold-with-boundary has no boundary itself — $\partial(\partial M) = \emptyset$. This corresponds to $d^2 = 0$ on the form side. The two facts ($\partial^2 = 0$ on chains, $d^2 = 0$ on forms) are mirror images of each other, and they fit together via Stokes: $\int_C d^2\eta = \int_{\partial^2 C}\eta = \int_\emptyset \eta = 0$, and the converse pairing argument also works. Geometric "boundary of boundary is empty" and analytic "differential squared is zero" are two views of one structural fact.
 
-### Induced orientation on the boundary
+**Induced orientation.** If $M$ is oriented, $\partial M$ inherits a canonical orientation. The rule: a basis $(v_1, \dots, v_{n-1})$ of $T_p \partial M$ is positively oriented iff $(N, v_1, \dots, v_{n-1})$ is positively oriented in $T_p M$, where $N$ is an outward-pointing normal vector. Equivalently: "outward normal first."
 
-If $M$ is an oriented $n$-manifold with boundary, the boundary $\partial M$ inherits a natural orientation. The convention (which makes Stokes' theorem work with the correct sign) is the **outward-normal-first** convention: at a boundary point $p \in \partial M$, let $\nu$ be an outward-pointing vector (not tangent to $\partial M$). We say a basis $(e_1, \ldots, e_{n-1})$ of $T_p(\partial M)$ is positively oriented if $(\nu, e_1, \ldots, e_{n-1})$ is a positively oriented basis of $T_pM$.
+**1D example.** $M = [a, b]$ with the standard orientation (increasing $x$). The boundary is $\{a, b\}$. At $b$, the outward normal points right ($+\partial_x$), so the orientation rule gives "no $v$'s, just the empty basis," conventionally meaning "positive sign at $b$." At $a$, the outward normal points left ($-\partial_x$), giving "negative sign at $a$." This is exactly the sign convention $f(b) - f(a)$ in the 1D fundamental theorem.
 
-**Example.** For $M = [a,b]$, the outward normal at $b$ points to the right (positive direction), so the induced orientation at $b$ is $+1$; at $a$ it points left, giving $-1$. Hence $\int_{\partial [a,b]} f = f(b) - f(a)$, recovering the boundary term in the fundamental theorem of calculus.
+**2D example.** $M = \bar D^2$ with the standard orientation $dx\wedge dy$. The boundary is $S^1$. At a point, the outward normal $N$ is the radial direction. The induced orientation on $S^1$ is then "counter-clockwise" — the standard mathematical convention. This is why Green's theorem in the plane requires a counter-clockwise boundary.
 
-**Example.** For the closed unit disk $\bar{D}^2$ with the standard orientation (counterclockwise), the outward normal along $\partial \bar{D}^2 = S^1$ points radially outward. The induced orientation on $S^1$ is counterclockwise — the same direction as the standard parametrization $t \mapsto (\cos t, \sin t)$. This is consistent with the convention in Green's theorem: the boundary curve is traversed so that the interior is on the left.
+**3D example.** $M = \bar B^3$ with $dx\wedge dy\wedge dz$. Boundary is $S^2$. Outward normal at a point of the sphere is the radial direction; the induced orientation on $S^2$ is then the orientation that, with the radial vector first, reproduces the standard volume form. This is the orientation under which the surface area is positive — the natural "outside-looking-out" orientation.
 
-**Example.** For the closed ball $\bar{B}^3$ with the standard orientation of $\mathbb{R}^3$, the outward normal on $\partial \bar{B}^3 = S^2$ points radially outward, inducing the standard orientation of $S^2$. This is why the divergence theorem involves the *outward* flux through the boundary surface.
+**Why this matters.** The induced orientation is the geometric content of the sign in Stokes' theorem. If you choose the wrong orientation on $\partial M$, your formula picks up a global minus sign — and the theorem will appear false. The "outward normal first" convention is not arbitrary; it is the unique choice that makes Stokes' theorem hold without ad hoc sign corrections.
 
-### The collar neighborhood theorem
+**Corners and Lipschitz boundaries.** Real-life manifolds with boundary often have *corners*: a square in the plane, a cube in 3-space. Stokes' theorem still holds, but the boundary $\partial M$ is now a piecewise smooth manifold and the induced orientation breaks naturally at corners. The integration $\int_{\partial M}\omega$ is just the sum over the smooth pieces. There is also a generalization to manifolds with corners (Joyce, Melrose) where the corner stratification is part of the data; this matters in singular perturbation theory and in moduli spaces of stable curves.
 
-A useful structural result is the **collar neighborhood theorem**: if $M$ is a manifold with boundary $\partial M$, then $\partial M$ has a neighborhood in $M$ diffeomorphic to $\partial M \times [0, 1)$. This means the boundary is not "pinched" or pathological — it always looks locally like a product. This theorem is essential for constructing the partitions of unity needed in the proof of Stokes' theorem, ensuring that boundary charts behave well.
-
----
-
-## Stokes' theorem: statement and proof outline
-
-We now have all the ingredients: differential forms, exterior derivative, oriented manifolds with boundary, and integration.
-
-### The theorem
-
-> **Stokes' Theorem.** Let $M$ be a compact oriented $n$-dimensional smooth manifold with boundary $\partial M$ (given the induced orientation), and let $\omega$ be a smooth $(n-1)$-form on $M$. Then
->
-> $$\int_M d\omega = \int_{\partial M} \omega.$$
-
-The beauty of this statement is its simplicity: the integral of $d\omega$ over the "bulk" equals the integral of $\omega$ over the boundary. No vector fields, no dot products, no cross products — just forms and their exterior derivatives.
-
-### Proof outline
-
-The proof proceeds in three steps:
-
-**Step 1: Reduce to charts.** Using a partition of unity $\{\rho_\alpha\}$, write $\omega = \sum_\alpha \rho_\alpha \omega$. By linearity of both integration and the exterior derivative, it suffices to prove the theorem for each $\rho_\alpha \omega$, which is compactly supported in a single chart.
-
-**Step 2: Prove it on $\mathbb{R}^n$ (interior chart).** If $\text{supp}(\omega)$ lies entirely in the interior of $M$, we must show $\int_{\mathbb{R}^n} d\omega = 0$ (since there is no boundary contribution). Write $\omega = \sum_i f_i\, dx^1 \wedge \cdots \wedge \widehat{dx^i} \wedge \cdots \wedge dx^n$, where $\widehat{dx^i}$ means that factor is omitted. Then $d\omega = \sum_i (-1)^{i-1} \frac{\partial f_i}{\partial x^i} dx^1 \wedge \cdots \wedge dx^n$. Since each $f_i$ is compactly supported, $\int_{-\infty}^{\infty} \frac{\partial f_i}{\partial x^i} dx^i = 0$ by the fundamental theorem of calculus (the function vanishes at $\pm \infty$). So $\int_{\mathbb{R}^n} d\omega = 0$.
-
-**Step 3: Prove it on $\mathbb{H}^n$ (boundary chart).** If $\text{supp}(\omega)$ meets the boundary $\{x^n = 0\}$, the same computation shows all terms vanish except the one involving $\frac{\partial f_n}{\partial x^n}$. For that term, $\int_0^\infty \frac{\partial f_n}{\partial x^n} dx^n = -f_n(x^1, \ldots, x^{n-1}, 0)$ (the function vanishes at $+\infty$ but not at $0$). The resulting integral over $\{x^n = 0\}$ is precisely $\int_{\partial \mathbb{H}^n} \omega$, with the sign working out correctly thanks to the outward-normal-first orientation convention.
-
-Summing over all charts completes the proof. The key insight is that the entire argument reduces to the one-dimensional fundamental theorem of calculus, applied one variable at a time.
-
-### Immediate consequences
-
-Several important results follow directly from Stokes' theorem:
-
-**Closed forms on closed manifolds.** If $M$ is a compact manifold *without* boundary (a "closed" manifold), then for any $(n-1)$-form $\omega$, $\int_M d\omega = \int_{\partial M} \omega = \int_\emptyset \omega = 0$. In other words, exact $n$-forms integrate to zero on closed manifolds. This is the starting point for de Rham cohomology.
-
-**Conservation laws.** If $d\omega = 0$ (the form is closed), then $\int_{\partial M} \omega = 0$ for any manifold $M$ over which $\omega$ extends. This is the abstract form of a conservation law: the total flux of a conserved quantity through a closed surface vanishes.
-
-**Homotopy invariance.** If two $(n-1)$-forms $\omega_0$ and $\omega_1$ differ by an exact form ($\omega_1 - \omega_0 = d\eta$), their integrals over any $(n-1)$-cycle (closed submanifold without boundary) agree. This is because $\int_C (\omega_1 - \omega_0) = \int_C d\eta = \int_{\partial C} \eta = 0$.
+**Boundaries with multiple components.** Stokes also handles disconnected boundaries naturally. The annulus $\{1 \leq r \leq 2\}$ has $\partial M = S^1_{r=1} \sqcup S^1_{r=2}$, with the inner circle oriented clockwise (because the outward normal points inward) and the outer counter-clockwise. The integral $\int_{\partial M}\omega$ is the sum, with these signs. Confusing the signs gives wrong answers; getting them right is the whole point of the induced orientation rule.
 
 ---
 
-## Recovering the classical theorems
+## 3. Integration of Top-Degree Forms
 
-Stokes' theorem on manifolds is powerful because all the classical integral theorems of vector calculus are special cases. Let us see how.
+The natural objects to integrate on a manifold are top-degree forms: $n$-forms on an $n$-dimensional manifold. Why? Because pullback of a top-degree form by a positive diffeomorphism is well-defined, and the resulting integral is invariant under change of coordinates. (Lower-degree forms are integrated only over corresponding submanifolds.)
 
-### The fundamental theorem of calculus
+**Local definition.** On $\mathbb{R}^n$ with the standard orientation, an $n$-form $\omega = f(x)\,dx^1\wedge\dots\wedge dx^n$ has integral
+$$\int_{\mathbb{R}^n} \omega = \int_{\mathbb{R}^n} f(x)\,dx^1\dots dx^n,$$
+where the right-hand side is the ordinary Lebesgue integral. Notice the implicit ordering: the wedge product with positive sign matches the standard ordering of variables in the iterated integral.
 
-Take $M = [a,b]$, a 1-manifold with boundary $\{a, b\}$. Let $\omega = f$ be a 0-form (function). Then $d\omega = f'\,dx$ and
+**Change of variables.** If $\varphi: U \to V$ is an orientation-preserving diffeomorphism of open subsets of $\mathbb{R}^n$ and $\omega$ is an $n$-form on $V$, then
+$$\int_U \varphi^* \omega = \int_V \omega.$$
+This is the change-of-variables formula. The key point: the wedge product *automatically* handles the Jacobian determinant. Recall from article 8: $\varphi^*(dx^1\wedge\dots\wedge dx^n) = \det(D\varphi)\,du^1\wedge\dots\wedge du^n$. The signed determinant matches the orientation-preserving condition.
 
-$$\int_{[a,b]} f'\,dx = \int_{\partial [a,b]} f = f(b) - f(a).$$
+**Globally on a manifold.** To integrate an $n$-form $\omega$ on an oriented manifold $M$:
+1. Cover $M$ by oriented charts $U_\alpha$.
+2. Choose a partition of unity $\{\rho_\alpha\}$ subordinate to the cover.
+3. Define $\int_M \omega = \sum_\alpha \int_{U_\alpha} \rho_\alpha \omega$.
 
-### Green's theorem
+The result is independent of the choice of charts and partition of unity. This is the entire definition.
 
-Let $M = D$ be a compact region in $\mathbb{R}^2$ with boundary curve $\partial D$. Let $\omega = P\,dx + Q\,dy$ be a 1-form. Then $d\omega = \left(\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}\right) dx \wedge dy$, and Stokes' theorem gives
+**Numerical example.** Compute $\int_{S^2} \omega$ where $\omega = x\,dy\wedge dz + y\,dz\wedge dx + z\,dx\wedge dy$ is the "spherical volume form" coming from contracting the radial vector with $dx\wedge dy\wedge dz$. On the upper hemisphere parametrized by $\varphi(u, v) = (u, v, \sqrt{1 - u^2 - v^2})$ with $u^2 + v^2 < 1$, pullback gives (after computation) $\frac{1}{\sqrt{1-u^2-v^2}}du\wedge dv$, and integrating over the unit disk gives $2\pi$. Adding the lower hemisphere (with appropriate orientation) gives $4\pi$, which is exactly the surface area of $S^2$. Sanity check: $\omega = \iota_R(dx\wedge dy\wedge dz)$, where $R = x\partial_x + y\partial_y + z\partial_z$ is the radial vector. Pull back to $S^2$, where $R$ is the unit normal: the result is the area form. So $\int_{S^2}\omega$ is the area, and the area of $S^2$ is $4\pi$. Confirmed.
 
-$$\iint_D \left(\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}\right) dx\,dy = \oint_{\partial D} P\,dx + Q\,dy.$$
+**Why this matters.** Integration on manifolds is the bridge between local geometry (forms, derivatives) and global quantities (total flux, total volume, total charge). Without partition-of-unity arguments, you cannot define integrals on manifolds covered by multiple charts; with them, the definition is unambiguous and the theorems work.
 
-This is Green's theorem.
+**Why partition of unity?** A partition of unity $\{\rho_\alpha\}$ subordinate to a cover $\{U_\alpha\}$ is a collection of smooth nonnegative functions, with $\rho_\alpha$ supported in $U_\alpha$, summing to 1 pointwise (locally finitely). Such a partition exists on any paracompact Hausdorff manifold (which is essentially every manifold appearing in practice). The function $\rho_\alpha\omega$ is supported in $U_\alpha$ and can be integrated using the chart of $U_\alpha$. The independence of choices follows from change-of-variables formula plus a routine check.
 
-**Concrete application.** Take $P = -y$ and $Q = x$, so $\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y} = 2$. Then $\oint_{\partial D} (-y\,dx + x\,dy) = 2 \cdot \text{Area}(D)$. This gives the well-known formula for computing area via a line integral: $\text{Area}(D) = \frac{1}{2}\oint_{\partial D}(x\,dy - y\,dx)$. For the unit circle $(\cos t, \sin t)$, this gives $\frac{1}{2}\int_0^{2\pi}(\cos^2 t + \sin^2 t)\,dt = \pi$.
-
-### The divergence theorem (Gauss's theorem)
-
-Let $M = \Omega$ be a compact region in $\mathbb{R}^3$ with boundary surface $\partial \Omega$. Given a vector field $\mathbf{F} = (F_1, F_2, F_3)$, define the 2-form
-
-$$\omega = F_1\, dy \wedge dz + F_2\, dz \wedge dx + F_3\, dx \wedge dy.$$
-
-Then $d\omega = \left(\frac{\partial F_1}{\partial x} + \frac{\partial F_2}{\partial y} + \frac{\partial F_3}{\partial z}\right) dx \wedge dy \wedge dz = (\nabla \cdot \mathbf{F})\, dV$, so Stokes gives
-
-$$\iiint_\Omega \nabla \cdot \mathbf{F}\, dV = \oiint_{\partial \Omega} \mathbf{F} \cdot d\mathbf{S}.$$
-
-This is the divergence theorem. The 2-form $\omega$ is precisely the flux form associated to $\mathbf{F}$.
-
-**Concrete application.** Take $\mathbf{F} = (x, y, z)$, so $\nabla \cdot \mathbf{F} = 3$. For the unit ball $\Omega = B^3$, the divergence theorem gives $\oiint_{S^2} \mathbf{F} \cdot d\mathbf{S} = 3 \cdot \text{Vol}(B^3) = 3 \cdot \frac{4\pi}{3} = 4\pi$. You can verify this directly: on the unit sphere, $\mathbf{F} \cdot \hat{n} = x^2 + y^2 + z^2 = 1$, so $\oiint_{S^2} 1 \cdot dS = \text{Area}(S^2) = 4\pi$.
-
-### The classical Stokes' theorem (curl theorem)
-
-Let $M = S$ be an oriented surface in $\mathbb{R}^3$ with boundary curve $\partial S$. Given a vector field $\mathbf{F}$, define the 1-form $\omega = F_1\,dx + F_2\,dy + F_3\,dz$. Then
-
-$$d\omega = \left(\frac{\partial F_3}{\partial y} - \frac{\partial F_2}{\partial z}\right) dy \wedge dz + \left(\frac{\partial F_1}{\partial z} - \frac{\partial F_3}{\partial x}\right) dz \wedge dx + \left(\frac{\partial F_2}{\partial x} - \frac{\partial F_1}{\partial y}\right) dx \wedge dy,$$
-
-which is the curl form. Stokes' theorem gives
-
-$$\iint_S (\nabla \times \mathbf{F}) \cdot d\mathbf{S} = \oint_{\partial S} \mathbf{F} \cdot d\mathbf{r}.$$
-
-**The unification is complete.** All four theorems — fundamental theorem of calculus, Green's, divergence, and classical Stokes' — are the single statement $\int_M d\omega = \int_{\partial M} \omega$ applied to manifolds of dimension 1, 2, 2, and 3, respectively, with appropriate choices of differential form.
-
-### A summary table
-
-| Classical theorem | $\dim M$ | Form $\omega$ | $d\omega$ involves | Boundary $\partial M$ |
-|---|---|---|---|---|
-| Fundamental theorem of calculus | 1 | 0-form $f$ | $f'dx$ | Two points $\{a, b\}$ |
-| Green's theorem | 2 | 1-form $Pdx + Qdy$ | $(\partial_x Q - \partial_y P)\,dx \wedge dy$ | Curve $\partial D$ |
-| Divergence theorem | 3 | 2-form (flux of $\mathbf{F}$) | $(\nabla \cdot \mathbf{F})\,dV$ | Surface $\partial \Omega$ |
-| Classical Stokes' | 2 (in $\mathbb{R}^3$) | 1-form $\mathbf{F} \cdot d\mathbf{r}$ | $(\nabla \times \mathbf{F}) \cdot d\mathbf{S}$ | Curve $\partial S$ |
-
-The power of the manifold formulation is that it works in *any* dimension, on *any* oriented manifold with boundary — not just subsets of $\mathbb{R}^2$ or $\mathbb{R}^3$.
+**Pseudo-numerical example: integrating over $S^2$.** Cover $S^2$ by two charts, the upper and lower hemispheres (each diffeomorphic to a disk, with overlap an equator strip). Pick a partition of unity $\rho_+ + \rho_- = 1$ with $\rho_\pm$ supported in the corresponding hemisphere. Then $\int_{S^2}\omega = \int_{\text{upper}}\rho_+\omega + \int_{\text{lower}}\rho_-\omega$. In practice, choices like spherical coordinates make these calculations explicit, and the sphere's area $4\pi$ can be confirmed by direct integration. The partition-of-unity formalism is the *theoretical* device that makes this rigorous; in practice you usually just compute.
 
 ---
 
-## De Rham cohomology: first look
+## 4. Stokes' Theorem
 
-Stokes' theorem has a profound topological consequence. If $\omega$ is a closed $(n-1)$-form ($d\omega = 0$) on a compact manifold $M$ without boundary, then $\int_M d\omega = 0$ trivially. But what if $\omega$ is closed but **not exact** — what if there is no $(n-2)$-form $\eta$ with $d\eta = \omega$? The obstruction to exactness carries topological information.
+**Theorem (Stokes).** Let $M$ be an oriented compact $n$-dimensional manifold with boundary $\partial M$, equipped with the induced orientation. Let $\omega$ be a smooth $(n-1)$-form on $M$. Then
+$$\int_M d\omega = \int_{\partial M} \omega.$$
 
-### Closed and exact forms
+That is the entire theorem, and it is the most important formula in differential calculus.
 
-A differential $k$-form $\omega$ on $M$ is:
+![Stokes' theorem: integral of d-omega over M equals integral of omega over the boundary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_v2_09_3_stokes.png)
 
-- **Closed** if $d\omega = 0$.
-- **Exact** if $\omega = d\eta$ for some $(k-1)$-form $\eta$.
+**Proof sketch.** Two steps.
 
-Since $d^2 = 0$, every exact form is closed. The converse fails in general, and the failure is measured by cohomology.
+*Step 1: local case in upper half-space.* Take $M = \mathbb{H}^n$ and $\omega$ supported in a compact subset. Write $\omega = \sum_i (-1)^{i-1} f_i\,dx^1\wedge\dots\wedge \hat{dx^i}\wedge\dots\wedge dx^n$. Then $d\omega = \sum_i \partial_i f_i\,dx^1\wedge\dots\wedge dx^n$. Integrate term by term. For $i < n$, the integral $\int \partial_i f_i$ is zero by the fundamental theorem (compactly supported $f_i$). For $i = n$, the integral $\int_{x^n \geq 0} \partial_n f_n = -\int_{\mathbb{R}^{n-1}} f_n(x^1, \dots, x^{n-1}, 0)$, which is exactly the boundary integral with the sign of the induced orientation. So Stokes holds locally.
 
-### De Rham cohomology groups
+*Step 2: globalize.* Use a partition of unity $\{\rho_\alpha\}$ subordinate to a cover of $M$ by oriented charts. Then $\omega = \sum_\alpha \rho_\alpha \omega$, and applying step 1 chart by chart gives $\int_M d(\rho_\alpha\omega) = \int_{\partial M}\rho_\alpha\omega$. Summing over $\alpha$ uses $\sum_\alpha d(\rho_\alpha\omega) = d(\sum_\alpha \rho_\alpha\omega) - 0 = d\omega$ (the cross-term $\sum_\alpha d\rho_\alpha\wedge\omega$ vanishes because $\sum_\alpha \rho_\alpha = 1$ implies $\sum_\alpha d\rho_\alpha = 0$). Done.
 
-The **$k$-th de Rham cohomology group** of $M$ is the quotient vector space
+That's it. The whole theorem is the 1D fundamental theorem applied chart by chart, glued by a partition of unity.
 
-$$H^k_{\text{dR}}(M) = \frac{\ker(d : \Omega^k(M) \to \Omega^{k+1}(M))}{\text{im}(d : \Omega^{k-1}(M) \to \Omega^k(M))} = \frac{\{\text{closed } k\text{-forms}\}}{\{\text{exact } k\text{-forms}\}}.$$
+**Trivial case: closed manifolds.** If $M$ has no boundary ($\partial M = \emptyset$), then $\int_M d\omega = 0$ for every $(n-1)$-form $\omega$. In other words, exact $n$-forms integrate to zero on closed manifolds. The contrapositive: an $n$-form whose integral over $M$ is nonzero cannot be exact, hence represents a nonzero class in $H^n_{dR}(M)$.
 
-Two closed forms represent the same cohomology class if they differ by an exact form. The dimension $b_k = \dim H^k_{\text{dR}}(M)$ is the **$k$-th Betti number**.
+**Worked example: integrating a winding form.** On $\mathbb{R}^2 \setminus \{0\}$, the angle form $\omega = \frac{-y\,dx + x\,dy}{x^2+y^2}$ is closed but not exact. Take $M$ to be the annulus $\{1 \leq r \leq 2\}$. Stokes' theorem says
+$$\int_M d\omega = \int_{\partial M}\omega.$$
+The left side is zero ($d\omega = 0$). The boundary is the inner circle (oriented clockwise — opposite of the standard counter-clockwise) plus the outer circle (counter-clockwise). The integral around each circle is $2\pi$, so the boundary integral is $-2\pi + 2\pi = 0$. Consistent. The form contributes $2\pi$ from each circle, but with opposite orientations they cancel.
 
-### Examples
+**Worked example: a non-trivial calculation.** Compute $\int_{\partial \bar B^3} \omega$ for $\omega = (x^2 + y)\,dy\wedge dz + (xy + z)\,dz\wedge dx + (xz - y)\,dx\wedge dy$, where $\bar B^3$ is the closed unit ball. Use Stokes:
+$$d\omega = (\partial_x(x^2+y) + \partial_y(xy + z) + \partial_z(xz - y))\,dx\wedge dy\wedge dz = (2x + x + x)\,dx\wedge dy\wedge dz = 4x\,dx\wedge dy\wedge dz.$$
+By symmetry $\int_{\bar B^3} 4x\,dV = 0$ (odd function over a symmetric domain). So $\int_{S^2}\omega = 0$. A direct surface integral in spherical coordinates would have been agonizing; Stokes makes it instant.
 
-- **$\mathbb{R}^n$:** By the Poincare lemma, every closed form on $\mathbb{R}^n$ is exact, so $H^k_{\text{dR}}(\mathbb{R}^n) = 0$ for all $k > 0$, and $H^0 = \mathbb{R}$ (the constant functions). All Betti numbers are zero except $b_0 = 1$.
-
-- **$S^1$:** The 1-form $d\theta$ is closed but not exact (its integral around $S^1$ is $2\pi \ne 0$). So $H^1_{\text{dR}}(S^1) \cong \mathbb{R}$, with $b_1 = 1$. This detects the "hole" in the circle.
-
-- **$S^2$:** We have $H^0 = H^2 = \mathbb{R}$ and $H^1 = 0$, reflecting that $S^2$ is connected, has no 1-dimensional holes, and encloses a 2-dimensional void.
-
-- **Torus $T^2$:** $H^0 = \mathbb{R}$, $H^1 = \mathbb{R}^2$, $H^2 = \mathbb{R}$. The two generators of $H^1$ correspond to the two independent loops on the torus.
-
-- **Klein bottle $K$:** $H^0 = \mathbb{R}$, $H^1 = \mathbb{R}$, $H^2 = 0$. The vanishing of $H^2$ reflects the fact that the Klein bottle is non-orientable (it has no volume form). The single generator of $H^1$ corresponds to the "longitudinal" loop; the "transverse" loop is trivial in de Rham cohomology over $\mathbb{R}$ (though it survives in $\mathbb{Z}/2$ cohomology).
-
-- **Genus-$g$ surface $\Sigma_g$:** $H^0 = H^2 = \mathbb{R}$ and $H^1 = \mathbb{R}^{2g}$. The $2g$ generators of $H^1$ correspond to the $g$ handles, each contributing one "meridional" and one "longitudinal" loop. The Euler characteristic is $\chi = 2 - 2g$.
-
-### Relation to topology
-
-The remarkable **de Rham theorem** states that de Rham cohomology is isomorphic to singular cohomology with real coefficients:
-
-$$H^k_{\text{dR}}(M) \cong H^k(M; \mathbb{R}).$$
-
-This means that purely analytic objects (differential forms and the exterior derivative) capture purely topological invariants (cohomology classes and Betti numbers). Stokes' theorem is the bridge: it shows that integration of closed forms over cycles depends only on the cohomology class of the form and the homology class of the cycle.
-
-**The period map.** More precisely, Stokes' theorem shows that for a closed $k$-form $\omega$ and a $k$-cycle $C$ (a compact $k$-dimensional submanifold without boundary), the integral $\int_C \omega$ depends only on $[\omega] \in H^k_{\text{dR}}(M)$ and $[C] \in H_k(M)$. This defines a bilinear pairing
-
-$$H^k_{\text{dR}}(M) \times H_k(M; \mathbb{R}) \to \mathbb{R}, \qquad ([\omega], [C]) \mapsto \int_C \omega.$$
-
-De Rham's theorem says this pairing is non-degenerate — it is a perfect pairing between cohomology and homology. The numbers $\int_C \omega$ for various cycles $C$ are called the **periods** of $\omega$ and carry deep arithmetic and geometric information. In complex geometry, the periods of holomorphic forms on algebraic varieties are the subject of Hodge theory.
-
-The Euler characteristic can be computed from Betti numbers: $\chi(M) = \sum_{k=0}^n (-1)^k b_k$. For $S^2$, $\chi = 1 - 0 + 1 = 2$. For $T^2$, $\chi = 1 - 2 + 1 = 0$. These agree with the classical values.
-
-**Homotopy invariance of de Rham cohomology.** If two smooth manifolds $M$ and $N$ are homotopy equivalent (there exist smooth maps $f : M \to N$ and $g : N \to M$ with $g \circ f \simeq \text{id}_M$ and $f \circ g \simeq \text{id}_N$), then $H^k_{\text{dR}}(M) \cong H^k_{\text{dR}}(N)$ for all $k$. In particular, $H^k_{\text{dR}}(M)$ is a topological invariant — it does not depend on the smooth structure, only on the homotopy type. This is why cohomology can detect holes: a punctured plane $\mathbb{R}^2 \setminus \{0\}$ is homotopy equivalent to $S^1$, so $H^1(\mathbb{R}^2 \setminus \{0\}) \cong H^1(S^1) \cong \mathbb{R}$.
-
-De Rham cohomology provides one of the most elegant connections between analysis and topology, and it will reappear when we discuss characteristic classes in later articles.
-
-### Poincare duality
-
-On a closed oriented $n$-manifold $M$, the wedge product and integration define a non-degenerate pairing
-
-$$H^k_{\text{dR}}(M) \times H^{n-k}_{\text{dR}}(M) \to \mathbb{R}, \qquad ([\alpha], [\beta]) \mapsto \int_M \alpha \wedge \beta.$$
-
-**Poincare duality** asserts that this pairing is a perfect pairing, giving an isomorphism $H^k_{\text{dR}}(M) \cong H^{n-k}_{\text{dR}}(M)^*$. In particular, $b_k = b_{n-k}$: the Betti numbers are symmetric. For a closed oriented surface ($n = 2$), this says $b_0 = b_2$, which we have already seen.
-
-Poincare duality is one of the most fundamental results in algebraic topology, and the de Rham framework makes it particularly transparent: the pairing is just "wedge and integrate," and non-degeneracy follows from the Hodge theorem (that every cohomology class has a unique harmonic representative with respect to any Riemannian metric).
-
-### The Mayer-Vietoris sequence
-
-A powerful computational tool for de Rham cohomology is the **Mayer-Vietoris sequence**. If $M = U \cup V$ where $U$ and $V$ are open sets, there is a long exact sequence
-
-$$\cdots \to H^{k-1}(U \cap V) \xrightarrow{\delta} H^k(M) \to H^k(U) \oplus H^k(V) \to H^k(U \cap V) \to \cdots$$
-
-This allows us to compute the cohomology of $M$ from the cohomology of simpler pieces. For instance, decomposing the circle $S^1$ as two overlapping arcs gives $H^0(S^1) = \mathbb{R}$ and $H^1(S^1) = \mathbb{R}$, confirming our earlier result.
-
-### Application: the winding number
-
-De Rham cohomology gives a clean formulation of the **winding number**. Consider a closed curve $\gamma : S^1 \to \mathbb{R}^2 \setminus \{0\}$. The 1-form $\omega = \frac{-y\,dx + x\,dy}{x^2 + y^2}$ is closed on $\mathbb{R}^2 \setminus \{0\}$ but not exact (it generates $H^1(\mathbb{R}^2 \setminus \{0\}) \cong \mathbb{R}$). The winding number of $\gamma$ around the origin is
-
-$$n = \frac{1}{2\pi}\oint_\gamma \omega \in \mathbb{Z}.$$
-
-The fact that this is always an integer follows from the de Rham theorem: it is the evaluation of the cohomology class $[\omega]$ on the homology class $[\gamma]$, and this pairing takes integer values. This example illustrates how cohomology detects topological features (the "hole" at the origin) that are invisible to local analysis.
+**Why Stokes always works.** The proof has only two ingredients: the 1D fundamental theorem of calculus (a chart-by-chart fact) and the gluing power of partition of unity (a global structural fact). No exotic analysis, no special hypotheses beyond compactness and orientability. Stokes is as basic as differentiation itself; it is essentially "differentiating a form on $M$ and integrating the result equals integrating the form along $\partial M$" — the same statement at every dimension, the same proof.
 
 ---
 
-## What's next
+## 5. Classical Theorems Recovered
 
-With integration and Stokes' theorem, we have completed the core machinery of differential forms on manifolds. But we have been studying **smooth** structure — we have not yet asked how to measure lengths, angles, or curvature. In the next article, we introduce **Riemannian metrics**: the additional structure that turns a smooth manifold into a geometric space where distances, geodesics, and curvature are defined. This is Riemannian geometry, and it is the language of general relativity and much of modern geometry.
+All three classical "integral theorems" of vector calculus are special cases of Stokes' theorem.
 
-### A historical note
+![Classical theorems unified: gradient, Stokes, Green, divergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_v2_09_4_classical_unify.png)
 
-The story of Stokes' theorem is itself worth a moment. The "classical" Stokes' theorem (for surfaces in $\mathbb{R}^3$) was stated by Lord Kelvin in a letter to Stokes in 1850, and Stokes set it as an examination problem at Cambridge in 1854. The general version for manifolds emerged gradually through the work of Elie Cartan (who developed the exterior calculus), Georges de Rham (who connected it to topology), and was given its modern form in textbooks by Spivak, Warner, and others in the mid-20th century. The theorem stands as one of the supreme achievements of mathematics: a single equation that encompasses all the fundamental theorems of calculus in every dimension.
+**Fundamental theorem of line integrals.** $M = \gamma$ (a curve), $\omega = f$ (a 0-form):
+$$\int_\gamma df = f(\gamma(b)) - f(\gamma(a)).$$
+This is just Stokes with $n = 1$. The "boundary" is the two endpoints with appropriate signs.
+
+**Green's theorem.** $M$ a region in $\mathbb{R}^2$, $\omega = P\,dx + Q\,dy$ a 1-form. Then $d\omega = (\partial_x Q - \partial_y P)\,dx\wedge dy$, and Stokes gives
+$$\iint_M (\partial_x Q - \partial_y P)\,dA = \oint_{\partial M}(P\,dx + Q\,dy).$$
+The classical Green's theorem.
+
+**Classical Stokes' theorem (on surfaces).** $M$ a surface with boundary in $\mathbb{R}^3$, $F$ a vector field, $\omega = F^\flat$ (the corresponding 1-form). Then $d\omega$ is the curl 2-form, and integrating gives
+$$\iint_M (\nabla\times F)\cdot dA = \oint_{\partial M} F\cdot dr.$$
+The classical "curl theorem."
+
+**Divergence theorem.** $M$ a region in $\mathbb{R}^3$, $F$ a vector field, $\omega$ the corresponding flux 2-form. Then $d\omega = (\nabla\cdot F)\,dx\wedge dy\wedge dz$, and Stokes gives
+$$\iiint_M \nabla\cdot F\,dV = \iint_{\partial M} F\cdot dA.$$
+The divergence theorem of Gauss.
+
+**Why this matters.** All four classical theorems are corollaries of one statement on manifolds. Memorizing them as four separate results is a coordinate-bound provincialism; a working differential geometer uses Stokes once and recovers them on demand.
+
+**A subtler corollary: Cauchy's integral theorem.** On $\mathbb{C} = \mathbb{R}^2$, a holomorphic function $f$ has $df = f'(z)\,dz$ where $dz = dx + i\,dy$. So the 1-form $f(z)\,dz$ is closed (the Cauchy-Riemann equations), and Stokes gives $\oint_{\partial M} f(z)\,dz = 0$ for any region $M$ on which $f$ is holomorphic. This is Cauchy's theorem of complex analysis. The whole subject of complex analysis is differential forms in two real dimensions, viewed through the lens of holomorphicity.
+
+**Cauchy's integral formula via Stokes.** Take $f$ holomorphic in a region containing the closed disk of radius $R$ around $z_0$. Then $\frac{f(z)}{z - z_0}$ has a simple pole at $z_0$. Apply Stokes (or the residue theorem) to a small annulus around $z_0$:
+$$\oint_{|z - z_0| = R}\frac{f(z)}{z - z_0}dz = 2\pi i\,f(z_0).$$
+Cauchy's integral formula. From this, all of complex analysis (Liouville's theorem, the maximum modulus principle, the residue theorem) cascades. The miraculous rigidity of holomorphic functions — that knowing $f$ on a circle determines $f$ inside — is, at root, Stokes' theorem applied to closed forms with poles.
+
+**Hodge theorem and harmonic forms.** On a compact oriented Riemannian manifold, every de Rham cohomology class has a unique harmonic representative ($\Delta\omega = 0$ where $\Delta = d\delta + \delta d$). The proof uses Stokes' theorem to set up the inner product $\langle\alpha, \beta\rangle = \int_M \alpha \wedge *\beta$, then PDE theory to find harmonic representatives. Hodge theory gives a vast generalization of "every closed form is exact mod $\ker\Delta$" and is the analytic foundation of Kahler geometry, the index theorem, and elliptic regularity on manifolds.
+
+---
+
+## 6. de Rham Cohomology and Stokes
+
+Stokes' theorem implies a fundamental fact: integration of closed forms over closed manifolds depends only on the cohomology class of the form.
+
+**Claim.** If $\omega_1, \omega_2$ are closed $k$-forms on $M$ (no boundary) with $\omega_1 - \omega_2 = d\eta$ exact, then for any closed $k$-cycle $C$,
+$$\int_C \omega_1 = \int_C \omega_2.$$
+
+*Proof.* $\int_C(\omega_1 - \omega_2) = \int_C d\eta = \int_{\partial C} \eta = 0$ (since $\partial C = \emptyset$).
+
+So the integral $\int_C \omega$ depends only on $[\omega] \in H^k_{dR}(M)$. Similarly, replacing $C$ by a homologous cycle $C'$ (i.e. $C - C' = \partial D$ for some chain $D$) does not change the integral, because $\int_C\omega - \int_{C'}\omega = \int_{\partial D}\omega = \int_D d\omega = 0$ (since $\omega$ is closed).
+
+![de Rham cohomology and Poincare duality](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_v2_09_5_de_rham_coh.png)
+
+**de Rham's theorem.** The integration pairing
+$$H^k_{dR}(M) \times H_k(M; \mathbb{R}) \to \mathbb{R}, \qquad ([\omega], [C]) \mapsto \int_C \omega$$
+is a perfect pairing. So $H^k_{dR}(M) \cong H_k(M; \mathbb{R})^*$ — the de Rham cohomology is the dual of singular homology with real coefficients. Equivalently, $H^k_{dR}(M) \cong H^k(M; \mathbb{R})$ via the universal coefficient theorem.
+
+**Poincare duality.** On a compact oriented $n$-manifold without boundary, the pairing
+$$H^k_{dR}(M) \times H^{n-k}_{dR}(M) \to \mathbb{R}, \qquad ([\alpha], [\beta]) \mapsto \int_M \alpha\wedge\beta$$
+is also a perfect pairing. So $H^k_{dR}(M) \cong H^{n-k}_{dR}(M)^*$. For $M$ closed and oriented, this implies the Betti numbers satisfy $b_k = b_{n-k}$ — the symmetry of cohomology dimensions seen in the torus example of article 8.
+
+**Why this matters.** Cohomology classes can be computed *by integration*. Given a closed form, you can detect its non-triviality by integrating over cycles; given a cycle, you can detect its non-triviality by integrating closed forms over it. This is the analytic foundation of topology: the Betti numbers, the Euler characteristic, the genus of a surface — all are accessible through differential forms.
+
+**Periods and arithmetic.** When the manifold has extra structure (e.g., a complex algebraic variety), the integrals $\int_C\omega$ for distinguished forms $\omega$ and cycles $C$ are called **periods**. Periods of algebraic varieties are deep arithmetic invariants — they include $2\pi i$, $\log 2$, values of zeta functions, and more exotic transcendental numbers. The conjectures of Grothendieck, Kontsevich-Zagier, and the modern theory of motivic cohomology revolve around understanding periods. So Stokes' theorem connects to one of the deepest open problems in mathematics: the structure of transcendental numbers obtained as integrals of algebraic forms over algebraic cycles.
+
+**Index theorem foreshadowing.** Many topological invariants of a manifold can be computed as integrals of curvature-like forms. The Euler characteristic equals $\int_M e(TM)$ (Chern-Gauss-Bonnet). The signature equals $\int_M L(TM)$ (Hirzebruch). The index of an elliptic operator equals $\int_M \mathrm{ch}(\sigma) \mathrm{Td}(TM)$ (Atiyah-Singer). Each of these is a Stokes-type computation in disguise: a topological invariant emerges as an integral of a closed form. Article 12 will develop the relevant characteristic classes and explain why these formulas hold.
+
+---
+
+## 7. Integration on Chains and Cycles
+
+We have been integrating forms over manifolds with boundary. The right setting for full generality is integration over **chains**: formal $\mathbb{Z}$-linear combinations of smooth singular simplices.
+
+A **smooth $k$-simplex** in $M$ is a smooth map $\sigma: \Delta^k \to M$ from the standard $k$-simplex. A **smooth $k$-chain** is a finite formal sum $C = \sum_i a_i \sigma_i$ with integer coefficients. The boundary operator $\partial$ maps $k$-chains to $(k-1)$-chains by the alternating sum of restrictions to faces.
+
+![Integrating a form along a chain of cells](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_v2_09_6_chain_integration.png)
+
+Integration on chains is defined linearly: $\int_{\sum a_i\sigma_i} \omega = \sum a_i \int_{\sigma_i^* \omega}$. Stokes' theorem extends:
+$$\int_C d\omega = \int_{\partial C} \omega.$$
+This is just the chain-level statement.
+
+**Why chains?** They are more flexible than submanifolds. A chain need not be embedded, need not be a manifold, can have multiplicities. This flexibility is what makes singular homology work — you can subdivide, refine, and compute. Triangulations and their boundaries are chains. The proof of de Rham's theorem in either direction (constructing a closed form representing a cocycle, or constructing a cycle integrating to give a cohomology class) lives at the chain level.
+
+**Worked example: winding number.** On $\mathbb{R}^2 \setminus \{0\}$ with the angle form $\omega = \frac{-y\,dx + x\,dy}{x^2+y^2}$, and a closed curve $\gamma: S^1 \to \mathbb{R}^2 \setminus \{0\}$, the integer
+$$n(\gamma) = \frac{1}{2\pi}\int_\gamma \omega$$
+is the **winding number** of $\gamma$ around the origin. It is integer-valued by topology and computable analytically. By de Rham, $H^1_{dR}(\mathbb{R}^2\setminus\{0\}) = \mathbb{R}$ with $[\omega/2\pi]$ a generator; the winding number is just the cohomology pairing.
+
+**Worked example: linking number.** For two disjoint smooth loops $\gamma_1, \gamma_2$ in $\mathbb{R}^3$, the **linking number** $\mathrm{lk}(\gamma_1, \gamma_2)$ is an integer measuring how often they wind around each other. There is an integral formula (Gauss):
+$$\mathrm{lk}(\gamma_1,\gamma_2) = \frac{1}{4\pi}\oint_{\gamma_1}\oint_{\gamma_2}\frac{(\vec r_1 - \vec r_2)\cdot(d\vec r_1 \times d\vec r_2)}{|\vec r_1 - \vec r_2|^3}.$$
+This is again a winding-number-type integral, and integer-valuedness comes from de Rham cohomology of $\mathbb{R}^3 \setminus \gamma_2$. The linking number is the simplest knot-theoretic invariant; higher-order analogs (Massey products, finite-type invariants) generalize the same idea.
+
+**The chain-level statement.** The full power of Stokes appears most clearly at the chain level: $\partial$ on chains and $d$ on forms are *adjoint* under the integration pairing. This adjunction is what makes the singular-de Rham comparison work, and it is the seed of every "duality theorem" in algebraic topology. The signs in chain complexes — which can look daunting — are just the signs the induced orientation forces on you.
+
+---
+
+## 8. Examples on Sphere and Torus
+
+To consolidate, two classical applications of Stokes.
+
+![Stokes' theorem applied to a sphere and a torus](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_v2_09_7_examples.png)
+
+**Surface area of $S^2$ via Stokes.** Take $M = \bar B^3 \subset \mathbb{R}^3$ with $\omega = x\,dy\wedge dz + y\,dz\wedge dx + z\,dx\wedge dy$. Then $d\omega = 3\,dx\wedge dy\wedge dz$. Stokes gives
+$$\int_{S^2}\omega = \int_{\bar B^3} 3\,dV = 3 \cdot \frac{4}{3}\pi = 4\pi.$$
+And $\omega$ on $S^2$ equals the area form, so the surface area is $4\pi$. Two computations, one identity. The factor of 3 is exactly the dimension; in $\mathbb{R}^n$, the analogous identity gives the area of $S^{n-1}$ as $n$ times the volume of $B^n$.
+
+**Volume of $B^3$ from $S^2$.** The reverse direction is also useful: knowing the surface area, integrate radially to get the volume. $\mathrm{vol}(B^3) = \int_0^1 4\pi r^2\,dr = \frac{4\pi}{3}$. The factor of 3 appears again — it is the dimension. This kind of dimensional bookkeeping is implicit in every computation in differential geometry, and Stokes gives it a clean statement.
+
+**Solid angle and Gauss's law.** The 2-form $\omega = \frac{x\,dy\wedge dz + y\,dz\wedge dx + z\,dx\wedge dy}{(x^2+y^2+z^2)^{3/2}}$ on $\mathbb{R}^3 \setminus \{0\}$ is closed, with $\oint_{S^2_R} \omega = 4\pi$ for every sphere of radius $R$ around the origin. So $\omega/(4\pi)$ generates $H^2_{dR}(\mathbb{R}^3\setminus\{0\}) = \mathbb{R}$. Physically, this is exactly the electric field of a point charge — the integral of the field flux around any closed surface enclosing the charge is $4\pi$ (in Gaussian units), independent of the surface. This is Gauss's law, and its content is purely topological: it counts the charges enclosed.
+
+**Gauss-Bonnet via Stokes.** Recall from article 5 that on a compact oriented surface,
+$$\int_M K\,dA = 2\pi \chi(M).$$
+In modern language, this is Stokes applied to the curvature form (with some Lie-algebraic dressing). The proof in article 5 used a triangulation and the angle excess at each triangle. The deeper proof, via Chern-Weil theory, will be sketched in article 12.
+
+**Brouwer fixed-point theorem.** Suppose $f: \bar B^n \to \bar B^n$ has no fixed point. Then the map $r: \bar B^n \to S^{n-1}$ defined by sending each $x$ to the unique boundary point in the ray from $f(x)$ through $x$ is a smooth retraction (with $r|_{S^{n-1}} = \mathrm{id}$). Now choose any $(n-1)$-form $\omega$ on $S^{n-1}$ with $\int_{S^{n-1}}\omega = 1$. Then $r^*\omega$ is a closed $(n-1)$-form on $\bar B^n$, and Stokes gives $\int_{\bar B^n}d(r^*\omega) = \int_{S^{n-1}}r^*\omega = \int_{S^{n-1}}\omega = 1$. But $d(r^*\omega) = r^*(d\omega) = 0$ since $\omega$ is top-degree on $S^{n-1}$ — contradiction. So no such $r$ exists, hence $f$ has a fixed point. Stokes proves topology.
+
+**Hairy ball theorem.** A nowhere-vanishing tangent vector field on $S^{2n}$ does not exist. Sketch: if $X$ were such a field, the homotopy $X_t(p) = (\cos t)\,p + (\sin t)\,X(p)/|X(p)|$ on $S^{2n}$ (with appropriate normalization) gives a homotopy from $\mathrm{id}$ to the antipodal map. But the antipodal map on $S^{2n}$ has degree $(-1)^{2n+1} = -1$, and the identity has degree $1$ — degree is a homotopy invariant computable as a Stokes-type integral, contradiction. So no such field. Sphere combing fails on even-dimensional spheres. Topology again, via integrals of forms.
+
+**Why this matters.** Stokes is not merely a calculation tool. It is how *topological invariants are computed analytically*. Once you internalize that integers can be obtained as integrals of differential forms, you start seeing topology hiding in physics: charge quantization in Maxwell theory, instanton numbers in Yang-Mills, anomalies in quantum field theory, indices of Dirac operators. Each of these is a Stokes calculation in a slightly more elaborate setting. The pattern is universal.
+
+**Torus periods.** On the 2-torus $T^2$ with coordinates $(\theta_1, \theta_2)$, the closed forms $d\theta_1, d\theta_2$ are both not exact. Their integrals over the two basic 1-cycles (the "meridian" and "longitude") give the period matrix $\begin{pmatrix}1 & 0 \\ 0 & 1\end{pmatrix}$ (up to factors of $2\pi$). The cohomology classes $[d\theta_1], [d\theta_2]$ form a basis of $H^1_{dR}(T^2) \cong \mathbb{R}^2$, dual to the cycle basis. This is the simplest nontrivial example of de Rham theory and the model for elliptic curve theory in algebraic geometry.
+
+**Genus-$g$ surface.** A compact orientable surface of genus $g$ has $H^0 = H^2 = \mathbb{R}$ and $H^1 = \mathbb{R}^{2g}$. The $2g$ generators of $H^1$ pair with the $2g$ generators of $H_1$ (the $a$- and $b$-cycles of a standard handle decomposition) via integration. The intersection form on $H_1$ corresponds via Poincare duality to the wedge product on $H^1$, and the diagonal symplectic form $\bigoplus\begin{pmatrix}0 & 1 \\ -1 & 0\end{pmatrix}$ encodes the genus. This algebraic structure is the geometry of Riemann surfaces in nuce.
+
+**Volume form on $S^n$.** By Stokes applied to $\bar B^{n+1}$ with $\omega = \iota_R(dx^0\wedge\dots\wedge dx^n)$ (radial contraction), the surface area of $S^n$ is computed inductively: $\mathrm{vol}(S^n) = (n+1)\,\mathrm{vol}(B^{n+1})$. Combined with the iterative formula $\mathrm{vol}(B^n) = \pi^{n/2}/\Gamma(n/2 + 1)$, this gives all the classical formulas. The $4\pi$ for $S^2$, the $2\pi^2$ for $S^3$, the $\frac{8\pi^2}{3}$ for $S^4$ — all corollaries of one Stokes computation.
+
+---
+
+## What's Next
+
+We now have integration, Stokes, and the algebraic-topological consequences. The next article introduces **Riemannian metrics** — the structure that lets us measure lengths and angles, defines geodesics ("straight lines on curved spaces"), and motivates parallel transport. Combined with Stokes, the metric will give us the curvature 2-forms whose integrals — Chern classes, Pontryagin classes, the Euler class — are the topological invariants computable by the techniques of this article.
+
+**Summary of the key ideas.**
+
+1. **Orientation** makes integrals signed and is a global topological choice — there are exactly two on a connected orientable manifold.
+2. **Manifolds with boundary** carry an **induced orientation** on $\partial M$ via "outward normal first."
+3. **Integration** of top-degree forms is defined locally via Lebesgue, globalized by partition of unity, and unambiguous.
+4. **Stokes' theorem** $\int_M d\omega = \int_{\partial M}\omega$ unifies all classical integral theorems.
+5. The classical theorems (gradient, Green, Stokes, divergence) are all Stokes in different dimensions and form-degrees.
+6. **de Rham's theorem** identifies $H^k_{dR}(M) \cong H^k(M;\mathbb{R})$ via the integration pairing; **Poincare duality** gives $H^k \cong H^{n-k}$ for closed orientable manifolds.
+7. Topological invariants (winding number, Euler characteristic, Brouwer fixed point) are computed by Stokes-type arguments.
 
 ---
 

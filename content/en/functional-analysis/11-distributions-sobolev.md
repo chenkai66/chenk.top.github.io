@@ -17,52 +17,49 @@ series_total: 12
 translationKey: "functional-analysis-11"
 ---
 
-Consider the wave equation on the real line. A traveling wave $u(x,t) = f(x - ct)$ solves $u_{tt} = c^2 u_{xx}$ for any twice-differentiable profile $f$. But physical waves can have sharp fronts — a step function profile, for instance, which is not differentiable anywhere. Can we still say such a function "solves" the wave equation? Classical calculus says no. Distribution theory says yes.
+I want to start with a confession. For years I treated the Dirac delta the way an undergraduate physicist does: as a function that is zero everywhere except at the origin, where it is infinite, and whose integral is one. That description is, of course, mathematical nonsense. No measurable function can have those properties. Yet every quantum mechanics textbook uses $\delta$ on page one, every signal processing course writes $\delta(t)$ for an impulse, and every PDE book invokes Green's functions $E$ satisfying $\Delta E = \delta$. Either an entire scientific community has been making a fundamental error for a century, or there is a way to make this object rigorous. The latter, obviously — and the way is the theory of distributions.
 
-The Dirac delta "function" $\delta(x)$, defined by the property $\int \delta(x)\varphi(x)\,dx = \varphi(0)$, is another fundamental object that resists classical treatment. It is not a function in any traditional sense — no measurable function can satisfy this integral identity. Yet it appears throughout physics and engineering as the idealization of a point source, a point mass, or an instantaneous impulse.
+The motivating problem is older than $\delta$ itself. Consider the wave equation $u_{tt} = c^2 u_{xx}$ on the line. Any twice-differentiable profile $f$ gives a traveling-wave solution $u(x,t) = f(x - ct)$. But physical waves carry shocks: the solution of a shallow-water equation can develop a step, a sound wave can have a sharp front, a light pulse can be a square envelope. The "function" $f$ in those cases is not even continuous. Calling such a discontinuous $u$ a "solution" of $u_{tt} = c^2 u_{xx}$ requires us to differentiate it twice, and the classical second derivative does not exist — neither at the shock nor on either side, since differentiating an indicator gives a delta.
 
-Laurent Schwartz's theory of distributions (1950) provides a rigorous framework that accommodates both of these situations. The key idea is elegant: instead of trying to assign pointwise values to generalized "functions," we define them by how they act on smooth test functions. This shift in perspective — from pointwise evaluation to duality — is one of the great triumphs of functional analysis.
+Laurent Schwartz's distribution theory (1944-1950) solves both problems with one trick. Stop trying to assign pointwise values to generalized "functions." Instead, define them by how they act on smooth test functions: $f$ is the linear map $\varphi \mapsto \int f\varphi$. Two functions equal a.e. give the same map, so $L^1_{\text{loc}}$ embeds into the dual space of test functions. But that dual space is much larger than $L^1_{\text{loc}}$; it contains $\delta$, derivatives of $\delta$, principal-value distributions, and a great deal of structure besides. Once we have the dual, every operation we want — derivative, Fourier transform, convolution — extends from smooth functions to all distributions by formal duality.
 
-Sobolev spaces, introduced by Sergei Sobolev in the 1930s, build on this foundation. They are Banach spaces (often Hilbert spaces) consisting of functions with a prescribed number of weak derivatives in $L^p$. These spaces are the natural domains for differential operators and the correct setting for existence and regularity theory for PDE.
+Sobolev spaces are the second piece of the story. Schwartz's distributions are too big to be a useful Banach space (the dual of $C_c^\infty$ has no natural norm topology). For PDE we want concrete Hilbert spaces, with norms, embeddings, and compactness. Sergei Sobolev's 1930s construction does exactly this: $W^{k,p}(\Omega)$ contains functions whose distributional derivatives up to order $k$ live in $L^p$. These are the natural domains for differential operators, the right setting for weak solutions, and they come with three key tools — embedding theorems, trace theorems, Rellich-Kondrachov compactness — without which the Lax-Milgram theorem of the next article would have nothing to bite on.
 
 ---
 
 ## Why Classical Derivatives Aren't Enough
 
-### The motivating problems
+### Three motivating problems
 
-**Problem 1: Weak solutions of PDE.** Consider the equation $-u'' = f$ on $(0,1)$ with $u(0) = u(1) = 0$. If $f$ is continuous, classical solutions exist and are $C^2$. But what if $f \in L^2(0,1)$ — say $f$ is the indicator function of an interval? No classical ($C^2$) solution exists. Yet multiplying by a test function $\varphi \in C_c^\infty(0,1)$ and integrating by parts gives
-
-![Sobolev space embedding chain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/11-distributions-sobolev/fa_fig6_sobolev.png)
-
+**Problem 1: weak solutions of PDE.** Consider $-u'' = f$ on $(0,1)$ with $u(0) = u(1) = 0$. If $f$ is continuous, classical solutions exist and are $C^2$. But what if $f \in L^2(0,1)$ — say $f$ is the indicator of $[1/3, 2/3]$? No classical $C^2$ solution exists; $u''$ would have to jump. Yet multiplying by a test function $\varphi \in C_c^\infty(0,1)$ and integrating by parts twice (the second integration produces no boundary terms because $\varphi$ has compact support) gives
 
 $$
 \int_0^1 u'\varphi' \, dx = \int_0^1 f\varphi \, dx \quad \text{for all } \varphi \in C_c^\infty(0,1).
 $$
 
-A function $u$ satisfying this integral identity is a **weak solution**. It need not be twice differentiable; $u \in H^1_0(0,1)$ (one weak derivative in $L^2$, vanishing at the boundary) suffices. Making this precise requires Sobolev spaces.
+A function $u$ satisfying this integral identity is a **weak solution**. It need not be $C^2$; $u \in H^1_0(0,1)$ — one weak derivative in $L^2$, vanishing at the boundary — suffices. Here the problem actually has an explicit answer: integrate $f$ twice and adjust the constants. You get a $C^1$ piecewise quadratic that is not $C^2$ (the second derivative jumps at $x = 1/3$ and $x = 2/3$), and that is exactly the regularity Sobolev theory predicts: $f \in L^2$ and one application of $-d^2/dx^2$ inverts to gain two derivatives, so $u \in H^2$, hence $u \in C^{1,1/2}$ by Morrey but not $C^2$. Classical theory would simply declare the problem unsolvable.
 
-**Problem 2: The Dirac delta.** In electrostatics, the potential of a point charge at the origin satisfies $-\Delta \phi = \delta$. The right-hand side is not a function. To make this equation rigorous, we need a space that contains $\delta$ — the space of distributions.
+![Test functions: smooth bumps with compact support](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/11-distributions-sobolev/fa_v2_11_1_test_functions.png)
 
-**Problem 3: Fourier analysis.** The Fourier transform of the constant function $1$ is (formally) $\delta$. A rigorous theory of the Fourier transform on $L^2$ (via Plancherel) does not cover distributions, yet extending Fourier analysis to tempered distributions is essential for PDE and signal processing.
+**Problem 2: the Dirac delta.** In electrostatics, the potential of a unit point charge at the origin satisfies $-\Delta\phi = \delta$. The right-hand side is not a function. Worse, the solution $\phi(x) = 1/(4\pi|x|)$ is singular at the origin, so it is not classically twice differentiable there either. The whole equation lives in a world where "derivative" must be reinterpreted.
+
+**Problem 3: Fourier analysis.** The Fourier transform of the constant function $1$ is, formally, $(2\pi)^n\delta$. The Fourier transform of $|x|$ involves $1/|\xi|^{n+1}$ (a non-locally-integrable function read as a principal value). Without a framework that contains $\delta$ and its derivatives, large parts of harmonic analysis break down or require ad-hoc patches. Tempered distributions $\mathcal{S}'$ provide the right framework: every tempered distribution has a Fourier transform, and the transform is a topological isomorphism $\mathcal{F}: \mathcal{S}' \to \mathcal{S}'$.
 
 ### The conceptual shift
 
-The classical approach: a function $f$ is defined by its pointwise values $f(x)$.
+The classical approach: a function $f$ is defined by its pointwise values $f(x)$. The distributional approach: a generalized function $f$ is defined by the linear functional $\varphi \mapsto \int f\varphi\,dx$.
 
-The distributional approach: a generalized function $f$ is defined by its action on test functions: $\varphi \mapsto \langle f, \varphi \rangle = \int f\varphi \, dx$.
-
-Two locally integrable functions that differ on a set of measure zero define the same distribution (their integrals against test functions are identical). This means distributions automatically quotient out null sets — a feature, not a bug, since $L^p$ spaces already do the same.
+Two locally integrable functions that differ on a set of measure zero define the same distribution; their integrals against test functions are identical. This means distributions automatically quotient out null sets, exactly as $L^p$ spaces do. Pointwise values were always a fiction in $L^p$; distributions just admit the fiction openly and stop pretending we can evaluate at a point.
 
 ### The topology on $\mathcal{D}'(\Omega)$
 
-The space of distributions carries a natural topology: the **weak-* topology**, where $u_j \to u$ in $\mathcal{D}'(\Omega)$ if $\langle u_j, \varphi \rangle \to \langle u, \varphi \rangle$ for every $\varphi \in \mathcal{D}(\Omega)$. This is the topology of pointwise convergence on test functions. It is weaker than the strong topology (uniform convergence on bounded sets of test functions) but sufficient for most purposes.
+The space of distributions carries the **weak-* topology**: $u_j \to u$ in $\mathcal{D}'(\Omega)$ iff $\langle u_j, \varphi \rangle \to \langle u, \varphi \rangle$ for every $\varphi \in \mathcal{D}(\Omega)$. This is pointwise convergence on test functions, weaker than uniform convergence on bounded sets but sufficient for the bulk of PDE theory.
 
-A key result: every distribution is the limit (in $\mathcal{D}'$) of a sequence of smooth functions. More precisely, if $u \in \mathcal{D}'(\Omega)$ and $\rho_\epsilon$ is a standard mollifier, then $u * \rho_\epsilon \to u$ in $\mathcal{D}'$ as $\epsilon \to 0$ (where the convolution is defined appropriately). This density of smooth functions in $\mathcal{D}'$ is analogous to the density of $C_c^\infty$ in $L^p$, but holds in a much more general setting.
+A key result: every distribution is the limit (in $\mathcal{D}'$) of a sequence of smooth functions. If $u \in \mathcal{D}'(\Omega)$ and $\rho_\epsilon$ is a standard mollifier, then $u * \rho_\epsilon \to u$ in $\mathcal{D}'$ as $\epsilon \to 0$ (where the convolution is defined by transposition). Distributions are thus "limits of smooth functions" in a rigorous sense — exactly as real numbers are limits of rationals, and exactly as $L^p$ functions are limits of simple functions.
 
 ---
 
-## Test Functions D(Omega) and the Space of Distributions D'(Omega)
+## Test Functions $\mathcal{D}(\Omega)$ and Distributions $\mathcal{D}'(\Omega)$
 
 ### The space of test functions
 
@@ -72,143 +69,111 @@ $$
 \mathcal{D}(\Omega) = C_c^\infty(\Omega),
 $$
 
-the space of infinitely differentiable functions with compact support in $\Omega$.
+the space of infinitely differentiable functions with compact support in $\Omega$. The standard example is the bump $\varphi(x) = \exp(-1/(1-|x|^2))$ for $|x| < 1$, extended by zero. It is $C^\infty$ everywhere (the matching of all derivatives at $|x|=1$ is a delicate calculus exercise), nonnegative, and supported in the closed unit ball.
 
 **Topology on $\mathcal{D}(\Omega)$.** A sequence $\varphi_j \to 0$ in $\mathcal{D}(\Omega)$ if:
-1. There exists a compact set $K \subset \Omega$ such that $\text{supp}(\varphi_j) \subset K$ for all $j$.
+1. There exists a compact $K \subset \Omega$ such that $\text{supp}(\varphi_j) \subset K$ for all $j$.
 2. For every multi-index $\alpha$, $\partial^\alpha \varphi_j \to 0$ uniformly on $K$.
 
-This is *not* a norm topology — it is an inductive limit topology, the finest locally convex topology making all inclusion maps $C_c^\infty(K) \hookrightarrow C_c^\infty(\Omega)$ continuous. The precise details of this topology are technically demanding but rarely needed in applications; what matters is the sequential characterization above.
-
-**Existence of test functions.** A standard construction: let $\rho(x) = Ce^{-1/(1-|x|^2)}$ for $|x| < 1$ and $\rho(x) = 0$ for $|x| \ge 1$, where $C$ is chosen so that $\int \rho = 1$. Then $\rho \in C_c^\infty(\mathbb{R}^n)$, and $\rho_\epsilon(x) = \epsilon^{-n}\rho(x/\epsilon)$ is a smooth mollifier supported in $B(0, \epsilon)$.
+This is *not* a norm topology; it is an inductive limit, the finest locally convex topology making the inclusions $C_c^\infty(K) \hookrightarrow C_c^\infty(\Omega)$ continuous for each compact $K \subset \Omega$. The detail matters because it is what guarantees the dual $\mathcal{D}'(\Omega)$ is large enough to contain the objects we want.
 
 ### Distributions
 
-**Definition.** A **distribution** on $\Omega$ is a continuous linear functional on $\mathcal{D}(\Omega)$. The space of all distributions is denoted $\mathcal{D}'(\Omega)$.
-
-Continuity means: if $\varphi_j \to 0$ in $\mathcal{D}(\Omega)$, then $\langle u, \varphi_j \rangle \to 0$. Equivalently, for every compact $K \subset \Omega$, there exist $C > 0$ and $N \in \mathbb{N}$ such that
+A **distribution** on $\Omega$ is a continuous linear functional $u: \mathcal{D}(\Omega) \to \mathbb{C}$ — equivalently, a linear $u$ such that for every compact $K \subset \Omega$, there exist $C, N \ge 0$ with
 
 $$
 |\langle u, \varphi \rangle| \le C \sum_{|\alpha| \le N} \sup_K |\partial^\alpha \varphi| \quad \text{for all } \varphi \in C_c^\infty(K).
 $$
 
-The smallest such $N$ that works for all compact $K$ (if it exists globally) is the **order** of the distribution. Not all distributions have finite order.
+The smallest such $N$ is the **order** of $u$ on $K$. Locally integrable functions are distributions of order $0$; the Dirac delta is order $0$; its derivatives are higher order.
 
-### Embedding of functions into distributions
+Key examples:
 
-Every locally integrable function $f \in L^1_{\text{loc}}(\Omega)$ defines a distribution via
+1. **Locally integrable functions.** Every $f \in L^1_{\text{loc}}(\Omega)$ defines a distribution by $\langle f, \varphi \rangle = \int_\Omega f\varphi\,dx$.
 
-$$
-\langle T_f, \varphi \rangle = \int_\Omega f(x)\varphi(x) \, dx.
-$$
+2. **Dirac delta.** $\langle \delta_a, \varphi \rangle = \varphi(a)$. This is *not* of the form above; no $L^1_{\text{loc}}$ function can satisfy the defining identity (taking $\varphi$ a sequence of bumps shrinking to $a$ shows $f$ would have to "concentrate" in a way no function permits).
 
-The map $f \mapsto T_f$ is injective (if $\int f\varphi = 0$ for all test functions $\varphi$, then $f = 0$ a.e.) and continuous. We identify $f$ with $T_f$ and write $\langle f, \varphi \rangle$ for the pairing.
+3. **Heaviside.** $H(x) = 1$ for $x \ge 0$, $0$ otherwise. Its distributional derivative is $\delta$ — an integration by parts: $\langle H', \varphi \rangle = -\langle H, \varphi' \rangle = -\int_0^\infty \varphi'(x)\,dx = \varphi(0)$.
 
-This embedding is the bridge between classical and distributional analysis: every $L^p$ function, every continuous function, every measurable locally bounded function is a distribution. But distributions are strictly more general.
+4. **Principal value $1/x$.** The function $1/x$ on $\mathbb{R}$ is not locally integrable near $0$, but the principal value $\langle \mathrm{p.v.} \tfrac{1}{x}, \varphi \rangle = \lim_{\epsilon \to 0}\int_{|x|>\epsilon}\varphi(x)/x\,dx$ defines a distribution of order $1$.
 
-### Key examples
+![Distributions like Dirac delta acting on test functions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/11-distributions-sobolev/fa_v2_11_2_distributions.png)
 
-**The Dirac delta.** $\langle \delta, \varphi \rangle = \varphi(0)$. This is a distribution of order 0. It cannot be represented by any locally integrable function.
+### Operations on distributions
 
-**The principal value distribution.** $\langle \text{p.v.}\frac{1}{x}, \varphi \rangle = \lim_{\epsilon \to 0^+} \int_{|x| > \epsilon} \frac{\varphi(x)}{x} \, dx$. This is a distribution of order 1.
+The unifying principle: define every operation by formal duality. If $T$ is a continuous linear map on test functions with adjoint $T^*$, define $Tu$ on distributions by $\langle Tu, \varphi \rangle = \langle u, T^*\varphi \rangle$.
 
-**Derivatives of delta.** $\langle \delta^{(k)}, \varphi \rangle = (-1)^k \varphi^{(k)}(0)$. These are distributions of order $k$.
+**Differentiation.** $\langle \partial^\alpha u, \varphi \rangle = (-1)^{|\alpha|}\langle u, \partial^\alpha \varphi \rangle$. The sign comes from integration by parts: $\int \partial f \cdot \varphi = -\int f \cdot \partial\varphi$ for $f$ smooth and $\varphi$ compactly supported. This formula extends the chain rule to the entire dual space; *every* distribution is infinitely differentiable in the distributional sense, and differentiation is continuous in the weak-* topology. Compare to the classical situation, where differentiation is unbounded and fails to commute with limits.
 
-### The support of a distribution
+**Multiplication by smooth functions.** If $a \in C^\infty(\Omega)$, $\langle au, \varphi \rangle = \langle u, a\varphi \rangle$ — the test function $a\varphi$ is again $C_c^\infty$.
 
-A distribution $u \in \mathcal{D}'(\Omega)$ is said to vanish on an open set $U \subset \Omega$ if $\langle u, \varphi \rangle = 0$ for all $\varphi \in C_c^\infty(U)$. The **support** of $u$ is the complement of the largest open set on which $u$ vanishes:
+**Warning: no distributional product.** Multiplication of two arbitrary distributions is *not* defined. The product $\delta \cdot \delta$ has no canonical meaning; attempts to define it lead to renormalization in QFT. Schwartz's impossibility theorem makes this precise: there is no associative, commutative multiplication on $\mathcal{D}'$ that extends pointwise multiplication on continuous functions and satisfies the Leibniz rule. The deepest difficulties of nonlinear PDE and quantum field theory are downstream of this single negative result.
 
-$$
-\text{supp}(u) = \Omega \setminus \bigcup \{U \text{ open} : u|_U = 0\}.
-$$
+### Why distributional derivatives are unique when classical ones exist
 
-For the Dirac delta, $\text{supp}(\delta) = \{0\}$. A fundamental structural theorem characterizes distributions with point support:
+A natural worry: does the new derivative agree with the old one when both are defined? Yes. If $f \in C^1$, then for any $\varphi \in C_c^\infty$, integration by parts gives $\int f'\varphi = -\int f\varphi'$, which is exactly the distributional definition. The distributional derivative coincides with the classical one for $C^1$ functions, agrees with the a.e. derivative for $W^{1,p}$ functions, and disagrees with both for genuinely singular objects like $H'$ (because the classical derivative does not exist there at all).
 
-**Theorem.** If $u \in \mathcal{D}'(\mathbb{R}^n)$ has $\text{supp}(u) = \{0\}$, then $u$ is a finite linear combination of derivatives of $\delta$: $u = \sum_{|\alpha| \le N} c_\alpha \partial^\alpha \delta$ for some $N$ and constants $c_\alpha$.
+A worked example for $|x|$ on $\mathbb{R}$: it is differentiable everywhere except at the origin, where the classical derivative is undefined. The distributional derivative is the sign function $\mathrm{sgn}(x) = H(x) - H(-x)$, which is defined a.e. and agrees with the classical derivative wherever the latter exists. Differentiating once more: $|x|'' = (\mathrm{sgn})' = 2\delta$, since the sign function jumps by $2$ at the origin. This concrete computation — the second distributional derivative of $|x|$ is $2\delta$ — is one I find myself rederiving every couple of months. It is the standard sanity check that one's distributional bookkeeping is correct.
 
-This result shows that the only "singularities" that can be concentrated at a single point are those generated by delta functions and their derivatives — no exotic new objects lurk at a point.
+### Convolution and mollification
 
----
-
-## Operations on Distributions: Derivatives, Multiplication, Convolution
-
-### Distributional derivatives
-
-The key operation. For a smooth function $f$, integration by parts gives
+If $u \in \mathcal{D}'(\mathbb{R}^n)$ has compact support and $\varphi \in C^\infty(\mathbb{R}^n)$, the convolution $u * \varphi$ is defined and is $C^\infty$:
 
 $$
-\int f'\varphi \, dx = -\int f\varphi' \, dx \quad \text{for all } \varphi \in C_c^\infty.
+(u * \varphi)(x) = \langle u_y, \varphi(x - y)\rangle.
 $$
 
-This motivates:
+More generally, convolution with a compactly supported distribution is well-defined for any distribution. Key properties:
 
-**Definition.** The **distributional derivative** $\partial^\alpha u$ of a distribution $u \in \mathcal{D}'(\Omega)$ is defined by
+- $\delta * f = f$ for any distribution $f$ — the delta is the convolution identity.
+- $\partial^\alpha(u * v) = (\partial^\alpha u) * v = u * (\partial^\alpha v)$ — derivatives can be shifted between factors.
+- **Mollification:** if $\rho_\epsilon(x) = \epsilon^{-n}\rho(x/\epsilon)$ is a standard mollifier (positive, $C_c^\infty$, integral $1$, supported in the unit ball), then $u * \rho_\epsilon \in C^\infty$ for any distribution $u$, and $u * \rho_\epsilon \to u$ in $\mathcal{D}'$ as $\epsilon \to 0$.
 
-$$
-\langle \partial^\alpha u, \varphi \rangle = (-1)^{|\alpha|} \langle u, \partial^\alpha \varphi \rangle \quad \text{for all } \varphi \in \mathcal{D}(\Omega).
-$$
-
-**Every distribution is infinitely differentiable** in the distributional sense. This is a dramatic departure from classical analysis, where differentiability is a restrictive condition.
-
-**Examples.**
-
-1. **Heaviside function.** Let $H(x) = \mathbf{1}_{[0,\infty)}(x)$. Then $\langle H', \varphi \rangle = -\langle H, \varphi' \rangle = -\int_0^\infty \varphi'(x) \, dx = \varphi(0) = \langle \delta, \varphi \rangle$. So $H' = \delta$ in the distributional sense — the derivative of the step function is the delta function.
-
-2. **Absolute value.** $|x|' = \text{sgn}(x)$ and $|x|'' = 2\delta$ (both in the distributional sense). The second derivative of $|x|$, which doesn't exist classically at the origin, is twice the Dirac delta.
-
-3. **$\log|x|$ in one dimension.** The distributional derivative is $\text{p.v.}\frac{1}{x}$, the principal value distribution.
-
-### Multiplication by smooth functions
-
-If $a \in C^\infty(\Omega)$ and $u \in \mathcal{D}'(\Omega)$, define $\langle au, \varphi \rangle = \langle u, a\varphi \rangle$. This is well-defined since $a\varphi \in C_c^\infty(\Omega)$ whenever $\varphi$ is.
-
-**Warning.** Multiplication of two arbitrary distributions is *not* defined in general. The product $\delta \cdot \delta$ has no canonical meaning, and attempts to define it lead to the difficulties of renormalization in quantum field theory. Schwartz's impossibility theorem makes this precise: there is no associative, commutative multiplication on $\mathcal{D}'$ that extends the pointwise product of continuous functions and satisfies the Leibniz rule.
-
-### Convolution
-
-If $u \in \mathcal{D}'(\mathbb{R}^n)$ has compact support and $\varphi \in C^\infty(\mathbb{R}^n)$, the convolution $u * \varphi$ is defined and is $C^\infty$. More generally, convolution with a compactly supported distribution is always well-defined:
-
-$$
-\langle u * v, \varphi \rangle = \langle u(x), \langle v(y), \varphi(x+y) \rangle \rangle.
-$$
-
-Key properties:
-- $\delta * f = f$ for any distribution $f$ (the delta function is the convolution identity).
-- $\partial^\alpha(u * v) = (\partial^\alpha u) * v = u * (\partial^\alpha v)$ (derivatives can be shifted between the factors).
-- Mollification: $f * \rho_\epsilon \in C^\infty$ for any distribution $f$ with compact support, and $f * \rho_\epsilon \to f$ in $\mathcal{D}'$ as $\epsilon \to 0$.
+The mollification fact is the workhorse of distribution theory. It says every distribution is approximable by smooth functions, with the approximation explicit and computable. Most proofs in PDE follow the pattern: prove the result for smooth $u$, then mollify and pass to the limit.
 
 ### Tempered distributions and the Fourier transform
 
-The **Schwartz space** $\mathcal{S}(\mathbb{R}^n)$ consists of smooth functions whose derivatives all decay faster than any polynomial: $\sup_x |x^\alpha \partial^\beta \varphi(x)| < \infty$ for all multi-indices $\alpha, \beta$. Its dual $\mathcal{S}'(\mathbb{R}^n)$ is the space of **tempered distributions**.
+The **Schwartz space** $\mathcal{S}(\mathbb{R}^n)$ consists of smooth functions whose derivatives all decay faster than any polynomial: $\sup_x |x^\alpha \partial^\beta \varphi(x)| < \infty$ for all multi-indices. Its dual $\mathcal{S}'(\mathbb{R}^n)$ is the space of **tempered distributions** — strictly smaller than $\mathcal{D}'$ but large enough to include polynomials, $L^p$ for all $p$, $\delta$ and its derivatives, and most things one cares about in harmonic analysis.
 
-The Fourier transform extends to an isomorphism $\mathcal{F}: \mathcal{S}' \to \mathcal{S}'$ via duality: $\langle \hat{u}, \varphi \rangle = \langle u, \hat{\varphi} \rangle$. This gives meaning to the Fourier transform of polynomials, $\delta$, and many other objects that fall outside the scope of $L^1$ or $L^2$ Fourier analysis.
+The Fourier transform extends to an isomorphism $\mathcal{F}: \mathcal{S}' \to \mathcal{S}'$ via $\langle \hat{u}, \varphi \rangle = \langle u, \hat{\varphi} \rangle$, exploiting the fact that $\mathcal{F}$ already maps $\mathcal{S}$ to itself bicontinuously. Key formulas:
 
-**Key formulas in $\mathcal{S}'$:**
-- $\hat{\delta} = 1$ (the Fourier transform of the delta function is the constant function 1).
-- $\hat{1} = (2\pi)^n \delta$ (the Fourier transform of the constant function 1 is $(2\pi)^n$ times delta).
-- $\widehat{\partial^\alpha u} = (i\xi)^\alpha \hat{u}$ (differentiation becomes multiplication by polynomials — valid for all tempered distributions, not just functions).
+- $\hat{\delta} = 1$,
+- $\hat{1} = (2\pi)^n \delta$,
+- $\widehat{\partial^\alpha u} = (i\xi)^\alpha \hat{u}$ — differentiation becomes multiplication by polynomials, valid for *all* tempered distributions.
 
-These identities are the foundation of the Fourier-analytic approach to PDE: solving $-\Delta u = f$ becomes, after Fourier transform, $|\xi|^2 \hat{u} = \hat{f}$, so $\hat{u} = \hat{f}/|\xi|^2$. The difficulty is purely in the inverse transform (and the behavior at $\xi = 0$), not in the algebraic step.
+These identities power Fourier-analytic PDE: solving $-\Delta u = f$ becomes $|\xi|^2\hat{u} = \hat{f}$, so $\hat{u} = \hat{f}/|\xi|^2$ — the difficulty is purely in the inverse transform and the behaviour at $\xi = 0$, not in the algebraic step.
 
 ### Fundamental solutions
 
-A **fundamental solution** (or Green's function) for a linear differential operator $L$ is a distribution $E$ satisfying $LE = \delta$. For the Laplacian in $\mathbb{R}^n$ ($n \ge 3$):
+A **fundamental solution** for a linear differential operator $L$ is a distribution $E$ satisfying $LE = \delta$. For the Laplacian on $\mathbb{R}^n$ ($n \ge 3$):
 
 $$
 E(x) = \frac{1}{n(n-2)\omega_n|x|^{n-2}},
 $$
 
-where $\omega_n$ is the volume of the unit ball. In $\mathbb{R}^2$, $E(x) = -\frac{1}{2\pi}\log|x|$; in $\mathbb{R}^1$, $E(x) = -\frac{1}{2}|x|$.
+where $\omega_n$ is the volume of the unit ball. In $\mathbb{R}^2$, $E(x) = -\frac{1}{2\pi}\log|x|$; in $\mathbb{R}^1$, $E(x) = -\frac{1}{2}|x|$. The solution to $-\Delta u = f$ (for suitable $f$) is then $u = E * f$, the convolution with the fundamental solution. This is the distributional incarnation of classical potential theory.
 
-The solution to $-\Delta u = f$ (for suitable $f$) is then $u = E * f$ — convolution with the fundamental solution. This is the distributional incarnation of the classical potential-theoretic approach to electrostatics.
-
-For the heat equation $(\partial_t - \Delta)u = 0$, the fundamental solution is the heat kernel $K(x, t) = (4\pi t)^{-n/2}e^{-|x|^2/(4t)}$ for $t > 0$, which we encountered in the semigroup article. The distributional perspective clarifies why this kernel appears: it is the unique tempered distribution satisfying $(\partial_t - \Delta)K = \delta(x)\delta(t)$.
+For the heat equation $(\partial_t - \Delta)u = 0$, the fundamental solution is the heat kernel $K(x, t) = (4\pi t)^{-n/2}e^{-|x|^2/(4t)}$ for $t > 0$, the same kernel that appeared in the semigroup article. The distributional perspective clarifies why this kernel appears: it is the unique tempered distribution satisfying $(\partial_t - \Delta)K = \delta(x)\delta(t)$.
 
 ---
 
-## Sobolev Spaces W^{k,p} and H^k
+## Weak Derivatives and Sobolev Spaces
 
-### Definition
+### From distributional to weak derivative
+
+Distributional derivatives always exist; they are abstract objects in $\mathcal{D}'$. For PDE we want concrete derivatives that live in $L^p$.
+
+**Definition.** $u \in L^1_{\text{loc}}(\Omega)$ has a **weak derivative** $g \in L^1_{\text{loc}}(\Omega)$ in the direction $\partial^\alpha$ if
+
+$$
+\int_\Omega u\,\partial^\alpha\varphi\,dx = (-1)^{|\alpha|}\int_\Omega g\,\varphi\,dx \quad \text{for all } \varphi \in C_c^\infty(\Omega).
+$$
+
+The weak derivative, when it exists, is unique a.e. and coincides with the classical derivative when both make sense. Many functions that fail to be differentiable classically have weak derivatives: $|x|$ has weak derivative $\mathrm{sgn}(x)$; $\max(u, 0)$ has weak derivative $u'\cdot\mathbf{1}_{u>0}$; absolutely continuous functions on the line have weak derivatives equal to their classical a.e. derivatives.
+
+![Weak derivative defined via integration against test functions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/11-distributions-sobolev/fa_v2_11_3_weak_deriv.png)
+
+### The Sobolev space $W^{k,p}$
 
 **Definition.** For $k \in \mathbb{N}_0$, $1 \le p \le \infty$, and $\Omega \subseteq \mathbb{R}^n$ open, the **Sobolev space** $W^{k,p}(\Omega)$ is
 
@@ -216,7 +181,7 @@ $$
 W^{k,p}(\Omega) = \{u \in L^p(\Omega) : \partial^\alpha u \in L^p(\Omega) \text{ for all } |\alpha| \le k\},
 $$
 
-where $\partial^\alpha u$ is the distributional derivative. The norm is
+where $\partial^\alpha u$ denotes the weak (equivalently, distributional) derivative. The norm is
 
 $$
 \|u\|_{W^{k,p}} = \left(\sum_{|\alpha| \le k} \|\partial^\alpha u\|_{L^p}^p\right)^{1/p} \quad (1 \le p < \infty),
@@ -224,33 +189,47 @@ $$
 
 with the obvious modification for $p = \infty$.
 
-**Notation.** $H^k(\Omega) = W^{k,2}(\Omega)$. These are Hilbert spaces with inner product $\langle u, v \rangle_{H^k} = \sum_{|\alpha| \le k} \langle \partial^\alpha u, \partial^\alpha v \rangle_{L^2}$.
+**Notation.** $H^k(\Omega) = W^{k,2}(\Omega)$. These are Hilbert spaces with inner product $\langle u, v \rangle_{H^k} = \sum_{|\alpha| \le k} \langle \partial^\alpha u, \partial^\alpha v \rangle_{L^2}$. The Hilbert structure makes $H^k$ the natural setting for the Lax-Milgram theorem and variational methods.
 
-**Definition.** $W_0^{k,p}(\Omega)$ is the closure of $C_c^\infty(\Omega)$ in $W^{k,p}(\Omega)$. Intuitively, these are Sobolev functions that "vanish at the boundary" in a generalized sense. Similarly, $H_0^k(\Omega) = W_0^{k,2}(\Omega)$.
+**Vanishing trace.** $W_0^{k,p}(\Omega)$ is the closure of $C_c^\infty(\Omega)$ in $W^{k,p}(\Omega)$. Intuitively, these are Sobolev functions that "vanish at the boundary" in a generalized sense; the trace theorem below makes this precise.
 
 ### Completeness
 
-**Theorem.** $W^{k,p}(\Omega)$ is a Banach space. For $p = 2$, $H^k(\Omega)$ is a Hilbert space.
+**Theorem.** $W^{k,p}(\Omega)$ is a Banach space; $H^k(\Omega)$ is a Hilbert space.
 
-*Proof.* Let $(u_j)$ be a Cauchy sequence in $W^{k,p}$. For each $|\alpha| \le k$, the sequence $(\partial^\alpha u_j)$ is Cauchy in $L^p(\Omega)$. By completeness of $L^p$, there exist functions $u_\alpha \in L^p$ with $\partial^\alpha u_j \to u_\alpha$ in $L^p$. Set $u = u_0$ (the limit of $u_j$ itself in $L^p$). We claim $\partial^\alpha u = u_\alpha$ in the distributional sense. For any test function $\varphi$:
+*Proof sketch.* Let $(u_j)$ be Cauchy in $W^{k,p}$. For each $|\alpha| \le k$, the sequence $(\partial^\alpha u_j)$ is Cauchy in $L^p(\Omega)$. By completeness of $L^p$, there exist $u_\alpha \in L^p$ with $\partial^\alpha u_j \to u_\alpha$ in $L^p$. Set $u = u_0$. We claim $\partial^\alpha u = u_\alpha$ in the distributional sense:
 
 $$
-\langle \partial^\alpha u, \varphi \rangle = (-1)^{|\alpha|}\langle u, \partial^\alpha \varphi \rangle = (-1)^{|\alpha|}\lim_j \langle u_j, \partial^\alpha \varphi \rangle = \lim_j \langle \partial^\alpha u_j, \varphi \rangle = \langle u_\alpha, \varphi \rangle.
+\langle \partial^\alpha u, \varphi \rangle = (-1)^{|\alpha|}\langle u, \partial^\alpha\varphi \rangle = (-1)^{|\alpha|}\lim_j \langle u_j, \partial^\alpha\varphi \rangle = \lim_j \langle \partial^\alpha u_j, \varphi \rangle = \langle u_\alpha, \varphi \rangle.
 $$
 
-So $u \in W^{k,p}$ and $u_j \to u$ in $W^{k,p}$. $\square$
+So $u \in W^{k,p}$ and $u_j \to u$. $\square$
+
+### Numerical example: regularity of $|x|^\alpha$
+
+Take $u(x) = |x|^\alpha$ on the unit ball $B \subset \mathbb{R}^n$. When does $u \in W^{1,p}(B)$? The weak gradient is $\nabla u = \alpha|x|^{\alpha-2}x$ (extending the classical formula), and
+
+$$
+\int_B |\nabla u|^p\,dx = |\alpha|^p \int_B |x|^{p(\alpha-1)}\,dx = |\alpha|^p \omega_{n-1}\int_0^1 r^{p(\alpha-1)+n-1}\,dr.
+$$
+
+This integral converges iff $p(\alpha-1) + n - 1 > -1$, i.e., $\alpha > 1 - n/p$. So $|x|^\alpha \in W^{1,p}(B)$ exactly for $\alpha > 1 - n/p$. In $n = 3$, $p = 2$ this gives $\alpha > -1/2$, so $|x|^{-1/2}$ is barely *not* in $H^1$ but $|x|^{-1/4}$ is. This kind of explicit threshold guides what regularity to expect for solutions of singular PDE.
+
+A second numerical example: Sobolev embedding boundary in three dimensions. With $n = 3$ and $p = 2$, $p^* = 6$, so $H^1(\mathbb{R}^3) \hookrightarrow L^6(\mathbb{R}^3)$. Concretely, the Sobolev inequality says $\|u\|_{L^6} \le C\|\nabla u\|_{L^2}$ for any compactly supported smooth $u$. The optimal constant $C$ was computed by Talenti in 1976: $C = \frac{1}{\pi}\sqrt[3]{\frac{1}{4}\Gamma(3/2)/\Gamma(3)}$, with extremals exactly the Aubin-Talenti bubbles $u_\epsilon(x) = c_n(\epsilon^2 + |x|^2)^{-(n-2)/2}$ (here $c_n$ is a normalization). Plug in $\epsilon = 1$, $n = 3$: $u_1(x) = c_3(1 + |x|^2)^{-1/2}$, and $\|u_1\|_{L^6}/\|\nabla u_1\|_{L^2} = C$ exactly. The fact that extremals exist (Aubin, Talenti) is delicate; the fact that they form a non-compact orbit under scaling $u \mapsto \epsilon^{1/2}u(\epsilon x)$ is the source of every concentration phenomenon in nonlinear analysis.
 
 ### Fractional and negative Sobolev spaces
 
-For $s \in \mathbb{R}$ (not necessarily an integer), one can define $H^s(\mathbb{R}^n)$ via the Fourier transform:
+For $s \in \mathbb{R}$ (not necessarily an integer), define $H^s(\mathbb{R}^n)$ via the Fourier transform:
 
 $$
 H^s(\mathbb{R}^n) = \{u \in \mathcal{S}'(\mathbb{R}^n) : (1 + |\xi|^2)^{s/2}\hat{u} \in L^2(\mathbb{R}^n)\},
 $$
 
-with norm $\|u\|_{H^s} = \|(1 + |\xi|^2)^{s/2}\hat{u}\|_{L^2}$. For $s < 0$, $H^s$ contains distributions that are not functions. The space $H^{-k}(\Omega)$ is naturally identified with the dual of $H_0^k(\Omega)$.
+with norm $\|u\|_{H^s} = \|(1 + |\xi|^2)^{s/2}\hat{u}\|_{L^2}$. For $s < 0$, $H^s$ contains distributions that are not functions. The space $H^{-k}(\Omega)$ is the dual of $H_0^k(\Omega)$.
 
-The Dirac delta $\delta \in H^s(\mathbb{R}^n)$ if and only if $s < -n/2$ (since $\hat{\delta} = 1$, and $(1 + |\xi|^2)^{s/2} \in L^2$ iff $s < -n/2$).
+The Dirac delta lies in $H^s(\mathbb{R}^n)$ iff $s < -n/2$ (since $\hat{\delta} = 1$ and $(1 + |\xi|^2)^{s/2} \in L^2$ iff $s < -n/2$). So $\delta \in H^{-1-\epsilon}(\mathbb{R}) \setminus H^{-1/2}(\mathbb{R})$, and the higher the dimension, the more "singular" $\delta$ becomes.
+
+![Sobolev embedding chain for varying regularity](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/11-distributions-sobolev/fa_v2_11_4_sobolev_chain.png)
 
 ### Density and approximation
 
@@ -258,27 +237,25 @@ A fundamental property of Sobolev spaces is that smooth functions are dense:
 
 **Theorem (Meyers-Serrin).** $C^\infty(\Omega) \cap W^{k,p}(\Omega)$ is dense in $W^{k,p}(\Omega)$ for $1 \le p < \infty$.
 
-When $\Omega$ has sufficiently regular boundary, even $C^\infty(\overline{\Omega})$ is dense in $W^{k,p}(\Omega)$. This approximation property is essential for proving many results: one first establishes the result for smooth functions (where classical calculus applies) and then extends by density.
+When $\Omega$ has Lipschitz boundary, even $C^\infty(\overline{\Omega})$ is dense in $W^{k,p}(\Omega)$. This approximation property is essential for proving theorems: one first establishes the result for smooth functions (where classical calculus applies) and then extends by density.
 
 ### Poincare inequality
 
-**Theorem (Poincare inequality).** Let $\Omega \subset \mathbb{R}^n$ be bounded and connected. There exists $C = C(\Omega, p)$ such that for all $u \in W_0^{1,p}(\Omega)$:
+**Theorem (Poincare).** Let $\Omega \subset \mathbb{R}^n$ be bounded and connected. There exists $C = C(\Omega, p)$ such that for all $u \in W_0^{1,p}(\Omega)$,
 
 $$
 \|u\|_{L^p(\Omega)} \le C\|\nabla u\|_{L^p(\Omega)}.
 $$
 
-This inequality says that for functions vanishing on the boundary, the $L^p$ norm is controlled by the gradient alone. It is the key ingredient in showing that $\|\nabla u\|_{L^p}$ is an equivalent norm on $W_0^{1,p}(\Omega)$, and it appears in every application of the Lax-Milgram theorem to elliptic PDE (as we will see in the next article).
+For functions vanishing on the boundary, the $L^p$ norm is controlled by the gradient alone. This is the key step in showing $\|\nabla u\|_{L^p}$ is an equivalent norm on $W_0^{1,p}(\Omega)$, and it is the inequality that powers every application of Lax-Milgram to elliptic PDE in the next article. The Poincare constant scales like the diameter of $\Omega$: for a ball of radius $R$, $C \sim R$.
 
-The Poincare constant $C$ depends on the geometry of $\Omega$ — specifically, on its diameter and shape. For a ball of radius $R$, $C \sim R$.
-
-A variant, the **Poincare-Wirtinger inequality**, holds for functions without boundary conditions: $\|u - \bar{u}\|_{L^p} \le C\|\nabla u\|_{L^p}$ where $\bar{u} = \frac{1}{|\Omega|}\int_\Omega u$ is the mean value. This is the relevant inequality for Neumann problems, where the solution is determined only up to an additive constant.
+A variant, the **Poincare-Wirtinger inequality**, holds for functions without boundary conditions: $\|u - \bar{u}\|_{L^p} \le C\|\nabla u\|_{L^p}$ where $\bar{u}$ is the mean of $u$ over $\Omega$. This is the relevant inequality for Neumann problems, where the solution is determined only up to an additive constant.
 
 ---
 
 ## Sobolev Embedding Theorems
 
-The Sobolev embedding theorems answer a fundamental question: if a function has $k$ derivatives in $L^p$, what can we say about its pointwise regularity?
+The embedding theorems answer a fundamental question: if a function has $k$ derivatives in $L^p$, what can we say about its pointwise regularity?
 
 ### Sobolev inequality (Gagliardo-Nirenberg-Sobolev)
 
@@ -288,9 +265,9 @@ $$
 \|u\|_{L^{p^*}} \le C\|\nabla u\|_{L^p}.
 $$
 
-Consequently, $W^{1,p}(\mathbb{R}^n) \hookrightarrow L^{p^*}(\mathbb{R}^n)$ continuously.
+Consequently $W^{1,p}(\mathbb{R}^n) \hookrightarrow L^{p^*}(\mathbb{R}^n)$ continuously.
 
-**Interpretation.** Having one derivative in $L^p$ gives membership in a *better* $L^q$ space (with $q = p^* > p$). The gain in integrability is determined by the dimension $n$: higher dimensions give less improvement.
+**Interpretation.** Having one derivative in $L^p$ promotes you to a *better* $L^q$ space, with $q = p^* > p$. The gain is determined by the dimension: in $n = 3$, $p = 2$ gives $p^* = 6$, so $H^1(\mathbb{R}^3) \hookrightarrow L^6(\mathbb{R}^3)$ — every gradient-square-integrable function is sixth-power integrable. As $n$ grows, the gain shrinks; as $n \to \infty$, $p^* \to p$ and the embedding becomes trivial. Higher dimensions give less integrability improvement.
 
 ### Morrey's inequality
 
@@ -302,63 +279,43 @@ $$
 
 where $\gamma = 1 - n/p$ and $C^{0,\gamma}$ is the space of Holder continuous functions with exponent $\gamma$.
 
-**Interpretation.** When $p > n$, having one derivative in $L^p$ guarantees *continuity* (and even Holder continuity). This is the threshold: $p < n$ gives integrability improvement; $p > n$ gives regularity.
+When $p > n$, having one derivative in $L^p$ guarantees *continuity* and even Holder continuity. Crossing the threshold $p = n$ is the key transition: $p < n$ gives integrability improvement, $p > n$ gives pointwise regularity. This is why $H^1(\mathbb{R})$ functions are continuous (since $1 < 2 = p$ for the trace dimension) but $H^1(\mathbb{R}^2)$ and $H^1(\mathbb{R}^3)$ functions need not be — a one-derivative gain is not enough to escape integrability for $n \ge 2$.
 
-### The critical case and general embeddings
+### General embeddings
 
 For $kp < n$: $W^{k,p}(\Omega) \hookrightarrow L^q(\Omega)$ for $q \le np/(n - kp)$.
 
-For $kp = n$: $W^{k,p}(\Omega) \hookrightarrow L^q(\Omega)$ for all $q < \infty$ (but not $L^\infty$ in general — this is the borderline case, where logarithmic corrections appear).
+For $kp = n$: $W^{k,p}(\Omega) \hookrightarrow L^q(\Omega)$ for all $q < \infty$ — borderline case where logarithmic corrections appear.
 
-For $kp > n$: $W^{k,p}(\Omega) \hookrightarrow C^{m,\gamma}(\overline{\Omega})$ where $m = k - \lfloor n/p \rfloor - 1$ and $\gamma$ depends on the fractional part. In this regime, Sobolev functions are classically differentiable — derivatives exist pointwise, not just in the distributional sense.
+For $kp > n$: $W^{k,p}(\Omega) \hookrightarrow C^{m,\gamma}(\overline{\Omega})$ where $m = k - \lfloor n/p \rfloor - 1$ and $\gamma$ depends on the fractional part. In this regime, Sobolev functions are classically differentiable.
 
 ### Rellich-Kondrachov compactness theorem
 
-**Theorem.** Let $\Omega \subset \mathbb{R}^n$ be bounded with Lipschitz boundary and $1 \le p < n$. Then the embedding $W^{1,p}(\Omega) \hookrightarrow L^q(\Omega)$ is **compact** for $1 \le q < p^*$.
+**Theorem.** Let $\Omega \subset \mathbb{R}^n$ be bounded with Lipschitz boundary and $1 \le p < n$. Then $W^{1,p}(\Omega) \hookrightarrow L^q(\Omega)$ is **compact** for $1 \le q < p^*$.
 
-**Significance.** This is the compactness result that powers variational methods in PDE. The idea: a bounded sequence in $W^{1,p}$ has a subsequence converging in $L^q$ (for subcritical $q$). This is the infinite-dimensional analogue of the Bolzano-Weierstrass theorem, replacing "bounded and closed" by "bounded in a stronger norm."
-
-**Application.** Proving existence of eigenvalues for the Laplacian on bounded domains reduces (via the Rellich-Kondrachov theorem) to showing that the resolvent of $-\Delta$ is a compact operator, then applying the spectral theorem for compact operators from earlier in this series.
+This is the compactness result that powers variational methods. A bounded sequence in $W^{1,p}$ has a subsequence converging in $L^q$ for any subcritical $q$. The infinite-dimensional analogue of Bolzano-Weierstrass: replace "bounded and closed" by "bounded in a stronger norm." Existence of eigenvalues for the Laplacian on bounded domains reduces (via Rellich-Kondrachov) to compactness of the resolvent of $-\Delta$ — the spectral theorem for compact operators from earlier in the series then delivers the spectrum.
 
 ### Failure of compactness at the critical exponent
 
-The Rellich-Kondrachov theorem fails at the critical exponent $q = p^*$: the embedding $W^{1,p}(\Omega) \hookrightarrow L^{p^*}(\Omega)$ is continuous but *not* compact. This failure has profound consequences for nonlinear PDE. The existence of extremals for the Sobolev inequality (functions that attain equality) was established by Aubin and Talenti, and the associated variational problem exhibits concentration phenomena: minimizing sequences can "concentrate" at a point, losing compactness. Understanding this concentration-compactness phenomenon (Lions, 1984) is central to modern nonlinear analysis.
+Rellich-Kondrachov fails at $q = p^*$: the embedding $W^{1,p}(\Omega) \hookrightarrow L^{p^*}(\Omega)$ is continuous but *not* compact. This failure has profound consequences for nonlinear PDE. The existence of extremals for the Sobolev inequality (Aubin, Talenti, 1976) and the associated variational problem exhibits **concentration**: minimizing sequences can collapse to a point, losing compactness. The concentration-compactness principle (Lions, 1984) catalogues the ways compactness can fail and recovers it via additional structure. Most semilinear elliptic problems with critical-exponent nonlinearities — Yamabe problem, prescribed scalar curvature, conformal geometry — live entirely in this regime.
 
 ### Extension theorems
 
-The embedding theorems stated above for $\mathbb{R}^n$ extend to domains $\Omega$ under appropriate regularity assumptions on $\partial\Omega$.
+The embeddings extend from $\mathbb{R}^n$ to domains $\Omega$ under boundary regularity:
 
-**Theorem (Sobolev extension).** Let $\Omega \subset \mathbb{R}^n$ be bounded with Lipschitz boundary. There exists a bounded linear operator $E: W^{k,p}(\Omega) \to W^{k,p}(\mathbb{R}^n)$ such that $Eu|_\Omega = u$ for all $u \in W^{k,p}(\Omega)$.
+**Theorem (Sobolev extension).** Let $\Omega \subset \mathbb{R}^n$ be bounded with Lipschitz boundary. There exists a bounded linear $E: W^{k,p}(\Omega) \to W^{k,p}(\mathbb{R}^n)$ such that $Eu|_\Omega = u$.
 
-This extension operator allows us to reduce problems on domains to problems on $\mathbb{R}^n$, where Fourier-analytic tools are available. The Lipschitz regularity assumption on $\partial\Omega$ is essentially sharp: for domains with cusps or fractal boundaries, extension may fail.
-
-### Sobolev spaces on manifolds
-
-The Sobolev space framework extends to compact Riemannian manifolds $(M, g)$ via coordinate charts and partitions of unity. If $\{(U_\alpha, \phi_\alpha)\}$ is an atlas and $\{\chi_\alpha\}$ a subordinate partition of unity, then $u \in H^k(M)$ if and only if $(\chi_\alpha u) \circ \phi_\alpha^{-1} \in H^k(\phi_\alpha(U_\alpha))$ for each $\alpha$. The Sobolev embedding and compactness theorems carry over with $n = \dim M$.
-
-This extension is essential for studying PDE on curved spaces — the Laplace-Beltrami operator on a Riemannian manifold is the natural generalization of the Euclidean Laplacian, and its analysis requires Sobolev spaces on $M$.
-
-### The role of Sobolev spaces in the functional analysis program
-
-Looking back over the series, Sobolev spaces occupy a central position in the architecture of functional analysis applied to PDE:
-
-- They are the **domains** of differential operators treated as unbounded operators on $L^2$ (Article 9).
-- They provide the **Hilbert space setting** for the Lax-Milgram theorem and variational formulations (Article 12).
-- The **embedding theorems** connect the abstract Sobolev regularity ($u \in H^k$) to classical regularity ($u \in C^m$), bridging weak and strong solutions.
-- The **compactness theorems** (Rellich-Kondrachov) provide the compactness needed for spectral theory, variational methods, and fixed-point arguments.
-- The **trace theorems** give rigorous meaning to boundary conditions.
-
-Without Sobolev spaces, the functional-analytic approach to PDE would collapse: there would be no complete spaces in which to seek solutions, no embedding results to extract regularity, and no trace results to impose boundary conditions. Their development in the 1930s-1950s was the key missing piece that allowed the program of Hilbert and Riesz to reach its full potential.
+This extension reduces problems on domains to problems on $\mathbb{R}^n$, where Fourier-analytic tools are available. The Lipschitz hypothesis is essentially sharp: domains with cusps or fractal boundaries can fail the extension property.
 
 ---
 
 ## Trace Theorems and Boundary Values
 
-A function in $W^{1,p}(\Omega)$ is defined only up to a set of measure zero. The boundary $\partial\Omega$ has measure zero in $\mathbb{R}^n$, so pointwise restriction to the boundary is not well-defined in the Lebesgue sense. Yet boundary conditions like $u|_{\partial\Omega} = 0$ (Dirichlet) or $\partial u / \partial n|_{\partial\Omega} = g$ (Neumann) are essential for PDE.
+A function in $W^{1,p}(\Omega)$ is defined only up to a set of measure zero. The boundary $\partial\Omega$ has Lebesgue measure zero in $\mathbb{R}^n$, so pointwise restriction to the boundary is not well-defined. Yet boundary conditions like $u|_{\partial\Omega} = 0$ (Dirichlet) or $\partial u/\partial n|_{\partial\Omega} = g$ (Neumann) are essential for PDE.
 
 The **trace theorem** resolves this by showing that restriction to the boundary extends to a continuous operation on Sobolev spaces.
 
-**Theorem (Trace theorem).** Let $\Omega \subset \mathbb{R}^n$ be bounded with Lipschitz boundary. There exists a unique bounded linear operator
+**Theorem (Trace).** Let $\Omega \subset \mathbb{R}^n$ be bounded with Lipschitz boundary. There exists a unique bounded linear operator
 
 $$
 \gamma_0: W^{1,p}(\Omega) \to L^p(\partial\Omega) \quad (1 \le p < \infty)
@@ -369,21 +326,82 @@ such that $\gamma_0 u = u|_{\partial\Omega}$ for all $u \in C^\infty(\overline{\
 1. $\gamma_0$ is surjective onto $W^{1-1/p, p}(\partial\Omega)$ (a fractional Sobolev space on the boundary).
 2. $\ker \gamma_0 = W_0^{1,p}(\Omega)$.
 
-**Interpretation.** Part 2 gives a precise characterization of $W_0^{1,p}$: it consists of exactly those Sobolev functions whose trace (boundary value) is zero. This makes rigorous the statement "functions in $H_0^1(\Omega)$ vanish on $\partial\Omega$."
+![Trace theorem: boundary restriction extended to Sobolev functions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/11-distributions-sobolev/fa_v2_11_5_trace.png)
 
-**For higher-order Sobolev spaces,** there are higher-order trace operators $\gamma_j u = \partial^j u / \partial n^j|_{\partial\Omega}$ (normal derivatives of order $j$), and the kernel of the map $(\gamma_0, \gamma_1, \ldots, \gamma_{k-1}): W^{k,p}(\Omega) \to \prod_{j=0}^{k-1} W^{k-j-1/p, p}(\partial\Omega)$ is $W_0^{k,p}(\Omega)$.
+Part 2 gives a precise characterization of $W_0^{1,p}$: it is exactly the Sobolev functions whose trace is zero. This makes rigorous the statement "functions in $H_0^1(\Omega)$ vanish on $\partial\Omega$." The fractional space in part 1 is the price one pays for restricting from $n$ dimensions to $n-1$: an $H^1$ function on $\Omega$ has only a fractional ($H^{1/2}$) trace on the boundary.
+
+**For higher-order Sobolev spaces,** there are higher-order trace operators $\gamma_j u = \partial^j u/\partial n^j|_{\partial\Omega}$, and the kernel of $(\gamma_0, \gamma_1, \ldots, \gamma_{k-1}): W^{k,p}(\Omega) \to \prod_{j=0}^{k-1} W^{k-j-1/p, p}(\partial\Omega)$ is $W_0^{k,p}(\Omega)$.
 
 ### Trace inequalities and applications
 
-The trace theorem comes with a quantitative estimate: $\|\gamma_0 u\|_{L^p(\partial\Omega)} \le C\|u\|_{W^{1,p}(\Omega)}$. This **trace inequality** is essential for formulating and solving boundary value problems.
+The trace theorem comes with a quantitative estimate: $\|\gamma_0 u\|_{L^p(\partial\Omega)} \le C\|u\|_{W^{1,p}(\Omega)}$. This trace inequality is essential for formulating boundary value problems.
 
-For Neumann problems ($\partial u/\partial n = g$ on $\partial\Omega$), the trace theorem for normal derivatives gives meaning to the boundary condition: $g$ must lie in the trace space $W^{-1/p', p'}(\partial\Omega)$ (the dual of the trace space for the adjoint exponent). The compatibility condition $\int_\Omega f = \int_{\partial\Omega} g$ (for the Neumann problem $-\Delta u = f$, $\partial u/\partial n = g$) is a consequence of the divergence theorem applied in the distributional sense.
+For Neumann problems, the trace theorem for normal derivatives gives meaning to the boundary condition: $g$ must lie in the trace space $W^{-1/p', p'}(\partial\Omega)$ (the dual of the trace space for the conjugate exponent). The compatibility condition $\int_\Omega f = \int_{\partial\Omega} g$ for $-\Delta u = f$, $\partial u/\partial n = g$ is a consequence of the divergence theorem applied in the distributional sense — without distribution theory, the compatibility condition would be an unmotivated technical hypothesis.
 
 ### Capacity and fine properties
 
-Beyond the trace theorem, Sobolev functions possess remarkable fine properties. A function $u \in W^{1,p}(\Omega)$ is defined up to sets of zero $p$-capacity (which are thinner than sets of zero Lebesgue measure). For $p > n$, every set of zero capacity has zero Hausdorff dimension, which is why Morrey's embedding gives pointwise continuity. For $p \le n$, the exceptional sets are more subtle, and understanding them requires potential theory.
+Beyond the trace theorem, Sobolev functions possess remarkable fine properties. A function $u \in W^{1,p}(\Omega)$ is defined up to sets of zero $p$-capacity (which are thinner than sets of zero Lebesgue measure). For $p > n$, every set of zero capacity has zero Hausdorff dimension, which is why Morrey's embedding gives pointwise continuity. For $p \le n$, the exceptional sets are more subtle and require potential theory to describe.
 
-The **precise representative** of a Sobolev function is defined at almost every point (in the capacity sense) by taking limits of averages: $u^*(x) = \lim_{r \to 0} \frac{1}{|B(x,r)|}\int_{B(x,r)} u$. This precise representative agrees with $u$ almost everywhere and provides the canonical pointwise interpretation of Sobolev functions.
+The **precise representative** of a Sobolev function is defined at almost every point (in the capacity sense) by limits of averages: $u^*(x) = \lim_{r \to 0}\frac{1}{|B(x,r)|}\int_{B(x,r)}u$. This precise representative agrees with $u$ a.e. and provides the canonical pointwise interpretation.
+
+### Duality between $H^s$ and $H^{-s}$
+
+For $s > 0$, the dual of $H^s_0(\Omega)$ is $H^{-s}(\Omega)$. The duality pairing extends the $L^2$ inner product: for $u \in H^s_0$, $v \in H^{-s}$ smooth, $\langle u, v\rangle_{H^s, H^{-s}} = \int u\bar{v}\,dx$. This duality is the right-hand-side framework for Lax-Milgram problems: the data $f$ for $-\Delta u = f$ with Dirichlet boundary is naturally an element of $H^{-1}(\Omega)$, and the solution lives in $H^1_0(\Omega)$. The duality pairing is what makes the variational problem $\int \nabla u\cdot\nabla v = \langle f, v\rangle$ symbolically meaningful.
+
+![Duality between H^s and H^{-s} via Fourier characterization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/11-distributions-sobolev/fa_v2_11_6_dual_sobolev.png)
+
+### Sobolev spaces on manifolds
+
+The framework extends to compact Riemannian manifolds $(M, g)$ via charts and partitions of unity. Given an atlas $\{(U_\alpha, \phi_\alpha)\}$ and subordinate partition $\{\chi_\alpha\}$, set $u \in H^k(M)$ iff $(\chi_\alpha u)\circ\phi_\alpha^{-1} \in H^k(\phi_\alpha(U_\alpha))$ for each $\alpha$. The embedding and compactness theorems carry over with $n = \dim M$. This extension is essential for studying PDE on curved spaces — the Laplace-Beltrami operator is the natural generalization of $\Delta$, and its analysis requires Sobolev spaces on $M$.
+
+### Examples of distributions in practice
+
+A short tour of distributions one encounters daily:
+
+- $\delta_a$ (point evaluation) — a tempered distribution of order $0$.
+- $\delta'$ (derivative of delta) — order $1$, $\langle \delta', \varphi\rangle = -\varphi'(0)$.
+- $\mathrm{p.v.}\,1/x$ — order $1$, the Hilbert transform's kernel.
+- $\log|x|$ — locally integrable in $n \ge 1$, order $0$.
+- $|x|^{-\alpha}$ for $\alpha < n$ — locally integrable, order $0$.
+- $|x|^{-\alpha}$ for $n \le \alpha < n+1$ — defined as a distribution by analytic continuation in $\alpha$.
+- $\mathrm{vp}(|x|^{-n})$ — the principal-value Calderon-Zygmund kernel, order $1$.
+- $\delta_\Sigma$ for a hypersurface $\Sigma$ — a single-layer surface measure, order $0$.
+
+![Examples of distributions: derivatives, principal values, surface measures](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/11-distributions-sobolev/fa_v2_11_7_examples.png)
+
+These objects have natural Fourier transforms, derivatives, and embeddings in fractional Sobolev spaces — all the structural results of the previous sections apply uniformly. That uniformity is what makes the distributional framework so powerful: it is a single language for objects that classical analysis has to treat as a zoo of unrelated special cases.
+
+### Why this matters
+
+Distribution theory and Sobolev spaces are not optional luxuries; they are the *only* framework in which existence and regularity for PDE work cleanly. Three concrete payoffs:
+
+1. **Existence first, regularity later.** Lax-Milgram (next article) proves existence of weak solutions to elliptic boundary value problems in $H^1_0$ without any smoothness assumption on the data. Once existence is in hand, regularity theorems bootstrap: $f \in H^k$ implies $u \in H^{k+2}$, which by Sobolev embedding gives classical regularity once $k$ is large enough.
+
+2. **Compactness powers spectral theory.** Rellich-Kondrachov compactness of $H^1_0(\Omega) \hookrightarrow L^2(\Omega)$ is exactly what makes the resolvent of the Dirichlet Laplacian a compact operator on $L^2$. The spectral theorem for compact self-adjoint operators then gives a complete orthonormal basis of eigenfunctions. Every eigenfunction expansion in mathematical physics — drum modes, atomic orbitals, vibration modes of structures — is downstream of Rellich-Kondrachov.
+
+3. **Distributions accommodate idealisations physics needs.** The point charge, the impulse, the singular concentration — these are not artifacts to be smoothed away but genuine objects whose dynamics must be analysed. Distribution theory makes them rigorous and the analysis legitimate.
+
+Without these tools the functional-analytic approach to PDE collapses: no complete spaces in which to seek solutions, no embedding results to extract regularity, no trace results to impose boundary conditions, no compactness for variational arguments.
+
+A historical aside that I find clarifying: Schwartz received the Fields Medal in 1950 for distribution theory, and Sobolev's spaces were already a generation old by then. Yet most PDE textbooks before about 1965 still avoided Sobolev spaces, treating each problem with ad-hoc function classes. The modern unified framework — every PDE is a question about a bounded operator between Sobolev spaces — was only standardised in graduate textbooks in the 1970s. The conceptual lag between "the right framework exists" and "the right framework is taught" was about 25 years. I take some comfort in that delay: it suggests that the difficulty I felt the first time I encountered $H^{-1/2}(\partial\Omega)$ was not a personal failure but a normal feature of mathematical maturation. Some abstractions need a generation to settle.
+
+### Common pitfalls
+
+A few traps I have stepped in often enough to flag:
+
+- The product of a distribution with a non-smooth function is not generally defined. $H \cdot \delta$ has no canonical meaning. Multiplication by smooth functions is fine; products of singular distributions are not.
+
+- The pointwise restriction $u|_S$ of a Sobolev function $u \in H^1(\Omega)$ to a hypersurface $S$ is not always defined as an element of $L^2(S)$. The trace theorem gives $\gamma_0 u \in H^{1/2}(S)$ for $S = \partial\Omega$, but this is a fractional space and the constants depend on the regularity of $S$.
+
+- "Weak" and "distributional" derivatives agree when the latter happens to be locally integrable, but not otherwise. $H'$ is the distribution $\delta$, not a function; saying "$H$ has weak derivative $\delta$" is a category error if "weak derivative" is supposed to be in $L^1_{\text{loc}}$. Be careful with the precise definitions.
+
+- Embedding constants degrade with the geometry of $\Omega$. Long thin domains, domains with cusps, and domains with rough boundaries can have terrible Poincare and Sobolev constants. For numerical PDE, this is a daily concern.
+
+- Compactness of $H^1_0(\Omega) \hookrightarrow L^2(\Omega)$ requires bounded $\Omega$. On unbounded domains, mass can escape to infinity, breaking Bolzano-Weierstrass.
+
+A practical workflow I have settled on for new PDE problems: pick the right Sobolev space first (what is the natural energy?), check that the bilinear form is bounded and coercive on it, invoke Lax-Milgram for existence, then bootstrap regularity from the data class up. Most existence-and-regularity arguments are variations on that pattern, and getting the framework right at the start saves enormous backtracking later. The distributional and Sobolev-space machinery developed here is what lets that pattern work uniformly across elliptic, parabolic, and hyperbolic problems.
+
+One final remark on terminology that confused me as a graduate student. The term "weak solution" overloads in two distinct ways. First, a weak solution of $-\Delta u = f$ in $H^1_0(\Omega)$ is a function satisfying the variational identity $\int \nabla u \cdot \nabla\varphi = \int f\varphi$ for all $\varphi \in H^1_0$. Second, a "distributional solution" is a distribution $u$ satisfying $-\Delta u = f$ in $\mathcal{D}'(\Omega)$. These coincide when $u \in H^1$ and $f \in H^{-1}$, but the two notions live in nominally different worlds. The Sobolev framework gives the variational reading; the distributional framework gives the wider one. Most PDE textbooks elide the distinction, but it matters when the data is rough enough that no Sobolev solution exists yet a distributional one does. The full picture has both notions in play, with the appropriate one selected by the data class.
 
 ---
 

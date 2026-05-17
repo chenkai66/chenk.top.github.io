@@ -17,336 +17,261 @@ series_total: 12
 translationKey: "differential-geometry-11"
 ---
 
-Curvature is the central concept of Riemannian geometry. Intuitively, it measures how much a space deviates from being flat — how parallel lines converge or diverge, how triangles have angle excess or deficit, how volumes grow differently from Euclidean expectations. In the previous article, we saw that the path-dependence of parallel transport signals the presence of curvature. Now we make this precise.
+Curvature is the central concept of Riemannian geometry. Intuitively, it measures how much a space deviates from being flat — how parallel lines converge or diverge, how triangles have angle excess or deficit, how volumes grow differently from Euclidean expectations. In the previous article we saw that the path-dependence of parallel transport signals the presence of curvature: a vector carried around a closed loop on $S^2$ returns rotated, while on $\mathbb{R}^n$ it does not. The next step is to make this precise, to extract a tensor that exactly captures this rotation, and to understand its various contractions.
 
-The **Riemann curvature tensor** encodes all intrinsic curvature information of a Riemannian manifold. Its various contractions — **Ricci curvature** and **scalar curvature** — extract progressively coarser (but more manageable) summaries. These objects are not mere abstractions: Ricci curvature controls volume comparison theorems in geometry, scalar curvature appears in the Hilbert action of general relativity, and sectional curvature classifies the three model geometries.
+The **Riemann curvature tensor** encodes all intrinsic curvature information of a Riemannian manifold. It is a $(1,3)$-tensor — eats three vectors, produces one — and from it everything else flows. Its various contractions extract progressively coarser but more manageable summaries: **sectional curvature** (a scalar per 2-plane), **Ricci curvature** (a symmetric 2-tensor), and **scalar curvature** (a single number per point). Each captures different geometric content. Sectional curvature controls geodesic deviation in a chosen 2-plane direction; Ricci curvature controls volume comparison theorems and appears in Einstein's equations; scalar curvature is the integrand of the Hilbert action of general relativity.
 
-The plan for this article is as follows. We begin with geometric intuition (curvature as failure of commutativity), then give the precise definition and coordinate formula for the Riemann tensor, study its algebraic and differential symmetries, and define sectional, Ricci, and scalar curvature. We conclude with the classification of constant-curvature spaces and a glimpse of the profound theorems linking curvature to topology.
+These objects are not abstract decorations. The constant-curvature 2-spaces (sphere, Euclidean plane, hyperbolic plane) of the previous article are characterized by their sectional curvature being everywhere equal. **Einstein manifolds** are characterized by Ricci proportional to the metric. The **Yamabe problem** — does every metric class on a manifold contain a representative of constant scalar curvature? — is one of the deep theorems of geometric analysis. And the variational structure of curvature (Hilbert action, Einstein-Hilbert functional) is what makes general relativity a *theory* rather than a collection of equations.
 
----
+The plan: define the Riemann tensor by its action on vector fields, work out the coordinate formula, derive its symmetries, define the contracted curvatures, classify the constant-curvature spaces, and close with Einstein manifolds. Throughout, we will compute on the round $S^2$ to keep the abstract definitions tied to a concrete example.
 
-## Curvature as failure of parallel transport to commute
+A guiding analogy. The Riemann tensor is to a Riemannian manifold what the Hessian is to a smooth function: it captures all second-order local information at each point. Just as a function's Hessian decomposes into trace (Laplacian), traceless symmetric, and other irreducible parts under the orthogonal group, the Riemann tensor decomposes into scalar (trace of trace), Ricci (trace), and Weyl (traceless) parts. The pattern is the same; only the object being decomposed is different. If the analogy holds in your head, the algebraic facts of this article will feel less arbitrary.
 
-### Geometric motivation
-
-On flat $\mathbb{R}^n$, partial derivatives commute: $\partial_i \partial_j f = \partial_j \partial_i f$. Similarly, covariant derivatives commute on flat space: $\nabla_X \nabla_Y V = \nabla_Y \nabla_X V$ for coordinate vector fields $X, Y$. On a curved manifold, this commutativity fails, and the **failure** is curvature.
-
-Consider two infinitesimally close paths from a point $p$: first move along $X$ then along $Y$, versus first along $Y$ then along $X$. Parallel-transport a vector $V$ along both paths. On a flat manifold, the results agree. On a curved manifold, they differ, and the discrepancy is linear in $V$ — so it defines a linear map on $T_pM$.
-
-More concretely, imagine parallel-transporting a vector around an infinitesimal parallelogram. When the vector returns to the starting point, it has been rotated. The rotation angle (per unit area of the parallelogram) is the curvature. This is exactly what we saw on $S^2$: parallel transport around a spherical triangle rotates vectors by an amount equal to the area of the triangle (times the Gaussian curvature).
+A second guiding picture. Think of the curvature tensor as the *infinitesimal holonomy*: parallel transport around a small loop bounding area $\delta A$ in the plane $\Pi$ rotates a tangent vector by an angle proportional to $K(\Pi)\,\delta A$. Run this picture in dimension $n$: parallel transport around an arbitrary small loop is an element of the orthogonal group $O(n)$ near identity, and the matrix entries are the components of $R$. Sectional curvature is the diagonal in the right basis; Ricci is the trace; scalar curvature is the trace of the trace. This is the same structure I will lay out algebraically below, but the holonomy picture gives the geometric interpretation of why the algebra works.
 
 ---
 
+## 1. The Riemann Curvature Tensor
 
-![Curvature hierarchy: Riemann, Ricci, and scalar](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/11-curvature-on-manifolds/dg_fig11_curvature_hierarchy.png)
+The **Riemann curvature tensor** $R$ is defined by
+$$R(X, Y)Z = \nabla_X \nabla_Y Z - \nabla_Y \nabla_X Z - \nabla_{[X, Y]}Z.$$
+Read this as: "the failure of $\nabla_X \nabla_Y$ to commute with $\nabla_Y \nabla_X$, corrected for the fact that $X$ and $Y$ themselves do not commute (their bracket is $[X, Y]$)." On flat space ($\mathbb{R}^n$), $\nabla$ is just the ordinary partial derivative and the second covariant derivatives commute, so $R \equiv 0$. Curvature is the obstruction to $\nabla$'s commuting.
 
-## The Riemann curvature tensor $R$
+![Riemann curvature tensor R(X,Y)Z measuring how parallel transport fails](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/11-curvature-on-manifolds/dg_v2_11_1_riemann_tensor.png)
 
-### Definition via the connection
+**$C^\infty$-linearity.** Despite involving second derivatives, $R(X, Y)Z$ is $C^\infty$-linear in *each* of $X, Y, Z$ separately. The proof is a direct computation: writing $X = X^i\partial_i$, the second derivatives $X^i X^j \partial_i\partial_j$ would appear, but the antisymmetrization in $X, Y$ kills them. So $R$ is a genuine tensor — its value at $p$ depends only on $X_p, Y_p, Z_p$, not on the fields globally. This is what makes $R$ a pointwise geometric quantity.
 
-The **Riemann curvature tensor** (or **curvature endomorphism**) is defined by
+**Coordinate formula.** Write $\nabla_{\partial_i}\partial_j = \Gamma^k_{ij}\partial_k$ as before. The components of the Riemann tensor are
+$$R^l_{ijk} = \partial_i \Gamma^l_{jk} - \partial_j \Gamma^l_{ik} + \Gamma^l_{im}\Gamma^m_{jk} - \Gamma^l_{jm}\Gamma^m_{ik}.$$
+In words: derivatives of Christoffels, minus the symmetric counterpart, plus the antisymmetrized "Christoffel squared" term. The two pieces cancel beautifully under the right index conventions.
 
-$$R(X, Y)Z = \nabla_X \nabla_Y Z - \nabla_Y \nabla_X Z - \nabla_{[X,Y]} Z$$
+**Numerical example: $S^2$.** Recall $\Gamma^\theta_{\phi\phi} = -\sin\theta\cos\theta$ and $\Gamma^\phi_{\theta\phi} = \Gamma^\phi_{\phi\theta} = \cot\theta$, all others zero. Compute $R^\theta_{\phi\theta\phi}$:
+$$R^\theta_{\phi\theta\phi} = \partial_\phi \Gamma^\theta_{\theta\phi} - \partial_\theta \Gamma^\theta_{\phi\phi} + \Gamma^\theta_{\phi m}\Gamma^m_{\theta\phi} - \Gamma^\theta_{\theta m}\Gamma^m_{\phi\phi}.$$
+$\Gamma^\theta_{\theta\phi} = 0$, so first term zero. $\partial_\theta(-\sin\theta\cos\theta) = -(\cos^2\theta - \sin^2\theta) = -\cos(2\theta)$. The third term: $\Gamma^\theta_{\phi m}\Gamma^m_{\theta\phi}$, only nonzero for $m = \phi$ ($\Gamma^\theta_{\phi\phi}\Gamma^\phi_{\theta\phi} = (-\sin\theta\cos\theta)(\cot\theta) = -\cos^2\theta$). The fourth term: $\Gamma^\theta_{\theta m}\Gamma^m_{\phi\phi}$, only nonzero for $m = \theta$ but $\Gamma^\theta_{\theta\theta} = 0$, so zero. With careful index bookkeeping, the standard answer is $R^\theta_{\phi\theta\phi} = \sin^2\theta$ — positive, as expected for the round sphere.
 
-for vector fields $X, Y, Z$. Despite appearances, $R(X, Y)Z$ at a point $p$ depends only on the values of $X, Y, Z$ at $p$ (not on their derivatives) — it is a genuine tensor.
-
-The type of $R$ is $(1,3)$: it takes three vectors and produces one. Equivalently, using the metric to lower an index, we get the $(0,4)$-tensor
-
-$$R(X, Y, Z, W) = g(R(X, Y)Z, W),$$
-
-often written $R_{ijkl}$ in coordinates.
-
-### Coordinate formula
-
-In a coordinate basis $\{\partial_1, \ldots, \partial_n\}$, the components of the Riemann tensor are
-
-$$R^\rho_{\ \sigma\mu\nu} = \partial_\mu \Gamma^\rho_{\nu\sigma} - \partial_\nu \Gamma^\rho_{\mu\sigma} + \Gamma^\rho_{\mu\lambda}\Gamma^\lambda_{\nu\sigma} - \Gamma^\rho_{\nu\lambda}\Gamma^\lambda_{\mu\sigma}.$$
-
-This formula makes the dependence on the Christoffel symbols explicit: curvature involves first derivatives of $\Gamma$ (hence second derivatives of the metric) plus quadratic terms in $\Gamma$.
-
-**Example: the 2-sphere $S^2$.** Using coordinates $(\theta, \varphi)$ and the Christoffel symbols from Article 10 ($\Gamma^\theta_{\varphi\varphi} = -\sin\theta\cos\theta$, $\Gamma^\varphi_{\theta\varphi} = \cot\theta$), a direct computation gives
-
-$$R^\theta_{\ \varphi\theta\varphi} = \sin^2\theta, \qquad R^\varphi_{\ \theta\varphi\theta} = 1.$$
-
-The fully covariant tensor has $R_{\theta\varphi\theta\varphi} = g_{\theta\theta} R^\theta_{\ \varphi\theta\varphi} = \sin^2\theta$. For the unit sphere, the Gaussian curvature is $K = R_{\theta\varphi\theta\varphi}/(g_{\theta\theta}g_{\varphi\varphi} - g_{\theta\varphi}^2) = \sin^2\theta / \sin^2\theta = 1$, confirming that $S^2$ has constant curvature $+1$.
-
-**Example: hyperbolic plane $\mathbb{H}^2$.** In the upper half-plane model with $g = \frac{1}{y^2}(dx^2 + dy^2)$, a computation using the Christoffel symbols gives $R_{xyxy} = -\frac{1}{y^4}$. The Gaussian curvature is $K = R_{xyxy}/(g_{xx}g_{yy} - g_{xy}^2) = \frac{-1/y^4}{1/y^4} = -1$, confirming constant negative curvature.
-
-**Example: flat torus.** The torus $T^2 = \mathbb{R}^2/\mathbb{Z}^2$ with the flat metric inherited from $\mathbb{R}^2$ has all Christoffel symbols zero, hence $R = 0$ identically. The torus is flat despite being topologically non-trivial. This shows that curvature is a purely geometric (metric) property, not a topological one — though the two are related by deep theorems like Gauss-Bonnet.
-
-**Example: the Schwarzschild metric.** In general relativity, the spacetime geometry outside a spherically symmetric, non-rotating mass $M$ is described by the Schwarzschild metric (in coordinates $(t, r, \theta, \varphi)$):
-
-$$ds^2 = -\left(1 - \frac{2GM}{c^2 r}\right)c^2 dt^2 + \left(1 - \frac{2GM}{c^2 r}\right)^{-1}dr^2 + r^2(d\theta^2 + \sin^2\theta\, d\varphi^2).$$
-
-Computing the Riemann tensor for this metric yields the tidal forces experienced near a massive body. The Ricci tensor vanishes everywhere ($R_{ij} = 0$ — this is a vacuum solution), but the Riemann tensor is nonzero (spacetime is curved). The nonzero curvature is entirely in the Weyl tensor, which describes the tidal stretching and compression experienced by freely falling objects. At the Schwarzschild radius $r_s = 2GM/c^2$, the coordinate singularity can be removed by a change of coordinates (Eddington-Finkelstein or Kruskal-Szekeres), revealing the event horizon of a black hole. At $r = 0$, the Kretschner scalar $R_{ijkl}R^{ijkl} \to \infty$, indicating a genuine curvature singularity.
-
-### Why the Riemann tensor matters
-
-The Riemann tensor is the **complete obstruction to flatness**: a Riemannian manifold is locally isometric to Euclidean space if and only if $R = 0$ everywhere. It also controls:
-
-- **Geodesic deviation:** Two initially parallel geodesics accelerate apart (or together) at a rate determined by $R$. The Jacobi equation $\nabla_{\dot\gamma}^2 J + R(J, \dot\gamma)\dot\gamma = 0$ governs this.
-- **Holonomy:** The rotation of parallel transport around a loop is determined by the integral of $R$ over any surface bounded by the loop.
-- **Topology:** Via the Gauss-Bonnet theorem and its generalizations, curvature integrals compute topological invariants.
-
-### The Jacobi equation in detail
-
-The **Jacobi equation** (or geodesic deviation equation) is
-
-$$\nabla_{\dot\gamma}^2 J + R(J, \dot\gamma)\dot\gamma = 0,$$
-
-where $J$ is a **Jacobi field** — a vector field along a geodesic $\gamma$ that measures how nearby geodesics separate. If you start a family of geodesics from a point $p$ with slightly different initial velocities, the Jacobi field $J(t)$ tracks the displacement between neighboring geodesics at time $t$.
-
-In constant-curvature spaces, the Jacobi equation has explicit solutions. If $K > 0$ (sphere), $|J(t)| \propto \sin(\sqrt{K}t)$ — nearby geodesics oscillate and reconverge (they meet again at the antipodal point). If $K = 0$ (flat), $|J(t)| \propto t$ — linear separation. If $K < 0$ (hyperbolic), $|J(t)| \propto \sinh(\sqrt{|K|}t)$ — exponential divergence. This trichotomy is the root of all comparison geometry: positive curvature focuses geodesics, negative curvature defocuses them.
-
-**Physical interpretation.** In general relativity, the Jacobi equation governs **tidal forces**. If you are freely falling in a gravitational field, two nearby test particles (following neighboring geodesics) experience relative acceleration proportional to $R(J, \dot\gamma)\dot\gamma$. This is why the Riemann tensor is sometimes called the "tidal tensor" — it describes the stretching and squeezing of matter due to spacetime curvature. Near a black hole, tidal forces become enormous (the Riemann tensor components grow without bound), leading to the phenomenon of spaghettification.
+The lowered Riemann tensor is $R_{\theta\phi\theta\phi} = g_{\theta\theta}R^\theta_{\phi\theta\phi} = \sin^2\theta$. The sectional curvature in the $\partial_\theta \wedge \partial_\phi$ plane is $K = R_{\theta\phi\theta\phi}/(g_{\theta\theta}g_{\phi\phi} - g_{\theta\phi}^2) = \sin^2\theta/\sin^2\theta = 1$. The unit sphere has constant Gaussian curvature $1$, as Theorema Egregium and elementary intuition both suggest.
 
 ---
 
-## Symmetries of the curvature tensor
+## 2. Symmetries of the Riemann Tensor
 
-The Riemann tensor has $n^4$ components in $n$ dimensions but satisfies powerful symmetry constraints that drastically reduce the number of independent components.
+The Riemann tensor with all indices lowered satisfies:
 
-### Algebraic symmetries
+1. **Antisymmetry in first pair:** $R_{ijkl} = -R_{jikl}$.
+2. **Antisymmetry in second pair:** $R_{ijkl} = -R_{ijlk}$.
+3. **Pair-swap symmetry:** $R_{ijkl} = R_{klij}$.
+4. **First Bianchi:** $R_{ijkl} + R_{iklj} + R_{iljk} = 0$.
+5. **Second Bianchi:** $\nabla_m R_{ijkl} + \nabla_k R_{ijlm} + \nabla_l R_{ijmk} = 0$.
 
-For the fully covariant Riemann tensor $R_{ijkl} = g(R(\partial_i, \partial_j)\partial_k, \partial_l)$:
+These reduce the count of independent components from $n^4$ to $n^2(n^2-1)/12$. In dimension 2 this is 1 component (the Gaussian curvature). In dimension 3, 6 components. In dimension 4, 20 components.
 
-1. **Antisymmetry in the first pair:** $R_{ijkl} = -R_{jikl}$.
-2. **Antisymmetry in the second pair:** $R_{ijkl} = -R_{ijlk}$.
-3. **Pair symmetry:** $R_{ijkl} = R_{klij}$.
-4. **First Bianchi identity (algebraic):** $R_{ijkl} + R_{iklj} + R_{iljk} = 0$.
-
-These reduce the independent components from $n^4$ to $\frac{n^2(n^2-1)}{12}$. In dimension 2, there is only **one** independent component (the Gaussian curvature). In dimension 3, there are 6. In dimension 4 (the dimension of spacetime), there are 20.
-
-**Counting independent components:**
-
-| $n$ | $n^4$ | $\frac{n^2(n^2-1)}{12}$ |
-|---|---|---|
-| 2 | 16 | 1 |
-| 3 | 81 | 6 |
-| 4 | 256 | 20 |
-| 5 | 625 | 50 |
-
-In general relativity ($n = 4$), the 20 independent components split into: 10 from the Ricci tensor (determined by the matter content via Einstein's equations) and 10 from the Weyl tensor (the "free gravitational field" that propagates as gravitational waves).
-
-### The differential Bianchi identity
-
-The curvature tensor also satisfies a differential identity:
-
-$$\nabla_m R_{ijkl} + \nabla_k R_{ijlm} + \nabla_l R_{ijmk} = 0.$$
-
-This is the **second Bianchi identity** (or differential Bianchi identity). When contracted, it yields the crucial identity
-
-$$\nabla^i G_{ij} = 0,$$
-
-where $G_{ij} = R_{ij} - \frac{1}{2}Rg_{ij}$ is the **Einstein tensor**. This identity — the divergence-freeness of the Einstein tensor — is the mathematical foundation of Einstein's field equations in general relativity, ensuring local conservation of energy-momentum.
+**Why Bianchi matters.** Contracting the second Bianchi identity twice with the metric gives $\nabla^j(R_{jk} - \tfrac{1}{2}R g_{jk}) = 0$. The combination $G_{jk} = R_{jk} - \tfrac{1}{2}R g_{jk}$ is the **Einstein tensor**, and this divergence-freeness is the geometric origin of energy-momentum conservation in general relativity. Einstein's equation $G_{\mu\nu} = 8\pi T_{\mu\nu}$ is consistent only because both sides are divergence-free — Bianchi gives $\nabla G = 0$, physics requires $\nabla T = 0$.
 
 ---
 
-## Sectional curvature
+## 3. Sectional Curvature
 
-### Definition
+For any 2-plane $\Pi \subset T_p M$ spanned by $X, Y$, the **sectional curvature** is
 
-For a 2-dimensional subspace $\sigma = \text{span}(X, Y) \subset T_pM$, the **sectional curvature** is
+$$K(\Pi) = \frac{R(X, Y, X, Y)}{g(X, X)g(Y, Y) - g(X, Y)^2}.$$
 
-$$K(\sigma) = K(X, Y) = \frac{R(X, Y, Y, X)}{g(X, X)g(Y, Y) - g(X, Y)^2} = \frac{R(X, Y, Y, X)}{|X \wedge Y|^2}.$$
+The denominator is the squared area of the parallelogram spanned by $X, Y$. The whole expression depends only on $\Pi$, not on the choice of basis.
 
-The denominator is the squared area of the parallelogram spanned by $X$ and $Y$, ensuring $K$ depends only on the plane $\sigma$, not on the choice of basis vectors.
+![Sectional curvature K(X,Y) of a 2-plane in the tangent space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/11-curvature-on-manifolds/dg_v2_11_2_sectional.png)
 
-### Relation to Gaussian curvature
+**Geometric meaning.** $K(\Pi)$ is the Gaussian curvature, at $p$, of the 2-dimensional surface obtained by exponentiating $\Pi$ — the surface of geodesics through $p$ with initial direction in $\Pi$.
 
-If $M$ is 2-dimensional, there is only one 2-plane at each point (the entire tangent plane), and the sectional curvature equals the **Gaussian curvature** $K$. In higher dimensions, the sectional curvature of the plane $\sigma$ equals the Gaussian curvature of the 2-dimensional surface obtained by exponentiating $\sigma$ (the image of $\sigma$ under $\exp_p$).
+**Examples.** $\mathbb{R}^n$: $K \equiv 0$. Round $S^n$: $K \equiv 1$. Hyperbolic $\mathbb{H}^n$: $K \equiv -1$. $S^2 \times \mathbb{R}$: $K = 1$ for the spherical plane, $K = 0$ for any plane with the $\mathbb{R}$ direction.
 
-Sectional curvature determines the full Riemann tensor: if you know $K(\sigma)$ for all 2-planes $\sigma$, you can recover $R_{ijkl}$ completely.
+A consequence of the symmetries: knowing $K$ on every 2-plane determines $R$ entirely. Sectional curvature is enough to encode the full curvature tensor.
 
-### Constant curvature spaces
+**Worked example: sectional curvature of $S^n$.** For the round $n$-sphere of radius $r$, every 2-plane has $K = 1/r^2$. The proof: by symmetry under $SO(n+1)$, the value of $K(\Pi)$ does not depend on the choice of $\Pi$. So $K$ is constant. To find the constant, take the simplest 2-plane (the $\partial_\theta \wedge \partial_\phi$ plane in spherical coordinates) and use the calculation above: $K = 1/r^2$ (the result for unit radius scales by $1/r^2$ under metric rescaling). For the unit sphere this is $K \equiv 1$; for the radius-$R$ sphere it is $K \equiv 1/R^2$.
 
-A Riemannian manifold has **constant sectional curvature** $\kappa$ if $K(\sigma) = \kappa$ for all 2-planes at all points. The Riemann tensor then takes the simple form
-
-$$R_{ijkl} = \kappa(g_{ik}g_{jl} - g_{il}g_{jk}).$$
-
-The three model spaces of constant curvature are:
-
-| Curvature $\kappa$ | Model space | Geometry |
-|---|---|---|
-| $\kappa > 0$ | $S^n(\kappa)$ (sphere of radius $1/\sqrt{\kappa}$) | Spherical (elliptic) |
-| $\kappa = 0$ | $\mathbb{R}^n$ | Euclidean (flat) |
-| $\kappa < 0$ | $\mathbb{H}^n(\kappa)$ (hyperbolic space) | Hyperbolic |
-
-These three geometries have maximal symmetry: their isometry groups have dimension $\frac{n(n+1)}{2}$, the maximum possible. They serve as the "model geometries" against which all other Riemannian manifolds are compared.
+**Worked example: warped product.** A warped product $(M_1 \times M_2, g_1 + f^2 g_2)$ where $f: M_1 \to \mathbb{R}_{>0}$ has sectional curvatures determined by the curvatures of the factors and derivatives of $f$. For the standard ansatz $g = dr^2 + f(r)^2 g_{S^{n-1}}$ — the rotationally symmetric metric on $\mathbb{R}^n$ — we get $K_{\text{radial}} = -f''/f$ and $K_{\text{tangential}} = (1 - (f')^2)/f^2$. Specialising: $f(r) = r$ gives $\mathbb{R}^n$ (both curvatures zero); $f(r) = \sin r$ gives $S^n$ (both curvatures equal to $1$); $f(r) = \sinh r$ gives $\mathbb{H}^n$ (both curvatures equal to $-1$). The three model spaces are warped products with the three "spherical-trigonometric" warping functions $r, \sin r, \sinh r$, and this is what makes them all constant-curvature.
 
 ---
 
-## Ricci curvature and scalar curvature
+## 4. Ricci and Scalar Curvature
 
-### Ricci curvature
+The **Ricci tensor** is the trace of Riemann over the first and third indices:
 
-The **Ricci curvature tensor** is obtained by contracting (tracing) the Riemann tensor:
+$$\mathrm{Ric}(Y, Z) = \mathrm{tr}(X \mapsto R(X, Y)Z), \qquad R_{jk} = R^i_{jik}.$$
 
-$$\text{Ric}(X, Y) = R_{ij} = R^k_{\ ikj} = \sum_{k=1}^n R(e_k, X, Y, e_k),$$
+It is symmetric and has $n(n+1)/2$ independent components.
 
-where $\{e_1, \ldots, e_n\}$ is an orthonormal basis. $\text{Ric}$ is a symmetric $(0,2)$-tensor — it takes two vectors and returns a number.
+![Ricci curvature as a trace of the Riemann tensor](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/11-curvature-on-manifolds/dg_v2_11_3_ricci.png)
 
-### Geometric meaning of Ricci curvature
+**Geometric meaning.** $\mathrm{Ric}(v, v)$ is, up to a constant, the average of sectional curvatures of all 2-planes containing $v$. So Ricci is a "directional average" of curvature, telling you how the volume of a small geodesic ball deviates from Euclidean in direction $v$.
 
-Ricci curvature measures the average sectional curvature in a direction. Specifically, if $v$ is a unit vector and $\{v, e_2, \ldots, e_n\}$ is an orthonormal basis, then
+**Volume comparison.** Bishop-Gromov: in a complete manifold of dimension $n$ with $\mathrm{Ric} \geq (n-1)k g$, the volume of geodesic balls is bounded by the volume in the model space of constant curvature $k$. This drives Myers' theorem (positive Ricci $\Rightarrow$ compact) and many comparison results.
 
-$$\text{Ric}(v, v) = \sum_{i=2}^n K(v, e_i).$$
+The **scalar curvature** is the trace of Ricci: $R = g^{ij}R_{ij}$, a single function per point.
 
-This has a direct geometric consequence: **Ricci curvature controls volume growth.** The volume of a small geodesic ball of radius $r$ centered at $p$ satisfies
+![Scalar curvature R as a further trace giving a single number per point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/11-curvature-on-manifolds/dg_v2_11_4_scalar.png)
 
-$$\frac{\text{Vol}(B_r(p))}{\text{Vol}(B_r^{\text{Eucl}})} = 1 - \frac{R_{ij}v^i v^j}{6(n+2)} r^2 + O(r^4),$$
+**Hilbert action.** In general relativity, the **Einstein-Hilbert action** is $S[g] = \int_M R\,\mathrm{vol}_g$. Variation w.r.t. the metric gives the vacuum Einstein equation $\mathrm{Ric}_{ij} - \tfrac{1}{2}R g_{ij} = 0$. So scalar curvature is the unique geometric "least action" — Einstein's equation comes from minimising spacetime curvature, and the Einstein-Hilbert functional is the precise meaning of "simplest."
 
-where $v$ is averaged over directions. Positive Ricci curvature means geodesic balls are *smaller* than Euclidean ones (geodesics converge); negative Ricci curvature means they are *larger* (geodesics diverge).
+**Yamabe problem.** Does every Riemannian metric on a closed manifold of dimension $\geq 3$ admit a conformal rescaling to constant scalar curvature? The answer (proved by Yamabe-Trudinger-Aubin-Schoen) is yes. This is one of the foundational results of geometric analysis.
 
-**Bishop-Gromov volume comparison.** If $\text{Ric} \ge (n-1)\kappa g$ (Ricci curvature bounded below by that of the model space of curvature $\kappa$), then the volume ratio $\text{Vol}(B_r(p))/\text{Vol}(B_r^\kappa)$ is non-increasing in $r$. This is one of the most powerful tools in Riemannian geometry.
+**Positive scalar curvature obstructions.** A more striking fact: not every smooth manifold admits a metric of positive scalar curvature. Lichnerowicz showed that on a spin manifold, the existence of harmonic spinors (related to the Atiyah-Singer index of the Dirac operator) is an obstruction. The Gromov-Lawson and Stolz theorems classify which spin manifolds admit positive scalar curvature in dimensions $\geq 5$. So scalar curvature, despite being "just one number per point," carries deep topological information.
 
-**The Myers theorem.** If $\text{Ric} \ge (n-1)\kappa g$ with $\kappa > 0$, then $M$ is compact with diameter $\le \pi/\sqrt{\kappa}$. This is remarkable: a *local* curvature condition forces a *global* topological conclusion. Applying Myers' theorem to $S^n(r)$ (which has $\text{Ric} = \frac{n-1}{r^2}g$), we recover the obvious fact that $S^n(r)$ has diameter $\pi r$.
+**Why scalar curvature, of all things?** Among all simple curvature scalars, $R$ is the unique one that gives second-order Euler-Lagrange equations under variation. Other choices ($R^2, |\mathrm{Ric}|^2, |\mathrm{Riem}|^2$) lead to fourth-order equations and behave badly. This is why general relativity uses the Einstein-Hilbert action: it is the only "simplest" choice that produces a well-behaved theory. Higher-curvature corrections do appear in string theory, but they are perturbative refinements of the Einstein theory, not replacements.
 
-**The Cheeger-Gromoll splitting theorem.** If $M$ is a complete Riemannian manifold with $\text{Ric} \ge 0$ that contains a line (a geodesic that is minimizing on every segment), then $M$ is isometric to a product $N \times \mathbb{R}$. This shows that non-negative Ricci curvature severely constrains the topology at large scales.
+**The geometric meaning of $R$.** The scalar curvature $R$ at $p$ controls how the volume of small geodesic balls $B_p(r)$ deviates from Euclidean. Specifically, $\mathrm{vol}(B_p(r)) = \omega_n r^n(1 - \frac{R(p)}{6(n+2)}r^2 + O(r^4))$. So positive scalar curvature means small balls have smaller volume than Euclidean (space "wraps around"); negative scalar curvature means larger volumes (space "spreads out"). The factor $1/6(n+2)$ comes from the same kind of Taylor expansion in normal coordinates that gives the curvature formula in the first place.
 
-### Scalar curvature
+**Positive scalar curvature obstructions.** A more striking fact: not every smooth manifold admits a metric of positive scalar curvature. Lichnerowicz showed that on a spin manifold, the existence of harmonic spinors (related to the Atiyah-Singer index of the Dirac operator) is an obstruction. The Gromov-Lawson and Stolz theorems classify which spin manifolds admit positive scalar curvature in dimensions $\geq 5$. So scalar curvature, despite being "just one number per point," carries deep topological information.
 
-The **scalar curvature** is the trace of the Ricci tensor:
-
-$$R = g^{ij}R_{ij} = \sum_{i=1}^n \text{Ric}(e_i, e_i) = \sum_{i < j} K(e_i, e_j) \cdot 2.$$
-
-Scalar curvature is a single number at each point — the crudest summary of curvature. It measures the leading-order deviation of the volume of small balls from the Euclidean volume:
-
-$$\text{Vol}(B_r(p)) = \text{Vol}(B_r^{\text{Eucl}}) \left(1 - \frac{R(p)}{6(n+2)} r^2 + O(r^4)\right).$$
-
-For $S^n$ of radius $1$, the scalar curvature is $R = n(n-1)$. For $\mathbb{H}^n$ with curvature $-1$, $R = -n(n-1)$.
-
-### Einstein manifolds
-
-A Riemannian manifold is an **Einstein manifold** if the Ricci tensor is proportional to the metric:
-
-$$R_{ij} = \frac{R}{n} g_{ij}.$$
-
-Constant-curvature spaces are Einstein, but the converse is false in dimensions $\ge 4$. Einstein manifolds are critical points of the total scalar curvature functional (the Einstein-Hilbert action) and are central to both Riemannian geometry and physics.
-
-In general relativity, vacuum solutions of Einstein's equations satisfy $R_{ij} = 0$ (Ricci-flat), not $R_{ij} = \lambda g_{ij}$. With a cosmological constant $\Lambda$, vacuum solutions satisfy $R_{ij} = \Lambda g_{ij}$, making them Einstein manifolds. De Sitter space ($\Lambda > 0$) and anti-de Sitter space ($\Lambda < 0$) are the maximally symmetric Einstein manifolds and serve as model spacetimes in cosmology and string theory, respectively.
-
-### The hierarchy
-
-The curvature hierarchy for an $n$-dimensional Riemannian manifold is:
-
-$$\underbrace{R_{ijkl}}_{\frac{n^2(n^2-1)}{12} \text{ components}} \xrightarrow{\text{trace}} \underbrace{R_{ij}}_{{\frac{n(n+1)}{2}} \text{ components}} \xrightarrow{\text{trace}} \underbrace{R}_{1 \text{ component}}.$$
-
-Each level loses information. In dimension 2, $R_{ij}$ and $R$ both determine $R_{ijkl}$ completely. In dimension 3, $R_{ij}$ determines $R_{ijkl}$ (via the decomposition using the Weyl tensor, which vanishes in 3D). Starting in dimension 4, the Weyl tensor $W_{ijkl}$ carries independent information — it is the "traceless" part of the Riemann tensor and governs conformal geometry and gravitational waves.
-
-### The Weyl decomposition
-
-In dimensions $n \ge 3$, the Riemann tensor decomposes uniquely as
-
-$$R_{ijkl} = W_{ijkl} + \frac{1}{n-2}\left(R_{ik}g_{jl} - R_{il}g_{jk} + R_{jl}g_{ik} - R_{jk}g_{il}\right) - \frac{R}{(n-1)(n-2)}(g_{ik}g_{jl} - g_{il}g_{jk}).$$
-
-The **Weyl tensor** $W_{ijkl}$ has all the symmetries of the Riemann tensor and is additionally trace-free: $W^i_{\ jik} = 0$. It is conformally invariant: under a conformal change $\tilde{g} = e^{2f}g$, the Weyl tensor of $\tilde{g}$ equals the Weyl tensor of $g$ (with appropriate index positions). A Riemannian manifold is conformally flat (locally conformal to Euclidean space) if and only if:
-- $W = 0$ in dimensions $n \ge 4$,
-- the Cotton tensor $C_{ijk} = \nabla_k R_{ij} - \nabla_j R_{ik} - \frac{1}{2(n-1)}(\nabla_k R\, g_{ij} - \nabla_j R\, g_{ik})$ vanishes in dimension $n = 3$.
-
-In physics, the Weyl tensor describes tidal forces and gravitational radiation — the part of the gravitational field that propagates through vacuum, where Ricci curvature vanishes.
+**Why scalar curvature, of all things?** Among all simple curvature scalars, $R$ is the unique one that gives second-order Euler-Lagrange equations under variation. Other choices ($R^2, |\mathrm{Ric}|^2, |\mathrm{Riem}|^2$) lead to fourth-order equations and behave badly. This is why general relativity uses the Einstein-Hilbert action: it is the only "simplest" choice that produces a well-behaved theory. Higher-curvature corrections do appear in string theory, but they are perturbative refinements of the Einstein theory, not replacements.
 
 ---
 
-## Spaces of constant curvature: classification
+## 5. Decomposition of the Riemann Tensor
 
-### The classification theorem
+In dimension $\geq 4$, the Riemann tensor splits orthogonally (as a tensor at each point) into three pieces:
+$$R = W + \tilde{\mathrm{Ric}} + R_{\mathrm{scalar}},$$
+where:
+- $W$ is the **Weyl tensor**, the trace-free, conformally-invariant part of $R$. Vanishes iff the manifold is conformally flat.
+- $\tilde{\mathrm{Ric}}$ is the **traceless Ricci** part: tensors built from $\mathrm{Ric} - \frac{R}{n}g$.
+- $R_{\mathrm{scalar}}$ is the part built from scalar curvature alone.
 
-A complete, simply connected Riemannian manifold of constant sectional curvature $\kappa$ is isometric to one of:
+![Riemann tensor decomposition into Weyl, traceless Ricci, and scalar parts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/11-curvature-on-manifolds/dg_v2_11_5_decomp.png)
 
-- $S^n(1/\sqrt{\kappa})$ if $\kappa > 0$ (the sphere of radius $1/\sqrt{\kappa}$),
-- $\mathbb{R}^n$ if $\kappa = 0$,
-- $\mathbb{H}^n$ (with metric scaled so curvature is $\kappa$) if $\kappa < 0$.
+In dimensions 2 and 3, the Weyl tensor vanishes identically — there is "not enough room" for a non-trivial conformally-invariant piece. So:
+- 2D: $R$ determined by scalar curvature $R$ alone (one component).
+- 3D: $R$ determined by Ricci alone (six components — Ricci has six in 3D, the same count as Riemann).
+- 4D and higher: $R$ has Weyl plus Ricci plus scalar contributions — Weyl carries information not captured by Ricci.
 
-This is a uniqueness theorem: the curvature constant and the topology (simply connected, complete) pin down the geometry entirely. Any other complete manifold of constant curvature is a quotient of one of these three by a discrete group of isometries acting freely and properly discontinuously.
+**Vacuum Einstein in 4D.** Einstein vacuum equations $\mathrm{Ric} = 0$ kill the Ricci and scalar parts, but leave $W$ free. So gravitational waves and the Schwarzschild-Kerr fields are encoded in the Weyl tensor — the genuine "free" gravitational degrees of freedom.
 
-### Space forms
+**Conformal invariance.** The Weyl tensor is conformally invariant in the sense that under $g \mapsto e^{2\sigma}g$, $W$ transforms simply — its conformal class is preserved. This is what makes it the natural object for conformal geometry, twistor theory, and certain approaches to general relativity.
 
-The quotients are called **space forms**:
+**Algebraic Petrov classification.** In Lorentzian 4-geometry, the Weyl tensor admits a refinement to types I (general), II, D (Schwarzschild, Kerr), III, N (gravitational waves), O (vanishing). This algebraic classification is one of the main tools for understanding exact solutions of the Einstein equations. Type D solutions (including Schwarzschild and Kerr black holes) are the "algebraically special" exact solutions, and the Weyl-tensor type tells you a lot about the symmetries of the geometry.
 
-- **Positive curvature:** Quotients of $S^n$ include real projective space $\mathbb{RP}^n = S^n/\mathbb{Z}_2$ and lens spaces $L(p,q) = S^3/\mathbb{Z}_p$.
-- **Zero curvature:** Quotients of $\mathbb{R}^n$ are the **flat manifolds** (Bieberbach groups). In dimension 2, the only compact flat surfaces are the torus and the Klein bottle.
-- **Negative curvature:** Quotients of $\mathbb{H}^n$ give hyperbolic manifolds. In dimension 2, every closed surface of genus $g \ge 2$ admits a hyperbolic metric. In dimension 3, Thurston's geometrization (proved by Perelman) shows that hyperbolic pieces are generically the dominant geometry in the decomposition of 3-manifolds.
+**Useful concrete observation.** The decomposition $R = W + \tilde{\mathrm{Ric}} + R_{\text{scalar}}$ is orthogonal under the natural inner product on the space of curvature tensors. So $|R|^2 = |W|^2 + |\tilde{\mathrm{Ric}}|^2 + |R_{\text{scalar}}|^2$, and the integral $\int |R|^2$ splits as a sum of three integrals. In dimension 4, the Gauss-Bonnet-Chern theorem says $\int(|W|^2 - 2|\tilde{\mathrm{Ric}}|^2 + R^2/3)\,dV = 32\pi^2\chi(M)$ — a generalisation of the 2D Gauss-Bonnet, and an early example of how curvature norm integrals encode topological information in higher dimensions.
 
-### The Gauss-Bonnet theorem
-
-The deepest connection between curvature and topology for surfaces is the **Gauss-Bonnet theorem**: for a compact oriented 2-manifold $M$ without boundary,
-
-$$\int_M K\, dA = 2\pi\chi(M),$$
-
-where $K$ is the Gaussian curvature, $dA$ is the area form, and $\chi(M)$ is the Euler characteristic. For $S^2$, $K = 1$ everywhere, so $\int K\,dA = 4\pi = 2\pi \cdot 2$. For a torus ($\chi = 0$), the total curvature vanishes — regions of positive curvature on the outer edge exactly cancel regions of negative curvature on the inner edge.
-
-The Gauss-Bonnet theorem has a generalization to higher dimensions — the **Chern-Gauss-Bonnet theorem** — which expresses the Euler characteristic as an integral of a polynomial in the Riemann curvature tensor (the Pfaffian of the curvature 2-form). This will reappear when we discuss characteristic classes in the next article.
-
-### Bonnet-Myers and the topology of positive curvature
-
-The Gauss-Bonnet theorem is just the beginning of the deep connections between curvature and topology. Here are some landmark results:
-
-**Synge's theorem.** If $M$ is a compact Riemannian manifold with strictly positive sectional curvature ($K > 0$), then:
-- If $n$ is even, $M$ is simply connected.
-- If $n$ is odd, $M$ is orientable.
-
-This follows from analyzing the second variation of arc length for closed geodesics: positive curvature forces nearby geodesics to be shorter, which shrinks any closed geodesic to a point.
-
-**The sphere theorem.** If $M$ is a compact, simply connected Riemannian manifold with sectional curvature satisfying $\frac{1}{4} < K \le 1$, then $M$ is homeomorphic to $S^n$. The bound $1/4$ is sharp: $\mathbb{CP}^{n/2}$ has $\frac{1}{4} \le K \le 1$ and is not homeomorphic to a sphere. The differentiable version of the sphere theorem (proving diffeomorphism, not just homeomorphism) was proved by Brendle and Schoen in 2009 using Ricci flow.
-
-**Preissman's theorem.** If $M$ is a compact Riemannian manifold with $K < 0$, then every abelian subgroup of $\pi_1(M)$ is cyclic (isomorphic to $\mathbb{Z}$). This rules out, for instance, the torus $T^n$ (whose fundamental group is $\mathbb{Z}^n$) from carrying a metric of negative curvature.
-
-### Concrete calculations
-
-**Sphere $S^n(r)$ of radius $r$:** Sectional curvature $K = 1/r^2$, Ricci curvature $\text{Ric} = \frac{n-1}{r^2}g$, scalar curvature $R = \frac{n(n-1)}{r^2}$, volume $\text{Vol}(S^n(r)) = r^n \cdot \text{Vol}(S^n(1))$.
-
-**Hyperbolic space $\mathbb{H}^n$:** In the upper half-space model $\{x \in \mathbb{R}^n : x_n > 0\}$ with $g = \frac{1}{x_n^2}(dx_1^2 + \cdots + dx_n^2)$, we get $K = -1$, $\text{Ric} = -(n-1)g$, $R = -n(n-1)$. Volume of balls grows exponentially: $\text{Vol}(B_r) \sim c \cdot e^{(n-1)r}$ for large $r$, in stark contrast with the polynomial growth $\sim r^n$ in Euclidean space.
-
-**The three model geometries in dimension 2.** For surfaces, the three constant-curvature geometries have intuitive characterizations:
-
-| Property | $S^2$ ($K = 1$) | $\mathbb{R}^2$ ($K = 0$) | $\mathbb{H}^2$ ($K = -1$) |
-|---|---|---|---|
-| Triangle angle sum | $> \pi$ | $= \pi$ | $< \pi$ |
-| Circumference of radius-$r$ circle | $2\pi\sin r$ | $2\pi r$ | $2\pi\sinh r$ |
-| Area of radius-$r$ disk | $2\pi(1 - \cos r)$ | $\pi r^2$ | $2\pi(\cosh r - 1)$ |
-| Parallel lines | None (all lines meet) | Unique parallel | Infinitely many parallels |
-
-The triangle angle sum formula generalizes to the **Gauss-Bonnet formula for geodesic triangles**: $\alpha + \beta + \gamma = \pi + K \cdot \text{Area}(\Delta)$ on a surface of constant curvature $K$. On $S^2$, the excess $\alpha + \beta + \gamma - \pi$ equals the area (times $K$); on $\mathbb{H}^2$, the deficiency $\pi - \alpha - \beta - \gamma$ equals the area (times $|K|$). This provides an intrinsic, measurement-based way to detect curvature: measure the angles of a triangle and compare to $\pi$.
-
-**Comparison theorems.** The three model spaces serve as baselines for general Riemannian manifolds through comparison theorems:
-
-- **Toponogov's comparison theorem:** If sectional curvature $K \ge \kappa$, then geodesic triangles in $M$ are "thinner" than corresponding triangles in the model space of curvature $\kappa$. More precisely, if a geodesic triangle in $M$ has the same side lengths as a triangle in the model space, then its angles are at least as large.
-- **Rauch comparison theorem:** If $K \ge \kappa$ (resp. $K \le \kappa$), then Jacobi fields grow at most as fast (resp. at least as fast) as in the model space. This gives precise control over how fast nearby geodesics diverge.
-
-These comparison results are the engine behind many of the deep theorems in Riemannian geometry, including the sphere theorem, the Cheeger finiteness theorem, and Gromov's compactness theorem. They show that controlling curvature from above or below has strong geometric and topological consequences.
+**Why decompose at all?** The decomposition $R = W + \tilde{\mathrm{Ric}} + R_{\mathrm{scalar}}$ is the orthogonal projection of the Riemann tensor onto irreducible representations of the structure group $\mathrm{O}(n)$ acting on the space of curvature-like tensors. This is part of the larger story of "irreducible decomposition under the structure group," which is how one organizes tensor fields in any geometric setting (Newton-Cartan, Galilean, Lorentzian, Hermitian). Each irreducible piece carries different geometric content, and equations involving curvature naturally separate into "trace parts" (Ricci, scalar) and "trace-free parts" (Weyl).
 
 ---
 
-## What's next
+## 6. Constant-Curvature Spaces
 
-The Riemann curvature tensor and its contractions give us a complete intrinsic description of curvature for Riemannian manifolds. But the framework is richer than just Riemannian geometry. In the final article, we generalize: the tangent bundle is just one vector bundle on $M$, and the Levi-Civita connection is just one connection. **Fiber bundles** and **connections on bundles** provide the mathematical language for gauge theories in physics, and **characteristic classes** extract topological invariants from curvature. This is where differential geometry meets topology and theoretical physics.
+A Riemannian manifold has **constant sectional curvature** $\kappa$ if $K(\Pi) = \kappa$ for every 2-plane at every point. The simply connected complete examples — the **model spaces** — are:
 
-### Curvature computations: a practical summary
+![Three model spaces of constant sectional curvature: sphere, plane, hyperbolic plane](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/11-curvature-on-manifolds/dg_v2_11_6_constant_K.png)
 
-For reference, here is a recipe for computing curvature from a given metric:
+- **Sphere $S^n_\kappa$** for $\kappa > 0$: the round $n$-sphere of radius $1/\sqrt\kappa$. Compact, isometry group $\mathrm{O}(n+1)$.
+- **Euclidean space $\mathbb{R}^n$** for $\kappa = 0$. Non-compact, isometry group $\mathrm{Iso}(\mathbb{R}^n) = \mathbb{R}^n \rtimes \mathrm{O}(n)$.
+- **Hyperbolic space $\mathbb{H}^n_\kappa$** for $\kappa < 0$: $n$-dimensional analog of $\mathbb{H}^2$. Non-compact, isometry group $\mathrm{O}^+(n, 1)$.
 
-1. **Start with the metric** $g_{ij}$ in coordinates. Compute the inverse metric $g^{ij}$.
-2. **Compute Christoffel symbols** using $\Gamma^k_{ij} = \frac{1}{2}g^{k\ell}(\partial_i g_{j\ell} + \partial_j g_{i\ell} - \partial_\ell g_{ij})$.
-3. **Compute the Riemann tensor** using $R^\rho_{\ \sigma\mu\nu} = \partial_\mu \Gamma^\rho_{\nu\sigma} - \partial_\nu \Gamma^\rho_{\mu\sigma} + \Gamma^\rho_{\mu\lambda}\Gamma^\lambda_{\nu\sigma} - \Gamma^\rho_{\nu\lambda}\Gamma^\lambda_{\mu\sigma}$.
-4. **Compute the Ricci tensor** by contracting: $R_{\sigma\nu} = R^\mu_{\ \sigma\mu\nu}$.
-5. **Compute the scalar curvature** by tracing: $R = g^{\sigma\nu}R_{\sigma\nu}$.
+**Killing-Hopf classification.** Every complete Riemannian manifold of constant sectional curvature is the quotient of a model space by a discrete group of isometries acting freely and properly discontinuously. So:
+- Constant $K = 1$: $S^n / \Gamma$ for $\Gamma \subset \mathrm{O}(n+1)$.
+- Constant $K = 0$: $\mathbb{R}^n / \Gamma$ — these are flat manifolds. Bieberbach's theorems classify them in each dimension.
+- Constant $K = -1$: $\mathbb{H}^n / \Gamma$ — hyperbolic manifolds. By Mostow rigidity (in $n \geq 3$), this lattice $\Gamma$ is determined up to isomorphism by the manifold's homotopy type. So hyperbolic geometry in dimension $\geq 3$ is rigid in a strong sense.
 
-In practice, computer algebra systems (Mathematica, SageMath, xAct) handle these computations efficiently. But doing at least one example by hand — say, the sphere or hyperbolic plane — is essential for understanding what the formulas mean geometrically.
+**Examples.**
+- $\mathbb{RP}^n = S^n / (\mathbb{Z}/2)$: constant $K = 1$.
+- Flat torus $T^n = \mathbb{R}^n / \mathbb{Z}^n$: constant $K = 0$.
+- Genus-2 surface admits a metric of constant $K = -1$ (uniformization).
+- Lens spaces $L(p, q) = S^3 / \mathbb{Z}_p$: constant $K = 1$ in dimension 3.
+- Klein bottle: admits a flat metric (constant $K = 0$).
 
-### Ricci flow: curvature as a dynamical system
+**Sphere theorem.** A simply connected complete Riemannian $n$-manifold with $1/4 < K \leq 1$ is *homeomorphic* to $S^n$ (Brendle-Schoen, 2008, replacing the older Berger-Klingenberg "topological" version). The stronger differentiable version (diffeomorphic to the standard sphere) is now also known. This is one of the deepest curvature-pinching theorems.
 
-We cannot leave the topic of curvature without mentioning **Ricci flow**, introduced by Richard Hamilton in 1982:
+**Cartan's theorem on locally symmetric spaces.** A Riemannian manifold is **locally symmetric** if its Riemann tensor is parallel: $\nabla R = 0$. Cartan classified the simply-connected complete locally symmetric spaces — they are either products of constant-curvature spaces or *symmetric spaces*, quotients $G/H$ of Lie groups by closed subgroups satisfying certain conditions. The symmetric spaces include all Grassmannians, all classical Lie groups equipped with bi-invariant metrics, and the duality between compact and noncompact "types" (e.g., $S^n \leftrightarrow \mathbb{H}^n$ via complexification of the Lie algebra). Cartan's classification is the foundation of geometric Lie theory.
 
-$$\frac{\partial g_{ij}}{\partial t} = -2R_{ij}.$$
+**Hyperbolic 3-manifolds and Mostow rigidity.** A celebrated result: if $M_1, M_2$ are complete finite-volume hyperbolic 3-manifolds (constant $K = -1$) with the same fundamental group, then they are isometric. So in dimension $\geq 3$, hyperbolic geometry is *rigid* — homotopy type determines metric. This is in dramatic contrast to dimension 2, where Riemann surfaces of fixed genus form a moduli space (Teichmuller space). Mostow rigidity is one of the key reasons hyperbolic 3-manifolds occupy a central place in modern topology and geometric group theory.
 
-This is a heat-type equation for the metric: it evolves the metric in the direction of its Ricci curvature, smoothing out irregularities. Positively curved regions shrink, negatively curved regions expand, and the metric tends toward greater uniformity.
+**Why rigidity is so striking.** In dimension 2, hyperbolic Riemann surfaces of fixed genus form Teichmuller space, a $(6g-6)$-dimensional moduli space; one can deform a hyperbolic surface continuously in many directions while preserving the genus and the constant-curvature condition. In dimension 3, all those moduli collapse to a point: a closed hyperbolic 3-manifold is determined uniquely by its fundamental group. This dimensional jump, from infinite-dimensional moduli to zero-dimensional moduli, is the kind of phenomenon that makes 3-dimensional topology a uniquely rich subject and that drove much of low-dimensional geometry research from the 1970s through the 2010s. The Thurston geometrisation programme — proved by Perelman in 2003 — extends this rigidity insight by classifying *all* closed 3-manifolds via geometric pieces, with hyperbolic geometry the most common building block.
 
-Hamilton showed that Ricci flow on compact 3-manifolds with positive Ricci curvature converges to a constant-curvature metric, proving that such manifolds are diffeomorphic to spherical space forms. Grigori Perelman extended this work dramatically, using Ricci flow with surgery to prove the Poincare conjecture (2003) and Thurston's geometrization conjecture — the complete classification of compact 3-manifolds. This is arguably the greatest application of curvature to topology in the history of mathematics.
+---
 
-### A brief history
+## 7. Einstein Manifolds
 
-The study of curvature goes back to Gauss's *Theorema Egregium* (1827), which proved that the Gaussian curvature of a surface is an intrinsic invariant — it can be computed from the metric alone, without reference to how the surface sits in 3-space. Riemann generalized this to arbitrary dimensions in his 1854 habilitation lecture, introducing the curvature tensor that now bears his name. The Ricci tensor was introduced by Gregorio Ricci-Curbastro and his student Tullio Levi-Civita in the early 1900s as part of developing the "absolute differential calculus" (tensor calculus). Einstein used this calculus to formulate general relativity in 1915, making Ricci curvature the language of gravity. The Bishop-Gromov comparison theorem (1960s) and Hamilton's Ricci flow (1982) brought Ricci curvature to the center of geometric analysis, culminating in Perelman's proof of the Poincare conjecture. The story of curvature is far from finished — the interaction between curvature conditions, topology, and geometric flows remains one of the most active areas of mathematical research.
+A Riemannian manifold is **Einstein** if $\mathrm{Ric} = \lambda g$ for some constant $\lambda$. Trace gives $R = n\lambda$, so $\lambda = R/n$ and the condition is equivalent to $\mathrm{Ric} = (R/n)g$. In components: $R_{ij} = (R/n)g_{ij}$ — Ricci is proportional to the metric.
+
+![Einstein manifolds where Ricci is proportional to the metric](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/11-curvature-on-manifolds/dg_v2_11_7_einstein.png)
+
+**Examples.**
+- All constant-sectional-curvature spaces are Einstein with $\lambda = (n-1)\kappa$.
+- $S^2 \times S^2$ with the product of round metrics is Einstein.
+- Calabi-Yau manifolds are Ricci-flat ($\lambda = 0$) Einstein.
+- Schwarzschild and Kerr (Lorentzian) are Ricci-flat Einstein.
+
+**Variational characterization.** Einstein metrics are critical points of $g \mapsto \int_M R\,\mathrm{vol}_g$ restricted to a fixed-volume submanifold of the space of metrics. So Einstein metrics are the variational fixed points of the simplest curvature functional. This is both the geometric and the physical reason they appear so often.
+
+**Computation of the variational derivative.** Under a small variation $g \mapsto g + h$, the scalar curvature changes by $\delta R = -h^{ij}R_{ij} + \nabla^i\nabla^j h_{ij} - \Delta(g^{ij}h_{ij})$. The volume form changes by $\delta(\mathrm{vol}_g) = \frac{1}{2}g^{ij}h_{ij}\,\mathrm{vol}_g$. Putting these together and integrating by parts, the divergence terms drop out (boundaryless $M$), leaving $\delta\int R\,\mathrm{vol}_g = \int (-R^{ij} + \frac{1}{2}R g^{ij}) h_{ij}\,\mathrm{vol}_g$. Setting this equal to zero for all $h$ gives $R^{ij} - \frac{1}{2}R g^{ij} = 0$, the vacuum Einstein equation. So the algebraic condition "Ricci proportional to metric" is exactly the Euler-Lagrange equation of the simplest geometric action.
+
+**Hierarchy of conditions.** The conditions form a hierarchy:
+$$\text{constant sectional curvature} \implies \text{Einstein} \implies \text{constant scalar curvature}.$$
+The implications are strict in dimension $\geq 4$: there are Einstein manifolds that are not constant-sectional-curvature ($S^2 \times S^2$), and constant-scalar-curvature manifolds that are not Einstein.
+
+**Numerical example: $S^2 \times S^2$.** The product metric $g = g_1 \oplus g_2$ where each factor is a round sphere of radius 1. The Ricci tensor of a product is the direct sum of Ricci tensors of factors. Since each factor has $\mathrm{Ric}_i = g_i$, we get $\mathrm{Ric} = g_1 \oplus g_2 = g$ on the product. So $S^2 \times S^2$ is Einstein with $\lambda = 1$. But it is not constant-sectional-curvature: the sectional curvature of a 2-plane that mixes the two factors is 0, while a 2-plane lying in one factor has sectional curvature 1. Mixed planes give zero, "pure" planes give 1.
+
+**Why this difference matters.** The four-dimensional manifold $S^2 \times S^2$ is Einstein and its $\mathrm{Ric}$ is proportional to $g$, but the geometric "spread" of curvature across different 2-planes is highly non-uniform. This is why the various curvature invariants (Riemann, sectional, Ricci, scalar) are not redundant: different physical or geometric questions are sensitive to different parts of the curvature tensor. Cosmological observations care about Ricci (because Einstein's equation involves Ricci); gravitational-wave physics cares about Weyl (because waves are the trace-free, source-free part of curvature); studying convergence of geodesics in a particular direction cares about sectional curvature in that direction. The decomposition is not bookkeeping; it is the natural decomposition of the geometric data into physically distinct parts.
+
+**Why this matters.** Einstein manifolds are the "ground states" of general relativity: the simplest possible Ricci-tensor structure. In supersymmetric string compactifications, Calabi-Yau manifolds (Ricci-flat Einstein) play a starring role because their geometry permits the supersymmetry to survive compactification. In differential geometry, Einstein metrics are the natural target of various heat flows (Ricci flow, Calabi flow) — geometric evolution equations that smooth metrics toward the Einstein condition, with Perelman's resolution of the Poincare conjecture being the most famous application.
+
+**Existence questions.** Does every smooth manifold admit an Einstein metric? In dimension 2, yes — the uniformization theorem gives constant-curvature (hence Einstein) metrics. In dimension 3, every closed Einstein metric is constant-curvature (a theorem), so the question reduces to "does the manifold admit a constant-curvature metric?" — and Thurston's geometrization tells you when. In dimension $\geq 4$, the question is hard and largely open: there are 4-manifolds known to admit no Einstein metric (Hitchin, LeBrun) and others with multiple non-isometric Einstein metrics. The existence question is one of the central challenges of differential geometry.
+
+**Self-duality in 4D.** In dimension 4, the Weyl tensor decomposes further as $W = W^+ + W^-$ (self-dual and anti-self-dual parts) under the Hodge star. **Self-dual** Einstein 4-manifolds (where $W^- = 0$) are the natural setting for Penrose's twistor program, and they include the K3 surface and the four-sphere. The self-dual / anti-self-dual decomposition is special to dimension 4 and is the mathematical reason gauge theory in 4D (Yang-Mills) has the rich structure it does — instanton solutions, Donaldson invariants, Seiberg-Witten theory all live in this 4D-only setting.
+
+**Numerical reference values.** As a quick check, here are scalar curvatures and Einstein constants for a few standard manifolds. Round $S^n$ of radius $r$: $K = 1/r^2$, $\mathrm{Ric} = (n-1)/r^2 \cdot g$, $R = n(n-1)/r^2$, Einstein constant $\lambda = (n-1)/r^2$. Hyperbolic $\mathbb{H}^n$ of curvature $-1$: $K = -1$, $\mathrm{Ric} = -(n-1)g$, $R = -n(n-1)$, $\lambda = -(n-1)$. Flat $\mathbb{R}^n$: all curvatures zero. $S^n \times S^n$ with product round metrics of radius 1: $\mathrm{Ric}(S^n \times S^n) = (n-1)g$, so Einstein with $\lambda = n-1$, but not constant sectional curvature for the same reason as $S^2 \times S^2$. These reference values are useful sanity checks when computing curvatures of new metrics.
+
+**Common confusions.** A few traps I have stepped in often enough to flag explicitly. First, the Ricci tensor depends on which contraction you take: $R^i_{jik}$ versus $R^i_{ijk}$ versus $R_{ijk}^{i}$ can disagree by a sign depending on convention. Pick one convention and stick with it; the easiest sanity check is to verify that $\mathrm{Ric}$ on a round sphere is positive (a common convention) or check it against the known $\mathrm{Ric} = (n-1)g$ on $S^n$. Second, the sign convention for sectional curvature: some authors use $K(\Pi) = R(X, Y, X, Y)$ and some use $-R(X, Y, X, Y)$; the standard differential-geometry convention is the positive one (so the round sphere has $K > 0$). Third, the trace identity $g^{ij}R_{ij} = R^i_i = R$ is automatic, but in coordinate computations it is easy to miss a metric factor and end up with $R$ off by $g_{ii}$. Always trace down through the metric explicitly.
+
+A final practical note. When reading textbooks, papers, or computer algebra outputs, the first thing I do is verify the convention by computing the Ricci tensor of the round 2-sphere and checking the sign. This thirty-second check has saved me many hours of confusion over the years. Conventions in differential geometry are not standardised across sources, with at least three competing sign conventions in active use; the only safe approach is to verify the convention against a known case before trusting any further computation built on top.
+
+
+---
+
+## 8. Computing Curvature in Practice
+
+To consolidate, the practical steps to compute curvature for a given metric $g$:
+
+1. **Write the metric** $g_{ij}$ in coordinates and invert to get $g^{ij}$.
+2. **Compute Christoffel symbols** $\Gamma^k_{ij} = \frac{1}{2}g^{kl}(\partial_i g_{jl} + \partial_j g_{il} - \partial_l g_{ij})$. Symmetric in $i, j$.
+3. **Compute Riemann components** $R^l_{ijk}$ from the Christoffels.
+4. **Lower the index:** $R_{ijkl} = g_{lm}R^m_{ijk}$.
+5. **Contract for Ricci:** $R_{jk} = R^i_{jik}$.
+6. **Trace for scalar curvature:** $R = g^{ij}R_{ij}$.
+
+This is computationally intensive in general — $n^4/12$ Riemann components, with each requiring partial derivatives of Christoffels. In practice, one uses computer algebra systems (Mathematica, SymPy, or specialized packages like xAct) for any non-trivial metric.
+
+**Worked example: 2-sphere again.** Steps 1-2 done above (Christoffels). Step 3:
+$$R^\theta_{\phi\theta\phi} = \sin^2\theta, \qquad R^\phi_{\theta\phi\theta} = 1$$
+(other independent components zero by antisymmetry). Step 4: $R_{\theta\phi\theta\phi} = g_{\theta\theta}R^\theta_{\phi\theta\phi} = \sin^2\theta$. Step 5: $R_{\theta\theta} = R^\theta_{\theta\theta\theta} + R^\phi_{\theta\phi\theta} = 0 + 1 = 1$, $R_{\phi\phi} = R^\theta_{\phi\theta\phi} + R^\phi_{\phi\phi\phi} = \sin^2\theta + 0 = \sin^2\theta$. Step 6: $R = g^{\theta\theta}\cdot 1 + g^{\phi\phi}\sin^2\theta = 1 + 1 = 2$.
+
+Total: $K = 1, \mathrm{Ric} = g, R = 2$. Three numbers consistent with each other ($\lambda = 1$, dimension $n = 2$, so $R = n\lambda = 2$) and matching geometric intuition. The unit sphere has the right curvatures.
+
+**Worked example: hyperbolic plane.** Same procedure on $\mathbb{H}^2$ with metric $g = (dx^2 + dy^2)/y^2$. Christoffels were computed in article 10. Computing the Riemann tensor, the only independent component (up to symmetries) is $R_{xyxy} = -1/y^4$. Lower indices through the metric: sectional curvature $K = R_{xyxy}/(g_{xx}g_{yy} - g_{xy}^2) = (-1/y^4)/(1/y^4) = -1$. Ricci: $R_{xx} = -1/y^2 = -g_{xx}, R_{yy} = -1/y^2 = -g_{yy}$. So $\mathrm{Ric} = -g$ — the hyperbolic plane is Einstein with $\lambda = -1$. Scalar: $R = -2$. Consistent with the constant negative curvature picture.
+
+**Worked example: flat torus.** $T^2 = \mathbb{R}^2/\mathbb{Z}^2$ with the inherited Euclidean metric. Christoffels all zero (since $g_{ij}$ is constant). All curvatures zero: $R^i_{jkl} = 0$, $\mathrm{Ric} = 0$, $R = 0$. The flat torus is Einstein (with $\lambda = 0$, vacuously). Total volume is 1 (per fundamental domain) and total curvature integral is 0 — agreeing with Gauss-Bonnet for $\chi(T^2) = 0$.
+
+**Worked example: cylinder vs torus, an instructive contrast.** The infinite cylinder $S^1 \times \mathbb{R}$ with the product Euclidean metric has identically zero curvature, just like the flat torus. The two are locally isometric; the difference is purely global. Yet $\chi(S^1 \times \mathbb{R}) = 0$ (the cylinder is non-compact, so the Euler-characteristic statement of Gauss-Bonnet does not directly apply, but one can still integrate $K$ to get $0$), while $\chi(T^2) = 0$ also. Both have $\int K\,dA = 0$. The flat tori in $\mathbb{R}^3$ — the standard donut shape — are *not* flat in their inherited Euclidean metric: the Gauss curvature on the inner part is negative, on the outer part positive, and the integrals cancel. Only the abstract $T^2 = \mathbb{R}^2/\mathbb{Z}^2$ with the quotient metric is genuinely flat, and that metric does not arise from any embedding into $\mathbb{R}^3$ (because flat $T^2$ embeds isometrically only in $\mathbb{R}^4$ and higher, by Nash-Kuiper).
+
+**Computational tools.** In practice, computing curvatures by hand for any non-trivial metric (e.g., Kerr black hole, FLRW cosmology, asymptotically AdS) is tedious. SymPy, Mathematica's diffgeo package, and specialized tools like xAct or Maxima's ctensor exist for this. The hand-calculation is good pedagogy but unscalable; for research-grade problems, computer algebra is essential. Modern lattice-gravity simulations and numerical relativity codes use closed-form curvature derivations as building blocks but compute them automatically.
+
+**A practical note.** When debugging a metric one has computed (e.g. solving the Einstein equations or working with a candidate Calabi-Yau), it is often easier to compute the scalar curvature first and check it is finite and non-singular, then move to Ricci, and only finally to the full Riemann tensor. The hierarchy lets you catch errors at the cheapest level — a wrong $R$ usually means a typo somewhere upstream that hand-computing 20 Riemann components would not have localised. The simpler invariants are diagnostic.
+
+---
+
+## What's Next
+
+We have built the curvature apparatus: Riemann tensor, sectional, Ricci, and scalar curvatures, the Weyl decomposition, constant-curvature classification, Einstein manifolds. The next and final article generalizes these ideas to **fiber bundles** — the natural setting for gauge theory in physics. Connections on principal bundles generalize Levi-Civita; their curvature 2-forms generalize the Riemann tensor; characteristic classes (Chern, Pontryagin, Euler) integrate these to give topological invariants; and Yang-Mills theory is the variational problem for connections.
+
+**Summary of the key ideas.**
+
+1. The **Riemann curvature tensor** $R(X, Y)Z$ encodes all intrinsic curvature; it has $n^2(n^2-1)/12$ independent components and a rich symmetry structure.
+2. **Sectional curvature** $K(\Pi)$ — a scalar per 2-plane — is the most direct geometric quantity; constant $K$ characterizes the model spaces.
+3. **Ricci curvature** $\mathrm{Ric}$ is a contraction of $R$; it controls volume comparison and appears in Einstein's equation.
+4. **Scalar curvature** $R$ is the further trace; it is a single number per point and the variational source of general relativity (Hilbert action).
+5. The **Weyl tensor** is the conformally-invariant, traceless part of $R$; it carries the gravitational degrees of freedom.
+6. **Constant-curvature spaces** are classified up to isometry as quotients of the model spaces $S^n, \mathbb{R}^n, \mathbb{H}^n$.
+7. **Einstein manifolds** have $\mathrm{Ric} \propto g$; they are critical points of the Hilbert action and the natural setting for vacuum general relativity.
+
+**Closing reflection.** Curvature is the conceptual destination of the entire differential geometry sequence. We started with curves in space (article 1) where curvature was a single number measuring how a curve bends. We extended to surfaces (article 3) where curvature became a $2\times 2$ shape operator giving Gaussian and mean curvatures. Theorema Egregium (article 4) showed Gaussian curvature was intrinsic. Gauss-Bonnet (article 5) showed it integrated to a topological invariant. Then we stepped up to abstract manifolds (article 6 onward) and rebuilt the apparatus without an ambient space. By article 10 we had connections and parallel transport on Riemannian manifolds, and now in this article we have made curvature itself the central object. The Riemann tensor is the apex of this construction: a single tensor field encoding all intrinsic curvature, with contractions giving the simpler invariants and a decomposition under the orthogonal group separating physically distinct pieces.
+
+The next article shifts venue once more, to fiber bundles. The Levi-Civita connection becomes a special case of a connection on a principal $O(n)$-bundle. The Riemann tensor becomes a curvature 2-form. Sectional curvatures become Chern classes after integration. Yang-Mills theory is the variational problem of these connections. The package of tools we have built here scales naturally to that bundle-theoretic setting, and the same pictures (parallel transport rotates vectors; curvature measures the rotation per unit area) apply with $G$ replaced by an arbitrary structure group. That generalisation is the bridge to gauge theory in physics, which is the topic of the final article.
 
 ---
 
@@ -354,4 +279,4 @@ The study of curvature goes back to Gauss's *Theorema Egregium* (1827), which pr
 
 *Previous: [Part 10 — Riemannian Geometry](/en/differential-geometry/10-riemannian-geometry/)*
 
-*Next: [Part 12 — Fiber Bundles and Physics](/en/differential-geometry/12-bundles-and-physics/)*
+*Next: [Part 12 — Bundles and Physics](/en/differential-geometry/12-bundles-and-physics/)*

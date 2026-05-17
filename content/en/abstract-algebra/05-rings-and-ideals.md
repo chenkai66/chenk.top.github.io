@@ -17,265 +17,336 @@ series_total: 12
 translationKey: "abstract-algebra-5"
 ---
 
-Groups capture symmetry through a single operation. But most of the number systems we actually compute with — integers, polynomials, matrices — carry two operations that interact: addition and multiplication. The moment you want to talk about divisibility, factorization, or solving equations, one operation is not enough. You need a **ring**.
+Groups capture symmetry through a single operation. But most of the number systems we actually compute with --- integers, polynomials, matrices --- carry two operations that interact: addition and multiplication. The moment you want to talk about divisibility, factorization, or solving equations, one operation is not enough. You need a *ring*.
 
-This article develops ring theory from scratch: the axioms, the key examples, the pathologies that make ring theory richer (and harder) than group theory, and the central concept of an **ideal** — the ring-theoretic analogue of a normal subgroup. By the end, you will have the language to state the First Isomorphism Theorem for rings and to understand why "modding out by an ideal" is the right way to build new rings from old ones.
-
----
+This article develops ring theory from scratch: the axioms, the key examples, the pathologies that make ring theory richer (and harder) than group theory, and the central concept of an *ideal* --- the ring-theoretic analogue of a normal subgroup. By the end you will have the language to state the First Isomorphism Theorem for rings and to understand why "modding out by an ideal" is the right way to build new rings from old ones.
 
 ## From Groups to Rings: Why Two Operations?
 
-Consider the integers $\mathbb{Z}$. As a group under addition, $(\mathbb{Z}, +)$ is infinite cyclic — completely understood. But the interesting number theory of $\mathbb{Z}$ involves multiplication: primes, divisibility, the Fundamental Theorem of Arithmetic. Addition alone cannot see any of this structure.
+Mental picture: a ring is a number system. It has an additive structure (you can add and subtract), a multiplicative structure (you can multiply, possibly without dividing), and the two interact via distributivity. The integers $\mathbb{Z}$ are the prototypical example; everything else is a generalization.
+
+Consider $\mathbb{Z}$. As a group under addition, $(\mathbb{Z}, +)$ is infinite cyclic --- completely understood. But the interesting number theory of $\mathbb{Z}$ involves multiplication: primes, divisibility, the Fundamental Theorem of Arithmetic. Addition alone cannot see any of this structure.
 
 Similarly, consider the set $\mathbb{R}[x]$ of polynomials with real coefficients. As an additive group it is just a vector space, but the ability to *multiply* polynomials is what makes factorization, roots, and algebraic geometry possible.
 
-The pattern repeats everywhere:
+The pattern repeats:
 
-- **$\mathbb{Z}/n\mathbb{Z}$**: modular arithmetic uses both addition and multiplication mod $n$.
-- **$M_n(\mathbb{R})$**: matrix algebra needs both operations; multiplication is not even commutative.
-- **Function spaces**: pointwise addition and multiplication of functions $f: X \to \mathbb{R}$.
+- $\mathbb{Z}/n\mathbb{Z}$: modular arithmetic uses both operations.
+- $M_n(\mathbb{R})$: matrix algebra needs both, and multiplication is not commutative.
+- Function spaces: pointwise addition and multiplication of functions $f: X \to \mathbb{R}$.
 
-In each case, addition gives you an abelian group, multiplication gives you an associative operation, and the two are linked by **distributivity**. Abstracting this pattern yields the notion of a ring.
+In each case, addition gives you an abelian group, multiplication gives an associative operation, and the two are linked by distributivity. Abstracting yields the notion of a ring.
 
-Historically, the concept of a ring crystallized in the late 19th century from two sources. The first was **algebraic number theory**: Dedekind studied rings of algebraic integers like $\mathbb{Z}[\sqrt{-5}]$ to understand when unique factorization fails and how to restore it using ideals. The second was **invariant theory**: Hilbert proved that rings of polynomial invariants are finitely generated, a result that only makes sense once you have a clear notion of "ring" and "ideal." The formal axiomatization was completed by Emmy Noether in the 1920s, and her framework — rings, ideals, modules, the ascending chain condition — remains the language of modern algebra.
+Historically, the concept of a ring crystallized in the late 19th century from two sources. *Algebraic number theory*: Dedekind studied rings of algebraic integers like $\mathbb{Z}[\sqrt{-5}]$ to understand when unique factorization fails and how to restore it using ideals. *Invariant theory*: Hilbert proved that rings of polynomial invariants are finitely generated. The formal axiomatization was completed by Emmy Noether in the 1920s.
 
----
-
-
-![Hierarchy of ring structures from general rings to fields](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/05-rings-and-ideals/aa_fig5_ring_hierarchy.png)
+![Ring hierarchy: rings, integral domains, UFDs, PIDs, Euclidean domains, fields](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/05-rings-and-ideals/aa_v2_05_1_ring_hierarchy.png)
 
 ## Ring Axioms and the Zoo of Examples
 
-**Definition.** A **ring** is a set $R$ equipped with two binary operations $+$ and $\cdot$ such that:
+Mental picture: a ring is two operations joined at the hip. Distributivity is the glue: it forces the two operations to play nicely together, ruling out monstrosities like $1 \cdot 0 \neq 0$.
 
-1. $(R, +)$ is an abelian group (with identity $0$).
-2. Multiplication is associative: $a \cdot (b \cdot c) = (a \cdot b) \cdot c$ for all $a, b, c \in R$.
-3. Distributivity holds on both sides:
-$$a \cdot (b + c) = a \cdot b + a \cdot c, \qquad (a + b) \cdot c = a \cdot c + b \cdot c.$$
+**Definition.** A *ring* is a set $R$ with two binary operations $+$ and $\cdot$ such that:
 
-We say $R$ is a **ring with unity** (or **unital ring**) if there exists $1 \in R$ with $1 \cdot a = a \cdot 1 = a$ for all $a$. We say $R$ is **commutative** if $a \cdot b = b \cdot a$ for all $a, b$. Throughout this article, "ring" means unital ring unless stated otherwise.
+1. $(R, +)$ is an abelian group with identity $0$.
+2. Multiplication is associative.
+3. Distributivity: $a(b+c) = ab + ac$ and $(a+b)c = ac + bc$.
 
-**Immediate consequences of the axioms.** For any ring $R$:
-- $0 \cdot a = a \cdot 0 = 0$ for all $a \in R$. *Proof:* $0 \cdot a = (0 + 0) \cdot a = 0 \cdot a + 0 \cdot a$, so $0 \cdot a = 0$ by cancellation in $(R, +)$.
-- $(-1) \cdot a = -a$. *Proof:* $a + (-1) \cdot a = 1 \cdot a + (-1) \cdot a = (1 + (-1)) \cdot a = 0 \cdot a = 0$.
-- $(-a)(-b) = ab$. Apply the previous result twice.
+A ring is *unital* if there exists $1 \in R$ with $1 \cdot a = a \cdot 1 = a$. *Commutative* if $ab = ba$. Throughout, "ring" means commutative unital unless stated otherwise (we will be explicit when we need to drop assumptions).
 
-### The Zoo of Examples
+The two-sided distributivity is needed in non-commutative rings; in commutative rings, $a(b+c) = ab + ac$ implies $(a+b)c = ac + bc$ automatically. Note that in some textbook traditions, "ring" includes commutativity by default; in others (e.g., Lang), it does not. In contemporary research, "commutative ring" and "(non-commutative) ring" are the two main camps, both important.
+
+**Immediate consequences:**
+
+- $0 \cdot a = 0$. (Proof: $0 \cdot a = (0+0) \cdot a = 0 \cdot a + 0 \cdot a$, cancel.)
+- $(-1) \cdot a = -a$.
+- $(-a)(-b) = ab$.
+
+### A Catalog of Rings
 
 | Ring | Commutative? | Unity? | Notes |
-|---|---|---|---|
-| $\mathbb{Z}$ | Yes | $1$ | The prototypical ring |
-| $\mathbb{Z}/n\mathbb{Z}$ | Yes | $\bar{1}$ | A field iff $n$ is prime |
-| $\mathbb{Q}, \mathbb{R}, \mathbb{C}$ | Yes | $1$ | Fields (every nonzero element invertible) |
-| $\mathbb{Z}[i] = \{a + bi : a, b \in \mathbb{Z}\}$ | Yes | $1$ | Gaussian integers |
-| $\mathbb{R}[x]$ | Yes | $1$ | Polynomial ring |
-| $M_n(\mathbb{R})$ | **No** ($n \geq 2$) | $I_n$ | Matrix ring |
-| $\mathbb{H}$ (quaternions) | **No** | $1$ | Division ring (skew field) |
-| $2\mathbb{Z}$ (even integers) | Yes | **No** | Ring without unity |
-| $C(X, \mathbb{R})$ (continuous functions $X \to \mathbb{R}$) | Yes | $f \equiv 1$ | Infinite-dimensional |
+|------|--------------|--------|-------|
+| $\mathbb{Z}$ | yes | $1$ | the prototype |
+| $\mathbb{Z}/n\mathbb{Z}$ | yes | $\bar 1$ | field iff $n$ is prime |
+| $\mathbb{Q}, \mathbb{R}, \mathbb{C}$ | yes | $1$ | fields |
+| $\mathbb{Z}[i] = \{a+bi : a, b \in \mathbb{Z}\}$ | yes | $1$ | Gaussian integers |
+| $\mathbb{R}[x]$ | yes | $1$ | polynomial ring |
+| $M_n(\mathbb{R})$ | no ($n \geq 2$) | $I_n$ | matrix ring |
+| $\mathbb{H}$ (quaternions) | no | $1$ | division ring |
+| $2\mathbb{Z}$ (even integers) | yes | no | non-unital |
+| $C([0,1], \mathbb{R})$ | yes | $f \equiv 1$ | continuous functions |
 
-A **field** is a commutative ring with unity in which every nonzero element has a multiplicative inverse. A **division ring** (or skew field) drops commutativity but keeps inverses. The quaternions $\mathbb{H}$ are the standard example: $i^2 = j^2 = k^2 = ijk = -1$, and $ij = k \neq -k = ji$.
+![Catalog of classical rings with their key properties](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/05-rings-and-ideals/aa_v2_05_7_ring_examples.png)
 
-**Units and the group of units.** An element $u \in R$ is a **unit** if it has a two-sided multiplicative inverse: there exists $v \in R$ with $uv = vu = 1$. The set of all units $R^{\times}$ forms a group under multiplication (the **group of units** of $R$). For example:
-- $\mathbb{Z}^{\times} = \{1, -1\}$.
-- $(\mathbb{Z}/n\mathbb{Z})^{\times} = \{\bar{a} : \gcd(a, n) = 1\}$, a group of order $\varphi(n)$.
-- $(M_n(\mathbb{R}))^{\times} = GL_n(\mathbb{R})$, the general linear group.
-- For a field $F$, $F^{\times} = F \setminus \{0\}$.
+A *field* is a commutative unital ring in which every nonzero element has a multiplicative inverse. A *division ring* drops commutativity but keeps inverses. The quaternions $\mathbb{H}$: $i^2 = j^2 = k^2 = ijk = -1$, with $ij = k \neq -k = ji$.
 
-The notion of units is essential for discussing factorization: two elements $a, b$ that differ by a unit ($a = ub$ for some unit $u$) are called **associates**, and they should be considered "the same" for factorization purposes — just as $3$ and $-3$ are associates in $\mathbb{Z}$.
+**Units.** $u \in R$ is a *unit* if it has a two-sided inverse. The set $R^\times$ of units forms a group under multiplication.
 
-**Example: The ring $\mathbb{Z}/6\mathbb{Z}$.** This commutative ring with unity has six elements $\{\bar{0}, \bar{1}, \bar{2}, \bar{3}, \bar{4}, \bar{5}\}$. Its group of units is $\{\bar{1}, \bar{5}\}$ (the elements coprime to $6$). Observe that $\bar{2} \cdot \bar{3} = \bar{6} = \bar{0}$, even though neither $\bar{2}$ nor $\bar{3}$ is zero. This phenomenon — a product of nonzero elements being zero — does not happen in $\mathbb{Z}$ or in any field. It leads to our next concept.
+- $\mathbb{Z}^\times = \{\pm 1\}$.
+- $(\mathbb{Z}/n\mathbb{Z})^\times$: integers coprime to $n$, order $\varphi(n)$.
+- $M_n(\mathbb{R})^\times = GL_n(\mathbb{R})$.
+- For a field $F$, $F^\times = F \setminus \{0\}$.
 
-**Subrings.** A subset $S \subseteq R$ is a **subring** if it is itself a ring under the same operations and contains $1_R$. For instance, $\mathbb{Z}$ is a subring of $\mathbb{Q}$, which is a subring of $\mathbb{R}$. The Gaussian integers $\mathbb{Z}[i]$ are a subring of $\mathbb{C}$. The **subring test**: a nonempty subset $S \subseteq R$ is a subring iff $1 \in S$ and $S$ is closed under subtraction and multiplication.
+**Numerical example: $(\mathbb{Z}/12\mathbb{Z})^\times$.** Elements coprime to $12$: $\{1, 5, 7, 11\}$. So $|(\mathbb{Z}/12\mathbb{Z})^\times| = 4 = \varphi(12)$. Each element squares to $1$ ($5^2 = 25 \equiv 1, 7^2 = 49 \equiv 1, 11^2 = 121 \equiv 1$), so this group is $\mathbb{Z}/2 \times \mathbb{Z}/2$.
 
----
+**Numerical example: $(\mathbb{Z}/15\mathbb{Z})^\times$.** Elements coprime to $15$: $\{1, 2, 4, 7, 8, 11, 13, 14\}$, eight elements, $\varphi(15) = 8$. By CRT this group is $(\mathbb{Z}/3)^\times \times (\mathbb{Z}/5)^\times = \mathbb{Z}/2 \times \mathbb{Z}/4 \cong \mathbb{Z}/4 \times \mathbb{Z}/2$, an abelian group of order $8$ but not cyclic ($\mathbb{Z}/8 \neq \mathbb{Z}/4 \times \mathbb{Z}/2$).
+
+**Numerical example: $\mathbb{Z}[i]^\times$.** Units of $\mathbb{Z}[i]$ have norm $1$, so $a^2 + b^2 = 1$ in $\mathbb{Z}$, giving $\{1, -1, i, -i\}$. Four units, forming a cyclic group of order $4$.
+
+**Why this matters.** The ring axioms define a structure that sits one level above groups: groups have one operation, rings have two. Almost every concrete number system you compute with is a ring, and ring theory provides a unified framework for analyzing all of them.
+
+Stratification by additional properties: commutative or not, with unity or not, finite or not, integral domain or not. Each refinement excludes some pathologies and admits stronger theorems. The bulk of classical algebra works with commutative integral domains, which strike a balance between richness and tractability.
+
+**A quirk: zero divisors.** In $\mathbb{Z}/6\mathbb{Z}$, we have $\bar 2 \cdot \bar 3 = \bar 6 = \bar 0$, even though neither factor is zero. This phenomenon does not happen in $\mathbb{Z}$ or in any field. Such rings are called integral domains; the others are not. We will return to this distinction.
+
+A practical implication of zero divisors: in a ring with zero divisors, you cannot meaningfully "divide by nonzero elements." The cancellation law fails. This rules out building a field of fractions, which means the ring is fundamentally less arithmetic than the integers.
+
+**Subrings.** $S \subseteq R$ is a *subring* if it is a ring with the same operations and contains $1_R$. Examples: $\mathbb{Z} \subset \mathbb{Q} \subset \mathbb{R} \subset \mathbb{C}$. The Gaussian integers $\mathbb{Z}[i] \subset \mathbb{C}$.
+
+The subring test: a non-empty subset $S$ is a subring iff $1 \in S$ and $S$ is closed under subtraction and multiplication. (Subtraction takes care of additive inverses; closure under subtraction implies closure under addition since $a + b = a - (-b) = a - (0 - b)$.)
+
+**More examples of subrings.** $\mathbb{Z}[\sqrt 2] = \{a + b\sqrt 2 : a, b \in \mathbb{Z}\}$ in $\mathbb{R}$. $\mathbb{Z}[\omega]$ where $\omega = e^{2\pi i/3}$ (Eisenstein integers) in $\mathbb{C}$. The center $Z(M_n(R))$ in any ring of $n \times n$ matrices is a subring. The constants in $\mathbb{R}[x]$ are a subring isomorphic to $\mathbb{R}$.
 
 ## Integral Domains and Zero Divisors
 
-**Definition.** Let $R$ be a ring. A nonzero element $a \in R$ is a **zero divisor** if there exists a nonzero $b \in R$ with $ab = 0$ (or $ba = 0$).
+Mental picture: an integral domain is a ring where the cancellation law $ab = ac \Rightarrow b = c$ holds whenever $a \neq 0$. This is the algebraic statement that "you can divide by nonzero elements without losing information."
 
-**Definition.** A commutative ring with unity $R$ is an **integral domain** if it has no zero divisors: whenever $ab = 0$, either $a = 0$ or $b = 0$.
+**Definition.** A nonzero $a \in R$ is a *zero divisor* if there exists nonzero $b$ with $ab = 0$. A commutative unital ring with no zero divisors is an *integral domain*.
 
 **Examples.**
-- $\mathbb{Z}$ is an integral domain (this is essentially the content of Euclid's lemma).
-- Every field is an integral domain: if $ab = 0$ and $a \neq 0$, multiply both sides by $a^{-1}$ to get $b = 0$.
-- $\mathbb{Z}/p\mathbb{Z}$ for $p$ prime is a field, hence an integral domain.
-- $\mathbb{Z}/6\mathbb{Z}$ is **not** an integral domain: $\bar{2} \cdot \bar{3} = \bar{0}$.
-- $M_2(\mathbb{R})$ is not an integral domain (not commutative, and has zero divisors:
-$\begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix} \begin{pmatrix} 0 & 0 \\ 0 & 1 \end{pmatrix} = \begin{pmatrix} 0 & 0 \\ 0 & 0 \end{pmatrix}$).
 
-**Cancellation law.** In an integral domain, $ab = ac$ with $a \neq 0$ implies $b = c$. *Proof:* $a(b - c) = 0$ and $a \neq 0$, so $b - c = 0$.
+- $\mathbb{Z}$: integral domain.
+- Every field: integral domain (multiply by inverse).
+- $\mathbb{Z}/p\mathbb{Z}$ for prime $p$: field, hence integral domain.
+- $\mathbb{Z}/6\mathbb{Z}$: not an integral domain ($\bar 2 \cdot \bar 3 = 0$).
+- $M_2(\mathbb{R})$: not an integral domain (and not commutative).
+- $\mathbb{Z}[x]$: integral domain. $\mathbb{Z}[i]$: integral domain.
+- $\mathbb{R}[x]/(x^2 - 1)$: not an integral domain. $(x-1)(x+1) = 0$ in this ring.
 
-This is exactly the property that makes integral domains behave like "generalized integers" — you can cancel common factors, which is the starting point for any theory of factorization.
+**Numerical example of zero divisors.** In $\mathbb{Z}/12\mathbb{Z}$: the zero divisors are $\{2, 3, 4, 6, 8, 9, 10\}$. The non-zero non-zero-divisors are $\{1, 5, 7, 11\}$, which is exactly the set of units. This is a special phenomenon for $\mathbb{Z}/n\mathbb{Z}$: every nonzero non-zero-divisor in a finite commutative ring is a unit. (The proof is the same as for finite integral domains.)
 
-**The field of fractions.** Just as we build $\mathbb{Q}$ from $\mathbb{Z}$ by "allowing division," any integral domain $R$ embeds into its **field of fractions** $\text{Frac}(R)$. The construction mirrors the one for $\mathbb{Q}$: elements are equivalence classes of pairs $(a, b)$ with $b \neq 0$, where $(a, b) \sim (c, d)$ iff $ad = bc$. Addition and multiplication are defined as $\frac{a}{b} + \frac{c}{d} = \frac{ad + bc}{bd}$ and $\frac{a}{b} \cdot \frac{c}{d} = \frac{ac}{bd}$. The fact that $R$ is an integral domain is essential: without it, $bd$ could be zero and the construction collapses.
+**Cancellation law.** In an integral domain, $ab = ac$ with $a \neq 0$ implies $b = c$. This is the property that lets us think of integral domains as "generalized integers."
 
-Examples: $\text{Frac}(\mathbb{Z}) = \mathbb{Q}$, $\text{Frac}(\mathbb{Z}[i]) = \mathbb{Q}(i) = \{a + bi : a, b \in \mathbb{Q}\}$, $\text{Frac}(F[x]) = F(x)$ (the field of rational functions). The field of fractions is the *smallest* field containing $R$, in the sense that any injective homomorphism from $R$ into a field factors through $\text{Frac}(R)$.
+The cancellation law is exactly the key property used in the construction of the field of fractions: it lets us declare that the equivalence relation $(a, b) \sim (c, d) \iff ad = bc$ is well-behaved. In a ring with zero divisors (like $\mathbb{Z}/6\mathbb{Z}$), the natural fraction construction collapses --- $\bar 1 / \bar 2$ does not have a well-defined value because $\bar 2$ is a zero divisor.
+
+**The field of fractions.** Any integral domain $R$ embeds in a smallest field $\text{Frac}(R)$, constructed as equivalence classes of pairs $(a, b)$ with $b \neq 0$, modulo $(a, b) \sim (c, d) \iff ad = bc$.
+
+Examples: $\text{Frac}(\mathbb{Z}) = \mathbb{Q}$, $\text{Frac}(\mathbb{Z}[i]) = \mathbb{Q}(i)$, $\text{Frac}(F[x]) = F(x)$.
+
+Operations: $a/b + c/d = (ad + bc)/(bd)$ and $(a/b)(c/d) = (ac)/(bd)$. These are well-defined precisely because the cancellation law holds. The map $R \to \text{Frac}(R), a \mapsto a/1$ is an injective ring homomorphism, and $\text{Frac}(R)$ is *universal* among fields containing $R$: every injective ring map from $R$ into a field factors uniquely through $\text{Frac}(R)$.
 
 **Proposition.** Every finite integral domain is a field.
 
-*Proof sketch.* Let $R$ be a finite integral domain and let $a \in R$ be nonzero. Consider the map $\varphi_a: R \to R$ defined by $\varphi_a(r) = ar$. This is injective: if $ar = as$, then $a(r - s) = 0$, so $r = s$ since $R$ is an integral domain. A finite set with an injective map to itself is surjective, so there exists $r$ with $ar = 1$. Thus $a$ is a unit. $\square$
+*Proof.* Let $a \neq 0$. The map $r \mapsto ar$ is injective (cancellation), so surjective on a finite set. So $ar = 1$ for some $r$. $\square$
 
-**Worked Example 1.** *Show that $\mathbb{Z}/n\mathbb{Z}$ is an integral domain if and only if $n$ is prime.*
+**Why this matters.** The proposition explains why $\mathbb{Z}/p\mathbb{Z}$ is a field for prime $p$: it is a finite integral domain, hence automatically a field. This is the algebraic foundation of finite field arithmetic, which underlies modern coding theory, cryptography, and computer algebra.
 
-*Solution.* If $n = ab$ with $1 < a, b < n$, then $\bar{a} \neq \bar{0}$ and $\bar{b} \neq \bar{0}$ in $\mathbb{Z}/n\mathbb{Z}$, but $\bar{a} \cdot \bar{b} = \overline{ab} = \bar{n} = \bar{0}$. So $\mathbb{Z}/n\mathbb{Z}$ has zero divisors and is not an integral domain. Conversely, if $n = p$ is prime and $\bar{a} \cdot \bar{b} = \bar{0}$ in $\mathbb{Z}/p\mathbb{Z}$, then $p \mid ab$. By Euclid's lemma, $p \mid a$ or $p \mid b$, i.e., $\bar{a} = \bar{0}$ or $\bar{b} = \bar{0}$. So $\mathbb{Z}/p\mathbb{Z}$ is an integral domain. Since it is finite, the proposition above tells us it is actually a field. $\square$
+For prime $p$ and any $n \geq 1$, there is a unique field of order $p^n$ up to isomorphism, denoted $\mathbb{F}_{p^n}$. Constructing it: take $\mathbb{F}_p[x]/(f(x))$ for any irreducible $f$ of degree $n$. The resulting field has $p^n$ elements, and is independent of the choice of $f$. We will explore this in Article 7 on field extensions.
 
-**Worked Example 2.** *Show that the Gaussian integers $\mathbb{Z}[i]$ form an integral domain.*
+**Worked Example.** $\mathbb{Z}/n\mathbb{Z}$ is an integral domain $\iff$ $n$ is prime. If $n = ab$ ($1 < a, b < n$), then $\bar a \bar b = \bar 0$ with neither factor zero. Conversely, if $p$ prime and $\bar a \bar b = 0$, then $p \mid ab$, so by Euclid's lemma $p \mid a$ or $p \mid b$.
 
-*Solution.* Define the **norm** $N(a + bi) = a^2 + b^2$. This is a non-negative integer, and $N(\alpha) = 0$ iff $\alpha = 0$. The key property is multiplicativity: $N(\alpha \beta) = N(\alpha) N(\beta)$. (This follows from $|zw| = |z||w|$ for complex numbers, or by direct computation.) Now if $\alpha \beta = 0$, then $N(\alpha) N(\beta) = N(\alpha \beta) = N(0) = 0$. Since $N(\alpha), N(\beta) \in \mathbb{Z}_{\geq 0}$, either $N(\alpha) = 0$ or $N(\beta) = 0$, hence $\alpha = 0$ or $\beta = 0$. $\square$
+**Worked Example: Gaussian integers $\mathbb{Z}[i]$.** Define norm $N(a + bi) = a^2 + b^2$. Multiplicative: $N(\alpha\beta) = N(\alpha)N(\beta)$. If $\alpha\beta = 0$ then $N(\alpha)N(\beta) = 0$, so $N(\alpha) = 0$ or $N(\beta) = 0$, i.e., one of them is zero. So $\mathbb{Z}[i]$ is an integral domain.
 
----
+The norm provides a Euclidean function: for any $\alpha, \beta \in \mathbb{Z}[i]$ with $\beta \neq 0$, there exist $q, r \in \mathbb{Z}[i]$ with $\alpha = q\beta + r$ and $N(r) < N(\beta)$. (Geometrically: round $\alpha/\beta \in \mathbb{Q}(i)$ to the nearest Gaussian integer.) This makes $\mathbb{Z}[i]$ a *Euclidean domain*, hence a PID, hence a UFD --- one of the rare cases where all the good factorization properties hold simultaneously.
 
-## Ideals: The Right Notion of "Kernel" for Rings
+**Numerical example in $\mathbb{Z}[i]$.** $(2 + i)(2 - i) = 4 - i^2 = 5$. So $2 \pm i$ are a factorization of $5$ in $\mathbb{Z}[i]$. The norm $N(2 + i) = 5$ is prime in $\mathbb{Z}$, which forces $2 + i$ to be irreducible in $\mathbb{Z}[i]$ (as we will see). The prime $5$ in $\mathbb{Z}$ "splits" in $\mathbb{Z}[i]$ as $(2+i)(2-i)$, a phenomenon that prefigures the deep theory of prime ideal splitting in algebraic number rings.
 
-In group theory, normal subgroups are exactly the kernels of homomorphisms, and they are exactly the subgroups you can quotient by. What is the ring-theoretic analogue?
+**Numerical example: which integer primes are sums of two squares.** $2 = 1^2 + 1^2$, $5 = 1^2 + 2^2$, $13 = 2^2 + 3^2$, $17 = 1^2 + 4^2$, $29 = 2^2 + 5^2$. By contrast, $3, 7, 11, 19, 23$ are not sums of two squares. Theorem (Fermat): an odd prime $p$ is a sum of two squares iff $p \equiv 1 \pmod 4$. The proof uses the structure of $\mathbb{Z}[i]$: primes $p \equiv 1 \pmod 4$ split as $p = \pi \bar\pi$ with $\pi \in \mathbb{Z}[i]$, while $p \equiv 3 \pmod 4$ remain prime. This is the simplest interesting case of "splitting of primes in number rings," a central theme in algebraic number theory.
 
-**Definition.** A **ring homomorphism** is a map $\varphi: R \to S$ between rings satisfying:
+## Ideals
+
+Mental picture: an ideal is a subset closed under addition and "absorbing" multiplication by everything in the ring. It is the right notion of "kernel" for ring homomorphisms, and the right thing to mod out by.
+
+**Definition.** A ring homomorphism $\varphi: R \to S$ satisfies:
+
 1. $\varphi(a + b) = \varphi(a) + \varphi(b)$,
 2. $\varphi(ab) = \varphi(a)\varphi(b)$,
 3. $\varphi(1_R) = 1_S$.
 
-The **kernel** is $\ker \varphi = \{r \in R : \varphi(r) = 0\}$.
+Note the third axiom is independent of the first two: a "ring homomorphism" that does not preserve $1$ is a strange object, not a homomorphism in the proper sense. The map $\mathbb{Z} \to \mathbb{Z} \times \mathbb{Z}$ by $a \mapsto (a, 0)$ satisfies $(1) + (2)$ but not $(3)$, so it is not a ring homomorphism in the modern convention.
 
-What properties does $\ker \varphi$ have? Certainly it is an additive subgroup of $R$ (since $\varphi$ is a group homomorphism on $(R, +)$). But it has an extra *absorption* property: if $a \in \ker \varphi$ and $r \in R$, then
+The kernel $\ker\varphi = \{r : \varphi(r) = 0\}$ is closed under addition (subgroup) and absorbs multiplication: if $a \in \ker\varphi$ and $r \in R$, then $\varphi(ra) = \varphi(r) \cdot 0 = 0$, so $ra \in \ker\varphi$.
 
-$$\varphi(ra) = \varphi(r)\varphi(a) = \varphi(r) \cdot 0 = 0,$$
+**Definition.** $I \subseteq R$ is an *ideal* if:
 
-so $ra \in \ker \varphi$. Similarly, $ar \in \ker \varphi$.
+1. $(I, +) \le (R, +)$.
+2. $a \in I, r \in R \Rightarrow ra \in I$ and $ar \in I$.
 
-**Definition.** An **ideal** of a ring $R$ is a subset $I \subseteq R$ such that:
-1. $(I, +)$ is a subgroup of $(R, +)$.
-2. For all $r \in R$ and $a \in I$: $ra \in I$ and $ar \in I$.
-
-Condition (2) is called **absorption** — the ideal "absorbs" multiplication by arbitrary ring elements. Note the asymmetry: we require both $ra \in I$ and $ar \in I$ because $R$ may not be commutative. (In a commutative ring, $ra = ar$, so one condition suffices.)
-
-If only $ra \in I$ is required, $I$ is a **left ideal**; if only $ar \in I$, a **right ideal**; if both, a **two-sided ideal** (or simply an ideal).
+Asymmetry note: in non-commutative rings we distinguish *left ideals* ($ra \in I$ only), *right ideals*, and *two-sided ideals*. In a commutative ring, the three notions coincide.
 
 ### Principal Ideals
 
-The simplest ideals are generated by a single element. In a commutative ring $R$, the **principal ideal generated by $a$** is
+In a commutative ring, the *principal ideal* $(a) = aR = \{ar : r \in R\}$.
 
-$$(a) = aR = \{ar : r \in R\}.$$
+![A principal ideal (a) inside the ring Z[x]](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/05-rings-and-ideals/aa_v2_05_3_principal_ideal.png)
 
-**Example.** In $\mathbb{Z}$, every ideal is principal: the ideal generated by $n$ is $n\mathbb{Z} = \{\ldots, -2n, -n, 0, n, 2n, \ldots\}$. This is a theorem, not a definition — it says $\mathbb{Z}$ is a **principal ideal domain** (PID).
+**Theorem.** Every ideal of $\mathbb{Z}$ is principal.
 
-*Proof that every ideal of $\mathbb{Z}$ is principal.* Let $I$ be an ideal of $\mathbb{Z}$. If $I = \{0\}$, then $I = (0)$. Otherwise, $I$ contains some nonzero element, hence some positive element (if $a \in I$, then $-a \in I$). Let $d$ be the smallest positive element of $I$. We claim $I = (d) = d\mathbb{Z}$. Certainly $d\mathbb{Z} \subseteq I$ by absorption. Conversely, for any $a \in I$, write $a = qd + r$ with $0 \leq r < d$ by the division algorithm. Then $r = a - qd \in I$ (since $I$ is closed under subtraction and absorption). By minimality of $d$, we must have $r = 0$, so $a \in d\mathbb{Z}$. $\square$
+*Proof.* Let $I \neq \{0\}$. Pick the smallest positive element $d \in I$. Then $(d) \subseteq I$. For $a \in I$, write $a = qd + r$ with $0 \le r < d$. Then $r = a - qd \in I$, so by minimality $r = 0$. So $I = (d)$. $\square$
 
-**Example.** In $\mathbb{R}[x]$, the ideal $(x^2 + 1)$ consists of all polynomials divisible by $x^2 + 1$. The quotient $\mathbb{R}[x]/(x^2 + 1) \cong \mathbb{C}$ — this is a clean algebraic construction of the complex numbers.
+This makes $\mathbb{Z}$ a *principal ideal domain* (PID).
+
+![The ideals (n) of Z displayed as a divisibility lattice](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/05-rings-and-ideals/aa_v2_05_2_z_ideals.png)
+
+**Numerical example: ideals of $\mathbb{Z}/12\mathbb{Z}$.** The ideals correspond to divisors of $12$: $(1) = $ everything, $(2) = \{0, 2, 4, 6, 8, 10\}$, $(3) = \{0, 3, 6, 9\}$, $(4) = \{0, 4, 8\}$, $(6) = \{0, 6\}$, $(12) = \{0\}$. Six ideals total, matching the six divisors of $12$. The lattice of ideals mirrors the divisor lattice.
+
+**Numerical example: ideals of $\mathbb{Z}[i]$.** Ideals of $\mathbb{Z}[i]$ are also principal (it is a PID), generated by Gaussian integers. The norm of the generator gives the index of the ideal in $\mathbb{Z}[i]$: $|\mathbb{Z}[i]/(\alpha)| = N(\alpha)$. So $\mathbb{Z}[i]/(2 + i)$ has $5$ elements, $\mathbb{Z}[i]/(3)$ has $9$ elements, etc.
 
 ### Maximal and Prime Ideals
 
-Not all ideals are created equal. Two classes play starring roles:
+**Definition.** A proper ideal $\mathfrak{m} \subsetneq R$ is *maximal* if no ideal $I$ has $\mathfrak{m} \subsetneq I \subsetneq R$.
 
-**Definition.** A proper ideal $\mathfrak{m} \subsetneq R$ is **maximal** if there is no ideal $I$ with $\mathfrak{m} \subsetneq I \subsetneq R$.
+**Definition.** A proper ideal $\mathfrak{p} \subsetneq R$ is *prime* if $ab \in \mathfrak{p}$ implies $a \in \mathfrak{p}$ or $b \in \mathfrak{p}$.
 
-**Definition.** A proper ideal $\mathfrak{p} \subsetneq R$ is **prime** if whenever $ab \in \mathfrak{p}$, either $a \in \mathfrak{p}$ or $b \in \mathfrak{p}$.
+**Theorem.** In a commutative unital ring:
 
-**Theorem.** In a commutative ring with unity:
-- $R/\mathfrak{m}$ is a field if and only if $\mathfrak{m}$ is maximal.
-- $R/\mathfrak{p}$ is an integral domain if and only if $\mathfrak{p}$ is prime.
-- Every maximal ideal is prime (since every field is an integral domain).
+- $R/\mathfrak{m}$ is a field $\iff$ $\mathfrak{m}$ is maximal.
+- $R/\mathfrak{p}$ is an integral domain $\iff$ $\mathfrak{p}$ is prime.
+- Every maximal ideal is prime.
 
-*Proof sketch (maximal $\Leftrightarrow$ field).* If $\mathfrak{m}$ is maximal and $\bar{a} \neq \bar{0}$ in $R/\mathfrak{m}$, then $a \notin \mathfrak{m}$, so $\mathfrak{m} + (a) = R$ by maximality. Thus $1 = m + ra$ for some $m \in \mathfrak{m}$, $r \in R$, giving $\bar{r}\bar{a} = \bar{1}$. Conversely, if $R/\mathfrak{m}$ is a field and $\mathfrak{m} \subsetneq I$, pick $a \in I \setminus \mathfrak{m}$. Then $\bar{a}$ is a unit in $R/\mathfrak{m}$, so $ra - 1 \in \mathfrak{m} \subseteq I$ for some $r$. Hence $1 = ra - (ra - 1) \in I$, so $I = R$. $\square$
+*Proof of "maximal $\Rightarrow$ field."* Let $\bar a \neq 0$ in $R/\mathfrak{m}$, so $a \notin \mathfrak{m}$. The ideal $\mathfrak{m} + (a)$ strictly contains $\mathfrak{m}$, so equals $R$. Hence $1 = m + ra$ for some $m \in \mathfrak{m}, r \in R$, giving $\bar r \bar a = \bar 1$. $\square$
 
-**Example.** In $\mathbb{Z}$, the prime ideals are $(0)$ and $(p)$ for primes $p$. The maximal ideals are exactly the $(p)$. Note $(0)$ is prime but not maximal (since $\mathbb{Z}/(0) \cong \mathbb{Z}$ is an integral domain but not a field).
+![Prime ideals vs maximal ideals as a Venn diagram](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/05-rings-and-ideals/aa_v2_05_5_prime_maximal.png)
 
-**Worked Example (bonus).** *In $\mathbb{Z}[x]$, show that $(x)$ is prime but not maximal.*
+**Why this matters.** Prime and maximal ideals are the algebraic analogues of points in geometry. The set of prime ideals of $R$ (called $\text{Spec}(R)$) carries a topology that makes it a geometric space: this is the foundation of algebraic geometry. Maximal ideals correspond to "closed points," prime ideals to "subvarieties."
 
-*Solution.* The quotient $\mathbb{Z}[x]/(x) \cong \mathbb{Z}$ (the map $f(x) \mapsto f(0)$ has kernel $(x)$ and image $\mathbb{Z}$). Since $\mathbb{Z}$ is an integral domain, $(x)$ is prime. Since $\mathbb{Z}$ is not a field, $(x)$ is not maximal. Indeed, $(x) \subsetneq (x, 2) \subsetneq \mathbb{Z}[x]$, so $(x, 2)$ is a strictly larger ideal. And $\mathbb{Z}[x]/(x, 2) \cong \mathbb{Z}/2\mathbb{Z} = \mathbb{F}_2$, which is a field, so $(x, 2)$ is maximal. $\square$
+For $R = \mathbb{C}[x]$, the maximal ideals are exactly $(x - a)$ for $a \in \mathbb{C}$, in bijection with the points of $\mathbb{C}$. The corresponding quotient $\mathbb{C}[x]/(x - a) \cong \mathbb{C}$ is the "function value at $a$." This is the simplest case of the Hilbert Nullstellensatz: maximal ideals of $\mathbb{C}[x_1, \ldots, x_n]$ correspond to points of $\mathbb{C}^n$.
 
-**Operations on ideals.** Given ideals $I, J$ of $R$, we can form:
-- **Sum:** $I + J = \{a + b : a \in I, b \in J\}$, the smallest ideal containing both.
-- **Product:** $IJ = \{\sum_{k=1}^n a_k b_k : a_k \in I, b_k \in J\}$, not just pairwise products but finite sums of them.
-- **Intersection:** $I \cap J$, which is always an ideal.
+**Example: $\mathbb{Z}$.** Prime ideals: $(0)$ and $(p)$ for primes $p$. Maximal ideals: $(p)$. $(0)$ is prime (since $\mathbb{Z}/(0) = \mathbb{Z}$ is an integral domain) but not maximal (since $\mathbb{Z}$ is not a field).
 
-These operations obey many identities reminiscent of arithmetic: $I(J + K) = IJ + IK$, and $I \cap (J + K) \supseteq I \cap J + I \cap K$ (though equality may fail in general). When $I + J = R$, we say $I$ and $J$ are **comaximal**, and the Chinese Remainder Theorem gives $R/(I \cap J) \cong R/I \times R/J$.
+**Worked Example: $(x)$ in $\mathbb{Z}[x]$.** $\mathbb{Z}[x]/(x) \cong \mathbb{Z}$ (evaluate at $0$). $\mathbb{Z}$ is an integral domain but not a field, so $(x)$ is prime but not maximal. $(x, 2) \supsetneq (x)$, with $\mathbb{Z}[x]/(x, 2) \cong \mathbb{Z}/2$, a field, so $(x, 2)$ is maximal.
 
----
+**Worked Example: $(x, y)$ in $k[x, y]$.** $k[x, y]/(x, y) \cong k$ (evaluate at $(0, 0)$), so $(x, y)$ is maximal. By contrast, $(x)$ in $k[x, y]$ has quotient $k[y]$, which is an integral domain but not a field, so $(x)$ is prime but not maximal. The chain $(0) \subsetneq (x) \subsetneq (x, y)$ in $k[x, y]$ has length $2$, reflecting the fact that $\mathbb{A}^2$ is two-dimensional.
+
+**Worked Example: prime ideals of $\mathbb{Z}[x]$.** Three flavors:
+1. $(0)$ --- the zero ideal, corresponding to "the generic point."
+2. $(p)$ for primes $p \in \mathbb{Z}$ --- corresponding to reduction mod $p$.
+3. $(f(x))$ for $f$ irreducible in $\mathbb{Q}[x]$ with content $1$ --- corresponding to algebraic numbers.
+4. $(p, f)$ where $p$ is prime and $f$ is irreducible mod $p$ --- the maximal ideals.
+
+Only the type-4 ideals are maximal. This stratification underlies the geometry of $\text{Spec}(\mathbb{Z}[x])$, sometimes called the "arithmetic plane."
+
+**Operations on ideals.**
+
+- Sum: $I + J = \{a + b : a \in I, b \in J\}$.
+- Product: $IJ = \{\sum a_k b_k : a_k \in I, b_k \in J\}$ (finite sums).
+- Intersection: $I \cap J$.
+
+When $I + J = R$ (comaximal), the Chinese Remainder Theorem for rings gives $R/(I \cap J) \cong R/I \times R/J$.
+
+**Numerical example.** In $\mathbb{Z}$: $(4) + (6) = (\gcd(4,6)) = (2)$, $(4) \cap (6) = (\text{lcm}(4,6)) = (12)$, $(4)(6) = (24)$. Note $(4) + (6) \neq R$, so they are not comaximal. By contrast $(4) + (9) = (1) = \mathbb{Z}$, and $\mathbb{Z}/(4 \cap 9) = \mathbb{Z}/36 \cong \mathbb{Z}/4 \times \mathbb{Z}/9$ (CRT).
+
+**A useful identity.** For ideals $I, J, K$ in a commutative ring: $I(J + K) = IJ + IK$, $I \cap (J + K) \supseteq (I \cap J) + (I \cap K)$, with equality not guaranteed. The lattice of ideals is *modular* (in the lattice-theoretic sense) but generally not distributive.
 
 ## Quotient Rings and the First Isomorphism Theorem
 
-Given a ring $R$ and a two-sided ideal $I$, we build the **quotient ring** $R/I$ exactly as we built quotient groups: the elements are cosets $a + I$, and the operations are
+Mental picture: just as for groups, you mod out by an ideal to get a quotient ring. The ideal axioms guarantee the multiplication is well-defined.
 
-$$(a + I) + (b + I) = (a + b) + I, \qquad (a + I)(b + I) = ab + I.$$
+For $I \trianglelefteq R$ a two-sided ideal, $R/I$ has elements $\{a + I\}$ and operations:
 
-The key check is **well-definedness** of multiplication. If $a + I = a' + I$ and $b + I = b' + I$, then $a' = a + i$ and $b' = b + j$ for some $i, j \in I$. So
+$$(a + I) + (b + I) = (a+b) + I, \quad (a + I)(b + I) = ab + I$$
 
-$$a'b' = (a + i)(b + j) = ab + aj + ib + ij.$$
+**Multiplication is well-defined precisely because $I$ is an ideal.** If $a' = a + i$, $b' = b + j$ with $i, j \in I$:
 
-We need $a'b' - ab = aj + ib + ij \in I$. This holds because $I$ is an ideal: $aj \in I$ (absorption by $a$), $ib \in I$ (absorption by $b$), and $ij \in I$ (product of two elements of $I$). This is precisely why we need ideals — not just any additive subgroup will do.
+$$a'b' = ab + aj + ib + ij$$
 
-**First Isomorphism Theorem for Rings.** If $\varphi: R \to S$ is a ring homomorphism, then $\ker \varphi$ is an ideal of $R$, $\operatorname{im} \varphi$ is a subring of $S$, and
+Each of $aj, ib, ij$ is in $I$ by absorption. So $a'b' - ab \in I$.
 
-$$R / \ker \varphi \cong \operatorname{im} \varphi.$$
+![Z[x]/(x^2+1) is isomorphic to the Gaussian integers Z[i]](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/05-rings-and-ideals/aa_v2_05_4_quotient_ring.png)
 
-The proof is essentially the same as for groups: define $\bar{\varphi}(a + \ker \varphi) = \varphi(a)$, check well-definedness, and verify it is a ring isomorphism.
+**First Isomorphism Theorem for Rings.** If $\varphi: R \to S$ is a ring homomorphism, then $\ker\varphi \trianglelefteq R$, $\text{im}\,\varphi$ is a subring of $S$, and
 
-**Worked Example 3.** *Show that $\mathbb{R}[x]/(x^2 + 1) \cong \mathbb{C}$.*
+$$R/\ker\varphi \cong \text{im}\,\varphi.$$
 
-*Solution.* Define $\varphi: \mathbb{R}[x] \to \mathbb{C}$ by $\varphi(f) = f(i)$ (evaluation at $i$). This is a ring homomorphism (evaluation maps always are). It is surjective: for any $a + bi \in \mathbb{C}$, the polynomial $a + bx$ maps to $a + bi$. The kernel consists of all polynomials vanishing at $i$. Since $x^2 + 1$ is the minimal polynomial of $i$ over $\mathbb{R}$, we have $\ker \varphi = (x^2 + 1)$. By the First Isomorphism Theorem, $\mathbb{R}[x]/(x^2 + 1) \cong \mathbb{C}$. $\square$
+![A ring homomorphism preserving addition and multiplication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/05-rings-and-ideals/aa_v2_05_6_ring_homo.png)
 
-This example shows the power of quotient rings: **we can construct new number systems purely algebraically**, without appealing to geometric intuition or "inventing" $\sqrt{-1}$. The quotient ring $\mathbb{R}[x]/(x^2 + 1)$ consists of cosets of the form $a + bx + (x^2 + 1)$, which we can identify with $a + b\bar{x}$ where $\bar{x}^2 = -1$. In other words, $\bar{x}$ plays the role of $i$, and the ring structure forces $\bar{x}^2 + 1 = 0$. We did not "assume" that $\sqrt{-1}$ exists — we *constructed* it by algebraic quotient.
+**Worked Example: $\mathbb{R}[x]/(x^2+1) \cong \mathbb{C}$.** Define $\varphi: \mathbb{R}[x] \to \mathbb{C}$ by $\varphi(f) = f(i)$. Surjective. Kernel: polynomials vanishing at $i$, which is $(x^2 + 1)$ (the minimal polynomial of $i$). By the theorem, $\mathbb{R}[x]/(x^2 + 1) \cong \mathbb{C}$.
 
-This construction generalizes: for any irreducible polynomial $f(x) \in F[x]$ over a field $F$, the quotient $F[x]/(f(x))$ is a field extension of $F$ containing a root of $f$. This is the algebraic mechanism behind building splitting fields and algebraic closures — topics for a later article.
+This shows the power of the construction: we built $\mathbb{C}$ purely algebraically, without geometric intuition. Cosets of $a + bx$ correspond to $a + bi$, and the relation $\bar x^2 + 1 = 0$ enforces $\bar x^2 = -1$.
 
-**Worked Example 4.** *Describe the quotient ring $\mathbb{Z}[x]/(x^2 + 1, 5)$.*
+**Worked Example: $\mathbb{R}[x]/(x^2 - 1)$.** $x^2 - 1 = (x-1)(x+1)$ in $\mathbb{R}[x]$. The two factors are comaximal (since $\gcd = 1$). By CRT, $\mathbb{R}[x]/(x^2 - 1) \cong \mathbb{R}[x]/(x-1) \times \mathbb{R}[x]/(x+1) \cong \mathbb{R} \times \mathbb{R}$. So this quotient is not a field --- it has zero divisors $(\bar x - 1)(\bar x + 1) = 0$. Compare with $\mathbb{R}[x]/(x^2 + 1) \cong \mathbb{C}$, which is a field because $x^2 + 1$ is irreducible.
 
-*Solution.* We have $\mathbb{Z}[x]/(x^2 + 1, 5) \cong (\mathbb{Z}/5\mathbb{Z})[x]/(x^2 + 1)$. In $\mathbb{F}_5 = \mathbb{Z}/5\mathbb{Z}$, does $x^2 + 1$ have a root? We check: $0^2 + 1 = 1$, $1^2 + 1 = 2$, $2^2 + 1 = 0$. So $x^2 + 1 = (x - 2)(x - 3)$ in $\mathbb{F}_5[x]$. By the Chinese Remainder Theorem for rings, $\mathbb{F}_5[x]/(x^2 + 1) \cong \mathbb{F}_5[x]/(x - 2) \times \mathbb{F}_5[x]/(x - 3) \cong \mathbb{F}_5 \times \mathbb{F}_5$. So $\mathbb{Z}[x]/(x^2 + 1, 5) \cong \mathbb{F}_5 \times \mathbb{F}_5$, a product of two fields. $\square$
+The pattern: a quotient $F[x]/(f(x))$ is a field iff $f$ is irreducible over $F$. If $f$ factors, the quotient is a product of smaller quotients (CRT), with zero divisors.
 
----
+**Worked Example: $\mathbb{Z}[x]/(x^2 + 1, 5)$.** $\cong (\mathbb{Z}/5\mathbb{Z})[x]/(x^2 + 1)$. In $\mathbb{F}_5$, $2^2 + 1 = 5 = 0$, so $x = 2$ is a root, and $x^2 + 1 = (x - 2)(x - 3)$. By CRT for rings, the quotient is $\mathbb{F}_5 \times \mathbb{F}_5$. So $\mathbb{Z}[x]/(x^2 + 1, 5) \cong \mathbb{F}_5 \times \mathbb{F}_5$.
+
+**Worked Example: $\mathbb{Z}[i]$ as a quotient.** $\mathbb{Z}[i] \cong \mathbb{Z}[x]/(x^2 + 1)$. The map $f(x) \mapsto f(i)$ is a ring homomorphism $\mathbb{Z}[x] \to \mathbb{Z}[i]$, surjective, with kernel $(x^2 + 1)$. So $\mathbb{Z}[i]$ is naturally the quotient of the free polynomial ring by the relation $i^2 + 1 = 0$.
+
+**Numerical example.** In $\mathbb{Z}[i] / (2 + i)$: the element $\bar 5 = (2+i)(2-i)$ is in the ideal, so $\bar 5 = 0$ in the quotient. Also $\bar i = -2$ in the quotient (from $2 + i = 0$). So every element has a representative $a + bi$ with $i \to -2$, giving $a - 2b$, and $a - 2b$ ranges over $\mathbb{Z}/5\mathbb{Z}$. Hence $\mathbb{Z}[i]/(2+i) \cong \mathbb{Z}/5\mathbb{Z}$.
+
+**Worked Example: $\mathbb{Z}[\sqrt{2}]$ via quotient.** $\mathbb{Z}[\sqrt{2}] = \{a + b\sqrt{2} : a, b \in \mathbb{Z}\} \cong \mathbb{Z}[x]/(x^2 - 2)$, the quotient by the minimal polynomial of $\sqrt{2}$ over $\mathbb{Z}$. The norm $N(a + b\sqrt 2) = a^2 - 2b^2$ is multiplicative.
+
+**Worked Example: a finite field via quotient.** $\mathbb{F}_2[x]/(x^2 + x + 1)$ is a field of order $4$, since $x^2 + x + 1$ is irreducible over $\mathbb{F}_2$ (no roots: $0^2 + 0 + 1 = 1, 1^2 + 1 + 1 = 1$). Its elements are $\{0, 1, \alpha, \alpha + 1\}$ where $\alpha^2 = \alpha + 1$. This is the field $\mathbb{F}_4$, and it is an example of how to build finite fields of any prime power order via quotients.
+
+**Why this matters.** Quotient ring constructions let us build new rings (and especially new fields) from old ones with surgical precision. Field extensions, splitting fields, $p$-adic numbers, and most of algebraic number theory are built by repeated quotient ring constructions.
+
+A useful slogan: "to add a relation $r = 0$ to a ring, mod out by the ideal generated by $r$." Want to add a square root of 2 to $\mathbb{Q}$? Take $\mathbb{Q}[x]/(x^2 - 2)$. Want to make $5 = 0$ in $\mathbb{Z}$? Take $\mathbb{Z}/(5) = \mathbb{F}_5$. Want both? Take $\mathbb{Z}[x]/(x^2 - 2, 5) = \mathbb{F}_5[x]/(x^2 - 2)$. Want to invert $2$? Take $\mathbb{Z}[1/2]$, which is a localization (a slightly different construction, but in the same spirit).
 
 ## PIDs and the Ascending Chain Condition
 
-We saw that $\mathbb{Z}$ is a principal ideal domain: every ideal is generated by a single element. This turns out to be a remarkably strong condition.
+Mental picture: a PID is an integral domain with the simplest possible ideal structure --- every ideal is generated by one element. PIDs have particularly clean factorization theory.
 
-**Definition.** A commutative ring with unity is a **principal ideal domain (PID)** if it is an integral domain and every ideal is principal.
+**Definition.** A PID is an integral domain in which every ideal is principal.
 
-**Examples of PIDs:**
-- $\mathbb{Z}$ (proved above).
-- $F[x]$ for any field $F$ (the proof uses the division algorithm for polynomials — more on this in the next article).
-- $\mathbb{Z}[i]$ (the Gaussian integers — the proof uses the norm $N(a + bi) = a^2 + b^2$ and a Euclidean division).
+**Examples:** $\mathbb{Z}$, $F[x]$ for $F$ a field, $\mathbb{Z}[i]$.
 
-**Non-examples:**
-- $\mathbb{Z}[x]$ is **not** a PID. The ideal $(2, x) = \{f \in \mathbb{Z}[x] : f(0) \text{ is even}\}$ is not principal. If $(2, x) = (g)$, then $g \mid 2$ and $g \mid x$ in $\mathbb{Z}[x]$. From $g \mid 2$, $g$ is a constant ($\pm 1$ or $\pm 2$). From $g \mid x$, if $g = \pm 2$, then $2 \mid x$ in $\mathbb{Z}[x]$, impossible. So $g = \pm 1$ and $(g) = \mathbb{Z}[x]$, but $(2, x) \neq \mathbb{Z}[x]$ since $1 \notin (2, x)$ (as $1$ is odd and not divisible by $x$). Contradiction.
+**Why this matters.** PIDs strike a balance between concreteness and structure. They have unique factorization (we will prove this in Article 6), they support the full toolkit of gcd's and Bezout's identity, and their ideals form a tractable lattice (the divisibility lattice of generators). Most "well-behaved" rings encountered in elementary algebra are PIDs.
+
+**Non-example: $\mathbb{Z}[x]$.** The ideal $(2, x)$ is not principal. If $(2, x) = (g)$, then $g \mid 2$ and $g \mid x$. From $g \mid 2$ in $\mathbb{Z}[x]$, $g$ is a constant $\pm 1$ or $\pm 2$. From $g \mid x$: $g = \pm 2$ would mean $2 \mid x$, impossible. So $g = \pm 1$, but $(g) = \mathbb{Z}[x]$ contradicts $1 \notin (2, x)$ (since $1$ is odd and not divisible by $x$).
 
 ### The Ascending Chain Condition
 
-A ring $R$ satisfies the **ascending chain condition (ACC) on ideals** if every ascending chain of ideals
-
-$$I_1 \subseteq I_2 \subseteq I_3 \subseteq \cdots$$
-
-eventually stabilizes: there exists $N$ such that $I_n = I_N$ for all $n \geq N$. A ring satisfying the ACC on ideals is called **Noetherian** (after Emmy Noether).
+A ring is *Noetherian* if every ascending chain $I_1 \subseteq I_2 \subseteq \cdots$ of ideals stabilizes.
 
 **Proposition.** Every PID is Noetherian.
 
-*Proof.* Let $I_1 \subseteq I_2 \subseteq \cdots$ be an ascending chain of ideals in a PID $R$. Set $I = \bigcup_{n=1}^{\infty} I_n$. One checks that $I$ is an ideal of $R$. Since $R$ is a PID, $I = (d)$ for some $d$. Since $d \in I = \bigcup I_n$, we have $d \in I_N$ for some $N$. Then $(d) \subseteq I_N \subseteq I \subseteq (d)$, so $I_n = (d)$ for all $n \geq N$. $\square$
+*Proof.* Let $I_1 \subseteq I_2 \subseteq \cdots$ be ascending. The union $I = \bigcup I_n$ is an ideal. Since PID, $I = (d)$ for some $d$. Then $d \in I_N$ for some $N$, so $I_n = (d)$ for $n \geq N$. $\square$
 
-The Noetherian condition is one of the most important finiteness conditions in algebra. In a Noetherian ring, you cannot build an infinite strictly ascending chain of ideals — every "construction process" that generates bigger and bigger ideals must eventually stop. This is the engine behind many existence proofs in commutative algebra: the Hilbert Basis Theorem, primary decomposition, and the theory of Noetherian modules all rest on the ACC.
+**Why this matters.** Noetherian rings are the workhorses of commutative algebra. The condition rules out infinite ascending chains, which is exactly what is needed to make many existence proofs go through. Hilbert Basis Theorem, primary decomposition, dimension theory --- all rest on Noether's condition.
 
-**Hilbert Basis Theorem.** If $R$ is Noetherian, then $R[x]$ is Noetherian. This is one of the most consequential theorems in algebra. It implies that every ideal of $\mathbb{Z}[x_1, \ldots, x_n]$ or $k[x_1, \ldots, x_n]$ (for a field $k$) is finitely generated — a fact that is by no means obvious a priori for ideals in a polynomial ring with many variables. The original proof by Hilbert was existential (it showed the generators *exist* without constructing them), which was so controversial at the time that Gordan reportedly said: "This is not mathematics; this is theology." Today the Hilbert Basis Theorem is central to both commutative algebra and algebraic geometry (it guarantees that every algebraic variety is defined by finitely many equations).
+A typical use: in a Noetherian ring, every ideal is finitely generated. Suppose $I$ has no finite generating set. Pick $a_1 \in I$, then $a_2 \in I \setminus (a_1)$, then $a_3 \in I \setminus (a_1, a_2)$, etc. The chain $(a_1) \subsetneq (a_1, a_2) \subsetneq (a_1, a_2, a_3) \subsetneq \cdots$ is strictly increasing, contradicting Noetherian. So $I$ is finitely generated.
 
-**The connection to group theory.** It is worth noting how much richer the ideal structure of rings is compared to the subgroup structure of groups. In $\mathbb{Z}$ (viewed as a ring), the ideals are exactly $n\mathbb{Z}$ — they form a chain indexed by divisibility. But in a ring like $k[x, y]$, ideals can have complicated geometric shapes (corresponding to curves, points, unions of subvarieties). The jump from one-dimensional to two-dimensional ideal theory is enormous, and it is what makes commutative algebra a deep and active field of research.
+**Hilbert Basis Theorem.** If $R$ is Noetherian, then $R[x]$ is Noetherian. By induction, $R[x_1, \ldots, x_n]$ is Noetherian for $R$ Noetherian. Every ideal in $\mathbb{Z}[x_1, \ldots, x_n]$ or $k[x_1, \ldots, x_n]$ is finitely generated --- not obvious for many variables. Hilbert's original proof was existential; Gordan reportedly said "this is not mathematics, this is theology."
 
-**The hierarchy so far:**
+The proof of HBT proceeds by contradiction: assume $I \trianglelefteq R[x]$ is not finitely generated. Pick $f_1$ of minimal degree in $I$, then $f_2$ of minimal degree in $I \setminus (f_1)$, etc. The leading coefficients form an ascending chain of ideals in $R$, which (by Noetherian) stabilizes. The stabilization point gives a contradiction with the construction. So $I$ is finitely generated. The argument is short but the idea is foundational.
+
+**Modern significance.** Most rings encountered in practice are Noetherian: $\mathbb{Z}$, polynomial rings over fields, finitely generated $\mathbb{Z}$-algebras, formal power series rings, etc. Non-Noetherian examples exist (e.g., $k[x_1, x_2, \ldots]$ in countably many variables) but are rarer in the wild.
+
+**Hierarchy:**
 
 $$\text{Fields} \subsetneq \text{Euclidean Domains} \subsetneq \text{PIDs} \subsetneq \text{UFDs} \subsetneq \text{Integral Domains} \subsetneq \text{Commutative Rings}$$
 
-We will flesh out the UFD (Unique Factorization Domain) box in the next article. The strict inclusions are witnessed by:
-- $\mathbb{Z}$ is a Euclidean domain (hence PID, hence UFD) but not a field.
-- $\mathbb{Z}\left[\frac{1+\sqrt{-19}}{2}\right]$ is a PID but not a Euclidean domain.
-- $\mathbb{Z}[x]$ is a UFD but not a PID.
-- $\mathbb{Z}[\sqrt{-5}]$ is an integral domain but not a UFD (since $6 = 2 \cdot 3 = (1+\sqrt{-5})(1-\sqrt{-5})$).
+Witnesses for strictness:
 
----
+- $\mathbb{Z}$: Euclidean domain, not field.
+- $\mathbb{Z}[(1+\sqrt{-19})/2]$: PID, not Euclidean.
+- $\mathbb{Z}[x]$: UFD, not PID.
+- $\mathbb{Z}[\sqrt{-5}]$: integral domain, not UFD ($6 = 2 \cdot 3 = (1+\sqrt{-5})(1-\sqrt{-5})$).
+
+The UFD box will be developed in the next article on polynomial rings. The point: even within "ring with no zero divisors," there is a rich hierarchy of how well factorization behaves.
+
+**Numerical example: divisor counts in PIDs.** In $\mathbb{Z}$, the number of divisors of $n = p_1^{a_1} \cdots p_k^{a_k}$ is $\prod(a_i + 1)$. In a general PID, this same formula holds for divisors of an element with the corresponding prime factorization. So in $\mathbb{Z}[i]$, the element $5 = (2+i)(2-i)$ has $4$ divisors up to units: $1, 2+i, 2-i, 5$. Compare with $5 \in \mathbb{Z}$ which has $2$ divisors: a different prime factorization gives a different divisor count, even though the "size" is the same.
+
+**Numerical example: failure of unique factorization in $\mathbb{Z}[\sqrt{-5}]$.** $6 = 2 \cdot 3 = (1 + \sqrt{-5})(1 - \sqrt{-5})$. Both factorizations involve irreducibles, but the factorizations differ. The norm $N(a + b\sqrt{-5}) = a^2 + 5b^2$. Norm of $2$ is $4$, of $3$ is $9$, of $1 \pm \sqrt{-5}$ is $6$. None of these can be further decomposed nontrivially using the norm, so all four are irreducible. Yet $6$ has two essentially different factorizations. Dedekind's solution: pass to *ideals* rather than elements. The ideals $(2), (3), (1 + \sqrt{-5}), (1 - \sqrt{-5})$ are not all prime, and the unique factorization is restored by considering products of prime ideals.
+
+**Numerical instance.** In $\mathbb{Z}[\sqrt{-5}]$: $(2) = \mathfrak{p}^2$ where $\mathfrak{p} = (2, 1 + \sqrt{-5})$, and $(3) = \mathfrak{q}_1 \mathfrak{q}_2$ where $\mathfrak{q}_1 = (3, 1 + \sqrt{-5}), \mathfrak{q}_2 = (3, 1 - \sqrt{-5})$. So $(6) = \mathfrak{p}^2 \mathfrak{q}_1 \mathfrak{q}_2$ as a product of prime ideals. Both factorizations $2 \cdot 3$ and $(1 + \sqrt{-5})(1 - \sqrt{-5})$ correspond to the same prime ideal factorization, just regrouped. This is the trick: ideals factor uniquely in any "Dedekind domain," even when elements do not.
+
+**Why this matters.** The failure of unique factorization in $\mathbb{Z}[\sqrt{-5}]$ historically motivated Dedekind to invent ideals. The slogan: *ideals of $\mathbb{Z}[\sqrt{-5}]$ factor uniquely as products of prime ideals*. This idea generalizes massively: it underpins all of algebraic number theory, the proof of Fermat's Last Theorem, and the modern theory of $L$-functions.
+
+A sociological point: the realization that "elements lie, but ideals tell the truth" was a major conceptual breakthrough of 19th century mathematics. Kummer originally introduced "ideal numbers" as fictitious elements that would restore unique factorization in cyclotomic rings (for the proof of Fermat's last theorem in special cases). Dedekind reformulated these as actual *subsets* (ideals) of the ring, removing the metaphysical sleight of hand. The modern definition we use is Dedekind's.
 
 ## What's Next
 
-We have built the basic language of ring theory: rings, homomorphisms, ideals, quotient rings, integral domains, PIDs, and the Noetherian property. In the next article, we focus on **polynomial rings** $R[x]$: the division algorithm, irreducibility criteria, Gauss's lemma, and the theory of unique factorization. Polynomial rings are the testing ground for everything we have developed here, and they connect ring theory directly to the classical problems of solving equations and understanding algebraic numbers.
+We have built the basic language of ring theory: rings, homomorphisms, ideals, quotient rings, integral domains, PIDs, and the Noetherian property. In the next article we focus on *polynomial rings* $R[x]$: the division algorithm, irreducibility criteria, Gauss's lemma, and the theory of unique factorization. Polynomial rings are the testing ground for everything we have developed here, and they connect ring theory directly to the classical problems of solving equations and understanding algebraic numbers.
 
----
+A summary worth keeping: groups have one operation, rings have two; ideals are the kernel notion for rings; quotient rings let us construct new rings with prescribed relations; PIDs are the cleanest setting where ideals are generated by single elements.
 
-*Abstract Algebra Series — Article 5 of 12*
+A second summary, this time historical. The conceptual leap "from numbers to ideals" reframes classical questions about divisibility into questions about subsets of rings. The leap was made independently by Kummer (with his "ideal numbers"), Dedekind (with the modern set-theoretic definition), and Kronecker (with a constructive but more cumbersome formulation). Dedekind's version is what we use today. The whole subsequent history of algebraic number theory and algebraic geometry is the unfolding of this conceptual move.
+
+**One more thought to close on.** Ring theory is a sprawling subject, and this article has only set up the basic vocabulary. The richness comes when one starts to combine the constructions: localization (inverting a multiplicative subset), tensor products (gluing rings together), modules (vector-space-like objects over rings), and homological methods (resolving modules to extract finer invariants). Each of these is the subject of an entire course. But none of them makes sense without the foundation we have built here: rings, ideals, quotient rings, integral domains.**Reading recommendations.** Atiyah and Macdonald's *Introduction to Commutative Algebra* is the classic short reference. Eisenbud's *Commutative Algebra with a View Toward Algebraic Geometry* is the modern comprehensive text. Dummit and Foote chapters 7-9 cover ring theory in depth.
+
+**A reflection on the conceptual jump from groups to rings.** Group theory is single-operation algebra: every theorem about groups is a statement about composition. Ring theory is double-operation algebra: theorems involve the *interaction* of addition and multiplication. The interaction is encoded in distributivity, but its consequences are surprisingly rich. Number theory, polynomial algebra, algebraic geometry, and most of modern algebra live in this two-operation setting.
+
+A second reflection: ideals are simultaneously the right substitute for normal subgroups (when modding out) and the right substitute for elements (when factoring). The "factor uniquely as primes" property of $\mathbb{Z}$ generalizes to many rings only at the level of ideals, not elements. This is why algebraic number theorists work with ideals more than with numbers: they are the units of structural arithmetic.
 
 ---
 

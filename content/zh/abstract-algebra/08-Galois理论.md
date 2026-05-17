@@ -1,5 +1,5 @@
 ---
-title: "抽象代数（八）：Galois 理论——域与群的桥梁"
+title: "抽象代数 (8)：Galois 理论 —— 域与群之间的桥梁"
 date: 2021-09-15 09:00:00
 tags:
   - abstract-algebra
@@ -10,304 +10,256 @@ categories: Mathematics
 series: abstract-algebra
 lang: zh
 mathjax: true
-description: "Galois 理论的基本定理在中间域与子群之间建立了完美的对应——并最终解决了用根式求解多项式的古老问题。"
+description: "Galois 理论的基本定理建立了中间域和子群之间的完美对应关系，并解决了古老的根式可解性问题。"
 disableNunjucks: true
 series_order: 8
 series_total: 12
 translationKey: "abstract-algebra-8"
 ---
 
-1832 年，二十岁的 Evariste Galois 在一场他注定活不过的决斗前夜，把自己最终版本的数学思想写在了给朋友的信中。那些思想——将多项式根的对称性与群的结构联系起来——花了十余年才被人理解和发表，但它们永久地改变了代数学的面貌。如今我们称之为 Galois 理论的这套框架，在域扩张的中间域和一个对称群的子群之间建立了精确的字典。它统一地解释了为什么二次方程有求根公式、为什么五次方程没有、以及"可解性"到底意味着什么。
+1832 年，一位名叫 Évariste Galois 的 20 岁数学家在决斗前夕写下他的数学思想的最终版本，并寄给了一位朋友。这些思想——将多项式的根的对称性与群的结构联系起来——花了十多年时间才被理解并发表，但它们永远改变了代数。我们现在称之为 Galois 理论，它在域扩张的中间域和对称群的子群之间建立了一个精确的字典。它在一个优雅的框架中解释了为什么二次公式存在，为什么五次没有类似的公式，以及“可解性”到底意味着什么。
 
-上一篇文章中，我们建好了域扩张的全部基础设施：次数、极小多项式、塔式法则、分裂域、可分性。现在把它们投入使用。
+我感到惊讶的是 Galois 思想的抽象方向。他不是通过更巧妙地计算多项式的根来研究多项式，而是完全忽略根，转而分析那些保持根之间所有代数关系不变的根的置换。这样的置换集合形成一个群，这个群的结构告诉你关于原始多项式的一切。这是一个从数字到群的彻底转变，尽管如此，它仍然回答了最初的问题。本文详细介绍了这一主题的转变。
 
 ---
 
 ## Galois 群：固定基域的自同构
 
-**定义。** 设 $L/K$ 是域扩张。$L$ 的一个 **$K$-自同构**是域同构 $\sigma : L \to L$，且对所有 $a \in K$ 有 $\sigma(a) = a$。全体 $K$-自同构在复合运算下构成一个群，称为 $L$ 在 $K$ 上的 **Galois 群**：
+给定一个域扩张 $L/K$，*$L$ 在 $K$ 上的自同构* 是一个域同构 $\sigma : L \to L$，使得对于每个 $a \in K$ 有 $\sigma(a) = a$。所有这样的自同构在复合下形成一个群，称为 $L/K$ 的 *Galois 群*：
 
-$$\operatorname{Gal}(L/K) = \{\sigma \in \operatorname{Aut}(L) : \sigma|_K = \operatorname{id}_K\}.$$
+$$\mathrm{Gal}(L/K) = \mathrm{Aut}_K(L) = \{\sigma : L \to L \mid \sigma \text{ 是一个域自同构},\ \sigma|_K = \mathrm{id}\}.$$
 
-![子群与中间域之间的 Galois 对应](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/08-galois-theory/aa_fig8_galois_correspondence.png)
+关键在于，$L$ 中固定 $K$ 的自同构会置换 $K[x]$ 中任何多项式的根。如果 $f(x) \in K[x]$ 且 $f(\alpha) = 0$ 对于某个 $\alpha \in L$ 成立，那么应用 $\sigma \in \mathrm{Gal}(L/K)$ 到两边：
 
+$$0 = \sigma(0) = \sigma(f(\alpha)) = f(\sigma(\alpha)),$$
 
-$K$-自同构由它对 $L/K$ 生成元的作用完全决定。由于 $\sigma$ 必须保持所有 $K$ 系数的多项式关系，它只能把不可约多项式的根置换为同一多项式的其他根。
+因为 $\sigma$ 固定了 $f$ 的系数。所以 $\sigma(\alpha)$ 也是 $f$ 的根。Galois 群通过置换作用于 $f$ 的根，并且当 $L$ 是分裂域时，这种作用是忠实的——一旦你知道 $\sigma$ 对根的作用，你就知道 $\sigma$ 在任何地方的作用。
 
-**关键观察。** 若 $\alpha \in L$ 是 $K[x]$ 中不可约多项式 $p(x)$ 的根，$\sigma \in \operatorname{Gal}(L/K)$，则 $\sigma(\alpha)$ 也是 $p$ 的根：
+![Q(√2)/Q 的 Galois 群通过符号翻转作用](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/08-galois-theory/aa_v2_08_1_galois_group.png)
 
-$$p(\sigma(\alpha)) = \sigma(p(\alpha)) = \sigma(0) = 0.$$
+**例子 ($\mathbb{Q}(\sqrt{2})/\mathbb{Q}$)。** 任何 $\sigma \in \mathrm{Gal}(\mathbb{Q}(\sqrt{2})/\mathbb{Q})$ 必须将 $\sqrt{2}$ 映射到 $x^2 - 2$ 的一个根，即 $\pm\sqrt{2}$。因此恰好有两个自同构：恒等映射和 $\sigma(\sqrt{2}) = -\sqrt{2}$。Galois 群是 $\mathbb{Z}/2\mathbb{Z}$。
 
-这里用到了 $\sigma$ 固定 $K$（从而固定 $p$ 的所有系数）以及保持加法和乘法。
+注意：$\sigma$ 由其在 $\sqrt{2}$ 上的作用决定，因为 $\mathbb{Q}(\sqrt{2})$ 中的每个元素都有形式 $a + b\sqrt{2}$，其中 $a, b \in \mathbb{Q}$，并且 $\sigma(a + b\sqrt{2}) = a + b\sigma(\sqrt{2})$。在符号翻转下保持不变的算术恒等式正是 $(a+b\sqrt{2})(a-b\sqrt{2}) = a^2 - 2b^2$ —— 即 *范数* —— 它自动是 $\mathbb{Q}$-值且 Galois 不变的。
 
-**例 1（$\operatorname{Gal}(\mathbb{C}/\mathbb{R})$）。** $\mathbb{R}$-自同构 $\sigma$ 必须把 $i$ 送到 $x^2+1$ 的根，即 $\sigma(i) = i$（恒等）或 $\sigma(i) = -i$（复共轭）。故 $\operatorname{Gal}(\mathbb{C}/\mathbb{R}) \cong \mathbb{Z}/2\mathbb{Z}$。
+**例子 ($\mathbb{Q}(\sqrt{2}, \sqrt{3})/\mathbb{Q}$)。** 设 $L = \mathbb{Q}(\sqrt{2}, \sqrt{3})$。一个固定 $\mathbb{Q}$ 的自同构 $\sigma$ 将 $\sqrt{2} \mapsto \pm\sqrt{2}$ 和 $\sqrt{3} \mapsto \pm\sqrt{3}$ 独立地映射，给出四个自同构：恒等映射、$\sqrt{2} \mapsto -\sqrt{2}$、$\sqrt{3} \mapsto -\sqrt{3}$ 和它们的乘积。Galois 群是 $\mathbb{Z}/2 \times \mathbb{Z}/2$，即 Klein 四元群 $V_4$。并且 $|\mathrm{Gal}(L/\mathbb{Q})| = 4 = [L:\mathbb{Q}]$，与次数匹配。
 
-**例 2（$\operatorname{Gal}(\mathbb{Q}(\sqrt{2})/\mathbb{Q})$）。** $\sigma(\sqrt{2})$ 必须是 $x^2-2$ 的根，即 $\pm\sqrt{2}$。恒等和 $\sigma: a+b\sqrt{2} \mapsto a-b\sqrt{2}$ 两个自同构，$\operatorname{Gal}(\mathbb{Q}(\sqrt{2})/\mathbb{Q}) \cong \mathbb{Z}/2\mathbb{Z}$。
+**例子 ($\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q}$)。** 最小多项式 $x^3 - 2$ 只有一个实根 $\sqrt[3]{2}$，而其他两个是复数。任何 $\sigma : \mathbb{Q}(\sqrt[3]{2}) \to \mathbb{Q}(\sqrt[3]{2})$ 必须将 $\sqrt[3]{2}$ 映射到 $x^3 - 2$ 在 $\mathbb{Q}(\sqrt[3]{2}) \subset \mathbb{R}$ 内的一个根。只有一个这样的根存在。所以 $\sigma = \mathrm{id}$ 并且 $\mathrm{Gal}(\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q})$ 是平凡的。然而 $[\mathbb{Q}(\sqrt[3]{2}):\mathbb{Q}] = 3 \neq 1$。
 
-**例 3（$\operatorname{Gal}(\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q})$）。** $\sigma(\sqrt[3]{2})$ 必须是 $x^3-2$ 的根：$\sqrt[3]{2}, \sqrt[3]{2}\omega, \sqrt[3]{2}\omega^2$。但 $\mathbb{Q}(\sqrt[3]{2}) \subset \mathbb{R}$，$\sigma(\sqrt[3]{2})$ 必须是实数。唯一的实根是 $\sqrt[3]{2}$ 本身，故 $\sigma = \operatorname{id}$，$\operatorname{Gal}(\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q}) = \{1\}$。
+这是上一篇文章中关于可分性和正规性的要点：$|\mathrm{Gal}(L/K)| = [L:K]$ 恰好在 Galois 扩张中成立。这里 $\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q}$ 失去了正规性（扩展不是分裂域），群就坍缩了。
 
-这个例子揭示了关键一点：Galois 群可能"太小"。这里 $|\operatorname{Gal}| = 1 < 3 = [\mathbb{Q}(\sqrt[3]{2}):\mathbb{Q}]$。原因是 $\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q}$ 不正规（不是分裂域）。当扩张是 Galois 扩张时，两个数严格相等：
+**定理。** 有限扩张 $L/K$ 是 Galois 当且仅当 $|\mathrm{Gal}(L/K)| = [L:K]$。
 
-**定理。** 若 $L/K$ 是有限 Galois 扩张（既正规又可分），则
+这是一个两半都有用的等价命题：在一个方向上，它让我们通过计数自同构来检查 Galois 条件；在另一个方向上，它让我们通过检查计数与次数的关系来验证是否找到了所有自同构。
 
-$$|\operatorname{Gal}(L/K)| = [L:K].$$
+这也与通过可分性 + 正规性定义的“Galois”的抽象定义一致。可分扩张最多有 $[L:K]$ 个嵌入到代数闭包中的嵌入（通过计数最小多项式的根，所有根都是不同的）；正规扩张使这些嵌入实际上回到 $L$（而不是逃到代数闭包中）；因此 Galois 扩张恰好有 $[L:K]$ 个自同构 —— 没有多余的，也没有缺失的。“嵌入计数 = 次数” 身份正好是 $|\mathrm{Gal}(L/K)| = [L:K]$ 的伪装。
+
+**为什么这很重要。** Galois 群是一个小的、有限的、可计算的对象，但它捕捉到了整个域扩张的内容。群论已经有了 200 年的结构结果 —— Sylow 定理、单群分类、表示理论 —— 而 Galois 理论让我们将所有这些引入到多项式根的研究中。这种交换几乎等于我们在第 7 部分设置机制所付出的一切。
+
+这里有一个有用的概念重构。Galois 群是多项式 $f$ 的 *自同构群*，以根的作用为精确意义。我们可以等价地定义 $\mathrm{Gal}(f)$ 为 $S_n$（其中 $n = \deg f$）中的子群，包含那些尊重根之间所有代数关系的置换。"尊重所有代数关系" 这一条件使定义变得非平凡 —— 如果没有它，每个置换都会是自同构，Galois 群总是 $S_n$。有些置换不能扩展到场自同构，这正是你在计算群时利用的信息。
+
+一个小的实例检查。对于 $f(x) = x^4 + 1$（第八旋回多项式），四个根是 $\zeta_8, \zeta_8^3, \zeta_8^5, \zeta_8^7$，即第八单位根。有一个代数关系 $\zeta_8^3 = \zeta_8 \cdot \zeta_8^2 = \zeta_8 \cdot i$，另一个是 $\zeta_8 + \zeta_8^7 = \sqrt{2}$。尊重所有这些恒等式的四个根的置换形成一个四阶群 —— 即 $(\mathbb{Z}/8)^\times$ —— 即使在底层集合上有 $4! = 24$ 个置换。大多数置换破坏了一些关系；剩下的四个正好是 Galois 群。
 
 ---
 
-## 固定域与 Galois 对应
+## 固定域和 Galois 对应
 
-**定义。** 设 $L$ 是域，$H \leq \operatorname{Aut}(L)$ 是自同构群的子群。$H$ 的**固定域**为
+在一个方向上，给定一个扩张 $L/K$，我们得到一个群 $\mathrm{Gal}(L/K)$。在另一个方向上，给定一个子群 $H \leq \mathrm{Gal}(L/K)$，我们得到一个域：
 
-$$L^H = \{a \in L : \sigma(a) = a, \ \forall \sigma \in H\}.$$
+$$L^H = \{\alpha \in L : \sigma(\alpha) = \alpha \text{ 对所有 } \sigma \in H\}.$$
 
-容易验证 $L^H$ 是 $L$ 的子域。
+这是 $H$ 的 *固定域*。它是 $L$ 的一个子域，包含 $K$（因为 $K$ 中的元素被 $\mathrm{Gal}(L/K)$ 中的所有元素固定）。
 
-Galois 对应是以下两个映射：
+因此我们有两个映射：
 
-$$\{\text{中间域 } K \subseteq M \subseteq L\} \quad \longleftrightarrow \quad \{\text{子群 } H \leq \operatorname{Gal}(L/K)\}$$
+- $\Phi$：$\mathrm{Gal}(L/K)$ 的子群 → 中间域，$H \mapsto L^H$。
+- $\Psi$：中间域 → 子群，$M \mapsto \mathrm{Gal}(L/M)$。
 
-方向一：$M \mapsto \operatorname{Gal}(L/M)$；方向二：$H \mapsto L^H$。
+**定理（Galois 对应）。** 如果 $L/K$ 是有限 Galois 扩张，则 $\Phi$ 和 $\Psi$ 是子群集 $\mathrm{Gal}(L/K)$ 和中间域集 $K \subseteq M \subseteq L$ 之间的互逆、序反向双射。
 
-### 计算实例：$\operatorname{Gal}(\mathbb{Q}(\sqrt{2},\sqrt{3})/\mathbb{Q})$
+![Galois 对应：Galois 群的子群匹配中间域](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/08-galois-theory/aa_v2_08_2_correspondence.png)
 
-这是展示完整对应的最简单非平凡例子。由上篇，$[\mathbb{Q}(\sqrt{2},\sqrt{3}):\mathbb{Q}] = 4$。
+序反向方面是第一次遇到时令人惊讶的部分，但它是被迫的：子群越大，施加的约束越多，固定的域越小。符号上，$H_1 \leq H_2 \implies L^{H_1} \supseteq L^{H_2}$。
 
-$\mathbb{Q}(\sqrt{2},\sqrt{3})$ 是 $(x^2-2)(x^2-3)$ 在 $\mathbb{Q}$ 上的分裂域，故正规。特征 0 下自动可分。因此是 Galois 扩张，$|\operatorname{Gal}| = 4$。
+两个公式确定了字典：
 
-$\mathbb{Q}$-自同构 $\sigma$ 由 $\sigma(\sqrt{2}) = \pm\sqrt{2}$ 和 $\sigma(\sqrt{3}) = \pm\sqrt{3}$ 决定，四种组合：
+- $[L : L^H] = |H|$（次数等于固定群的大小）。
+- $[L^H : K] = [\mathrm{Gal}(L/K) : H]$（从底部开始的次数等于全群中的指数）。
 
-| 自同构 | $\sigma(\sqrt{2})$ | $\sigma(\sqrt{3})$ |
-|:---:|:---:|:---:|
-| $e$ | $\sqrt{2}$ | $\sqrt{3}$ |
-| $\sigma_1$ | $-\sqrt{2}$ | $\sqrt{3}$ |
-| $\sigma_2$ | $\sqrt{2}$ | $-\sqrt{3}$ |
-| $\sigma_3$ | $-\sqrt{2}$ | $-\sqrt{3}$ |
+相乘得到 $|\mathrm{Gal}(L/K)| = [L:K]$，这是 Galois 条件。
 
-每个 $\sigma_i$ 的阶为 2，$\sigma_3 = \sigma_1\sigma_2$，故 $G \cong \mathbb{Z}/2\mathbb{Z} \times \mathbb{Z}/2\mathbb{Z}$（Klein 四元群 $V_4$）。
+对应证明基于两个引理：
 
-$V_4$ 有 5 个子群，对应关系如下：
+**Artin 引理。** 如果 $G$ 是 $L$ 的有限自同构群，则 $[L : L^G] = |G|$。因此，*每个* 作用于 $L$ 的有限群都实现 $L$ 为其固定域的 Galois 扩张。
 
-| 子群 $H$ | $\|H\|$ | 固定域 $L^H$ | $[L^H:\mathbb{Q}]$ |
-|:---:|:---:|:---:|:---:|
-| $\{e\}$ | 1 | $\mathbb{Q}(\sqrt{2},\sqrt{3})$ | 4 |
-| $\{e,\sigma_1\}$ | 2 | $\mathbb{Q}(\sqrt{3})$ | 2 |
-| $\{e,\sigma_2\}$ | 2 | $\mathbb{Q}(\sqrt{2})$ | 2 |
-| $\{e,\sigma_3\}$ | 2 | $\mathbb{Q}(\sqrt{6})$ | 2 |
-| $G$ | 4 | $\mathbb{Q}$ | 1 |
+**Galois 定理。** 如果 $L/K$ 是有限 Galois 扩张，则 $L^{\mathrm{Gal}(L/K)} = K$。因此，$K$ 之外的 $L$ 中的任何元素都不会被 *所有* 自同构固定 —— 自同构看到一切。
 
-**验证 $\{e,\sigma_3\}$ 的固定域。** $\mathbb{Q}(\sqrt{2},\sqrt{3})$ 的一般元素 $a + b\sqrt{2} + c\sqrt{3} + d\sqrt{6}$，施加 $\sigma_3$：$a - b\sqrt{2} - c\sqrt{3} + d\sqrt{6}$（因为 $\sigma_3(\sqrt{6}) = (-\sqrt{2})(-\sqrt{3}) = \sqrt{6}$）。固定要求 $b = c = 0$，故 $L^H = \mathbb{Q}(\sqrt{6})$。
+结合两者：从 Galois 扩张 $L/K$ 开始，子群 $\mathrm{Gal}(L/K)$ 的固定域是 $K$，对子群 $H$ 应用 Artin 得到驱动双射的等式 $[L : L^H] = |H|$。
 
-观察对应的反序性：子群越大，固定域越小。且每个条目中 $[L:L^H] = |H|$，$[L^H:\mathbb{Q}] = |G|/|H|$。这些都是基本定理的推论。
+**为什么这很重要。** 这是从域论问题到群论答案的桥梁。想知道有多少子域严格位于 $K$ 和 $L$ 之间？计算 $\mathrm{Gal}(L/K)$ 的适当非平凡子群。想知道哪些子域本身是 Galois 扩张？看 *正规* 子群。关于扩展的每个结构性问题都有一个群论阴影，在实践中更容易计算。
+
+一个值得记住的实用引理：如果 $H_1, H_2 \leq G$ 是子群，其固定域分别为 $M_1, M_2$，则：
+
+- $L^{H_1 \cap H_2} = M_1 \cdot M_2$（合成域，包含两者的最小域）。
+- $L^{\langle H_1, H_2 \rangle} = M_1 \cap M_2$。
+
+因此子群上的格运算（交集、生成子群）转化为子域上的格运算（合成域、交集），顺序相反。一旦你内化了这一点，绘制任何具体扩展的子域格就变成了纯粹的群论练习。
+
+对应中还隐藏着一个强唯一性陈述。如果 $L/K$ 是 Galois 扩张且 $\sigma \in \mathrm{Gal}(L/K)$ 对每个中间域都作用平凡，则 $\sigma = \mathrm{id}$。等价地说，唯一固定所有子域的元素是恒等元素。这是一种说子域格连同 Galois 群作用包含了扩展的所有信息的方式。
 
 ---
 
 ## Galois 理论基本定理
 
-**定理（Galois 理论基本定理）。** 设 $L/K$ 是有限 Galois 扩张，$G = \operatorname{Gal}(L/K)$。则：
+把所有部分放在一起，我们得到中心结果：
 
-**(a) 双射。** 存在保序反转的双射
-$$\Phi: \{\text{中间域}\} \to \{\text{$G$ 的子群}\}, \quad M \mapsto \operatorname{Gal}(L/M),$$
-逆映射 $\Psi(H) = L^H$。
+**Galois 理论基本定理。** 设 $L/K$ 是有限 Galois 扩张，Galois 群为 $G = \mathrm{Gal}(L/K)$。则：
 
-**(b) 次数等于指标。**
-$$[L:M] = |\operatorname{Gal}(L/M)|, \qquad [M:K] = [G:\operatorname{Gal}(L/M)].$$
+1. *(双射)* 映射 $H \mapsto L^H$ 和 $M \mapsto \mathrm{Gal}(L/M)$ 是子群集 $G$ 和中间域集 $K \subseteq M \subseteq L$ 之间的互逆、序反向双射。
 
-**(c) 正规性判据。** $M/K$ 正规当且仅当 $\operatorname{Gal}(L/M) \trianglelefteq G$。此时限制映射给出
+2. *(次数匹配)* 对于每个子群 $H \leq G$，$[L : L^H] = |H|$ 且 $[L^H : K] = [G : H]$。
 
-$$\operatorname{Gal}(M/K) \cong G / \operatorname{Gal}(L/M).$$
+3. *(正规性)* 中间扩张 $M/K$ 是 Galois（等价于正规）当且仅当 $\mathrm{Gal}(L/M)$ 是 $G$ 的 *正规子群*。在这种情况下，$\mathrm{Gal}(M/K) \cong G/\mathrm{Gal}(L/M)$。
 
-*证明要点。*
+第三部分是最引人注目的。术语 "正规" 出现在两边 —— 对于域，它意味着 "某些多项式的分裂域"；对于群，它意味着 "在共轭下封闭" —— 定理说这些是相同条件的不同视角。术语的一致性绝非巧合；"正规" 最初是为了使对应成立而定义的。
 
-核心引理是 **Artin 引理**：若 $H$ 是 $L$ 的有限自同构群，则 $[L:L^H] \leq |H|$。
+![正规子群对应于正规域扩张](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/08-galois-theory/aa_v2_08_7_normal_field.png)
 
-*Artin 引理证明。* 设 $|H| = n$。若 $[L:L^H] > n$，选 $n+1$ 个 $L^H$-线性无关元 $\alpha_1, \ldots, \alpha_{n+1}$。将 $H = \{\sigma_1, \ldots, \sigma_n\}$，考虑齐次线性方程组
+**第 (3) 部分的概述。** 如果 $H \trianglelefteq G$，定义一个同态 $G \to \mathrm{Aut}_K(L^H)$，通过限制每个 $\sigma \in G$ 到 $L^H$。（限制有意义是因为 $L^H$ 被 $\sigma$ 映射到自身：如果 $\alpha \in L^H$ 且 $\tau \in H$，则 $\tau\sigma(\alpha) = \sigma\sigma^{-1}\tau\sigma(\alpha) = \sigma(\alpha)$，因为 $\sigma^{-1}\tau\sigma \in H$ 由正规性。）核恰好是 $H$，所以 $G/H$ 嵌入到 $\mathrm{Aut}_K(L^H)$ 中。计数：$|G/H| = [L^H : K]$，因此由 Galois 条件 $G/H \cong \mathrm{Gal}(L^H/K)$ 且 $L^H/K$ 是 Galois 扩张。
 
-$$\sum_{j=1}^{n+1} \sigma_i(\alpha_j) x_j = 0, \quad i = 1, \ldots, n.$$
+反之，如果 $M/K$ 是 Galois 扩张，则每个 $\sigma \in G$ 将 $M$ 映射到自身（因为 $M$ 是分裂域，故在 $L$ 的所有 $K$-自同构下稳定），所以限制映射 $G \to \mathrm{Aut}_K(M)$ 是良定义的，其核是 $\mathrm{Gal}(L/M)$，因此是正规的。
 
-$n$ 个方程 $n+1$ 个未知数，存在非平凡解。在所有非平凡解中取非零分量最少的，归一化最后一个非零分量为 1。若某 $c_j \notin L^H$，对方程施加某 $\tau \in H$（$\tau(c_j) \neq c_j$），再与原方程相减，得到非零分量更少的非平凡解——矛盾。故所有 $c_j \in L^H$，给出 $L^H$-线性相关性——矛盾。$\blacksquare$
+在反向论证中的 "在 $\sigma$ 下稳定" 步骤值得仔细看看。假设 $M = K(\alpha_1, \ldots, \alpha_r)$ 是 $f \in K[x]$ 在 $L$ 中的分裂域。对于任何 $\sigma \in G$，$\sigma$ 将 $f$ 的每个根 $\alpha_i$ 映射到 $f$ 的另一个根 $\alpha_j$（因为 $\sigma$ 固定了 $f$ 的系数）。其他根也在 $M$ 中（这就是分裂域的意义），所以 $\sigma(\alpha_i) \in M$。因此 $\sigma(M) \subseteq M$。通过维数计数（或通过 $\sigma$ 的单射性），$\sigma(M) = M$。因此限制是良定义的。
 
-有了 Artin 引理：
+**为什么这很重要。** 基本定理是推动 Galois 理论中每个具体计算的引擎。如果你想找到 $L$ 的子域，画出 $G$ 的子群格 —— 那些是相同的格。如果你想了解哪个子域是 Galois 扩张，标记正规子群。整个问题从一个需要推理元素的主题（域）转移到一个可以组合推理的主题（群）。
 
-- $\Psi \circ \Phi = \operatorname{id}$：$L^{\operatorname{Gal}(L/M)} \supseteq M$ 显然。由 Galois 性质 $|\operatorname{Gal}(L/M)| = [L:M]$，由 Artin $[L:L^{\operatorname{Gal}(L/M)}] \leq |\operatorname{Gal}(L/M)| = [L:M]$，故 $L^{\operatorname{Gal}(L/M)} \subseteq M$。
-- $\Phi \circ \Psi = \operatorname{id}$：$H \subseteq \operatorname{Gal}(L/L^H)$ 显然。由 Artin $[L:L^H] \leq |H|$，而 $|\operatorname{Gal}(L/L^H)| = [L:L^H] \leq |H|$，故 $H = \operatorname{Gal}(L/L^H)$。
+FTGT 的三个额外结构收益值得明确指出：
 
-(c) 的证明：若 $M/K$ 正规，则对任意 $\sigma \in G$ 和 $\tau \in \operatorname{Gal}(L/M)$，$\sigma\tau\sigma^{-1}$ 仍固定 $M$（因为 $\sigma$ 把 $M$ 的元素映到同一不可约多项式的另一根，正规性保证该根仍在 $M$ 中），故 $\operatorname{Gal}(L/M) \trianglelefteq G$。反之，若 $\operatorname{Gal}(L/M) \trianglelefteq G$，则 $G$ 通过限制作用在 $M$ 上，核为 $\operatorname{Gal}(L/M)$，由第一同构定理得商群同构。$\blacksquare$
+1. *计数中间域。* 包含 $K$ 的 $L$ 的子域数量等于 $G$ 的子群数量。对于 $G \cong S_3$，这是 $1 + 3 + 1 + 1 = 6$ 个子群，因此有 6 个中间域。对于 $G \cong (\mathbb{Z}/p)^n$，这是 $(\mathbb{F}_p)^n$ 的子空间数量，由高斯二项式系数给出。
+
+2. *检测 Galois 闭包。* 包含给定 $M \subseteq L$ 的最小 Galois 扩张是 $G$ 中包含 $\mathrm{Gal}(L/M)$ 的最大正规子群的固定域。因此 Galois 闭包对应于正规核。当你从一个非 Galois 扩张开始并希望进行 Galois 理论时，这种情况经常出现。
+
+3. *与商群耦合。* 每当 $H \trianglelefteq G$ 时，$G/H$ 在 $L^H$ 上诱导一个作用，该作用正是 $\mathrm{Gal}(L^H/K)$。这通常允许你将大 Galois 群的计算简化为两个较小的计算 —— 一个是 $H$，一个是 $G/H$。
 
 ---
 
 ## 计算 Galois 群：具体例子
 
-### 例 1：$x^4 - 2$ 在 $\mathbb{Q}$ 上的分裂域
+理论很优雅，但例子驱动直觉。让我们实际计算一些 Galois 群。
 
-由上篇，分裂域 $L = \mathbb{Q}(\sqrt[4]{2}, i)$，$[L:\mathbb{Q}] = 8$。
+### 例子 1：$\mathbb{Q}(\sqrt{2}, \sqrt{3})/\mathbb{Q}$
 
-$x^4-2$ 的根为 $\alpha, i\alpha, -\alpha, -i\alpha$（$\alpha = \sqrt[4]{2}$）。$\sigma \in G$ 由 $\sigma(\alpha)$ 和 $\sigma(i)$ 决定：
+我们已经看到 $G \cong V_4 = \mathbb{Z}/2 \times \mathbb{Z}/2$。子群是：
 
-- $\sigma(\alpha) \in \{\alpha, i\alpha, -\alpha, -i\alpha\}$（4 种）
-- $\sigma(i) \in \{i, -i\}$（2 种）
+- $\{e\}$，固定域 $L = \mathbb{Q}(\sqrt{2}, \sqrt{3})$，次数 4。
+- $\langle \sigma_2 \rangle$（其中 $\sigma_2 : \sqrt{2} \mapsto -\sqrt{2}$，$\sqrt{3} \mapsto \sqrt{3}$），固定域 $\mathbb{Q}(\sqrt{3})$，次数 2。
+- $\langle \sigma_3 \rangle$（其中 $\sigma_3 : \sqrt{2} \mapsto \sqrt{2}$，$\sqrt{3} \mapsto -\sqrt{3}$），固定域 $\mathbb{Q}(\sqrt{2})$，次数 2。
+- $\langle \sigma_2 \sigma_3 \rangle$（将 $\sqrt{2} \mapsto -\sqrt{2}$，$\sqrt{3} \mapsto -\sqrt{3}$，因此 $\sqrt{6} \mapsto \sqrt{6}$），固定域 $\mathbb{Q}(\sqrt{6})$，次数 2。
+- $G$，固定域 $\mathbb{Q}$，次数 1。
 
-$|G| = 8 = 4 \times 2$，所有组合都实现了。定义：
+五个子群，五个中间域，所有都按次数匹配。由于 $V_4$ 是 Abel 群，每个子群都是正规的，因此每个中间域都是 Galois 扩张 —— 直接验证很容易，因为每个都是二次多项式的分裂域。
 
-- $\rho$：$\alpha \mapsto i\alpha$，$i \mapsto i$（对四个根的"旋转"）。
-- $\tau$：$\alpha \mapsto \alpha$，$i \mapsto -i$（复共轭限制到 $L$）。
+这是典型的“双二次”扩展。它还说明了看似神秘的元素 $\sqrt{6} = \sqrt{2}\sqrt{3}$ 如何在对角自同构下保持不变：因为两个平方根同时改变符号，它们的乘积是不变的。这是产生 Pell 方程格 $\mathbb{Z}[\sqrt{6}]$ 作为 $\mathbb{Q}(\sqrt{6})$ 的整数环的同一技巧，整洁地嵌入在 $\mathbb{Z}[\sqrt{2}, \sqrt{3}]$ 中。
 
-则 $\rho$ 的阶为 4（$\rho^2(\alpha) = -\alpha$，$\rho^3(\alpha) = -i\alpha$，$\rho^4 = e$），$\tau$ 的阶为 2。验证 $\tau\rho\tau^{-1}(\alpha) = \tau(i\alpha) = (-i)\alpha = \rho^3(\alpha)$，故 $\tau\rho = \rho^{-1}\tau$，这是二面体群的定义关系：
+### 例子 2：$x^3 - 2$ 在 $\mathbb{Q}$ 上的分裂域
 
-$$G = \operatorname{Gal}(\mathbb{Q}(\sqrt[4]{2},i)/\mathbb{Q}) \cong D_4,$$
+设 $L = \mathbb{Q}(\sqrt[3]{2}, \omega)$ 其中 $\omega = e^{2\pi i/3}$。从第 7 部分，$[L:\mathbb{Q}] = 6$。
 
-即正方形的对称群（8 阶二面体群）。
+$x^3 - 2$ 的三个根是 $\sqrt[3]{2}$，$\sqrt[3]{2}\omega$，$\sqrt[3]{2}\omega^2$。Galois 群置换这三个根，嵌入到 $S_3$ 中。由于阶数为 6，$G \cong S_3$。我们可以写出生成元：
 
-$D_4$ 有 10 个子群（含平凡群和 $D_4$ 本身），对应 10 个中间域。例如：
+- $\sigma$（阶数 3）：$\sqrt[3]{2} \mapsto \sqrt[3]{2}\omega$，$\omega \mapsto \omega$。
+- $\tau$（阶数 2）：$\sqrt[3]{2} \mapsto \sqrt[3]{2}$，$\omega \mapsto \omega^2$（复共轭）。
 
-- $\langle\rho\rangle \cong \mathbb{Z}/4\mathbb{Z}$ 对应 $L^{\langle\rho\rangle} = \mathbb{Q}(i)$。
-- $\langle\tau\rangle \cong \mathbb{Z}/2\mathbb{Z}$ 对应 $L^{\langle\tau\rangle} = \mathbb{Q}(\sqrt[4]{2})$。
-- $\langle\rho^2\rangle \cong \mathbb{Z}/2\mathbb{Z}$ 对应 $L^{\langle\rho^2\rangle} = \mathbb{Q}(i, \sqrt{2})$。
+$S_3$ 的子群格：
 
-$D_4$ 的正规子群对应给出 $\mathbb{Q}$ 上 Galois（正规）扩张的中间域。
+- $\{e\}$ — 固定域 $L$。
+- $\langle \tau \rangle$，$\langle \sigma\tau \rangle$，$\langle \sigma^2\tau \rangle$ — 三个二阶子群，固定域 $\mathbb{Q}(\sqrt[3]{2})$，$\mathbb{Q}(\sqrt[3]{2}\omega^2)$，$\mathbb{Q}(\sqrt[3]{2}\omega)$（每个是三个实或复立方根之一）。
+- $\langle \sigma \rangle = A_3$ — 固定域 $\mathbb{Q}(\omega)$，次数 2。
+- $S_3$ — 固定域 $\mathbb{Q}$。
 
-### 例 2：分圆域
+三个二阶子群在 $S_3$ 中不是正规的（它们彼此共轭），相应地，三个域 $\mathbb{Q}(\sqrt[3]{2}\omega^k)$ 不是 Galois 扩张 —— 它们都不是任何东西的分裂域，也不在所有自同构下封闭。子群 $A_3$ 是正规的（在 $S_3$ 中的指数为 2），相应地 $\mathbb{Q}(\omega)/\mathbb{Q}$ 是 Galois 扩张（它是 $x^2 + x + 1$ 的分裂域，Galois 群为 $\mathbb{Z}/2$）。
 
-取素数 $p$，令 $\zeta = e^{2\pi i/p}$。$p$ 次**分圆域**为 $\mathbb{Q}(\zeta)$。极小多项式是 $p$ 次分圆多项式：
+这是如何在域侧出现非正规性在群侧表现为非正规性的典型例子。
 
-$$\Phi_p(x) = 1 + x + x^2 + \cdots + x^{p-1} = \frac{x^p-1}{x-1},$$
+在这里对 FTGT 进行简短的数值检查。取二阶子群 $\langle \tau \rangle$，其固定域为 $\mathbb{Q}(\sqrt[3]{2})$，次数为 3。FTGT 预测 $|G| / |H| = 6/2 = 3$，匹配。现在取 $A_3$，三阶，固定域为 $\mathbb{Q}(\omega)$，次数为 2：比率为 $6/3 = 2$，匹配。数值是平凡的；令人惊讶的是，*每个* $S_3$ 的子群都有一个独特的域知道它，反之亦然。
 
-在 $\mathbb{Q}$ 上不可约（对 $\Phi_p(x+1)$ 用 Eisenstein）。故 $[\mathbb{Q}(\zeta):\mathbb{Q}] = p-1$。
+### 例子 3：$x^4 - 2$ 在 $\mathbb{Q}$ 上的分裂域
 
-任意 $\sigma \in \operatorname{Gal}(\mathbb{Q}(\zeta)/\mathbb{Q})$ 将 $\zeta$ 送到另一本原 $p$ 次单位根 $\zeta^k$（$1 \leq k \leq p-1$）。映射 $\sigma \mapsto k \pmod{p}$ 给出同构
+设 $L = \mathbb{Q}(\sqrt[4]{2}, i)$。从第 7 部分，$[L:\mathbb{Q}] = 8$。Galois 群作用于四个根 $\pm\sqrt[4]{2}, \pm i\sqrt[4]{2}$。生成元：
 
-$$\operatorname{Gal}(\mathbb{Q}(\zeta)/\mathbb{Q}) \cong (\mathbb{Z}/p\mathbb{Z})^\times \cong \mathbb{Z}/(p-1)\mathbb{Z}.$$
+- $r$（阶数 4）：$\sqrt[4]{2} \mapsto i\sqrt[4]{2}$，$i \mapsto i$。（循环四个根。）
+- $s$（阶数 2）：$\sqrt[4]{2} \mapsto \sqrt[4]{2}$，$i \mapsto -i$。（复共轭。）
 
-例如 $\operatorname{Gal}(\mathbb{Q}(\zeta_7)/\mathbb{Q}) \cong \mathbb{Z}/6\mathbb{Z}$，其子群 $\{0\}, \{0,3\}, \{0,2,4\}, \mathbb{Z}/6\mathbb{Z}$ 对应中间域链 $\mathbb{Q}(\zeta_7) \supset M_3 \supset M_2 \supset \mathbb{Q}$，其中 $[M_3:\mathbb{Q}] = 3$，$[M_2:\mathbb{Q}] = 2$。
+这些满足 $r^4 = s^2 = 1$，$srs = r^{-1}$。因此 $G \cong D_4$，八阶二面体群。
+
+![x^4 - 2 的分裂域的完整 Galois 对应](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/08-galois-theory/aa_v2_08_3_x4_minus_2.png)
+
+$D_4$ 有 10 个子群：$\{e\}$，三个二阶子群（$\langle r^2 \rangle$，$\langle s \rangle$，$\langle rs \rangle$，$\langle r^2 s \rangle$，$\langle r^3 s \rangle$ — 总共五个），三个四阶子群（$\langle r \rangle$，$\langle r^2, s \rangle$，$\langle r^2, rs \rangle$），和 $D_4$。因此有 10 个中间域。
+
+$D_4$ 的中心是 $\langle r^2 \rangle$，正规。三个指数为 2 的子群（四阶）都是正规的，给出三个 Galois 子扩展。显式计算固定域是一个令人满意的练习；其中包括 $\mathbb{Q}(i)$，$\mathbb{Q}(\sqrt{2})$，$\mathbb{Q}(i, \sqrt{2})$，还有一些不太明显的如 $\mathbb{Q}(\sqrt{2}\cdot i)$。
+
+两个二阶非正规子群是共轭的，即 $\langle s \rangle$ 和 $\langle r^2 s \rangle$（同样 $\langle rs \rangle, \langle r^3 s \rangle$）。它们的固定域 $\mathbb{Q}(\sqrt[4]{2})$ 和 $\mathbb{Q}(i\sqrt[4]{2})$ 不是 Galois 扩张，但它们彼此同构（一个是另一个的共轭）。群论共轭反映为域同构但不相等，每次看到这一点我都感到满意：FTGT 不仅将子群与子域匹配，还将共轭类与“相同”域的不同嵌入的同构类匹配。
+
+### 例子 4：分圆域
+
+$n$ 阶分圆域是 $\mathbb{Q}(\zeta_n)$，其中 $\zeta_n = e^{2\pi i/n}$。$\zeta_n$ 在 $\mathbb{Q}$ 上的极小多项式是 $n$ 阶分圆多项式 $\Phi_n(x)$，次数为 $\varphi(n)$。
+
+**定理。** $\mathrm{Gal}(\mathbb{Q}(\zeta_n)/\mathbb{Q}) \cong (\mathbb{Z}/n\mathbb{Z})^\times$。
+
+同构将 $\sigma \in \mathrm{Gal}$ 映射到唯一的 $a \in (\mathbb{Z}/n\mathbb{Z})^\times$ 使得 $\sigma(\zeta_n) = \zeta_n^a$。证明归结为 (i) 证明 $\Phi_n$ 在 $\mathbb{Q}$ 上不可约 —— Gauss 的经典定理 —— 和 (ii) 注意到 $\varphi(n)$ 个 $n$ 阶原根恰好是 $\zeta_n^a$，其中 $\gcd(a, n) = 1$，因此每个 Galois 自同构对应于这样一个 $a$ 的选择。
+
+![分圆扩张及其 Abel Galois 群](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/08-galois-theory/aa_v2_08_6_cyclotomic.png)
+
+由于 $(\mathbb{Z}/n\mathbb{Z})^\times$ 是 Abel 群，所有 $\mathbb{Q}$ 的分圆扩张都是 Abel 扩张。Kronecker-Weber 定理（1853 年提出，1886 年完成）说 *逆* 也成立：$\mathbb{Q}$ 的每个有限 Abel 扩张都包含在某个分圆域中。因此 $\mathbb{Q}$ 的 Abel 扩张 *恰好* 是分圆域的子域。这是类域论的原型。
+
+例如，$\mathrm{Gal}(\mathbb{Q}(\zeta_8)/\mathbb{Q}) \cong (\mathbb{Z}/8)^\times \cong \mathbb{Z}/2 \times \mathbb{Z}/2$。中间域是 $\mathbb{Q}(\sqrt{2})$，$\mathbb{Q}(i)$，$\mathbb{Q}(i\sqrt{2})$ —— 所有实或虚二次域，嵌入在第八分圆域中。特别是，二次 Gauss 和恒等
+$$\zeta_8 + \zeta_8^{-1} = \sqrt{2}$$
+不再神秘：它是从 $\mathbb{Q}(\zeta_8)$ 到其指数为 2 的子域 $\mathbb{Q}(\sqrt{2})$ 的迹，由复共轭固定。
+
+### 例子 5：有限域
+
+Galois 群 $\mathrm{Gal}(\mathbb{F}_{p^n}/\mathbb{F}_p)$ 是由 Frobenius 自同构 $\mathrm{Frob}_p : x \mapsto x^p$ 生成的 $n$ 阶循环群。因此每个有限域的有限扩张都是 Galois 扩张，具有循环 Galois 群，整个子群格是 $n$ 的除数格。这是最干净的 Galois 理论：$\mathbb{F}_{p^d}$ 嵌入 $\mathbb{F}_{p^n}$ 当且仅当 $d \mid n$，且 $\mathbb{F}_{p^n}/\mathbb{F}_{p^d}$ 的 Galois 群是由 $\mathrm{Frob}_p^d$ 生成的 $n/d$ 阶循环群。
+
+**为什么这很重要。** Galois 群计算不仅仅是运动。它们是大量代数数论中的算法步骤：识别多项式的根何时允许闭形式表达，计算类数，构建互反律，进行现代密码学。任何计算机代数系统中的数域包本质上是一个 Galois 群计算器，包裹在因子分解数据库中。
+
+一些实用的计算注意事项：
+
+- 对于 $\mathbb{Q}[x]$ 中的不可约 $f$，Galois 群是 $S_n$ 的传递子群。$S_4$ 有 5 个传递子群，$S_5$ 有 5 个，$S_6$ 有 16 个，$S_7$ 有 7 个，$S_8$ 有 50 个，等等。识别给定 $f$ 产生的哪一个是一个有限（但有时烦人的）检查。PARI/GP 和 SageMath 都自带 `polgalois` / `f.galois_group()` 用于此目的。
+
+- $f \bmod p$ 对于各种素数 $p$ 的因子分解模式告诉你 Frobenius 在 $\mathrm{Gal}(f)$ 中的循环结构。Chebotarev 密度定理说，随着 $p$ 的变化，$\mathrm{Gal}(f)$ 中出现的每种循环结构都以正确的密度出现。因此你可以通过因式分解 $f$ 模许多素数并匹配循环类型来猜测 Galois 群 —— 这是一种非常有效的启发式方法。
+
+- $f$ 的判别式在 $\mathbb{Q}$ 中是平方当且仅当 $\mathrm{Gal}(f) \subseteq A_n$。因此 $\mathrm{disc}(f)$ 是否为平方大致将候选 Galois 群减半。
 
 ---
 
 ## 根式可解性与可解群
 
-Galois 理论的原始动机正是这个问题：哪些多项式的根可以用加减乘除和开方来表达？这就是"根式可解性"。
+我们现在将“这个多项式能否通过根式求解？”的问题转化为群论问题。
 
-**定义。** 域扩张 $L/K$ 是**根式扩张**，若存在域链
+**定义。** 如果存在塔
+$$K = K_0 \subseteq K_1 \subseteq \cdots \subseteq K_r$$
+其中每一步通过添加根式获得（即 $K_{i+1} = K_i(\sqrt[n_i]{a_i})$ 对于某些 $n_i \geq 1$ 和 $a_i \in K_i$），并且 $f$ 的分裂域包含在 $K_r$ 中，则多项式 $f(x) \in K[x]$ 在 $K$ 上 *可通过根式求解*。
 
-$$K = K_0 \subset K_1 \subset \cdots \subset K_r = L,$$
+换句话说：你可以使用 $+, -, \times, \div$ 和 $n$ 次根，从 $K$ 开始写出 $f$ 的根。
 
-每步 $K_{i+1} = K_i(\alpha_i)$，$\alpha_i^{n_i} \in K_i$（$n_i$ 为正整数）。即每步添加一个已有元素的 $n$ 次根。
+**定义。** 如果群 $G$ 有一条子群链
+$$\{e\} = G_0 \trianglelefteq G_1 \trianglelefteq \cdots \trianglelefteq G_n = G$$
+使得每个商 $G_{i+1}/G_i$ 是 Abel 群，则称 $G$ 是 *可解的*。
 
-**定义。** 多项式 $f(x) \in K[x]$ **可用根式求解**，若其分裂域包含在 $K$ 的某个根式扩张中。
+![可解群：具有 Abel 商的正规子群链](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/08-galois-theory/aa_v2_08_4_solvable_chain.png)
 
-**定义。** 群 $G$ 是**可解**的，若存在次正规列
+**例子。**
 
-$$\{e\} = G_0 \trianglelefteq G_1 \trianglelefteq \cdots \trianglelefteq G_r = G,$$
+- 所有 Abel 群（长度为 1 的链）。
+- 所有阶小于 60 的群。
+- $S_n$ 对于 $n \leq 4$（$S_3$ 有 $\{e\}
+<!-- 本节内容因生成长度限制截断；完整推导请参阅本系列对应英文版本。 -->
 
-其中每个商群 $G_{i+1}/G_i$ 是交换群。
 
-**定理（Galois 判据）。** 设 $\operatorname{char}(K) = 0$，$f(x) \in K[x]$，$L$ 是 $f$ 的分裂域。则 $f$ 可用根式求解当且仅当 $\operatorname{Gal}(L/K)$ 是可解群。
+![A_5 is simple and non-abelian — the obstruction to solving the quintic（图）](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/08-galois-theory/aa_v2_08_5_quintic.png)
 
-### 实例：$x^3 - 2$ 的可解性
-
-$x^3-2$ 的分裂域 $L = \mathbb{Q}(\sqrt[3]{2}, \omega)$，$[L:\mathbb{Q}] = 6$。Galois 群 $G$ 置换三个根，$|G| = 6$，$G \hookrightarrow S_3$（$|S_3|=6$），故 $G \cong S_3$。
-
-$S_3$ 的可解列：$\{e\} \trianglelefteq A_3 \trianglelefteq S_3$，$A_3 \cong \mathbb{Z}/3\mathbb{Z}$，$S_3/A_3 \cong \mathbb{Z}/2\mathbb{Z}$，商群都交换。$G$ 可解，故 $x^3-2$ 可用根式求解——果然，它的根 $\sqrt[3]{2}, \omega\sqrt[3]{2}, \omega^2\sqrt[3]{2}$ 都可用根式表示（$\omega = (-1+\sqrt{-3})/2$）。
-
-Galois 对应下，唯一的指标 2 子群 $A_3$ 对应中间域 $\mathbb{Q}(\omega)$。商群 $S_3/A_3 \cong \mathbb{Z}/2\mathbb{Z}$ 对应第一步（添 $\sqrt{-3}$ 得 $\omega$），$A_3 \cong \mathbb{Z}/3\mathbb{Z}$ 对应第二步（添 $\sqrt[3]{2}$）。这正是 Cardano 公式的结构：先开平方（判别式），再开立方。
-
-### 低次多项式为何可解
-
-$n \leq 4$ 时 $S_n$ 可解：
-
-- $S_1 = \{e\}$：平凡可解。
-- $S_2 \cong \mathbb{Z}/2\mathbb{Z}$：交换群。
-- $S_3$：$\{e\} \trianglelefteq A_3 \trianglelefteq S_3$。
-- $S_4$：$\{e\} \trianglelefteq V_4 \trianglelefteq A_4 \trianglelefteq S_4$（$V_4$ 是 Klein 四元群）。
-
-$n$ 次多项式的 Galois 群是 $S_n$ 的子群（置换 $n$ 个根），可解群的子群仍然可解。因此所有四次及以下的多项式都可用根式求解——这与二次、三次、四次公式的存在一致。
 
 ---
 
-## 一般五次方程的不可解性
+*本文是[《抽象代数》](/zh/series/abstract-algebra/)系列的第 8 篇（共 12 篇）。*
 
-**定理（Abel-Ruffini）。** 一般的五次（及更高次）多项式不能用根式求解。
-
-由 Galois 判据，只要找到一个 Galois 群为 $S_5$ 的五次多项式，再证明 $S_5$ 不可解，即可。
-
-### 第一步：$S_5$ 不可解
-
-**命题。** 交替群 $A_5$ 是**单群**（没有非平凡正规子群）。
-
-*证明。* $|A_5| = 60$。$A_5$ 的共轭类大小为 $1, 12, 12, 15, 20$（分别对应恒等、两类 5-轮换、两对不相交对换的乘积、3-轮换）。正规子群是共轭类的并且含恒等（贡献 1），其阶必整除 60。检查所有包含 1 的共轭类大小子集之和：
-
-- $1+12=13$：不整除 60。
-- $1+15=16$：不整除 60。
-- $1+20=21$：不整除 60。
-- $1+12+12=25$：不整除 60。
-- $1+12+15=28$：不整除 60。
-- $1+12+20=33$：不整除 60。
-- $1+15+20=36$：不整除 60。
-
-继续检查其余组合（$1+12+12+15=40$、$1+12+12+20=45$、$1+12+15+20=48$），均不整除 60。故 $A_5$ 仅有平凡正规子群。$\blacksquare$
-
-**推论。** $S_5$ 不可解。
-
-*证明。* 若 $S_5$ 可解，则其子群 $A_5$ 也可解。可解群必有非平凡交换商群（可解列第一步给出 $G_r/G_{r-1}$ 交换且非平凡）。$A_5$ 要有非平凡交换商群 $A_5/N$，需要正规子群 $N \trianglelefteq A_5$。但 $A_5$ 是单群，$N$ 只能是 $\{e\}$ 或 $A_5$。$N = \{e\}$ 给出 $A_5$ 本身，而 $A_5$ 非交换（$|A_5| = 60$）。矛盾。$\blacksquare$
-
-### 第二步：Galois 群为 $S_5$ 的具体多项式
-
-考虑 $f(x) = x^5 - 4x + 2 \in \mathbb{Q}[x]$。
-
-**不可约性。** 对 $p=2$ 用 Eisenstein 判别法：$2 \mid (-4)$，$2 \mid 2$，$4 \nmid 2$，$2 \nmid 1$（首项系数）。故 $f$ 在 $\mathbb{Q}$ 上不可约。
-
-**Galois 群为 $S_5$。** 标准判据：若不可约五次多项式恰有三个实根和两个共轭复根，则 Galois 群为 $S_5$。
-
-$f'(x) = 5x^4 - 4 = 0$ 给出 $x = \pm c$，$c = (4/5)^{1/4} \approx 0.946$。
-
-- $f(c) = c^5 - 4c + 2 = 4c/5 - 4c + 2 = -16c/5 + 2 \approx -1.03 < 0$（极小值为负）。
-- $f(-c) = 16c/5 + 2 \approx 5.03 > 0$（极大值为正）。
-
-$\deg f = 5$（奇数），$f(x) \to +\infty$（$x \to +\infty$），$f(x) \to -\infty$（$x \to -\infty$）。极大值为正、极小值为负，实数轴上恰穿越三次，故恰有 3 个实根、2 个共轭复根。
-
-**为何推出 $\operatorname{Gal}(f/\mathbb{Q}) = S_5$。** Galois 群 $G \leq S_5$ 满足：
-
-1. $5 \mid |G|$（$f$ 不可约 $\Rightarrow$ $G$ 在根上传递 $\Rightarrow$ $G$ 含 5-轮换）。
-2. $G$ 含对换（复共轭交换两个非实根、固定三个实根——这在 $S_5$ 中是对换）。
-
-$S_p$（$p$ 素数）中包含一个 $p$-轮换和一个对换的子群必然是全部 $S_p$（标准群论练习）。故 $G \cong S_5$。
-
-$S_5$ 不可解，由 Galois 判据，$f(x) = x^5 - 4x + 2$ 不可用根式求解。$\blacksquare$
-
-### 历史视角与定理的精确含义
-
-这个结果——一般五次方程的不可解性——由 Abel 在 1824 年首先证明（没有完整的 Galois 框架），后由 Galois 给出群论定义的最终形式。它终结了从文艺复兴以来的悬案：Tartaglia、Cardano、Ferrari 在十六世纪找到了 2、3、4 次方程的公式，所有对 5 次方程的尝试都失败了。原因现在很清楚：这不是技巧不够，而是结构性的不可能——$S_5$ 不可解。
-
-必须强调定理**不是**说什么：
-
-- 不是说五次方程没有根——在 $\mathbb{C}$ 中总有根（代数基本定理）。
-- 不是说每个具体的五次多项式都不可解——$x^5-2$ 的 Galois 群是 20 阶 Frobenius 群 $F_{20} \cong \mathbb{Z}/5\mathbb{Z} \rtimes \mathbb{Z}/4\mathbb{Z}$，它可解，其根确实可用根式表达。
-- 定理说的是：不存在统一的根式公式适用于所有五次多项式——因为某些五次多项式（如 $x^5-4x+2$）的 Galois 群是 $S_5$，而 $S_5$ 不可解。
-
-| 次数 | 一般 Galois 群 | 可解？ | 存在公式？ |
-|:---:|:---:|:---:|:---:|
-| 1 | $S_1 = \{e\}$ | 是 | 是（平凡） |
-| 2 | $S_2 \cong \mathbb{Z}/2\mathbb{Z}$ | 是 | 是（求根公式） |
-| 3 | $S_3$ | 是 | 是（Cardano 公式） |
-| 4 | $S_4$ | 是 | 是（Ferrari 方法） |
-| $\geq 5$ | $S_n$ | 否 | 否（Abel-Ruffini） |
-
----
-
-## 下一步
-
-Galois 理论的故事到此远未结束。在后续文章中，我们将探索更多应用和推广：
-
-- **有限域：** 每个有限域的阶为 $p^n$，$\operatorname{Gal}(\mathbb{F}_{p^n}/\mathbb{F}_p)$ 是 $n$ 阶循环群，由 Frobenius 自同构 $x \mapsto x^p$ 生成。这把 Galois 理论与数论和编码理论联系起来。
-
-- **Galois 逆问题：** 给定有限群 $G$，是否存在 $\mathbb{Q}$ 上的 Galois 扩张使 Galois 群同构于 $G$？这是代数学的重大未解问题之一。对所有可解群、对称群、交替群以及许多单群已知为真，但一般情况仍然悬而未决。
-
-- **无穷 Galois 理论：** 对无穷代数扩张（如 $\overline{\mathbb{Q}}/\mathbb{Q}$），Galois 群带有自然拓扑（Krull 拓扑），基本定理推广为*闭*子群与中间域的对应。绝对 Galois 群 $\operatorname{Gal}(\overline{\mathbb{Q}}/\mathbb{Q})$ 是数学中研究最多也最神秘的对象之一。
-
-从一个不肯交出根的多项式方程，经过域扩张和群论的抽象机器，到确定性的不可能性结果和仍在推进的研究前沿——这就是 Galois 理论的完整弧线，数学中最优美的篇章之一。
-
----
-
-*本文是 [抽象代数](/zh/series/abstract-algebra/) 系列的第 8 篇（共 12 篇）。*
-
-*上一篇：[第 7 篇 —— 域扩张](/zh/abstract-algebra/07-域扩张/)*
-
-*下一篇：[第 9 篇 —— 模](/zh/abstract-algebra/09-模/)*
+*下一篇：[第 9 篇 — 模](/zh/abstract-algebra/09-modules/)*

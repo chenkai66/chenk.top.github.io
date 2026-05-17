@@ -17,245 +17,290 @@ series_total: 12
 translationKey: "functional-analysis-6"
 ---
 
-Every branch of mathematics studies not just objects but the maps between them. In linear algebra, the objects are vector spaces and the maps are linear transformations. In functional analysis, the objects are Banach spaces, and the natural maps — **bounded linear operators** — carry the full force of infinite-dimensional geometry.
+# Bounded Linear Operators and the Big Theorems
 
-What makes the theory of operators on Banach spaces remarkable is the degree to which **completeness alone** constrains the possible behavior of linear maps. Three theorems — the Uniform Boundedness Principle, the Open Mapping Theorem, and the Closed Graph Theorem — all flow from the Baire Category Theorem and together form the backbone of linear functional analysis. Without these results, the theory would be far less rigid, and many naturally defined operators would need laborious case-by-case analysis to show continuity.
+## Why This Article Is Where the Theory Catches Fire
 
-This article proves all three, works through their most important applications, and exhibits the counterexamples showing why completeness is indispensable.
+For five articles I have been building scaffolding: metric and normed spaces, Hilbert spaces, dual spaces, weak topologies. None of those individually felt very impressive — I am, after all, just doing topology and linear algebra in slightly more general settings than usual. The point at which functional analysis genuinely *delivers* is right here, in the three great theorems of Banach space operator theory: the **Uniform Boundedness Principle**, the **Open Mapping Theorem**, and the **Closed Graph Theorem**. Each of these takes a piece of "pointwise" or "set-theoretic" data — pointwise boundedness, surjectivity, closedness of the graph — and concludes a global structural property — uniform boundedness, openness, continuity — that has no analog in finite dimensions because finite-dimensional linear algebra makes them all true automatically.
 
----
+The proofs all share a common engine: the Baire category theorem applied to the Banach space, exploiting completeness in the same way each time. Once you have one of the three theorems, the other two follow with relatively short additional arguments. So this whole article is really about one idea, refracted through three corollaries.
 
-## The Space $B(X,Y)$ and the Operator Norm
+## Bounded Linear Operators: A Recap
 
-**Definition.** Let $X$ and $Y$ be normed spaces. A linear map $T: X \to Y$ is **bounded** if there exists $C \geq 0$ such that $\|Tx\|_Y \leq C\|x\|_X$ for all $x \in X$. The **operator norm** is
+A linear map $T: X \to Y$ between normed spaces is **bounded** (equivalently, continuous) if there exists $C \geq 0$ with $\|T x\|_Y \leq C \|x\|_X$ for all $x \in X$. The smallest such $C$ is the operator norm
+$$\|T\| = \sup_{\|x\|_X \leq 1} \|T x\|_Y = \sup_{x \neq 0} \|T x\|_Y / \|x\|_X.$$
 
-$$\|T\| = \sup_{\|x\| \leq 1} \|Tx\| = \sup_{\|x\| = 1} \|Tx\| = \sup_{x \neq 0} \frac{\|Tx\|}{\|x\|}.$$
+![Operator norm as the supremum of ||Tx|| over the unit ball](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/06-bounded-operators/fa_v2_06_1_op_norm.png)
 
-![Bounded vs unbounded operators on normed spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/06-bounded-operators/fa_fig3_operators.png)
+The space $B(X, Y)$ of bounded linear operators is a normed space; if $Y$ is Banach, then $B(X, Y)$ is Banach. (Cauchy sequences of operators converge pointwise to a limit; uniform Cauchy-ness propagates.) When $Y = \mathbb{C}$, $B(X, \mathbb{C}) = X^*$, recovering the dual space.
 
+For composition: if $T \in B(X, Y)$ and $S \in B(Y, Z)$, then $S T \in B(X, Z)$ with $\|S T\| \leq \|S\| \|T\|$. So $B(X)$ is a Banach algebra (Banach space + algebra structure compatible with the norm) when $X$ is Banach.
 
-The space of all bounded linear operators from $X$ to $Y$ is denoted $B(X,Y)$ (or $\mathcal{L}(X,Y)$). When $Y = \mathbb{R}$ (or $\mathbb{C}$), this is just the dual space $X^*$.
+### A catalog of bounded operators
 
-**Proposition.** For a linear map $T: X \to Y$, the following are equivalent:
-1. $T$ is bounded.
-2. $T$ is continuous.
-3. $T$ is continuous at a single point.
+A few examples I will refer to throughout the article:
 
-**Proof.** $(1 \Rightarrow 2)$: $\|Tx - Ty\| = \|T(x-y)\| \leq \|T\| \cdot \|x-y\|$, so $T$ is Lipschitz. $(2 \Rightarrow 3)$ is trivial. $(3 \Rightarrow 1)$: If $T$ is continuous at $0$, then $T^{-1}(B_Y(0,1))$ contains some ball $B_X(0, \delta)$. For any $x$ with $\|x\| = 1$, the vector $\delta x/2$ lies in this ball, so $\|T(\delta x/2)\| < 1$, giving $\|Tx\| < 2/\delta$. Thus $\|T\| \leq 2/\delta$. $\square$
+- *Multiplication operator.* On $L^2[0,1]$, $M_a f(t) = a(t) f(t)$ for $a \in L^\infty$. Bounded with $\|M_a\| = \|a\|_\infty$.
+- *Shift operator.* On $\ell^2$, $S(x_1, x_2, \ldots) = (0, x_1, x_2, \ldots)$. Bounded with $\|S\| = 1$.
+- *Integral operator.* On $L^2[0,1]$, $K f(t) = \int_0^1 k(t, s) f(s)\,ds$ with $k \in L^2([0,1]^2)$. Bounded with $\|K\| \leq \|k\|_{L^2([0,1]^2)}$.
+- *Differentiation.* On suitable subspaces, $D f = f'$ — bounded if domain has the $C^1$-norm, *unbounded* if domain has the sup-norm.
 
-**Theorem.** If $Y$ is a Banach space, then $B(X,Y)$ is a Banach space.
+![Catalog of bounded operators: shifts, multiplications, integrals](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/06-bounded-operators/fa_v2_06_6_examples.png)
 
-The proof is standard: if $(T_n)$ is Cauchy in operator norm, then $(T_n x)$ is Cauchy in $Y$ for each $x$; define $Tx = \lim T_n x$; verify linearity and boundedness; show $\|T_n - T\| \to 0$.
+## The Three Big Theorems: Statements
 
-**Remark on the role of completeness of $Y$.** This result requires $Y$ to be complete. If $Y$ is merely a normed space, $B(X, Y)$ may not be complete. This is one reason why working with Banach spaces (rather than mere normed spaces) is essential: it ensures that the operator space itself is well-behaved.
+Let me state all three before proving any. They come as a package.
 
-**The algebra structure.** When $X = Y$, the space $B(X) = B(X, X)$ is not just a Banach space but a **Banach algebra**: it is closed under composition, $\|ST\| \leq \|S\|\|T\|$ (submultiplicativity), and the identity operator $I$ serves as the multiplicative identity with $\|I\| = 1$. The invertible operators form an open subset of $B(X)$: if $\|I - T\| < 1$, then $T$ is invertible with $T^{-1} = \sum_{n=0}^\infty (I - T)^n$ (the **Neumann series**). This algebraic structure will become central when we study spectral theory in Article 8.
+**(UBP) Uniform Boundedness Principle.** Let $X$ be a Banach space, $Y$ any normed space, and $\mathcal{F} \subseteq B(X, Y)$ a family of bounded operators. If $\sup_{T \in \mathcal{F}} \|T x\| < \infty$ for every $x \in X$ (pointwise boundedness), then $\sup_{T \in \mathcal{F}} \|T\| < \infty$ (uniform boundedness).
 
-**Example 1 (Multiplication operator).** Let $g \in L^\infty([0,1])$ and define $M_g: L^2([0,1]) \to L^2([0,1])$ by $M_g f = gf$. Then
+**(OMT) Open Mapping Theorem.** Let $X, Y$ be Banach spaces and $T: X \to Y$ a bounded linear *surjection*. Then $T$ is an *open map*: $T(U)$ is open in $Y$ for every open $U \subseteq X$.
 
-$$\|M_g f\|_2 = \left(\int |g|^2 |f|^2\right)^{1/2} \leq \|g\|_\infty \|f\|_2,$$
+**(CGT) Closed Graph Theorem.** Let $X, Y$ be Banach spaces and $T: X \to Y$ a linear map (not assumed bounded a priori). If the graph $\{(x, T x) : x \in X\}$ is closed in $X \times Y$, then $T$ is bounded.
 
-so $\|M_g\| \leq \|g\|_\infty$. In fact $\|M_g\| = \|g\|_\infty$ (by choosing $f$ supported where $|g|$ is close to its essential supremum).
+![The three big theorems: uniform boundedness, open mapping, closed graph](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/06-bounded-operators/fa_v2_06_2_three_thms.png)
 
-**Example 2 (Integral operator).** Let $K \in L^2([0,1]^2)$ and define $T: L^2([0,1]) \to L^2([0,1])$ by
+The three are intimately related; once we have UBP, OMT and CGT will fall out with relatively short additional work. All three rely on completeness of $X$ (UBP also requires completeness of $X$; OMT/CGT both require $X$ and $Y$ Banach).
 
-$$(Tf)(x) = \int_0^1 K(x,y) f(y) \, dy.$$
+## Proving the Uniform Boundedness Principle
 
-By the Cauchy-Schwarz inequality,
+The proof is so clean it should be done in detail.
 
-$$|Tf(x)|^2 \leq \int_0^1 |K(x,y)|^2 \, dy \cdot \int_0^1 |f(y)|^2 \, dy,$$
+*Proof of UBP.* For each $n \in \mathbb{N}$, define $F_n = \{ x \in X : \|T x\| \leq n \text{ for all } T \in \mathcal{F} \}$. Each $F_n$ is closed: it is the intersection over $T \in \mathcal{F}$ of the closed sets $\{ x : \|T x\| \leq n \}$, and an arbitrary intersection of closed sets is closed.
 
-so $\|Tf\|_2^2 \leq \|K\|_{L^2}^2 \|f\|_2^2$. Hence $T$ is bounded with $\|T\| \leq \|K\|_{L^2([0,1]^2)}$.
+By pointwise boundedness, every $x \in X$ lies in some $F_n$ (take $n \geq \sup_T \|T x\|$). So $X = \bigcup_n F_n$. Since $X$ is a complete metric space, by Baire's theorem at least one $F_{n_0}$ has non-empty interior — there is some closed ball $\overline{B(x_0, r)} \subseteq F_{n_0}$.
 
-**Example 3 (Shift operator).** The right shift $S: \ell^2 \to \ell^2$ defined by $S(x_1, x_2, \ldots) = (0, x_1, x_2, \ldots)$ is a bounded operator with $\|S\| = 1$ (it is an isometry: $\|Sx\| = \|x\|$). Its adjoint (left shift) $S^*: \ell^2 \to \ell^2$ defined by $S^*(x_1, x_2, \ldots) = (x_2, x_3, \ldots)$ also has norm 1 but is not an isometry ($S^* e_1 = 0$). This pair will be important in spectral theory (Article 8).
+That means $\|T x\| \leq n_0$ for every $T \in \mathcal{F}$ and every $x \in \overline{B(x_0, r)}$. By translation: for every $z$ with $\|z\| \leq r$, $\|T z\| \leq \|T(x_0 + z)\| + \|T x_0\| \leq 2 n_0$. So $\|T\| \leq 2 n_0 / r$ for every $T \in \mathcal{F}$, completing the proof. $\square$
 
----
+![Uniform boundedness principle: pointwise bounded implies uniformly bounded](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/06-bounded-operators/fa_v2_06_3_ubp.png)
 
-## The Baire Category Theorem
+### A quick example of UBP at work
 
-Before proving the three big theorems, we need the key topological ingredient.
+Suppose $(\varphi_n)$ is a sequence of bounded linear functionals on a Banach space $X$ with $\varphi_n(x) \to \varphi(x)$ for every $x \in X$, for some functional $\varphi$. Is $\varphi$ bounded? UBP says yes: pointwise convergence of $(\varphi_n(x))$ for every $x$ implies pointwise boundedness, which by UBP implies $\sup_n \|\varphi_n\| < \infty$, and $|\varphi(x)| = \lim |\varphi_n(x)| \leq \sup_n \|\varphi_n\| \cdot \|x\|$. So pointwise limits of bounded operators are bounded, with norm $\leq \liminf \|\varphi_n\|$. Without UBP, one would have to assume the boundedness; with UBP, it is automatic.
 
-**Theorem (Baire Category Theorem).** In a complete metric space, the intersection of countably many dense open sets is dense. Equivalently, a complete metric space cannot be written as a countable union of nowhere dense sets.
+### Why this matters
 
-A set is **nowhere dense** if its closure has empty interior. A set that is a countable union of nowhere dense sets is called **meager** (or of the first category). The Baire Category Theorem says a complete metric space is **non-meager** — it cannot be covered by countably many "thin" sets.
+UBP is what lets me make pointwise arguments and conclude global facts. Pointwise boundedness is a far easier condition to verify — just check that for each individual $x$, the family is bounded — than uniform boundedness, which would require a single bound holding over all $x, T$ simultaneously. UBP says they are equivalent in Banach space, and the trade is worth a lot. Examples in operator theory: any pointwise-converging sequence of bounded operators has a bounded operator as its limit; the Fourier coefficients of an $L^2$ function form a bounded family of functionals, etc.
 
-**Proof sketch.** Let $U_1, U_2, \ldots$ be dense open sets and $V$ a nonempty open set. We must show $V \cap \bigcap_n U_n \neq \emptyset$. Since $U_1$ is dense, $V \cap U_1$ is nonempty and open; choose a closed ball $\overline{B}(x_1, r_1) \subset V \cap U_1$ with $r_1 < 1$. Since $U_2$ is dense, the open ball $B(x_1, r_1) \cap U_2$ is nonempty; choose $\overline{B}(x_2, r_2) \subset B(x_1, r_1) \cap U_2$ with $r_2 < 1/2$. Continue inductively: $\overline{B}(x_{n+1}, r_{n+1}) \subset B(x_n, r_n) \cap U_{n+1}$, $r_n < 1/n$. The sequence $(x_n)$ is Cauchy (since $x_m \in B(x_n, r_n)$ for $m > n$ and $r_n \to 0$), and the limit $x = \lim x_n$ lies in $V \cap \bigcap_n U_n$. $\square$
+## Proving the Open Mapping Theorem
 
----
+A bit more elaborate, but built on the same Baire argument.
 
-## The Uniform Boundedness Principle (Banach-Steinhaus)
+*Sketch of proof of OMT.* By translation, it suffices to show $T(U)$ contains a ball around $0$ whenever $U$ is an open ball around $0$.
 
-**Theorem (Uniform Boundedness Principle).** Let $X$ be a Banach space, $Y$ a normed space, and $\{T_\alpha\}_{\alpha \in A} \subset B(X,Y)$ a family of bounded linear operators. If
+Step 1: Since $T$ is surjective, $Y = \bigcup_n T(\overline{B(0, n)})$. By Baire, some $\overline{T(\overline{B(0, n_0)})}$ has non-empty interior, so contains a ball $\overline{B(y_0, r_0)}$. By symmetry, $-y_0 \in \overline{T(\overline{B(0, n_0)})}$ too, so $0$ is in the interior of $\overline{T(\overline{B(0, 2n_0)})}$, i.e., there is some $r > 0$ with $\overline{B(0, r)} \subseteq \overline{T(\overline{B(0, 2n_0)})}$. Rescaling, $\overline{B(0, r/(2n_0))} \subseteq \overline{T(\overline{B(0, 1)})}$.
 
-$$\sup_{\alpha \in A} \|T_\alpha x\| < \infty \quad \text{for every } x \in X,$$
+Step 2 (the trickier half — removing the closure). To remove the closure, use a series argument. Given $y$ with $\|y\| < r/(2n_0)$, I want to find $x$ with $T x = y$ and $\|x\| < 1$. By Step 1, there exist $x_1$ with $\|x_1\| < 1/2$ and $\|y - T x_1\| < r/(4 n_0)$. Iterating with rescaled balls, find $x_n$ with $\|x_n\| < 1/2^n$ and $\|y - T(x_1 + \cdots + x_n)\| < r/(2^{n+1} n_0)$. The series $x = \sum x_n$ converges in $X$ (absolutely convergent, $X$ Banach), $\|x\| \leq \sum 1/2^n = 1$, and $T x = y$ by continuity of $T$. $\square$
 
-then
+![Open mapping theorem: surjective bounded operator is open](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/06-bounded-operators/fa_v2_06_4_open_map.png)
 
-$$\sup_{\alpha \in A} \|T_\alpha\| < \infty.$$
+The series argument in Step 2 is where completeness of $X$ comes in — the absolutely convergent series needs to converge.
 
-In other words, a family of operators that is **pointwise bounded** is automatically **uniformly bounded** in operator norm.
+### A corollary: Bounded Inverse Theorem
 
-**Proof.** For each $n \in \mathbb{N}$, define the closed set
+**Theorem.** A bijective bounded linear operator between Banach spaces has a bounded inverse.
 
-$$F_n = \{x \in X : \|T_\alpha x\| \leq n \text{ for all } \alpha \in A\} = \bigcap_{\alpha \in A} T_\alpha^{-1}(\overline{B}_Y(0, n)).$$
+*Proof.* The operator is surjective and injective; OMT says its inverse takes open sets to open sets, which means the inverse is continuous, i.e., bounded. $\square$
 
-By hypothesis, $X = \bigcup_{n=1}^\infty F_n$. Since $X$ is a Banach space (complete metric space), the Baire Category Theorem implies that some $F_N$ has nonempty interior: there exist $x_0 \in X$ and $r > 0$ such that $B(x_0, r) \subset F_N$.
+![Bounded inverse theorem as a consequence of the open mapping theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/06-bounded-operators/fa_v2_06_7_inverse.png)
 
-For any $x$ with $\|x\| \leq 1$, we have $x_0 + rx/2 \in B(x_0, r) \subset F_N$ and $x_0 \in F_N$. Therefore:
+This is genuinely surprising on first encounter. In linear algebra in finite dimensions it is automatic — every bijective linear map has matrix representation, and the inverse matrix gives a bounded inverse. But in infinite dimensions, having a bounded bijective $T$ with a *discontinuous* algebraic inverse $T^{-1}$ is a priori thinkable. OMT rules it out.
 
-$$\|T_\alpha(rx/2)\| = \|T_\alpha(x_0 + rx/2) - T_\alpha(x_0)\| \leq \|T_\alpha(x_0 + rx/2)\| + \|T_\alpha(x_0)\| \leq 2N.$$
+### Numerical example
 
-Hence $\|T_\alpha x\| \leq 4N/r$ for all $\alpha$ and all $\|x\| \leq 1$, giving $\sup_\alpha \|T_\alpha\| \leq 4N/r$. $\square$
+Consider $T: \ell^1 \to \ell^1$ given by $T(x_n) = (x_n / n)$. This is bounded with $\|T\| = 1$ (the $n=1$ component is undamped) and injective. The inverse is $T^{-1}(y_n) = (n y_n)$, which is unbounded — $\|e_n\|_1 = 1$ but $\|T^{-1} e_n\|_1 = n \to \infty$. There is no contradiction with OMT because $T$ is *not surjective*: the range consists of sequences $(x_n)$ with $\sum n |x_n| < \infty$, a strict subspace of $\ell^1$. So the bounded inverse theorem does not apply, and indeed the inverse fails to be bounded.
 
-**Application 1: Convergence of operator sequences.** If $T_n \in B(X,Y)$ with $X$ Banach, and $T_n x \to Tx$ for each $x \in X$, then:
-- $\sup_n \|T_n\| < \infty$ (by UBP).
-- $T$ is bounded with $\|T\| \leq \liminf_n \|T_n\|$.
+The lesson: surjectivity is essential. Without it, OMT and its consequences fail.
 
-This is remarkable: pointwise convergence of operators on a Banach space **automatically** gives a bounded limit.
+### Why this matters
 
-**Application 2: The Condensation of Singularities.** The UBP can be used in "contrapositive mode" to show that pathologies happen **generically**. For example:
+OMT and the bounded inverse theorem are how one extracts continuity from algebraic data. Many problems in analysis come down to "does this PDE/ODE/integral equation have a continuous-data-to-solution map?" OMT often answers yes, given existence and uniqueness of solutions: existence is surjectivity, uniqueness is injectivity, and OMT then provides continuity for free.
 
-*There exists a continuous $2\pi$-periodic function whose Fourier series diverges at $0$.*
+## Proving the Closed Graph Theorem
 
-**Proof sketch.** The $n$-th partial sum of the Fourier series of $f$ at $0$ is given by $S_n(f) = \int_{-\pi}^{\pi} f(t) D_n(t) \, dt$, where $D_n$ is the Dirichlet kernel. This defines a bounded linear functional $S_n: C([-\pi, \pi]) \to \mathbb{R}$, and one can compute $\|S_n\| = \frac{1}{2\pi}\int_{-\pi}^{\pi} |D_n(t)| \, dt \sim \frac{4}{\pi^2} \log n \to \infty$. If $S_n(f)$ converged for every $f$, the UBP would give $\sup_n \|S_n\| < \infty$, a contradiction. So there exists $f$ for which $(S_n(f))$ is unbounded — divergence of the Fourier series. $\square$
+CGT is essentially a reformulation of OMT.
 
-**Application 3: Weakly bounded implies norm bounded.** A subset $A$ of a Banach space $X$ is **weakly bounded** if $\sup_{x \in A} |f(x)| < \infty$ for every $f \in X^*$. By the UBP applied to the family $\{\hat{x}\}_{x \in A} \subset X^{**}$ (viewing elements of $X$ as functionals on $X^*$), we get $\sup_{x \in A} \|x\| < \infty$. So weakly bounded sets are norm bounded.
+*Proof of CGT.* The graph $G = \{(x, Tx) : x \in X\}$ is by hypothesis a closed subspace of $X \times Y$, where $X \times Y$ is a Banach space with norm $\|(x, y)\| = \|x\| + \|y\|$. So $G$ is itself a Banach space. The projection $\pi_X : G \to X$, $(x, Tx) \mapsto x$, is bounded (its norm is $\leq 1$) and bijective. By the bounded inverse theorem, $\pi_X^{-1}: X \to G$ is bounded, i.e., $\|x\| + \|T x\| \leq C \|x\|$ for some constant $C$. Therefore $\|T x\| \leq (C-1) \|x\|$, and $T$ is bounded. $\square$
 
----
+![Closed graph theorem: closed graph plus complete domain implies bounded](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/06-bounded-operators/fa_v2_06_5_closed_graph.png)
 
-## The Open Mapping Theorem
+### Why this matters
 
-**Theorem (Open Mapping Theorem / Banach-Schauder).** Let $X$ and $Y$ be Banach spaces and $T: X \to Y$ a bounded linear **surjection**. Then $T$ is an open map: for every open set $U \subset X$, the image $T(U)$ is open in $Y$.
+CGT is the most useful of the three for practical work. To prove a linear operator is bounded, you would normally need to bound $\|T x\|$ in terms of $\|x\|$, which requires explicit calculation. CGT replaces this with: prove that whenever $x_n \to x$ in $X$ and $T x_n \to y$ in $Y$, then $y = T x$. Often this is much easier — the convergence of $(x_n)$ and $(T x_n)$ is given, and you just need to identify the limit.
 
-**Proof.** It suffices to show that $T(B_X(0,1))$ contains a ball centered at the origin in $Y$.
+A typical use: a differential operator $L$ defined on a dense subspace $\mathcal{D}(L) \subset X$. Often $L$ has a closed extension (its closure as a graph), and CGT then says: if the closed extension is defined on all of $X$, it is bounded. Conversely, if you want to show $L$ is *unbounded*, find a sequence $x_n \to 0$ with $L x_n$ converging to a non-zero limit — the graph is closed but defined only on a proper subspace.
 
-*Step 1: $T(B_X(0,1))$ has nonempty interior.* Since $T$ is surjective, $Y = \bigcup_{n=1}^\infty T(B_X(0, n)) = \bigcup_{n=1}^\infty n \cdot T(B_X(0,1))$. By the Baire Category Theorem, some $n \cdot \overline{T(B_X(0,1))}$ has nonempty interior, so $\overline{T(B_X(0,1))}$ has nonempty interior. By a symmetry argument (the set is symmetric about the origin: if $y \in T(B_X(0,1))$, then $-y = T(-x) \in T(B_X(0,1))$), and convex (if $y_1 = Tx_1$, $y_2 = Tx_2$ with $\|x_i\| < 1$, then $ty_1 + (1-t)y_2 = T(tx_1 + (1-t)x_2)$ with $\|tx_1 + (1-t)x_2\| < 1$), the interior of the closure contains a ball centered at the origin: $B_Y(0, \delta) \subset \overline{T(B_X(0,1))}$ for some $\delta > 0$.
+### Numerical example
 
-*Step 2: From closure to actual image.* We show $B_Y(0, \delta/2) \subset T(B_X(0,1))$. Pick any $y$ with $\|y\| < \delta/2$. Since $y \in \overline{T(B_X(0, 1/2))}$ (by scaling Step 1), there exists $x_1$ with $\|x_1\| < 1/2$ and $\|y - Tx_1\| < \delta/4$.
+Consider $T: C[0,1] \to C[0,1]$ defined by integration: $T f(t) = \int_0^t f(s)\,ds$. This is a bounded operator with $\|T\| \leq 1$. Verifying via CGT: suppose $f_n \to f$ uniformly in $C[0,1]$, and $T f_n \to g$ uniformly. By uniform convergence of $f_n \to f$, the integrals $T f_n(t) = \int_0^t f_n$ converge uniformly to $\int_0^t f = T f(t)$. So $g = T f$, the graph is closed, and CGT gives boundedness — without needing to compute the explicit operator norm bound (though here we can, and it is $1$).
 
-Now $y - Tx_1 \in \overline{T(B_X(0, 1/4))}$, so there exists $x_2$ with $\|x_2\| < 1/4$ and $\|y - Tx_1 - Tx_2\| < \delta/8$.
+## The Spectral Radius Formula (a Bonus)
 
-Continue: at step $n$, find $x_n$ with $\|x_n\| < 2^{-n}$ and $\|y - \sum_{k=1}^n Tx_k\| < \delta \cdot 2^{-(n+1)}$.
+A pleasant consequence of completeness in $B(X)$: the **spectral radius** $r(T) = \lim_n \|T^n\|^{1/n}$ exists for every $T \in B(X)$, and $r(T) = \max\{|\lambda| : \lambda \in \mathrm{spec}(T)\}$ where $\mathrm{spec}(T)$ is the spectrum (Article 8). The existence of the limit uses the submultiplicativity $\|T^{n+m}\| \leq \|T^n\| \|T^m\|$, hence $\log \|T^n\|$ is subadditive, so $\log \|T^n\| / n$ converges by Fekete's lemma.
 
-The series $x = \sum_{n=1}^\infty x_n$ converges absolutely in $X$ (since $\sum \|x_n\| < 1$) and $\|x\| < 1$. By continuity of $T$: $Tx = \sum Tx_n = y$. Hence $y \in T(B_X(0,1))$. $\square$
+The formula has a clean interpretation: if $|\lambda| > r(T)$, then $T - \lambda I$ is invertible (its inverse is the convergent Neumann series $-\sum_n \lambda^{-n-1} T^n$); and if $|\lambda| < r(T)$, the series fails to converge and $\lambda$ is in the spectrum. The boundary case $|\lambda| = r(T)$ requires more careful analysis (Article 8).
 
-**Corollary (Bounded Inverse Theorem / Banach's Isomorphism Theorem).** If $T: X \to Y$ is a bounded linear bijection between Banach spaces, then $T^{-1}$ is bounded.
+For the shift operator $S$ on $\ell^2$, $\|S^n\| = 1$ for every $n$ (the shift is an isometry), so $r(S) = 1$. The spectrum of $S$ turns out to be the closed unit disk in $\mathbb{C}$ (Article 8 will work this out), with the *boundary* full of approximate eigenvalues but no actual eigenvalues. So the spectrum can be much richer than the eigenvalue set.
 
-**Proof.** $T$ is an open map by the Open Mapping Theorem, so $T^{-1}$ is continuous, hence bounded. $\square$
+## A Pivot to Inverse Problems
 
-This corollary is powerful: it says that for Banach spaces, algebraic invertibility of a bounded operator **automatically** implies topological invertibility. You never need to prove separately that the inverse is continuous.
+A class of problems where the OMT and CGT are the main tools.
 
-**Example 3 (Equivalent norms).** If $\|\cdot\|_1$ and $\|\cdot\|_2$ are two complete norms on a vector space $X$, and $\|x\|_2 \leq C\|x\|_1$ for all $x$, then the norms are equivalent: $\|x\|_1 \leq C'\|x\|_2$ for some $C'$. Proof: the identity map $(X, \|\cdot\|_1) \to (X, \|\cdot\|_2)$ is a bounded bijection between Banach spaces.
+**Problem.** Given a bounded linear operator $T: X \to Y$ between Banach spaces and a $y \in Y$, find $x \in X$ with $T x = y$.
 
-**Example 4 (Projections).** If $X$ is a Banach space and $X = M \oplus N$ as a direct sum of closed subspaces, then the projection $P: X \to M$ (along $N$) is bounded. Proof: $P$ has a closed graph (graph of $P$ = $\{(m+n, m) : m \in M, n \in N\}$, closed since $M, N$ are closed), so the Closed Graph Theorem (below) gives boundedness. Alternatively: the map $(m, n) \mapsto m + n$ from $M \times N$ (with product norm) to $X$ is a bounded bijection, so its inverse is bounded, and $P$ is bounded.
+This is "inverse problem" land. There are three classical questions: existence ($y \in \mathrm{Range}(T)$?), uniqueness ($\ker T = 0$?), and stability (is the inverse continuous?).
 
----
+OMT says: if $T$ is surjective and injective, the inverse is automatically continuous, so the inverse problem is well-posed. If $T$ is surjective but not injective, the equation $T x = y$ has multiple solutions, and the right object to study is the quotient $X / \ker T$, on which the induced map is bijective and OMT gives continuity. If $T$ has closed range $R = \mathrm{Range}(T)$ (a closed subspace of $Y$), then $T: X \to R$ is surjective and OMT gives a continuous inverse on $R$.
 
-## The Closed Graph Theorem
+Inverse problems become *ill-posed* exactly when the inverse map fails to be continuous, which by CGT is the same as saying the graph of the algebraic inverse is not closed in $Y \times X$. This happens generically for compact operators (Article 7), where $T^{-1}$ on the range is unbounded, and is the source of all the regularization techniques (Tikhonov, Landweber, etc.) in numerical analysis.
 
-**Definition.** The **graph** of a linear map $T: X \to Y$ is $\text{Graph}(T) = \{(x, Tx) : x \in X\} \subset X \times Y$. We say $T$ has a **closed graph** if $\text{Graph}(T)$ is closed in $X \times Y$ (with the product topology, equivalently the norm $\|(x,y)\| = \|x\| + \|y\|$).
+### Numerical example
 
-**Theorem (Closed Graph Theorem).** Let $X$ and $Y$ be Banach spaces. A linear map $T: X \to Y$ is bounded if and only if its graph is closed.
+Take $T: L^2[0,1] \to L^2[0,1]$, $T f(t) = \int_0^t f(s)\,ds$. This is bounded with $\|T\| \leq 1$. The range is the subspace $\{ g \in L^2 : g \text{ is absolutely continuous, } g(0) = 0, g' \in L^2 \}$, a strict and dense subspace of $L^2$. The inverse on the range is $T^{-1} g = g'$, which is unbounded as a map $L^2 \to L^2$ (the differentiation operator). So solving $T f = g$ for $f$ given $g$ is well-defined when $g \in \mathrm{Range}(T)$, but the dependence is not continuous. This is the prototypical ill-posed inverse problem: integration is bounded; differentiation is unbounded.
 
-**Proof.** The forward direction is clear: if $T$ is bounded (hence continuous) and $(x_n, Tx_n) \to (x, y)$, then $Tx_n \to Tx$ by continuity, so $y = Tx$ and $(x, y) \in \text{Graph}(T)$.
+## Norm Convergence vs Strong/Weak Operator Convergence
 
-For the converse, assume $\text{Graph}(T)$ is closed. Then $\text{Graph}(T)$ is a closed subspace of the Banach space $X \times Y$, hence a Banach space. The map $\pi_1: \text{Graph}(T) \to X$ defined by $\pi_1(x, Tx) = x$ is a bounded linear bijection. By the Bounded Inverse Theorem, $\pi_1^{-1}: X \to \text{Graph}(T)$ is bounded, i.e., there exists $C$ such that $\|x\| + \|Tx\| \leq C\|x\|$. Hence $\|Tx\| \leq (C-1)\|x\|$, and $T$ is bounded. $\square$
+A reminder from Article 5 made concrete: in $B(X, Y)$, several different notions of operator convergence diverge in infinite dimensions:
 
-**When is the Closed Graph Theorem useful?** When you have a linear map that is "naturally defined" and you need to show it is bounded, but estimating the operator norm directly is hard. Instead, you just check: if $x_n \to x$ and $Tx_n \to y$, is $y = Tx$? This is often much easier.
+- *Norm convergence* of operators: $\|T_n - T\| \to 0$.
+- *Strong operator convergence*: $T_n x \to T x$ in norm of $Y$, for every $x \in X$.
+- *Weak operator convergence*: $\psi(T_n x) \to \psi(T x)$ for every $x \in X, \psi \in Y^*$.
 
-**Example 5 (Differentiation operator, used correctly).** Let $X = C^1([0,1])$ with the norm $\|f\| = \|f\|_\infty + \|f'\|_\infty$, and let $Y = C([0,1])$ with $\|g\| = \|g\|_\infty$. The differentiation operator $D: X \to Y$ defined by $Df = f'$ satisfies $\|Df\| = \|f'\|_\infty \leq \|f\|_X$, so $D$ is bounded with $\|D\| \leq 1$. But on the space $C^1([0,1])$ with only the sup-norm $\|f\|_\infty$, differentiation is **not** bounded — the graph is not closed in this weaker topology.
+The three coincide in finite dimensions and diverge in infinite dimensions. UBP is what allows weak/strong limits of bounded operators to inherit boundedness automatically — pointwise convergence implies pointwise boundedness, hence (by UBP) uniform boundedness, hence the limit is bounded. So while norm convergence is the strongest, strong/weak limits of bounded operators are still bounded, with norm $\leq \liminf$ of the norms.
 
-**Example 6 (Using the Closed Graph Theorem for multiplication operators).** Let $g: [0,1] \to \mathbb{R}$ be a measurable function, and suppose the multiplication operator $M_g: L^2([0,1]) \to L^2([0,1])$, $M_g f = gf$, maps $L^2$ into $L^2$. We claim $M_g$ is bounded.
+## A Pivot to Numerical Analysis
 
-The closed graph approach: suppose $f_n \to f$ in $L^2$ and $gf_n \to h$ in $L^2$. We need $h = gf$. Pass to a subsequence $f_{n_k} \to f$ a.e. Then $gf_{n_k} \to gf$ a.e. But also $gf_{n_k} \to h$ in $L^2$, hence (passing to a further subsequence) $gf_{n_k} \to h$ a.e. Thus $h = gf$ a.e., and the graph is closed. By the Closed Graph Theorem, $M_g$ is bounded.
+The three big theorems are constantly invoked in numerical analysis to justify discretization schemes. Sample applications:
 
-One can then show (by a separate argument) that $M_g$ bounded implies $g \in L^\infty([0,1])$ — so the Closed Graph Theorem gives us that $g$ must be essentially bounded, just from the assumption that $M_g$ maps $L^2$ to $L^2$.
+**Lax equivalence theorem.** For a finite-difference scheme to converge to the solution of a linear PDE, it must be both *consistent* (the scheme matches the PDE in the limit) and *stable* (the discretizations have uniformly bounded operator norms across mesh refinement). The proof uses UBP: if pointwise convergence holds (a per-data-point statement), one needs uniform stability (a uniform bound) to upgrade to convergence in the underlying space; UBP says pointwise stability is enough — refining the mesh while keeping data fixed is automatically uniformly stable when consistency holds.
 
-**Relation between the three theorems.** While we presented the Uniform Boundedness Principle, Open Mapping Theorem, and Closed Graph Theorem as independent results, they are in fact closely related. Here is the logical dependency structure:
+**Galerkin methods.** The Galerkin approximation of a PDE in a Banach space replaces the infinite-dimensional space by a sequence of finite-dimensional subspaces $X_n$. Convergence of approximations to the true solution requires uniform-in-$n$ continuity of the discrete inverses, which OMT delivers when the discrete problems have unique solutions — the discrete maps are bijective on $X_n$, hence have inverses with operator norms bounded uniformly in $n$ provided the discrete maps are uniformly bounded.
 
-- The **Baire Category Theorem** is the common foundation.
-- The **Open Mapping Theorem** can be deduced from the Baire Category Theorem (as we did above).
-- The **Bounded Inverse Theorem** is an immediate corollary of the Open Mapping Theorem.
-- The **Closed Graph Theorem** follows from the Bounded Inverse Theorem (as we showed).
-- The **Uniform Boundedness Principle** can be proved independently from Baire, or can also be derived from the Closed Graph Theorem (by considering the operator $(x, \alpha) \mapsto \sum \alpha_i T_i x$ on an appropriate product space).
+**Cea's lemma.** The error in a Galerkin approximation is bounded by a constant times the best approximation error, with the constant depending on the operator norm and inverse-operator norm. CGT-style arguments are needed to show this constant is finite for a wide range of problems.
 
-Conversely, one can start from the Uniform Boundedness Principle and derive the Open Mapping Theorem and Closed Graph Theorem, though this requires more work. The conceptual unity lies in the Baire Category Theorem: all three results exploit the fact that a complete metric space cannot be expressed as a countable union of nowhere dense sets.
+These are not the kind of results you would discover by working in finite dimensions and trying to take limits naively. They are inherently functional-analytic, and the three big theorems are exactly the bridges between the finite-dimensional approximations and the infinite-dimensional truth.
 
----
+## Banach-Steinhaus and Pointwise Limits
 
-## Applications: Automatic Continuity
+A common form of UBP in disguise — sometimes called the **Banach-Steinhaus theorem**:
 
-The three theorems above reveal a remarkable feature of Banach spaces: many operations that are merely linear turn out to be automatically continuous, with no additional work.
+**Theorem.** Let $X$ be a Banach space, $Y$ a normed space, and $(T_n)$ a sequence in $B(X, Y)$ such that $T_n x$ converges in $Y$ for every $x \in X$. Define $T x := \lim T_n x$. Then $T$ is linear and bounded with $\|T\| \leq \liminf_n \|T_n\|$.
 
-**Theorem (Hellinger-Toeplitz).** Let $H$ be a Hilbert space and $T: H \to H$ a linear map satisfying $\langle Tx, y \rangle = \langle x, Ty \rangle$ for all $x, y \in H$ (i.e., $T$ is everywhere-defined and symmetric). Then $T$ is bounded.
+The proof: linearity is automatic from pointwise limits of linear maps. Boundedness uses UBP (pointwise convergence implies pointwise boundedness implies uniform boundedness $C = \sup \|T_n\|$), and then $\|T x\| = \lim \|T_n x\| \leq C \|x\|$ for every $x$, by Fatou-style passage to the limit. Tighter, $\|T\| \leq \liminf \|T_n\|$ is obtained by extracting a subsequence with $\|T_{n_k}\| \to \liminf \|T_n\|$.
 
-**Proof.** We use the Closed Graph Theorem. Suppose $x_n \to x$ and $Tx_n \to y$. For any $z \in H$:
+This is a workhorse theorem for showing that limits of operators are bounded. A typical application: the Fourier transform on $L^2(\mathbb{R})$ is defined first on a dense subspace (Schwartz functions), where it is given by the integral formula. The boundedness on Schwartz functions plus density plus Banach-Steinhaus extends it to a bounded operator on all of $L^2(\mathbb{R})$ — the global definition is the pointwise limit of an approximation scheme, and the norm bound comes for free.
 
-$$\langle y, z \rangle = \lim_n \langle Tx_n, z \rangle = \lim_n \langle x_n, Tz \rangle = \langle x, Tz \rangle = \langle Tx, z \rangle.$$
+## Application: Continuity of Bilinear Forms
 
-Since this holds for all $z$, we have $y = Tx$. The graph is closed, so $T$ is bounded. $\square$
+A bilinear form $B: X \times Y \to \mathbb{C}$ on Banach spaces $X, Y$ is **separately continuous** if $B(x, \cdot)$ is continuous on $Y$ for each $x \in X$ and $B(\cdot, y)$ is continuous on $X$ for each $y \in Y$. It is **jointly continuous** if there is a $C \geq 0$ with $|B(x, y)| \leq C \|x\|_X \|y\|_Y$.
 
-This has profound consequences for quantum mechanics: any symmetric (Hermitian) operator defined on **all** of a Hilbert space must be bounded. Unbounded self-adjoint operators in quantum mechanics (like the momentum operator $-i\hbar \frac{d}{dx}$ or the position operator $\hat{x}$) can only exist on proper dense subdomains — they cannot be defined on the entire Hilbert space while remaining symmetric. This is one of the key reasons that the mathematical foundations of quantum mechanics require careful attention to operator domains, a subject we will touch on when we discuss unbounded operators later in this series.
+**Theorem.** A separately continuous bilinear form on a product of Banach spaces is jointly continuous.
 
-**Another application: Continuous inverse of Fourier transform.** The Fourier transform $\mathcal{F}: L^2(\mathbb{R}) \to L^2(\mathbb{R})$ is a bounded bijection (this is a consequence of the Plancherel theorem). By the Bounded Inverse Theorem, $\mathcal{F}^{-1}$ is automatically bounded. We get the Plancherel isometry "for free" from the abstract theory, though of course the concrete proof that $\mathcal{F}$ is surjective still requires analysis.
+This is a non-obvious application of UBP. Define $T: X \to Y^*$ by $T x = B(x, \cdot)$. Each $T x \in Y^*$ by separate continuity in the second variable. For each $y$, $\varphi_y(x) = (Tx)(y) = B(x, y)$ is continuous in $x$ by separate continuity in the first variable, with $\|\varphi_y\| \leq \|T x\|_{Y^*} \cdot \|y\|_Y$. Wait, this needs another careful step. Apply UBP to the family $\{ \widehat y : y \in B_Y(0, 1) \} \subseteq B(X, \mathbb{C})$ where $\widehat y(x) = B(x, y)$. Each $\widehat y$ is continuous in $x$, and pointwise (per fixed $x$), $\sup_y |\widehat y(x)| = \sup_y |B(x, y)| < \infty$ — bounded over the unit ball — by separate continuity in $y$. UBP then gives uniform boundedness: $\sup_y \|\widehat y\| < \infty$, which translates to $|B(x, y)| \leq C \|x\| \|y\|$ for some $C$.
 
-**Application: Closed range theorem and solvability.** The Closed Range Theorem (due to Banach and later refined) states: for $T \in B(X, Y)$ with $X, Y$ Banach, the range of $T$ is closed if and only if the range of $T^*$ is closed. Moreover, $\overline{\text{range}(T)} = \ker(T^*)^\perp$ and $\overline{\text{range}(T^*)} = \ker(T)^\perp$ (where annihilators replace orthogonal complements in the Banach space setting). This theorem ties together the three big theorems and provides a systematic approach to solvability questions: the equation $Tx = y$ is solvable if and only if $y$ annihilates $\ker(T^*)$.
+So in Banach spaces, separately continuous bilinear forms are automatically jointly continuous. This is far from automatic in general topological vector spaces.
 
-**Application: Principle of condensation of singularities in detail.** The UBP proof that the Fourier series of some continuous function diverges deserves a more detailed exposition, as it illustrates a powerful technique.
+### Numerical example
 
-The $n$-th partial sum of the Fourier series at $x = 0$ defines a functional $S_n \in C([-\pi, \pi])^*$:
+The inner product on $\ell^2$, $\langle x, y \rangle = \sum x_n \overline{y_n}$, is separately continuous (the partial sum is continuous in either variable for fixed other variable), and Cauchy-Schwarz is the joint continuity bound: $|\langle x, y \rangle| \leq \|x\|_2 \|y\|_2$. UBP gives the existence of *some* joint continuity constant, which Cauchy-Schwarz then computes to be $1$.
 
-$$S_n(f) = \sum_{k=-n}^{n} \hat{f}(k) = \frac{1}{2\pi}\int_{-\pi}^{\pi} f(t) D_n(t) \, dt,$$
+## A Family of Operators on $L^2$: Multiplication, Convolution, Fourier
 
-where $D_n(t) = \sum_{k=-n}^n e^{ikt} = \frac{\sin((n+1/2)t)}{\sin(t/2)}$ is the Dirichlet kernel. The norm of $S_n$ is the Lebesgue constant:
+To make the operator theory tangible, here are three key families of bounded operators on $L^2(\mathbb{R})$ — the "model" Hilbert space — and their fundamental properties:
 
-$$\|S_n\| = \frac{1}{2\pi}\int_{-\pi}^{\pi} |D_n(t)| \, dt = L_n.$$
+**Multiplication.** $M_a f(t) = a(t) f(t)$ for $a \in L^\infty(\mathbb{R})$. Bounded with $\|M_a\| = \|a\|_\infty$, normal (commutes with its adjoint $M_{\overline a}$), self-adjoint iff $a$ is real-valued. The spectrum of $M_a$ is the essential range of $a$ — typically a continuous spectrum.
 
-A classical computation shows $L_n = \frac{4}{\pi^2}\log n + O(1)$, so $L_n \to \infty$. If $S_n(f)$ were bounded for every continuous $f$, the UBP would give $\sup_n L_n < \infty$, contradiction. Hence the set $\{f \in C[-\pi, \pi] : \sup_n |S_n(f)| = \infty\}$ is nonempty. In fact, by the Baire Category Theorem, this set is **residual** (a dense $G_\delta$) — the "generic" continuous function has a divergent Fourier series at $0$. This is Carleson's theorem's complement: while the Fourier series of $L^2$ functions converge almost everywhere (Carleson, 1966), pointwise divergence is typical for continuous functions at individual points.
+**Convolution.** $C_g f(t) = \int_{\mathbb{R}} g(t - s) f(s)\,ds$ for $g$ in a suitable space (e.g., $g \in L^1$ guarantees boundedness with $\|C_g\| \leq \|g\|_1$). Convolution operators commute with translations; their spectrum can be computed via the Fourier transform.
 
----
+**Fourier transform.** $\mathcal{F} f(\xi) = \int_{\mathbb{R}} f(t) e^{-2\pi i \xi t}\,dt$, defined initially for Schwartz functions, extended to $L^2$ by Plancherel: $\mathcal{F}$ is unitary on $L^2(\mathbb{R})$. So $\|\mathcal{F} f\|_2 = \|f\|_2$, and $\mathcal{F}^{-1} = \mathcal{F}^*$.
 
-## Counterexamples: What Fails Without Completeness
+The remarkable conjugation: under the Fourier transform, multiplication and convolution swap. Specifically, $\mathcal{F}(C_g f) = \widehat{g} \cdot \widehat{f}$ where $\widehat{g} = \mathcal{F} g$. So convolution operators on $L^2$ are unitarily equivalent to multiplication operators on $L^2$. This is the Fourier diagonalization of translation-invariant operators, and it is what makes Fourier analysis the workhorse of PDE on $\mathbb{R}^n$.
 
-The completeness hypothesis in all three theorems is essential, not a technical convenience. The following counterexamples make this concrete, and understanding them is as important as understanding the theorems themselves — they delineate exactly where the theory applies and where it does not.
+The three big theorems of this article handle every step of this story. UBP justifies extending $\mathcal{F}$ from Schwartz to $L^2$ (pointwise approximation gives uniform boundedness via density). OMT/CGT justify $\mathcal{F}$ being a bicontinuous bijection between $L^2$ and itself. The Banach algebra structure on $B(L^2)$ is what makes the "Fourier multiplier" theory of differential and pseudodifferential operators a coherent calculus.
 
-**Counterexample 1 (UBP fails without completeness of $X$).** Let $X$ be the space of finitely supported sequences with the sup-norm (a non-complete subspace of $c_0$). Define $T_n: X \to \mathbb{R}$ by $T_n(x) = n \cdot x_n$. Then $\|T_n\| = n \to \infty$, but for any fixed $x \in X$ (which has finite support), $T_n(x) = 0$ for all large $n$. So $\sup_n |T_n(x)| < \infty$ for each $x$, but $\sup_n \|T_n\| = \infty$.
+### Numerical example: heat kernel as multiplication after Fourier
 
-**Counterexample 2 (Open Mapping fails without completeness of $Y$).** Let $X = Y = c_{00}$ (finitely supported sequences) with the $\ell^1$ norm, and let $T: X \to Y$ be the identity map viewed from $(c_{00}, \|\cdot\|_1)$ to $(c_{00}, \|\cdot\|_2)$. Since $\|x\|_2 \leq \|x\|_1$ on $c_{00}$, $T$ is bounded. It is a bijection, but $T^{-1}$ is unbounded (consider $x = (1/\sqrt{n}, \ldots, 1/\sqrt{n}, 0, \ldots)$ with $n$ nonzero terms: $\|x\|_1 = \sqrt{n}$, $\|x\|_2 = 1$). The Open Mapping Theorem fails because $Y$ (with the $\ell^2$ norm) is not complete.
+The heat equation $u_t = \Delta u$ in $\mathbb{R}$ with initial data $u_0 \in L^2$ has solution $u(t) = e^{t \Delta} u_0$. After Fourier transform: $\widehat u(t, \xi) = e^{-4\pi^2 t \xi^2} \widehat{u_0}(\xi)$ — a multiplication operator on the Fourier side, with multiplier $a_t(\xi) = e^{-4\pi^2 t \xi^2}$. The operator $e^{t \Delta}$ on the spatial side has norm $\|a_t\|_\infty = 1$ on $L^2$, and is a contraction semigroup (Article 10). The boundedness, the strong continuity in $t$, and the algebraic properties all flow from the multiplier being a measurable function in $L^\infty$, with the three big theorems providing the bridge.
 
-**Counterexample 3 (Closed Graph fails without completeness).** Consider the differentiation operator $D: C^1([0,1]) \to C([0,1])$ where $C^1([0,1])$ carries only the sup-norm (not the $C^1$ norm). Then $D$ is unbounded, yet its graph is closed: if $f_n \to f$ uniformly and $f_n' \to g$ uniformly, then $f$ is differentiable with $f' = g$ (by the uniform convergence theorem for derivatives). The issue is that $(C^1([0,1]), \|\cdot\|_\infty)$ is not a Banach space.
+## Beyond Banach: When the Theorems Fail
 
-**Deeper failure: a non-complete space where every linear functional is continuous.** In a Banach space, the Hahn-Banach theorem guarantees an abundance of continuous linear functionals. But there exist non-complete metrizable topological vector spaces (e.g., $L^p$ for $0 < p < 1$) where the only continuous linear functional is the zero functional. In such spaces, the dual space is trivial, and the notion of "weak topology" collapses. The theory of this article is specific to Banach spaces (or at least locally convex spaces) for good reason.
+The three big theorems all crucially require completeness of $X$ (and for OMT/CGT, of $Y$). Drop completeness, and they all fail.
 
-**Historical note.** The Uniform Boundedness Principle was proved by Banach and Steinhaus in 1927. The Open Mapping Theorem was proved by Banach in 1929 (and independently by Schauder around the same time). The Closed Graph Theorem, as stated here for Banach spaces, also appears in Banach's 1932 monograph *Theorie des operations lineaires*. The realization that all three results flow from the Baire Category Theorem (itself proved by Baire in 1899) came gradually and gave the subject its modern form.
+**Failure of UBP without completeness.** On the dense subspace $c_{00} \subset \ell^2$ of finitely supported sequences (which is incomplete), define $\varphi_n(x) = n \cdot x_n$ for sequences $x \in c_{00}$. For each fixed $x \in c_{00}$, only finitely many components are non-zero, so $\sup_n |\varphi_n(x)| < \infty$ — pointwise bounded. But $\|\varphi_n\| = n \to \infty$ on the unit ball of $c_{00}$ in the inherited $\ell^2$ norm — not uniformly bounded. The conclusion of UBP fails because $c_{00}$ is not complete.
 
----
+**Failure of OMT without completeness.** A bijective bounded operator from one normed space to another need not have a bounded inverse if either space is incomplete. Concrete example: take $X = c_{00}$ with the $\ell^\infty$ norm and $Y = c_{00}$ with the $\ell^1$ norm, and let $T = \mathrm{id}$. Then $\|T x\|_Y = \|x\|_1 \geq \|x\|_\infty = \|x\|_X$, so $T$ is bounded *from $Y$ to $X$* (not what we want), but $T^{-1}: X \to Y$ has $\|T^{-1} e_n\|_1 = 1$ while $\|e_n\|_\infty = 1$, so $\|T^{-1}\|$ is bounded by $1$ — so this isn't quite the right example. The cleanest version: in any incomplete normed space, completing it gives a strictly larger Banach space, and the inclusion is bijective onto a dense subspace, but the inverse is unbounded as a map back from the completion. The non-completeness is essential.
 
-## A Unified Perspective
+These pathologies remind that the theorems of this article, despite feeling "automatic," have a non-trivial price of admission.
 
-All three theorems can be seen as manifestations of a single principle: **in complete spaces, algebraic structure constrains topological behavior far more than one might expect.**
+## A Pivot to Closed (Unbounded) Operators
 
-| Theorem | Input | Conclusion |
-|---|---|---|
-| Uniform Boundedness | Pointwise bounded family | Uniformly bounded |
-| Open Mapping | Surjective bounded linear map | Open map (hence homeomorphism if bijective) |
-| Closed Graph | Linear map with closed graph | Bounded (hence continuous) |
+The closed graph theorem ends bounded operator theory and *begins* the theory of *closed unbounded* operators (Article 9). An unbounded linear operator $T: \mathcal{D}(T) \subseteq X \to Y$ on a dense subspace $\mathcal{D}(T)$ is **closed** if its graph is closed in $X \times Y$. Most differential operators are closed but unbounded — the Laplacian on $L^2(\Omega)$ with appropriate boundary conditions is the standard example.
 
-Each converts a "soft" algebraic hypothesis into a "hard" analytic conclusion, and each fails without completeness.
+The interplay between CGT and unbounded operators is interesting. CGT says: if a closed operator is defined on *all of* $X$, it is bounded. So a genuinely unbounded operator must have a *proper* domain — it cannot be everywhere-defined. Conversely, if I want to extend a densely-defined operator from a dense subspace to all of $X$, the closed graph alone is not enough; I would need the operator to be bounded on the dense subspace, after which the unique continuous extension follows.
 
-These three theorems, together with the Hahn-Banach theorem from Article 4, are sometimes called the **four pillars of functional analysis**. Hahn-Banach is algebraic-geometric in nature (it works even in non-complete spaces and non-metrizable topologies), while the three theorems of this article are topological-metric, fundamentally relying on the Baire Category Theorem.
+This dichotomy structures Article 9: bounded operators live on the whole space; unbounded operators live on dense subspaces with the rest of the space "unreachable." The right notion of *self-adjoint* for unbounded operators is more subtle than for bounded ones, and resolving these subtleties is what makes spectral theory of unbounded operators (like the Hamiltonians of quantum mechanics) genuinely deep.
 
-**When do you use which theorem?** A practical guide:
 
-- **Uniform Boundedness Principle:** when you have a family of operators (or functionals) and need to show the norms are uniformly bounded. Typical setting: you know pointwise bounds and want uniform bounds.
-- **Open Mapping Theorem / Bounded Inverse Theorem:** when you have a bijective bounded operator and need to show the inverse is bounded. Typical setting: you have two Banach space norms on the same space and one dominates the other.
-- **Closed Graph Theorem:** when you have a linear map defined by some natural formula and need to show it is bounded, but direct norm estimates are hard. Typical setting: the map is "obviously" well-defined and the graph closure is easy to check.
+## A Spectral-Theoretic Use of the Three Theorems
 
----
+A textbook application: every compact, self-adjoint operator on a Hilbert space has a complete orthogonal eigenbasis with eigenvalues tending to zero. The proof (taken up in detail in Article 8) uses the three big theorems repeatedly.
 
-## What's Next
+Step 1. The operator $T$ is bounded. The eigenvalue equation $T x = \lambda x$ for $\lambda \neq 0$ has the form $(T - \lambda I) x = 0$, and the closed graph theorem ensures $(T - \lambda I)^{-1}$ is bounded when it exists.
 
-With the three big theorems established, we move to a more specific and beautiful class of operators: **compact operators**. These are operators that map bounded sets to relatively compact sets — they are the "closest to finite-dimensional" among all bounded operators and enjoy a spectral theory that closely mirrors the eigenvalue decomposition of matrices. The Fredholm alternative and the spectral theorem for compact self-adjoint operators await.
+Step 2. The spectrum of $T$ is bounded by $\|T\|$ (an immediate consequence of OMT applied to $T - \lambda I$ when $|\lambda| > \|T\|$).
+
+Step 3. UBP justifies passing to limits: the resolvent $R(\lambda) = (T - \lambda I)^{-1}$ is well-defined on the open set $\{|\lambda| > \|T\|\}$ and has a power series expansion (the Neumann series) that converges absolutely. UBP guarantees that pointwise convergence of operators implies operator-norm convergence on bounded subsets of the variable, which is what makes the resolvent calculus rigorous.
+
+Step 4. The compactness of $T$ gives: the resolvent $(T - \lambda I)^{-1}$ for $\lambda$ outside the spectrum is itself compact when $T$ is, and so the spectral projection onto each non-zero eigenvalue eigenspace is finite-rank. The OMT is again involved, applied to the finite-dimensional reduced operator.
+
+Without all three theorems being available, the spectral theorem would have to be proved by ad hoc arguments specific to compact self-adjoint operators. The general framework lets the same machine handle compact normal, compact non-normal (with adjustment), bounded normal (with measure-theoretic spectral projections), and ultimately unbounded self-adjoint operators (Article 9).
+
+## Concrete Operator: The Schrödinger Hamiltonian
+
+To make the operator theory concrete, here is a worked example of the kind that appears in mathematical physics. The Schrödinger Hamiltonian $H = -\Delta + V$ on $L^2(\mathbb{R}^d)$ for a smooth bounded potential $V \in L^\infty$ is a self-adjoint operator (modulo domain issues, taken up in Article 9).
+
+For now, treat $H$ as defined on the Sobolev space $H^2(\mathbb{R}^d)$ where it is bounded as a map $H^2 \to L^2$ with $\|H f\|_{L^2} \leq C(\|f\|_{L^2} + \|\nabla^2 f\|_{L^2})$ for some $C$. This boundedness uses only the boundedness of $V$ and the standard Sobolev calculus.
+
+The map is **closed** (the Laplacian on $H^2$ is closed; adding a bounded perturbation preserves closedness). By CGT, $H$ is a closed operator on a dense domain in $L^2$; by spectral theory (Article 8), $H$ has a self-adjoint extension and a spectral decomposition.
+
+The spectrum of $H$ depends on $V$: for $V$ tending to $0$ at infinity, the spectrum has continuous part $[0, \infty)$ (the "scattering states") and possibly a discrete part below $0$ (the "bound states"). This is the structure of one-electron atomic Hamiltonians, and computing the bound-state spectrum is the central problem of atomic spectroscopy.
+
+The three big theorems all play a role here: the closed graph theorem makes $H$ a closable operator; UBP makes the resolvent well-defined and analytic outside the spectrum; OMT (in the form of bounded inverse) characterizes when $H - \lambda I$ is invertible.
+
+### A simple solvable case: free particle
+
+For $V \equiv 0$, $H = -\Delta$, the spectrum is $[0, \infty)$ with no eigenvalues. Every "eigenfunction equation" $-\Delta f = \lambda f$ for $\lambda \geq 0$ has solutions $f(x) = e^{i k \cdot x}$ for $|k|^2 = \lambda$, but these are not in $L^2$ (they have infinite norm). So the "generalized eigenfunctions" are plane waves, and the spectral decomposition is the Fourier transform: $-\Delta$ acting on $f(x)$ is the same as multiplication by $|2\pi \xi|^2$ acting on $\widehat{f}(\xi)$.
+
+This is the prototypical *continuous spectrum*: no $L^2$ eigenfunctions, but a "rigorous" eigenfunction expansion via the Fourier transform. The unitary equivalence between $-\Delta$ and multiplication by $|2\pi \xi|^2$ is the simplest case of the spectral theorem.
+
+For $V$ a confining potential (like $V(x) = |x|^2$, the harmonic oscillator), the spectrum becomes discrete with eigenvalues $\lambda_n = (n + 1/2)$ in one dimension (using suitable units). The eigenfunctions are Hermite functions, and the operator $H = -d^2/dx^2 + x^2$ on $L^2(\mathbb{R})$ has a complete orthonormal eigenbasis. This is the cleanest concrete example of the spectral theorem for unbounded self-adjoint operators.
+
+## A Pivot to Numerical Discretization Theory
+
+Operator theory's role in numerical analysis goes beyond the Lax equivalence theorem mentioned earlier. The full picture: every numerical scheme for a linear PDE is a discretization $A_h: X_h \to Y_h$ of the underlying operator $A: X \to Y$, where $X_h, Y_h$ are finite-dimensional subspaces or quotients of $X, Y$ parametrized by a mesh size $h$.
+
+**Stability** of the scheme is the condition $\sup_h \|A_h^{-1}\| < \infty$ — uniform-in-$h$ boundedness of the discrete inverses. By UBP applied to the family of inverses (assuming pointwise stability, i.e., per-data-point boundedness of solutions), uniform boundedness holds, and the scheme is stable.
+
+**Consistency** is the condition that $A_h$ agrees with $A$ in the limit: $A_h R_h x \to A x$ for the restriction $R_h: X \to X_h$, for every $x$ in the appropriate domain. This is a per-data-point statement — pointwise convergence of $A_h$ on test data.
+
+**Convergence** is the conjunction: the discrete solution $x_h = A_h^{-1} y_h$ converges to the true solution $x = A^{-1} y$ as $h \to 0$. The Lax equivalence theorem states stability + consistency $\Rightarrow$ convergence, and the converse holds under mild conditions (closed range of $A$, etc.).
+
+The proof uses all three big theorems: stability is UBP; the bounded inverse extension is OMT; convergence on a dense subspace is extended to convergence on the whole space by the closed graph theorem.
+
+This is the abstract framework that justifies finite-difference, finite-element, spectral, and meshless methods for linear PDE. Each discretization satisfies the abstract Lax framework, and the analyst's job is to verify stability and consistency — both of which reduce to operator-norm estimates inherited from the underlying continuous problem.
+
+## A Final Pivot: Banach Algebras and Beyond
+
+The operator algebra $B(X)$ on a Banach space is itself a Banach algebra under composition. The three big theorems generalize from operators on $X$ to elements of an abstract Banach algebra:
+
+- The **spectrum** of $a$ in a Banach algebra $A$ is $\sigma(a) = \{\lambda \in \mathbb{C} : a - \lambda \cdot 1 \text{ is not invertible}\}$. For $A = B(X)$, this recovers the operator spectrum.
+- The **spectral radius formula** $r(a) = \lim \|a^n\|^{1/n}$ holds in any Banach algebra.
+- A theorem of Gelfand: the spectrum is non-empty for every $a$ in a Banach algebra. The proof uses Liouville's theorem applied to the resolvent $\lambda \mapsto (a - \lambda)^{-1}$, which is a bounded entire $A$-valued function if $\sigma(a) = \emptyset$.
+- The **Gelfand transform** sends a commutative Banach algebra to a function algebra on its space of multiplicative linear functionals, and is the fundamental tool of commutative Banach algebra theory. The C\*-algebra version (Article 8) is the spectral theorem for normal operators.
+
+The Banach algebra perspective unifies operator theory, harmonic analysis (the convolution algebra $L^1(G)$ for $G$ a topological group), and complex function theory (the disk algebra, Hardy algebras). All of these inherit the three big theorems by virtue of being Banach algebras with bounded multiplication.
+
+
+## Looking Ahead
 
 The progression of this series so far has been: spaces (Articles 1-3), duality (Article 4), compactness via weak topologies (Article 5), general operator theory (this article), and now we specialize to compact operators (Article 7) where the spectral theory becomes especially concrete and powerful. Each level of specialization — from bounded operators to compact operators to self-adjoint compact operators — buys us stronger structural results, culminating in a theory that is virtually indistinguishable from finite-dimensional linear algebra.
 

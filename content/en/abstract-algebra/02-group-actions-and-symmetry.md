@@ -18,7 +18,9 @@ description: "We formalize how groups act on sets, prove the orbit-stabilizer th
 
 ## From Abstract Groups to Concrete Actions
 
-In the previous article we defined groups and proved Lagrange's theorem. The groups themselves --- $\mathbb{Z}/n\mathbb{Z}$, $S_n$, $D_n$ --- were interesting, but we studied them in isolation. The real power of group theory emerges when a group *does something*: when it permutes the elements of a set, rotates the vertices of a polygon, or rearranges the colors of a necklace.
+Mental picture before any definitions: a group acting on a set is a collection of moves, and the set is the playground those moves permute. Pick up an object, do a move from the group, set it down. The orbit of an object is everywhere you can take it. The stabilizer is every move that puts it back exactly where it started.
+
+In the previous article we defined groups and proved Lagrange's theorem. The groups themselves --- $\mathbb{Z}/n\mathbb{Z}$, $S_n$, $D_n$ --- were interesting, but we studied them in isolation. The real power of group theory emerges when a group does something: when it permutes the elements of a set, rotates the vertices of a polygon, or rearranges the colors of a necklace.
 
 This is the idea of a *group action*. Historically, groups arose precisely as collections of symmetries acting on geometric objects. Galois studied permutation groups acting on roots of polynomials. Klein's Erlangen program (1872) proposed defining geometry itself as the study of invariants under a group action. In modern algebra, the action viewpoint is indispensable: it converts abstract group-theoretic questions into concrete combinatorial ones, and vice versa.
 
@@ -26,10 +28,11 @@ The central results of this article are the orbit-stabilizer theorem and Burnsid
 
 We also introduce conjugation as a group action, which leads to the class equation --- a tool that will be crucial in later articles when we prove the Sylow theorems.
 
-
-![Orbit-Stabilizer theorem diagram](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/02-group-actions-and-symmetry/aa_fig2_orbit_stabilizer.png)
+![A group action G x X to X as an arrow diagram](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/02-group-actions-and-symmetry/aa_v2_02_4_action_arrow.png)
 
 ## Formal Definition and Examples
+
+Mental picture: a group action is a homomorphism from $G$ into the symmetric group of $X$. Each group element gets a personal permutation of the set, and composing group elements is the same as composing those permutations.
 
 **Definition.** Let $G$ be a group and $X$ a set. A *(left) group action* of $G$ on $X$ is a function $G \times X \to X$, written $(g, x) \mapsto g \cdot x$, satisfying:
 
@@ -42,6 +45,8 @@ We say $G$ *acts on* $X$, or that $X$ is a *$G$-set*.
 
 This reformulation is important: the *kernel* of $\varphi$ is $\{g \in G : g \cdot x = x \text{ for all } x \in X\}$, the set of group elements that act trivially on every point of $X$.
 
+**Why this matters.** The homomorphism reformulation is the bridge between abstract groups and concrete permutations. Cayley's theorem (every group embeds into some $S_n$) is just the observation that the regular action is faithful. This is what makes finite group theory amenable to brute-force computer enumeration.
+
 **Definition.** An action is *faithful* (or *effective*) if $\ker\varphi = \{e\}$, i.e., only the identity fixes every element of $X$. Equivalently, the homomorphism $\varphi : G \to \text{Sym}(X)$ is injective, so $G$ embeds into $\text{Sym}(X)$.
 
 **Cayley's theorem** follows immediately: every group acts on itself by left multiplication, and this action is faithful. Hence every group is isomorphic to a subgroup of some symmetric group. Specifically, if $|G| = n$, then $G$ embeds into $S_n$.
@@ -50,7 +55,7 @@ This reformulation is important: the *kernel* of $\varphi$ is $\{g \in G : g \cd
 
 **Example 1: $S_n$ acting on $\{1, \ldots, n\}$.** The natural action: $\sigma \cdot i = \sigma(i)$. This is faithful (distinct permutations move at least one element differently).
 
-**Example 2: $D_n$ acting on the vertices of a regular $n$-gon.** Label the vertices $1, \ldots, n$. Each symmetry (rotation or reflection) permutes the vertices. This defines a faithful action $D_n \to S_n$, which is the embedding we used in the previous article.
+**Example 2: $D_n$ acting on the vertices of a regular $n$-gon.** Label the vertices $1, \ldots, n$. Each symmetry (rotation or reflection) permutes the vertices. This defines a faithful action $D_n \to S_n$.
 
 **Example 3: $G$ acting on itself by left multiplication.** Define $g \cdot x = gx$ for $g, x \in G$. The axioms are satisfied: $e \cdot x = ex = x$ and $(gh) \cdot x = (gh)x = g(hx) = g \cdot (h \cdot x)$. This is the *left regular action*. It is always faithful.
 
@@ -58,9 +63,19 @@ This reformulation is important: the *kernel* of $\varphi$ is $\{g \in G : g \cd
 
 **Example 5: $G$ acting on its subsets by conjugation.** For a subset $S \subseteq G$, define $g \cdot S = gSg^{-1} = \{gsg^{-1} : s \in S\}$. If $H \leq G$, then $g \cdot H = gHg^{-1}$, which is again a subgroup. This gives an action of $G$ on the set of all subgroups of $G$.
 
-**Example 6: $G$ acting on left cosets of $H$.** Let $G/H = \{gH : g \in G\}$ denote the set of left cosets. Define $g \cdot (aH) = (ga)H$. This is well-defined: if $aH = bH$, then $b^{-1}a \in H$, so $(gb)^{-1}(ga) = b^{-1}a \in H$, hence $(ga)H = (gb)H$. The axioms are immediate. The kernel of this action is $\bigcap_{g \in G} gHg^{-1}$, the largest normal subgroup of $G$ contained in $H$.
+**Example 6: $G$ acting on left cosets of $H$.** Let $G/H = \{gH : g \in G\}$ denote the set of left cosets. Define $g \cdot (aH) = (ga)H$. This is well-defined: if $aH = bH$, then $b^{-1}a \in H$, so $(gb)^{-1}(ga) = b^{-1}a \in H$, hence $(ga)H = (gb)H$. The kernel of this action is $\bigcap_{g \in G} gHg^{-1}$, the largest normal subgroup of $G$ contained in $H$.
+
+**Numerical example: $\mathbb{Z}/4\mathbb{Z}$ acting on the four corners of a square.** Identify the corners with $\{0, 1, 2, 3\}$ and let $k \cdot i = (i + k) \bmod 4$. Then $1$ rotates each corner one step around, $2$ takes opposite corners to each other, $3$ rotates the other way. Faithful, transitive, and the simplest possible cyclic action.
+
+**Numerical example: $S_3$ acting on the six elements of $S_3$ by left multiplication.** This is Cayley's embedding $S_3 \hookrightarrow S_6$. Each element of $S_3$ becomes a permutation of $S_3$'s six elements. For example, the element $(1\ 2) \in S_3$ acts on the list $\{e, (1\ 2), (1\ 3), (2\ 3), (1\ 2\ 3), (1\ 3\ 2)\}$ by left multiplication, sending the first to the second, the second to the first, and so on. The result is a permutation of six labels, an element of $S_6$. Doing this for all six elements of $S_3$ gives an injective homomorphism $S_3 \to S_6$. Cayley's theorem at work, in the smallest non-abelian case.
+
+**Counting actions versus identifying actions.** A common confusion: writing down two actions of the same group on the same set may give isomorphic actions (in the sense that there is a $G$-equivariant bijection between them) or genuinely different ones. The trivial action ($g \cdot x = x$ for all $g, x$) is always available, and is typically not the most informative. When one says "the action of $S_n$ on $\{1, \ldots, n\}$" one almost always means the natural permutation action.
+
+**Transitive actions and subgroups, a structural correspondence.** Up to equivariant isomorphism, transitive actions of $G$ are in bijection with subgroups of $G$ up to conjugacy. The transitive action of $G$ on $G/H$ corresponds to the conjugacy class of $H$. This is one of the cleanest structural facts in elementary group theory and is the bridge from "action thinking" to "subgroup thinking." We will develop the bijection more carefully when we discuss normal subgroups in the next article.
 
 ## Orbits, Stabilizers, and the Orbit-Stabilizer Theorem
+
+Mental picture: the orbit of a point is its trajectory under the group --- "everywhere it can travel." The stabilizer is the set of moves that hold the point fixed. These two notions are inversely proportional in a precise sense.
 
 **Definition.** Let $G$ act on $X$ and $x \in X$.
 
@@ -71,9 +86,11 @@ The orbit is a subset of $X$; the stabilizer is a subset of $G$.
 
 **Proposition.** $\text{Stab}(x)$ is a subgroup of $G$.
 
-*Proof.* $e \cdot x = x$, so $e \in \text{Stab}(x)$. If $g, h \in \text{Stab}(x)$, then $(gh^{-1}) \cdot x = g \cdot (h^{-1} \cdot x) = g \cdot x = x$ (using $h^{-1} \cdot x = x$, which follows from $h \cdot (h^{-1} \cdot x) = (hh^{-1}) \cdot x = x = h \cdot x$, so $h^{-1} \cdot x = x$ by cancellation in $X$... more precisely: from $h \cdot x = x$, apply $h^{-1}$ to get $h^{-1} \cdot (h \cdot x) = h^{-1} \cdot x$, i.e., $(h^{-1}h) \cdot x = h^{-1} \cdot x$, i.e., $x = h^{-1} \cdot x$). By the subgroup criterion, $\text{Stab}(x) \leq G$. $\square$
+*Proof.* $e \cdot x = x$, so $e \in \text{Stab}(x)$. If $g, h \in \text{Stab}(x)$, then $h \cdot x = x$ implies (applying $h^{-1}$) $h^{-1} \cdot x = x$, hence $(gh^{-1}) \cdot x = g \cdot (h^{-1} \cdot x) = g \cdot x = x$. By the subgroup criterion, $\text{Stab}(x) \leq G$. $\square$
 
-**The orbits partition $X$.** Define $x \sim y$ if $y = g \cdot x$ for some $g \in G$. This is an equivalence relation: reflexive ($x = e \cdot x$), symmetric (if $y = g \cdot x$ then $x = g^{-1} \cdot y$), transitive (if $y = g \cdot x$ and $z = h \cdot y$ then $z = (hg) \cdot x$). The equivalence classes are exactly the orbits. When there is a single orbit ($G \cdot x = X$ for some --- equivalently every --- $x \in X$), we say the action is *transitive*.
+![How orbits partition the set X into disjoint pieces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/02-group-actions-and-symmetry/aa_v2_02_5_orbit_partition.png)
+
+**The orbits partition $X$.** Define $x \sim y$ if $y = g \cdot x$ for some $g \in G$. This is an equivalence relation: reflexive ($x = e \cdot x$), symmetric (if $y = g \cdot x$ then $x = g^{-1} \cdot y$), transitive (if $y = g \cdot x$ and $z = h \cdot y$ then $z = (hg) \cdot x$). The equivalence classes are exactly the orbits. When there is a single orbit, we say the action is *transitive*.
 
 **Theorem (Orbit-Stabilizer).** Let $G$ be a finite group acting on a set $X$, and let $x \in X$. Then
 
@@ -83,27 +100,49 @@ or equivalently,
 
 $$|\text{Orb}(x)| = [G : \text{Stab}(x)] = \frac{|G|}{|\text{Stab}(x)|}$$
 
-*Proof.* We construct a bijection between $\text{Orb}(x)$ and the set of left cosets $G / \text{Stab}(x)$. Define $\Phi : G/\text{Stab}(x) \to \text{Orb}(x)$ by $\Phi(g \cdot \text{Stab}(x)) = g \cdot x$.
+*Proof.* We construct a bijection $\Phi : G/\text{Stab}(x) \to \text{Orb}(x)$ by $\Phi(g \cdot \text{Stab}(x)) = g \cdot x$.
 
-**Well-defined:** If $g \cdot \text{Stab}(x) = h \cdot \text{Stab}(x)$, then $h^{-1}g \in \text{Stab}(x)$, so $(h^{-1}g) \cdot x = x$, hence $g \cdot x = h \cdot x$.
+**Well-defined:** If $g \cdot \text{Stab}(x) = h \cdot \text{Stab}(x)$, then $h^{-1}g \in \text{Stab}(x)$, so $g \cdot x = h \cdot x$.
 
-**Surjective:** Every element of $\text{Orb}(x)$ has the form $g \cdot x$ for some $g \in G$.
+**Surjective:** Every element of $\text{Orb}(x)$ has the form $g \cdot x$.
 
-**Injective:** If $g \cdot x = h \cdot x$, then $h^{-1} \cdot (g \cdot x) = h^{-1} \cdot (h \cdot x)$, so $(h^{-1}g) \cdot x = x$, meaning $h^{-1}g \in \text{Stab}(x)$, hence $g \cdot \text{Stab}(x) = h \cdot \text{Stab}(x)$.
+**Injective:** If $g \cdot x = h \cdot x$, then $h^{-1}g \in \text{Stab}(x)$, hence $g \cdot \text{Stab}(x) = h \cdot \text{Stab}(x)$.
 
-So $\Phi$ is a bijection, giving $|\text{Orb}(x)| = |G/\text{Stab}(x)| = [G : \text{Stab}(x)]$. Multiply both sides by $|\text{Stab}(x)|$ and use Lagrange's theorem: $|G| = [G : \text{Stab}(x)] \cdot |\text{Stab}(x)| = |\text{Orb}(x)| \cdot |\text{Stab}(x)|$. $\square$
+So $|\text{Orb}(x)| = [G : \text{Stab}(x)]$, and multiplying by $|\text{Stab}(x)|$ gives $|G| = |\text{Orb}(x)| \cdot |\text{Stab}(x)|$ (using Lagrange). $\square$
+
+![Orbit-Stabilizer theorem: orbit size times stabilizer size equals group order](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/02-group-actions-and-symmetry/aa_v2_02_1_orbit_stabilizer.png)
+
+**Why this matters.** Orbit-Stabilizer is the source of nearly every counting argument in finite group theory. It shows that orbit sizes are constrained to divisors of $|G|$, which is a powerful arithmetic limitation that rules out impossible orbit decompositions before any computation is done.
+
+A historical note: the orbit-stabilizer theorem is often attributed to Lagrange in spirit, although it was not formulated in modern language until the late 19th century. Lagrange's original theorem on subgroup orders is essentially the special case of orbit-stabilizer applied to the regular action of $G$ on itself. Many "named theorems" in group theory are special cases of orbit-stabilizer in disguise; recognizing this is a major step in understanding the subject.
 
 **Worked Example: $D_4$ acting on the vertices of a square.** Label the vertices $\{1, 2, 3, 4\}$. The group $D_4$ (order $8$) acts on this set. Consider $x = 1$.
 
-The orbit: every vertex can be reached from vertex $1$ by some symmetry (e.g., rotation by $90°$ sends $1 \to 2$, by $180°$ sends $1 \to 3$, etc.), so $\text{Orb}(1) = \{1, 2, 3, 4\}$ and $|\text{Orb}(1)| = 4$.
+The orbit: every vertex can be reached from vertex $1$ by some rotation, so $\text{Orb}(1) = \{1, 2, 3, 4\}$, $|\text{Orb}(1)| = 4$.
 
-The stabilizer: $\text{Stab}(1) = \{g \in D_4 : g \cdot 1 = 1\}$. The identity fixes $1$. The reflection $s$ through the axis passing through vertex $1$ and the midpoint of the opposite side fixes $1$. So $\text{Stab}(1) = \{e, s\}$ (one can verify that no rotation except $e$ fixes vertex $1$, and only one of the four reflections does).
+The stabilizer: identity fixes $1$, and the reflection through the diagonal containing vertex $1$ also fixes $1$. So $\text{Stab}(1) = \{e, s\}$ for that diagonal reflection.
 
 Check: $|D_4| = 8 = 4 \times 2 = |\text{Orb}(1)| \times |\text{Stab}(1)|$. Confirmed.
 
-**Worked Example: $S_4$ acting on $\{1,2,3,4\}$ --- stabilizer of $1$.** We have $\text{Stab}(1) = \{\sigma \in S_4 : \sigma(1) = 1\}$, which is the set of permutations that fix $1$. These are exactly the permutations of $\{2, 3, 4\}$, so $\text{Stab}(1) \cong S_3$ and $|\text{Stab}(1)| = 6$. The orbit of $1$ is $\{1,2,3,4\}$ since $S_4$ acts transitively. Check: $24 = 4 \times 6$. $\checkmark$
+**Worked Example: $S_4$ acting on $\{1,2,3,4\}$ --- stabilizer of $1$.** $\text{Stab}(1) = \{\sigma \in S_4 : \sigma(1) = 1\}$ permutes $\{2,3,4\}$, so $\text{Stab}(1) \cong S_3$ and $|\text{Stab}(1)| = 6$. Orbit: all of $\{1,2,3,4\}$. Check: $24 = 4 \times 6$. $\checkmark$
+
+**Worked Example: rotational symmetries of the cube acting on vertices.** A cube has $8$ vertices, and its rotation group has $24$ elements. The action on vertices is transitive (any vertex can be rotated to any other), so $|\text{Orb}(v)| = 8$. By orbit-stabilizer, $|\text{Stab}(v)| = 24/8 = 3$. Indeed, the three rotations fixing a chosen vertex are the rotations by $0$, $120$, $240$ degrees about the body diagonal through that vertex.
+
+**Worked Example: $S_5$ acting on $2$-element subsets.** Let $X = \binom{\{1,\ldots,5\}}{2}$, the set of $2$-element subsets, $|X| = 10$. $S_5$ acts on $X$ by $\sigma \cdot \{a,b\} = \{\sigma(a), \sigma(b)\}$. The action is transitive (any 2-subset can be mapped to any other), so $|\text{Orb}| = 10$. By orbit-stabilizer, the stabilizer of $\{1, 2\}$ has order $|S_5|/10 = 120/10 = 12$. Concretely, the stabilizer consists of permutations that either fix both $1, 2$ (giving $S_3$ on the remaining three, $6$ elements) or swap $1$ and $2$ (giving another $6$). Total: $12$, matching the prediction.
+
+**Counting principle.** Whenever a finite group acts transitively on a finite set $X$, the size $|X|$ must divide $|G|$. This is one of those quietly powerful constraints that immediately rule out many imagined actions before any computation. For instance, $S_5$ cannot act transitively on a set of size $7$, because $7 \nmid 120$.
+
+**Worked Example: $A_4$ acting on cosets.** $A_4$ has order $12$ and contains a unique normal subgroup of order $4$ (the Klein four-group $V_4$), but no subgroup of order $6$. Suppose $A_4$ acted transitively on a set of size $6$. By orbit-stabilizer the stabilizer has order $12/6 = 2$, and the action gives a homomorphism $A_4 \to S_6$ whose kernel is a normal subgroup of $A_4$ contained in the stabilizer. The only normal subgroups of $A_4$ are $\{e\}, V_4, A_4$. None has order $\le 2$ except $\{e\}$, so the action would have to be faithful. But then $A_4 \hookrightarrow S_6$ has image of order $12$, with stabilizer of size $2$ at each of the $6$ points. A direct check shows this is incompatible with the cycle structure of $A_4$. So $A_4$ has no transitive action on a $6$-set --- equivalent to saying it has no subgroup of order $6$, as we knew.
+
+This is a paradigmatic application: the existence of a transitive action of $G$ on an $n$-set is equivalent to the existence of a subgroup of index $n$ in $G$.
+
+**Worked example: orbit decomposition of $S_4$ on $2$-subsets.** Let $X = \binom{\{1,2,3,4\}}{2}$, $|X| = 6$. $S_4$ acts on $X$ transitively. Stabilizer of $\{1, 2\}$ consists of permutations preserving the partition $\{1,2\}|\{3,4\}$: either fixing both blocks (a $\mathbb{Z}/2 \times \mathbb{Z}/2$, four elements) or swapping them (also four elements, but with constraint). Actually the stabilizer of $\{1, 2\}$ as a set consists of $\sigma \in S_4$ with $\sigma(\{1,2\}) = \{1,2\}$, namely $\sigma$ permutes $\{1,2\}$ and permutes $\{3,4\}$. Count: $2 \cdot 2 = 4$. By orbit-stabilizer $|X| = 24/4 = 6$. $\checkmark$.
+
+![The 24 rotational symmetries of the cube classified by orbit type](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/02-group-actions-and-symmetry/aa_v2_02_2_cube_rotations.png)
 
 ## Fixed Points and Burnside's Lemma
+
+Mental picture: to count things up to symmetry, average the number of things each symmetry leaves alone. This is the entire content of Burnside's lemma, modulo a couple of double-counting tricks.
 
 For a group element $g \in G$ acting on $X$, define the *fixed-point set* of $g$:
 
@@ -119,166 +158,212 @@ That is, the number of orbits equals the average number of fixed points.
 
 *Proof.* Count the set $S = \{(g, x) \in G \times X : g \cdot x = x\}$ in two ways.
 
-**Counting by $x$:** For each $x \in X$, the number of $g$ with $g \cdot x = x$ is $|\text{Stab}(x)|$. So
+**By $x$:** $|S| = \sum_{x \in X} |\text{Stab}(x)|$.
 
-$$|S| = \sum_{x \in X} |\text{Stab}(x)|$$
+**By $g$:** $|S| = \sum_{g \in G} |X^g|$.
 
-**Counting by $g$:** For each $g \in G$, the number of $x$ with $g \cdot x = x$ is $|X^g|$. So
+By orbit-stabilizer, $|\text{Stab}(x)| = |G|/|\text{Orb}(x)|$. Grouping by orbits $O_1, \ldots, O_k$:
 
-$$|S| = \sum_{g \in G} |X^g|$$
+$$\sum_{x \in X} \frac{1}{|\text{Orb}(x)|} = \sum_{i=1}^k \sum_{x \in O_i} \frac{1}{|O_i|} = \sum_{i=1}^k 1 = k$$
 
-From the orbit-stabilizer theorem, $|\text{Stab}(x)| = |G| / |\text{Orb}(x)|$. Therefore:
-
-$$\sum_{x \in X} |\text{Stab}(x)| = \sum_{x \in X} \frac{|G|}{|\text{Orb}(x)|} = |G| \sum_{x \in X} \frac{1}{|\text{Orb}(x)|}$$
-
-The inner sum, grouped by orbits: if the orbits are $O_1, \ldots, O_k$, then
-
-$$\sum_{x \in X} \frac{1}{|\text{Orb}(x)|} = \sum_{i=1}^{k} \sum_{x \in O_i} \frac{1}{|O_i|} = \sum_{i=1}^{k} 1 = k$$
-
-So $|S| = |G| \cdot k$. But also $|S| = \sum_{g \in G} |X^g|$. Equating: $k = \frac{1}{|G|} \sum_{g \in G} |X^g|$. $\square$
+So $|S| = |G| \cdot k$, giving $k = \frac{1}{|G|} \sum_{g \in G} |X^g|$. $\square$
 
 The lemma is often attributed to Burnside, though it was known earlier to Cauchy and Frobenius. Some authors call it the Cauchy-Frobenius lemma.
 
+**Why this matters.** Burnside's lemma turns "count distinct objects up to symmetry" into a finite, mechanical computation: list group elements, count fixed points of each, take the average. It scales easily from necklaces with four beads to the rotation classes of a Rubik's cube.
+
+Burnside's lemma is also one of the rare results in pure algebra that has direct industrial applications: chemists use it to count distinct isomers of molecules, computer scientists use it to count graph isomorphism classes, and combinatorialists use it to count tilings, codes, and designs. Whenever a problem asks "how many objects up to rotation/reflection/relabeling," Burnside is the first tool to reach for.
+
+![Burnside's lemma counting distinct 2-color necklaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/02-group-actions-and-symmetry/aa_v2_02_3_burnside_necklace.png)
+
 **Worked Example: Counting necklaces with 4 beads and 2 colors.**
 
-We want to count the number of distinct necklaces made of $4$ beads, each colored black or white, where two necklaces are "the same" if one can be rotated into the other. The symmetry group is the cyclic group $C_4 = \{e, r, r^2, r^3\}$ (rotations only; if we also allow flipping the necklace over, we'd use $D_4$).
+We want to count distinct necklaces of $4$ beads, each colored black or white, where two necklaces are "the same" if one rotates into the other. The symmetry group is $C_4 = \{e, r, r^2, r^3\}$.
 
-The set $X$ of all colorings has $|X| = 2^4 = 16$ elements. We need $|X^g|$ for each $g \in C_4$:
+The set $X$ of all colorings has $|X| = 2^4 = 16$. Compute fixed points:
 
-- **$g = e$ (identity):** Every coloring is fixed. $|X^e| = 16$.
-- **$g = r$ (rotation by $90°$):** A coloring is fixed if and only if all four beads have the same color. $|X^r| = 2$ (all black or all white).
-- **$g = r^2$ (rotation by $180°$):** A coloring is fixed if bead $1$ = bead $3$ and bead $2$ = bead $4$. Two free choices. $|X^{r^2}| = 2^2 = 4$.
-- **$g = r^3$ (rotation by $270°$):** Same constraint as $r$ (all beads equal). $|X^{r^3}| = 2$.
+- **$g = e$:** all $16$ colorings.
+- **$g = r$ (90°):** all four beads must match. $|X^r| = 2$.
+- **$g = r^2$ (180°):** bead $1$ = bead $3$, bead $2$ = bead $4$. $|X^{r^2}| = 4$.
+- **$g = r^3$ (270°):** all four beads must match. $|X^{r^3}| = 2$.
 
-Burnside:
+Burnside: $|\text{Orbits}| = (16 + 2 + 4 + 2)/4 = 24/4 = 6$.
 
-$$|\text{Orbits}| = \frac{1}{4}(16 + 2 + 4 + 2) = \frac{24}{4} = 6$$
+The six necklaces: BBBB, BBBW, BBWW, BWBW, BWWW, WWWW. Verified by hand.
 
-The six distinct necklaces are: BBBB, BBBW, BBWW (adjacent), BWBW (alternating), BWWW, WWWW.
+**Extended example: necklaces under $D_4$.** Including reflections (group of order $8$). Reflections come in two types:
 
-Let us verify by listing them. With beads labeled $1,2,3,4$ going clockwise, up to rotation:
+- **Through opposite vertices ($2$ reflections):** fixes 2 beads, swaps the other 2. $|X^s| = 2^3 = 8$.
+- **Through opposite edges ($2$ reflections):** swaps two pairs. $|X^s| = 2^2 = 4$.
 
-1. $\{BBBB\}$
-2. $\{BBBW, BWBB, WBBB, BBWB\}$ --- one orbit of size $4$, but wait: if we rotate BBBW by $90°$ we get WBBB, by $180°$ we get BWBB, by $270°$ we get BBWB. So this is one orbit of size $4$.
-3. $\{BBWW, WBBW, WWBB, BWWB\}$ --- one orbit (adjacent pair).
-4. $\{BWBW, WBWB\}$ --- one orbit of size $2$.
-5. $\{BWWW, WBWW, WWBW, WWWB\}$ --- one orbit of size $4$.
-6. $\{WWWW\}$
+Total: $(16 + 2 + 4 + 2 + 8 + 8 + 4 + 4)/8 = 48/8 = 6$. Same answer here, by coincidence.
 
-Total orbits: $6$. Confirmed.
+**Worked Example: 4-color necklaces of length 4 under $C_4$.** Use the same fixed-point structure but with $4$ colors instead of $2$:
 
-**Extended example: necklaces under $D_4$.** If we allow reflections (flipping the necklace), the group is $D_4$ of order $8$. We need fixed-point counts for all $8$ elements. The four rotations contribute $16 + 2 + 4 + 2 = 24$ as before. Now the reflections:
+$$N = \frac{1}{4}(4^4 + 4 + 4^2 + 4) = \frac{1}{4}(256 + 4 + 16 + 4) = \frac{280}{4} = 70$$
 
-- **Reflection through two opposite vertices (2 such reflections):** Beads at the axis are free, the other two must match. $3$ free binary choices? Let me think carefully. Say the reflection swaps beads $2 \leftrightarrow 4$ and fixes beads $1, 3$. Then we need bead $2$ = bead $4$. Three free choices (beads $1, 3, 2$), so $|X^s| = 2^3 = 8$. Same for the other such reflection.
-- **Reflection through midpoints of opposite edges (2 such reflections):** Swaps bead $1 \leftrightarrow 2$ and bead $3 \leftrightarrow 4$. Need bead $1$ = bead $2$ and bead $3$ = bead $4$. Two free choices. $|X^s| = 2^2 = 4$. Same for the other.
+So there are $70$ distinct $4$-color length-$4$ necklaces under rotation.
 
-Total: $\frac{1}{8}(16 + 2 + 4 + 2 + 8 + 8 + 4 + 4) = \frac{48}{8} = 6$.
+**Worked Example: 3-color colorings of an equilateral triangle's vertices under $D_3$.** $|X| = 3^3 = 27$. The group $D_3$ has order $6$:
 
-Interestingly, the answer is the same! This is a coincidence for this particular $(n, k)$; in general, allowing reflections reduces the count.
+- Identity: $|X^e| = 27$.
+- Rotation by $120°$ or $240°$ (two elements): all three vertices must match. $|X^g| = 3$ each, total $6$.
+- Three reflections: each fixes one vertex and swaps the other two; that pair must match. $|X^s| = 3 \cdot 3 = 9$ each, total $27$.
+
+Burnside: $(27 + 6 + 27)/6 = 60/6 = 10$. There are $10$ inequivalent $3$-colorings.
+
+Sanity check by enumeration: $3$ monochromatic (RRR, GGG, BBB), $6$ "two-and-one" types up to rotation but reflection collapses them further, and $1$ all-different (R, G, B) coloring counted once. Direct count gives $3 + 6 + 1 = 10$. Matches.
+
+![Polya enumeration: 4-colorings of a square modulo rotation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/02-group-actions-and-symmetry/aa_v2_02_7_polya_square.png)
 
 ## Conjugation and the Class Equation
 
-One of the most important group actions is the action of a group on itself by conjugation: $g \cdot x = gxg^{-1}$. The orbits under this action are called *conjugacy classes*, and the stabilizer of $x$ is the *centralizer* $C_G(x) = \{g \in G : gxg^{-1} = x\} = \{g \in G : gx = xg\}$.
+Mental picture: conjugation is the group's way of looking at itself in a mirror. Two elements are conjugate if some change of coordinates (the conjugating element) turns one into the other. The conjugacy classes are the "structural species" of the group.
+
+The action of a group on itself by conjugation: $g \cdot x = gxg^{-1}$. The orbits are *conjugacy classes*, and the stabilizer of $x$ is the *centralizer* $C_G(x) = \{g \in G : gx = xg\}$.
 
 By orbit-stabilizer, the size of the conjugacy class of $x$ is $[G : C_G(x)]$.
 
-**The center.** The center of $G$ is $Z(G) = \{z \in G : zg = gz \text{ for all } g \in G\}$. An element $x \in Z(G)$ has $C_G(x) = G$, so its conjugacy class is $\{x\}$ (a singleton). Conversely, if the conjugacy class of $x$ is $\{x\}$, then $gxg^{-1} = x$ for all $g$, so $x \in Z(G)$.
+A useful sanity check: in an abelian group, every element commutes with everything, so $C_G(x) = G$ for all $x$. Each conjugacy class has size $1$. The class equation degenerates to $|G| = |G|$. Conjugacy is therefore an interesting invariant only for non-abelian groups; in commutative settings, every element is its own structural species.
 
-**The class equation.** Let $G$ be a finite group. Partition $G$ into conjugacy classes. The classes of size $1$ correspond to elements of $Z(G)$. Let the non-singleton classes have representatives $x_1, \ldots, x_r$. Then:
+**The center.** The center of $G$ is $Z(G) = \{z \in G : zg = gz \text{ for all } g \in G\}$. An element $x \in Z(G)$ has $C_G(x) = G$, so its conjugacy class is $\{x\}$. Conversely, a singleton class $\{x\}$ implies $x \in Z(G)$.
+
+**The class equation.** Let $G$ be a finite group. Partition $G$ into conjugacy classes. Singleton classes correspond to elements of $Z(G)$. Let non-singleton classes have representatives $x_1, \ldots, x_r$. Then:
 
 $$|G| = |Z(G)| + \sum_{i=1}^{r} [G : C_G(x_i)]$$
 
 Each term $[G : C_G(x_i)]$ is a divisor of $|G|$ greater than $1$.
 
-**Worked Example: Conjugacy classes of $S_3$.** The elements of $S_3$ are $\{e, (1\ 2), (1\ 3), (2\ 3), (1\ 2\ 3), (1\ 3\ 2)\}$.
+![The class equation: conjugacy class sizes summing to group order](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/02-group-actions-and-symmetry/aa_v2_02_6_class_equation.png)
 
-Conjugacy classes in $S_n$ correspond to cycle types. In $S_3$:
-- Cycle type $(1,1,1)$: $\{e\}$ --- $1$ element
-- Cycle type $(2,1)$: $\{(1\ 2), (1\ 3), (2\ 3)\}$ --- $3$ elements
-- Cycle type $(3)$: $\{(1\ 2\ 3), (1\ 3\ 2)\}$ --- $2$ elements
+**Worked Example: Conjugacy classes of $S_3$.** Cycle types determine classes:
+- $(1,1,1)$: $\{e\}$ --- $1$ element
+- $(2,1)$: $\{(1\ 2), (1\ 3), (2\ 3)\}$ --- $3$ elements
+- $(3)$: $\{(1\ 2\ 3), (1\ 3\ 2)\}$ --- $2$ elements
 
-Verify: $1 + 3 + 2 = 6 = |S_3|$. $\checkmark$
+$1 + 3 + 2 = 6 = |S_3|$. $Z(S_3) = \{e\}$. Class equation: $6 = 1 + 3 + 2$.
 
-The center: $Z(S_3) = \{e\}$ (only the identity commutes with all elements, since $S_3$ is non-abelian and too small for a non-trivial center). Class equation: $6 = 1 + 3 + 2$.
+**Worked Example: Conjugacy classes of $D_4$.** Order $8$ with elements $\{e, r, r^2, r^3, s, rs, r^2s, r^3s\}$. Compute $rsr^{-1} = r s r^3 = r (sr^3) = r (r^{-3} s) = r^{-2} s = r^2 s$. So $s$ and $r^2 s$ are conjugate. Working through, the classes are:
+
+- $\{e\}$
+- $\{r^2\}$
+- $\{r, r^3\}$
+- $\{s, r^2 s\}$
+- $\{rs, r^3 s\}$
+
+Total: $1 + 1 + 2 + 2 + 2 = 8$. Center: $Z(D_4) = \{e, r^2\}$, of order $2$. Class equation: $8 = 2 + 2 + 2 + 2$.
+
+**Worked Example: Conjugacy classes of $S_4$.** $|S_4| = 24$. Cycle types and their sizes:
+
+| Cycle type | Representative | Class size |
+|------------|----------------|-----------|
+| $(1,1,1,1)$ | $e$ | $1$ |
+| $(2,1,1)$ | $(1\ 2)$ | $6$ |
+| $(2,2)$ | $(1\ 2)(3\ 4)$ | $3$ |
+| $(3,1)$ | $(1\ 2\ 3)$ | $8$ |
+| $(4)$ | $(1\ 2\ 3\ 4)$ | $6$ |
+
+Total: $1 + 6 + 3 + 8 + 6 = 24$. $\checkmark$. The class size formula for $S_n$ is $n! / (\prod_i i^{c_i} \cdot c_i!)$ where the cycle type is $(1^{c_1} 2^{c_2} \cdots)$. For type $(2,1,1)$: $24/(2 \cdot 2!) = 6$.
+
+**Why conjugation matters.** Two group elements are conjugate exactly when they "do the same thing in different coordinates." In $S_n$, conjugate permutations have the same cycle structure --- conjugation by $\tau$ relabels the symbols a permutation acts on. The conjugacy classes are therefore the natural "species" of group elements. Almost every classification result in finite group theory is stated in terms of conjugacy classes.
 
 **Proposition.** If $|G| = p^n$ for some prime $p$ and $n \geq 1$ (a *$p$-group*), then $Z(G) \neq \{e\}$.
 
-*Proof.* Apply the class equation: $|G| = |Z(G)| + \sum [G : C_G(x_i)]$. Each term $[G : C_G(x_i)]$ divides $|G| = p^n$ and is greater than $1$, so each is divisible by $p$. Since $|G| = p^n$ is divisible by $p$, and the sum is divisible by $p$, it follows that $|Z(G)|$ is divisible by $p$. Since $e \in Z(G)$, we have $|Z(G)| \geq 1$, but actually $|Z(G)| \geq p$. In particular $Z(G) \neq \{e\}$. $\square$
+*Proof.* Each non-singleton class has size $[G : C_G(x_i)]$ dividing $p^n$ and greater than $1$, so divisible by $p$. The class equation gives $|Z(G)| \equiv |G| \equiv 0 \pmod p$, so $|Z(G)| \geq p$. $\square$
 
-This seemingly modest result has powerful consequences. For instance, it implies that every group of order $p^2$ is abelian (proof: if $Z(G) \neq G$, then $|Z(G)| = p$, so $G/Z(G)$ has order $p$, hence is cyclic, which forces $G$ to be abelian --- a contradiction).
+**Why this matters.** This seemingly modest result is the engine driving Sylow theory. It implies, for instance, that every group of order $p^2$ is abelian: if $|Z(G)| = p$, then $G/Z(G)$ has order $p$, hence is cyclic, which forces $G$ abelian --- a contradiction. So $|Z(G)| = p^2$, meaning $G = Z(G)$.
+
+The fact that $p$-groups always have a non-trivial center makes them dramatically easier to analyze than arbitrary finite groups: every $p$-group has a non-trivial normal subgroup (any subgroup of $Z(G)$ is normal), so we can always factor and induct. This is in stark contrast to *simple* groups, which by definition have no proper non-trivial normal subgroups, and which power the harder parts of finite group theory.
 
 ## Applications: Coloring Problems and Rubik's Cube Symmetries
 
 **Application 1: Coloring the faces of a cube with $k$ colors.**
 
-A cube has $6$ faces. The rotation group of the cube has $24$ elements (isomorphic to $S_4$, the symmetric group on $4$ body diagonals). We want to count colorings of the $6$ faces using $k$ colors, up to rotation.
+A cube has $6$ faces. The rotation group of the cube has $24$ elements (isomorphic to $S_4$). The $24$ rotations:
 
-The $24$ rotations, grouped by type:
-
-| Rotation type | Count | Fixed colorings |
-|--------------|-------|-----------------|
-| Identity | $1$ | $k^6$ |
-| Face rotations ($90°$ and $270°$) | $6$ | $k^3$ (the top/bottom faces are fixed separately, the $4$ side faces must all match) |
-| Face rotations ($180°$) | $3$ | $k^4$ (top free, bottom free, side faces split into $2$ pairs) |
-| Vertex rotations ($120°$ and $240°$) | $8$ | $k^2$ (faces split into $2$ triples, each triple must be uniform) |
-| Edge rotations ($180°$) | $6$ | $k^3$ (faces split into $3$ pairs, each pair must match) |
-
-Wait, let me recount. The rotation group of a cube consists of:
 - $1$ identity
-- $6$ face rotations by $\pm 90°$ (3 axes, 2 rotations each)
+- $6$ face rotations by $\pm 90°$
 - $3$ face rotations by $180°$
-- $8$ vertex rotations by $\pm 120°$ (4 body diagonals, 2 rotations each)
-- $6$ edge rotations by $180°$ (6 axes through midpoints of opposite edges)
+- $8$ vertex rotations by $\pm 120°$
+- $6$ edge rotations by $180°$
 
-Total: $1 + 6 + 3 + 8 + 6 = 24$. $\checkmark$
+Total $1 + 6 + 3 + 8 + 6 = 24$. Compute $|X^g|$ for $X = $ all $k$-colorings of $6$ faces:
 
-Now compute $|X^g|$ for each type (where $X$ is the set of all $k$-colorings of $6$ faces):
-
-- **Identity:** All $k^6$ colorings are fixed.
-- **Face rotation by $90°$ or $270°$:** The axis passes through the centers of two opposite faces. Those two faces are each fixed individually (but may have different colors). The four side faces are cyclically permuted, so they must all be the same color. Free choices: $k$ (top) $\times$ $k$ (bottom) $\times$ $k$ (sides) $= k^3$.
-- **Face rotation by $180°$:** Same axis. Top face fixed, bottom face fixed. Four side faces split into two pairs of opposite faces; each pair must match. Free choices: $k \times k \times k \times k = k^4$. Wait: top ($k$), bottom ($k$), pair 1 ($k$), pair 2 ($k$) = $k^4$.
-- **Vertex rotation by $120°$ or $240°$:** The axis passes through two opposite vertices. The three faces meeting at one vertex are cyclically permuted (must all match), and the three faces meeting at the other vertex are cyclically permuted (must all match). Free choices: $k \times k = k^2$.
-- **Edge rotation by $180°$:** The axis passes through midpoints of two opposite edges. No face is fixed; the six faces are paired into three pairs, each swapped. Each pair must match. Free choices: $k^3$.
+- **Identity:** $k^6$.
+- **Face $\pm 90°$:** top, bottom free; four sides cycle and must all match. $k^3$.
+- **Face $180°$:** top, bottom free; sides split into two opposite pairs. $k^4$.
+- **Vertex $\pm 120°$:** two triples of faces, each must be uniform. $k^2$.
+- **Edge $180°$:** three pairs of faces, each must match. $k^3$.
 
 Burnside:
 
 $$N = \frac{1}{24}\left(k^6 + 6k^3 + 3k^4 + 8k^2 + 6k^3\right) = \frac{1}{24}\left(k^6 + 3k^4 + 12k^3 + 8k^2\right)$$
 
-For $k = 2$: $N = \frac{1}{24}(64 + 48 + 96 + 32) = \frac{240}{24} = 10$.
+For $k = 2$: $N = \frac{1}{24}(64 + 48 + 96 + 32) = 240/24 = 10$.
 
-So there are $10$ distinct ways to color the faces of a cube with $2$ colors, up to rotation.
+For $k = 3$: $N = \frac{1}{24}(729 + 243 + 324 + 72) = 1368/24 = 57$.
 
-For $k = 3$: $N = \frac{1}{24}(729 + 243 + 324 + 72) = \frac{1368}{24} = 57$.
+For $k = 6$ (one color per face): $N = \frac{1}{24}(46656 + 3888 + 2592 + 288) = 53424/24 = 2226$. Since you must use each color exactly once for a Rubik's cube setup, the count of distinct standard cubes is $6!/24 = 30$.
 
-**Application 2: Understanding Rubik's cube symmetries.**
+A subtle confusion worth flagging: $N = 2226$ counts colorings allowing repetition with $6$ colors, while the problem of "label the $6$ faces with $6$ distinct colors" is a strict-bijection variant whose count is $720/24 = 30$. Both calculations use orbit-stabilizer, but on different sets.
 
-The Rubik's cube is a physical puzzle, but its mathematical structure is a group-theoretic object. The group of all possible moves (sequences of face rotations) acts on the set of configurations. This group --- call it $\mathcal{R}$ --- is a subgroup of $S_{48}$ (since there are $48$ colored facelets that can be permuted, excluding the $6$ center facelets which are fixed by construction). Its order is:
+**Application 2: Rubik's cube symmetries.**
 
-$$|\mathcal{R}| = \frac{8! \cdot 3^8 \cdot 12! \cdot 2^{12}}{12} = 43{,}252{,}003{,}274{,}489{,}856{,}000$$
+The Rubik's cube group $\mathcal{R}$ acts on the set of $48$ non-center facelets and has order
 
-approximately $4.3 \times 10^{19}$. The factors account for: $8!$ positions of corner cubies, $3^8$ orientations of corners (divided by $3$ for the constraint that total twist is $0 \mod 3$), $12!$ positions of edge cubies, $2^{12}$ orientations of edges (divided by $2$ for the parity constraint), and an additional factor of $1/2$ because the overall permutation parity of corners and edges must match.
+$$|\mathcal{R}| = \frac{8! \cdot 3^8 \cdot 12! \cdot 2^{12}}{12} = 43{,}252{,}003{,}274{,}489{,}856{,}000 \approx 4.3 \times 10^{19}$$
 
-This is not a number one derives casually; it requires understanding the group structure. The Rubik's cube group is generated by $6$ elements (the six face rotations $U, D, L, R, F, B$) and has a rich internal structure involving commutator subgroups, normal series, and eventually an expression as a semidirect product.
+The factors: $8!$ corner positions, $3^8$ corner orientations (over $3$ for total-twist constraint), $12!$ edge positions, $2^{12}$ edge orientations (over $2$ for parity), times $1/2$ for matching corner-edge parity.
 
-The key insight from the action perspective: the group $\mathcal{R}$ acts on the $4.3 \times 10^{19}$ configurations transitively (any solvable configuration can reach the solved state). The orbit-stabilizer theorem tells us that the stabilizer of any particular configuration (say, the solved state) has size $1$ --- because the only move sequence that takes the solved state to the solved state is the trivial one (do nothing). This means $|\text{Orb}| = |\mathcal{R}|/1 = |\mathcal{R}|$, confirming that every configuration is reachable.
+Action perspective: $\mathcal{R}$ acts transitively on the $4.3 \times 10^{19}$ solvable configurations, with trivial stabilizer at the solved state. Orbit-stabilizer confirms $|\text{Orb}| = |\mathcal{R}|$.
 
-**Application 3: Why are there exactly $2$ nonisomorphic groups of order $6$?**
+A practical consequence: the diameter of the cube graph (the maximum number of moves needed to solve any configuration, "God's number") was proved to be exactly $20$ in 2010, using a combination of group theory and large-scale computer search. The fact that $20$ moves suffice is a statement about the geometry of $\mathcal{R}$ as a Cayley graph generated by the six face turns.
 
-Consider a group $G$ with $|G| = 6 = 2 \times 3$. By Lagrange, the possible element orders are $1, 2, 3, 6$. If $G$ has an element of order $6$, then $G \cong \mathbb{Z}/6\mathbb{Z}$, which is abelian. Otherwise, $G$ has no element of order $6$.
+**Application 3: Why are there exactly $2$ groups of order $6$?**
 
-By Cauchy's theorem (which follows from the class equation applied to $p$-groups, extended to general groups), $G$ has an element $a$ of order $3$ and an element $b$ of order $2$. The subgroup $\langle a \rangle = \{e, a, a^2\}$ has index $2$ in $G$, hence is normal. The element $b$ is not in $\langle a \rangle$ (since $b$ has order $2$, not $1$ or $3$). The six elements of $G$ are $\{e, a, a^2, b, ab, a^2 b\}$.
+Let $|G| = 6$. By Lagrange, possible element orders are $1, 2, 3, 6$. If $G$ has an element of order $6$, $G \cong \mathbb{Z}/6\mathbb{Z}$. Otherwise, $G$ has elements $a$ of order $3$ and $b$ of order $2$ (Cauchy's theorem). The subgroup $\langle a \rangle$ has index $2$, hence is normal. Conjugation: $bab^{-1} \in \langle a \rangle$, so $bab^{-1} \in \{a, a^2\}$. The case $bab^{-1} = a$ forces $G$ abelian, contradiction. So $bab^{-1} = a^{-1}$, giving $G \cong S_3$.
 
-Conjugation: $bab^{-1} = ba b \in \langle a \rangle$ (since $\langle a \rangle$ is normal), so $bab = a$ or $bab = a^2$. If $bab = a$, then $ba = ab$, so $G$ is abelian and $ab$ has order $6$, contradicting our assumption. So $bab = a^2 = a^{-1}$. This relation, together with $a^3 = e$ and $b^2 = e$, determines the multiplication table completely, giving $G \cong S_3 \cong D_3$.
+Two groups of order $6$: $\mathbb{Z}/6\mathbb{Z}$ and $S_3$. The action viewpoint pinpoints the structural dichotomy.
 
-So the only groups of order $6$ are $\mathbb{Z}/6\mathbb{Z}$ and $S_3$, and the group action viewpoint (specifically, the normality forced by index $2$ and the conjugation structure) is what pins this down.
+**Why this matters.** The same kind of argument --- "find a normal subgroup, classify the conjugation action of the quotient on it" --- is the engine behind the classification of groups of every small order. Up to order $15$, this can be done by hand; modern classification of finite simple groups extended this idea to a 10000-page proof.
+
+**Application 4: counting bracelets of length $5$ with $2$ colors under $D_5$.** $D_5$ has order $10$ ($5$ rotations, $5$ reflections). Fixed-point counts:
+
+- Identity: $2^5 = 32$.
+- Rotations by $72°, 144°, 216°, 288°$: each has order $5$, all beads must match. $|X^g| = 2$ each, total $4 \cdot 2 = 8$.
+- Each of the $5$ reflections has axis through one vertex and the opposite edge midpoint. Fixes the on-axis vertex and pairs the other $4$ beads into $2$ pairs. $|X^s| = 2 \cdot 2^2 = 8$. Total $5 \cdot 8 = 40$.
+
+Burnside: $(32 + 8 + 40)/10 = 80/10 = 8$. So there are $8$ bracelets.
+
+If we use only rotations (group $C_5$, order $5$), the count becomes $(32 + 4 \cdot 2)/5 = 40/5 = 8$. Same answer here: for $5$-bead $2$-color bracelets, reflections do not produce additional identifications because no $2$-color length-$5$ pattern is its own reflection except those already symmetric under rotation. This is one of those numerical coincidences that initially looks meaningful and turns out to be small-case noise.
+
+**Application 5: counting orbits of $S_n$ on functions $\{1,\ldots,n\} \to \{1,\ldots,k\}$.** A function from $n$ to $k$ is the same as a multiset of size $n$ chosen from $k$ symbols, once we quotient by relabeling of the input set. Burnside gives:
+
+$$N = \frac{1}{n!} \sum_{\sigma \in S_n} k^{c(\sigma)}$$
+
+where $c(\sigma)$ is the number of cycles of $\sigma$ (including fixed points). The right-hand side, after grouping by cycle type, is the standard formula $\binom{n+k-1}{n}$ for multisets. The fact that this combinatorial identity drops out of Burnside is one of the quiet pleasures of the subject.
+
+**Numerical instance.** Take $n = 3, k = 2$. Then $\binom{4}{3} = 4$. Check via Burnside: $S_3$ has cycle types and cycle counts $(e: 3, (1\ 2): 2, (1\ 3): 2, (2\ 3): 2, (1\ 2\ 3): 1, (1\ 3\ 2): 1)$, so the sum is $2^3 + 2^2 + 2^2 + 2^2 + 2 + 2 = 8 + 12 + 4 = 24$, and $24/6 = 4$. Match. The four multisets of size $3$ from $\{0, 1\}$ are $\{0,0,0\}, \{0,0,1\}, \{0,1,1\}, \{1,1,1\}$.
+
+**Numerical instance, larger.** Take $n = 4, k = 3$. Multiset count: $\binom{6}{4} = 15$. Burnside on $S_4$: cycle counts per element type are $(e: 4, (a\ b): 3, (a\ b)(c\ d): 2, (a\ b\ c): 2, (a\ b\ c\ d): 1)$ with class sizes $(1, 6, 3, 8, 6)$. Sum: $1 \cdot 3^4 + 6 \cdot 3^3 + 3 \cdot 3^2 + 8 \cdot 3^2 + 6 \cdot 3 = 81 + 162 + 27 + 72 + 18 = 360$. Divide by $|S_4| = 24$: $360/24 = 15$. Match.
+
+**A note on Polya enumeration.** Burnside's lemma generalizes to a *cycle-index polynomial* construction due to Polya, which lets us count colorings stratified by color usage. The cycle index of a permutation group $G$ acting on $\{1,\ldots,n\}$ is
+
+$$Z_G(z_1, \ldots, z_n) = \frac{1}{|G|} \sum_{\sigma \in G} z_1^{c_1(\sigma)} z_2^{c_2(\sigma)} \cdots z_n^{c_n(\sigma)}$$
+
+where $c_i(\sigma)$ is the number of $i$-cycles in $\sigma$. Substituting $z_i \to k$ for all $i$ recovers Burnside; substituting $z_i \to x_1^i + x_2^i + \cdots + x_k^i$ gives a generating function tracking color usage. We will not develop this fully here, but the punchline is: cycle structure of permutations is the data Burnside needs.
 
 ## What Comes Next
 
 Group actions are a lens through which abstract group structure becomes visible. The orbit-stabilizer theorem converts questions about group size into questions about orbits and fixed points. Burnside's lemma converts counting-up-to-symmetry into an average over fixed-point counts. The class equation, derived from the conjugation action, reveals structural constraints on finite groups that lead to deep theorems.
 
-In the next article, we turn to *normal subgroups and quotient groups*. A normal subgroup $N \trianglelefteq G$ is precisely a subgroup whose left and right cosets coincide, or equivalently, a subgroup invariant under the conjugation action. The quotient $G/N$ is a new group whose elements are the cosets of $N$, and the natural map $G \to G/N$ is the prototype of a group homomorphism. This leads to the isomorphism theorems --- the structural backbone of the entire subject.
+In the next article, we turn to *normal subgroups and quotient groups*. A normal subgroup $N \trianglelefteq G$ is precisely a subgroup invariant under the conjugation action. The quotient $G/N$ is a new group whose elements are the cosets of $N$, and the natural map $G \to G/N$ is the prototype of a group homomorphism. This leads to the isomorphism theorems --- the structural backbone of the entire subject.
 
 The tools developed here --- orbits, stabilizers, conjugacy classes --- will reappear throughout the series. They are not optional machinery for special problems; they are the standard vocabulary for analyzing any finite group. Every theorem from the Sylow theorems to the classification of finite simple groups relies on counting arguments rooted in the orbit-stabilizer framework.
+
+**A summary in one sentence.** Group actions translate group theory into combinatorics; orbit-stabilizer is the dictionary, Burnside is the bilingual word frequency table, and the class equation is the structural fingerprint that controls everything.
+
+**Reading recommendations.** For a deep dive into actions, the chapter on group actions in Dummit and Foote covers everything we touched on and more, including double cosets, $G$-equivariant maps, and the orbit-counting interpretation of double cosets. For a more combinatorial bent, Stanley's *Enumerative Combinatorics* (vol. 2) develops Polya theory and applications to enumeration with great care. Tom Leinster's *Basic Category Theory* gives the modern abstract perspective: a $G$-set is the same as a functor from the one-object category $BG$ to $\mathbf{Set}$.
 
 ---
 

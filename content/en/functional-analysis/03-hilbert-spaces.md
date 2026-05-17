@@ -17,343 +17,292 @@ series_total: 12
 translationKey: "functional-analysis-3"
 ---
 
-Banach spaces give us completeness and a norm, but they lack the one ingredient that makes Euclidean geometry possible: *angles*. Without a notion of perpendicularity, there is no way to project a vector onto a subspace, no way to decompose a signal into orthogonal components, no Fourier series. Hilbert spaces restore all of this by equipping a complete vector space with an **inner product**, and the consequences are remarkably powerful.
+# Hilbert Spaces — Geometry in Infinite Dimensions
 
-This article develops the theory of Hilbert spaces from the inner product axioms through to the Riesz Representation Theorem, which characterizes every continuous linear functional as an inner product — a result with no analogue in general Banach spaces.
+## Why I Like Hilbert Spaces More Than Banach Spaces
 
----
+If a Banach space is a normed space that has agreed to be complete, a Hilbert space is a Banach space that has further agreed to admit angles. That extra agreement is what restores almost all of finite-dimensional geometry — orthogonality, projection, the right-angle Pythagoras identity — to the infinite-dimensional setting. In return, the structure is rigid enough that every separable Hilbert space looks like exactly one model, $\ell^2$. There is essentially one infinite-dimensional Hilbert space up to isomorphism, and everything we ever do in the theory amounts to picking a basis and counting coordinates.
 
-## Inner Products and the Parallelogram Law
+The price of admission is a single extra axiom: an inner product. The reward, geometric and computational, is enormous. Linear regression, Fourier series, quantum mechanics, signal processing, the energy method in PDE — every one of these is a Hilbert-space argument in disguise. The inner product gives them all a single grammar.
 
-### The inner product axioms
+## Inner Products and Hilbert Spaces
 
-Let $H$ be a vector space over $\mathbb{F}$ (where $\mathbb{F} = \mathbb{R}$ or $\mathbb{C}$). An **inner product** on $H$ is a map $\langle \cdot, \cdot \rangle : H \times H \to \mathbb{F}$ satisfying:
+Let $\mathcal{H}$ be a vector space over $\mathbb{C}$ (the real case is similar with conjugate signs removed). An **inner product** is a function $\langle \cdot, \cdot \rangle : \mathcal{H} \times \mathcal{H} \to \mathbb{C}$ satisfying for all $x, y, z \in \mathcal{H}$ and $\alpha \in \mathbb{C}$:
 
-![Orthogonal projection onto a closed subspace in Hilbert space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/03-hilbert-spaces/fa_fig2_projection.png)
+1. $\langle x, x \rangle \geq 0$, with equality iff $x = 0$ (positive definiteness).
+2. $\langle x, y \rangle = \overline{\langle y, x \rangle}$ (conjugate symmetry).
+3. $\langle \alpha x + z, y \rangle = \alpha \langle x, y \rangle + \langle z, y \rangle$ (linearity in the first argument).
 
+Conjugate symmetry then forces *conjugate*-linearity in the second argument: $\langle x, \alpha y \rangle = \overline{\alpha} \langle x, y \rangle$. (Some authors put linearity in the second slot; the choice is irrelevant once everyone agrees.)
 
-1. **Conjugate symmetry:** $\langle x, y \rangle = \overline{\langle y, x \rangle}$ for all $x, y \in H$.
-2. **Linearity in the first argument:** $\langle \alpha x + \beta y, z \rangle = \alpha \langle x, z \rangle + \beta \langle y, z \rangle$.
-3. **Positive definiteness:** $\langle x, x \rangle \geq 0$, with equality if and only if $x = 0$.
+The inner product induces a norm by $\|x\| = \langle x, x \rangle^{1/2}$. It is positive definite by axiom 1, homogeneous because $\langle \alpha x, \alpha x \rangle = |\alpha|^2 \langle x, x \rangle$, and the triangle inequality follows from the Cauchy-Schwarz inequality, which is the central lemma of the subject.
 
-The convention here is "linear in the first argument" (the physics convention reverses this). In the real case, conjugate symmetry reduces to ordinary symmetry: $\langle x, y \rangle = \langle y, x \rangle$.
+**Cauchy-Schwarz.** For all $x, y \in \mathcal{H}$, $|\langle x, y \rangle| \leq \|x\| \|y\|$, with equality iff $x, y$ are linearly dependent.
 
-From these axioms, we obtain a norm via $\|x\| = \sqrt{\langle x, x \rangle}$. That this is indeed a norm (in particular, that the triangle inequality holds) follows from the Cauchy-Schwarz inequality, which we prove below. A **Hilbert space** is an inner product space that is **complete** with respect to this induced norm — that is, every Cauchy sequence converges.
+*Proof.* If $y = 0$, both sides vanish. Otherwise, set $\lambda = \langle x, y \rangle / \|y\|^2$. Expand $0 \leq \|x - \lambda y\|^2 = \|x\|^2 - 2 \mathrm{Re}(\overline{\lambda} \langle x, y \rangle) + |\lambda|^2 \|y\|^2$, simplify with the value of $\lambda$, and the inequality drops out. $\square$
 
-**Example 1.** The space $\ell^2$ of square-summable sequences with inner product
+A **pre-Hilbert space** is a vector space with an inner product. A **Hilbert space** is a pre-Hilbert space that is complete in the induced norm.
 
-$$\langle x, y \rangle = \sum_{n=1}^{\infty} x_n \overline{y_n}$$
+![Inner product geometry: angle and length](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/03-hilbert-spaces/fa_v2_03_1_inner_product.png)
 
-is the prototypical separable Hilbert space. Completeness follows from the Riesz-Fischer theorem.
+### Examples
 
-**Example 2.** The Lebesgue space $L^2[a,b]$ with inner product
+- $\mathbb{C}^n$ with $\langle x, y \rangle = \sum_i x_i \overline{y_i}$ (the standard Hermitian inner product).
+- $\ell^2$ with $\langle x, y \rangle = \sum_n x_n \overline{y_n}$. The Cauchy-Schwarz inequality on $\mathbb{C}^n$ passes to a limit to give convergence of the sum.
+- $L^2(\Omega, \mu)$ with $\langle f, g \rangle = \int_\Omega f \overline{g}\, d\mu$ for any measure space $(\Omega, \mu)$. This is the Hilbert space of every quantum mechanic and PDE analyst.
+- The Sobolev space $H^1(\Omega) = W^{1,2}(\Omega)$ with $\langle f, g \rangle_{H^1} = \int (f \overline{g} + \nabla f \cdot \overline{\nabla g})$.
 
-$$\langle f, g \rangle = \int_a^b f(t)\overline{g(t)}\, dt$$
+### Worked numerical example
 
-is a Hilbert space. This is the natural setting for Fourier analysis — and, more broadly, for any problem where one wants to measure the "energy" of a function.
+In $L^2[0,1]$, take $f(t) = 1$ and $g(t) = t$. Then $\|f\|_2^2 = 1$, $\|g\|_2^2 = \int_0^1 t^2\,dt = 1/3$, $\langle f, g \rangle = \int_0^1 t\,dt = 1/2$. Cauchy-Schwarz: $|\langle f, g \rangle| = 1/2 \leq \|f\| \cdot \|g\| = 1 \cdot 1/\sqrt{3} \approx 0.577$. The angle between $f$ and $g$ is $\theta$ with $\cos \theta = (1/2)/(1/\sqrt{3}) = \sqrt{3}/2$, so $\theta = \pi/6 = 30°$. So in the geometry of $L^2$, the constant function and the identity function meet at a $30$ degree angle. This is what I mean by "angles in function spaces": once we have an inner product, the language of geometry transports verbatim.
 
-**Example 2b.** The **Sobolev space** $W^{1,2}[0,1]$ consists of functions $f \in L^2[0,1]$ whose weak derivative $f'$ also belongs to $L^2[0,1]$. With the inner product
+## The Parallelogram Identity
 
-$$\langle f, g \rangle_{W^{1,2}} = \int_0^1 f(t)\overline{g(t)}\, dt + \int_0^1 f'(t)\overline{g'(t)}\, dt,$$
-
-this is a Hilbert space. It arises naturally in the variational formulation of boundary value problems: the weak form of $-u'' = f$ on $[0,1]$ lives in $W^{1,2}_0[0,1]$ (functions vanishing at the boundary).
-
-### The Cauchy-Schwarz inequality
-
-The single most important inequality in all of analysis:
-
-$$|\langle x, y \rangle| \leq \|x\| \cdot \|y\|$$
-
-with equality if and only if $x$ and $y$ are linearly dependent. The proof is a short computation: for any $\lambda \in \mathbb{F}$,
-
-$$0 \leq \|x - \lambda y\|^2 = \|x\|^2 - 2\operatorname{Re}(\lambda \langle y, x \rangle) + |\lambda|^2 \|y\|^2.$$
-
-Choosing $\lambda = \langle x, y \rangle / \|y\|^2$ (when $y \neq 0$) and simplifying yields the result. For the case $y = 0$, both sides are zero and the inequality is trivial.
-
-The Cauchy-Schwarz inequality has immediate consequences. First, it shows that $\|x + y\| \leq \|x\| + \|y\|$ (the triangle inequality for the induced norm), confirming that $\|x\| = \sqrt{\langle x, x \rangle}$ is indeed a norm. Second, it guarantees that the inner product is **continuous** as a function of both arguments: if $x_n \to x$ and $y_n \to y$ in norm, then $\langle x_n, y_n \rangle \to \langle x, y \rangle$. This continuity is essential for working with limits and series in Hilbert spaces.
-
-### The polarization identity
-
-The inner product can be recovered from the norm alone. In the real case:
-
-$$\langle x, y \rangle = \frac{1}{4}\left(\|x + y\|^2 - \|x - y\|^2\right).$$
-
-In the complex case:
-
-$$\langle x, y \rangle = \frac{1}{4}\sum_{k=0}^{3} i^k \|x + i^k y\|^2.$$
-
-These are the **polarization identities**. They show that angles are encoded in distances — if you know all pairwise distances, you can reconstruct all inner products. The polarization identity is also the key tool in the proof of the von Neumann-Jordan theorem.
-
-### The parallelogram law
-
-Every inner product norm satisfies the **parallelogram law**:
-
+The single algebraic identity that distinguishes inner-product norms from generic norms is the **parallelogram law**:
 $$\|x + y\|^2 + \|x - y\|^2 = 2\|x\|^2 + 2\|y\|^2.$$
+Geometrically: the sum of squared diagonals of a parallelogram equals the sum of squared sides. Proof: expand both sides using $\|u\|^2 = \langle u, u \rangle$.
 
-This identity has a geometric reading: in a parallelogram, the sum of the squares of the diagonals equals the sum of the squares of all four sides.
+The remarkable converse is the **Jordan-von Neumann theorem**: a norm satisfies the parallelogram law iff it comes from an inner product. The inner product is then recovered by the **polarization identity**:
+$$\langle x, y \rangle = \tfrac{1}{4}\big( \|x+y\|^2 - \|x-y\|^2 + i\|x+iy\|^2 - i\|x-iy\|^2 \big).$$
+So I can detect "Hilbertness" of a Banach space by checking a single algebraic identity. The check is concrete: take $x = (1,0)$ and $y = (0,1)$ in $\ell^p_2$. Then $\|x+y\|_p^2 + \|x-y\|_p^2 = 2 \cdot 2^{2/p}$, while $2\|x\|^2 + 2\|y\|^2 = 4$. Equality forces $2^{2/p} = 2$, i.e. $p = 2$. So among the $\ell^p$ family, only $\ell^2$ is Hilbert. The $\ell^p$ family with $p \neq 2$ is forever stuck being only Banach.
 
-The remarkable converse — the **von Neumann-Jordan theorem** — states that if a Banach space satisfies the parallelogram law, then there exists a unique inner product that generates the norm (recovered via the polarization identity). This is precisely why **Hilbert spaces are more than Banach spaces**: the parallelogram law is an extra structural constraint that unlocks geometry.
+### Why this matters
 
-**Why $L^p$ for $p \neq 2$ is not a Hilbert space.** Consider $f = \mathbf{1}_{[0,1/2]}$ and $g = \mathbf{1}_{(1/2,1]}$ in $L^p[0,1]$. Then $\|f\|_p = \|g\|_p = 2^{-1/p}$, $\|f+g\|_p = 1$, $\|f-g\|_p = 1$. The parallelogram law requires $1 + 1 = 2(2^{-2/p}) + 2(2^{-2/p}) = 4 \cdot 2^{-2/p}$, i.e., $2^{2/p} = 2$, which forces $p = 2$.
+The parallelogram law is the algebraic shadow of *roundness* of the unit ball. Any norm coming from an inner product gives a strictly convex, smooth ball — no corners, no flats. This is what unlocks unique best approximation: in a Hilbert space, every closed convex set has a unique closest point, no exceptions. In a Banach space without strict convexity, that uniqueness fails. The whole power of Hilbert space theory traces back to this single geometric property.
 
----
+## Orthogonality and the Pythagorean Theorem
 
-## Orthogonality and Orthogonal Complements
+Two vectors $x, y \in \mathcal{H}$ are **orthogonal** if $\langle x, y \rangle = 0$, written $x \perp y$. A subset $S \subseteq \mathcal{H}$ is orthogonal if its members are pairwise orthogonal, and **orthonormal** if additionally each has norm $1$.
 
-### Orthogonality
+The Pythagorean theorem holds in full generality: if $x \perp y$, then $\|x + y\|^2 = \|x\|^2 + \|y\|^2$. By induction, for an orthogonal family $\{x_1, \ldots, x_n\}$, $\|\sum x_i\|^2 = \sum \|x_i\|^2$.
 
-Two elements $x, y \in H$ are **orthogonal**, written $x \perp y$, if $\langle x, y \rangle = 0$. A set $S \subseteq H$ is an **orthogonal set** if every pair of distinct elements is orthogonal; it is **orthonormal** if additionally $\|e\| = 1$ for each $e \in S$.
+Given a subspace $M \subseteq \mathcal{H}$, its **orthogonal complement** is $M^\perp = \{ y : \langle y, x \rangle = 0 \text{ for all } x \in M \}$. The orthogonal complement is always closed (being the intersection of zero-sets of continuous functionals $x \mapsto \langle x, y \rangle$ for $y \in M$).
 
-The **orthogonal complement** of a subset $S \subseteq H$ is
+## Orthogonal Projection
 
-$$S^{\perp} = \{x \in H : \langle x, s \rangle = 0 \text{ for all } s \in S\}.$$
+Let $M \subseteq \mathcal{H}$ be a closed subspace. The **orthogonal projection** $P_M : \mathcal{H} \to M$ is defined by: for each $x \in \mathcal{H}$, $P_M x$ is the unique element of $M$ closest to $x$. The closeness comes from the parallelogram law: take a sequence $(y_n) \subseteq M$ with $\|x - y_n\| \to d(x, M)$, apply the parallelogram law to $x - y_n$ and $x - y_m$, and conclude that $(y_n)$ is Cauchy. Completeness gives a limit $y^* \in M$ (since $M$ is closed), uniqueness from strict convexity.
 
-Key properties: $S^{\perp}$ is always a closed subspace (even if $S$ is not — the intersection of closed sets obtained from continuity of the inner product), $(S^{\perp})^{\perp} \supseteq \overline{\operatorname{span}}(S)$, and in a Hilbert space equality holds: $(S^{\perp})^{\perp} = \overline{\operatorname{span}}(S)$.
+The defining feature of the projection is the orthogonality relation $x - P_M x \perp M$. Any element of $M$ closer to $x$ would contradict the minimality, and the difference is then orthogonal to $M$ for the same reason.
 
-The **Pythagorean theorem** extends to Hilbert spaces: if $x_1, \ldots, x_n$ are pairwise orthogonal, then
+![Orthogonal projection of a vector onto a closed subspace](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/03-hilbert-spaces/fa_v2_03_2_orthogonal_proj.png)
 
-$$\left\|\sum_{k=1}^n x_k\right\|^2 = \sum_{k=1}^n \|x_k\|^2.$$
+This projection has all the properties one expects: it is bounded (with $\|P_M\| = 1$ when $M \neq 0$), idempotent ($P_M^2 = P_M$), and self-adjoint ($\langle P_M x, y \rangle = \langle x, P_M y \rangle$). Conversely, any bounded operator on $\mathcal{H}$ that is self-adjoint and idempotent is an orthogonal projection onto its range.
 
-This generalizes to infinite orthogonal sums when the series converges. The Pythagorean theorem is the engine behind Parseval's identity and the energy decomposition that makes Hilbert spaces so useful in signal processing and physics.
+The orthogonal decomposition theorem follows: $\mathcal{H} = M \oplus M^\perp$ for any closed subspace $M$. Every $x$ writes uniquely as $x = P_M x + (x - P_M x)$ with the two pieces orthogonal. As a corollary, $(M^\perp)^\perp = M$ for closed $M$ — a far-from-obvious fact whose Banach-space analog requires Hahn-Banach.
 
-### The Projection Theorem
+### Numerical example: least squares
 
-This is the geometric heart of Hilbert space theory.
+Take $\mathcal{H} = \mathbb{R}^3$ and let $M$ be the plane spanned by $u = (1, 0, 0)$ and $v = (0, 1, 0)$. To project $x = (3, 4, 5)$ onto $M$: $P_M x = \langle x, u \rangle u + \langle x, v \rangle v = 3 \cdot u + 4 \cdot v = (3, 4, 0)$. The residual $x - P_M x = (0, 0, 5)$ is orthogonal to $M$, as expected.
 
-**Theorem (Orthogonal Projection).** Let $M$ be a **closed convex subset** of a Hilbert space $H$, and let $x \in H$. Then there exists a unique $m_0 \in M$ such that
+This is exactly the linear regression formula. Given data points $(x_i, y_i)$, the best-fitting line $y = ax + b$ in the least-squares sense is the orthogonal projection of the vector $y \in \mathbb{R}^n$ onto the two-dimensional subspace spanned by $(1, 1, \ldots, 1)$ and $(x_1, \ldots, x_n)$. The least-squares "solution" is just an orthogonal projection in disguise. The same machinery generalizes to least-squares fitting in $L^2$ (best polynomial approximation, best Fourier approximation, best wavelet approximation): all are orthogonal projections in some Hilbert space.
 
-$$\|x - m_0\| = \inf_{m \in M} \|x - m\| =: d(x, M).$$
+### Why this matters
 
-When $M$ is a closed **subspace**, this nearest point $m_0$ is characterized by the condition $x - m_0 \perp M$, and we get the orthogonal decomposition $H = M \oplus M^{\perp}$.
+In any Banach space without an inner product, the closest-point projection might not exist or might not be unique. Even if it exists, it need not be linear. The fact that the projection in a Hilbert space is *linear and continuous* is precisely what makes Hilbert space the right setting for variational methods, optimization, and any algorithm involving "the closest function with property P." Without strict convexity, such "closest function" arguments break down.
 
-**Proof sketch.** Let $d = \inf_{m \in M} \|x - m\|$ and choose a minimizing sequence $(m_n)$ with $\|x - m_n\| \to d$.
+## Orthonormal Bases and Fourier Coefficients
 
-*Existence.* Apply the parallelogram law to $x - m_n$ and $x - m_k$:
+Let $\mathcal{H}$ be a separable Hilbert space. An **orthonormal sequence** $(e_n)_{n \geq 1}$ in $\mathcal{H}$ is **complete** (or a **Hilbert basis**) if $\overline{\mathrm{span}}\{e_n\} = \mathcal{H}$. By Gram-Schmidt, every separable Hilbert space has an orthonormal basis (as we will see below).
 
-$$\|( x - m_n) + (x - m_k)\|^2 + \|(x - m_n) - (x - m_k)\|^2 = 2\|x - m_n\|^2 + 2\|x - m_k\|^2.$$
+For an orthonormal basis $(e_n)$ and any $x \in \mathcal{H}$, define the **Fourier coefficients** $c_n = \langle x, e_n \rangle$. The basic results:
 
-The left side contains $\|2x - m_n - m_k\|^2 = 4\|x - \frac{m_n + m_k}{2}\|^2 \geq 4d^2$ (since $\frac{m_n + m_k}{2} \in M$ by convexity) and $\|m_n - m_k\|^2$. Thus:
+- (Bessel's inequality) $\sum_n |c_n|^2 \leq \|x\|^2$.
+- (Parseval) The orthonormal sequence is a Hilbert basis iff $\sum_n |c_n|^2 = \|x\|^2$ for every $x$. In that case, $x = \sum_n c_n e_n$ in norm.
+- (Plancherel) $\langle x, y \rangle = \sum_n c_n(x) \overline{c_n(y)}$.
 
-$$\|m_n - m_k\|^2 \leq 2\|x - m_n\|^2 + 2\|x - m_k\|^2 - 4d^2 \to 0.$$
+![Orthonormal basis and Fourier coefficients](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/03-hilbert-spaces/fa_v2_03_3_orthonormal_basis.png)
 
-So $(m_n)$ is Cauchy. By completeness of $H$ and closedness of $M$, the limit $m_0 = \lim m_n \in M$, and $\|x - m_0\| = d$.
+The map $x \mapsto (c_n)_{n \geq 1}$ is a unitary (i.e., norm-preserving and surjective) isomorphism $\mathcal{H} \to \ell^2$. So every separable infinite-dimensional Hilbert space is isomorphic to $\ell^2$. There is, up to isomorphism, exactly one such space.
 
-*Uniqueness.* If $m_0$ and $m_0'$ both achieve the minimum, the same parallelogram argument gives $\|m_0 - m_0'\|^2 \leq 2d^2 + 2d^2 - 4d^2 = 0$.
+### The trigonometric basis of $L^2[0, 2\pi]$
 
-*Orthogonality (when $M$ is a subspace).* For any $m \in M$ and $\lambda \in \mathbb{F}$, $m_0 + \lambda m \in M$, so
+The functions $e_n(t) = e^{int}/\sqrt{2\pi}$ for $n \in \mathbb{Z}$ form an orthonormal basis of $L^2[0, 2\pi]$. The Fourier coefficients are $c_n = \frac{1}{\sqrt{2\pi}}\int_0^{2\pi} f(t) e^{-int}\,dt$, and Parseval reads
+$$\|f\|_2^2 = \sum_{n \in \mathbb{Z}} |c_n|^2.$$
+The classical Fourier series convergence question is: in what sense does $\sum c_n e_n$ converge to $f$? In $L^2$, the answer is *always*, by Parseval. In $L^p$ for $p \neq 2$, the question is hard (Carleson's theorem for $p=2$ pointwise a.e. convergence is a deep result, and for $p=1$ pointwise convergence can fail spectacularly on a positive-measure set per Kolmogorov). The Hilbert structure is what makes the convergence question trivial.
 
-$$d^2 \leq \|x - m_0 - \lambda m\|^2 = d^2 - 2\operatorname{Re}(\lambda \langle m, x - m_0 \rangle) + |\lambda|^2\|m\|^2.$$
+![Trigonometric basis of L^2[0,1]](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/03-hilbert-spaces/fa_v2_03_6_l2_basis.png)
 
-Choosing $\lambda = t\langle x - m_0, m \rangle / \|m\|^2$ for small $t > 0$ forces $\langle x - m_0, m \rangle = 0$. $\blacksquare$
+### Numerical example
 
-**Remark on the role of the parallelogram law.** The crucial step in the proof — showing that the minimizing sequence is Cauchy — uses the parallelogram law. This is why the projection theorem, in its full generality, requires a Hilbert space (or at least an inner product). In a general Banach space, the nearest point to a closed convex set may not exist (in non-reflexive spaces) or may not be unique. For example, in $\ell^\infty$, the nearest point from $x = (2, 0, 0, \ldots)$ to the subspace $M = \{y : y_1 = 0\}$ is any point of the form $(0, y_2, 0, \ldots)$ with $|y_2| \leq 2$. The failure of uniqueness stems precisely from the absence of the parallelogram law.
+Consider $f(t) = t$ on $[0, 2\pi]$, viewed in $L^2[0, 2\pi]$. The Fourier coefficients (with the $e_n = e^{int}/\sqrt{2\pi}$ basis) are $c_n = -\sqrt{2\pi}/(in)$ for $n \neq 0$, and $c_0 = \sqrt{2\pi} \cdot \pi / \sqrt{2\pi} = \pi\sqrt{2\pi}$. Parseval: $\|f\|_2^2 = \int_0^{2\pi} t^2 \,dt = 8\pi^3/3$. The sum $\sum |c_n|^2 = 2\pi^3 + \sum_{n \neq 0} 2\pi/n^2 = 2\pi^3 + 4\pi \cdot \pi^2/6 \cdot 2/2$. Working through: $2\pi^3 + 2\pi (\pi^2/3) = 2\pi^3 + 2\pi^3/3 = 8\pi^3/3$. The identity holds.
 
-**The orthogonal projection operator.** When $M$ is a closed subspace, the map $P: H \to H$ sending $x$ to its nearest point $m_0 \in M$ is called the **orthogonal projection onto $M$**. It satisfies:
+This is one of those numerical confirmations that does no real work but is reassuring: the same formula that you compute classically (Parseval's identity for Fourier series) is the same as Parseval as a Hilbert-space theorem.
 
-- $P$ is linear and bounded with $\|P\| = 1$ (unless $M = \{0\}$).
-- $P^2 = P$ (idempotent: projecting twice gives the same result).
-- $P^* = P$ (self-adjoint: $\langle Px, y \rangle = \langle x, Py \rangle$).
-- $\operatorname{Range}(P) = M$ and $\ker(P) = M^{\perp}$.
+![Parseval's identity: norm equals sum of squared coefficients](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/03-hilbert-spaces/fa_v2_03_5_parseval.png)
 
-Conversely, any bounded linear operator satisfying $P^2 = P$ and $P^* = P$ is the orthogonal projection onto its range. Orthogonal projections are the building blocks of the spectral theorem for self-adjoint operators.
+## Gram-Schmidt and Constructing Bases
 
-**Example 3 (Best approximation in $L^2$).** Let $M = \operatorname{span}\{1, t, t^2\} \subset L^2[0,1]$ and $f(t) = e^t$. The best quadratic approximation to $e^t$ in the $L^2$ norm is the orthogonal projection of $f$ onto $M$: the unique polynomial $p(t) = a_0 + a_1 t + a_2 t^2$ satisfying $\langle e^t - p(t), t^k \rangle = 0$ for $k = 0, 1, 2$. Expanding these three conditions gives a $3 \times 3$ linear system (the **normal equations**):
+Given any sequence $(v_n)_{n \geq 1}$ of linearly independent vectors in $\mathcal{H}$, the **Gram-Schmidt process** constructs an orthonormal sequence $(e_n)$ with the same span at every step:
+$$u_1 = v_1,\quad e_1 = u_1/\|u_1\|;\quad u_{n+1} = v_{n+1} - \sum_{k=1}^{n} \langle v_{n+1}, e_k \rangle e_k,\quad e_{n+1} = u_{n+1} / \|u_{n+1}\|.$$
+At each step, $u_{n+1}$ is the residual of $v_{n+1}$ after projecting onto $\mathrm{span}\{e_1, \ldots, e_n\}$, then normalized. The procedure works as long as the $v_n$ are linearly independent.
 
-$$\begin{pmatrix} \langle 1, 1 \rangle & \langle t, 1 \rangle & \langle t^2, 1 \rangle \\ \langle 1, t \rangle & \langle t, t \rangle & \langle t^2, t \rangle \\ \langle 1, t^2 \rangle & \langle t, t^2 \rangle & \langle t^2, t^2 \rangle \end{pmatrix} \begin{pmatrix} a_0 \\ a_1 \\ a_2 \end{pmatrix} = \begin{pmatrix} \langle e^t, 1 \rangle \\ \langle e^t, t \rangle \\ \langle e^t, t^2 \rangle \end{pmatrix},$$
+![Gram-Schmidt orthogonalization process applied to a finite set](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/03-hilbert-spaces/fa_v2_03_7_gram_schmidt.png)
 
-where $\langle t^j, t^k \rangle = \int_0^1 t^{j+k}\, dt = \frac{1}{j+k+1}$ (this is the **Hilbert matrix**) and $\langle e^t, t^k \rangle = \int_0^1 t^k e^t\, dt$ can be computed by integration by parts. The solution gives the least-squares polynomial fit, and the $L^2$ error is $\|f - p\|^2 = \|f\|^2 - \|p\|^2$ by the Pythagorean theorem. This approach is the mathematical foundation of linear regression in statistics.
+### Numerical example
 
----
+In $L^2[-1, 1]$, take $v_n(t) = t^{n-1}$. Gram-Schmidt produces (after normalization) the **Legendre polynomials**: $P_0(t) = 1/\sqrt{2}$, $P_1(t) = \sqrt{3/2}\, t$, $P_2(t) = \sqrt{5/8}(3t^2 - 1)$, $\ldots$. Each $P_n$ is an orthogonal projection of $t^n$ onto the orthogonal complement of $\mathrm{span}\{1, t, \ldots, t^{n-1}\}$, then normalized. The Legendre polynomials are an orthonormal basis of $L^2[-1, 1]$, so any function in $L^2[-1, 1]$ admits a "Legendre expansion" — the same idea as Fourier series with a different basis.
 
-## Orthonormal Systems and Bessel's Inequality
+Different bases have different convergence behavior: Legendre polynomials are excellent for smooth functions on $[-1, 1]$ but have nothing special on $[0, 2\pi]$; Fourier series are natural for periodic functions; Haar wavelets are natural for piecewise-defined functions. Choice of basis is half the art of doing applied analysis in a Hilbert space.
 
-### Gram-Schmidt and orthonormal sequences
+### Why this matters
 
-Given any countable linearly independent set $\{v_1, v_2, \ldots\}$ in a Hilbert space, the **Gram-Schmidt process** produces an orthonormal sequence $\{e_1, e_2, \ldots\}$ with $\operatorname{span}\{e_1, \ldots, e_n\} = \operatorname{span}\{v_1, \ldots, v_n\}$ for every $n$:
-
-$$\tilde{e}_n = v_n - \sum_{k=1}^{n-1} \langle v_n, e_k \rangle e_k, \qquad e_n = \frac{\tilde{e}_n}{\|\tilde{e}_n\|}.$$
-
-The process works because at each step, $\tilde{e}_n$ is the component of $v_n$ orthogonal to $\operatorname{span}\{e_1, \ldots, e_{n-1}\}$ — which is exactly the projection theorem in action. As long as $v_n$ is not in the span of the previous vectors (i.e., the set is linearly independent), we have $\tilde{e}_n \neq 0$ and the normalization is well-defined.
-
-**Stability warning.** In finite-dimensional numerical computation, the classical Gram-Schmidt process is notoriously unstable: rounding errors accumulate and the output vectors lose orthogonality. The **modified Gram-Schmidt** algorithm (which re-orthogonalizes against each $e_k$ sequentially rather than all at once) is numerically superior. For infinite-dimensional theoretical purposes, however, the classical version is perfectly rigorous.
-
-### Fourier coefficients and Bessel's inequality
-
-Let $\{e_n\}_{n=1}^{\infty}$ be an orthonormal sequence in $H$ (not necessarily a basis). For any $x \in H$, the **Fourier coefficients** are $\hat{x}_n = \langle x, e_n \rangle$, and **Bessel's inequality** states:
-
-$$\sum_{n=1}^{\infty} |\langle x, e_n \rangle|^2 \leq \|x\|^2.$$
-
-**Proof.** For any finite $N$, let $S_N = \sum_{n=1}^{N} \langle x, e_n \rangle e_n$. Then:
-
-$$0 \leq \|x - S_N\|^2 = \|x\|^2 - 2\operatorname{Re}\sum_{n=1}^{N} |\langle x, e_n \rangle|^2 + \sum_{n=1}^{N} |\langle x, e_n \rangle|^2 = \|x\|^2 - \sum_{n=1}^{N} |\langle x, e_n \rangle|^2.$$
-
-Since this holds for all $N$ and the partial sums are non-decreasing, the series converges and the inequality follows. $\blacksquare$
-
-The proof reveals something more: the partial sums $S_N$ form the orthogonal projection of $x$ onto $\operatorname{span}\{e_1, \ldots, e_N\}$, and $\|x - S_N\|^2 = \|x\|^2 - \sum_{n=1}^{N}|\langle x, e_n \rangle|^2$ measures the "unexplained energy" after projecting onto the first $N$ directions. As $N$ grows, this residual decreases, and whether it vanishes depends on whether the orthonormal system is complete.
-
-Bessel's inequality tells us that the Fourier coefficients of any vector are square-summable, regardless of whether the orthonormal system is "large enough" to capture the entire vector. In particular, for any orthonormal system, at most countably many Fourier coefficients can be non-zero (since a convergent series of positive terms has only countably many non-zero terms).
-
-**Example 4 (Fourier coefficients in $L^2[-\pi, \pi]$).** The system $\{e_n\}_{n \in \mathbb{Z}}$ with $e_n(t) = \frac{1}{\sqrt{2\pi}} e^{int}$ is orthonormal in $L^2[-\pi, \pi]$. For $f(t) = t$, the Fourier coefficients are:
-
-$$\hat{f}_n = \frac{1}{\sqrt{2\pi}} \int_{-\pi}^{\pi} t\, e^{-int}\, dt.$$
-
-For $n \neq 0$, integration by parts gives $\hat{f}_n = \frac{(-1)^{n+1}}{n} \cdot \sqrt{2\pi}\, i$, and $\hat{f}_0 = 0$ by symmetry. Bessel's inequality then gives:
-
-$$\sum_{n \neq 0} \frac{2\pi}{n^2} \leq \int_{-\pi}^{\pi} t^2\, dt = \frac{2\pi^3}{3},$$
-
-which simplifies to $\sum_{n=1}^{\infty} \frac{1}{n^2} \leq \frac{\pi^2}{3}$. We will sharpen this to equality momentarily.
-
----
-
-## Orthonormal Bases and Parseval's Identity
-
-### Orthonormal bases in Hilbert spaces
-
-An orthonormal set $\{e_\alpha\}_{\alpha \in A}$ is an **orthonormal basis** (also called a **complete orthonormal system**) if any of the following equivalent conditions holds:
-
-1. $\overline{\operatorname{span}}\{e_\alpha : \alpha \in A\} = H$ (the closed linear span is all of $H$).
-2. $\langle x, e_\alpha \rangle = 0$ for all $\alpha \in A$ implies $x = 0$.
-3. Every $x \in H$ satisfies the **Parseval identity** (in the separable case, $A = \mathbb{N}$):
-
-$$\|x\|^2 = \sum_{n=1}^{\infty} |\langle x, e_n \rangle|^2.$$
-
-The equivalence of these conditions is a fundamental structural result. Note that (3) upgrades Bessel's inequality to equality precisely when the orthonormal system is complete. The equivalence is proved as follows: $(1) \Rightarrow (2)$: if $\langle x, e_\alpha \rangle = 0$ for all $\alpha$, then $x \perp \overline{\operatorname{span}}\{e_\alpha\} = H$, so $x \perp x$, giving $x = 0$. $(2) \Rightarrow (3)$: the partial sums $S_N = \sum_{n=1}^N \langle x, e_n \rangle e_n$ converge (by Bessel) to some $y \in H$, and $\langle x - y, e_n \rangle = 0$ for all $n$, so $x = y$ by (2), and Parseval follows from the Pythagorean theorem. $(3) \Rightarrow (1)$: Parseval implies every $x$ is the norm limit of its partial sums, which lie in $\operatorname{span}\{e_n\}$.
-
-**Existence.** Every Hilbert space has an orthonormal basis. The proof uses Zorn's lemma: consider the collection of all orthonormal sets, partially ordered by inclusion. Every chain has an upper bound (its union), so there exists a maximal orthonormal set. Maximality is equivalent to completeness.
-
-### The separable case
-
-A Hilbert space is **separable** if it has a countable dense subset. Equivalently, it admits a countable orthonormal basis. This is the case that arises most often in applications.
-
-**Theorem (Fourier Expansion).** If $\{e_n\}_{n=1}^{\infty}$ is an orthonormal basis for a separable Hilbert space $H$, then every $x \in H$ has the convergent expansion:
-
-$$x = \sum_{n=1}^{\infty} \langle x, e_n \rangle\, e_n,$$
-
-where convergence is in the norm of $H$. The Fourier coefficients $\langle x, e_n \rangle$ are the unique scalars achieving this representation.
-
-### Fourier series as a Hilbert space phenomenon
-
-The classical Fourier series is simply the Fourier expansion in $L^2[-\pi, \pi]$ with respect to the orthonormal basis $\{e_n(t) = \frac{1}{\sqrt{2\pi}} e^{int}\}_{n \in \mathbb{Z}}$. The completeness of this system — equivalently, Parseval's identity — is equivalent to the statement that the trigonometric polynomials are dense in $L^2[-\pi, \pi]$.
-
-Proving that this particular orthonormal system is complete is a non-trivial result. One approach uses the Stone-Weierstrass theorem: trigonometric polynomials form a self-adjoint subalgebra of $C[-\pi, \pi]$ that separates points, so they are uniformly dense in $C[-\pi, \pi]$. Since $C[-\pi, \pi]$ is dense in $L^2[-\pi, \pi]$, the trigonometric system is complete. An alternative proof uses the Fejer kernel and Cesaro summability.
-
-This perspective reveals that Fourier analysis is not a collection of ad hoc tricks, but rather the theory of orthogonal expansions in the Hilbert space $L^2$. Convergence of Fourier series in the $L^2$ norm is *automatic* once completeness is established — no Dirichlet kernel gymnastics required. (Pointwise convergence, by contrast, is a much harder question that requires entirely different techniques.)
-
-**Example 5 (Parseval and $\zeta(2)$).** Returning to $f(t) = t$ on $[-\pi, \pi]$, we computed the Fourier coefficients above. Since the trigonometric system is an orthonormal basis, Parseval's identity gives equality:
-
-$$\frac{2\pi^3}{3} = \int_{-\pi}^{\pi} t^2\, dt = \sum_{n \in \mathbb{Z}} |\hat{f}_n|^2 = \sum_{n \neq 0} \frac{2\pi}{n^2} = 4\pi \sum_{n=1}^{\infty} \frac{1}{n^2}.$$
-
-Therefore $\sum_{n=1}^{\infty} \frac{1}{n^2} = \frac{\pi^2}{6}$, which is Euler's solution to the Basel problem. The computation was a three-line consequence of Hilbert space theory.
-
----
+Gram-Schmidt is constructive — given any countable spanning set, it produces an orthonormal basis, which immediately gives Fourier coefficients and Parseval. So separability (countable dense set) plus inner product gives orthonormal basis automatically. Many existence proofs in Hilbert space theory reduce to "apply Gram-Schmidt to a countable dense set" without further argument.
 
 ## The Riesz Representation Theorem
 
-This theorem is arguably the most important single result in Hilbert space theory.
+The single most useful theorem in Hilbert space theory:
 
-**Theorem (Riesz-Frechet).** Let $H$ be a Hilbert space and $\varphi: H \to \mathbb{F}$ a continuous linear functional (i.e., $\varphi \in H^*$). Then there exists a **unique** $y \in H$ such that
+**Riesz representation theorem.** Let $\varphi: \mathcal{H} \to \mathbb{C}$ be a continuous linear functional on a Hilbert space. Then there is a unique $y \in \mathcal{H}$ with $\varphi(x) = \langle x, y \rangle$ for all $x \in \mathcal{H}$. Moreover, $\|\varphi\| = \|y\|$.
 
-$$\varphi(x) = \langle x, y \rangle \quad \text{for all } x \in H,$$
+In words: every continuous linear functional on a Hilbert space is given by inner product with some vector. The dual of $\mathcal{H}$ is naturally isometric (anti-)isomorphic to $\mathcal{H}$ itself.
 
-and $\|\varphi\|_{H^*} = \|y\|_H$.
+![Riesz representation theorem: every continuous functional comes from an inner product](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/03-hilbert-spaces/fa_v2_03_4_riesz.png)
 
-In other words, $H^* \cong H$ via the conjugate-linear isometric isomorphism $y \mapsto \langle \cdot, y \rangle$. Every Hilbert space is **self-dual**.
+*Proof sketch.* If $\varphi = 0$, take $y = 0$. Otherwise $\ker \varphi$ is a closed proper subspace, so $(\ker \varphi)^\perp$ contains a unit vector $z$ (orthogonal complement is non-trivial because $\ker \varphi$ is a proper closed subspace of codimension $1$). Set $y = \overline{\varphi(z)} z$. For any $x \in \mathcal{H}$, write $x = (x - \alpha z) + \alpha z$ where $\alpha = \langle x, z \rangle$ makes the first piece in $\ker \varphi$ (a calculation). Then $\varphi(x) = \alpha \varphi(z)$ and $\langle x, y \rangle = \alpha \overline{\varphi(z)} \cdot \overline{\overline{1}} = \alpha \varphi(z)$. They match. $\square$
 
-**Proof.** If $\varphi = 0$, take $y = 0$. Otherwise, $M = \ker \varphi$ is a closed subspace with $M \neq H$.
+### Numerical example
 
-*Step 1: Find a vector orthogonal to the kernel.* Since $M$ is proper and closed, $M^{\perp} \neq \{0\}$ (by the projection theorem: take any $x_0 \notin M$ and let $z = x_0 - Px_0$ where $P$ is the orthogonal projection onto $M$; then $z \neq 0$ and $z \in M^{\perp}$). Moreover, $\varphi(z) \neq 0$ because $z \notin M = \ker \varphi$.
+In $\ell^2$, consider the functional $\varphi(x) = x_1 + x_2/2 + x_3/4 + \cdots = \sum_n x_n / 2^{n-1}$. By Riesz, $\varphi(x) = \langle x, y \rangle$ for some $y \in \ell^2$. Reading off, $y = (1, 1/2, 1/4, \ldots)$, with $\|y\|_2^2 = \sum 1/4^{n-1} = 4/3$. So $\|\varphi\| = \|y\|_2 = 2/\sqrt{3}$. Sanity check: by Cauchy-Schwarz, $|\varphi(x)| \leq \|x\|_2 \|y\|_2 = (2/\sqrt{3}) \|x\|_2$, and equality is attained at $x = y$, confirming $\|\varphi\| = 2/\sqrt{3}$.
 
-*Step 2: Construct the representing element.* For any $x \in H$, the vector
+### Why this matters
 
-$$x - \frac{\varphi(x)}{\varphi(z)} z$$
+Riesz says the dual of a Hilbert space is *itself*. So duality, which is a delicate and abstract construction in general Banach spaces (Article 4 will spend most of its time on the Hahn-Banach theorem just to *produce* enough functionals), is trivially solved in Hilbert spaces. Every linear functional is an inner product. This is why so many calculations in PDE and quantum mechanics flow effortlessly: when you need a linear functional, you just write down a vector and pair against it.
 
-lies in $\ker \varphi = M$ (verify: $\varphi$ applied to it gives $\varphi(x) - \varphi(x) = 0$). Therefore it is orthogonal to $z$:
+A second consequence: every bounded sesquilinear form $b(x, y)$ on $\mathcal{H} \times \mathcal{H}$ has the form $b(x, y) = \langle T x, y \rangle$ for a unique bounded operator $T$. This is how variational formulations of PDEs (the Lax-Milgram theorem, the heart of finite element method) reduce to operator-theoretic problems — Article 12 expands on this.
 
-$$\left\langle x - \frac{\varphi(x)}{\varphi(z)} z,\, z \right\rangle = 0.$$
+## Adjoints and Self-Adjoint Operators
 
-Expanding:
+Let $T: \mathcal{H} \to \mathcal{H}$ be bounded. The **adjoint** $T^*$ is defined by $\langle T x, y \rangle = \langle x, T^* y \rangle$ for all $x, y$. Riesz guarantees $T^*$ exists and is bounded with $\|T^*\| = \|T\|$. Properties: $(S+T)^* = S^* + T^*$, $(\alpha T)^* = \overline{\alpha} T^*$, $(ST)^* = T^* S^*$, $(T^*)^* = T$.
 
-$$\langle x, z \rangle = \frac{\varphi(x)}{\varphi(z)} \|z\|^2,$$
+An operator $T$ is **self-adjoint** (or Hermitian) if $T = T^*$. Self-adjoint operators in Hilbert space play the role of real symmetric matrices in finite dimensions. Their spectrum is real, they admit a spectral decomposition (Article 8), and they generate unitary groups (Article 10). Quantum-mechanical observables are self-adjoint operators.
 
-so
+A **unitary** operator satisfies $T^* T = T T^* = I$, equivalently is an isometric isomorphism. The Fourier transform on $L^2(\mathbb{R})$ is a unitary operator; it diagonalizes translation, which is why it solves the heat equation, the wave equation, the Schrödinger equation in elementary cases.
 
-$$\varphi(x) = \frac{\overline{\varphi(z)}}{\|z\|^2} \langle x, z \rangle = \left\langle x,\, \frac{\varphi(z)}{\|z\|^2} z \right\rangle.$$
+A **normal** operator satisfies $T^* T = T T^*$. Normal operators include self-adjoint and unitary as special cases, and they are the maximal class for which the spectral theorem holds.
 
-Setting $y = \frac{\varphi(z)}{\|z\|^2} z$ gives $\varphi(x) = \langle x, y \rangle$ for all $x$.
+### Numerical example
 
-*Step 3: Uniqueness.* If $\langle x, y \rangle = \langle x, y' \rangle$ for all $x$, then $\langle x, y - y' \rangle = 0$ for all $x$; taking $x = y - y'$ gives $\|y - y'\| = 0$.
+The shift $S: \ell^2 \to \ell^2$, $S(x_1, x_2, \ldots) = (0, x_1, x_2, \ldots)$, has adjoint $S^*(x_1, x_2, \ldots) = (x_2, x_3, \ldots)$ (the backward shift). Check: $\langle S x, y \rangle = \sum_{n \geq 2} x_{n-1} \overline{y_n} = \sum_{n \geq 1} x_n \overline{y_{n+1}} = \langle x, S^* y \rangle$. The shift is not self-adjoint or normal: $S^* S = I$ (shift right, then left, gives the identity), but $S S^* x = (0, x_2, x_3, \ldots) \neq x$ in general. So the shift exhibits a dissymmetry that is impossible in finite dimensions where $S^* S = I$ implies $S S^* = I$.
 
-*Step 4: Isometry.* By Cauchy-Schwarz, $|\varphi(x)| = |\langle x, y \rangle| \leq \|x\|\|y\|$, so $\|\varphi\| \leq \|y\|$. Taking $x = y$ gives $\varphi(y) = \|y\|^2$, so $\|\varphi\| \geq \|y\|$. $\blacksquare$
+## Weak Convergence in Hilbert Space (a Preview)
 
-### Significance
+Article 5 spends a lot of time on weak topologies, but the Hilbert-space case is so clean it is worth previewing here. A sequence $(x_n) \subset \mathcal{H}$ **converges weakly** to $x$, written $x_n \rightharpoonup x$, if $\langle x_n, y \rangle \to \langle x, y \rangle$ for every $y \in \mathcal{H}$. By Riesz, this is the same as: $\varphi(x_n) \to \varphi(x)$ for every continuous linear functional $\varphi$.
 
-The Riesz Representation Theorem has far-reaching consequences:
+Weak convergence is strictly weaker than norm convergence. The standard basis $(e_n) \subset \ell^2$ has $\langle e_n, y \rangle = y_n \to 0$ for any fixed $y \in \ell^2$ (since the coefficients of $y$ are square-summable, hence vanish), so $e_n \rightharpoonup 0$. But $\|e_n\| = 1$ for every $n$, so $(e_n)$ does not converge to $0$ in norm.
 
-1. **Self-duality.** Every Hilbert space is reflexive (in fact, much more: the dual space is isometrically isomorphic to the original, not just the bidual).
-2. **Adjoint operators.** For a bounded linear operator $T: H \to H$, the map $x \mapsto \langle Tx, y \rangle$ is a continuous linear functional in $x$ for each fixed $y$. By the Riesz theorem, there exists a unique $T^*y \in H$ with $\langle Tx, y \rangle = \langle x, T^*y \rangle$. This defines the **Hilbert space adjoint** $T^*$, the foundation of spectral theory.
-3. **Weak convergence.** A sequence $(x_n)$ converges weakly to $x$ if $\langle x_n, y \rangle \to \langle x, y \rangle$ for all $y \in H$. The Riesz theorem ensures this is the same as convergence against all functionals.
-4. **Quantum mechanics.** States in quantum mechanics are unit vectors in a Hilbert space, and observables correspond to self-adjoint operators. The Riesz theorem underpins the bra-ket formalism: $\langle \psi |$ is the functional corresponding to $|\psi\rangle$ via the isomorphism $H \cong H^*$.
+The **Banach-Alaoglu theorem** (Article 5) implies, in the Hilbert-space setting, that every bounded sequence has a weakly convergent subsequence. This is the substitute for compactness of the closed unit ball — recall that in infinite dimensions the norm-closed ball is *not* compact, but in the weak topology it is. The "weak compactness" of bounded sets is the lever that makes variational methods work: minimizing sequences for energy functionals can be assumed to have weak limits, and the limits are the desired minimizers.
 
-### An application: the Lax-Milgram theorem
+A subtle but important point: in $\mathcal{H}$, weak convergence plus norm-convergence of norms implies norm convergence. That is, $x_n \rightharpoonup x$ and $\|x_n\| \to \|x\|$ imply $\|x_n - x\| \to 0$. This is sometimes called the *Radon-Riesz property* or *Kadec-Klee property*. The proof: $\|x_n - x\|^2 = \|x_n\|^2 - 2\mathrm{Re}\langle x_n, x \rangle + \|x\|^2 \to \|x\|^2 - 2\|x\|^2 + \|x\|^2 = 0$. So in Hilbert space, the gap between norm and weak convergence collapses precisely when the norms behave correctly.
 
-A powerful consequence of the Riesz theorem that is central to the theory of partial differential equations:
+## The Polarization Identity in Action
 
-**Theorem (Lax-Milgram).** Let $H$ be a Hilbert space and $a: H \times H \to \mathbb{F}$ a **continuous coercive bilinear form** (i.e., $|a(x,y)| \leq C\|x\|\|y\|$ and $a(x,x) \geq \alpha \|x\|^2$ for some $\alpha > 0$). Then for every $\varphi \in H^*$, there exists a unique $u \in H$ such that $a(u, v) = \varphi(v)$ for all $v \in H$.
+The polarization identity reduces inner-product calculations to norm calculations. A corollary that I find genuinely useful: a bounded operator on a *complex* Hilbert space is determined by the diagonal sesquilinear form $x \mapsto \langle T x, x \rangle$. If $\langle T x, x \rangle = \langle S x, x \rangle$ for all $x$, then $T = S$. Proof: by polarization, $\langle T x, y \rangle$ is determined by $\langle T(x \pm y), (x \pm y) \rangle$ and $\langle T(x \pm i y), (x \pm i y) \rangle$, all of which equal the corresponding diagonal expressions for $S$.
 
-The proof uses the Riesz theorem twice: first to represent $\varphi$ as an inner product, then to show that $a(u, \cdot)$ for fixed $u$ is also a continuous linear functional. The map $u \mapsto$ "the Riesz representer of $a(u, \cdot)$" defines a bounded linear operator, and coercivity implies it is invertible.
+This is *false* in real Hilbert space: a rotation by $90°$ in $\mathbb{R}^2$ has $\langle T x, x \rangle = 0$ for all $x$ (because $T x \perp x$ in this case), but $T \neq 0$. The complex case has more redundancy and that redundancy fixes the operator.
 
-**Example 7 (Weak formulation of Poisson's equation).** Consider $-\Delta u = f$ on a bounded domain $\Omega \subset \mathbb{R}^n$ with $u = 0$ on $\partial\Omega$. The weak formulation seeks $u \in H^1_0(\Omega)$ such that
+Concretely, this means a complex operator is **self-adjoint** iff $\langle T x, x \rangle$ is real for every $x$. (Take adjoint of the equation $\langle T x, x \rangle = \overline{\langle T x, x \rangle}$ and apply polarization.) This characterization is genuinely useful in checking self-adjointness without writing out the adjoint explicitly. For example, the Laplace operator $-\Delta$ on a suitable domain in $L^2(\Omega)$ has $\langle -\Delta f, f \rangle = \int |\nabla f|^2 \geq 0$, real, so $-\Delta$ is self-adjoint (modulo questions about domains, taken up in Article 9).
 
-$$a(u, v) = \int_\Omega \nabla u \cdot \nabla v\, dx = \int_\Omega fv\, dx = \varphi(v) \quad \forall v \in H^1_0(\Omega).$$
+## Direct Sums and Tensor Products
 
-The bilinear form $a$ is continuous (by Cauchy-Schwarz) and coercive (by the Poincare inequality). Lax-Milgram immediately gives existence and uniqueness of the weak solution — no explicit construction needed.
+Two Hilbert spaces $\mathcal{H}_1, \mathcal{H}_2$ admit a **direct sum** $\mathcal{H}_1 \oplus \mathcal{H}_2$ — pairs $(x_1, x_2)$ with inner product $\langle (x_1, x_2), (y_1, y_2) \rangle = \langle x_1, y_1 \rangle_{\mathcal{H}_1} + \langle x_2, y_2 \rangle_{\mathcal{H}_2}$. The direct sum is a Hilbert space (completeness of components implies completeness of pairs). The decomposition $\mathcal{H} = M \oplus M^\perp$ for a closed subspace is a special case.
 
----
+The **tensor product** $\mathcal{H}_1 \otimes \mathcal{H}_2$ requires more care. Algebraically, take the vector space spanned by formal symbols $x_1 \otimes x_2$ modulo bilinearity, equip it with the inner product $\langle x_1 \otimes x_2, y_1 \otimes y_2 \rangle = \langle x_1, y_1 \rangle \langle x_2, y_2 \rangle$, and then complete. The result is a Hilbert space, and one identifies $\ell^2 \otimes \ell^2 \cong \ell^2(\mathbb{N} \times \mathbb{N})$ and $L^2(\Omega_1) \otimes L^2(\Omega_2) \cong L^2(\Omega_1 \times \Omega_2)$ canonically.
 
-## $\ell^2$ as the Universal Separable Hilbert Space
+Tensor products of Hilbert spaces are the basis of multi-particle quantum mechanics — the state space of $n$ identical particles is the symmetric (or antisymmetric) tensor power of the one-particle Hilbert space. They are also how multivariate Fourier analysis reduces to univariate Fourier analysis: the Fourier transform on $L^2(\mathbb{R}^d) \cong L^2(\mathbb{R})^{\otimes d}$ is the tensor product of $d$ copies of the one-dimensional Fourier transform.
 
-We have seen that every element of a separable Hilbert space can be expanded in an orthonormal basis as $x = \sum_{n=1}^{\infty} c_n e_n$ where $c_n = \langle x, e_n \rangle$ and $\sum |c_n|^2 = \|x\|^2 < \infty$. This means the map
+### Worked numerical example
 
-$$U: H \to \ell^2, \qquad x \mapsto (\langle x, e_1 \rangle, \langle x, e_2 \rangle, \ldots)$$
+In $L^2(\mathbb{R}^2)$, the function $f(x, y) = e^{-(x^2 + y^2)/2}$ factors as $f_1(x) \cdot f_2(y)$ with $f_1(x) = f_2(x) = e^{-x^2/2}$. The function lives in the tensor product $L^2(\mathbb{R}) \otimes L^2(\mathbb{R})$, identified with $L^2(\mathbb{R}^2)$. Its norm squared in $L^2(\mathbb{R}^2)$ is $\int e^{-(x^2 + y^2)}\,dx\,dy = \pi$. The tensor norm computes as $\|f_1\|_{L^2}^2 \cdot \|f_2\|_{L^2}^2 = \sqrt{\pi} \cdot \sqrt{\pi} = \pi$. The two norms agree, illustrating the unitary identification.
 
-is a **unitary isomorphism** (a bijective linear map preserving the inner product).
+## Continuity of the Inner Product
 
-**Theorem.** All separable infinite-dimensional Hilbert spaces are unitarily isomorphic to $\ell^2$.
+The inner product $\langle \cdot, \cdot \rangle : \mathcal{H} \times \mathcal{H} \to \mathbb{C}$ is continuous as a map of two variables. Specifically, if $x_n \to x$ and $y_n \to y$ in norm, then $\langle x_n, y_n \rangle \to \langle x, y \rangle$. The proof: $|\langle x_n, y_n \rangle - \langle x, y \rangle| \leq |\langle x_n - x, y_n \rangle| + |\langle x, y_n - y \rangle| \leq \|x_n - x\| \|y_n\| + \|x\| \|y_n - y\|$, which tends to $0$ since $(\|y_n\|)$ is bounded.
 
-This is a striking structural rigidity: up to isomorphism, there is only **one** separable infinite-dimensional Hilbert space. The spaces $L^2[0,1]$, $L^2(\mathbb{R})$, the Hardy space $H^2(\mathbb{D})$, and the Sobolev space $W^{1,2}$ are all "the same" as abstract Hilbert spaces — they differ only in which concrete functions their elements represent and which orthonormal basis is natural for the application at hand.
+The same need not be true if convergence is replaced by *weak* convergence. If $x_n \rightharpoonup x$ and $y_n \rightharpoonup y$, the inner products $\langle x_n, y_n \rangle$ may not converge — take $x_n = y_n = e_n$ in $\ell^2$, both converging weakly to $0$, but $\langle e_n, e_n \rangle = 1$ for every $n$, not converging to $\langle 0, 0 \rangle = 0$. So the inner product is jointly continuous in the norm topology but only separately continuous in the weak topology. This is one of the small but important subtleties when working with weak convergence.
 
-This universality is both a blessing and a limitation. It means that any abstract theorem about $\ell^2$ automatically applies to $L^2[0,1]$, $H^2(\mathbb{D})$, etc. But it also means that the interesting features of these spaces — smoothness conditions, boundary behavior, growth rates — are invisible to the Hilbert space structure alone and must be captured by additional data (a specific choice of basis, a specific norm equivalence, or additional algebraic structure like a multiplication operation).
+## Spectral Theorem in Finite Dimensions: Preview of Article 8
 
-**Example 6 (Unitary equivalence in action).** Consider $L^2[0, 2\pi]$ with orthonormal basis $e_n(t) = \frac{1}{\sqrt{2\pi}} e^{int}$. The Fourier transform $\mathcal{F}: f \mapsto (\hat{f}_n)_{n \in \mathbb{Z}}$ is a unitary map from $L^2[0, 2\pi]$ to $\ell^2(\mathbb{Z})$. Parseval's identity is precisely the statement that $\mathcal{F}$ is an isometry:
+Self-adjoint operators on a finite-dimensional Hilbert space have an orthonormal basis of eigenvectors with real eigenvalues — the classical spectral theorem of linear algebra. In infinite dimensions, the eigenvalue/eigenvector picture breaks down: a generic self-adjoint operator has a *spectrum* (Article 8) that may include continuous parts with no eigenvectors. The right generalization replaces eigenvalue decomposition $T = \sum \lambda_i P_i$ with a spectral measure: $T = \int \lambda \, dE(\lambda)$ where $E$ is a projection-valued measure on the spectrum.
 
-$$\|f\|_{L^2}^2 = \int_0^{2\pi} |f(t)|^2\, dt = \sum_{n \in \mathbb{Z}} |\hat{f}_n|^2 = \|\hat{f}\|_{\ell^2}^2.$$
+The simplest non-trivial example: the multiplication operator $M f(t) = t f(t)$ on $L^2[0,1]$ is self-adjoint with spectrum $[0,1]$ but no eigenvectors at all. There is no $f \in L^2$ with $t f(t) = \lambda f(t)$ except in the sense of distributions (which would force $f$ supported at the single point $\lambda$, hence $f = 0$ in $L^2$). The spectrum of $M$ is "purely continuous." Article 8 will explain how to read this off from the spectral measure $E([\alpha, \beta]) f = \mathbb{1}_{[\alpha,\beta]}(t) f(t)$, which projects onto the part of $f$ with "frequency" in $[\alpha, \beta]$.
 
-This is why we can study convolution operators, regularity questions, and PDE problems interchangeably in the "physical" domain $L^2$ or the "frequency" domain $\ell^2$, whichever is more convenient.
+## Reproducing Kernel Hilbert Spaces
 
-### Non-separable Hilbert spaces
+A subclass of Hilbert spaces deserves a paragraph because of their importance in machine learning, statistics, and PDE. A **reproducing kernel Hilbert space** (RKHS) on a set $\Omega$ is a Hilbert space $\mathcal{H}$ of functions $f: \Omega \to \mathbb{C}$ such that for every $x \in \Omega$, the evaluation functional $\delta_x: f \mapsto f(x)$ is bounded. By Riesz, $\delta_x$ is represented by some $K_x \in \mathcal{H}$: $f(x) = \langle f, K_x \rangle$ for all $f \in \mathcal{H}$. The two-variable function $K(x, y) = K_x(y) = \langle K_x, K_y \rangle$ is the **reproducing kernel**.
 
-For completeness: non-separable Hilbert spaces exist (e.g., $\ell^2(I)$ for an uncountable index set $I$) and are classified by the cardinality of their orthonormal bases. Two Hilbert spaces are unitarily isomorphic if and only if their orthonormal bases have the same cardinality — this cardinal number is called the **Hilbert dimension**. The separable case corresponds to Hilbert dimension $\aleph_0$.
+Examples:
 
-Non-separable Hilbert spaces arise in certain areas of mathematical physics (e.g., the GNS construction in algebraic quantum field theory can produce non-separable spaces) and abstract harmonic analysis (e.g., $L^2$ of a non-$\sigma$-compact locally compact group). However, in most concrete applications — quantum mechanics, signal processing, PDE theory — the relevant Hilbert spaces are separable.
+- $\ell^2$ with the standard inner product is an RKHS over $\mathbb{N}$, kernel $K(m, n) = \delta_{mn}$.
+- $L^2[0,1]$ is *not* an RKHS — point evaluation is not even well-defined, since $L^2$ functions are equivalence classes a.e. So an RKHS must consist of genuine functions, not equivalence classes.
+- The Sobolev space $H^1[0,1]$ on a bounded interval *is* an RKHS, with a kernel that is essentially Green's function for $-d^2/dt^2 + 1$.
+- The Bargmann-Fock space of entire functions with Gaussian-weighted $L^2$ norm has a beautiful reproducing kernel $K(z, w) = e^{z \overline{w}}$.
 
-### A summary of the hierarchy
+In machine learning, the kernel trick is exactly the use of an RKHS: a positive-definite kernel $K(x, y)$ corresponds to a unique RKHS, and the seemingly nonlinear "kernel methods" are linear methods in this Hilbert space. Support vector machines, Gaussian process regression, kernel PCA — all are linear algebra in some RKHS. The deep theorem behind this (Moore-Aronszajn) is exactly the construction outlined above.
 
-To keep perspective on where we are in the landscape of spaces:
+### Numerical example
 
-| Structure | Space type | Key property |
-|---|---|---|
-| Vector space + norm | Normed space | Distances, convergence |
-| Complete normed space | Banach space | Limits of Cauchy sequences exist |
-| Banach space + parallelogram law | Hilbert space | Inner product, orthogonality, projections |
-| Hilbert space + separability | Separable Hilbert space | Countable orthonormal basis, unitarily isomorphic to $\ell^2$ |
+The kernel $K(x, y) = \exp(-\|x - y\|^2 / 2\sigma^2)$ (the Gaussian RBF kernel) defines an RKHS of functions on $\mathbb{R}^d$. For two points $x, y$, the inner product of the corresponding feature maps is $K(x, y)$. So the "feature space" is implicitly defined by the kernel, and computations stay in the original space — the famous trick that lets SVMs do nonlinear classification with linear-time algorithms.
 
-Each level adds structure and unlocks more powerful theorems. The price for the additional structure is a smaller class of spaces — but the theorems that hold are correspondingly stronger.
 
----
+## Direct-Sum Hilbert Spaces in Action
 
-## What's Next
+Direct sums are not just bookkeeping — they are how we build complex Hilbert spaces from simple ones, and they make many constructions transparent.
 
-With the geometry of Hilbert spaces in hand, we now have a space where projections, orthogonal decompositions, and Fourier expansions all work cleanly. But we have been studying individual elements and their representations. The next step is to study the **functionals** and **operators** that act on these spaces.
+### The Hardy-Hilbert space and its decomposition
+
+The Hardy space $H^2$ on the unit disk is the closed subspace of $L^2$ on the unit circle consisting of functions whose negative Fourier coefficients vanish. There is a canonical orthogonal decomposition $L^2(\partial \mathbb{D}) = H^2 \oplus \overline{H^2_0}$ where $\overline{H^2_0}$ is the conjugate of the Hardy space with the constant term removed. The projection onto $H^2$ is the **Riesz projection**, defined on Fourier series by truncating to non-negative indices.
+
+The Riesz projection is bounded on $L^2$ — it is just the orthogonal projection onto a closed subspace, hence has norm $1$. On $L^p$ for $p \neq 2$, the boundedness is the M. Riesz theorem, with norms growing like $1/\sin(\pi/p)$. The proof requires complex analysis and is one of the classical results of harmonic analysis on the circle. The Hilbert-space case is, by contrast, a transparent application of orthogonal decomposition.
+
+### Operator block decomposition
+
+Given a closed subspace $M \subseteq \mathcal{H}$ with $\mathcal{H} = M \oplus M^\perp$, every bounded operator $T \in B(\mathcal{H})$ can be written as a $2 \times 2$ block matrix
+$$T = \begin{pmatrix} A & B \\ C & D \end{pmatrix}$$
+where $A: M \to M$, $B: M^\perp \to M$, $C: M \to M^\perp$, $D: M^\perp \to M^\perp$. The operator $T$ leaves $M$ invariant iff $C = 0$, and is reduced by $M$ (leaves $M$ and $M^\perp$ both invariant) iff $B = C = 0$.
+
+This block-diagonal decomposition is the basis of the spectral theorem for normal operators: every normal $T$ is unitarily equivalent to a direct integral of multiplication operators on a measure space. Concretely, $T$ acts on each spectral subspace of itself, and the decomposition into spectral subspaces gives a block diagonal form.
+
+## Adjoints in Hilbert Space: The Cleanest Adjoint
+
+For a bounded operator $T: \mathcal{H} \to \mathcal{K}$ between Hilbert spaces, the **adjoint** $T^*: \mathcal{K} \to \mathcal{H}$ is the unique bounded operator with $\langle T x, y \rangle_{\mathcal{K}} = \langle x, T^* y \rangle_{\mathcal{H}}$ for all $x \in \mathcal{H}, y \in \mathcal{K}$. Existence: for fixed $y$, the map $x \mapsto \langle T x, y \rangle$ is a bounded linear functional, so by Riesz it equals $\langle x, z \rangle$ for a unique $z \in \mathcal{H}$, and we set $T^* y = z$.
+
+The Hilbert-space adjoint differs from the Banach-space dual operator (Article 4) only by the implicit Riesz isomorphism that identifies $\mathcal{H}^* = \mathcal{H}$. So the Hilbert-space adjoint is always defined on the *same kind* of space as the operator, while the Banach-space adjoint is defined between dual spaces. This makes the Hilbert calculus considerably cleaner.
+
+### Properties
+
+- $\|T^*\| = \|T\|$ (compute both as suprema of $|\langle T x, y \rangle|$).
+- $\|T^* T\| = \|T\|^2$ — the **C\*-identity**, which makes $B(\mathcal{H})$ a $C^*$-algebra.
+- $T^{**} = T$.
+- $(\alpha S + \beta T)^* = \bar\alpha S^* + \bar\beta T^*$, $(S T)^* = T^* S^*$.
+- $\ker(T^*) = \mathrm{Range}(T)^\perp$, so $\overline{\mathrm{Range}(T)} = \ker(T^*)^\perp$.
+
+The C\*-identity is the structural property that distinguishes $B(\mathcal{H})$ from a generic Banach algebra. It is the input to the Gelfand-Naimark theorem (every commutative C\*-algebra is $C(K)$ for some compact Hausdorff space $K$) and the spectral theorem for normal operators (Article 8).
+
+### Special operators
+
+Defined via the adjoint:
+
+- **Self-adjoint** (or Hermitian): $T^* = T$. Spectrum is real. Models observables in quantum mechanics.
+- **Skew-adjoint** (or anti-Hermitian): $T^* = -T$. Spectrum is purely imaginary. Generators of unitary one-parameter groups (Article 10).
+- **Normal**: $T^* T = T T^*$. Spectrum is a compact subset of $\mathbb{C}$. Includes self-adjoint and unitary operators.
+- **Unitary**: $T^* T = T T^* = I$. Spectrum lies on the unit circle. Hilbert-space isometries that are surjective.
+- **Positive**: $T = T^*$ and $\langle T x, x \rangle \geq 0$ for all $x$. Spectrum lies in $[0, \infty)$. Has a unique positive square root.
+- **Projection**: $P^2 = P$ and $P^* = P$. Spectrum $\subseteq \{0, 1\}$. Geometric: orthogonal projection onto a closed subspace.
+
+The classification of operators by adjoint properties is the analogue of the matrix classification (symmetric, orthogonal, normal, etc.) and most of the theorems carry over with the same intuition.
+
+### Numerical example
+
+The Volterra integral operator $V: L^2[0, 1] \to L^2[0, 1]$ defined by $V f(t) = \int_0^t f(s)\,ds$ has adjoint $V^* g(s) = \int_s^1 g(t)\,dt$, computed by Fubini: $\langle V f, g \rangle = \int_0^1 \int_0^t f(s)\,ds\,g(t)\,dt = \int_0^1 f(s) \int_s^1 g(t)\,dt\,ds = \langle f, V^* g \rangle$. The operator $V$ is *not* self-adjoint ($V \neq V^*$), and its spectrum turns out to be $\{0\}$ — the Volterra operator is a quasinilpotent.
+
+The product $V^* V$ is self-adjoint and positive, with spectrum $[0, 4/\pi^2]$ (the eigenvalues coming from $\sin((n + 1/2)\pi t)$). The square root $(V^* V)^{1/2}$ — which exists by spectral calculus — is an explicit positive operator, and the polar decomposition $V = U |V|$ with $|V| = (V^* V)^{1/2}$ and $U$ a partial isometry exhibits Volterra as the product of a positive operator and an isometry. This polar-decomposition structure generalizes the matrix singular-value decomposition to Hilbert space.
+
+
+## Looking Ahead
+
+Hilbert spaces give us a calculus where geometry imports faithfully from $\mathbb{R}^n$. The unit ball is round, projections are linear, the dual is the space itself, and any continuous functional comes from an inner product. Every separable Hilbert space is isometrically $\ell^2$.
+
+Most of analysis is not Hilbert-space analysis. The scattering of $L^p$ spaces for $p \neq 2$, the spaces of continuous functions, the dual spaces of measures — all are Banach but not Hilbert. The next article confronts the question: what is a continuous linear functional on a generic Banach space, and how do we know enough of them exist? The answer is the Hahn-Banach theorem, the most-used theorem of functional analysis after Riesz.
 
 In the next article, we turn to **dual spaces and the Hahn-Banach theorem**. We will leave the comfort of Hilbert spaces (where every functional is an inner product) and confront the general Banach space setting, where the existence of non-trivial continuous linear functionals is far from obvious. The Hahn-Banach theorem resolves this by showing that functionals can always be extended from subspaces to the whole space — a result that launched modern duality theory.
 

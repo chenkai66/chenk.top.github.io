@@ -19,255 +19,398 @@ translationKey: "abstract-algebra-10"
 
 An abstract group is a set with a binary operation satisfying certain axioms. This is elegant but sometimes hard to work with — how do you compute with elements of a group defined by generators and relations, or extract numerical invariants from a multiplication table? The solution, going back to Frobenius and Burnside over a century ago, is to represent group elements as matrices. Matrices are concrete: you can multiply them, take traces, compute determinants, decompose them into eigenspaces. Representation theory is the systematic study of this idea, and it has become one of the most powerful tools in modern algebra, number theory, and mathematical physics.
 
-The connection to our previous article on modules is direct: as we will see, a representation of $G$ over a field $F$ is the same thing as a module over the group ring $F[G]$. The module-theoretic machinery we developed — submodules, quotients, direct sums — translates directly into the language of representations.
+The reason representation theory works at all is a small miracle: every finite group has *enough* finite-dimensional representations to "see" all of its structure. The decomposition of representations into irreducibles is unique. The number of irreducibles equals the number of conjugacy classes. The character of a representation (the trace of each matrix) is a class function, and the irreducible characters form an orthonormal basis for class functions. These four facts — uniqueness of decomposition, irreducible-conjugacy-class match, orthogonality, completeness — turn representation theory into a *computational* discipline, not just a structural one.
+
+This article is the entry point. Most of what I cover specializes to *finite* groups over $\mathbb{C}$, where the theory is the cleanest. But the same ideas extend, with appropriate modifications, to compact Lie groups (Peter-Weyl), to algebraic groups (rational representations), and to infinite-dimensional contexts (automorphic forms, quantum field theory). The core moves stay the same.
 
 ---
 
-## Groups Meet Linear Algebra
+## What a Representation Is
 
-The fundamental idea is simple: instead of studying a group $G$ in isolation, we study its **actions on vector spaces**. If $G$ acts on a vector space $V$ by linear transformations, we get a homomorphism $\rho: G \to GL(V)$ — each group element becomes an invertible matrix (after choosing a basis). The group's algebraic structure is reflected in the linear algebra of these matrices.
+Let $G$ be a group and $V$ a finite-dimensional vector space over a field $k$ (we will mostly take $k = \mathbb{C}$). A **representation** of $G$ on $V$ is a group homomorphism
 
-Why is this useful?
+$$\rho : G \to \mathrm{GL}(V).$$
 
-1. **Concrete computation.** Matrix multiplication is algorithmic. Given an explicit representation, you can compute products, powers, and conjugates efficiently.
+In words: every group element $g$ gets assigned an invertible linear map $\rho(g) : V \to V$, in a way compatible with the group operation: $\rho(gh) = \rho(g) \rho(h)$ and $\rho(e) = I$.
 
-2. **Decomposition.** Vector spaces can be split into direct sums of subspaces. Finding invariant subspaces of a representation corresponds to breaking the group's action into simpler pieces.
+If we pick a basis of $V$, $\mathrm{GL}(V) \cong \mathrm{GL}_n(k)$ where $n = \dim V$, and $\rho(g)$ becomes a matrix. The integer $n$ is the **dimension** (or **degree**) of the representation. Different choices of basis give *equivalent* representations (related by conjugation by the change-of-basis matrix), so the right level of abstraction is "linear maps on $V$" rather than "matrices."
 
-3. **Numerical invariants.** The trace of a matrix is a single number that is invariant under conjugation. The function $\chi(g) = \operatorname{tr}(\rho(g))$ — the **character** of the representation — carries a remarkable amount of information about $\rho$.
+Two representations $\rho_1, \rho_2$ on $V_1, V_2$ are **equivalent** (or isomorphic) if there is an invertible linear map $T : V_1 \to V_2$ with $T \rho_1(g) = \rho_2(g) T$ for all $g$. Equivalently, $\rho_2(g) = T \rho_1(g) T^{-1}$ — the same matrices up to a global change of basis.
 
-4. **Classification.** For finite groups over $\mathbb{C}$, representations are completely classified by their characters, and the character table is a finite square matrix that encodes the group's structure.
+![Representation rho: G -> GL(V)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/10-representation-theory/aa_v2_10_1_rep_def.png)
 
-**Historical note.** Representation theory began with Frobenius's work in the 1890s, motivated by problems in number theory and the study of group determinants. Burnside and Schur developed the theory further in the early 1900s. The subject exploded in the mid-20th century with the work of Brauer (modular representations), Harish-Chandra (infinite-dimensional representations of Lie groups), and Langlands (the Langlands program, which connects representations to number theory). Today, representation theory is a central pillar of mathematics, with connections to algebraic geometry, combinatorics, mathematical physics, and even theoretical computer science.
+A few standard examples to fix the notation.
 
----
+**Trivial representation.** $V = k$, $\rho(g) = 1$ for all $g$. Boring but always there.
 
+**Sign representation of $S_n$.** $V = k$, $\rho(\sigma) = \mathrm{sgn}(\sigma) \in \{\pm 1\}$. The two one-dimensional representations of $S_n$ for $n \ge 2$ are exactly the trivial and the sign.
 
-![Character table of S_3](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/10-representation-theory/aa_fig10_character_table.png)
+**Permutation representation.** $G$ acts on a set $X$; let $V = k^X$ have basis $\{e_x : x \in X\}$ and let $\rho(g)$ permute the basis vectors: $\rho(g) e_x = e_{g \cdot x}$. The dimension is $|X|$.
 
-## Definitions: Representations, Equivalence, Reducibility
+**Regular representation.** $X = G$ acting on itself by left multiplication. The regular representation has dimension $|G|$.
 
-**Definition.** A **(linear) representation** of a group $G$ on a vector space $V$ over a field $F$ is a group homomorphism:
-$$\rho: G \to GL(V)$$
-where $GL(V)$ is the group of invertible linear transformations of $V$. The dimension $\dim_F V$ is the **degree** of the representation.
+**Standard representation of $S_n$.** Inside the permutation representation on $\mathbb{C}^n$, the subspace $V_0 = \{(v_1, \ldots, v_n) : \sum v_i = 0\}$ is invariant. The restriction is the standard representation, of dimension $n - 1$.
 
-If $V = F^n$, then $\rho(g)$ is an $n \times n$ invertible matrix for each $g \in G$, and $\rho(g_1 g_2) = \rho(g_1)\rho(g_2)$.
-
-**Definition.** Two representations $\rho: G \to GL(V)$ and $\sigma: G \to GL(W)$ are **equivalent** (or isomorphic) if there exists an invertible linear map $T: V \to W$ such that $T \rho(g) = \sigma(g) T$ for all $g \in G$. In matrix terms: $\sigma(g) = T \rho(g) T^{-1}$ — the representations differ only by a change of basis.
-
-**Definition.** A subspace $W \subseteq V$ is **$G$-invariant** (or $\rho$-invariant) if $\rho(g)(W) \subseteq W$ for all $g \in G$. A representation is **irreducible** (or simple) if $V \neq 0$ and the only $G$-invariant subspaces are $0$ and $V$ itself. A representation is **reducible** if it has a proper nonzero invariant subspace, and **completely reducible** (or semisimple) if it is a direct sum of irreducible representations.
-
-**Example 1 (Trivial representation).** For any group $G$, the map $\rho(g) = I$ (the identity matrix) for all $g$ defines a 1-dimensional representation. This is always irreducible.
-
-**Example 2 (Regular representation).** Let $V = \mathbb{C}[G]$ be the vector space with basis $\{e_g : g \in G\}$. Define $\rho(g)(e_h) = e_{gh}$. This is the **left regular representation**, of degree $|G|$. It is generally not irreducible — in fact, it contains every irreducible representation as a summand.
-
-**Example 3 (Permutation representation of $S_3$).** The symmetric group $S_3$ acts on $\mathbb{C}^3$ by permuting coordinates: $\rho(\sigma)(e_i) = e_{\sigma(i)}$. This 3-dimensional representation is reducible. The subspace $W_1 = \operatorname{span}\{e_1 + e_2 + e_3\}$ is invariant (every permutation fixes the sum), giving a 1-dimensional trivial sub-representation. Its complement $W_2 = \{(a_1, a_2, a_3) : a_1 + a_2 + a_3 = 0\}$ is a 2-dimensional invariant subspace that turns out to be irreducible. So $\mathbb{C}^3 \cong W_1 \oplus W_2$ as representations.
-
-**The module perspective.** As we noted in the previous article, a representation of $G$ over $F$ is the same thing as a module over the group ring $F[G]$. Specifically, if $\rho: G \to GL(V)$ is a representation, then $V$ becomes an $F[G]$-module via $(\sum a_g g) \cdot v = \sum a_g \rho(g)(v)$. The concepts translate: sub-representations correspond to submodules, irreducibility corresponds to simplicity, and complete reducibility corresponds to semisimplicity. This module-theoretic perspective often simplifies proofs and reveals structural patterns.
-
-**Direct sums and tensor products.** Given representations $\rho: G \to GL(V)$ and $\sigma: G \to GL(W)$, we can form:
-- The **direct sum** $\rho \oplus \sigma: G \to GL(V \oplus W)$ by $(\rho \oplus \sigma)(g)(v, w) = (\rho(g)v, \sigma(g)w)$.
-- The **tensor product** $\rho \otimes \sigma: G \to GL(V \otimes W)$ by $(\rho \otimes \sigma)(g)(v \otimes w) = \rho(g)v \otimes \sigma(g)w$.
-- The **dual (contragredient)** $\rho^*: G \to GL(V^*)$ by $\rho^*(g)(\varphi) = \varphi \circ \rho(g)^{-1}$ for $\varphi \in V^*$.
-
-These operations let us build new representations from old ones. The tensor product is particularly important: decomposing tensor products of irreducible representations into irreducible summands (the "Clebsch-Gordan problem") is a central problem in representation theory and mathematical physics.
+These five constructions together generate most of what you encounter for finite groups. The structural theory below tells us how to decompose them.
 
 ---
 
-## Complete Reducibility and Maschke's Theorem
+## Why Use Vector Spaces?
 
-The most fundamental result in the representation theory of finite groups says that every representation breaks into irreducible pieces — there are no "indecomposable but reducible" representations lurking in the background.
+The choice of $V$ as a vector space — rather than, say, an abstract group or a topological space — is forced by what we want to extract. Vector spaces have:
 
-**Theorem (Maschke).** Let $G$ be a finite group and $F$ a field whose characteristic does not divide $|G|$. Then every finite-dimensional representation of $G$ over $F$ is completely reducible.
+- **Decomposition into subspaces.** A representation can split as $V = V_1 \oplus V_2$ with $G$ acting on each piece. This is the analogue of factoring a number into primes.
+- **Linear-algebraic invariants.** Trace, determinant, eigenvalues, characteristic polynomial. These are coordinate-independent and give numerical invariants of $G$.
+- **Inner products and unitarity.** Over $\mathbb{C}$, every finite-group representation can be made unitary (preserve a Hermitian inner product). Then $\rho(g^{-1}) = \rho(g)^*$, i.e., the inverse is the conjugate transpose.
 
-Equivalently: if $W \subseteq V$ is a $G$-invariant subspace, then there exists a $G$-invariant complement $W'$ such that $V = W \oplus W'$.
+The combination of these features is what makes representation theory powerful. Group theory alone gives you elements and subgroups but no quantitative tools. Vector space theory gives you traces and decompositions but no group structure. Putting them together, you can do both at once. The "representation" word is a literal description of what we are doing: we represent each abstract group element by a concrete linear map, and then we work with the linear maps using the powerful machinery of linear algebra.
 
-*Proof.* Let $\rho: G \to GL(V)$ be a representation and $W \subseteq V$ a $G$-invariant subspace. We need to find a $G$-invariant complement.
+The "unitary" point deserves emphasis. Over $\mathbb{C}$, given any representation $\rho$ of a finite group on $V$, the average
 
-**Step 1:** Choose any complement $U$ of $W$ in $V$ (as a vector space, ignoring the group action). Let $\pi: V \to W$ be the projection onto $W$ along $U$ — that is, $\pi$ is linear, $\pi|_W = \operatorname{id}_W$, and $\ker \pi = U$.
+$$\langle u, v \rangle' = \frac{1}{|G|} \sum_{g \in G} \langle \rho(g) u, \rho(g) v \rangle$$
 
-**Step 2:** Average $\pi$ over the group action. Define:
-$$\tilde{\pi}(v) = \frac{1}{|G|} \sum_{g \in G} \rho(g) \pi(\rho(g)^{-1} v)$$
-
-Note that dividing by $|G|$ is valid because $\operatorname{char}(F) \nmid |G|$.
-
-**Step 3:** Verify that $\tilde{\pi}$ is a $G$-equivariant projection onto $W$.
-- **$\tilde{\pi}$ maps into $W$:** For each $g$, $\pi(\rho(g)^{-1}v) \in W$ (since $\pi$ maps to $W$), and $\rho(g)$ preserves $W$ (since $W$ is invariant). So each summand lies in $W$.
-- **$\tilde{\pi}|_W = \operatorname{id}_W$:** If $w \in W$, then $\rho(g)^{-1}w \in W$, so $\pi(\rho(g)^{-1}w) = \rho(g)^{-1}w$, and $\rho(g)\rho(g)^{-1}w = w$. Averaging gives $\tilde{\pi}(w) = w$.
-- **$G$-equivariance:** For $h \in G$:
-$$\tilde{\pi}(\rho(h)v) = \frac{1}{|G|} \sum_{g \in G} \rho(g)\pi(\rho(g)^{-1}\rho(h)v) = \frac{1}{|G|} \sum_{g \in G} \rho(g)\pi(\rho((h^{-1}g)^{-1})v)$$
-Substituting $g' = h^{-1}g$ (which runs over all of $G$ as $g$ does):
-$$= \frac{1}{|G|} \sum_{g' \in G} \rho(hg')\pi(\rho(g'^{-1})v) = \rho(h)\tilde{\pi}(v)$$
-
-**Step 4:** Set $W' = \ker \tilde{\pi}$. Then $W'$ is $G$-invariant (since $\tilde{\pi}$ is equivariant), and $V = W \oplus W'$ (since $\tilde{\pi}$ is a projection onto $W$). $\square$
-
-**Remark.** The hypothesis $\operatorname{char}(F) \nmid |G|$ is essential. In **modular representation theory** (where the characteristic divides $|G|$), Maschke's theorem fails, and the theory becomes much more complicated.
-
-**Example (Maschke fails in characteristic $p$).** Consider $G = \mathbb{Z}/2\mathbb{Z} = \{e, g\}$ over $F = \mathbb{F}_2$. The regular representation on $\mathbb{F}_2^2$ maps $g$ to the matrix $\begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix}$. The subspace $W = \operatorname{span}\{(1,1)\}$ is $G$-invariant (since $g(1,1) = (1,1)$), but its only complement in $\mathbb{F}_2^2$ is $\operatorname{span}\{(1,0)\}$ or $\operatorname{span}\{(0,1)\}$, neither of which is $G$-invariant (since $g(1,0) = (0,1) \notin \operatorname{span}\{(1,0)\}$). So this representation is reducible but not completely reducible. Maschke's theorem does not apply because $\operatorname{char}(\mathbb{F}_2) = 2$ divides $|G| = 2$.
-
-**The group algebra decomposition.** Maschke's theorem has a striking reformulation in terms of the group algebra. When $\operatorname{char}(F) \nmid |G|$ and $F$ is algebraically closed, the group algebra $F[G]$ decomposes as a direct sum of matrix algebras:
-$$F[G] \cong M_{d_1}(F) \times M_{d_2}(F) \times \cdots \times M_{d_k}(F)$$
-where $d_1, \ldots, d_k$ are the dimensions of the irreducible representations. This is the Artin-Wedderburn theorem applied to the semisimple algebra $F[G]$. It immediately implies $|G| = d_1^2 + d_2^2 + \cdots + d_k^2$ — a dimension count that gives strong constraints on the possible degrees of irreducible representations.
+defines a $G$-invariant Hermitian inner product. So $\rho$ is unitary with respect to $\langle \cdot, \cdot \rangle'$. This is *Weyl's averaging trick*, and it is the foundation of Maschke's theorem. The averaging only works because $G$ is finite (we can sum over it); for infinite groups you need integration over a compact group, which requires Haar measure — but the principle is the same.
 
 ---
 
-## Schur's Lemma and Its Consequences
+## Maschke's Theorem: Complete Reducibility
 
-**Lemma (Schur).** Let $\rho: G \to GL(V)$ and $\sigma: G \to GL(W)$ be irreducible representations over a field $F$, and let $\varphi: V \to W$ be a $G$-equivariant linear map (i.e., $\varphi \rho(g) = \sigma(g) \varphi$ for all $g$). Then:
+A subspace $W \subseteq V$ is **invariant** if $\rho(g) W \subseteq W$ for all $g \in G$. A representation is **irreducible** if its only invariant subspaces are $\{0\}$ and $V$. The terminology is a deliberate echo of "irreducible polynomial": these are the building blocks that cannot be broken down further.
 
-1. $\varphi$ is either zero or an isomorphism.
-2. If $F$ is algebraically closed and $V = W$, $\rho = \sigma$, then $\varphi = \lambda I$ for some $\lambda \in F$.
+The first fundamental theorem:
 
-*Proof of (1).* The kernel $\ker \varphi$ is a $G$-invariant subspace of $V$ (if $v \in \ker\varphi$, then $\varphi(\rho(g)v) = \sigma(g)\varphi(v) = 0$). Since $V$ is irreducible, $\ker\varphi = 0$ or $\ker\varphi = V$. Similarly, $\operatorname{im}\varphi$ is a $G$-invariant subspace of $W$, so $\operatorname{im}\varphi = 0$ or $\operatorname{im}\varphi = W$. If $\ker\varphi = 0$ and $\operatorname{im}\varphi = W$, then $\varphi$ is an isomorphism. Otherwise $\varphi = 0$.
+**Maschke's theorem.** Let $G$ be a finite group, $\mathrm{char}(k) \nmid |G|$. Every representation of $G$ over $k$ decomposes as a direct sum of irreducibles.
 
-*Proof of (2).* Over an algebraically closed field, $\varphi$ has an eigenvalue $\lambda$. Then $\varphi - \lambda I$ is also $G$-equivariant and has nontrivial kernel. By part (1), $\varphi - \lambda I = 0$. $\square$
+The proof: given $V$ with an invariant subspace $W$, find a complementary invariant subspace $W'$ such that $V = W \oplus W'$. Pick any linear projection $\pi : V \to W$. Average it over the group:
 
-**Consequences.** Schur's lemma has far-reaching implications:
+$$\bar \pi = \frac{1}{|G|} \sum_{g \in G} \rho(g) \circ \pi \circ \rho(g^{-1}).$$
 
-- **Endomorphisms of irreducible representations over $\mathbb{C}$ are scalars.** This means $\operatorname{End}_G(V) \cong \mathbb{C}$ for any irreducible complex representation.
+Then $\bar \pi$ is also a projection onto $W$, and it commutes with the $G$-action. Its kernel is an invariant complement. Iterate.
 
-- **Non-isomorphic irreducibles are "orthogonal."** Any intertwining map between non-isomorphic irreducible representations is zero.
+The condition $\mathrm{char}(k) \nmid |G|$ is what makes the averaging well-defined (you need $|G| \neq 0$ in $k$). Over $\mathbb{C}$ (characteristic $0$), this condition is automatic for any finite group. Over $\mathbb{F}_p$, it fails when $p \mid |G|$, and the resulting "modular representation theory" is genuinely harder.
 
-- **Abelian groups have only 1-dimensional irreducible representations over $\mathbb{C}$.** If $G$ is abelian, each $\rho(g)$ commutes with every $\rho(h)$, so each $\rho(g)$ is an intertwiner, hence a scalar by Schur's lemma.
+Maschke's theorem is the foundation. It says: to understand all representations of $G$, it's enough to understand the *irreducible* ones, because everything decomposes.
 
-**Example (Applying Schur's lemma).** Consider the irreducible 2-dimensional representation of $S_3$ (the standard representation on $W_2$ from Example 3). Any $S_3$-equivariant endomorphism $\varphi: W_2 \to W_2$ must be a scalar multiple of the identity by Schur's lemma (since we work over $\mathbb{C}$, which is algebraically closed). This means, for instance, that there is no $S_3$-equivariant way to project $W_2$ onto a 1-dimensional subspace — if there were, the kernel would be an invariant subspace contradicting irreducibility.
-
-**The center of the group algebra.** Schur's lemma also implies that the center of $\mathbb{C}[G]$ (the class functions, or elements that commute with everything) has dimension equal to the number of irreducible representations, which equals the number of conjugacy classes. The central idempotents — one for each irreducible representation — provide a canonical decomposition of $\mathbb{C}[G]$ into simple components.
+A small technical comment about uniqueness. The decomposition $V = \bigoplus V_i^{m_i}$ is unique only up to the choice of complement at each step. The *isotypic components* — the sum of all copies of a given irreducible — are uniquely determined as subspaces of $V$. The decomposition *within* each isotypic component (which copy is "first") is not canonical, but for most purposes that does not matter.
 
 ---
 
-## Characters: Traces as Invariants
+## Irreducible Representations of $S_3$
 
-The character of a representation is the function that extracts the most important single number from each matrix.
+Let me make this concrete by listing the irreducible representations of $S_3$, the smallest non-abelian group.
 
-**Definition.** The **character** of a representation $\rho: G \to GL(V)$ is the function $\chi_\rho: G \to F$ defined by:
-$$\chi_\rho(g) = \operatorname{tr}(\rho(g))$$
+$|S_3| = 6$. Conjugacy classes: $\{e\}$, transpositions $\{(12), (13), (23)\}$, three-cycles $\{(123), (132)\}$. Three classes total. By a theorem we will prove below, the number of irreducible representations equals the number of conjugacy classes — so $S_3$ has exactly $3$ irreducible representations.
 
-Key properties (immediate from properties of trace):
-- $\chi_\rho(e) = \dim V$ (the trace of the identity matrix)
-- $\chi_\rho(hgh^{-1}) = \chi_\rho(g)$ (trace is conjugation-invariant), so $\chi$ is a **class function** — constant on conjugacy classes
-- $\chi_{\rho \oplus \sigma} = \chi_\rho + \chi_\sigma$
-- $\chi_{\rho \otimes \sigma} = \chi_\rho \cdot \chi_\sigma$
+**Trivial representation.** Dimension $1$, $\rho(\sigma) = 1$ for all $\sigma$. Call this $\mathbf{1}$.
 
-**The Inner Product on Class Functions.** For a finite group $G$ and representations over $\mathbb{C}$, define:
-$$\langle \chi, \psi \rangle = \frac{1}{|G|} \sum_{g \in G} \chi(g) \overline{\psi(g)}$$
+**Sign representation.** Dimension $1$, $\rho(\sigma) = \mathrm{sgn}(\sigma)$. Call this $\mathrm{sgn}$.
 
-**Theorem (Orthogonality Relations).** Let $\chi_1, \ldots, \chi_k$ be the characters of the distinct irreducible representations of $G$ over $\mathbb{C}$. Then:
+**Standard representation.** Dimension $2$. Inside $\mathbb{C}^3$ with the natural permutation action of $S_3$, the subspace $V_0 = \{(v_1, v_2, v_3) : v_1 + v_2 + v_3 = 0\}$ is $S_3$-invariant. As a representation, the matrices in some basis of $V_0$ are:
 
-$$\langle \chi_i, \chi_j \rangle = \begin{cases} 1 & \text{if } i = j \\ 0 & \text{if } i \neq j \end{cases}$$
+$$\rho((12)) = \begin{pmatrix} -1 & 1 \\ 0 & 1 \end{pmatrix}, \quad \rho((123)) = \begin{pmatrix} 0 & -1 \\ 1 & -1 \end{pmatrix}.$$
 
-That is, the irreducible characters form an **orthonormal set** in the inner product space of class functions. Since the number of irreducible characters equals the number of conjugacy classes (which is the dimension of the space of class functions), they actually form an **orthonormal basis**.
+Call this $V$. We will check below that it is irreducible.
 
-*Proof sketch.* By Schur's lemma, if $\rho_i$ and $\rho_j$ are non-isomorphic irreducible representations, then any $G$-equivariant map between them is zero. The averaging trick $\tilde{A} = \frac{1}{|G|}\sum_g \rho_j(g)^{-1} A \rho_i(g)$ applied to an arbitrary linear map $A: V_i \to V_j$ produces a $G$-equivariant map, which must be zero by Schur. Taking $A$ to be the matrix units $E_{pq}$ and summing the trace conditions yields the orthogonality. The $i = j$ case uses Schur's lemma part (2): the average produces a scalar, and computing the trace of both sides gives $1/\dim V_i$ times the trace condition. The full computation involves careful bookkeeping with matrix entries. $\square$
+The dimensions $1, 1, 2$ satisfy a constraint: $\sum d_i^2 = 1^2 + 1^2 + 2^2 = 6 = |G|$. This is the **sum-of-squares formula**, which holds for any finite group. It is one of the most powerful tools for finding all irreducibles.
 
-**Corollary.** A representation $\rho$ is determined (up to equivalence) by its character. If $\rho$ decomposes as $\rho \cong m_1 \rho_1 \oplus \cdots \oplus m_k \rho_k$ where $\rho_i$ are irreducible and $m_i$ are multiplicities, then $m_i = \langle \chi_\rho, \chi_i \rangle$.
-
-**Theorem.** The number of irreducible representations of a finite group $G$ (over $\mathbb{C}$) equals the number of conjugacy classes of $G$.
-
-*Proof sketch.* The irreducible characters form an orthonormal set in the space of class functions, which has dimension equal to the number of conjugacy classes. It suffices to show they span this space. If a class function $f$ is orthogonal to every $\chi_i$, then the operator $\sum_g f(g)\rho_i(g) = 0$ for every irreducible $\rho_i$. Since every representation is a sum of irreducibles (Maschke), this operator is zero on every representation, including the regular representation. But the regular representation is faithful, so $f = 0$. $\square$
-
-**Column orthogonality.** In addition to the row orthogonality relations above, there are **column orthogonality relations**:
-$$\sum_{i=1}^k \chi_i(g) \overline{\chi_i(h)} = \begin{cases} |C_G(g)| & \text{if } g \text{ and } h \text{ are conjugate} \\ 0 & \text{otherwise} \end{cases}$$
-where $|C_G(g)|$ is the order of the centralizer of $g$, which equals $|G|$ divided by the size of the conjugacy class of $g$. These relations provide additional computational checks on character tables and are used in the classification of finite simple groups.
+![Three irreducible representations of S_3](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/10-representation-theory/aa_v2_10_2_s3_irreps.png)
 
 ---
 
-## Character Tables of Small Groups
+## Schur's Lemma
 
-Let us compute character tables for three groups to see the theory in action.
+The single most useful structural theorem in representation theory:
 
-### The cyclic group $\mathbb{Z}/4\mathbb{Z}$
+**Schur's lemma.** Let $\rho_1, \rho_2$ be irreducible representations of $G$ on $V_1, V_2$ over an algebraically closed field $k$. Let $T : V_1 \to V_2$ be a $G$-equivariant linear map (i.e., $T \rho_1(g) = \rho_2(g) T$ for all $g$). Then:
 
-This is abelian, so all irreducible representations are 1-dimensional (by Schur's lemma). The group has 4 elements, hence 4 conjugacy classes (each element is its own class), hence 4 irreducible representations.
+1. If $\rho_1 \not\cong \rho_2$, then $T = 0$.
+2. If $\rho_1 = \rho_2 = \rho$, then $T$ is a scalar multiple of the identity.
 
-A 1-dimensional representation is just a homomorphism $\chi: \mathbb{Z}/4\mathbb{Z} \to \mathbb{C}^*$. Since $\chi(\bar{1})^4 = \chi(\bar{0}) = 1$, we need $\chi(\bar{1})$ to be a 4th root of unity: $1, i, -1, -i$.
+The proof of (1): $\ker T$ and $\mathrm{im}\, T$ are invariant subspaces. Since the representations are irreducible, each is $\{0\}$ or all of $V_i$. The only consistent option (when $V_1 \not\cong V_2$) is $T = 0$.
 
-| | $\bar{0}$ | $\bar{1}$ | $\bar{2}$ | $\bar{3}$ |
-|---|---|---|---|---|
-| $\chi_1$ | 1 | 1 | 1 | 1 |
-| $\chi_2$ | 1 | $i$ | $-1$ | $-i$ |
-| $\chi_3$ | 1 | $-1$ | 1 | $-1$ |
-| $\chi_4$ | 1 | $-i$ | $-1$ | $i$ |
+The proof of (2): pick any eigenvalue $\lambda$ of $T$ (which exists because $k$ is algebraically closed). The eigenspace $\ker(T - \lambda I)$ is invariant and nonzero, hence all of $V$. So $T = \lambda I$.
 
-One can verify orthogonality: $\langle \chi_j, \chi_k \rangle = \frac{1}{4}\sum_{g} \chi_j(g)\overline{\chi_k(g)} = \delta_{jk}$.
+Schur's lemma is short but enormously consequential. A few immediate corollaries.
 
-For example, $\langle \chi_2, \chi_4 \rangle = \frac{1}{4}(1 \cdot 1 + i \cdot i + (-1)(-1) + (-i)(-i)) = \frac{1}{4}(1 + i^2 + 1 + (-i)^2) = \frac{1}{4}(1 - 1 + 1 - 1) = 0$. And $\langle \chi_2, \chi_2 \rangle = \frac{1}{4}(1 \cdot 1 + i \cdot (-i) + (-1)(-1) + (-i) \cdot i) = \frac{1}{4}(1 + 1 + 1 + 1) = 1$. Confirmed orthonormal.
+**Every irreducible representation of an abelian group is one-dimensional.** *Proof:* if $\rho$ is irreducible and $G$ abelian, then for each $g$, $\rho(g)$ commutes with all $\rho(h)$. By Schur, $\rho(g)$ is a scalar. So every $g$ acts by a scalar, and any one-dimensional subspace is invariant. By irreducibility, $\dim V = 1$.
 
-### The symmetric group $S_3$
+So $\mathbb{Z}/n\mathbb{Z}$ has $n$ one-dimensional irreducible representations, each given by $1 \mapsto \zeta$ where $\zeta$ is an $n$-th root of unity. The total number $n$ matches the number of conjugacy classes (each element is its own class in an abelian group).
 
-$S_3$ has 6 elements and 3 conjugacy classes: $\{e\}$, $\{(12), (13), (23)\}$, $\{(123), (132)\}$. So there are 3 irreducible representations. Their degrees $d_1, d_2, d_3$ satisfy $d_1^2 + d_2^2 + d_3^2 = 6$, which forces $d_1 = d_2 = 1$, $d_3 = 2$.
+**The endomorphism ring of an irreducible representation is just $k$.** *Proof:* $\mathrm{End}_G(V) = k$ by Schur. For non-irreducible representations $V = m_1 V_1 \oplus \cdots \oplus m_r V_r$ (with $V_i$ distinct irreducibles), $\mathrm{End}_G(V) \cong \prod_i M_{m_i}(k)$ — a product of matrix algebras.
 
-The two 1-dimensional representations are:
-- **Trivial:** $\chi_1(g) = 1$ for all $g$.
-- **Sign:** $\chi_2(g) = \operatorname{sgn}(g)$ (i.e., $+1$ for even permutations, $-1$ for odd).
+The second corollary leads to **Wedderburn's theorem**: the group algebra $k[G]$ for $G$ finite and $k = \mathbb{C}$ is isomorphic to a direct product of matrix algebras, $\prod_i M_{d_i}(\mathbb{C})$, where the $d_i$ are the dimensions of the irreducibles. The sum-of-squares formula falls out: $|G| = \dim k[G] = \sum_i d_i^2$.
 
-The 2-dimensional representation is the "standard representation" — the complement of the trivial sub-representation inside the permutation representation on $\mathbb{C}^3$, as in Example 3 above. Its character values are computed by taking traces: $\chi_3(e) = 2$, $\chi_3((12)) = 0$ (the permutation matrix for a transposition has trace 0 on the 2-d subspace), $\chi_3((123)) = -1$.
+![Schur's lemma](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/10-representation-theory/aa_v2_10_6_schur.png)
 
-| | $e$ | $(12)$ | $(123)$ |
-|---|---|---|---|
-| Size | 1 | 3 | 2 |
-| $\chi_1$ | 1 | 1 | 1 |
-| $\chi_2$ | 1 | $-1$ | 1 |
-| $\chi_3$ | 2 | 0 | $-1$ |
+---
 
-**Verification:** $\langle \chi_3, \chi_3 \rangle = \frac{1}{6}(1 \cdot 4 + 3 \cdot 0 + 2 \cdot 1) = \frac{6}{6} = 1$. Confirmed irreducible.
+## Characters
 
-Let us also verify $\langle \chi_3, \chi_1 \rangle = \frac{1}{6}(1 \cdot 2 \cdot 1 + 3 \cdot 0 \cdot 1 + 2 \cdot (-1) \cdot 1) = \frac{1}{6}(2 + 0 - 2) = 0$. And $\langle \chi_3, \chi_2 \rangle = \frac{1}{6}(2 \cdot 1 + 0 \cdot (-1) \cdot 3 + (-1) \cdot 1 \cdot 2) = \frac{1}{6}(2 + 0 - 2) = 0$. The irreducible characters are indeed pairwise orthogonal.
+The **character** of a representation $\rho : G \to \mathrm{GL}(V)$ is the function
 
-### The dihedral group $D_4$
+$$\chi_\rho : G \to k, \qquad \chi_\rho(g) = \mathrm{tr}(\rho(g)).$$
 
-$D_4$ (symmetries of the square) has 8 elements and 5 conjugacy classes:
-- $\{e\}$, $\{r^2\}$, $\{r, r^3\}$, $\{s, r^2 s\}$, $\{rs, r^3 s\}$
+The character is a class function: $\chi(hgh^{-1}) = \chi(g)$ since trace is invariant under conjugation. So $\chi$ depends only on the conjugacy class of $g$.
 
-where $r$ is rotation by $90°$ and $s$ is a reflection. There are 5 irreducible representations. The degrees satisfy $\sum d_i^2 = 8$, which forces four 1-dimensional and one 2-dimensional representation: $1^2 + 1^2 + 1^2 + 1^2 + 2^2 = 8$.
+Characters are an enormous simplification. Instead of remembering the entire matrix-valued function $\rho$, you remember a single complex-valued function $\chi$ on $G$. Astonishingly, this is enough: $\rho_1 \cong \rho_2$ iff $\chi_{\rho_1} = \chi_{\rho_2}$, over $\mathbb{C}$. So characters classify representations up to isomorphism.
 
-The four 1-dimensional representations correspond to the four homomorphisms $D_4 \to \mathbb{C}^*$. Since $D_4/[D_4, D_4] \cong \mathbb{Z}/2\mathbb{Z} \times \mathbb{Z}/2\mathbb{Z}$ (the abelianization), there are exactly four.
+**Character of the trivial representation:** $\chi(g) = 1$ for all $g$.
 
-The 2-dimensional representation comes from the natural action of $D_4$ on $\mathbb{R}^2$ (rotation and reflection matrices):
-$$\rho(r) = \begin{pmatrix} 0 & -1 \\ 1 & 0 \end{pmatrix}, \quad \rho(s) = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix}$$
+**Character of the sign representation of $S_n$:** $\chi(\sigma) = \mathrm{sgn}(\sigma)$.
 
-The character table:
+**Character of the standard representation of $S_3$:** $\chi(e) = 2$, $\chi(\text{transposition}) = 0$, $\chi(\text{3-cycle}) = -1$.
 
-| | $e$ | $r^2$ | $r$ | $s$ | $rs$ |
-|---|---|---|---|---|---|
-| Size | 1 | 1 | 2 | 2 | 2 |
-| $\chi_1$ | 1 | 1 | 1 | 1 | 1 |
-| $\chi_2$ | 1 | 1 | 1 | $-1$ | $-1$ |
-| $\chi_3$ | 1 | 1 | $-1$ | 1 | $-1$ |
-| $\chi_4$ | 1 | 1 | $-1$ | $-1$ | 1 |
-| $\chi_5$ | 2 | $-2$ | 0 | 0 | 0 |
+The last one deserves a check. The standard representation of $S_3$ has dimension $2$. Trace at the identity: $2$. For a transposition $\sigma$, the matrix $\rho(\sigma)$ has trace $0$ (compute it explicitly using the matrices above, or note that any reflection in two dimensions has trace $0$). For a 3-cycle, $\rho$ acts as a rotation by $120°$, with trace $2 \cos(120°) = -1$.
 
-**Verification:** Column orthogonality (a second set of relations): $\sum_i \chi_i(g)\overline{\chi_i(h)} = \frac{|G|}{|C(g)|}\delta_{C(g), C(h)}$ where $C(g)$ is the conjugacy class of $g$. For the $e$ column: $1 + 1 + 1 + 1 + 4 = 8 = |D_4|/|C(e)| = 8/1$. Verified.
+A representation $\rho$ has $\chi_\rho(e) = \dim V$ — the character at the identity is the dimension. This is one of the most useful sanity checks, and it gets used constantly in computations: if you write down a character table and the first column doesn't read off the dimensions of the irreducibles, you have an error.
 
-**Using the character table.** Character tables are powerful computational tools. Suppose we are given a representation $\rho$ of $D_4$ with character $\chi(e) = 5$, $\chi(r^2) = 1$, $\chi(r) = 1$, $\chi(s) = -1$, $\chi(rs) = -1$. We can decompose $\rho$ into irreducibles by computing inner products:
-$$m_1 = \langle \chi, \chi_1 \rangle = \frac{1}{8}(5 + 1 + 2 - 2 - 2) = \frac{4}{8} = \frac{1}{2}$$
+![Character table of S_3](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/10-representation-theory/aa_v2_10_3_character_table.png)
 
-Wait — this is not an integer, which means I made an error. Let me recalculate. $\langle \chi, \chi_1 \rangle = \frac{1}{8}(1 \cdot 5 \cdot 1 + 1 \cdot 1 \cdot 1 + 2 \cdot 1 \cdot 1 + 2 \cdot (-1) \cdot 1 + 2 \cdot (-1) \cdot 1) = \frac{1}{8}(5 + 1 + 2 - 2 - 2) = \frac{4}{8}$. This is not an integer, which is impossible for a character. The issue is that the given $\chi$ values do not actually form a valid character. This illustrates an important point: **the inner product serves as a consistency check** — if $\langle \chi, \chi_i \rangle$ is not a non-negative integer for every $i$, then $\chi$ is not the character of any representation.
+---
 
-Let us instead take a valid example: $\chi(e) = 4$, $\chi(r^2) = 0$, $\chi(r) = 0$, $\chi(s) = 0$, $\chi(rs) = 0$. Then:
-$$m_i = \frac{1}{8}\left(1 \cdot 4 \cdot \overline{\chi_i(e)} + 1 \cdot 0 + 2 \cdot 0 + 2 \cdot 0 + 2 \cdot 0\right) = \frac{4 \cdot \chi_i(e)}{8} = \frac{\chi_i(e)}{2}$$
+## The Character Table of $S_3$
 
-So $m_1 = m_2 = m_3 = m_4 = 1/2$ — again not integers! This means the all-zeros-except-identity character is not a valid character either. Instead consider $\rho = \chi_1 \oplus \chi_2 \oplus \chi_5$, which gives $\chi(e) = 4$, $\chi(r^2) = 0$, $\chi(r) = 0$, $\chi(s) = 0$, $\chi(rs) = 0$. Let me verify: $\chi_1(e) + \chi_2(e) + \chi_5(e) = 1 + 1 + 2 = 4$. $\chi_1(r^2) + \chi_2(r^2) + \chi_5(r^2) = 1 + 1 + (-2) = 0$. $\chi_1(r) + \chi_2(r) + \chi_5(r) = 1 + 1 + 0 = 2$, not 0. So the character with all zeros except $\chi(e) = 4$ does not occur here either.
+Putting the data together, the character table of $S_3$ is:
 
-The correct way to use the character table is to start with a known representation and decompose it. For instance, the regular representation of $D_4$ has character $\chi_{\text{reg}}(e) = 8$ and $\chi_{\text{reg}}(g) = 0$ for all $g \neq e$. Then $m_i = \frac{1}{8} \cdot 8 \cdot d_i = d_i$, confirming that the regular representation contains each irreducible $\rho_i$ with multiplicity equal to its dimension: $\mathbb{C}[D_4] \cong \rho_1 \oplus \rho_2 \oplus \rho_3 \oplus \rho_4 \oplus 2\rho_5$ (with $d_5 = 2$).
+|              | $e$ | $(12)$ | $(123)$ |
+|--------------|-----|--------|---------|
+| $\mathbf{1}$ | 1   | 1      | 1       |
+| $\mathrm{sgn}$| 1   | -1     | 1       |
+| $V$          | 2   | 0      | -1      |
 
-**Burnside's theorem.** As a striking application of character theory, we mention (without proof) Burnside's $p^a q^b$ theorem: every group of order $p^a q^b$ (for primes $p, q$) is solvable. The proof — which was originally purely group-theoretic in ambition but resisted all group-theoretic approaches for decades — uses character theory in an essential way. This illustrates how representation theory can prove results about abstract groups that seem to have nothing to do with linear algebra.
+A few things to notice. The columns are indexed by conjugacy class representatives. The first column ($g = e$) is the dimensions of the irreducibles. The first row is all $1$s (trivial representation). The remaining rows have a structural pattern: each row, when paired with itself via the inner product on class functions (defined below), has total weight $1$; different rows have inner product $0$.
+
+These are the **orthogonality relations**, the central computational tool of character theory.
+
+---
+
+## Orthogonality Relations
+
+Define an inner product on class functions on $G$:
+
+$$\langle f, g \rangle = \frac{1}{|G|} \sum_{x \in G} f(x) \overline{g(x)} = \sum_{C} \frac{|C|}{|G|} f(c_C) \overline{g(c_C)},$$
+
+where the second sum is over conjugacy classes $C$ with representative $c_C$.
+
+**First orthogonality relation.** The irreducible characters $\chi_1, \ldots, \chi_r$ satisfy
+
+$$\langle \chi_i, \chi_j \rangle = \delta_{ij}.$$
+
+I.e., distinct irreducibles have inner product $0$, and any irreducible has self-inner-product $1$.
+
+**Second orthogonality relation.** For two conjugacy classes $C, C'$:
+
+$$\sum_{i} \chi_i(c_C) \overline{\chi_i(c_{C'})} = \begin{cases} |G|/|C| & \text{if } C = C' \\ 0 & \text{otherwise.} \end{cases}$$
+
+The first relation says rows of the character table are orthonormal (with the right weighting). The second says columns are orthonormal (with a different weighting). The two together give very strong constraints.
+
+**Verification for $S_3$.** The first relation, comparing rows of the character table:
+
+$\langle \chi_{\mathbf{1}}, \chi_{\mathbf{1}} \rangle = (1/6)(1 \cdot 1 \cdot 1 + 3 \cdot 1 \cdot 1 + 2 \cdot 1 \cdot 1) = 6/6 = 1$. ✓
+
+$\langle \chi_{\mathbf{1}}, \chi_{\mathrm{sgn}} \rangle = (1/6)(1 \cdot 1 \cdot 1 + 3 \cdot 1 \cdot (-1) + 2 \cdot 1 \cdot 1) = 0/6 = 0$. ✓
+
+$\langle \chi_V, \chi_V \rangle = (1/6)(1 \cdot 4 + 3 \cdot 0 + 2 \cdot 1) = 6/6 = 1$. ✓
+
+The orthogonality relations are not just elegant; they are *computationally decisive*. Given a candidate character $\chi$, you can compute $\langle \chi, \chi \rangle$. If it's $1$, $\chi$ is irreducible. If it's a positive integer $n$, $\chi$ is a sum of irreducibles whose multiplicities-squared sum to $n$. Computing $\langle \chi, \chi_i \rangle$ tells you the multiplicity of $\chi_i$ in $\chi$.
+
+![Character orthogonality relations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/10-representation-theory/aa_v2_10_4_orthogonality.png)
+
+---
+
+## Decomposing the Regular Representation
+
+The **regular representation** of $G$ is the action of $G$ on itself by left multiplication, viewed as a representation of dimension $|G|$ on the vector space $\mathbb{C}[G]$ with basis $\{e_g\}_{g \in G}$. The character is
+
+$$\chi_{\mathrm{reg}}(g) = \begin{cases} |G| & g = e \\ 0 & g \neq e. \end{cases}$$
+
+(*Reason:* $\rho(g)$ permutes the basis $e_h$, and the trace counts fixed points: $h$ is fixed iff $gh = h$ iff $g = e$.)
+
+The multiplicity of an irreducible $V_i$ in the regular representation is
+
+$$\langle \chi_{\mathrm{reg}}, \chi_i \rangle = \frac{1}{|G|} \sum_g \chi_{\mathrm{reg}}(g) \overline{\chi_i(g)} = \frac{1}{|G|} \cdot |G| \cdot \chi_i(e) = \dim V_i.$$
+
+So the regular representation decomposes as
+
+$$\mathbb{C}[G] \cong \bigoplus_i V_i^{\dim V_i}.$$
+
+Each irreducible appears with multiplicity equal to its dimension. The dimensions match: $|G| = \sum_i (\dim V_i)^2$ — the sum-of-squares formula.
+
+For $S_3$: $\mathbb{C}[S_3] \cong \mathbf{1} \oplus \mathrm{sgn} \oplus V \oplus V \cong \mathbf{1} \oplus \mathrm{sgn} \oplus V^2$, with total dimension $1 + 1 + 2 + 2 = 6 = |S_3|$.
+
+The regular representation contains a copy of *every* irreducible, with high multiplicity. This is sometimes phrased as "the regular representation is the universal representation": any irreducible can be found inside it.
+
+![Decomposition of the regular representation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/10-representation-theory/aa_v2_10_5_regular_decomp.png)
+
+---
+
+## Number of Irreducibles Equals Number of Conjugacy Classes
+
+This is the deepest structural fact in finite-group representation theory:
+
+**Theorem.** For a finite group $G$, the number of (equivalence classes of) irreducible complex representations equals the number of conjugacy classes.
+
+The proof uses the orthogonality relations. The character table is a square matrix (after we know the count): rows indexed by irreducibles, columns by classes. The first orthogonality relation says rows are linearly independent. The second says columns are linearly independent. Both conditions can hold only if the matrix is square — i.e., $\#\text{irreducibles} = \#\text{classes}$.
+
+The fact has both a combinatorial flavor (counting) and a structural one (the irreducibles are *indexed by* conjugacy classes, in some natural way for many specific groups). For symmetric groups, the irreducibles are parametrized by partitions of $n$ — which are also the conjugacy classes (cycle types). The bijection is not arbitrary; it is mediated by the *Specht modules*, a beautiful combinatorial construction.
+
+A cleaner conceptual statement: the *space of class functions* on $G$ has dimension equal to the number of conjugacy classes. The irreducible characters span this space (by the first orthogonality relation, they are linearly independent; by a separate argument using the regular representation, they span). So the number of irreducible characters equals the dimension of the class-function space, which equals the number of conjugacy classes.
+
+This is one of those theorems where the proof is a bookkeeping argument but the *content* is profound: the categorical level (irreducible representations) and the combinatorial level (conjugacy classes) are bijective for any finite group, with the bijection mediated by characters. There is nothing analogous for infinite groups in general.
+
+---
+
+## Two Concrete Computations
+
+**Example 1: irreducibles of $\mathbb{Z}/n\mathbb{Z}$.** The group is abelian, so all irreducibles are 1-dimensional. The number of conjugacy classes is $n$ (each element its own class). So there are $n$ irreducibles. They are given by
+
+$$\chi_k : 1 \mapsto e^{2\pi i k / n}, \qquad k = 0, 1, \ldots, n-1.$$
+
+These are exactly the $n$ characters of $\mathbb{Z}/n\mathbb{Z}$, and they form the basis for *discrete Fourier analysis* on $\mathbb{Z}/n\mathbb{Z}$. The fact that the regular representation decomposes as a direct sum of these characters is the inversion formula for the discrete Fourier transform. The connection is direct: a function $f : \mathbb{Z}/n\mathbb{Z} \to \mathbb{C}$ is an element of the regular representation, and writing it in the basis of irreducible characters is exactly computing its Fourier transform.
+
+**Example 2: irreducibles of $D_4$ (dihedral group of order 8).** $D_4$ has $5$ conjugacy classes: $\{e\}$, $\{r^2\}$, $\{r, r^3\}$, $\{s, r^2 s\}$, $\{rs, r^3 s\}$. So there are $5$ irreducibles. By sum-of-squares, $\sum d_i^2 = 8$ with five positive integers. The only solution is $1 + 1 + 1 + 1 + 4 = 8$, i.e., four 1-dimensional and one 2-dimensional.
+
+The four 1-dimensional irreducibles come from the abelianization $D_4^{\mathrm{ab}} = D_4 / [D_4, D_4]$, which has order $4$. The 2-dimensional irreducible is the natural matrix representation of $D_4$ as the symmetries of a square (rotations and reflections in the plane). Its character is $\chi(e) = 2$, $\chi(r^2) = -2$, $\chi(r) = 0$, $\chi(s) = 0$, $\chi(rs) = 0$ — easy to compute since the rotation $r$ has trace $2 \cos(90°) = 0$ and reflections have trace $0$.
+
+Sum-of-squares + dimension counting from the abelianization typically pins down all irreducibles for small groups in a few minutes of paper computation. The same approach extends to $D_n$ in general: the abelianization is $\mathbb{Z}/2 \times \mathbb{Z}/2$ for $n$ even and $\mathbb{Z}/2$ for $n$ odd, giving $4$ or $2$ one-dimensional irreducibles, with the remaining irreducibles being the $\lfloor (n-1)/2 \rfloor$ rotation+reflection $2$-dimensional representations.
+
+---
+
+## Tensor Products and Induced Representations
+
+Two more constructions worth knowing.
+
+**Tensor product.** Given representations $\rho_1$ on $V_1$ and $\rho_2$ on $V_2$, the **tensor product** representation acts on $V_1 \otimes V_2$ by $(\rho_1 \otimes \rho_2)(g) = \rho_1(g) \otimes \rho_2(g)$. The character is the pointwise product: $\chi_{V_1 \otimes V_2}(g) = \chi_{V_1}(g) \chi_{V_2}(g)$.
+
+Tensor products are how you *combine* representations. They show up in physics whenever you have two systems and want to talk about the joint state — e.g., two electrons each with spin-$1/2$ live in $\mathbb{C}^2 \otimes \mathbb{C}^2$, which decomposes into a $3$-dimensional triplet and a $1$-dimensional singlet (this is the classic Clebsch-Gordan decomposition).
+
+The decomposition of a tensor product into irreducibles is generally nontrivial. For finite abelian groups, $\chi \otimes \psi = \chi \cdot \psi$ (pointwise product of one-dimensional characters), so tensor products are easy. For non-abelian groups, you have to compute the inner product of the product character with each irreducible character to find the multiplicities.
+
+**Induction and restriction.** Given a subgroup $H \leq G$ and a representation $\rho$ of $H$, the **induced representation** $\mathrm{Ind}_H^G(\rho)$ is a representation of $G$. Concretely, it's the representation on $\mathbb{C}[G] \otimes_{\mathbb{C}[H]} V$, with $G$ acting on the left factor. Going the other way, given a representation of $G$, you can **restrict** it to $H$ and get a representation of $H$.
+
+Frobenius reciprocity ties them together:
+
+$$\langle \mathrm{Ind}_H^G \rho, \sigma \rangle_G = \langle \rho, \mathrm{Res}_H^G \sigma \rangle_H.$$
+
+This is one of the most useful tools for computing decompositions: induce from a small subgroup, decompose into irreducibles of $G$, and use reciprocity to relate the multiplicities to known data on $H$. The trick is most powerful when $H$ is small enough that its representation theory is already known — say, $H$ a Sylow subgroup or a normal subgroup with abelian quotient.
+
+---
+
+## Connection to Quantum Mechanics: SU(2) and Spin
+
+A glimpse of how representation theory generalizes beyond finite groups, and why physicists care.
+
+The Lie group $\mathrm{SU}(2)$ — $2 \times 2$ unitary matrices with determinant $1$ — has a continuous family of irreducible representations $V_n$ of dimension $n+1$ for each integer $n \geq 0$ (indexed by "spin $n/2$"). Concretely, $V_n$ is the space of homogeneous polynomials of degree $n$ in two variables, with the natural $\mathrm{SU}(2)$ action.
+
+This is the mathematical structure underlying **quantum spin**. An electron has spin $1/2$, meaning it lives in $V_1$, the standard 2-dimensional representation. A photon has spin $1$, meaning $V_2$, dimension $3$. The product (for combined systems) decomposes via the **Clebsch-Gordan formula** $V_m \otimes V_n = V_{m+n} \oplus V_{m+n-2} \oplus \cdots \oplus V_{|m-n|}$.
+
+The whole apparatus of "addition of angular momentum" in quantum mechanics is just representation theory of $\mathrm{SU}(2)$. The quantum numbers (total spin, $z$-component of spin) correspond to invariants of the representation, and the selection rules for atomic transitions correspond to which irreducibles can pair up via tensor product.
+
+The same machinery, with $\mathrm{SU}(3)$ in place of $\mathrm{SU}(2)$, classifies quark flavors in the standard model. We will see this in article 12.
+
+![SU(2) representations and quantum spin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/10-representation-theory/aa_v2_10_7_su2_spin.png)
+
+---
+
+## Why Representation Theory Works
+
+Stepping back, what is the fundamental reason that the theory has so much structure? A few answers, each capturing part of it:
+
+- **Maschke's theorem** says representations decompose. This reduces the problem to irreducibles.
+- **Schur's lemma** provides the fundamental structural constraint: the only intertwining operators between non-isomorphic irreducibles are zero, and endomorphisms of irreducibles over $\mathbb{C}$ are scalars.
+- **Character orthogonality** turns the decomposition problem into an inner product computation. The characters of irreducible representations form an orthonormal basis for the space of class functions.
+- **The number of irreducible representations equals the number of conjugacy classes**, giving a beautiful connection between the linear-algebraic and combinatorial aspects of group theory.
+
+Each of these statements is "small" in the sense of being a one-line claim, but cumulatively they turn representation theory into a fully computable subject. Pick a finite group, write down its conjugacy classes, count them, you know the number of irreducibles. Compute character values on a few cases, use orthogonality to extend, derive the entire character table. From the character table, derive matrix representations explicitly. Decompose any representation by computing inner products with characters. The whole process is mechanical once the framework is set up — and that mechanical-ness is the source of the theory's practical power. There is no "creative leap" needed in any individual step; the leap was made once, by Frobenius and Schur, and we are just pushing buttons.
+
+The theory extends far beyond finite groups: compact groups have Peter-Weyl theory (a continuous analogue of Maschke's theorem), Lie groups have the theory of highest weights, and infinite-dimensional representations appear in number theory (automorphic forms) and quantum field theory.
+
+---
+
+## A Few Practical Remarks
+
+If you are going to compute with characters, four practical tips.
+
+**Tip 1.** The trivial representation always appears. So $\langle \chi, \chi_{\mathrm{triv}} \rangle$ tells you how many copies of the trivial rep are in your representation. This is the dimension of the *invariants* $V^G = \{v \in V : \rho(g) v = v \text{ for all } g\}$. This single observation is the source of countless concrete calculations: anywhere you see "average over the group" or "fixed points," there is a hidden character computation.
+
+**Tip 2.** For permutation representations, $\chi(g) = \#\{\text{fixed points of } g\}$. So computing the character is just counting fixed points of group elements acting on the underlying set. This connects directly to Burnside's lemma from earlier in this series. As a corollary: for the natural action of $S_n$ on $\{1, \ldots, n\}$, the permutation character splits as $\chi_{\mathrm{perm}} = \chi_{\mathbf{1}} + \chi_V$, where $V$ is the standard representation. The "minus $1$" in $\chi_V(g) = \#\mathrm{Fix}(g) - 1$ is exactly subtracting off the trivial summand.
+
+**Tip 3.** The 1-dimensional representations of $G$ are exactly the characters of $G^{\mathrm{ab}} = G / [G, G]$, the abelianization. So if you know the abelianization, you know the 1-dimensional irreducibles.
+
+**Tip 4.** Tensor products and exterior/symmetric squares are easy to compute on the character level: $\chi_{V \otimes V}(g) = \chi_V(g)^2$, and $\chi_V(g)^2 = \chi_{\mathrm{Sym}^2 V}(g) + \chi_{\Lambda^2 V}(g)$ with explicit formulas $\chi_{\mathrm{Sym}^2 V}(g) = \frac{1}{2}(\chi_V(g)^2 + \chi_V(g^2))$ and $\chi_{\Lambda^2 V}(g) = \frac{1}{2}(\chi_V(g)^2 - \chi_V(g^2))$.
+
+These tips are the kind of small fact that turns "I know the theory" into "I can do the computation." Every representation-theory exam problem I have seen reduces to one of these four moves applied two or three times.
+
+---
+
+## Failures to Be Aware Of
+
+Three places where the clean theory above breaks down.
+
+**Modular representation theory.** When $\mathrm{char}(k) \mid |G|$, Maschke fails. The representation theory is still rich but messier — there are *projective* representations, non-semisimple algebras, Brauer characters as substitutes for ordinary characters. This is a serious subject in its own right and is a big component of finite group theory at the research level.
+
+**Infinite groups.** Without finiteness, the averaging trick fails, and Maschke's theorem doesn't apply. For *compact* topological groups (like $\mathrm{SU}(2), \mathrm{SO}(n), U(n)$), Haar measure plays the role of "$\frac{1}{|G|}\sum$" and most of the theory survives — Peter-Weyl theorem, character theory, complete reducibility. For *non-compact* groups (like $\mathrm{SL}_2(\mathbb{R})$), even the right notion of "irreducible" requires care, and infinite-dimensional representations are essential.
+
+**Real vs complex coefficients.** The cleanest theory is over $\mathbb{C}$ (algebraically closed, characteristic $0$). Over $\mathbb{R}$, irreducibles are not always one-dimensional even for abelian groups — $\mathbb{Z}/3\mathbb{Z}$ has only the trivial as a real irreducible of dimension $1$, with the other irreducible being a real $2$-dimensional rotation. The "complexification" of a real irrep can be a sum of two complex irreps, etc. This is the *Frobenius-Schur indicator* story.
+
+These failure modes are not pathologies; they are different theories with their own structure. Knowing that the clean version exists for finite groups in characteristic zero is what frames everything else.
+
+---
+
+## A Worked Example: Building the Character Table of $S_4$
+
+To consolidate, let me build the character table of $S_4$ from scratch.
+
+$|S_4| = 24$. Conjugacy classes are indexed by cycle types, i.e., partitions of $4$: $1+1+1+1$ (identity, $1$ element), $2+1+1$ (transpositions, $6$ elements), $2+2$ (products of two disjoint transpositions, $3$ elements), $3+1$ ($3$-cycles, $8$ elements), $4$ ($4$-cycles, $6$ elements). Five classes, total $1 + 6 + 3 + 8 + 6 = 24$. ✓
+
+So $S_4$ has $5$ irreducible representations. By the sum-of-squares formula, $\sum d_i^2 = 24$, with $5$ positive integers. The unique solution (up to ordering) is $1 + 1 + 4 + 9 + 9 = 24$, i.e., dimensions $1, 1, 2, 3, 3$.
+
+We can immediately identify some of these:
+
+- $\mathbf{1}$, trivial, dimension $1$.
+- $\mathrm{sgn}$, sign representation, dimension $1$.
+- Standard representation $V$, dimension $3$. (The $S_4$-action on $\mathbb{C}^4$ permuting coordinates restricts to the $3$-dimensional subspace where coordinates sum to $0$.)
+- $V \otimes \mathrm{sgn}$, dimension $3$. (Twisting the standard by the sign gives another $3$-dimensional irreducible.)
+- The remaining irreducible has dimension $2$.
+
+The dimension-$2$ irreducible is harder to spot. It comes from the surjection $S_4 \twoheadrightarrow S_4 / V_4 \cong S_3$, where $V_4 = \{e, (12)(34), (13)(24), (14)(23)\}$ is the Klein four-group (a normal subgroup of $S_4$). The standard 2-dimensional irreducible of $S_3$ pulls back to a 2-dimensional irreducible of $S_4$.
+
+Computing characters by hand:
+
+|              | $e$  | $(12)$ | $(12)(34)$ | $(123)$ | $(1234)$ |
+|--------------|------|--------|------------|---------|----------|
+| size of class | 1   | 6      | 3          | 8       | 6        |
+| $\mathbf{1}$ | 1    | 1      | 1          | 1       | 1        |
+| $\mathrm{sgn}$| 1   | -1     | 1          | 1       | -1       |
+| $W$ (dim 2)  | 2    | 0      | 2          | -1      | 0        |
+| $V$ (dim 3)  | 3    | 1      | -1         | 0       | -1       |
+| $V \otimes \mathrm{sgn}$ | 3 | -1 | -1   | 0       | 1        |
+
+To check $V$'s character: the standard representation has $\chi_V(g) = (\text{number of fixed points of } g) - 1$. Identity has $4$ fixed points: $\chi_V(e) = 3$. A transposition has $2$ fixed points: $\chi_V((12)) = 1$. A double transposition has $0$ fixed points: $\chi_V((12)(34)) = -1$. A 3-cycle has $1$ fixed point: $\chi_V((123)) = 0$. A 4-cycle has $0$ fixed points: $\chi_V((1234)) = -1$. ✓
+
+To check $W$'s character: $W$ pulls back from $S_3$ via $S_4 \to S_3$ with kernel $V_4$. The characters depend only on the image in $S_3$. The map sends $V_4$ to identity, transpositions to transpositions, 3-cycles to 3-cycles, and 4-cycles to transpositions. So $\chi_W(e) = 2$, $\chi_W((12)) = 0$, $\chi_W((12)(34)) = 2$, $\chi_W((123)) = -1$, $\chi_W((1234)) = 0$. ✓
+
+Verify orthogonality (one example): $\langle \chi_V, \chi_V \rangle = (1/24)(1 \cdot 9 + 6 \cdot 1 + 3 \cdot 1 + 8 \cdot 0 + 6 \cdot 1) = 24/24 = 1$. ✓ So $V$ is irreducible. The whole table is internally consistent.
+
+This is the kind of computation that, with practice, takes about fifteen minutes by hand. Computer algebra systems (GAP, Magma) do it in milliseconds for groups of order up to a few thousand, and use sophisticated algorithms (Dixon-Schneider, in particular) for groups of order up to about $10^7$.
+
+---
+
+## A Final Comment on Why It's Beautiful
+
+I want to end with one observation that I find genuinely satisfying. The character table of a finite group is a very specific finite object — for $S_4$, it's a $5 \times 5$ matrix of integers (well, complex numbers in general, but for $S_4$ they happen to all be integers). This matrix encodes essentially everything about the group's "linear" structure: every representation, every decomposition, every invariant.
+
+But the matrix is *forced* by very few inputs: just the conjugacy classes and their sizes. From those, plus the orthogonality relations and the sum-of-squares formula, you can reconstruct the entire character table by hand. The amount of information you put in (a list of conjugacy class sizes) is much smaller than what you get out (a full description of all linear actions of the group).
+
+This is a kind of mathematical leverage. Group theory + linear algebra + a bit of cleverness about averaging produces character theory, and character theory has an internal coherence (orthogonality, sum-of-squares, conjugacy-irreducible duality) that makes it self-correcting. Make an arithmetic mistake and the orthogonality relations will catch it. Misidentify the dimension and the sum-of-squares formula will show it. The theory is robust to small errors because it has too much structure to allow them.
+
+Whether or not you ever use representation theory in your own work, the experience of seeing this much structure emerge from this little input is, in itself, one of the highlights of an algebra course. It is the closest abstract algebra gets to the kind of computational satisfaction you get from explicit calculation in concrete number theory or geometry.
 
 ---
 
 ## What's Next
 
-Representation theory turns abstract group theory into concrete linear algebra, providing a powerful toolkit for understanding group structure through characters and matrix decompositions. The character table is a remarkably compact encoding of a group's representation-theoretic information.
-
-Let us summarize the key results:
-
-- **Maschke's theorem** guarantees that over $\mathbb{C}$ (or any field of characteristic not dividing $|G|$), every representation of a finite group is a direct sum of irreducible representations. This is the representation-theoretic analogue of the spectral theorem in linear algebra.
-- **Schur's lemma** provides the fundamental structural constraint: the only intertwining operators between non-isomorphic irreducibles are zero, and endomorphisms of irreducibles over $\mathbb{C}$ are scalars.
-- **Character orthogonality** turns the decomposition problem into an inner product computation. The characters of irreducible representations form an orthonormal basis for the space of class functions.
-- **The number of irreducible representations equals the number of conjugacy classes**, giving a beautiful connection between the linear-algebraic and combinatorial aspects of group theory.
-
-The theory extends far beyond finite groups: compact groups have Peter-Weyl theory (a continuous analogue of Maschke's theorem), Lie groups have the theory of highest weights, and infinite-dimensional representations appear in number theory (automorphic forms) and quantum field theory.
-
-In the next article, we step back to look at the bigger picture: **category theory** provides a universal language for describing the common structures we have encountered throughout this series — groups, rings, modules, representations, and the maps between them.
+In the next article, we step back to look at the bigger picture: **category theory** provides a universal language for describing the common structures we have encountered throughout this series — groups, rings, modules, representations, and the maps between them. The pattern of "decompose into pieces, find irreducibles, count by conjugacy classes" we just developed for representations is one instance of a general phenomenon, and category theory is the language for stating that generality precisely.
 
 ---
 

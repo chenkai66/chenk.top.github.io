@@ -19,248 +19,306 @@ translationKey: "abstract-algebra-9"
 
 In every linear algebra course, you learn to work over a field: real numbers, complex numbers, or perhaps a finite field. The resulting theory is remarkably clean — every subspace has a complement, every finitely generated vector space has a basis, and all bases have the same cardinality. But what happens when we replace the field with a ring?
 
-The answer is **module theory**, and it is simultaneously a natural generalization and a dramatically richer world. Some of the clean theorems survive; many do not. The payoff for studying this richer world is a single structure theorem that unifies two apparently unrelated classification results: the classification of finitely generated abelian groups and the theory of canonical forms for linear operators.
+The answer is *modules*: the natural generalization of vector spaces, where scalars come from a ring rather than a field. The theory is richer, the pathologies more interesting, and — perhaps most importantly — modules turn out to encompass an enormous range of mathematical objects: abelian groups (modules over $\mathbb{Z}$), vector spaces with a linear endomorphism (modules over $K[x]$), ideals (modules over a ring), and group representations (modules over a group ring). What initially feels like a technical generalization is actually a unifying framework that organizes much of algebra.
+
+I want to flag the mental shift up front. Modules force you to give up two pleasant facts about vector spaces — the existence of bases and the splitting of short exact sequences — and the entire structure theory below is dedicated to figuring out *exactly* how badly those things fail and what survives in their place. The good news is that for the most useful base rings (PIDs, especially $\mathbb{Z}$ and $K[x]$), the failures are completely understood: the structure theorem catalogues all finitely generated modules up to isomorphism. That is why this article focuses on PIDs.
 
 ---
 
 ## Why Modules? Vector Spaces over Non-Fields
 
-Recall the definition of a vector space $V$ over a field $F$: it is an abelian group $(V, +)$ equipped with a scalar multiplication $F \times V \to V$ satisfying the usual axioms (distributivity, associativity with field multiplication, and $1 \cdot v = v$). The key property that makes everything work smoothly is that every nonzero element of $F$ has a multiplicative inverse.
+Suppose we want to study an abelian group $A$ as an algebraic object. We can add elements, take inverses, and — implicitly — multiply by integers: $3 \cdot a = a + a + a$, $(-2) \cdot a = -(a + a)$, and so on. This makes $A$ into a structure where $\mathbb{Z}$ acts as scalars. But $\mathbb{Z}$ is not a field; it has nonzero elements without inverses, like 2 or 3.
 
-But many natural algebraic structures involve "scalar multiplication" by elements of a ring that is not a field.
+The catch is that $\mathbb{Z}$-multiplication is no longer reversible: doubling an element does not generally give a doubling-inverse. This single failure of "scalar division" is what turns the simple theory of vector spaces into the messier theory of modules. Reversibility was the secret ingredient that made bases work, and we lose it the moment we leave the field setting.
 
-![Structure theorem for finitely generated modules over PIDs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/09-modules/aa_fig9_module_structure.png)
+So a $\mathbb{Z}$-module is "an abelian group with the natural $\mathbb{Z}$-action," and conversely, every $\mathbb{Z}$-module is an abelian group, with the action by integers being forced. This already shows that modules are not a marginal generalization: every abelian group you have ever seen — $\mathbb{Z}$, $\mathbb{Z}/n\mathbb{Z}$, $\mathbb{Q}/\mathbb{Z}$, the additive group of $\mathbb{R}$ — is a $\mathbb{Z}$-module.
 
+A second motivating example. Take a vector space $V$ over a field $K$ together with a linear endomorphism $T : V \to V$. We can act on $V$ by polynomials in $T$: $(2T^3 - 5T + 1)(v) := 2T^3(v) - 5T(v) + v$. This makes $V$ into a $K[x]$-module, where $x$ acts as $T$. The structure theory of $K[x]$-modules turns out to give exactly the theory of canonical forms — Jordan normal form, rational canonical form — that you saw in linear algebra. This is one of those moments where module theory does not just generalize linear algebra; it explains what linear algebra was secretly doing.
 
-**Example 1 (Abelian groups as $\mathbb{Z}$-modules).** Every abelian group $A$ is naturally a module over $\mathbb{Z}$. The scalar multiplication is defined by:
-$$n \cdot a = \underbrace{a + a + \cdots + a}_{n \text{ times}}$$
-for $n > 0$, with $0 \cdot a = 0$ and $(-n) \cdot a = -(n \cdot a)$. The ring $\mathbb{Z}$ is not a field, so we should not expect field-like behavior. Indeed, the abelian group $\mathbb{Z}/6\mathbb{Z}$ has no "basis" in any reasonable sense — the element $\bar{2}$ satisfies $3 \cdot \bar{2} = \bar{0}$, so nonzero scalars can annihilate nonzero elements.
+This second example deserves a moment of reflection. In an undergraduate linear algebra class, Jordan form is presented as a sequence of clever observations about generalized eigenvectors and chains. The proofs are technical and the steps look ad hoc. The module-theoretic perspective makes the whole thing transparent: a vector space with a linear operator is a $K[x]$-module, and the structure theorem says every finitely generated $K[x]$-module decomposes as a direct sum of cyclic ones. Each cyclic summand $K[x]/((x - \lambda)^e)$ is a Jordan block. End of story. Six pages of clever bookkeeping in the linear algebra book reduce to a single corollary of the structure theorem.
 
-**Example 2 ($R[x]$-modules and linear operators).** Let $V$ be a vector space over a field $F$ and let $T: V \to V$ be a linear operator. We can make $V$ into a module over the polynomial ring $F[x]$ by defining:
-$$f(x) \cdot v = f(T)(v)$$
-That is, $x$ acts as $T$, $x^2$ acts as $T^2$, and a general polynomial $a_0 + a_1 x + \cdots + a_n x^n$ acts as $a_0 I + a_1 T + \cdots + a_n T^n$. This single construction will allow us to derive the rational and Jordan canonical forms from the structure theorem for modules.
+A third example: every ideal $I$ of a ring $R$ is an $R$-submodule of $R$ itself. Module theory thus subsumes the theory of ideals. And every quotient $R/I$ is an $R$-module too. The list goes on.
 
-**Example (Group rings).** Let $G$ be a finite group and $F$ a field. The **group ring** $F[G]$ consists of all formal sums $\sum_{g \in G} a_g g$ with $a_g \in F$, with multiplication extended linearly from the group multiplication. A left $F[G]$-module is the same thing as a representation of $G$ over $F$ — we will explore this connection in detail in the next article on representation theory. For now, the takeaway is that modules over group rings unify representation theory with module theory.
+**Why this matters.** Modules are the universal language for "objects on which a ring acts." If you can describe your structure as "an abelian group together with a ring's worth of linear operators," you are looking at a module, and you can use module theory. This single shift in viewpoint subsumes linear algebra, abelian group theory, ideal theory, representation theory, and homological algebra.
 
-These examples illustrate a general principle: **module theory is the right framework whenever you have an abelian group with a ring acting on it**. The loss of invertibility in the scalars makes the theory harder but also more expressive. In a vector space, no nonzero scalar can annihilate a nonzero vector — this is precisely what makes bases exist and dimensions well-behaved. In a module, the possibility of nonzero annihilation creates a richer landscape: torsion elements, non-free modules, and the need for a more careful structural theory.
+A small piece of dictionary that is useful to keep handy:
+
+| Module-theoretic concept | Specialization to $R = K$ (field) | Specialization to $R = \mathbb{Z}$ |
+|---|---|---|
+| $R$-module | vector space | abelian group |
+| Submodule | subspace | subgroup |
+| Quotient module | quotient space | quotient group |
+| Module homomorphism | linear map | group homomorphism |
+| Free module of rank $n$ | $K^n$ | $\mathbb{Z}^n$ |
+| Cyclic module | one-dimensional | cyclic group |
+| Torsion submodule | always 0 | torsion subgroup |
+| Direct sum | direct sum | direct sum |
+
+The thing to notice is that the column for $\mathbb{Z}$ has a non-trivial "torsion submodule" entry. Over a field, every module is torsion-free; over $\mathbb{Z}$, torsion is the entire reason we need a structure theorem at all. Torsion is the obstruction to being a vector space.
 
 ---
 
 ## Definitions and First Examples
 
-**Definition.** Let $R$ be a ring (with identity $1_R$). A **left $R$-module** is an abelian group $(M, +)$ together with a map $R \times M \to M$, written $(r, m) \mapsto r \cdot m$, satisfying for all $r, s \in R$ and $m, n \in M$:
+**Definition.** Let $R$ be a ring (with 1). A *(left) $R$-module* is an abelian group $(M, +)$ together with a scalar multiplication $R \times M \to M$, $(r, m) \mapsto rm$, satisfying:
 
-1. $r \cdot (m + n) = r \cdot m + r \cdot n$
-2. $(r + s) \cdot m = r \cdot m + s \cdot m$
-3. $(rs) \cdot m = r \cdot (s \cdot m)$
-4. $1_R \cdot m = m$
+1. $(r + s)m = rm + sm$ (distributes over scalar addition)
+2. $r(m + n) = rm + rn$ (distributes over module addition)
+3. $(rs)m = r(sm)$ (associativity)
+4. $1 \cdot m = m$ (identity acts trivially)
 
-Right modules are defined analogously with scalars acting on the right. When $R$ is commutative, the distinction vanishes.
+If $R$ is non-commutative, we distinguish *left* modules (defined as above) from *right* modules (with multiplication $M \times R \to M$). For commutative $R$, the distinction is unnecessary. Most rings in this article are commutative; we work with left modules unless stated otherwise.
 
-**Why left vs. right matters.** For a noncommutative ring $R$, left and right modules are genuinely different concepts. If $M$ is a left $R$-module, the axiom $(rs) \cdot m = r \cdot (s \cdot m)$ means that the "inner" scalar $s$ acts first. For a right module, one writes $m \cdot (rs) = (m \cdot r) \cdot s$, so the "outer" scalar $s$ acts first. When $R$ is commutative, the two notions coincide, and we simply speak of $R$-modules. In this article we will mostly work with commutative rings, so the distinction is not critical, but it becomes essential in representation theory and noncommutative algebra.
+When $R$ is a field, an $R$-module is precisely a vector space. Modules generalize vector spaces by allowing the scalars to come from a ring instead of a field.
 
-**Example 3 (Ideals as modules).** If $R$ is a ring, then any left ideal $I \subseteq R$ is a left $R$-module under the ring multiplication. In particular, $R$ itself is a left $R$-module.
+![Examples of modules: Z-modules, F[x]-modules, vector spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/09-modules/aa_v2_09_1_module_examples.png)
 
-**Example 4 (Direct sums).** If $M_1, \ldots, M_n$ are $R$-modules, their direct sum $M_1 \oplus \cdots \oplus M_n$ is an $R$-module under componentwise operations: $r \cdot (m_1, \ldots, m_n) = (r \cdot m_1, \ldots, r \cdot m_n)$.
+**Examples.**
 
-**Example 5 (Matrix modules).** The set $R^n$ of column vectors with entries in $R$ is a left $R$-module. More generally, the set $M_{m \times n}(R)$ of $m \times n$ matrices over $R$ is both a left $M_{m \times m}(R)$-module and a right $M_{n \times n}(R)$-module.
+1. *$\mathbb{Z}$-modules = abelian groups.* The $\mathbb{Z}$-action on an abelian group $A$ is forced: $n \cdot a$ for $n > 0$ is $a + \cdots + a$ ($n$ times); for $n < 0$ it is $-((-n)a)$; and $0 \cdot a = 0$. Both module axioms (distributivity, associativity) follow from the abelian group structure.
 
-The translation between module-theoretic language and specific algebraic contexts is worth internalizing:
+2. *Vector spaces over a field $K$ are $K$-modules.* All the vector space axioms are special cases of the module axioms.
 
-| Module context | $\mathbb{Z}$-modules | $F$-modules ($F$ a field) | $F[x]$-modules |
-|---|---|---|---|
-| Module | Abelian group | Vector space | Vector space + operator |
-| Submodule | Subgroup | Subspace | $T$-invariant subspace |
-| Module homomorphism | Group homomorphism | Linear map | Intertwining operator |
+3. *$R$ as an $R$-module over itself.* The ring $R$ acts on itself by left multiplication. Submodules of $R$ are exactly the *left ideals* of $R$.
 
-**Torsion.** An element $m \in M$ is a **torsion element** if there exists a nonzero $r \in R$ with $r \cdot m = 0$. The set of all torsion elements $\operatorname{Tor}(M) = \{m \in M : r \cdot m = 0 \text{ for some } r \neq 0\}$ is a submodule when $R$ is an integral domain (if $r_1 m_1 = 0$ and $r_2 m_2 = 0$, then $r_1 r_2 (m_1 + m_2) = r_2(r_1 m_1) + r_1(r_2 m_2) = 0$, and $r_1 r_2 \neq 0$ since $R$ is a domain). A module is **torsion-free** if $\operatorname{Tor}(M) = 0$, and a **torsion module** if $\operatorname{Tor}(M) = M$. In a vector space, the only torsion element is $0$ — so every vector space is torsion-free. But the $\mathbb{Z}$-module $\mathbb{Z}/n\mathbb{Z}$ is entirely torsion: every element $\bar{k}$ satisfies $n \cdot \bar{k} = \bar{0}$.
+4. *$R^n$ as a free module.* The direct sum $R^n = R \oplus \cdots \oplus R$ ($n$ copies) is an $R$-module under componentwise scalar multiplication. We will see that $R^n$ is the prototype of a "free module."
+
+5. *$K[x]$-modules = vector spaces with a linear operator.* Given a $K$-vector space $V$ and a linear map $T : V \to V$, we make $V$ into a $K[x]$-module by defining $f(x) \cdot v := f(T)(v)$ for $f \in K[x]$. Conversely, any $K[x]$-module is a $K$-vector space (restrict scalars to $K \subset K[x]$), and the action of $x$ defines a linear operator. So *$K[x]$-modules are the same as pairs $(V, T)$*.
+
+6. *Group rings and representations.* For a group $G$ and a field $K$, the group ring $K[G]$ has elements $\sum_{g \in G} a_g g$ with multiplication extending that of $G$. A $K[G]$-module is the same as a $K$-vector space $V$ with a linear $G$-action — that is, a *representation* of $G$. We will study these in Part 10.
+
+7. *Quotient modules.* If $N \subseteq M$ is a submodule, the quotient $M/N$ inherits an $R$-module structure: $r \cdot (m + N) := rm + N$.
+
+**Definition.** A *submodule* of $M$ is a subgroup $N \subseteq M$ closed under scalar multiplication: $r \in R, n \in N \Rightarrow rn \in N$. A map $\varphi : M \to N$ is an *$R$-module homomorphism* if it is additive and $R$-linear: $\varphi(rm) = r\varphi(m)$.
+
+The kernel and image of an $R$-module homomorphism are themselves submodules (of the source and target respectively). The first isomorphism theorem then gives $M / \ker\varphi \cong \mathrm{im}\,\varphi$ as $R$-modules. This and the next two iso theorems are the bread-and-butter computational tools.
+
+**Why this matters.** The flexibility of "ring of scalars" is what makes module theory ubiquitous. The same theorem about modules can specialize to a theorem about abelian groups, vector spaces, ideals, or representations, just by choosing $R$ appropriately.
 
 ---
 
 ## Submodules, Quotients, and Homomorphisms
 
-The basic constructions from group theory and linear algebra carry over to modules with the expected modifications.
+The basic structural theorems for modules parallel those for groups and rings. Most of the proofs you saw in Parts 1-3 carry over verbatim, with "linear" replacing "homomorphism."
 
-**Definition.** A **submodule** $N$ of an $R$-module $M$ is a subgroup $N \leq M$ (under addition) that is closed under scalar multiplication: $r \cdot n \in N$ for all $r \in R$, $n \in N$.
+**Isomorphism Theorems.**
 
-**Definition.** If $N$ is a submodule of $M$, the **quotient module** $M/N$ is the quotient group $M/N$ with scalar multiplication $r \cdot (m + N) = (r \cdot m) + N$. This is well-defined precisely because $N$ is a submodule.
+1. *(First)* If $\varphi : M \to N$ is an $R$-module homomorphism, then $M/\ker\varphi \cong \mathrm{im}\,\varphi$.
+2. *(Second)* If $A, B \subseteq M$ are submodules, then $(A + B)/B \cong A/(A \cap B)$.
+3. *(Third)* If $A \subseteq B \subseteq M$ are submodules, then $(M/A)/(B/A) \cong M/B$.
 
-**Definition.** A **module homomorphism** (or $R$-linear map) $\varphi: M \to N$ is a map satisfying $\varphi(m_1 + m_2) = \varphi(m_1) + \varphi(m_2)$ and $\varphi(r \cdot m) = r \cdot \varphi(m)$ for all $r \in R$ and $m, m_1, m_2 \in M$.
+These are proved exactly as for groups, with the additional verification that the isomorphism respects scalar multiplication — automatic, since the homomorphisms in question are $R$-linear by construction.
 
-**The isomorphism theorems** hold for modules, with identical statements and nearly identical proofs to the group-theoretic versions:
+**Direct sums.** Given modules $M_1, \ldots, M_n$, their direct sum $M_1 \oplus \cdots \oplus M_n$ is the Cartesian product with componentwise addition and scalar multiplication. A finite direct sum of modules is itself a module.
 
-**First Isomorphism Theorem.** If $\varphi: M \to N$ is an $R$-module homomorphism, then $M / \ker \varphi \cong \operatorname{im} \varphi$.
+**Generators.** A subset $S \subseteq M$ *generates* $M$ if every element of $M$ is a finite $R$-linear combination of elements of $S$. $M$ is *finitely generated* if it has a finite generating set; *cyclic* if it is generated by a single element.
 
-*Proof sketch.* The map $m + \ker \varphi \mapsto \varphi(m)$ is well-defined (if $m - m' \in \ker \varphi$, then $\varphi(m) = \varphi(m')$), injective by construction, surjective onto $\operatorname{im} \varphi$, and $R$-linear because $\varphi$ is. $\square$
+**Examples.**
 
-**Example 6.** Consider $\mathbb{Z}$ as a $\mathbb{Z}$-module and the homomorphism $\varphi: \mathbb{Z} \to \mathbb{Z}/n\mathbb{Z}$ sending $k \mapsto \bar{k}$. Then $\ker \varphi = n\mathbb{Z}$, and the first isomorphism theorem gives $\mathbb{Z}/n\mathbb{Z} \cong \mathbb{Z}/n\mathbb{Z}$ — a tautology here, but the machinery becomes powerful in more complex settings.
+- $\mathbb{Z}$ is a cyclic $\mathbb{Z}$-module, generated by 1.
+- $\mathbb{Z}/n\mathbb{Z}$ is a cyclic $\mathbb{Z}$-module for any $n \geq 1$.
+- $\mathbb{Z}^2 = \mathbb{Z} \oplus \mathbb{Z}$ is finitely generated (by $(1,0), (0,1)$) but not cyclic.
+- $\mathbb{Q}$ is *not* finitely generated as a $\mathbb{Z}$-module: any finite collection of fractions has a common denominator $d$, but $\mathbb{Z}\langle a_1/d, \ldots, a_k/d \rangle \subseteq \frac{1}{d}\mathbb{Z}$ does not contain $1/(2d)$.
 
-**Annihilators.** For an element $m \in M$, the **annihilator** $\operatorname{Ann}(m) = \{r \in R : r \cdot m = 0\}$ is a left ideal of $R$. For a submodule or the whole module, $\operatorname{Ann}(M) = \{r \in R : r \cdot m = 0 \text{ for all } m \in M\}$ is a two-sided ideal. The annihilator captures the "torsion" behavior that distinguishes modules from vector spaces.
+The fact that $\mathbb{Q}$ is not finitely generated over $\mathbb{Z}$ is striking: an abelian group can be "huge" without being all that complicated, and module theory needs to track this distinction carefully.
 
-**Second and Third Isomorphism Theorems.** These also hold for modules:
+**Why this matters.** The "finitely generated" hypothesis is what we will need for the structure theorem. Without it, classification is essentially hopeless; the category of all $\mathbb{Z}$-modules contains all abelian groups, including beasts like $\mathbb{R}$ and $\mathbb{Q}/\mathbb{Z}$ that resist classification.
 
-**Second Isomorphism Theorem.** If $N_1, N_2$ are submodules of $M$, then $(N_1 + N_2)/N_2 \cong N_1/(N_1 \cap N_2)$.
+Two more pieces of vocabulary that show up constantly:
 
-**Third Isomorphism Theorem.** If $N_1 \subseteq N_2 \subseteq M$ are submodules, then $(M/N_1)/(N_2/N_1) \cong M/N_2$.
+- A module $M$ is *cyclic* if it is generated by a single element, equivalently $M \cong R/I$ for some ideal $I$. The annihilator of $M$ is the ideal $I$.
+- A module $M$ is *simple* (or *irreducible*) if it has no submodules other than 0 and $M$. Over a field, simple is the same as one-dimensional. Over $\mathbb{Z}$, simple is the same as $\mathbb{Z}/p\mathbb{Z}$ for $p$ prime.
+- A module $M$ is *Noetherian* if every increasing chain of submodules stabilizes; *Artinian* if every decreasing chain does. Over a Noetherian ring, finitely generated modules are Noetherian; this is the abstract reason "finitely generated" is the right finiteness condition.
 
-The proofs are essentially identical to the group-theoretic versions, with the additional (trivial) check that the isomorphisms preserve scalar multiplication.
-
-**Example.** In the $\mathbb{Z}$-module $\mathbb{Z}$, the submodules $6\mathbb{Z}$ and $4\mathbb{Z}$ satisfy $6\mathbb{Z} + 4\mathbb{Z} = 2\mathbb{Z}$ (since $\gcd(4,6) = 2$) and $6\mathbb{Z} \cap 4\mathbb{Z} = 12\mathbb{Z}$ (since $\operatorname{lcm}(4,6) = 12$). The second isomorphism theorem gives $2\mathbb{Z}/4\mathbb{Z} \cong 6\mathbb{Z}/12\mathbb{Z}$, which is $\mathbb{Z}/2\mathbb{Z} \cong \mathbb{Z}/2\mathbb{Z}$ — consistent.
-
-**Direct sum decompositions.** An $R$-module $M$ is the **internal direct sum** of submodules $N_1, \ldots, N_k$ if $M = N_1 + \cdots + N_k$ and $N_i \cap (N_1 + \cdots + N_{i-1} + N_{i+1} + \cdots + N_k) = 0$ for each $i$. This is equivalent to saying that every $m \in M$ can be written uniquely as $m = n_1 + \cdots + n_k$ with $n_i \in N_i$. Internal direct sums are isomorphic to external direct sums: $M \cong N_1 \oplus \cdots \oplus N_k$.
+Tucking these definitions away pays off later: in homological algebra you talk constantly about "simple modules," "indecomposable modules," and the like, and they are all just slight variations on the basic concepts above.
 
 ---
 
 ## Free Modules and Bases
 
-In a vector space, every element can be written uniquely as a linear combination of basis vectors. Can we do the same for modules?
+In linear algebra, every vector space has a basis. For modules, this fails, and the failure is informative.
 
-**Definition.** An $R$-module $M$ is **free** with basis $\{e_i\}_{i \in I}$ if every element $m \in M$ can be written uniquely as $m = \sum_{i \in I} r_i e_i$ where $r_i \in R$ and only finitely many $r_i$ are nonzero. Equivalently, $M \cong \bigoplus_{i \in I} R$ (a direct sum of copies of $R$ as a module over itself).
+**Definition.** An $R$-module $M$ is *free* on a set $S$ if every element of $M$ is uniquely a finite $R$-linear combination of elements of $S$. Equivalently, $M \cong R^{|S|}$ via $S \to R^{|S|}$, $s_i \mapsto e_i$.
 
-**Key difference from vector spaces:** Not every module is free, and not every module even has a basis.
+![A free module R^n with its standard basis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/09-modules/aa_v2_09_2_free_module.png)
 
-**Example 7 (A non-free module).** The $\mathbb{Z}$-module $\mathbb{Z}/2\mathbb{Z}$ is not free. If it were, there would be an element $e$ such that $\mathbb{Z}/2\mathbb{Z} = \{ne : n \in \mathbb{Z}\}$ with $ne = 0$ implying $n = 0$. But $2 \cdot \bar{1} = \bar{0}$ while $2 \neq 0$ in $\mathbb{Z}$, a contradiction.
+**Examples of free modules.**
 
-**Example 8 (Free modules that exist).** The module $\mathbb{Z}^n$ is a free $\mathbb{Z}$-module of rank $n$, with the standard basis vectors $e_1, \ldots, e_n$.
+- Every vector space (free over its field).
+- $\mathbb{Z}^n$ as a $\mathbb{Z}$-module.
+- $R[x]$ as an $R$-module, with basis $\{1, x, x^2, \ldots\}$.
 
-**Rank.** For a commutative ring $R$, the rank of a free $R$-module is well-defined: if $R^m \cong R^n$ as $R$-modules, then $m = n$. (This is proved by reducing modulo a maximal ideal and using the field case.) However, for noncommutative rings, this invariant basis property can fail — there exist rings where $R \cong R^2$ as left modules.
+**Examples of non-free modules.**
 
-**Theorem (Every module is a quotient of a free module).** For any $R$-module $M$, there exists a free module $F$ and a surjective homomorphism $\pi: F \to M$.
+- $\mathbb{Z}/n\mathbb{Z}$ as a $\mathbb{Z}$-module for $n \geq 2$. There is no basis: any nonzero element $\overline{a}$ satisfies $n\overline{a} = 0$, breaking the uniqueness of representations.
+- $\mathbb{Q}$ as a $\mathbb{Z}$-module. Any two elements $a/b, c/d \in \mathbb{Q}$ satisfy $(bc)(a/b) - (ad)(c/d) \cdot 0 = 0$, but actually any two rationals satisfy a $\mathbb{Z}$-linear relation: $(bc) \cdot (a/b) = (ad) \cdot (c/d)$ if $a/b, c/d$ are both nonzero — wait, that is wrong unless $a/b = c/d$. Let me redo. Actually, take $1, 1/2 \in \mathbb{Q}$: $1 \cdot 1 + (-2) \cdot (1/2) = 0$, a nontrivial $\mathbb{Z}$-relation.
 
-*Proof sketch.* Take $F = \bigoplus_{m \in M} R$ (one copy of $R$ for each element of $M$), and define $\pi$ to send the generator corresponding to $m$ to $m$ itself. This map is surjective and $R$-linear. $\square$
+The point is that any singleton $\{r\}$ in $\mathbb{Q}$ generates only $\mathbb{Z}r$, so $\mathbb{Q}$ is not generated by any finite set, and even an infinite generating set has nontrivial $\mathbb{Z}$-relations among any two of its elements.
 
-This means every module can be presented as $F/K$ where $F$ is free and $K = \ker \pi$ is a submodule of $F$. When $R$ is a PID and $F$ is finitely generated, we can say much more about the structure of $K$ and hence of $M$.
+**Theorem.** Over a commutative ring $R$, any two bases of a free module have the same cardinality. This *invariant* is the *rank* of the module.
 
-**Projective and injective modules.** While we will not develop these concepts in full, they are worth mentioning. A module $P$ is **projective** if every surjection $M \to P$ splits (i.e., $P$ is always a direct summand). Free modules are projective, but the converse fails in general. A module $Q$ is **injective** if every injection $Q \to M$ splits. Over a PID, a module is projective if and only if it is free (this is a theorem), and a module is injective if and only if it is divisible (meaning for every $r \neq 0$ and $q \in Q$, there exists $q'$ with $rq' = q$). These concepts become central in homological algebra.
+For non-commutative rings this can fail (the IBN — invariant basis number — property is not automatic), but every commutative ring (and every left/right Noetherian ring) satisfies it. The proof for fields is dimension-counting; for general commutative rings, you reduce mod a maximal ideal $\mathfrak{m}$ to get a vector space over $R/\mathfrak{m}$ where dimension counting works, then lift back.
 
-**Exact sequences.** A sequence of module homomorphisms $\cdots \to M_{i-1} \xrightarrow{f_{i-1}} M_i \xrightarrow{f_i} M_{i+1} \to \cdots$ is **exact** at $M_i$ if $\operatorname{im} f_{i-1} = \ker f_i$. A **short exact sequence** $0 \to A \xrightarrow{f} B \xrightarrow{g} C \to 0$ means $f$ is injective, $g$ is surjective, and $\operatorname{im} f = \ker g$. In other words, $A$ is (isomorphic to) a submodule of $B$, and $C \cong B/A$. The short exact sequence **splits** if $B \cong A \oplus C$. Over a field, every short exact sequence of vector spaces splits — but over a general ring, this fails, and the failure is measured by the Ext functor in homological algebra.
+A pleasant consequence: rank is a well-defined invariant of free modules, just like dimension is for vector spaces. So you can talk about "the rank of a free $\mathbb{Z}$-module" without ambiguity, and the rank tells you how big the module is up to isomorphism.
+
+**Theorem (Submodules of free modules over PIDs).** If $R$ is a PID and $F$ is a free $R$-module of rank $n$, then every submodule of $F$ is free of rank $\leq n$.
+
+This is genuinely special to PIDs. Over $\mathbb{Z}[x]$, for example, the ideal $(2, x)$ is a submodule of the free module $\mathbb{Z}[x]$ but is not itself free — and in fact $(2, x)$ requires two generators with a nontrivial relation, which is the definition of "not free."
+
+The proof uses induction on $n$ together with the key step that any submodule of $R$ (a PID) is a principal ideal $(d)$, hence free of rank 0 or 1. So the rank-1 case is the engine. For higher ranks, you peel off one coordinate at a time and induct.
+
+A concrete consequence: every subgroup of $\mathbb{Z}^n$ is free abelian of rank at most $n$. This means lattice subgroups of $\mathbb{Z}^n$ are themselves lattices — a fact familiar from elementary number theory but here derived from a more general principle.
+
+**Why this matters.** Free modules play the role of "vector-space-like" modules. They are the building blocks; non-free modules will be expressed as quotients of free modules. The structure theorem for modules over a PID can be paraphrased as: "every finitely generated module is a quotient of a free module by a particularly clean kind of submodule."
+
+There is a useful universal property characterization. A free $R$-module on a set $S$ is the unique (up to isomorphism) module $F$ together with a map $S \to F$ such that for any $R$-module $M$ and any function $S \to M$, the function extends uniquely to an $R$-linear map $F \to M$. In other words, "free module on $S$" is "the thing where you can turn any function out of $S$ into a module homomorphism, with no obstructions." This is exactly the same universal property that defines free groups, free monoids, free vector spaces, free abelian groups, and free anything-else-in-a-nice-category. The pattern is so common it gets its own name in category theory: free objects.
+
+A pleasant consequence: every $R$-module $M$ is a quotient of a free $R$-module. To see this, take $S = M$ as a set, form the free module $F = R^{(M)}$, and use the universal property to extend the identity map $M \to M$ to a surjection $F \to M$. This is the *free presentation*, and it is the starting point of homological algebra.
 
 ---
 
 ## The Structure Theorem for Finitely Generated Modules over PIDs
 
-This is the crown jewel of module theory at the undergraduate level. It provides a complete classification of finitely generated modules over principal ideal domains.
+We now state the central classification result of module theory.
 
-**Theorem (Structure Theorem — Invariant Factor Form).** Let $R$ be a PID and $M$ a finitely generated $R$-module. Then there exist unique elements $d_1, d_2, \ldots, d_k \in R$ (nonzero, non-units) with $d_1 \mid d_2 \mid \cdots \mid d_k$, and a unique non-negative integer $r$, such that:
-$$M \cong R^r \oplus R/(d_1) \oplus R/(d_2) \oplus \cdots \oplus R/(d_k)$$
+**Theorem (Structure of finitely generated modules over a PID).** Let $R$ be a PID and $M$ a finitely generated $R$-module. Then there exist a non-negative integer $r$ and elements $d_1, d_2, \ldots, d_k \in R$ (non-zero, non-unit) with $d_1 \mid d_2 \mid \cdots \mid d_k$ such that
+$$M \cong R^r \oplus R/(d_1) \oplus R/(d_2) \oplus \cdots \oplus R/(d_k).$$
+The integer $r$ (the *free rank*) and the ideals $(d_1), \ldots, (d_k)$ (the *invariant factors*) are uniquely determined by $M$.
 
-The integer $r$ is the **free rank** of $M$, and $d_1, \ldots, d_k$ are the **invariant factors**.
+![Structure theorem: finitely generated module over a PID decomposes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/09-modules/aa_v2_09_4_structure_thm.png)
 
-**Theorem (Structure Theorem — Elementary Divisor Form).** Alternatively, there exist (not necessarily unique) irreducible elements $p_1, \ldots, p_s \in R$ and positive integers $a_1, \ldots, a_s$ such that:
-$$M \cong R^r \oplus R/(p_1^{a_1}) \oplus R/(p_2^{a_2}) \oplus \cdots \oplus R/(p_s^{a_s})$$
+Equivalently, by the Chinese Remainder Theorem, we can decompose each $R/(d_i)$ further into prime-power pieces:
+$$M \cong R^r \oplus R/(p_1^{e_1}) \oplus \cdots \oplus R/(p_m^{e_m})$$
+where the $p_j$ are (not necessarily distinct) primes in $R$. These prime-power pieces are the *elementary divisors* of $M$.
 
-The prime powers $p_i^{a_i}$ are the **elementary divisors**, determined up to associates.
+**Definition.** The *torsion submodule* of $M$ is
+$$M_{\mathrm{tor}} = \{m \in M : rm = 0 \text{ for some nonzero } r \in R\}.$$
+Over a PID, $M_{\mathrm{tor}} = R/(d_1) \oplus \cdots \oplus R/(d_k)$ in the decomposition above, and $M/M_{\mathrm{tor}} \cong R^r$ is *torsion-free*.
 
-*Proof sketch (key ideas).* The proof proceeds in several steps:
+For a general ring $R$, $M_{\mathrm{tor}}$ might not even be a submodule (the closure under addition can fail when there are zero-divisors in $R$). But over an integral domain, $M_{\mathrm{tor}}$ is always a submodule, and over a PID, the structure theorem makes it a finite direct sum of cyclic modules. Over a Dedekind domain (a step beyond PID), the same finite direct sum structure holds for the torsion part, with the torsion-free part being projective rather than free.
 
-1. **Submodules of free modules over PIDs are free.** If $F$ is a free $R$-module of rank $n$ over a PID $R$, then every submodule of $F$ is free of rank $\leq n$. (This is proved by induction on $n$, using the fact that $R$ is a PID to ensure that the "leading coefficients" form an ideal, hence a principal ideal.)
+![Torsion in Z/nZ as a Z-module](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/09-modules/aa_v2_09_3_torsion.png)
 
-2. **Smith normal form.** Write $M = F/K$ where $F \cong R^n$. The submodule $K$ is free of rank $m \leq n$. Choose bases for $F$ and $K$ and form the $n \times m$ **relations matrix** $A$. By row and column operations (which correspond to basis changes in $F$ and $K$), reduce $A$ to Smith normal form:
-$$A \sim \begin{pmatrix} d_1 & & & \\ & d_2 & & \\ & & \ddots & \\ & & & d_m \\ & & & \\ & & & \end{pmatrix}$$
-where $d_1 \mid d_2 \mid \cdots \mid d_m$ and all off-diagonal entries are zero.
+So the structure theorem says: every finitely generated module over a PID splits cleanly into a free part plus a torsion part, and the torsion part is a direct sum of cyclic modules with "nested" annihilators.
 
-3. **Read off the decomposition.** In the new bases, $M \cong R/(d_1) \oplus \cdots \oplus R/(d_m) \oplus R^{n-m}$. The factors $R/(d_i)$ where $d_i$ is a unit give trivial summands (which we discard), and the remaining $d_i$ are the invariant factors.
+**Proof sketch.** Pick a finite generating set $\{m_1, \ldots, m_n\}$ for $M$, giving a surjection $\pi : R^n \twoheadrightarrow M$. The kernel $K = \ker\pi$ is a submodule of the free module $R^n$, hence free of some rank $\leq n$ (by the previous theorem). So $M \cong R^n / K$ where $K$ is itself free.
 
-4. **Elementary divisors from invariant factors.** By the Chinese Remainder Theorem for PIDs, if $d = p_1^{a_1} \cdots p_t^{a_t}$ with the $p_i$ pairwise non-associate irreducibles, then $R/(d) \cong R/(p_1^{a_1}) \oplus \cdots \oplus R/(p_t^{a_t})$.
+The submodule $K \subseteq R^n$ is described by a matrix $A$ whose columns are a basis of $K$ written in the standard basis of $R^n$. Different choices of bases for $R^n$ and $K$ change $A$ by left- and right-multiplication by invertible matrices. Smith normal form says we can choose bases so that $A$ is diagonal:
+$$A = \mathrm{diag}(d_1, d_2, \ldots, d_k, 0, \ldots, 0)$$
+with $d_1 \mid d_2 \mid \cdots \mid d_k$. Then $M \cong R^n / K \cong R/(d_1) \oplus \cdots \oplus R/(d_k) \oplus R^{n-k}$, and $r = n - k$. $\square$
 
-**Uniqueness** of invariant factors follows from the fact that the $i$-th invariant factor equals $\Delta_i(A)/\Delta_{i-1}(A)$ where $\Delta_i(A)$ is the GCD of all $i \times i$ minors of $A$ (with $\Delta_0 = 1$), and these GCDs are invariant under row/column operations.
+![Smith normal form algorithm reducing a matrix over a PID](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/09-modules/aa_v2_09_5_smith_normal.png)
 
-**Worked Example.** Let $R = \mathbb{Z}$ and consider the $\mathbb{Z}$-module $M$ presented by the matrix:
-$$A = \begin{pmatrix} 2 & 4 \\ 6 & 12 \end{pmatrix}$$
+The proof reveals that Smith normal form — a constructive algorithm for reducing a matrix over a PID to diagonal form using row and column operations — is the computational heart of the structure theorem. Given an explicit presentation of $M$, you can run Smith normal form on a presentation matrix and read off the invariant factors.
 
-We reduce to Smith normal form. Subtract 3 times row 1 from row 2:
-$$\begin{pmatrix} 2 & 4 \\ 0 & 0 \end{pmatrix}$$
-Subtract 2 times column 1 from column 2:
-$$\begin{pmatrix} 2 & 0 \\ 0 & 0 \end{pmatrix}$$
+**Why this matters.** This is one of the most powerful classification results in algebra. From a single theorem we will derive the classification of finitely generated abelian groups, the existence of Jordan and rational canonical forms for linear operators, and a host of structure results in algebraic number theory. The unifying mechanism is that "different choices of $R$ give different theorems."
 
-So the Smith normal form is $\operatorname{diag}(2, 0)$, giving $M \cong \mathbb{Z}/(2) \oplus \mathbb{Z} \cong \mathbb{Z}/2\mathbb{Z} \oplus \mathbb{Z}$. The module has free rank 1 and one invariant factor $d_1 = 2$.
-
-**Worked Example 2.** Consider the $\mathbb{Z}$-module presented by the $3 \times 2$ matrix:
-$$A = \begin{pmatrix} 2 & 0 \\ 0 & 6 \\ 4 & 6 \end{pmatrix}$$
-
-We compute the Smith normal form step by step. First, $\Delta_1 = \gcd$ of all entries $= \gcd(2, 0, 0, 6, 4, 6) = 2$. For $\Delta_2$, we need the GCD of all $2 \times 2$ minors. The minors are: $\det\begin{pmatrix}2 & 0\\0 & 6\end{pmatrix} = 12$, $\det\begin{pmatrix}2 & 0\\4 & 6\end{pmatrix} = 12$, $\det\begin{pmatrix}0 & 6\\4 & 6\end{pmatrix} = -24$. So $\Delta_2 = \gcd(12, 12, 24) = 12$. The invariant factors are $d_1 = \Delta_1/\Delta_0 = 2/1 = 2$ and $d_2 = \Delta_2/\Delta_1 = 12/2 = 6$. Since $M$ has 3 generators and 2 relations, the free rank is $r = 3 - 2 = 1$.
-
-Therefore $M \cong \mathbb{Z}/2\mathbb{Z} \oplus \mathbb{Z}/6\mathbb{Z} \oplus \mathbb{Z}$. In elementary divisor form: $\mathbb{Z}/2\mathbb{Z} \oplus \mathbb{Z}/2\mathbb{Z} \oplus \mathbb{Z}/3\mathbb{Z} \oplus \mathbb{Z}$ (since $6 = 2 \cdot 3$ and $\gcd(2,3) = 1$).
-
-**The torsion submodule and the free part.** For any finitely generated module $M$ over a PID $R$, the structure theorem implies $M \cong M_{\mathrm{tor}} \oplus R^r$, where $M_{\mathrm{tor}} = R/(d_1) \oplus \cdots \oplus R/(d_k)$ is the torsion submodule and $R^r$ is the free part. The torsion submodule and the free rank are both invariants of $M$. Note that this clean decomposition into torsion plus free is specific to PIDs; over more general rings, the torsion submodule may not have a complement.
+A small running example to ground the proof. Take $R = \mathbb{Z}$ and $M = \mathbb{Z}^2 / \langle (4, 6), (6, 9) \rangle$. We need to compute Smith normal form of the matrix
+$$A = \begin{pmatrix} 4 & 6 \\ 6 & 9 \end{pmatrix}.$$
+Row-reduce: $R_2 \to R_2 - R_1$ gives $\begin{pmatrix} 4 & 6 \\ 2 & 3 \end{pmatrix}$. Swap rows: $\begin{pmatrix} 2 & 3 \\ 4 & 6 \end{pmatrix}$. $R_2 \to R_2 - 2R_1$: $\begin{pmatrix} 2 & 3 \\ 0 & 0 \end{pmatrix}$. $C_2 \to C_2 - C_1$: $\begin{pmatrix} 2 & 1 \\ 0 & 0 \end{pmatrix}$. Swap columns and negate to get $\begin{pmatrix} 1 & 2 \\ 0 & 0 \end{pmatrix}$. $C_2 \to C_2 - 2 C_1$: $\begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}$. Smith form: $\mathrm{diag}(1, 0)$. So $M \cong \mathbb{Z}/1 \oplus \mathbb{Z} \cong \mathbb{Z}$. Sanity check: $(4, 6) = 2(2, 3)$ and $(6, 9) = 3(2, 3)$, so the submodule $\langle (4, 6), (6, 9) \rangle = \mathbb{Z} \cdot (2, 3)$ has rank 1, and the quotient is $\mathbb{Z}^2 / \mathbb{Z}(2, 3) \cong \mathbb{Z}$. Matches.
 
 ---
 
 ## Applications: Abelian Groups and Canonical Forms
 
-The structure theorem, applied to specific choices of PID, immediately yields two major classification results.
+### Application 1: Finitely Generated Abelian Groups
 
-### Classification of Finitely Generated Abelian Groups
+Apply the structure theorem with $R = \mathbb{Z}$. Every finitely generated abelian group is isomorphic to
+$$A \cong \mathbb{Z}^r \oplus \mathbb{Z}/d_1\mathbb{Z} \oplus \cdots \oplus \mathbb{Z}/d_k\mathbb{Z}$$
+with $d_1 \mid \cdots \mid d_k$. The rank $r$ and the invariant factors $d_i$ uniquely determine $A$ up to isomorphism.
 
-Take $R = \mathbb{Z}$. Every finitely generated abelian group $G$ is a $\mathbb{Z}$-module, and the structure theorem gives:
+The pre-structure-theorem version of this classification was a hard-won result of 19th-century mathematics, proved piecewise for groups of small order and then patched together. The structure theorem proves it in one stroke. It also lets you handle questions like "does $A$ have an element of order 6?" (yes iff some invariant factor is divisible by 6) without enumerating the elements.
 
-$$G \cong \mathbb{Z}^r \oplus \mathbb{Z}/d_1\mathbb{Z} \oplus \cdots \oplus \mathbb{Z}/d_k\mathbb{Z}$$
+**Example.** Classify abelian groups of order 360.
 
-where $d_1 \mid d_2 \mid \cdots \mid d_k$ (invariant factor form), or equivalently:
+$360 = 2^3 \cdot 3^2 \cdot 5$. The torsion-free part $\mathbb{Z}^r$ contributes nothing to the order, so $r = 0$. We need to write 360 as a product of invariant factors $d_1 \mid d_2 \mid \cdots \mid d_k$.
 
-$$G \cong \mathbb{Z}^r \oplus \mathbb{Z}/p_1^{a_1}\mathbb{Z} \oplus \cdots \oplus \mathbb{Z}/p_s^{a_s}\mathbb{Z}$$
+Equivalently (by CRT), we count partitions of the multiset $\{2,2,2,3,3,5\}$ — that is, pick a partition of the exponent of each prime separately:
 
-(elementary divisor form).
+- 2-part: partitions of 3, namely $\{3\}, \{2,1\}, \{1,1,1\}$ — 3 options.
+- 3-part: partitions of 2, namely $\{2\}, \{1,1\}$ — 2 options.
+- 5-part: partition of 1, namely $\{1\}$ — 1 option.
 
-**Worked Example.** Classify all abelian groups of order 36. Since $36 = 2^2 \cdot 3^2$, the elementary divisors must be powers of 2 and 3 whose product is 36 (and the free rank is 0). The possibilities are:
+Total: $3 \times 2 \times 1 = 6$ abelian groups of order 360. Listing them via elementary divisors: $\mathbb{Z}/8 \oplus \mathbb{Z}/9 \oplus \mathbb{Z}/5$, $\mathbb{Z}/8 \oplus (\mathbb{Z}/3)^2 \oplus \mathbb{Z}/5$, $\mathbb{Z}/4 \oplus \mathbb{Z}/2 \oplus \mathbb{Z}/9 \oplus \mathbb{Z}/5$, $\mathbb{Z}/4 \oplus \mathbb{Z}/2 \oplus (\mathbb{Z}/3)^2 \oplus \mathbb{Z}/5$, $(\mathbb{Z}/2)^3 \oplus \mathbb{Z}/9 \oplus \mathbb{Z}/5$, $(\mathbb{Z}/2)^3 \oplus (\mathbb{Z}/3)^2 \oplus \mathbb{Z}/5$.
 
-| Elementary divisors | Group |
-|---|---|
-| $2^2, 3^2$ | $\mathbb{Z}/4\mathbb{Z} \oplus \mathbb{Z}/9\mathbb{Z} \cong \mathbb{Z}/36\mathbb{Z}$ |
-| $2, 2, 3^2$ | $\mathbb{Z}/2\mathbb{Z} \oplus \mathbb{Z}/2\mathbb{Z} \oplus \mathbb{Z}/9\mathbb{Z}$ |
-| $2^2, 3, 3$ | $\mathbb{Z}/4\mathbb{Z} \oplus \mathbb{Z}/3\mathbb{Z} \oplus \mathbb{Z}/3\mathbb{Z}$ |
-| $2, 2, 3, 3$ | $\mathbb{Z}/2\mathbb{Z} \oplus \mathbb{Z}/2\mathbb{Z} \oplus \mathbb{Z}/3\mathbb{Z} \oplus \mathbb{Z}/3\mathbb{Z}$ |
+The structure theorem turns "classify abelian groups of order $n$" into a partition-counting exercise. That is the kind of leverage we keep getting.
 
-So there are exactly 4 abelian groups of order 36 (up to isomorphism). Converting to invariant factor form: $\mathbb{Z}/36\mathbb{Z}$; $\mathbb{Z}/2\mathbb{Z} \oplus \mathbb{Z}/18\mathbb{Z}$; $\mathbb{Z}/3\mathbb{Z} \oplus \mathbb{Z}/12\mathbb{Z}$; $\mathbb{Z}/6\mathbb{Z} \oplus \mathbb{Z}/6\mathbb{Z}$.
+The same partition-counting also gives the asymptotic growth rate: the number of abelian groups of order $n$ is multiplicative in $n$, equal to $\prod_p P(e_p)$ where $n = \prod p^{e_p}$ and $P$ is the integer partition function. For $n$ a prime, that count is 1 (only $\mathbb{Z}/p$); for $n = p^2$, it is 2 ($\mathbb{Z}/p^2$ or $(\mathbb{Z}/p)^2$); the count grows quickly with the exponents but stays small for square-free $n$.
 
-### Rational and Jordan Canonical Forms
+### Application 2: Canonical Forms for Linear Operators
 
-Take $R = F[x]$ where $F$ is a field, and let $V$ be a finite-dimensional $F$-vector space with a linear operator $T: V \to V$. As we noted, $V$ becomes an $F[x]$-module.
+Take $R = K[x]$ and apply the structure theorem to the $K[x]$-module $V$ defined by a linear operator $T$ on a finite-dimensional $K$-vector space.
 
-The structure theorem gives:
-$$V \cong F[x]/(d_1(x)) \oplus \cdots \oplus F[x]/(d_k(x))$$
-where $d_1(x) \mid \cdots \mid d_k(x)$ are the invariant factors. (There is no free part because $V$ is finite-dimensional but $F[x]$ is infinite-dimensional.)
+Since $V$ is finite-dimensional over $K$, it is a torsion $K[x]$-module (every vector satisfies the characteristic polynomial of $T$). So the structure theorem gives
+$$V \cong K[x]/(p_1) \oplus \cdots \oplus K[x]/(p_k)$$
+with $p_1 \mid \cdots \mid p_k$ in $K[x]$. The polynomials $p_i$ are the *invariant factors* of $T$. The largest, $p_k$, is the *minimal polynomial* of $T$; the product $p_1 \cdots p_k$ is the *characteristic polynomial*.
 
-The largest invariant factor $d_k(x)$ is the **minimal polynomial** of $T$, and the product $d_1(x) \cdots d_k(x)$ is the **characteristic polynomial**. Each summand $F[x]/(d_i(x))$ corresponds to a **companion matrix** block, and stacking these blocks gives the **rational canonical form** of $T$.
+Choosing bases of each cyclic summand $K[x]/(p_i)$ that look like $\{1, x, x^2, \ldots, x^{\deg p_i - 1}\}$, the matrix of $T$ becomes block-diagonal with each block the *companion matrix* of $p_i$. This is the *rational canonical form*.
 
-If we further decompose using $F[x]/(p(x)^a)$ factors (elementary divisor form), and if $F$ is algebraically closed so that all irreducibles are linear, we get:
-$$V \cong \bigoplus_{i} F[x]/((x - \lambda_i)^{a_i})$$
+Refining further: $K[x]/(p_i) \cong \bigoplus_j K[x]/(q_{ij}^{e_{ij}})$ by CRT, where the $q_{ij}$ are irreducible factors of $p_i$. This is the *primary decomposition*.
 
-Each summand $F[x]/((x-\lambda)^a)$ corresponds to a **Jordan block** $J_a(\lambda)$, and stacking these gives the **Jordan canonical form**.
+When $K$ is algebraically closed (e.g., $K = \mathbb{C}$), every irreducible $q_{ij}$ has the form $x - \lambda_{ij}$. The submodule $K[x]/(x - \lambda)^e$ corresponds to a *Jordan block* of size $e$ with eigenvalue $\lambda$. This recovers the *Jordan normal form*.
 
-**Worked Example.** Let $T: \mathbb{R}^4 \to \mathbb{R}^4$ have characteristic polynomial $(x-1)^2(x-2)^2$ and minimal polynomial $(x-1)^2(x-2)$. The invariant factors must divide the minimal polynomial and their product must be the characteristic polynomial. The only possibility is invariant factors $(x-2), (x-1)^2(x-2)$. (Check: product is $(x-1)^2(x-2)^2$ and the second divides... wait, we need the first to divide the second. We have $(x-2) \mid (x-1)^2(x-2)$, which is true.)
+![Jordan normal form arising from F[x]-module structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/09-modules/aa_v2_09_6_jordan.png)
 
-The rational canonical form has two companion matrix blocks corresponding to $d_1(x) = x-2$ and $d_2(x) = (x-1)^2(x-2) = x^3 - 4x^2 + 5x - 2$.
+So Jordan normal form is *not* a deep linear-algebra fact; it is the structure theorem for $K[x]$-modules specialized to algebraically closed $K$. This is, to my taste, the single most satisfying recovery of a "classical" theorem from a structural one.
 
-The elementary divisors are $(x-1)^2, (x-2), (x-2)$, giving Jordan form $\operatorname{diag}(J_2(1), J_1(2), J_1(2))$.
+A small concrete example. Let $T : \mathbb{C}^4 \to \mathbb{C}^4$ have characteristic polynomial $(x-2)^3 (x-5)$ and minimal polynomial $(x-2)^2 (x-5)$. The $\mathbb{C}[x]$-module structure on $\mathbb{C}^4$ has invariant factors that must satisfy: their product is $(x-2)^3(x-5)$ (the char poly), the largest is $(x-2)^2(x-5)$ (the min poly), and they form a divisibility chain. The only choice is $p_1 = (x-2)$, $p_2 = (x-2)^2(x-5)$. Decomposing into prime powers via CRT: $\mathbb{C}[x]/(x-2) \oplus \mathbb{C}[x]/(x-2)^2 \oplus \mathbb{C}[x]/(x-5)$. Jordan form: a single $1 \times 1$ block for eigenvalue 2, a single $2 \times 2$ Jordan block for eigenvalue 2, and a single $1 \times 1$ block for eigenvalue 5. Total dimension $1 + 2 + 1 = 4$, consistent.
 
-**Why this matters.** The beauty of the module-theoretic approach to canonical forms is its conceptual clarity. Instead of ad hoc manipulations of matrices, we apply a single structural result (the structure theorem) to a specific module ($V$ as an $F[x]$-module). The invariant factors and elementary divisors arise naturally, and the canonical forms are just their matrix representations.
+**Why this matters.** The same theorem in module theory yields fundamental results in two seemingly unrelated areas: classification of abelian groups (number theory, group theory) and canonical forms for matrices (linear algebra, differential equations, dynamical systems). The unification is not a coincidence — it reflects the deeper truth that abelian groups and "vector-spaces-with-an-endomorphism" are both modules over a PID.
 
-Moreover, this approach reveals a deep analogy: **the classification of finitely generated abelian groups and the classification of linear operators up to similarity are the same theorem**, applied to different rings ($\mathbb{Z}$ vs. $F[x]$). This unification is one of the great achievements of abstract algebra.
+Two more applications worth knowing about, which I won't develop in detail:
 
-**Worked Example 2 (Abelian groups of order 12).** We have $12 = 2^2 \cdot 3$. The partitions of the prime powers are: for $2^2$, either $\{4\}$ or $\{2, 2\}$; for $3$, only $\{3\}$. So the abelian groups of order 12 are:
-- $\mathbb{Z}/4\mathbb{Z} \oplus \mathbb{Z}/3\mathbb{Z} \cong \mathbb{Z}/12\mathbb{Z}$ (invariant factor: 12)
-- $\mathbb{Z}/2\mathbb{Z} \oplus \mathbb{Z}/2\mathbb{Z} \oplus \mathbb{Z}/3\mathbb{Z} \cong \mathbb{Z}/2\mathbb{Z} \oplus \mathbb{Z}/6\mathbb{Z}$ (invariant factors: 2, 6)
+- *Algebraic number theory.* The ring of integers $\mathcal{O}_K$ in a number field is a Dedekind domain, not always a PID, but every fractional ideal $I \subset K$ becomes a finitely generated $\mathcal{O}_K$-module, and the structure of these modules controls the class group. The structure theorem fails over Dedekind domains in the sense that "free + torsion" is not enough, but the failure is exactly measured by the class group, which classifies projective $\mathcal{O}_K$-modules of rank 1 up to isomorphism.
+- *Linear systems and signal processing.* A linear time-invariant system has state space $V$ and a state-update operator $T : V \to V$. The $K[x]$-module structure on $V$ encodes everything about the system's response. The minimal polynomial of $T$ tells you how long an input takes to "forget"; the Jordan form tells you which modes are coupled. Engineering courses on control theory often re-derive this material from scratch; the structure theorem makes it a one-liner.
 
-Exactly 2 groups, up to isomorphism. Note how the invariant factor form requires $d_1 \mid d_2$: we need 2 | 6, which is satisfied.
+---
+
+## Exact Sequences
+
+We close with a notational tool that becomes essential in homological algebra.
+
+**Definition.** A sequence of $R$-modules and $R$-module homomorphisms
+$$\cdots \to M_{i-1} \xrightarrow{f_{i-1}} M_i \xrightarrow{f_i} M_{i+1} \to \cdots$$
+is *exact at $M_i$* if $\mathrm{im}\,f_{i-1} = \ker f_i$. The sequence is *exact* if it is exact at every $M_i$.
+
+A *short exact sequence* is one of the form
+$$0 \to A \xrightarrow{f} B \xrightarrow{g} C \to 0,$$
+which is equivalent to: $f$ is injective, $g$ is surjective, and $\mathrm{im}\,f = \ker g$. By the first isomorphism theorem, $C \cong B/f(A)$. So a short exact sequence packages the data "$B$ has a submodule isomorphic to $A$ with quotient isomorphic to $C$."
+
+![A short exact sequence and its splitting condition](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/09-modules/aa_v2_09_7_exact_seq.png)
+
+**Definition.** A short exact sequence *splits* if there is a homomorphism $s : C \to B$ with $g \circ s = \mathrm{id}_C$. Equivalently, $B \cong A \oplus C$.
+
+**Splitting Lemma.** A short exact sequence $0 \to A \to B \to C \to 0$ splits iff there is a retraction $B \to A$ extending the identity on $A$, iff there is a section $C \to B$ as above.
+
+For *vector spaces*, every short exact sequence splits (just lift any basis of $C$). For modules, splitting is a real condition. The simplest non-splitting example: $0 \to \mathbb{Z} \xrightarrow{\times 2} \mathbb{Z} \to \mathbb{Z}/2\mathbb{Z} \to 0$. If this split, $\mathbb{Z} \cong \mathbb{Z} \oplus \mathbb{Z}/2$, but the right side has 2-torsion (the element $(0, 1)$) and $\mathbb{Z}$ does not.
+
+The failure of splitting is exactly what the $\mathrm{Ext}$ functor measures in homological algebra: $\mathrm{Ext}^1_R(C, A)$ classifies short exact sequences from $A$ to $C$ up to equivalence, and the trivial element corresponds to the split sequence. So the entire subject of homological algebra can be motivated as "track exactly how short exact sequences fail to split."
+
+A more dramatic non-splitting example. Consider the $\mathbb{Z}$-module $M = \mathbb{Z}/4$ with submodule $A = 2\mathbb{Z}/4 \cong \mathbb{Z}/2$ and quotient $C = M/A \cong \mathbb{Z}/2$. The exact sequence $0 \to \mathbb{Z}/2 \to \mathbb{Z}/4 \to \mathbb{Z}/2 \to 0$ does not split, because $\mathbb{Z}/4$ has an element of order 4 while $\mathbb{Z}/2 \oplus \mathbb{Z}/2$ does not. This is the prototypical example of a *non-trivial group extension*, and it lives in $\mathrm{Ext}^1_\mathbb{Z}(\mathbb{Z}/2, \mathbb{Z}/2) \cong \mathbb{Z}/2$.
+
+**Why this matters.** Exact sequences become the standard language for stating module-theoretic results in modern algebra. They generalize the isomorphism theorems and provide a clean framework for tracking how submodules and quotients fit together. Once you start writing proofs in terms of exact sequences, you stop writing element-by-element verifications and start writing diagram chases — which is faster, less error-prone, and (eventually) more illuminating.
+
+Three exact-sequence facts worth memorizing:
+
+- *Snake lemma.* Given a commutative diagram with exact rows, you get a connecting morphism that splices the kernel sequence and the cokernel sequence into a single long exact sequence. This is the workhorse of homological algebra.
+- *Five lemma.* In a commutative diagram of two rows of five terms each, if the four outer vertical maps are isomorphisms, so is the middle one. This often lets you transport a result from a known case to a more general one.
+- *Hom is left exact.* The functor $\mathrm{Hom}_R(-, M)$ converts short exact sequences $0 \to A \to B \to C \to 0$ into left-exact sequences $0 \to \mathrm{Hom}(C, M) \to \mathrm{Hom}(B, M) \to \mathrm{Hom}(A, M)$, but generally not into short exact sequences. The failure to extend on the right is what $\mathrm{Ext}^1$ measures.
+
+You do not need any of this for the structure theorem; the structure theorem stands on its own. But the moment you go beyond PIDs — to commutative Noetherian rings, to non-commutative algebras, to representations — exact sequences are the language you use, and they are more useful than direct-sum decompositions in that broader context. The structure theorem might be thought of as the high point of "module theory by direct sums"; everything past it is module theory by exact sequences.
 
 ---
 
 ## What's Next
 
-Modules give us a unified framework that reveals deep connections between abelian group theory and linear algebra. The structure theorem over PIDs is one of the most powerful results in algebra — it takes one theorem to prove what previously required separate arguments for each application.
+Modules unify a vast range of algebraic structures and provide the language for modern algebra. The structure theorem over PIDs is just the first taste; over more general rings, classification is harder, but the framework remains the right one.
 
-Let us briefly reflect on the key ideas:
+In the next article, we focus on a special case of module theory that has a life of its own: *representation theory*. A representation of a group $G$ over a field $K$ is a $K[G]$-module — but the group structure imposes extra rigidity, leading to clean decomposition theorems (Maschke's theorem) and powerful invariants (characters). We will see how representations bring linear algebra to bear on group theory, and why characters are one of the most useful gadgets in algebra.
 
-- **Modules generalize vector spaces** by allowing scalars from a ring instead of a field. The loss of invertibility creates torsion elements and non-free modules.
-- **Submodules, quotients, and homomorphisms** work exactly as expected, with the full suite of isomorphism theorems carrying over from group theory.
-- **Free modules** are the modules with bases, but unlike vector spaces, not every module is free. However, every module is a quotient of a free module.
-- **The structure theorem for finitely generated modules over PIDs** provides a complete decomposition into cyclic summands, in either invariant factor or elementary divisor form.
-- **Applications** include the classification of finitely generated abelian groups ($R = \mathbb{Z}$) and the rational and Jordan canonical forms for linear operators ($R = F[x]$).
+Some forward references for context. Group representations split (Maschke, Part 10) — meaning every representation is a direct sum of irreducibles — provided the characteristic of $K$ does not divide $|G|$. So in characteristic 0 (or "good" characteristic), representations of finite groups behave like vector spaces with no torsion, and classification is easy. In "bad" characteristic, representations have non-split exact sequences and start looking like the messier modules we have seen in this article. The two regimes are called *ordinary* and *modular* representation theory respectively, and they have very different flavors. We focus on the ordinary case.
 
-The tools we developed here — especially the interplay between module presentations (relations matrices) and the Smith normal form — are computational workhorses that appear throughout algebra and its applications.
-
-In the next article, we turn to **representation theory**, which asks: given an abstract group $G$, how can we study it by making it act on vector spaces? This is module theory in disguise — a representation of $G$ over a field $F$ is the same thing as a module over the group ring $F[G]$ — and the resulting theory is both beautiful and enormously useful, from pure mathematics to quantum mechanics.
+In Part 11 we go up another level of abstraction to category theory, where modules become an example rather than the subject. By Part 12 we will see modules show up in cryptography and physics, providing the algebraic substrate for both abstract and applied results. The PID structure theorem is, in a real sense, the technical engine that drives all of this.
 
 ---
 

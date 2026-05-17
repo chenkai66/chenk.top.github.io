@@ -17,296 +17,302 @@ series_total: 12
 translationKey: "functional-analysis-5"
 ---
 
-In the first four articles of this series, we built up the landscape of Banach and Hilbert spaces, proved the Hahn-Banach theorem, and saw how dual spaces let us "test" elements through linear functionals. Throughout, norm convergence was our default notion: $x_n \to x$ meant $\|x_n - x\| \to 0$. This is intuitive, quantitative, and well-behaved.
+# Weak and Weak-* Topologies — When Norm Convergence Is Too Strong
 
-It is also, for many important purposes, **too strong**.
+## Why I Need a Weaker Topology
 
-Consider the sequence of unit vectors $e_n$ in $\ell^2$. Every analyst's intuition says this sequence "spreads out" and should converge to zero in some sense — after all, $\langle e_n, y \rangle = y_n \to 0$ for every $y \in \ell^2$. But $\|e_n\| = 1$ for all $n$, so it does not converge in norm. The closed unit ball of an infinite-dimensional space is never compact in the norm topology (Riesz's lemma from Article 2), which means that the most fundamental tool of analysis — extracting convergent subsequences from bounded sequences — fails catastrophically.
+Article 1 ended with a depressing fact: in any infinite-dimensional normed space, the closed unit ball is not compact. Article 4 ended with a hint that there is a way out — by passing to a coarser topology, the weak topology, in which compactness might be recovered. This article makes that hint precise. The weak topology is what lets minimization arguments produce minimizers, what lets distributional limits make sense, and what lets every PDE existence proof of the variational sort actually conclude.
 
-This article introduces the **weak** and **weak-\*** topologies, which are deliberately coarser than the norm topology, precisely so that compactness results become available. The crown jewel is the **Banach-Alaoglu theorem**, which recovers sequential compactness in dual spaces and makes optimization, PDE existence theory, and ergodic theory possible.
+The intuition is that a "weaker" topology has *more* compact sets. A topology declares which sets are open and which functions are continuous; making it weaker (fewer open sets, fewer continuous functions) makes it strictly *easier* for a set to be compact (every cover has a finite subcover; with fewer covers to consider, more sets pass). The trade-off: weak limits are less informative than norm limits. A weakly convergent sequence might not converge in any pointwise or norm sense; it just commits to commuting with all continuous linear functionals.
 
----
+That trade-off is exactly the right one for variational analysis. To find a minimizer of an energy functional $E$, I take a minimizing sequence $(x_n)$ with $E(x_n) \to \inf E$, and I want to extract a limit. If the underlying space were finite-dimensional, the bounded sequence $(x_n)$ would have a convergent subsequence (Heine-Borel) and I would be done. In infinite dimensions Heine-Borel fails, but Banach-Alaoglu (the centerpiece of this article) restores a weaker form: every bounded sequence has a weakly (or weak-*) convergent subsequence. If $E$ is *lower semicontinuous in the weak topology*, the weak limit is a minimizer. The whole calculus of variations runs on this scaffold.
 
-## Why Weaken the Topology?
+## Defining the Weak Topology
 
-The core tension in infinite-dimensional analysis is between **boundedness** and **compactness**. In $\mathbb{R}^n$, the Bolzano-Weierstrass theorem guarantees that every bounded sequence has a convergent subsequence. In infinite dimensions, this fails for the norm topology.
+Let $X$ be a Banach space. The **weak topology** on $X$ is the coarsest topology making every $\varphi \in X^*$ continuous. Equivalently, it has as a sub-base the sets
+$$U(x_0; \varphi_1, \ldots, \varphi_n; \varepsilon) = \{ x \in X : |\varphi_i(x - x_0)| < \varepsilon \text{ for } i = 1, \ldots, n \}.$$
+A net $(x_\alpha)$ converges weakly to $x$, written $x_\alpha \rightharpoonup x$, iff $\varphi(x_\alpha) \to \varphi(x)$ for every $\varphi \in X^*$.
 
-**Example 1.** In $L^2([0,1])$, consider $f_n(x) = \sqrt{2}\sin(n\pi x)$. These form an orthonormal sequence, so $\|f_n - f_m\| = \sqrt{2}$ for $n \neq m$. No subsequence is Cauchy, let alone convergent. Yet for any $g \in L^2([0,1])$, the Riemann-Lebesgue lemma gives $\int_0^1 f_n g \, dx \to 0$.
+The norm topology on $X$ also makes every $\varphi \in X^*$ continuous (since $\varphi$ is by assumption bounded), so the weak topology is *coarser* than the norm topology — fewer open sets, fewer continuous functions, but more compact sets. Convergence in norm implies weak convergence; the converse fails in infinite dimensions.
 
-**Example 2.** In $\ell^\infty$, consider the sequence of functionals $\phi_n \in (\ell^\infty)^*$ defined by evaluation at the $n$-th coordinate: $\phi_n(x) = x_n$. These functionals have norm 1, but $\phi_n(x) \to 0$ for any $x \in c_0$ (sequences converging to zero). Again, norm convergence fails but "testing against elements" gives convergence.
+![Weak topology generated by continuous linear functionals](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/05-weak-topologies/fa_v2_05_5_weak_def.png)
 
-These examples suggest a natural weakening: declare $x_n \to x$ whenever $f(x_n) \to f(x)$ for **every** continuous linear functional $f$. This is the weak topology.
+### The standard example
 
-But why should we care about a topology that comes from weakening our notion of convergence? The answer is purely utilitarian:
+In $\ell^2$, the standard basis $(e_n)$ has $\|e_n\|_2 = 1$, so $(e_n)$ is bounded. For any fixed $y \in \ell^2$, $\langle e_n, y \rangle = y_n \to 0$ (since $y \in \ell^2$ implies $y_n \to 0$). By Riesz, every functional on $\ell^2$ is of this form, so $\varphi(e_n) \to 0$ for every $\varphi \in (\ell^2)^*$. So $e_n \rightharpoonup 0$. But $\|e_n\|_2 = 1 \not\to 0$, so $e_n \not\to 0$ in norm. The same sequence converges weakly to $0$ and not in norm.
 
-1. **Compactness.** The closed unit ball becomes compact (or at least sequentially compact in reflexive spaces) in weak topologies, restoring the ability to extract convergent subsequences.
-2. **Lower semicontinuity.** Norms and convex functionals remain lower semicontinuous in the weak topology, enabling the **direct method** in calculus of variations.
-3. **Natural in duality.** Weak convergence captures the behavior of distributions, measures, and generalized solutions to PDEs.
+![A weakly convergent sequence that does not converge strongly](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/05-weak-topologies/fa_v2_05_1_weak_conv.png)
 
----
+A second example: in $L^2[0, 2\pi]$, the sequence $f_n(t) = \sin(n t)$ converges weakly to $0$. By the Riemann-Lebesgue lemma, $\int_0^{2\pi} g(t) \sin(n t)\,dt \to 0$ for every $g \in L^1$, in particular for every $g \in L^2$. But $\|f_n\|_2 = \sqrt{\pi}$ for every $n$, so the sequence does not converge in norm. Weak convergence is the right setting in which "rapid oscillations average out."
 
+### Why this matters
 
-![Weak convergence vs strong convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/05-weak-topologies/fa_fig2_projection.png)
+The weak topology distinguishes between two qualitatively different ways a sequence can fail to converge in norm: it can *escape* (for instance, $x_n$ heading off to infinity), or it can *oscillate* (rapid sign changes that integrate against test functions). Weak convergence sees through oscillation while still seeing escape. So if I bound the norm of $(x_n)$, I have ruled out escape, and (in a suitable space) I can extract a weakly convergent subsequence and identify a weak limit. This is the trick of variational methods.
 
-## Weak Convergence in Normed Spaces
+## Properties of Weak Convergence
 
-**Definition.** Let $X$ be a normed space with dual $X^*$. The **weak topology** on $X$, denoted $\sigma(X, X^*)$, is the coarsest topology making every $f \in X^*$ continuous.
+Some basic facts:
 
-Equivalently, a net $(x_\alpha)$ converges weakly to $x$, written $x_\alpha \rightharpoonup x$, if and only if
+- (Uniqueness) Weak limits are unique. The Hausdorff property of the weak topology follows because $X^*$ separates points (Hahn-Banach), so distinct points have distinct $\varphi$-values.
+- (Norm bound) If $x_n \rightharpoonup x$, then $\sup_n \|x_n\| < \infty$ (uniform boundedness principle, Article 6) and $\|x\| \leq \liminf \|x_n\|$ (norm is weakly lower semicontinuous).
+- (Continuity of bounded operators) If $T: X \to Y$ is bounded and $x_n \rightharpoonup x$, then $T x_n \rightharpoonup T x$ in $Y$. (Just compose: $\psi(T x_n) = (T^* \psi)(x_n) \to (T^* \psi)(x) = \psi(T x)$.)
+- (Failure to be sequential) The weak topology on infinite-dimensional Banach spaces is *not* in general first-countable. Sequential criteria are insufficient; one must use nets. However, for *separable* and *reflexive* Banach spaces, weak convergence on bounded sets is metrizable (the topology coincides with a metric on bounded sets) and sequential criteria recover everything.
 
-$$f(x_\alpha) \to f(x) \quad \text{for all } f \in X^*.$$
+![Sequential vs topological convergence in the weak topology](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/05-weak-topologies/fa_v2_05_6_seq_top.png)
 
-The weak topology is generated by the subbasis of sets $\{x \in X : |f(x) - f(x_0)| < \varepsilon\}$ for $f \in X^*$, $x_0 \in X$, and $\varepsilon > 0$.
+The lower semicontinuity of the norm is worth dwelling on. The norm $\|\cdot\|$ is *not* weakly continuous (the basis sequence $(e_n)$ is the counterexample: $\|e_n\| = 1 \not\to 0 = \|0\|$ when $e_n \rightharpoonup 0$). But it *is* weakly lower semicontinuous: $\|x\| \leq \liminf_n \|x_n\|$ when $x_n \rightharpoonup x$. The proof uses Hahn-Banach: pick $\varphi$ with $\|\varphi\| = 1$ and $\varphi(x) = \|x\|$; then $\|x\| = \varphi(x) = \lim \varphi(x_n) \leq \liminf \|x_n\|$. This is exactly the regularity needed to make the norm useful as a coercive functional in minimization arguments.
 
-**Key properties:**
+## Defining the Weak-* Topology
 
-1. The weak topology is Hausdorff (by Hahn-Banach: if $x \neq y$, some $f \in X^*$ separates them).
-2. Norm convergence implies weak convergence (trivially), but not conversely in infinite dimensions.
-3. A weakly convergent sequence is norm-bounded (Uniform Boundedness Principle applied to the family $\{\hat{x}_n\} \subset X^{**}$, where $\hat{x}_n(f) = f(x_n)$).
-4. If $x_n \rightharpoonup x$, then $\|x\| \leq \liminf_{n\to\infty} \|x_n\|$ (the norm is weakly lower semicontinuous).
+Now let $X$ be a Banach space and consider its dual $X^*$. The **weak-* topology** on $X^*$ is the coarsest topology making every evaluation $\widehat x: \varphi \mapsto \varphi(x)$ continuous, for every $x \in X$. Equivalently, $\varphi_\alpha \to \varphi$ in weak-* iff $\varphi_\alpha(x) \to \varphi(x)$ for every $x \in X$.
 
-**Proof of property 4.** For any $\varepsilon > 0$, choose $f \in X^*$ with $\|f\| = 1$ and $f(x) \geq \|x\| - \varepsilon$ (Hahn-Banach). Then
+The weak-* topology is generally weaker than the weak topology on $X^*$. They coincide iff $X$ is reflexive. So when $X$ is reflexive (Hilbert spaces, $L^p$ for $1 < p < \infty$), the distinction collapses; in non-reflexive spaces (like $L^1$, $L^\infty$, $C[K]$), the weak-* topology is the strict winner — weaker than weak, with more compact sets.
 
-$$\|x\| - \varepsilon \leq f(x) = \lim_n f(x_n) \leq \liminf_n \|f\| \cdot \|x_n\| = \liminf_n \|x_n\|.$$
+![Weak-* topology on the dual space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/05-weak-topologies/fa_v2_05_3_weak_star.png)
 
-Since $\varepsilon$ was arbitrary, we conclude $\|x\| \leq \liminf_n \|x_n\|$. $\square$
+### Example
 
-**Example 3 (Weak convergence in $\ell^p$).** Fix $1 < p < \infty$ and consider $e_n$, the standard basis vectors. For any $f \in (\ell^p)^* \cong \ell^q$ (where $1/p + 1/q = 1$), we have $f(e_n) = f_n \to 0$ since $(f_n) \in \ell^q$. Thus $e_n \rightharpoonup 0$.
-
-But $\|e_n\| = 1 \not\to 0$, confirming that weak and norm topologies differ. Moreover, $\|e_n - e_m\|_p = 2^{1/p}$ for $n \neq m$, so this sequence has no norm-convergent subsequence.
-
-**Example 4 (Weak convergence does not imply norm convergence, even for functions).** In $L^2([0,2\pi])$, the sequence $f_n(x) = \sin(nx)$ converges weakly to zero (Riemann-Lebesgue), but $\|f_n\|_2 = \sqrt{\pi}$ for all $n$.
-
-**Mazur's theorem.** The norm-closed convex sets and the weakly closed convex sets coincide. More precisely, a convex subset of a normed space is norm-closed if and only if it is weakly closed.
-
-This is a consequence of the Hahn-Banach separation theorem: if $C$ is convex and norm-closed, and $x_0 \notin C$, then there exists $f \in X^*$ that strictly separates $x_0$ from $C$, showing $C$ is weakly closed.
-
-**Mazur's lemma (convex combinations converge in norm).** If $x_n \rightharpoonup x$, then there exist convex combinations $y_n \in \text{conv}\{x_n, x_{n+1}, \ldots\}$ such that $\|y_n - x\| \to 0$.
-
-This remarkable result says that while individual terms of a weakly convergent sequence may not approach the limit in norm, suitable averages always do.
-
-**Proof of Mazur's lemma (sketch).** The convex set $C_n = \overline{\text{conv}}\{x_n, x_{n+1}, \ldots\}$ (norm closure of the convex hull) is convex and norm-closed, hence weakly closed by Mazur's theorem. Since $x_k \in C_n$ for all $k \geq n$, and $x_k \rightharpoonup x$, the weak limit $x$ must lie in the weakly closed set $C_n$. So $x \in C_n$ for every $n$, meaning $x \in \bigcap_n C_n$. For each $n$, since $x \in C_n = \overline{\text{conv}}\{x_n, x_{n+1}, \ldots\}$, there exists $y_n \in \text{conv}\{x_n, x_{n+1}, \ldots\}$ with $\|y_n - x\| < 1/n$. $\square$
-
-**Characterizing weakly open sets.** The weak topology on an infinite-dimensional Banach space is strictly coarser than the norm topology, which means there are fewer open sets. In fact, every nonempty weakly open set in an infinite-dimensional space is unbounded. To see why, note that a basic weak neighborhood of the origin has the form $\{x : |f_i(x)| < \varepsilon, \, i = 1, \ldots, n\}$ for finitely many $f_i \in X^*$. The intersection $\bigcap_i \ker(f_i)$ is a closed subspace of finite codimension, hence infinite-dimensional (and in particular, unbounded). Any element of this intersection lies in the neighborhood regardless of its norm.
-
-This observation has a surprising consequence: the weak topology on an infinite-dimensional Banach space is **not** metrizable on the whole space. If it were, the open ball $B(0, 1)$ (in the hypothetical metric) would be a weakly open set containing $0$, hence unbounded, contradicting the fact that metric balls are bounded in the metric.
-
----
-
-## The Weak-* Topology on Dual Spaces
-
-When $X$ is a Banach space, its dual $X^*$ is also a Banach space, and we can consider the weak topology on $X^*$ (using $(X^*)^* = X^{**}$). But there is a strictly coarser topology that uses only the "canonical" functionals — those coming from elements of $X$ itself.
-
-**Definition.** The **weak-\* topology** on $X^*$, denoted $\sigma(X^*, X)$, is the coarsest topology making the evaluation maps $\hat{x}: X^* \to \mathbb{R}$ (or $\mathbb{C}$) continuous for every $x \in X$, where $\hat{x}(f) = f(x)$.
-
-A net $(f_\alpha)$ in $X^*$ converges weak-\* to $f$, written $f_\alpha \xrightarrow{w^*} f$, if and only if
-
-$$f_\alpha(x) \to f(x) \quad \text{for all } x \in X.$$
-
-**Comparison of the three topologies on $X^*$:**
-
-| Property | Norm | Weak | Weak-* |
-|---|---|---|---|
-| $f_\alpha \to f$ means | $\|f_\alpha - f\| \to 0$ | $\phi(f_\alpha) \to \phi(f)$ for all $\phi \in X^{**}$ | $f_\alpha(x) \to f(x)$ for all $x \in X$ |
-| Always Hausdorff | Yes | Yes | Yes |
-| Finer than | weak | weak-* | — |
-| Unit ball compact | Never (inf. dim.) | Iff reflexive | **Always** (Banach-Alaoglu) |
-
-The weak-* topology is always at least as coarse as the weak topology on $X^*$, and strictly coarser when $X$ is not reflexive. The critical difference: weak convergence in $X^*$ tests against all of $X^{**}$, while weak-* convergence only tests against the canonical image of $X$ in $X^{**}$.
-
-**Example 5.** Let $X = \ell^1$, so $X^* = \ell^\infty$. The sequence $e_n \in \ell^\infty$ converges weak-* to zero: for any $x = (x_k) \in \ell^1$, we have $e_n(x) = x_n \to 0$ since the series $\sum |x_k|$ converges. But $e_n$ does not converge weakly to zero in $\ell^\infty$: there exist functionals in $(\ell^\infty)^*$ (e.g., Banach limits) that do not vanish on the sequence $(e_n)$.
-
----
+In $C[0,1]^* = M[0,1]$ (signed measures), the weak-* topology is the topology of *vague convergence*: $\mu_n \to \mu$ in weak-* iff $\int f\,d\mu_n \to \int f\,d\mu$ for every continuous $f$. This is the topology in which the empirical measure $\mu_n = \frac{1}{n} \sum_{i=1}^n \delta_{x_i}$ of a random sample converges weakly-* to the underlying distribution (the Glivenko-Cantelli theorem in light disguise). It is also the topology in which a Cesàro-averaged delta sequence converges to the uniform distribution. None of these convergences hold in norm.
 
 ## The Banach-Alaoglu Theorem
 
-This is the compactness theorem that makes the weak-* topology indispensable.
+The fundamental compactness theorem for the weak-* topology:
 
-**Theorem (Banach-Alaoglu).** Let $X$ be a normed space. The closed unit ball
+**Theorem (Banach-Alaoglu).** The closed unit ball $B^* = \{ \varphi \in X^* : \|\varphi\| \leq 1 \}$ is compact in the weak-* topology.
 
-$$B_{X^*} = \{f \in X^* : \|f\| \leq 1\}$$
+![Banach-Alaoglu: the closed unit ball of the dual is weak-* compact](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/05-weak-topologies/fa_v2_05_2_alaoglu.png)
 
-is compact in the weak-* topology $\sigma(X^*, X)$.
+### Sketch of proof
 
-**Proof.** The strategy is to embed $B_{X^*}$ into a product of compact intervals and apply Tychonoff's theorem.
+For each $x \in X$, the map $\varphi \mapsto \varphi(x)$ takes the closed ball $B^*$ into the compact disk $D_x = \{ z \in \mathbb{C} : |z| \leq \|x\| \}$. So $B^*$ embeds into $\prod_{x \in X} D_x$, a product of compact sets, which is compact by Tychonoff's theorem. The image of $B^*$ in this product is exactly the set of $(z_x)_{x \in X}$ that come from *linear* functionals — characterized by closed conditions $z_{x+y} = z_x + z_y$ and $z_{\alpha x} = \alpha z_x$ — so it is a closed subset of a compact set, hence compact. The weak-* topology on $B^*$ is exactly the subspace topology from this product, completing the argument. $\square$
 
-*Step 1: Identify the ambient product space.* For each $x \in X$, the constraint $\|f\| \leq 1$ means $|f(x)| \leq \|x\|$. Define
+The proof uses Tychonoff's theorem, which itself requires the axiom of choice (in the form of Zorn's lemma). For *separable* $X$, the proof goes through with countable choice and produces a metrizable weak-* topology on $B^*$.
 
-$$K = \prod_{x \in X} [-\|x\|, \|x\|].$$
+### Consequence: weak-* sequential compactness
 
-By Tychonoff's theorem, $K$ is compact in the product topology (each factor $[-\|x\|, \|x\|]$ is compact in $\mathbb{R}$).
+When $X$ is separable, $B^* \subseteq X^*$ is weak-* metrizable, and Banach-Alaoglu plus metrizability give: every bounded sequence $(\varphi_n) \subseteq X^*$ has a weak-* convergent subsequence. This is the workhorse statement in PDE: from a bounded sequence in $L^\infty$, $L^1$, or $M[K]$, extract a weak-* convergent subsequence and proceed.
 
-*Step 2: Embed $B_{X^*}$ into $K$.* Define $\Phi: B_{X^*} \to K$ by $\Phi(f) = (f(x))_{x \in X}$. This is injective (if $f(x) = g(x)$ for all $x$, then $f = g$) and maps into $K$ by the norm bound. The weak-* topology on $B_{X^*}$ is exactly the subspace topology inherited from the product topology on $K$ (both are generated by pointwise convergence of the coordinate projections).
+### Numerical example
 
-*Step 3: Show $\Phi(B_{X^*})$ is closed in $K$.* An element $\omega = (\omega_x)_{x \in X} \in K$ lies in $\Phi(B_{X^*})$ if and only if the map $x \mapsto \omega_x$ is linear. Linearity consists of conditions of the form:
+In $C[0,1]^* = M[0,1]$, the sequence $\mu_n = \delta_{1/n}$ (point mass at $1/n$) has $\|\mu_n\| = 1$ for every $n$. For any $f \in C[0,1]$, $\int f\,d\mu_n = f(1/n) \to f(0) = \int f\,d\delta_0$. So $\mu_n \to \delta_0$ in weak-*. The sequence does not converge in the total variation norm: $\|\mu_n - \delta_0\| = 2$ (one unit mass at $1/n$, one at $0$, after subtraction). The weak-* convergence captures the right "limit point" while ignoring the discontinuity in the position of the mass.
 
-$$\omega_{\alpha x + \beta y} = \alpha \omega_x + \beta \omega_y \quad \text{for all } x, y \in X, \, \alpha, \beta \in \mathbb{R}.$$
+## Compactness in the Weak Topology: Eberlein-Šmulian
 
-Each such condition defines a closed set in $K$ (it is the preimage of $\{0\}$ under the continuous map $\omega \mapsto \omega_{\alpha x + \beta y} - \alpha \omega_x - \beta \omega_y$). The intersection of all such closed sets is closed.
+For the weak topology on $X$ itself (not on the dual), the analogue of Banach-Alaoglu is the deep:
 
-*Step 4: Conclude.* $\Phi(B_{X^*})$ is a closed subset of the compact space $K$, hence compact. Since $\Phi$ is a homeomorphism onto its image (with respect to the weak-* and product topologies), $B_{X^*}$ is weak-* compact. $\square$
+**Theorem (Eberlein-Šmulian).** A subset $K \subseteq X$ is weakly compact iff every sequence in $K$ has a weakly convergent subsequence (in $K$). More strikingly, when the closed unit ball $B \subset X$ is weakly compact, $X$ is reflexive, and conversely.
 
-**Remark.** This proof uses the Axiom of Choice (through Tychonoff's theorem). In fact, the Banach-Alaoglu theorem for non-separable spaces is equivalent to a weak form of AC. For separable $X$, the proof can be made constructive using a diagonal argument.
+So the *closed unit ball is weakly compact iff $X$ is reflexive*. Hilbert spaces and $L^p$ for $1 < p < \infty$ pass; $L^1, L^\infty, c_0, C[K]$ fail. This is *the* reason reflexive spaces are pleasant for variational problems.
 
-**A different perspective: the Banach-Alaoglu theorem as a compactness transfer.** The conceptual content of the theorem is this: we already know that products of compact intervals are compact (Tychonoff). The closed unit ball of $X^*$ is a subset of such a product, constrained by the linearity condition. Linearity is a closed condition, so the ball inherits compactness. The deeper lesson is that **linear structure buys compactness for free** — a theme that recurs throughout functional analysis and optimization theory.
+![Strength comparison: compact, weakly compact, weak-* compact](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/05-weak-topologies/fa_v2_05_4_compactness.png)
 
-**The separable case (without Tychonoff).** If $X$ is separable with dense countable subset $\{x_n\}$, we can extract a weak-* convergent subsequence from any bounded sequence in $X^*$ by a standard diagonal argument:
+### Why reflexivity buys weak compactness
 
-Given $(f_k)$ with $\|f_k\| \leq 1$, the sequences $(f_k(x_1))_k$, $(f_k(x_2))_k$, etc., are all bounded in $\mathbb{R}$. By Bolzano-Weierstrass, extract a subsequence converging at $x_1$, then a sub-subsequence converging at $x_2$, and so on. The diagonal subsequence converges at every $x_n$, and by density and uniform boundedness, it converges at every $x \in X$.
+If $X$ is reflexive, then $X = X^{**}$, so the closed ball in $X$ is the closed ball in $X^{**}$. By Banach-Alaoglu applied to $X^*$, the closed ball of $X^{**}$ is weak-* compact. The weak-* topology of $X^{**}$ pulls back to the weak topology of $X$ under the canonical embedding. So the closed ball of $X$ is weakly compact.
 
----
+The converse, that weak compactness of the closed ball implies reflexivity, is harder and uses Hahn-Banach.
 
-## Weak Sequential Compactness and Reflexivity
+### Numerical example
 
-The Banach-Alaoglu theorem gives weak-* compactness of the dual ball. But in applications, we often need weak compactness of the ball in $X$ itself — not in $X^*$. This is where **reflexivity** becomes crucial.
+In $L^p[0,1]$ with $1 < p < \infty$, take a minimizing sequence $(u_n)$ for the Dirichlet energy $E(u) = \int_0^1 |u'|^p\,dt$ subject to $u(0) = 0, u(1) = 1$ (interpreted suitably). The minimizing sequence is bounded in $W^{1,p}$ (the Sobolev space, see Article 11). Since $W^{1,p}$ is reflexive for $1 < p < \infty$, the bounded sequence has a weakly convergent subsequence $u_{n_k} \rightharpoonup u^*$. The energy is convex and continuous, hence weakly lower semicontinuous, so $E(u^*) \leq \liminf E(u_{n_k}) = \inf E$. Therefore $u^*$ is a minimizer. The minimizer is the function $u^*(t) = t$, with energy $1$.
 
-Recall from Article 4 that $X$ is **reflexive** if the canonical embedding $J: X \to X^{**}$ defined by $J(x)(f) = f(x)$ is surjective (hence an isometric isomorphism).
+This is the entire argument structure of the direct method in the calculus of variations: bound, extract weakly convergent subsequence, pass to weak limit using lower semicontinuity. Take away reflexivity and the second step fails. Take away lower semicontinuity and the third step fails.
 
-**Theorem.** If $X$ is reflexive, then the closed unit ball $B_X$ is weakly compact.
+## When the Weak Topology Is Metrizable
 
-**Proof sketch.** When $X$ is reflexive, $J: X \to X^{**}$ is an isomorphism, and the weak topology $\sigma(X, X^*)$ corresponds exactly to the weak-* topology $\sigma(X^{**}, X^*)$ transported through $J$. By Banach-Alaoglu applied to $X^{**} = J(X)$, the ball $B_{X^{**}}$ is weak-* compact. Since $J$ is a surjective isometry, $J(B_X) = B_{X^{**}}$, so $B_X$ is weakly compact. $\square$
+The weak topology is *not* metrizable on infinite-dimensional Banach spaces, but it is metrizable on bounded sets when $X$ is separable. Specifically:
 
-The converse also holds and is a deep result.
+**Theorem.** If $X$ is a separable Banach space, then the weak-* topology is metrizable on bounded subsets of $X^*$. Symmetrically, if $X^*$ is separable, the weak topology is metrizable on bounded subsets of $X$.
 
-**Theorem (Eberlein-Smulian).** Let $X$ be a Banach space and $A \subset X$. The following are equivalent:
+![When the weak topology is metrizable](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/05-weak-topologies/fa_v2_05_7_metrizability.png)
 
-1. $A$ is weakly compact (every open cover has a finite subcover).
-2. $A$ is weakly sequentially compact (every sequence in $A$ has a weakly convergent subsequence with limit in $A$).
-3. $A$ is weakly limit-point compact (every infinite subset of $A$ has a weak limit point in $A$).
+The construction: choose a countable dense sequence $(x_k)$ in the unit ball of $X$, and define on $X^*$ the metric $d(\varphi, \psi) = \sum_k 2^{-k} |\varphi(x_k) - \psi(x_k)|$. On bounded subsets of $X^*$, this metric induces the weak-* topology.
 
-**Corollary.** A Banach space $X$ is reflexive if and only if every bounded sequence has a weakly convergent subsequence.
+This is what makes "extract a weakly convergent subsequence" a sensible move — without metrizability one would have to extract a convergent *net*, which is awkward. Most concrete spaces of analysis are separable, so the practical use of Banach-Alaoglu is via this metrizability.
 
-This is the infinite-dimensional substitute for Bolzano-Weierstrass: in reflexive spaces, bounded sequences always have weakly convergent subsequences.
+### Why this matters
 
-**Example 6.** The spaces $L^p(\Omega)$ for $1 < p < \infty$ are reflexive. Hence every bounded sequence in $L^p$ has a weakly convergent subsequence. This fact is the engine behind existence theorems in PDE theory.
+Once weak-* topology on the unit ball is metrizable, *all* the niceties of metric topology become available: sequences instead of nets, sequential characterizations of closure and continuity, the diagonal argument as a way of producing limits. The whole "minimizing-sequence" technology runs on this metrization. In a non-separable space, the same arguments require nets and Tychonoff-type compactness, which work but are awkward.
 
-The spaces $L^1(\Omega)$ and $L^\infty(\Omega)$ are **not** reflexive. In $L^1$, bounded sequences can "concentrate" (forming delta-like approximations) without having any weakly convergent subsequence. This failure drives the development of Young measures and concentration-compactness methods.
+## Two Pathologies
 
-**Example 7 (Failure of weak compactness in $\ell^1$).** Consider $e_n \in \ell^1$. For the functional $f = (1, 1, 1, \ldots) \in \ell^\infty = (\ell^1)^*$, we have $f(e_n) = 1$ for all $n$. Any weak limit $x$ would need $f(x) = 1$, so $x \neq 0$. But for the functional $g_k = e_k^* \in \ell^\infty$ (the $k$-th coordinate functional), $g_k(e_n) = \delta_{kn} \to 0$. So $x$ must have all zero coordinates: $x = 0$. Contradiction. No subsequence converges weakly.
+A handful of subtle features of weak topologies are worth knowing about, less for their everyday utility than to calibrate intuition.
 
-**Characterizing reflexivity through weak compactness.** The interplay between reflexivity, weak compactness, and sequential compactness can be summarized in the following chain of equivalences for a Banach space $X$:
+**Pathology 1 (Schur's property in $\ell^1$).** In $\ell^1$, weak convergence of sequences coincides with norm convergence: $x_n \rightharpoonup x$ in $\ell^1$ implies $\|x_n - x\|_1 \to 0$. So $\ell^1$ is *not* weakly sequentially compact (its closed ball is not weakly compact, since $\ell^1$ is not reflexive), but every weakly convergent sequence is automatically norm convergent. This odd phenomenon is called the **Schur property** and is shared by some other non-reflexive spaces but is far from generic.
 
-- $X$ is reflexive.
-- $B_X$ is weakly compact.
-- Every bounded sequence in $X$ has a weakly convergent subsequence (Eberlein-Smulian applied to $B_X$).
-- Every continuous linear functional on $X^*$ is weak-* continuous (i.e., every element of $X^{**}$ is evaluation at some $x \in X$).
+**Pathology 2 (closure of the unit sphere).** In the weak topology of an infinite-dimensional Banach space, the closure of the unit *sphere* $\{ \|x\| = 1 \}$ is the closed *ball* $\{ \|x\| \leq 1 \}$. So the sphere is weakly dense in the ball. This contradicts intuition imported from finite dimensions, where the sphere is closed and far from the origin. The phenomenon comes down to: by Hahn-Banach, every weak neighborhood of $0$ contains a non-trivial subspace (the intersection of finitely many functional preimages is at most finite codimension), and any non-trivial subspace contains unit vectors. So $0$ is in the weak closure of the unit sphere, and (translating) every interior point of the ball is in the weak closure of the sphere.
 
-These equivalences reveal that reflexivity is fundamentally a **compactness property** — it is the precise condition needed to transfer the weak-* compactness of Banach-Alaoglu back to the original space.
+These pathologies should not deter use of weak topologies but should warn against over-extending finite-dimensional intuition.
 
-**James' theorem.** A Banach space $X$ is reflexive if and only if every continuous linear functional on $X$ attains its supremum on $B_X$. This beautiful characterization — due to Robert C. James (1964) — connects reflexivity to optimization: in a reflexive space, every linear optimization problem over the unit ball has a solution. The proof is deep and relies on a careful construction involving sequences of functionals; it does not follow directly from the results above.
+## Mazur's Lemma
 
-**Weak compactness in specific spaces.** Let us catalog which common spaces are reflexive and which are not, since this determines where weak compactness methods apply:
+A clean theorem that smooths over some of the gap between weak and norm convergence:
 
-| Space | Reflexive? | Why |
-|---|---|---|
-| $\ell^p$, $1 < p < \infty$ | Yes | $(\ell^p)^{**} \cong \ell^p$ via canonical embedding |
-| $L^p(\Omega)$, $1 < p < \infty$ | Yes | $(L^p)^* = L^q$, $(L^q)^* = L^p$ |
-| $\ell^1$ | No | $(\ell^1)^{**} = (\ell^\infty)^* \supsetneq \ell^1$ |
-| $\ell^\infty$ | No | Not even separable |
-| $L^1(\Omega)$ | No | $(L^1)^{**} \supsetneq L^1$ |
-| $C([0,1])$ | No | $(C[0,1])^* = M([0,1])$ (Radon measures), not reflexive |
-| Hilbert spaces | Yes | Self-dual |
-| Sobolev $W^{k,p}$, $1 < p < \infty$ | Yes | Closed subspace of $L^p \times \ldots \times L^p$ |
+**Theorem (Mazur).** If $x_n \rightharpoonup x$ in a Banach space $X$, then there are convex combinations $y_n \in \mathrm{conv}\{x_n, x_{n+1}, \ldots\}$ with $y_n \to x$ in norm.
 
----
+So weak convergence plus convex combinations buys norm convergence. The proof is via geometric Hahn-Banach (Article 4): if $x$ were not in the norm closure of the convex hull of $\{x_n, x_{n+1}, \ldots\}$, a separating functional would witness $\varphi(x) \neq \lim \varphi(x_n)$, contradiction.
 
-## Goldstine's Theorem and the Bidual
+Mazur is what allows minimization arguments to upgrade weak limits to actual minimizers when the energy is convex: the convex combinations of the minimizing sequence converge in norm, the energy is weakly lower semicontinuous, and the limit point (norm limit) is a minimizer.
 
-Before moving to applications, we record one more fundamental result connecting $X$ and $X^{**}$.
+## Operators That Are Not Continuous in the Weak Topology
 
-**Theorem (Goldstine).** Let $X$ be a normed space and $J: X \to X^{**}$ the canonical embedding. Then $J(B_X)$ is weak-* dense in $B_{X^{**}}$.
+Bounded linear operators are weakly continuous (we noted this above). But other natural operations on Banach spaces fail to be weakly continuous, often surprisingly:
 
-**Proof sketch.** Suppose not: there exists $\Phi \in B_{X^{**}}$ and a weak-* open set $U \ni \Phi$ with $U \cap J(B_X) = \emptyset$. By the structure of weak-* neighborhoods, there exist $f_1, \ldots, f_n \in X^*$ and $\varepsilon > 0$ such that
+- *The norm itself* is not weakly continuous, only weakly l.s.c.
+- *Multiplication* in a Banach algebra is generally not jointly weakly continuous, only separately so. In $L^2$, if $f_n \rightharpoonup f$ and $g_n \rightharpoonup g$, the product $f_n g_n$ need not converge weakly to $fg$. For example, $\sin(nt) \cdot \sin(nt) = (1 - \cos(2nt))/2 \rightharpoonup 1/2$, not to $0 \cdot 0 = 0$.
+- *Composition* of operators behaves better in the right setting: if $T_n \to T$ in operator norm, then $T_n \circ S \to T \circ S$ in operator norm for any bounded $S$. But weak operator convergence ($T_n x \rightharpoonup T x$ for all $x$) is not preserved under composition; this is the source of much subtlety in the theory of $C^*$-algebras and operator algebras.
 
-$$\{\Psi \in X^{**} : |\Psi(f_i) - \Phi(f_i)| < \varepsilon, \, i = 1, \ldots, n\} \subset U.$$
+These pathologies remind us that the weak topology is good for getting limit points but bad for preserving algebraic structure. Most theorems involving the weak topology either work with linear operations only, or assume some additional compactness/equicontinuity to recover non-linear continuity.
 
-This means: there is no $x \in B_X$ with $|f_i(x) - \Phi(f_i)| < \varepsilon$ for all $i$. Consider the map $T: X \to \mathbb{R}^n$ defined by $Tx = (f_1(x), \ldots, f_n(x))$. The set $T(B_X)$ is convex, and the point $(\Phi(f_1), \ldots, \Phi(f_n))$ has distance $\geq \varepsilon$ from $T(B_X)$ in the max-norm. By the Hahn-Banach separation theorem in $\mathbb{R}^n$, there exist scalars $\alpha_1, \ldots, \alpha_n$ and $c$ such that
+## Compactness Lemmas in Practice
 
-$$\sum_i \alpha_i f_i(x) \leq c < \sum_i \alpha_i \Phi(f_i) \quad \text{for all } x \in B_X.$$
+Two compactness lemmas are so frequently used in PDE that they deserve a name.
 
-Setting $g = \sum_i \alpha_i f_i \in X^*$, this says $\|g\| \leq c < \Phi(g)$. But $\|\Phi\| \leq 1$ implies $\Phi(g) \leq \|g\|$, a contradiction. $\square$
+**Aubin-Lions lemma.** Let $X_0 \hookrightarrow X \hookrightarrow X_1$ be Banach spaces with the first inclusion compact and the second continuous. Let $1 \leq p, q \leq \infty$. The space $\{ u \in L^p(0, T; X_0) : u' \in L^q(0, T; X_1) \}$ is compactly embedded in $L^p(0, T; X)$ when $p < \infty$, and equicontinuous in $C([0, T]; X)$ when $p = \infty$.
 
-Goldstine's theorem immediately implies: $X$ is reflexive if and only if $B_X$ is weakly compact (providing the converse direction we mentioned earlier).
+This is the lemma that makes evolution-PDE theory work: bounded sequences of "time-dependent functions with bounded derivative" have convergent subsequences in the right intermediate space. Without it, no nonlinear evolution equation (Navier-Stokes, nonlinear heat, etc.) has a known existence theory.
 
----
+**Rellich-Kondrachov.** The inclusion $W^{1,p}(\Omega) \hookrightarrow L^p(\Omega)$ is *compact* for any bounded domain $\Omega \subset \mathbb{R}^n$ with Lipschitz boundary (and $1 \leq p < \infty$). Similarly $W^{s,p} \hookrightarrow W^{t,p}$ for $s > t$.
 
-## Applications: Existence of Minimizers in the Calculus of Variations
+This is the lemma that converts weak convergence in a Sobolev space to strong convergence in a slightly weaker Sobolev space, which is what one needs to pass to the limit in nonlinear terms.
 
-The **direct method** of the calculus of variations, developed by Tonelli and refined by subsequent generations, is perhaps the most important application of weak compactness. Here is the abstract framework.
+Both lemmas are essentially compactness theorems for the weak topology, smuggled into useful concrete forms. They are the engineering versions of the abstract compactness theorems of this article.
 
-**Theorem (Direct Method).** Let $X$ be a reflexive Banach space and $F: X \to \mathbb{R} \cup \{+\infty\}$ a functional that is:
+## Probability Lurks Here Too
 
-1. **Coercive:** $F(x) \to +\infty$ as $\|x\| \to \infty$.
-2. **Weakly lower semicontinuous:** if $x_n \rightharpoonup x$, then $F(x) \leq \liminf_n F(x_n)$.
+The weak-* topology on $C[K]^* = M[K]$ is the topology of *weak convergence of measures* in the probabilistic sense. A sequence of probability measures $\mu_n$ on a compact set $K$ converges in this topology to $\mu$ iff $\int f\,d\mu_n \to \int f\,d\mu$ for every continuous $f$.
 
-Then $F$ attains its infimum on $X$.
+The Banach-Alaoglu theorem applied to $M[K]$ then says: every tight family of probability measures on a compact metric space has a weak-* convergent subsequence. This is **Prokhorov's theorem** in light disguise. The compactness theorem of probability is just Banach-Alaoglu specialized to the dual of $C[K]$.
 
-**Proof.** Let $m = \inf_{x \in X} F(x)$. If $m = +\infty$, any point is a minimizer (vacuously). Otherwise, choose a minimizing sequence: $F(x_n) \to m$.
+The same idea generalizes: tightness on a Polish space gives weak compactness on the space of probability measures, by reducing to $C_b$ via a compactification trick. Limit theorems in probability — central limit theorem, large deviations — have functional-analytic underpinnings exactly of this kind. The probabilistic topology of "convergence in distribution" is the same topology as weak-* convergence of associated measures, with all the machinery of functional analysis available.
 
-*Step 1: Boundedness.* Coercivity implies $(x_n)$ is bounded: if $\|x_n\| \to \infty$ along a subsequence, then $F(x_n) \to +\infty$, contradicting $F(x_n) \to m < +\infty$.
+### Numerical example
 
-*Step 2: Weak subsequence.* Since $X$ is reflexive and $(x_n)$ is bounded, the Eberlein-Smulian theorem provides a subsequence $x_{n_k} \rightharpoonup x$ for some $x \in X$.
+Take $\mu_n$ uniform on $\{0, 1/n, 2/n, \ldots, (n-1)/n\}$ (atoms of weight $1/n$ each). For $f \in C[0,1]$, $\int f\,d\mu_n = \frac{1}{n} \sum_{k=0}^{n-1} f(k/n)$, the Riemann sum. By definition, this tends to $\int_0^1 f\,dt$. So $\mu_n \to \mathrm{Lebesgue}$ in weak-*. The convergence does not hold in any norm sense (the norm difference of $\mu_n$ and Lebesgue is bounded below). The function-analytic statement and the probabilistic statement of this convergence are literally the same.
 
-*Step 3: Lower semicontinuity.* $F(x) \leq \liminf_k F(x_{n_k}) = m$.
+## Three Topologies on $B(X, Y)$: Norm, Strong, Weak Operator
 
-Since $F(x) \geq m$ by definition of infimum, we conclude $F(x) = m$. $\square$
+The space $B(X, Y)$ of bounded operators carries three natural topologies that should not be confused.
 
-**Example 8 (Dirichlet problem).** Consider the problem of minimizing the Dirichlet energy
+- *Norm (uniform) topology.* $T_n \to T$ if $\|T_n - T\| \to 0$. Strongest of the three.
+- *Strong operator topology* (SOT). $T_n \to T$ if $T_n x \to T x$ in norm of $Y$ for every $x \in X$. Weaker than norm topology — pointwise convergence on the level of vectors.
+- *Weak operator topology* (WOT). $T_n \to T$ if $\psi(T_n x) \to \psi(T x)$ for every $x \in X$ and $\psi \in Y^*$. Weakest of the three — pointwise convergence on the level of scalar pairings.
 
-$$F(u) = \frac{1}{2}\int_\Omega |\nabla u|^2 \, dx$$
+These three coincide on finite-dimensional spaces but diverge dramatically in infinite dimensions. The shift operator $S$ on $\ell^2$, with powers $S^n$, has $S^n \to 0$ in WOT (every $\langle S^n x, y \rangle \to 0$ by Cauchy-Schwarz once $n$ is large) but $\|S^n\| = 1$ for every $n$, so $S^n$ does not converge in norm or even in SOT.
 
-over the Sobolev space $W^{1,2}_0(\Omega)$, subject to $u = g$ on $\partial\Omega$. The space $W^{1,2}(\Omega) = H^1(\Omega)$ is a reflexive Banach space (in fact a Hilbert space). The functional $F$ is:
+The choice of topology drastically changes which operator algebras are closed. The famous classification of factors (Murray-von Neumann) classifies $W^*$-algebras (closed in WOT) into types I, II, III, with type II and III having no analog in finite dimensions or in operator-norm-closed algebras. The Banach algebra structure on $B(X)$ is captured by the norm topology; the von Neumann algebra structure is the WOT closure.
 
-- **Coercive:** by the Poincare inequality, $\|u\|_{H^1_0}^2 \leq C \int_\Omega |\nabla u|^2 \, dx$, so $F(u) \to \infty$ as $\|u\|_{H^1_0} \to \infty$.
-- **Weakly lower semicontinuous:** this follows from the convexity of $t \mapsto |t|^2$ and the general principle that convex continuous functionals are weakly lower semicontinuous (a consequence of Mazur's theorem).
+For the purposes of this series, weak operator convergence will appear in Article 8 (spectral theorem) and Article 10 (one-parameter semigroups), where it is the natural setting for "pointwise" limits of unitary groups and resolvents.
 
-Therefore, a minimizer exists. The Euler-Lagrange equation for this minimizer is $\Delta u = 0$ — the Laplace equation. This is one of the cleanest demonstrations of how weak topology compactness directly yields existence of solutions to PDEs.
+## Lower Semicontinuity in the Weak Topology
 
-**Example 9 (Nonlinear elasticity).** In continuum mechanics, one seeks to minimize the elastic energy
+A function $F: X \to \mathbb{R} \cup \{+\infty\}$ is **weakly lower semicontinuous** (weakly l.s.c.) if $\{ x : F(x) \leq c \}$ is weakly closed for every $c$, equivalently $F(x) \leq \liminf_n F(x_n)$ whenever $x_n \rightharpoonup x$.
 
-$$E(u) = \int_\Omega W(\nabla u(x)) \, dx$$
+The two main classes of weakly l.s.c. functionals:
 
-over deformations $u: \Omega \to \mathbb{R}^3$, where $W$ is the stored energy density. The direct method requires $E$ to be weakly lower semicontinuous in a Sobolev space $W^{1,p}(\Omega; \mathbb{R}^3)$. This holds when $W$ is **quasiconvex** (a condition introduced by Morrey). The interplay between convexity conditions on $W$, weak lower semicontinuity, and the existence of minimizers is one of the central themes of modern calculus of variations.
+- **Norm-like functionals.** Any norm is weakly l.s.c. by Hahn-Banach (the standard argument). Convex combinations and integrals of norms are also weakly l.s.c.
+- **Convex and norm-l.s.c.** A theorem due to Mazur: a convex functional is weakly l.s.c. iff it is norm-l.s.c. The "if" direction is the substantive one and uses geometric Hahn-Banach to convert norm-closed convex sets into weakly closed ones. The "only if" is trivial.
 
-**Why convexity and weak lower semicontinuity are linked.** Let us make the connection between convexity and weak lower semicontinuity more explicit, as it is central to the direct method.
+Thanks to this duality, every convex norm-continuous functional on a reflexive space is weakly l.s.c., and that is enough for the direct method to deliver minimizers. This is the most common source of weakly l.s.c. functionals in PDE and optimization.
 
-A norm-continuous convex functional $F: X \to \mathbb{R}$ on a normed space is always weakly lower semicontinuous. The proof is elegant: the sublevel sets $\{x : F(x) \leq c\}$ are convex (by convexity of $F$) and norm-closed (by continuity of $F$), hence weakly closed by Mazur's theorem. A functional is lower semicontinuous if and only if all its sublevel sets are closed, so $F$ is weakly lower semicontinuous.
+### Numerical example
 
-Conversely, a non-convex continuous functional is typically **not** weakly lower semicontinuous. Consider $F: L^2([0,1]) \to \mathbb{R}$ defined by $F(u) = \int_0^1 \sin(u(x)) \, dx$. This is continuous but not convex. The sequence $u_n(x) = n\pi \chi_{[0, 1/n]}(x)$ converges weakly to zero, but the behavior of $F(u_n)$ need not converge to $F(0) = 0$. In problems where the integrand is non-convex, the direct method fails, and one must resort to **relaxation** (replacing the non-convex functional by its lower semicontinuous envelope) or other techniques.
+The functional $E: H^1(0,1) \to \mathbb{R}$ given by $E(u) = \frac{1}{2} \int_0^1 |u'|^2 + \int_0^1 u^2$ is weakly l.s.c. on the reflexive space $H^1(0,1)$. The minimizer of $E$ subject to $u(0) = 0, u(1) = 1$ exists (by the variational argument outlined above) and is the unique solution of $-u'' + u = 0$ with the given boundary conditions, namely $u(t) = \sinh(t)/\sinh(1)$.
 
-**Example 10 (Existence of optimal controls).** Consider a control problem: minimize $J(u) = \int_0^T L(x(t), u(t)) \, dt$ subject to $\dot{x} = f(x, u)$, $x(0) = x_0$, where $u \in L^2([0,T]; \mathbb{R}^m)$ is the control. If $L$ is convex in $u$ (with appropriate growth) and $f$ is linear in $u$, then $J$ is weakly lower semicontinuous on $L^2$, and the constraint set is weakly closed. The direct method gives existence of an optimal control. This is a foundational result in optimal control theory, due to Tonelli and later extended by Cesari and others.
+## A Worked Direct-Method Argument
 
----
+Let me run a direct-method argument from scratch to show how the pieces fit. Problem: minimize the energy
+$$E(u) = \frac{1}{2} \int_0^1 |u'(t)|^2\,dt + \int_0^1 V(t) u(t)^2\,dt$$
+over $H^1_0(0, 1) = \{ u \in H^1(0, 1) : u(0) = u(1) = 0 \}$, where $V \in L^\infty[0,1]$ with $V \geq 0$, subject to the constraint $\int_0^1 u^2 = 1$. Geometrically: find the unit-norm function with smallest "energy" against the potential $V$ — the ground state of a Schrödinger operator $-d^2/dt^2 + V$.
 
-## Weak Topologies and Convexity: A Deeper Look
+Step 1 (coercivity). On the unit sphere of $L^2$, $E(u) \geq 0$. So $\inf E \geq 0$ and minimizing sequences are bounded in $H^1$ (by Poincaré inequality + the energy bound).
 
-The relationship between weak topologies and convexity runs deep and deserves explicit attention.
+Step 2 (compactness). Take a minimizing sequence $(u_n)$ with $\|u_n\|_{L^2} = 1$ and $E(u_n) \to \inf E$. Bounded in $H^1$ means: extract a weakly convergent subsequence (Banach-Alaoglu, since $H^1$ is reflexive), $u_{n_k} \rightharpoonup u^*$ in $H^1$. By Rellich-Kondrachov, the same subsequence converges in $L^2$ norm: $u_{n_k} \to u^*$ in $L^2$. So $\|u^*\|_{L^2} = 1$ — the unit-norm constraint is preserved.
 
-**Theorem (Separation by hyperplanes).** A convex set $C$ in a normed space $X$ is weakly closed if and only if it is norm-closed.
+Step 3 (lower semicontinuity). The functional $u \mapsto \int |u'|^2$ is convex and continuous on $H^1$, hence weakly l.s.c. Same for $u \mapsto \int V u^2$ (convex by $V \geq 0$, continuous in $L^2$ which is implied by $H^1$ convergence). So $E(u^*) \leq \liminf E(u_{n_k}) = \inf E$.
 
-This means that the weak topology, despite being coarser than the norm topology, produces exactly the same closed convex sets. The topological "deficiency" of the weak topology is felt only by non-convex sets.
+Step 4 (conclusion). $u^*$ is feasible and achieves $\inf E$. Therefore $u^*$ is a minimizer.
 
-**Krein-Milman theorem.** Every compact convex subset of a locally convex Hausdorff space is the closed convex hull of its extreme points.
+Each step uses one of the tools we have built: reflexivity (for compactness), weak l.s.c. (for passing to the limit in the convex part), Rellich-Kondrachov (for upgrading weak to strong convergence in the constraint), all underwritten by Hahn-Banach and Banach-Alaoglu.
 
-Applied to the weak-* compact unit ball $B_{X^*}$, this theorem ensures that $B_{X^*}$ has extreme points and is determined by them. For concrete spaces, identifying the extreme points of the dual ball is a powerful technique:
+This pattern recurs across the calculus of variations. Replace $\int |u'|^2 + V u^2$ with $\int F(u, \nabla u)$ for various Lagrangians $F$, replace the unit-norm constraint with various other constraints, replace $H^1_0$ with other Sobolev spaces, and the four-step structure persists.
 
-- **Extreme points of $B_{\ell^1}$:** the signed basis vectors $\pm e_n$.
-- **Extreme points of $B_{L^\infty([0,1])}$:** functions taking values in $\{-1, +1\}$ a.e.
-- **Extreme points of $B_{C([0,1])^*}$:** point masses $\pm \delta_x$ for $x \in [0,1]$ (by the Riesz representation theorem and the characterization of extreme points of $M([0,1])$).
 
----
+## Tightness and Prokhorov in Detail
 
-## Common Pitfalls and Subtleties
+The probabilistic angle on weak-\* compactness deserves a closer look. A family $\Pi$ of probability measures on a metric space $(K, d)$ is **tight** if for every $\varepsilon > 0$ there is a compact set $K_\varepsilon \subseteq K$ with $\mu(K_\varepsilon) > 1 - \varepsilon$ for every $\mu \in \Pi$. Tightness is the probabilistic analogue of "bounded family" — it says no mass escapes to infinity.
 
-**Pitfall 1: Weak convergence does not preserve norm limits.** If $x_n \rightharpoonup x$ and $\|x_n\| \to \|x\|$ in a uniformly convex space (e.g., $L^p$ for $1 < p < \infty$), then $x_n \to x$ in norm. This is the **Radon-Riesz property** (also called the Kadec-Klee property). But in general Banach spaces, $x_n \rightharpoonup x$ and $\|x_n\| \to \|x\|$ does **not** imply norm convergence.
+**Theorem (Prokhorov).** A family $\Pi$ of Borel probability measures on a Polish space (separable complete metric) is relatively compact in the weak topology iff it is tight.
 
-**Pitfall 2: Weak-* limits need not be unique without Hausdorff.** The weak-* topology is always Hausdorff (since $X$ separates points of $X^*$ by definition), so limits are unique. But students sometimes confuse "unique limit" with "every subsequence converges to the same limit," which is a different (stronger) statement about the original sequence.
+The proof reduces to Banach-Alaoglu. Tightness lets us project the family onto a compact subset $K_\varepsilon$ and use compactness of the dual ball there; a diagonal argument across $\varepsilon \to 0$ produces the limiting measure.
 
-**Pitfall 3: Metrizability.** The weak topology on an infinite-dimensional Banach space is **never** metrizable (on the whole space). However, the weak-* topology on $B_{X^*}$ **is** metrizable when $X$ is separable — this is extremely useful in practice, as it lets us work with sequences rather than nets.
+The contrapositive — non-tightness implies non-compactness — is also useful. A family that escapes to infinity has no weak-convergent subsequence: Dirac masses at $n$ on $\mathbb{R}$ form a non-tight family, and they have no weak-convergent subsequence (the candidate limit "Dirac at $\infty$" is not a probability measure on $\mathbb{R}$).
 
----
+### Applied to large deviations and central limit
 
-## What's Next
+The empirical measures $\widehat\mu_n = \frac{1}{n}\sum \delta_{X_i}$ of an i.i.d. sample form a tight family (uniformly bounded, supported in compact sets when the underlying distribution is tight). By Prokhorov, every subsequence has a weakly convergent sub-subsequence; combined with the law of large numbers identifying the limit, $\widehat\mu_n$ converges weakly to the underlying distribution. This is the Glivenko-Cantelli theorem, with the functional analytic content reduced to Banach-Alaoglu.
+
+The central limit theorem says that $\sqrt{n}(\widehat\mu_n - \mu)$ converges in a suitable Gaussian sense — a more refined statement that requires going to the dual of *Schwartz functions* or some function space adapted to the Gaussian limit. The structural argument is the same: tightness, Prokhorov, identification of the limit by computing Fourier transforms or moments.
+
+## Eberlein-Šmulian: Sequential vs Topological Compactness
+
+The Eberlein-Šmulian theorem is the deep statement that for the weak topology on Banach spaces, sequential compactness equals topological compactness. This is generally false for arbitrary topological spaces — first countability is needed for the implication "sequentially compact implies compact."
+
+The remarkable thing about Eberlein-Šmulian is that it works for the weak topology on Banach spaces despite the weak topology generally *not* being first countable. The proof exploits special properties of the dual pairing: every weakly compact set is *separable* (in the norm topology of $X$), the weak topology on a separable subset is metrizable, and so sequences are enough.
+
+For practical purposes, this means: when working with a *bounded* (norm-bounded) family in a Banach space, you can extract weakly convergent *subsequences* without worrying about nets — Eberlein-Šmulian guarantees the sequential argument is sufficient.
+
+The original 1940 proof of Šmulian's part was metric-space-based; the topological completion is due to Eberlein. A modern treatment goes via the angelic property of the weak topology on $X^{**}$, but the upshot is the same: in Banach-space functional analysis, bounded sequences and bounded sets play interchangeable roles for compactness purposes.
+
+## Weak Continuity of Operators and the Closed Graph
+
+Bounded linear operators $T: X \to Y$ are automatically weak-to-weak continuous. The proof: the weak topology on $X$ is generated by composition with $X^*$, and so a function from $X$ is weakly continuous iff it is continuous when post-composed with each $\psi \in Y^*$, which is the condition $\psi \circ T = T^* \psi \in X^*$ for every $\psi \in Y^*$. This is automatic for any linear $T$ with $T^*$ defined on $Y^*$, which is automatic for bounded $T$.
+
+The converse — weak-to-weak continuous linear maps are bounded — is also true but uses the closed graph theorem (Article 6). A weak-to-weak continuous linear map has weakly closed graph, hence norm-closed graph, hence (by closed graph) is bounded. So "bounded" and "weak-to-weak continuous" are interchangeable for linear maps between Banach spaces.
+
+### Caveat: weak* topology
+
+The above does not extend directly to the weak-\* setting. A bounded linear map $T: X^* \to Y^*$ between dual spaces is weak-\* continuous iff it is the adjoint of a bounded operator $S: Y \to X$, i.e., $T = S^*$. So weak-\* continuity is a *strictly stronger* condition than boundedness for operators between dual spaces, and corresponds exactly to "comes from the predual."
+
+This subtlety is why von Neumann algebra theory (Article 8 partly) treats weakly-closed and weakly-\*-closed operator algebras differently: the latter are exactly the duals of operator preduals and have a much richer structure.
+
+## A Minimization Failure: the Direct Method's Counterexamples
+
+To appreciate why each piece of the direct-method argument matters, here are minimization problems where one piece fails and the conclusion fails accordingly.
+
+**Failure 1: non-coercivity.** Minimize $E(u) = \int_0^1 u^2\,dt$ over $u \in L^2[0, 1]$ with $\int u = 1$. The infimum is $1$ (Cauchy-Schwarz: $1 = \big(\int u\big)^2 \leq \int u^2$, equality at $u \equiv 1$). But $E$ is not coercive on $L^2$: a minimizing sequence concentrated near a point with mass $1$ — say $u_n = n \cdot \mathbb{1}_{[0, 1/n]}$ — has $\int u_n = 1$ and $E(u_n) = n$. The minimizing sequence we want is $u_n \equiv 1$ trivially, but the *unconstrained* minimization without the integral constraint has no minimum. Coercivity (or compactness of the constraint set) is essential.
+
+**Failure 2: lower semicontinuity failure.** Minimize $E(u) = \int_0^1 |u'|^2 \,dt$ over $u \in W^{1,1}_0[0, 1]$ with $u(1/2) = 1$. The infimum is $0$ (a sequence of "tent functions" concentrated near $t = 1/2$ has $\int |u_n'|^2 \to 0$ as the tent gets steeper, but the constraint $u(1/2) = 1$ holds). But there is no minimizer because the limit (a delta function at $1/2$) is not in $W^{1,1}$. The lack of weak l.s.c. of $\int |u'|^2$ in $W^{1,1}$ — combined with the failure of $W^{1,1}$ to be reflexive — kills the direct method.
+
+**Failure 3: non-reflexive setting.** Minimize $E(u) = \|u'\|_{L^1}$ over $u \in W^{1,1}[0, 1]$ with $u(0) = 0, u(1) = 1$. The infimum is $1$ (Newton-Leibniz: $\int u' = 1$), and $E$ is convex and continuous. But minimizing sequences (like step-function-approximators) don't have a weakly convergent subsequence in $W^{1,1}$ — the space is not reflexive. The "weak-\* limit" lives in $BV$ (functions of bounded variation), not in $W^{1,1}$. The minimizer in the larger $BV$ space is the step function jumping from $0$ to $1$ at any single point, which is *not* in $W^{1,1}$.
+
+These failures justify the strict prerequisites of the direct method: coercivity, weak l.s.c., reflexivity (or weak-\* compactness in non-reflexive settings, with a separate argument for identifying the weak-\* limit).
+
+
+
+## A Pivot to Convex Analysis: Weak Topology and Subdifferentials
+
+A convex function $f: X \to \mathbb{R} \cup \{+\infty\}$ on a Banach space has a **subdifferential** $\partial f(x) = \{ \varphi \in X^* : f(y) \geq f(x) + \varphi(y - x) \text{ for all } y \}$. This is the convex-analytic generalization of the gradient. For smooth convex $f$, $\partial f(x) = \{\nabla f(x)\}$; for non-smooth $f$, the subdifferential is a non-trivial set in $X^*$.
+
+The Fenchel-Moreau theorem says: a function is the supremum of its affine minorants iff it is convex and lower semicontinuous. The supremum is taken over $\partial f$ via the formula $f(x) = \sup_{\varphi \in \partial f(x)} (\varphi(y - x) + f(x))$.
+
+The weak topology is the natural setting for this calculus: convex weakly l.s.c. functions are exactly the convex norm-l.s.c. ones (by Mazur), and the subdifferential calculus is closed under weak-\* limits in the appropriate dual sense.
+
+## When Sequences Suffice: Angelic Spaces
+
+A topological space is **angelic** if for every set $A$, the sequential closure equals the topological closure, and for every relatively countably compact set, every point of the closure is a sequential limit. Banach spaces with the weak topology are angelic — a non-trivial theorem due to several authors.
+
+The angelic property is what makes "extract a weakly convergent subsequence" arguments work without nets. In a non-angelic topological space, sequential and topological compactness diverge, and one has to use nets. The angelic property of weak topologies on Banach spaces is the rigorous justification of "subsequence extraction" as a tool, and it underwrites essentially every application of weak compactness in PDE.
+
+## A Concluding Numerical Vignette
+
+Take the heat kernel $p_t(x, y) = (4\pi t)^{-d/2} \exp(-|x-y|^2/(4t))$ on $\mathbb{R}^d$. For each $t > 0$, $p_t(0, \cdot)$ is a probability density on $\mathbb{R}^d$. The corresponding measures $\mu_t = p_t(0, \cdot)\,dx$ have $\int f\,d\mu_t = \int f(y) p_t(0, y)\,dy$.
+
+As $t \to 0^+$, $\mu_t \to \delta_0$ in weak-\* (the heat kernel concentrates at the origin). As $t \to \infty$, $\mu_t$ "spreads out" — its mass leaks to infinity, the family is not tight, and there is no weak-\* limit (or more precisely, the limit is the zero measure, which is not a probability measure).
+
+The transition from concentration to spreading is governed by the heat semigroup, the spectrum of the Laplacian, and the Sobolev embedding theorem. All three of these connect to weak topologies in the way we have set up: tightness is the right compactness, weak limits are the right convergence, and the spectral theory of $-\Delta$ controls the rate of convergence to $\delta_0$ at small $t$.
+
+## Looking Ahead
 
 We now have a rich toolkit: normed spaces, completeness, duality (Hahn-Banach), and compactness (Banach-Alaoglu, Eberlein-Smulian). In the next article, we turn to **operators** — the maps between Banach spaces — and prove the three great theorems that constrain their behavior: the Uniform Boundedness Principle, the Open Mapping Theorem, and the Closed Graph Theorem. These are all consequences of completeness (via the Baire Category Theorem) and will complete our understanding of the structural rigidity of Banach spaces.
 

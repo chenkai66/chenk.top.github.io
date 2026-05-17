@@ -17,263 +17,275 @@ translationKey: "functional-analysis-9"
 description: "Closed operators, the distinction between symmetric and self-adjoint, deficiency indices, Friedrichs extension, the spectral theorem for unbounded self-adjoint operators, and Stone's theorem."
 ---
 
-Up to this point in the series we have enjoyed a comfortable assumption: our operators are bounded. Bounded operators are tidy objects --- they live on the whole space, they are continuous, and their spectra sit inside a nice compact disc. But the moment you write down any serious differential equation, that comfort evaporates. The Laplacian $-\Delta$ on $L^2(\mathbb{R}^n)$ does not send every $L^2$ function to an $L^2$ function; you need some differentiability. The momentum operator $-i\frac{d}{dx}$ on $L^2(\mathbb{R})$ demands that its inputs be at least absolutely continuous. These operators are *unbounded*, and the theory needed to handle them is simultaneously more delicate and more powerful than anything we have built so far.
+Two articles ago I was talking about how spectral theory is the linear-algebraic infrastructure of quantum mechanics. The trouble is that nearly every operator a physicist actually cares about — the position operator, the momentum operator, the Laplacian, the Schrödinger Hamiltonian — is *not bounded*. They are not defined on the whole Hilbert space. They are densely defined, with domains that depend on the regularity or decay of the input function. None of the previous spectral apparatus applies directly. We need to extend it.
 
-This article is the gateway into that theory. We will define closed operators and explain why closedness is the right substitute for continuity. We will dissect the subtle but critical distinction between symmetric and self-adjoint operators --- a distinction that, when ignored, leads to genuine mathematical errors. We will develop the tools (deficiency indices, Friedrichs extension) that tell us when and how an operator can be *made* self-adjoint. Finally, we will state the spectral theorem in the unbounded case and see how Stone's theorem connects self-adjoint operators to one-parameter unitary groups. Throughout, the Laplacian and Schrodinger operator will serve as our primary examples.
+The extension is delicate. With unbounded operators, simply writing down "$T = T^*$" no longer makes sense, because the two sides have different domains. There is a real distinction between *symmetric* operators (where $\langle T x, y \rangle = \langle x, T y \rangle$ on the common domain) and *self-adjoint* operators (where additionally the domain of $T$ equals the domain of $T^*$). For bounded operators these notions coincide; for unbounded ones they fall apart in subtle ways, and entire books have been written about the difference. The reward for handling this carefully is that the spectral theorem, the functional calculus, and Stone's theorem all extend — and we get to actually do quantum mechanics rigorously. This article is a walk through the technical landscape.
 
-## Why unbounded operators are unavoidable
+## Domains, Domains, Domains
 
-Before diving into the formalism, it is worth pausing to ask: why not just stick to bounded operators? The answer comes from physics and PDE theory. Consider the simplest quantum-mechanical observable: the position operator $Q$ on $L^2(\mathbb{R})$, defined by $(Qf)(x) = xf(x)$. If $f \in L^2(\mathbb{R})$, there is no guarantee that $xf(x)$ is still in $L^2$ --- think of $f(x) = (1+|x|)^{-1}$, which is in $L^2(\mathbb{R})$ but $xf(x)$ is not. So $Q$ cannot be defined on all of $L^2(\mathbb{R})$. Similarly, the momentum operator $P = -i\frac{d}{dx}$ requires differentiability, and the kinetic energy $P^2 = -\frac{d^2}{dx^2}$ requires twice differentiability. None of these can be bounded operators on $L^2$.
+An **unbounded operator** on a Hilbert space $H$ is a linear map $T: D(T) \to H$ where the **domain** $D(T)$ is a (typically dense) linear subspace of $H$. The map need not be defined on all of $H$; the domain is part of the data. Two operators with the same formula but different domains are different operators.
 
-More fundamentally, the Hellinger-Toeplitz theorem states that a symmetric operator defined on *all* of a Hilbert space must be bounded. So any symmetric unbounded operator is *forced* to have a restricted domain. The theory of unbounded operators is not an optional generalization; it is a necessity for anyone who wants to do quantum mechanics or PDE theory in a rigorous Hilbert space framework.
+![Unbounded operators with their dense but proper domain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_1_unbounded_domain.png)
 
+Concrete example. Consider $T = -i d/dx$ on $L^2[0, 1]$. There are several reasonable choices of domain:
 
-![Bounded vs unbounded operators](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_fig3_operators.png)
+- $D_{\max} = \{f \in L^2 : f \text{ absolutely continuous, } f' \in L^2\}$, with no boundary conditions.
+- $D_{\text{Dir}} = \{f \in D_{\max} : f(0) = f(1) = 0\}$, with Dirichlet boundary conditions.
+- $D_{\text{per}} = \{f \in D_{\max} : f(0) = f(1)\}$, with periodic boundary conditions.
+- $D_{C^\infty_c} = $ compactly supported smooth functions in $(0, 1)$, the "minimal" domain.
 
-## Closed operators and their graphs
+These four choices give *four different operators*, even though the formula $-i d/dx$ is the same. They have different spectra, different self-adjointness properties, and different physical interpretations. Periodic boundary conditions give a self-adjoint operator with discrete spectrum $\{2\pi n : n \in \mathbb{Z}\}$. Dirichlet conditions give a symmetric but not self-adjoint operator. The minimal domain gives a symmetric operator with two-dimensional defect, and the maximal domain gives an operator that is not even symmetric.
 
-An *unbounded operator* on a Hilbert space $H$ is a linear map $T: \mathcal{D}(T) \to H$, where the *domain* $\mathcal{D}(T)$ is a linear subspace of $H$ (typically dense, but not the whole space). The word "unbounded" is a misnomer: it does not mean the operator is unbounded on every vector, only that we do not assume a finite operator norm. Some unbounded operators happen to be bounded on their domain, but we deliberately allow the possibility that $\sup_{\|x\|=1, x \in \mathcal{D}(T)} \|Tx\| = \infty$.
+This sensitivity to domain choice is what makes unbounded operator theory annoying and what makes it interesting. The choice of domain encodes physical content (boundary conditions, decay at infinity), and the same differential expression can describe several physically distinct systems depending on the domain. Almost every paradox in mathematical physics where someone "computes the spectrum two ways and gets different answers" is really a story about implicit domain choices.
 
-Because $T$ is not defined everywhere and is not continuous, the usual topological tools break down. The replacement is the *graph* of $T$:
-$$
-\Gamma(T) = \\{(x, Tx) : x \in \mathcal{D}(T)\\} \subseteq H \oplus H.
-$$
+## Closed Operators and the Closed Graph
 
-We say $T$ is **closed** if $\Gamma(T)$ is a closed subspace of $H \oplus H$ (with the product topology). Concretely, $T$ is closed if and only if whenever $(x_n)$ is a sequence in $\mathcal{D}(T)$ with $x_n \to x$ and $Tx_n \to y$, we have $x \in \mathcal{D}(T)$ and $Tx = y$.
+The fundamental regularity property for unbounded operators is *closedness*. The graph of $T$ is
 
-Why is closedness the right condition? A bounded operator defined on a dense subspace extends uniquely by continuity to the whole space; closedness is not an issue. For unbounded operators we cannot extend to the whole space, but closedness gives us the next best thing: the graph is a well-behaved geometric object in $H \oplus H$, and many of the tools of bounded operator theory (resolvents, spectra, functional calculus) carry over to closed operators with only mild modifications.
+$$ G(T) = \{(x, Tx) : x \in D(T)\} \subset H \times H. $$
 
-**The closed graph theorem revisited.** Recall the closed graph theorem for bounded operators: if $T: H \to H$ is defined on all of $H$ and has a closed graph, then $T$ is bounded. For unbounded operators the contrapositive is instructive: if $T$ is unbounded, its graph cannot be simultaneously closed and defined on all of $H$. This is why unbounded operators *must* have restricted domains.
+We say $T$ is **closed** if $G(T)$ is a closed subspace of $H \times H$. Equivalently, $T$ is closed iff: whenever $x_n \in D(T)$, $x_n \to x$, and $T x_n \to y$, we have $x \in D(T)$ and $T x = y$.
 
-An operator $T$ is **closable** if the closure $\overline{\Gamma(T)}$ of its graph in $H \oplus H$ is itself the graph of an operator. When $T$ is closable, we write $\bar{T}$ for the operator whose graph is $\overline{\Gamma(T)}$ and call it the **closure** of $T$. Not every densely defined operator is closable --- if there is a sequence $x_n \to 0$ with $Tx_n \to y \neq 0$, then $\overline{\Gamma(T)}$ contains both $(0, 0)$ and $(0, y)$, so it is not the graph of a function. But symmetric operators (defined below) are always closable, which is one reason the symmetric/self-adjoint framework is so important.
+![Closed operator: graph is closed in the product topology](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_2_closed_op.png)
 
-**Example: differentiation.** Let $H = L^2[0,1]$ and $T = -i\frac{d}{dx}$ with domain $\mathcal{D}(T) = C^1[0,1]$. This operator is closable. Its closure has domain
-$$
-\mathcal{D}(\bar{T}) = \\{f \in L^2[0,1] : f \text{ is absolutely continuous and } f' \in L^2[0,1]\\}.
-$$
-Note that we have not imposed boundary conditions; the closure inherits whatever conditions the original domain imposes, which in this case is none.
+Closed is weaker than continuous (= bounded) but stronger than just "linear." For bounded operators on a Banach space, the closed graph theorem says closed = continuous. For unbounded operators, closedness is a substantive condition that allows quite a bit of analysis to work — for example, the spectrum of a closed operator is well-defined as a subset of $\mathbb{C}$.
 
-## Symmetric operators versus self-adjoint operators
+**Numerical-flavored example.** Take $T f = f'$ on $L^2[0, 1]$ with $D(T) = C^1[0, 1]$. The sequence $f_n(x) = x^{1/2 + 1/n}$ is in $D(T)$ and converges in $L^2$ to $f(x) = x^{1/2}$, while $T f_n = (1/2 + 1/n) x^{-1/2 + 1/n}$ converges in $L^2$ to $g(x) = (1/2) x^{-1/2}$. But $f \notin C^1[0, 1]$, so $T$ defined this way is not closed. The right move is to take its **closure**: the smallest closed extension. For a closable operator (one whose graph is closed in the limit), this is the closed operator obtained by including all limits $(x, y)$ such that $(x_n, T x_n) \to (x, y)$. The closure of $d/dx$ on $C^1$ is $d/dx$ on the Sobolev space $H^1$, which is closed.
 
-Here lies the subtlest and most consequential distinction in the theory of unbounded operators. Let $T$ be a densely defined operator on a Hilbert space $H$. The **adjoint** $T^*$ is defined as follows: $y \in \mathcal{D}(T^*)$ if and only if there exists $z \in H$ such that
-$$
-\langle Tx, y \rangle = \langle x, z \rangle \quad \text{for all } x \in \mathcal{D}(T).
-$$
-When such $z$ exists it is unique (because $\mathcal{D}(T)$ is dense), and we set $T^* y = z$.
+A symmetric operator is always closable (its closure is also symmetric), but not every linear operator with a dense domain is closable. The pathological cases involve the closure of the graph containing $(0, y)$ for some nonzero $y$, which would force the closure to map $0$ to two different things. We will assume closability throughout.
 
-We say $T$ is **symmetric** (or Hermitian) if $T \subseteq T^*$, meaning $\mathcal{D}(T) \subseteq \mathcal{D}(T^*)$ and $Tx = T^*x$ for all $x \in \mathcal{D}(T)$. Equivalently,
-$$
-\langle Tx, y \rangle = \langle x, Ty \rangle \quad \text{for all } x, y \in \mathcal{D}(T).
-$$
+## The Adjoint and the Domain $D(T^*)$
 
-We say $T$ is **self-adjoint** if $T = T^*$, meaning $\mathcal{D}(T) = \mathcal{D}(T^*)$ and $Tx = T^*x$ for all $x$ in this common domain.
+The adjoint of an unbounded operator is more delicate than the bounded case. Define
 
-The difference is entirely in the domains. A symmetric operator satisfies the formal adjoint relation on its domain, but $T^*$ might have a strictly larger domain. A self-adjoint operator satisfies the relation and has no room for $T^*$ to be defined on any additional vectors. This may sound like a pedantic distinction, but it has profound consequences:
+$$ D(T^*) = \{y \in H : x \mapsto \langle T x, y \rangle \text{ is bounded on } D(T)\}, $$
 
-1. **The spectral theorem holds for self-adjoint operators, not merely symmetric ones.** A symmetric operator need not have any spectral decomposition.
-2. **A symmetric operator can have many self-adjoint extensions, exactly one, or none.** The deficiency indices (defined below) tell us which case we are in.
-3. **Stone's theorem connects one-parameter unitary groups to self-adjoint operators, not symmetric ones.** If you want to generate a unitary time evolution $e^{itT}$, you need $T$ to be self-adjoint.
+and for $y \in D(T^*)$, $T^* y$ is the unique vector with $\langle T x, y \rangle = \langle x, T^* y \rangle$ for all $x \in D(T)$. The existence of $T^* y$ uses Riesz representation applied to the bounded functional $x \mapsto \langle T x, y \rangle$.
 
-**Counterexample: symmetric but not self-adjoint.** Let $H = L^2[0,1]$ and define $T = -i\frac{d}{dx}$ with domain
-$$
-\mathcal{D}(T) = \\{f \in H^1[0,1] : f(0) = f(1) = 0\\}.
-$$
-Then $T$ is symmetric: integration by parts gives
-$$
-\langle Tf, g \rangle = -i\int_0^1 f'(x)\overline{g(x)}\,dx = -i\left[f\overline{g}\right]_0^1 + i\int_0^1 f(x)\overline{g'(x)}\,dx = \langle f, Tg \rangle,
-$$
-where the boundary term vanishes because $f(0)=f(1)=g(0)=g(1)=0$. But $T^*$ is the same differential expression $-i\frac{d}{dx}$ on the larger domain $H^1[0,1]$ (no boundary conditions), so $T \subsetneq T^*$. The operator $T$ is symmetric but not self-adjoint.
+The adjoint is *always* a closed operator, even when $T$ is not. But $D(T^*)$ depends sensitively on $D(T)$, and the larger $D(T)$ is, the smaller $D(T^*)$ tends to be.
 
-This operator has self-adjoint extensions parametrized by $\theta \in [0, 2\pi)$: define $T_\theta$ on the domain $\{f \in H^1[0,1] : f(1) = e^{i\theta}f(0)\}$. Each choice of $\theta$ gives a different self-adjoint operator with a different spectrum.
+A subtle but useful identity: $G(T^*) = \{(y, z) : \langle z, x \rangle - \langle y, T x \rangle = 0 \text{ for all } x \in D(T)\}$, which is the orthogonal complement (under a specific symplectic-flavored pairing) of $\{(x, -T x) : x \in D(T)\} \subset H \times H$. The closedness of $T^*$ is then immediate from this characterization.
 
-## Von Neumann deficiency indices
+## Symmetric vs Self-Adjoint
 
-Given a closed symmetric operator $T$, how do we determine its self-adjoint extensions? The answer is given by von Neumann's theory of deficiency indices.
+This is the pivotal distinction. A densely defined operator $T$ is **symmetric** if $\langle T x, y \rangle = \langle x, T y \rangle$ for all $x, y \in D(T)$. Equivalently: $T \subset T^*$, meaning $D(T) \subset D(T^*)$ and $T = T^*$ on $D(T)$.
 
-**Definition.** The *deficiency subspaces* of a closed symmetric operator $T$ are
-$$
-\mathcal{N}_+ = \ker(T^* - iI), \qquad \mathcal{N}_- = \ker(T^* + iI).
-$$
-The *deficiency indices* are $n_+ = \dim \mathcal{N}_+$ and $n_- = \dim \mathcal{N}_-$.
+The operator $T$ is **self-adjoint** if $T = T^*$ as operators, meaning $D(T) = D(T^*)$ and the actions agree.
 
-The intuition is as follows. If $T$ were self-adjoint, then $T - iI$ and $T + iI$ would both be surjective (because $\pm i$ would be in the resolvent set --- self-adjoint operators have real spectrum). The deficiency subspaces measure how far $\operatorname{ran}(T - iI)$ and $\operatorname{ran}(T + iI)$ are from being all of $H$.
+![Symmetric vs self-adjoint operators: domains of T and T*](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_3_sym_vs_sa.png)
 
-**Von Neumann's theorem.** Let $T$ be a closed, densely defined, symmetric operator with deficiency indices $(n_+, n_-)$. Then:
-1. $T$ is self-adjoint if and only if $n_+ = n_- = 0$.
-2. $T$ has self-adjoint extensions if and only if $n_+ = n_-$.
-3. When $n_+ = n_- = n$, the self-adjoint extensions of $T$ are in bijection with the unitary operators $U: \mathcal{N}_+ \to \mathcal{N}_-$. Each such $U$ determines an extension $T_U$ with domain
-$$
-\mathcal{D}(T_U) = \mathcal{D}(T) \dotplus \\{(\xi + U\xi) : \xi \in \mathcal{N}_+\\}
-$$
-(where $\dotplus$ denotes algebraic direct sum inside $\mathcal{D}(T^*)$) and $T_U$ acts as $T^*$ on this domain.
+Symmetric is a much weaker condition than self-adjoint. For bounded operators they agree, but for unbounded operators a symmetric operator can have many different self-adjoint extensions, or none at all. The spectral theorem and the functional calculus require *self*-adjointness; mere symmetry is not enough.
 
-When $n_+ = n_- = n < \infty$, the set of self-adjoint extensions is parametrized by $U(n)$, the unitary group of an $n$-dimensional space. In our differentiation example, $n_+ = n_- = 1$, and $U(1) \cong S^1$, giving the one-parameter family of extensions $T_\theta$ described above.
+**Why does this matter?** Because of Stone's theorem (next article), self-adjoint operators generate one-parameter unitary groups: $T = T^*$ implies $e^{-itT}$ is a unitary group on $H$ for all $t \in \mathbb{R}$. Symmetric but not self-adjoint operators do not generate such groups, and the corresponding "time evolution" is ambiguous. In quantum mechanics, this means: for an observable to have a well-defined associated unitary symmetry (energy and time translation, momentum and space translation), the observable must be self-adjoint, not merely symmetric. This is a non-negotiable physical constraint.
 
-When $n_+ \neq n_-$, the operator has no self-adjoint extensions at all. This is not just a theoretical curiosity --- it happens for the momentum operator on $L^2[0, \infty)$ with domain $\{f \in H^1[0,\infty) : f(0)=0\}$. Here $n_+ = 0$ and $n_- = 1$ (or vice versa, depending on convention), so no self-adjoint extension exists.
+The classical example of a symmetric but not self-adjoint operator is $T = -i d/dx$ on $L^2[0, 1]$ with domain $C^\infty_c(0, 1)$ (compactly supported smooth functions). $T$ is symmetric: integration by parts works without boundary terms. But $T^*$ is the same differential operator with a *larger* domain (functions with $f(0)$ and $f(1)$ not necessarily zero), so $D(T) \subsetneq D(T^*)$. The closure $\overline{T}$ is also symmetric but not self-adjoint, with $\overline{T} \neq T^{**}$. To get a self-adjoint operator, one has to specify boundary conditions: periodic, or $e^{i\theta}$-twisted ($f(1) = e^{i\theta} f(0)$). Different boundary conditions give different self-adjoint extensions.
 
-**Computing deficiency indices in practice.** For our differentiation example $T = -id/dx$ on $\{f \in H^1[0,1]: f(0)=f(1)=0\}$, the deficiency equations are $T^*\phi = \pm i\phi$, i.e., $-i\phi' = \pm i\phi$, giving $\phi' = \mp\phi$, so $\phi(x) = Ce^{\mp x}$. Both solutions are in $L^2[0,1]$ (and in $H^1[0,1]$ with no boundary conditions, which is the domain of $T^*$), so $\dim\mathcal{N}_+ = \dim\mathcal{N}_- = 1$. The self-adjoint extensions are parametrized by unitary maps $U: \mathbb{C} \to \mathbb{C}$, i.e., by $e^{i\theta}$, which is exactly the one-parameter family $T_\theta$ we described earlier.
+## Deficiency Indices and the von Neumann Theorem
 
-For the half-line operator $T = -id/dx$ on $\{f \in H^1[0,\infty): f(0)=0\}$, the equation $-i\phi' = i\phi$ gives $\phi(x) = Ce^{-x} \in L^2[0,\infty)$, while $-i\phi' = -i\phi$ gives $\phi(x) = Ce^{x} \notin L^2[0,\infty)$. So $n_+ = 1$, $n_- = 0$, and there is no self-adjoint extension. Physically, this corresponds to the fact that a free particle on a half-line with an absorbing boundary at the origin does not have a well-defined momentum observable.
+How do we tell whether a symmetric operator has self-adjoint extensions, and how many? The answer is the von Neumann theory of deficiency indices.
 
-## The Friedrichs extension
+For a closed symmetric operator $T$, define the **deficiency subspaces**
 
-Among all self-adjoint extensions (when they exist), there is often a canonical "best" choice. For *semibounded* operators, this is the **Friedrichs extension**.
+$$ \mathcal{N}_\pm = \ker(T^* \mp i I) = \text{range}(T \pm i I)^\perp. $$
 
-**Definition.** A symmetric operator $T$ is *bounded below* (or semibounded) if there exists $c \in \mathbb{R}$ such that
-$$
-\langle Tx, x \rangle \geq c\|x\|^2 \quad \text{for all } x \in \mathcal{D}(T).
-$$
+The dimensions $n_\pm = \dim \mathcal{N}_\pm$ are the **deficiency indices**. The von Neumann theorem says:
 
-The Friedrichs extension proceeds as follows. Without loss of generality assume $c > 0$ (shift $T$ if needed). The form $\mathfrak{t}(x,y) = \langle Tx, y \rangle$ is a densely defined, positive, symmetric sesquilinear form. Its closure $\bar{\mathfrak{t}}$ has a domain $\mathcal{D}[\bar{\mathfrak{t}}]$ that is a Hilbert space under the inner product $\mathfrak{t}(x,y) + \langle x, y \rangle$. By the Riesz representation theorem (applied to the inclusion $\mathcal{D}[\bar{\mathfrak{t}}] \hookrightarrow H$), there exists a unique self-adjoint operator $T_F$ with $\mathcal{D}(T_F) \subseteq \mathcal{D}[\bar{\mathfrak{t}}]$ such that
-$$
-\bar{\mathfrak{t}}(x, y) = \langle T_F x, y \rangle \quad \text{for all } x \in \mathcal{D}(T_F),\; y \in \mathcal{D}[\bar{\mathfrak{t}}].
-$$
-This $T_F$ is the Friedrichs extension.
+- $T$ is self-adjoint iff $n_+ = n_- = 0$.
+- $T$ has self-adjoint extensions iff $n_+ = n_-$. The extensions are parameterized by unitary maps $\mathcal{N}_+ \to \mathcal{N}_-$.
+- If $n_+ \neq n_-$, $T$ has no self-adjoint extensions.
 
-**Key properties:**
-- $T_F$ extends $T$ (i.e., $T \subseteq T_F$).
-- $T_F$ is the unique self-adjoint extension of $T$ with $\mathcal{D}(T_F) \subseteq \mathcal{D}[\bar{\mathfrak{t}}]$.
-- Among all self-adjoint extensions of $T$ that are bounded below by $c$, the Friedrichs extension has the largest lower bound.
-- The Friedrichs extension is the "hardest" boundary condition in the sense that it corresponds to Dirichlet boundary conditions for differential operators.
+For $-i d/dx$ on $C^\infty_c(0, 1)$, $n_+ = n_- = 1$ (the deficiency subspaces are spanned by $e^{\pm x}$ restricted to $[0, 1]$, or more precisely the unique solutions to $\mp f' = i f$ that are in $L^2$). So there is a one-parameter family of self-adjoint extensions, parameterized by $U(1)$, corresponding to the boundary conditions $f(1) = e^{i\theta} f(0)$.
 
-**Example: Laplacian with Dirichlet conditions.** Let $\Omega \subseteq \mathbb{R}^n$ be a bounded open set with smooth boundary. Define $T = -\Delta$ on $\mathcal{D}(T) = C_c^\infty(\Omega)$. This is a positive symmetric operator. Its Friedrichs extension is the Dirichlet Laplacian $-\Delta_D$, defined on $H^2(\Omega) \cap H^1_0(\Omega)$. The form domain is $H^1_0(\Omega)$, and the operator domain consists of those $H^1_0$ functions that are also in $H^2$.
+For $-i d/dx$ on $C^\infty_c(0, \infty)$, the situation is asymmetric: only one of $\mathcal{N}_\pm$ is nontrivial, so $n_+ \neq n_-$, and there are no self-adjoint extensions. The momentum operator on the half-line is fundamentally not self-adjoint, regardless of boundary conditions. Physicists say this is because there is no self-adjoint momentum operator for a particle on a half-line, only a self-adjoint Hamiltonian. This is a real physical statement, not just a technicality.
 
-## Essential self-adjointness
+## The Friedrichs Extension
 
-An important special case arises when a symmetric operator has a unique self-adjoint extension. In this situation the physics is unambiguous: there is only one way to make the operator self-adjoint, so no boundary condition needs to be chosen.
+For a particularly important class of symmetric operators — the **semibounded** ones, with $\langle T x, x \rangle \geq c \|x\|^2$ for some $c \in \mathbb{R}$ — there is a canonical self-adjoint extension, the **Friedrichs extension**.
 
-**Definition.** A symmetric operator $T$ is **essentially self-adjoint** if its closure $\bar{T}$ is self-adjoint. Equivalently, $T$ has deficiency indices $(0,0)$ (after taking the closure, $T$ is already self-adjoint).
+![Friedrichs extension turning a semibounded symmetric operator into a self-adjoint one](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_5_friedrichs.png)
 
-Essential self-adjointness means that the operator, though not self-adjoint on its original domain, is "close enough" that there is no ambiguity. The unique self-adjoint extension is the closure $\bar{T}$.
+The construction: start with the quadratic form $q(x) = \langle T x, x \rangle$ on $D(T)$. Complete $D(T)$ in the norm $\|x\|_q = \sqrt{q(x) + (1 - c)\|x\|^2}$ to get a Hilbert space $V$ with $V \subset H$ continuously. The Friedrichs extension $T_F$ is then the operator with domain $\{x \in V : q(\cdot, x) \text{ is bounded on } V \text{ in } H\text{-norm}\}$, defined via the Riesz representation theorem applied to the bounded form. This extension is self-adjoint and has the same lower bound as $T$.
 
-**Criteria for essential self-adjointness.** Several useful sufficient conditions exist:
+For the Laplacian $-\Delta$ on $C^\infty_c(\Omega)$ for a bounded domain $\Omega \subset \mathbb{R}^n$, the Friedrichs extension is $-\Delta$ with **Dirichlet boundary conditions** ($f|_{\partial \Omega} = 0$), with domain $H^1_0(\Omega) \cap H^2(\Omega)$. The associated quadratic form is $q(f) = \int_\Omega |\nabla f|^2$, and the Friedrichs extension corresponds to "minimizing the quadratic form among functions vanishing on the boundary." This is the right self-adjoint extension for the Dirichlet Laplacian, the one used in PDE and physics.
 
-1. **(Range criterion)** $T$ is essentially self-adjoint if and only if $\operatorname{ran}(T + iI)$ and $\operatorname{ran}(T - iI)$ are both dense in $H$.
+The Friedrichs extension is conceptually beautiful because it shows that for semibounded operators, the choice of domain is forced by the variational principle. The "physical" boundary conditions emerge automatically from the quadratic form, not from any extra choice. This is why elliptic boundary value problems work out so cleanly — the Lax-Milgram framework, which we will develop in article 12, is essentially the Friedrichs extension done one-shot.
 
-2. **(Nelson's analytic vector theorem)** If $T$ is symmetric and has a dense set of analytic vectors (vectors $x$ for which $\sum_{n=0}^\infty \frac{t^n}{n!}\|T^n x\| < \infty$ for some $t > 0$), then $T$ is essentially self-adjoint.
+## A Worked Example: The Particle in a Box
 
-3. **(Kato-Rellich theorem)** If $A$ is self-adjoint, $B$ is symmetric with $\mathcal{D}(A) \subseteq \mathcal{D}(B)$, and there exist $a < 1$ and $b \geq 0$ with $\|Bx\| \leq a\|Ax\| + b\|x\|$ for all $x \in \mathcal{D}(A)$, then $A + B$ is self-adjoint on $\mathcal{D}(A)$.
+For tangibility, let me work through one example end-to-end. Consider the Hamiltonian $H = -\frac{1}{2} d^2/dx^2$ on $L^2[0, 1]$, the kinetic energy operator for a quantum particle confined to the unit interval. The differential expression is the same in every case; the physics depends entirely on what we choose for the domain (i.e., what boundary conditions).
 
-4. **(Rellich's criterion for Schrodinger operators)** $-\Delta + V$ on $C_c^\infty(\mathbb{R}^n)$ is essentially self-adjoint if $V \in L^2_{\text{loc}}(\mathbb{R}^n)$ is bounded below. More refined criteria (Kato's theorem) allow local singularities: for $n \leq 3$, $V \in L^2_{\text{loc}}$ suffices if $V$ is bounded below.
+**Dirichlet boundary conditions** (infinite well): $D(H) = \{f \in H^2[0, 1] : f(0) = f(1) = 0\}$. This is the Friedrichs extension of $H$ on $C^\infty_c(0, 1)$, since the quadratic form is $q(f) = (1/2) \int_0^1 |f'|^2$ and the natural completion gives $H^1_0[0, 1]$. The eigenfunctions are $\phi_n(x) = \sqrt{2} \sin(n\pi x)$ with eigenvalues $E_n = n^2 \pi^2 / 2$. Pure point spectrum, no continuous part.
 
-These criteria are not interchangeable; each applies in different situations. Nelson's theorem is particularly useful in quantum field theory, while Kato-Rellich is the workhorse for Schrodinger operators.
+**Neumann boundary conditions**: $D(H) = \{f \in H^2[0, 1] : f'(0) = f'(1) = 0\}$. Eigenfunctions $\phi_n(x) = \sqrt{2} \cos(n\pi x)$ for $n \geq 1$ together with $\phi_0 = 1$, eigenvalues $E_n = n^2 \pi^2 / 2$ for $n \geq 0$. Same essential spectrum as Dirichlet but with a zero eigenvalue corresponding to the constant function.
 
-## The spectral theorem for unbounded self-adjoint operators
+**Periodic boundary conditions**: $D(H) = \{f \in H^2 : f(0) = f(1), f'(0) = f'(1)\}$. Eigenfunctions $e^{2\pi i n x}$ for $n \in \mathbb{Z}$, eigenvalues $E_n = (2\pi n)^2/2$. Each nonzero $E_n$ has multiplicity 2 (from $\pm n$), zero eigenvalue is simple.
 
-The spectral theorem extends from bounded to unbounded self-adjoint operators, but the formulation requires more care because the spectrum is no longer bounded.
+**Robin boundary conditions** $f'(0) = \alpha f(0)$, $f'(1) = -\alpha f(1)$: a one-parameter family of self-adjoint extensions parameterized by $\alpha \in \mathbb{R}$, with spectra varying continuously in $\alpha$.
 
-**Theorem (Spectral theorem, unbounded case).** Let $T$ be a self-adjoint operator on a Hilbert space $H$. There exists a unique projection-valued measure $E$ on the Borel $\sigma$-algebra of $\mathbb{R}$ such that
-$$
-T = \int_{-\infty}^{\infty} \lambda \, dE(\lambda),
-$$
-where the integral converges in the strong operator topology, and the domain of $T$ is
-$$
-\mathcal{D}(T) = \left\\{x \in H : \int_{-\infty}^{\infty} \lambda^2 \, d\|E(\lambda)x\|^2 < \infty \right\\}.
-$$
+The four extensions give four different physical systems, each correct in its own context. Same differential operator, four different spectra, four different time evolutions. This is what "domains encode physics" means in concrete terms.
 
-This means that for any $x \in \mathcal{D}(T)$ and $y \in H$,
-$$
-\langle Tx, y \rangle = \int_{-\infty}^{\infty} \lambda \, d\langle E(\lambda)x, y \rangle.
-$$
+## When the Particle Lives on a Half-Line
 
-The **functional calculus** extends to measurable functions: for any Borel function $f: \mathbb{R} \to \mathbb{C}$, we define
-$$
-f(T) = \int_{-\infty}^{\infty} f(\lambda) \, dE(\lambda)
-$$
-on the domain $\mathcal{D}(f(T)) = \{x \in H : \int |f(\lambda)|^2 \, d\|E(\lambda)x\|^2 < \infty\}$.
+A more pathological example. Consider $T = -i d/dx$ on $L^2(0, \infty)$ with domain $C^\infty_c(0, \infty)$. The deficiency indices are $n_+ = 1$ (the function $e^{-x}$ is in $\ker(T^* - i)$) and $n_- = 0$ (no $L^2$ function satisfies $-i f' = -i f$ on $(0, \infty)$, since $e^x$ is not in $L^2$). So $n_+ \neq n_-$, and the von Neumann theorem says $T$ has no self-adjoint extensions.
 
-**Proof strategy.** The standard proof goes through the Cayley transform. Define the *Cayley transform* of $T$ by
-$$
-U = (T - iI)(T + iI)^{-1}.
-$$
-Because $T$ is self-adjoint, $T \pm iI$ are bijections from $\mathcal{D}(T)$ to $H$, and $U$ is a unitary operator on $H$. Moreover, $1$ is not an eigenvalue of $U$ (if $Ux = x$, then $(T-iI)y = (T+iI)y$ for $y = (T+iI)^{-1}x$, giving $-iy = iy$, so $y=0$). Conversely, any unitary $U$ with $1 \notin \sigma_p(U)$ arises as the Cayley transform of a unique self-adjoint operator.
+Physically: there is no momentum operator for a particle confined to the half-line. Translation invariance is broken by the boundary at $x = 0$, and momentum is the generator of translations, so there is no observable corresponding to momentum on the half-line. Every quantum mechanics textbook handles this implicitly by working on the full line and projecting, or by working with even/odd extensions, but the underlying functional-analytic obstruction is real.
 
-Apply the spectral theorem for unitary operators (which follows from the spectral theorem for bounded normal operators) to write $U = \int_{|z|=1} z \, dF(z)$. The Mobius transformation $z \mapsto i\frac{1+z}{1-z}$ converts this into the spectral representation $T = \int \lambda \, dE(\lambda)$ on $\mathbb{R}$.
+The Hamiltonian on the half-line, on the other hand, *does* have self-adjoint extensions: the operator $-d^2/dx^2$ on $C^\infty_c(0, \infty)$ has deficiency indices $(1, 1)$ — both $e^{-(1+i)x/\sqrt{2}}$ and $e^{-(1-i)x/\sqrt{2}}$ are in $L^2$ — and the self-adjoint extensions form a one-parameter family parameterized by boundary conditions $\cos\alpha \cdot f(0) - \sin\alpha \cdot f'(0) = 0$. So the half-line has Hamiltonians but no momentum operator, and that asymmetry is physically real.
 
-**Spectrum.** The spectrum of a self-adjoint operator is always a subset of $\mathbb{R}$. It decomposes into:
-- The **point spectrum** $\sigma_p(T)$: eigenvalues.
-- The **absolutely continuous spectrum** $\sigma_{ac}(T)$: related to scattering states in quantum mechanics.
-- The **singular continuous spectrum** $\sigma_{sc}(T)$: exotic but physically relevant (e.g., almost-Mathieu operators).
+## A Concrete Spectral Computation: The Harmonic Oscillator, in Detail
 
-The essential spectrum $\sigma_{ess}(T)$ is the set of $\lambda \in \sigma(T)$ that are either accumulation points of the spectrum or eigenvalues of infinite multiplicity. Weyl's theorem states that $\sigma_{ess}(T)$ is invariant under compact perturbations.
+The harmonic oscillator $H = -\frac{1}{2} d^2/dx^2 + \frac{1}{2} x^2$ on $L^2(\mathbb{R})$ deserves a worked-through diagonalization, both because the explicit eigenfunctions are useful and because the operator-theoretic technique generalizes.
 
-## Stone's theorem and one-parameter unitary groups
+Define the **annihilation** and **creation** operators
 
-Self-adjoint operators and strongly continuous one-parameter unitary groups are two sides of the same coin. This is the content of Stone's theorem, which is fundamental to quantum mechanics (where $e^{-iHt}$ is the time evolution operator for Hamiltonian $H$).
+$$ a = \frac{1}{\sqrt{2}}(x + d/dx), \qquad a^* = \frac{1}{\sqrt{2}}(x - d/dx). $$
 
-**Definition.** A *strongly continuous one-parameter unitary group* is a map $U: \mathbb{R} \to B(H)$ such that:
-- Each $U(t)$ is unitary.
-- $U(0) = I$ and $U(s+t) = U(s)U(t)$ for all $s, t \in \mathbb{R}$.
-- For each $x \in H$, $t \mapsto U(t)x$ is continuous.
+A direct computation gives $[a, a^*] = I$ and $H = a^* a + 1/2$ (or $a a^* - 1/2$). The vacuum state $\phi_0(x) = \pi^{-1/4} e^{-x^2/2}$ satisfies $a \phi_0 = 0$, hence $H \phi_0 = (1/2) \phi_0$. Apply $a^*$ repeatedly: $\phi_n = (a^*)^n \phi_0 / \sqrt{n!}$ are orthonormal eigenfunctions with $H \phi_n = (n + 1/2) \phi_n$. They are the Hermite functions, normalized.
 
-**Stone's theorem.** There is a bijection between self-adjoint operators on $H$ and strongly continuous one-parameter unitary groups on $H$, given by:
-- *Forward direction:* If $A$ is self-adjoint, then $U(t) = e^{itA} := \int e^{it\lambda} \, dE(\lambda)$ is a strongly continuous one-parameter unitary group.
-- *Reverse direction:* If $\\{U(t)\\}$ is a strongly continuous one-parameter unitary group, then its generator
-$$
-A = \lim_{t \to 0} \frac{U(t) - I}{it}
-$$
-(defined on the domain where this limit exists in the strong sense) is a self-adjoint operator, and $U(t) = e^{itA}$.
+The spectral measure is $E = \sum_{n=0}^\infty |\phi_n\rangle \langle \phi_n| \delta_{n + 1/2}$, atomic on $\{1/2, 3/2, 5/2, \ldots\}$. The functional calculus gives, for any continuous $f$,
 
-**Proof sketch (forward direction).** Given the spectral decomposition $A = \int \lambda \, dE(\lambda)$, define $U(t) = \int e^{it\lambda}\,dE(\lambda)$. The group property follows from $e^{is\lambda}e^{it\lambda} = e^{i(s+t)\lambda}$. Unitarity follows from $|e^{it\lambda}|=1$. Strong continuity follows from dominated convergence: $\|U(t)x - x\|^2 = \int |e^{it\lambda}-1|^2\,d\|E(\lambda)x\|^2 \to 0$ as $t \to 0$.
+$$ f(H) = \sum_{n=0}^\infty f(n + 1/2) \, |\phi_n\rangle \langle \phi_n|, $$
 
-**Proof sketch (reverse direction).** Given $\\{U(t)\\}$, the key step is showing that the domain $\mathcal{D}(A)$ of the generator is dense. This uses an averaging trick: for $x \in H$ and $\varphi \in C_c^\infty(\mathbb{R})$, define $x_\varphi = \int \varphi(t) U(t)x\,dt$. Then $x_\varphi \in \mathcal{D}(A)$ (differentiate under the integral), and by choosing $\varphi$ to approximate a delta function, $x_\varphi \to x$. Symmetry of $A$ follows from the fact that each $U(t)$ is unitary. The hard part is proving $A$ is self-adjoint, not merely symmetric; this follows from showing that $\operatorname{ran}(A \pm iI) = H$ using the Fourier--Laplace transform of $t \mapsto U(t)x$.
+and in particular $e^{-i t H}$ is a unitary group on $L^2(\mathbb{R})$ with explicit kernel via Mehler's formula. This explicit diagonalization is the reason the harmonic oscillator is the workhorse example of every quantum mechanics course; it also generalizes (via Bargmann transform, coherent states, Hermite expansion) into the analysis of pseudodifferential operators and microlocal analysis. From the abstract spectral theorem to the explicit Hermite expansion, every step is concrete.
 
-**Physical interpretation.** In quantum mechanics, observables are self-adjoint operators. The time evolution under Hamiltonian $H$ is $\psi(t) = e^{-iHt}\psi(0)$. Stone's theorem guarantees that this evolution is well-defined, unitary (probability-preserving), and determined by the self-adjointness of $H$. If $H$ is merely symmetric, we do not get a unique unitary evolution, and the physics is ill-defined.
+## The Spectral Theorem for Unbounded Self-Adjoint Operators
 
-## The Laplacian and the Schrodinger operator
+The good news: once one has a self-adjoint operator, the entire spectral theory of article 8 applies, with the modification that the spectrum can now be unbounded.
 
-The Laplacian $-\Delta$ is the canonical example of an unbounded self-adjoint operator, and the Schrodinger operator $-\Delta + V$ is its physically motivated generalization.
+**Theorem.** Let $T$ be self-adjoint on a Hilbert space $H$ (possibly unbounded). There exists a unique projection-valued measure $E$ on the Borel sets of $\mathbb{R}$ such that
 
-**The Laplacian on $\mathbb{R}^n$.** Define $T = -\Delta$ on $C_c^\infty(\mathbb{R}^n)$. This is a positive symmetric operator on $L^2(\mathbb{R}^n)$. It is essentially self-adjoint, and its unique self-adjoint extension (also denoted $-\Delta$) has domain $H^2(\mathbb{R}^n)$. The proof of essential self-adjointness is cleanest via the Fourier transform: $-\Delta$ becomes multiplication by $|\xi|^2$ in Fourier space, which is manifestly self-adjoint on $\{f \in L^2 : |\xi|^2 \hat{f} \in L^2\} = H^2(\mathbb{R}^n)$.
+$$ T = \int_\mathbb{R} \lambda \, dE(\lambda), $$
 
-The spectrum of $-\Delta$ on $L^2(\mathbb{R}^n)$ is $[0, \infty)$, purely absolutely continuous (no eigenvalues). This is visible from the Fourier picture: the multiplication operator $M_{|\xi|^2}$ has spectrum $[0, \infty)$ with no point spectrum.
+with $D(T) = \{x : \int_\mathbb{R} \lambda^2 \, d \langle E(\lambda) x, x \rangle < \infty\}$. The support of $E$ is exactly $\sigma(T)$.
 
-**The Laplacian on a bounded domain $\Omega$.** Here the situation is more interesting because different boundary conditions yield different self-adjoint extensions.
+The spectral measure form, the multiplication operator form, and the functional calculus all extend with the appropriate domain bookkeeping. The Borel functional calculus gives $f(T)$ for any bounded Borel function on $\sigma(T)$, defined via $f(T) = \int f(\lambda) \, dE(\lambda)$. For unbounded $f$, one specifies the domain $D(f(T)) = \{x : \int |f(\lambda)|^2 d \langle E(\lambda) x, x \rangle < \infty\}$.
 
-- *Dirichlet Laplacian* $-\Delta_D$: domain $H^2(\Omega) \cap H^1_0(\Omega)$. This is the Friedrichs extension of $-\Delta|_{C_c^\infty(\Omega)}$. Its spectrum is a sequence of eigenvalues $0 < \lambda_1 \leq \lambda_2 \leq \cdots \to \infty$, and the eigenfunctions form an orthonormal basis for $L^2(\Omega)$.
+This extension is what makes spectral analysis of differential operators possible. The Laplacian, the Schrödinger operator, the Dirac operator — all are self-adjoint on appropriate domains, and all have spectral measures one can in principle compute. In practice, computing the spectral measure explicitly is hard outside of special cases (free Hamiltonians, harmonic oscillator, hydrogen atom), but the structural existence is what allows abstract arguments to proceed.
 
-- *Neumann Laplacian* $-\Delta_N$: domain $\{u \in H^2(\Omega) : \partial u / \partial \nu = 0 \text{ on } \partial\Omega\}$. Also self-adjoint, with eigenvalues $0 = \mu_0 \leq \mu_1 \leq \cdots \to \infty$.
+## The Laplacian on $L^2(\mathbb{R}^n)$
 
-These are genuinely different operators with different spectra. The Dirichlet Laplacian has a spectral gap ($\lambda_1 > 0$), while the Neumann Laplacian always has $0$ as an eigenvalue (the constant function).
+The standard example. Let $T = -\Delta = -\sum \partial^2/\partial x_j^2$ on $L^2(\mathbb{R}^n)$, with domain $C^\infty_c(\mathbb{R}^n)$. The closure (and self-adjoint extension) has domain $H^2(\mathbb{R}^n)$, the Sobolev space of $L^2$ functions whose distributional second derivatives are in $L^2$.
 
-**Schrodinger operators.** Let $V: \mathbb{R}^n \to \mathbb{R}$ be a potential. The Schrodinger operator $H = -\Delta + V$ (formally) describes a quantum particle in the potential $V$. The key question is: for which $V$ is $H$ self-adjoint (or essentially self-adjoint) on a natural domain?
+![The Laplacian as an unbounded self-adjoint operator on L^2](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_4_laplacian.png)
 
-The Kato-Rellich theorem provides the main answer in physically relevant cases. We need $V$ to be a "small perturbation" of $-\Delta$ in the sense of relative boundedness.
+Via the Fourier transform $\mathcal{F}: L^2(\mathbb{R}^n) \to L^2(\mathbb{R}^n)$, the Laplacian transforms to multiplication by $|\xi|^2$:
 
-**Theorem (Kato).** Let $n \leq 3$ and $V \in L^2(\mathbb{R}^n) + L^\infty(\mathbb{R}^n)$ (meaning $V = V_1 + V_2$ with $V_1 \in L^2$, $V_2 \in L^\infty$). Then $-\Delta + V$ is self-adjoint on $H^2(\mathbb{R}^n)$ and essentially self-adjoint on $C_c^\infty(\mathbb{R}^n)$.
+$$ \widehat{(-\Delta f)}(\xi) = |\xi|^2 \hat f(\xi). $$
 
-This covers the Coulomb potential $V(x) = -Z/|x|$ in $\mathbb{R}^3$, which is physically the most important case (hydrogen atom). The Coulomb potential is in $L^2(\mathbb{R}^3) + L^\infty(\mathbb{R}^3)$: take $V_1 = V \cdot \mathbf{1}_{|x|<1}$ (which is in $L^2(\mathbb{R}^3)$ for $n=3$) and $V_2 = V \cdot \mathbf{1}_{|x|\geq 1}$ (which is bounded).
+So the Fourier transform unitarily diagonalizes $-\Delta$ as a multiplication operator. The spectrum is $[0, \infty)$, all continuous (since multiplication by $|\xi|^2$ on $L^2(\mathbb{R}^n)$ has no eigenfunctions — no $L^2$ function is a delta function on a level set of $|\xi|^2$).
 
-**The hydrogen atom.** For $H = -\Delta - 1/|x|$ on $L^2(\mathbb{R}^3)$, the spectrum consists of:
-- Point spectrum: eigenvalues $E_n = -1/(4n^2)$ for $n = 1, 2, 3, \ldots$, each with multiplicity $n^2$.
-- Absolutely continuous spectrum: $[0, \infty)$.
-- No singular continuous spectrum.
+The spectral measure is, in this representation, $E(B) = \mathcal{F}^{-1} M_{\mathbf{1}_{|\xi|^2 \in B}} \mathcal{F}$. The "eigenfunctions" $e^{i\xi \cdot x}$ are not $L^2$ — they are *generalized eigenfunctions* in the sense of distributions. The proper formulation is via the spectral measure.
 
-The eigenvalues accumulate at $0$, and the eigenfunctions are the hydrogen orbitals familiar from chemistry. The continuous spectrum corresponds to scattering (ionized) states. This spectral structure was computed by Schrodinger in 1926 and constitutes one of the great triumphs of quantum mechanics.
+This is the rigorous basis for everything physicists do with plane waves. When they expand a wavefunction in a Fourier integral, they are using the spectral resolution of $-\Delta$. The fact that the plane waves are not in $L^2$ is the mathematical content of "particles with definite momentum are not normalizable states."
 
-## Further results and the road ahead
+## Discrete vs. Essential Spectrum
 
-Several important results round out the theory of unbounded operators. Let me mention a few without full proofs.
+For unbounded self-adjoint operators, the spectrum splits in a slightly different way than for bounded ones. Define:
 
-**The RAGE theorem (Ruelle-Amrein-Georgescu-Enss).** This theorem connects the spectral decomposition of a self-adjoint operator $H$ to the dynamical behavior of $e^{-iHt}$:
-- If $\psi$ is in the continuous spectral subspace of $H$, then $e^{-iHt}\psi$ "escapes to infinity" in the sense that for any compact operator $K$, $\frac{1}{T}\int_0^T \|Ke^{-iHt}\psi\|^2\,dt \to 0$.
-- If $\psi$ is in the point spectral subspace, then $e^{-iHt}\psi$ remains "localized."
+- $\sigma_d(T)$ = **discrete spectrum** = isolated eigenvalues of finite multiplicity.
+- $\sigma_{ess}(T)$ = **essential spectrum** = $\sigma(T) \setminus \sigma_d(T)$.
 
-**Kato's inequality and diamagnetic inequality.** These tools extend essential self-adjointness results to magnetic Schrodinger operators $(-i\nabla - A)^2 + V$, where $A$ is a magnetic vector potential.
+![Essential spectrum vs discrete spectrum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_6_essential.png)
 
-**Mourre theory.** A sophisticated framework for proving absence of singular continuous spectrum, based on positivity of commutators $i[H, A] \geq c > 0$ (in a suitable sense) on spectral subspaces.
+The essential spectrum is invariant under compact perturbations: $\sigma_{ess}(T + K) = \sigma_{ess}(T)$ for any compact self-adjoint $K$. This is **Weyl's theorem**, and it is the foundation of perturbation theory for differential operators.
 
-**Weyl's asymptotic formula.** For the Dirichlet Laplacian on a bounded domain $\Omega \subseteq \mathbb{R}^n$, the eigenvalue counting function satisfies
-$$
-N(\lambda) := \#\\{k : \lambda_k \leq \lambda\\} \sim \frac{\omega_n}{(2\pi)^n} |\Omega| \cdot \lambda^{n/2} \quad \text{as } \lambda \to \infty,
-$$
-where $\omega_n$ is the volume of the unit ball in $\mathbb{R}^n$. This is a deep result connecting spectral theory to geometry ("Can you hear the shape of a drum?").
+The discrete spectrum, on the other hand, can change under perturbations. In quantum mechanics, $\sigma_d(H)$ corresponds to the bound states of the system (the discrete energy levels), and $\sigma_{ess}(H)$ to the scattering or continuous-spectrum states (free states at high energy). For a Schrödinger operator $-\Delta + V$ on $L^2(\mathbb{R}^n)$ with $V$ decaying at infinity, $\sigma_{ess}(-\Delta + V) = [0, \infty) = \sigma(-\Delta)$ by Weyl's theorem, but the discrete spectrum below zero captures the bound states (electron in a hydrogen atom, etc.).
 
-## What's next
+A worked numerical example: the hydrogen atom Hamiltonian $H = -\Delta - 1/|x|$ on $L^2(\mathbb{R}^3)$. Self-adjoint with domain $H^2(\mathbb{R}^3)$ (the Coulomb potential is short-range enough relative to $-\Delta$ for self-adjointness via Kato-Rellich). Discrete spectrum: $\{-1/(4n^2) : n = 1, 2, 3, \ldots\}$, the famous Bohr energy levels (with multiplicity $n^2$). Essential spectrum: $[0, \infty)$. The picture is exactly what physicists draw: a sequence of discrete energy levels accumulating at zero, then a continuous spectrum above zero.
 
-We have entered the world of unbounded operators and seen that it is both richer and more treacherous than the bounded theory. The central lesson is that *domains matter*: the same formal expression (like $-i d/dx$ or $-\Delta$) can define many different self-adjoint operators depending on the domain, and each choice has physical consequences.
+## A Few Common Confusions Worth Naming
 
-In the next article, we turn to **compact operators and the Fredholm alternative** (Article 10). Compact operators sit at the opposite extreme from unbounded operators --- they are, in a precise sense, the "smallest" operators in $B(H)$. Yet they play a central role in the theory of integral equations, in the study of eigenvalue problems, and as building blocks for the spectral theory of more general operators. We will prove the spectral theorem for compact self-adjoint operators (a warmup that we actually postponed until now) and develop the Fredholm theory that tells us when equations of the form $(I - K)x = y$ have solutions.
+**Confusion 1: "Symmetric implies self-adjoint."** No. Symmetric is much weaker. The Hellinger-Toeplitz theorem says that if a symmetric operator is everywhere defined on a Hilbert space, it is bounded — so a genuinely unbounded symmetric operator is *necessarily* defined only on a proper subspace, and the question of self-adjointness becomes nontrivial.
+
+**Confusion 2: "The closure of a symmetric operator is self-adjoint."** No. The closure of a symmetric operator is symmetric, but in general not self-adjoint. The deficiency indices may be nonzero. To get a self-adjoint extension one has to *enlarge* the domain (via boundary conditions or Friedrichs), not just close it.
+
+**Confusion 3: "The spectrum is the same for all self-adjoint extensions."** No. Different self-adjoint extensions have different spectra. The Dirichlet, Neumann, and periodic Laplacians on $[0, 1]$ all have different spectra, even though they share the same differential expression.
+
+**Confusion 4: "Adjoint and Hermitian conjugate are the same thing."** For matrices and bounded operators, yes. For unbounded operators, the adjoint is more subtle because the domain has to be defined carefully. The "Hermitian conjugate" in physics typically refers to the formal differential adjoint (matching boundary terms via integration by parts), which equals the operator-theoretic adjoint only on a specific domain.
+
+**Confusion 5: "Every densely defined symmetric operator has self-adjoint extensions."** False, as the half-line momentum example showed. The deficiency indices $(n_+, n_-)$ must be equal.
+
+These confusions are not pedantic. Each has been the source of genuine mistakes in physics papers; the literature on the "self-adjointness problem" for various Hamiltonians, especially in QED and quantum field theory, is full of subtle errors that came from mishandling domains. Functional analysis is, in this respect, less a luxury than a quality-control procedure.
+
+## Trotter Product Formula and Applications
+
+A useful tool that uses unbounded operators directly: the **Trotter product formula**. If $A$ and $B$ are self-adjoint and $A + B$ is essentially self-adjoint on $D(A) \cap D(B)$, then
+
+$$ e^{-it(A+B)} = \lim_{n \to \infty} \left( e^{-itA/n} e^{-itB/n} \right)^n, $$
+
+with the limit in the strong operator topology. This factorizes the time evolution of a sum of operators into alternating evolutions of each one. In quantum mechanics, where typically $A = -\Delta/2$ (kinetic) and $B = V$ (potential), the formula says: time evolution can be approximated by alternating "free propagation" and "potential pickup."
+
+This has both theoretical and computational uses. On the theory side, Trotter's formula plus the Feynman-Kac formula give the Wiener-process representation of the heat semigroup with potential, which is the analytic foundation of stochastic methods in quantum field theory. On the computational side, the formula is the basis of **split-step methods** in numerical PDE — for the Schrödinger equation, alternating linear (Fourier-space) and nonlinear (real-space) updates, a workhorse algorithm in optical fiber simulation, BEC dynamics, and many other areas.
+
+The formula's existence depends on a self-adjointness fact: $A + B$ being essentially self-adjoint on $D(A) \cap D(B)$, plus a careful resolvent estimate. For Schrödinger operators with reasonable potentials, the conditions are met by the Kato-Rellich theorem. The whole apparatus stands or falls with the underlying self-adjointness theory we have been building.
+
+## Quantum Mechanics: Position, Momentum, and the Hamiltonian
+
+Let me catalog the canonical operators in QM, with their domains.
+
+![Position, momentum, and Hamiltonian operators in quantum mechanics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_7_qm_examples.png)
+
+**Position operator $X$ on $L^2(\mathbb{R})$:** $(X f)(x) = x f(x)$, with $D(X) = \{f \in L^2 : x f \in L^2\}$. Self-adjoint, spectrum $\mathbb{R}$, all continuous. The spectral measure is multiplication by indicators: $E(B) f = \mathbf{1}_B f$. Eigenfunctions don't exist in $L^2$; the formal "delta function eigenstates" $\delta(x - a)$ are distributions, not $L^2$ functions.
+
+**Momentum operator $P$ on $L^2(\mathbb{R})$:** $P = -i d/dx$, with domain $H^1(\mathbb{R})$. Self-adjoint via Fourier transform: $\hat P = M_\xi$, multiplication by $\xi$. Spectrum $\mathbb{R}$, all continuous. The "eigenfunctions" $e^{i\xi x}$ are not $L^2$.
+
+**Commutator relation:** $[X, P] = X P - P X = i I$, on the common domain $D(XP) \cap D(PX) = \{f : f, x f, f', x f', \in L^2\}$, which contains the Schwartz space $\mathcal{S}(\mathbb{R})$. This is the canonical commutation relation, the algebraic heart of quantum mechanics. A subtle point: this commutation cannot be realized by *bounded* operators on a Hilbert space (taking traces would give $0 = \text{tr}([X, P]) = i \text{tr}(I)$, impossible). It only makes sense for unbounded operators.
+
+**Harmonic oscillator Hamiltonian:** $H = -\frac{1}{2} d^2/dx^2 + \frac{1}{2} x^2$ on $L^2(\mathbb{R})$. Self-adjoint with domain $\{f \in H^2 : x^2 f \in L^2\}$. Spectrum: $\{n + 1/2 : n = 0, 1, 2, \ldots\}$ — pure point spectrum, the famous "$\hbar \omega (n + 1/2)$" energy levels. Eigenfunctions: the Hermite functions $H_n(x) e^{-x^2/2}$, which form an orthonormal basis of $L^2(\mathbb{R})$. This is one of the cleanest self-adjoint operators in quantum mechanics, with explicitly diagonalizable spectrum.
+
+The harmonic oscillator is the model example of a self-adjoint operator with discrete spectrum. The hydrogen atom Hamiltonian above is the model example with discrete spectrum at low energies and continuous spectrum at high energies. Together they cover most of what one needs in introductory QM.
+
+## Why This Matters: Existence of Time Evolution
+
+The most important consequence of self-adjointness is **Stone's theorem**: a closed densely defined operator $T$ generates a strongly continuous one-parameter unitary group $U(t) = e^{-itT}$ if and only if $T$ is self-adjoint. We will prove this in article 12 in the form of "every one-parameter unitary group has a self-adjoint generator." The reverse implication is what the spectral theorem gives us: $e^{-itT} = \int e^{-it\lambda} dE(\lambda)$ defines a unitary group whenever $T = T^*$.
+
+For an observable $A$ in quantum mechanics, $e^{-i s A}$ is the unitary symmetry generated by $A$: time evolution from the Hamiltonian, space translation from momentum, rotation from angular momentum. The mathematical statement that observables are self-adjoint is equivalent to the physical statement that they generate continuous symmetries. This is not a coincidence; it is the operator-theoretic content of Noether's theorem, in disguise.
+
+If one tries to use a merely symmetric operator, one finds that $e^{-itT}$ cannot be defined as a unitary for all $t$ — the group property fails. Self-adjointness is precisely the condition for a sensible time evolution to exist. This is why so much of mathematical physics is about proving that a particular differential operator is self-adjoint on a particular domain.
+
+## Numerical Spectral Computation: A Brief Note
+
+In practice, spectra of unbounded self-adjoint operators are computed by truncation and discretization. For a Schrödinger operator on $\mathbb{R}^n$, one truncates to a large box $[-L, L]^n$, discretizes on a grid, and diagonalizes the resulting matrix. The discrete eigenvalues converge to the discrete eigenvalues of the original operator (under mild assumptions), and the essential spectrum is approximated by clusters of densely packed numerical eigenvalues. The convergence theory is the subject of **spectral approximation theory**, and the key technical tool is the **Weyl criterion**: $\lambda \in \sigma_{ess}(T)$ iff there exists a Weyl sequence $x_n \in D(T)$ with $\|x_n\| = 1$, $x_n \rightharpoonup 0$ weakly, and $(T - \lambda) x_n \to 0$ in norm. This condition is exactly what survives discretization.
+
+Software packages like SLEPc and ARPACK provide the numerical infrastructure. The mathematical infrastructure is the spectral theorem for unbounded self-adjoint operators applied to the discretized problem and a careful limit argument as the discretization is refined.
+
+## Practical Self-Adjointness Tests
+
+How does one prove a particular operator is self-adjoint? A few standard tools.
+
+**(a) Closed and symmetric with $\text{range}(T \pm i I) = H$.** This is the basic criterion: $T$ is self-adjoint iff $T$ is closed, symmetric, and the range condition holds. Equivalently, iff the deficiency indices $n_\pm = 0$.
+
+**(b) Symmetric with a self-adjoint extension via Friedrichs.** For semibounded symmetric operators, the Friedrichs extension exists canonically and is self-adjoint.
+
+**(c) Kato-Rellich theorem.** If $T_0$ is self-adjoint and $V$ is symmetric with $D(V) \supset D(T_0)$ and $\|V f\| \leq a \|T_0 f\| + b \|f\|$ for some $a < 1$, then $T_0 + V$ is self-adjoint on $D(T_0)$. This is the workhorse theorem for proving that Schrödinger operators $-\Delta + V$ are self-adjoint, for a wide class of potentials $V$.
+
+**(d) Stone's theorem applied in reverse.** If a one-parameter unitary group $U(t)$ is given (e.g., from a physical symmetry), its generator is automatically self-adjoint, by Stone's theorem.
+
+In practice, (c) covers most cases of physical interest. The Coulomb potential $V(x) = -1/|x|$ on $\mathbb{R}^3$ satisfies the Kato-Rellich hypothesis with $a < 1$ (this requires a Sobolev embedding argument), so $-\Delta - 1/|x|$ is self-adjoint on the Sobolev space $H^2(\mathbb{R}^3)$. The same logic handles a wide range of atomic and molecular Hamiltonians.
+
+## A Worked Example: Self-Adjointness of $-\Delta + V$
+
+Let me run through one of the most useful self-adjointness theorems explicitly. Suppose we want to show that the Schrödinger operator $H = -\Delta + V$ is self-adjoint on $H^2(\mathbb{R}^3)$, the standard domain of the kinetic energy operator $-\Delta$, when $V$ is, say, the Coulomb potential $V(x) = -1/|x|$.
+
+The Kato-Rellich theorem says: if $T_0$ is self-adjoint on $D(T_0)$, $V$ is symmetric on a domain containing $D(T_0)$, and $\|V f\| \leq a \|T_0 f\| + b \|f\|$ for all $f \in D(T_0)$ with some constants $a < 1$ and $b \geq 0$, then $T_0 + V$ is self-adjoint on $D(T_0)$. The Coulomb potential satisfies this with $T_0 = -\Delta$, $a < 1$, by the **Hardy inequality**
+
+$$ \int_{\mathbb{R}^3} \frac{|f|^2}{|x|^2} dx \leq 4 \int_{\mathbb{R}^3} |\nabla f|^2 dx, $$
+
+which after Cauchy-Schwarz gives $\| f/|x| \|_{L^2} \leq 2 \|\nabla f\|_{L^2}$, and a Sobolev inequality bounds $\|\nabla f\|_{L^2}$ by $\|\Delta f\|_{L^2}$ up to lower-order terms. Putting these together gives the Kato-Rellich estimate with $a = 0$ and a small $b$, which is more than enough.
+
+Conclusion: the hydrogen atom Hamiltonian is self-adjoint on $H^2(\mathbb{R}^3)$. From this, the spectral theorem gives the spectrum (Bohr levels plus continuous part), and Stone's theorem gives the time evolution $e^{-itH}$. The whole physics of the hydrogen atom — energy levels, transition rules, time evolution — flows from this single self-adjointness result. Without Kato-Rellich, one is stuck.
+
+For multi-electron atoms, similar techniques work for the Schrödinger Hamiltonian as long as the potential is bounded by a small multiple of $\sqrt{-\Delta}$ in operator-norm sense. The technique extends, but the technicalities multiply. By the time one is doing quantum chemistry with several heavy nuclei, the self-adjointness theory is genuinely complicated. But the principle is unchanged: get the domain right, prove self-adjointness, then spectral theorem and time evolution.
+
+## What's Next, and Why
+
+The next article puts unbounded self-adjoint operators to work, by constructing the **one-parameter semigroups** they generate via the functional calculus. The key result is the Hille-Yosida theorem, which characterizes the generators of strongly continuous semigroups. For the unitary case (self-adjoint generator), this is Stone's theorem; for the contraction case (dissipative generator), it is the full Hille-Yosida theorem. These semigroups solve initial-value problems for evolution equations: heat equation, wave equation, Schrödinger equation, Fokker-Planck. The semigroup approach is the right framework for time-dependent PDE, and it is the natural sequel to the static spectral theory we have built.
+
+Unbounded operator theory is, in the end, the bridge between the static structure of an operator (its spectrum, its self-adjointness) and the dynamics it generates (the semigroup, the time evolution). With both halves in hand, one can finally do mathematical physics rigorously: write down a Schrödinger equation, identify its Hamiltonian as a self-adjoint operator on a specific domain, exponentiate via spectral theorem, and study the resulting unitary group. Each step depends on careful domain bookkeeping and the spectral theorem, but the resulting framework is robust and applies to a vast range of physical systems. For PDE, the same machinery handles parabolic and hyperbolic evolution problems, with semigroup contraction estimates replacing unitarity. The story is the same — only the choice of generator changes. By article 12 we will be applying all of this to elliptic PDE and quantum dynamics in earnest.
+
+The conceptual lesson of this article: domains are not annoying technicalities, they are physical content. The same differential expression with different boundary conditions is a different operator, with different spectrum and different physics. Get the domains right, and the spectral machinery flows; get them wrong, and everything breaks. Once one has internalized this, the rest of mathematical physics becomes a sequence of careful domain identifications followed by spectral computations.
+
+A final remark. Functional analysis becomes hardest at exactly the point where the abstract framework meets the concrete differential operators: the choice of domain, the question of self-adjointness, the deficiency indices, the Friedrichs extension. Beyond this point, everything is downhill — the spectral theorem applies, the functional calculus exists, the time evolution makes sense. The domain step is the hard step. Spend the time on it; the rest follows. Reed and Simon's first two volumes are the gold-standard reference, and they spend essentially their entire second volume on these issues. Once one has read those volumes the unbounded-operator literature stops being mysterious; until then it is full of phrases that sound technical and turn out to be load-bearing. The investment is worth it: there is no other way to make rigorous sense of quantum mechanics, and there is no other way to handle elliptic and parabolic PDE in their natural Hilbert-space setting. Get the domains right, and the rest of mathematical physics opens up.
 
 ---
 
@@ -281,4 +293,4 @@ In the next article, we turn to **compact operators and the Fredholm alternative
 
 *Previous: [Part 8 — Spectral Theory](/en/functional-analysis/08-spectral-theory/)*
 
-*Next: [Part 10 — Semigroups of Operators](/en/functional-analysis/10-semigroups/)*
+*Next: [Part 10 — Semigroups](/en/functional-analysis/10-semigroups/)*

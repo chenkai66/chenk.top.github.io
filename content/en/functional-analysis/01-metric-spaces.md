@@ -18,451 +18,251 @@ description: "From the real line to infinite-dimensional function spaces: why co
 
 # Metric Spaces: Distance, Convergence, and Completeness
 
-## Why Infinite-Dimensional Spaces Need New Tools
+## Why I Had to Stop Trusting My Finite-Dimensional Intuition
 
-Infinite-dimensional spaces, such as function spaces, arise naturally in many areas of mathematics and its applications. These spaces are more complex than their finite-dimensional counterparts, and the tools and techniques used to study them need to be adapted accordingly. In this section, we will explore why infinite-dimensional spaces require new tools and how metric spaces provide a suitable framework for their study.
+The first thing graduate analysis did to me was take away my picture. Up to that point, "distance" had always been the length of an arrow drawn from the origin to a point — Pythagoras, three coordinates, done. Then somebody asked me how far two functions are from each other and the arrow disappeared.
 
-### Motivation
+The trouble is that calculus on $\mathbb{R}^n$ piggybacks on a structure we never had to name. The Euclidean distance gives us convergence, convergence gives us continuity, continuity gives us derivatives and integrals, and the loop closes because $\mathbb{R}^n$ is *complete* — every Cauchy sequence has a limit inside the space. Strip away any of those pieces and the calculus collapses. So when functional analysis asks me to do calculus on a space of functions, I cannot just import the Euclidean recipe. I need a definition of distance that survives the move to infinite dimensions, and a notion of completeness that does not silently assume I am in $\mathbb{R}^n$.
 
-![Unit balls in l1, l2, and l-infinity norms](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/01-metric-spaces/fa_fig1_unit_balls.png)
+A concrete example pins this down. Take $C[0,1]$, the continuous real-valued functions on $[0,1]$. Try the "obvious" generalization of Euclidean distance: $d(f,g)^2 = \sum_{n=1}^{\infty} (f_n - g_n)^2$ for some basis expansion. The series may not converge. Or pick the equally innocent $d(f,g) = \int_0^1 |f-g|\,dt$. That works as a metric, but Cauchy sequences in this metric escape from $C[0,1]$ — their limits are merely integrable, not continuous. The space leaks. Metric spaces and the notion of completeness exist precisely so that I can talk about which spaces leak and which do not.
 
+There is a second thing finite-dimensional intuition gets wrong, and it is more subtle. In $\mathbb{R}^n$, all the natural metrics are equivalent: a sequence converges in one of them iff it converges in any other. In infinite dimensions this fails spectacularly. The *same* sequence of functions can converge under one perfectly reasonable metric and diverge wildly under another. So when somebody says a sequence converges, the next question is *in what metric*, and the answer changes which theorems apply. The whole edifice of functional analysis is built on respecting this distinction.
 
-Consider the space of all continuous functions on the interval $[a, b]$, denoted by $C[a, b]$. This space is infinite-dimensional because it contains an infinite number of linearly independent functions. For example, the set $\{1, x, x^2, x^3, \ldots\}$ is linearly independent in $C[a, b]$.
+![The four axioms of a metric space visualized](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/01-metric-spaces/fa_v2_01_1_metric_axioms.png)
 
-In finite-dimensional spaces, such as $\mathbb{R}^n$, we can use the Euclidean norm to measure distances and define convergence. However, in infinite-dimensional spaces, the Euclidean norm is not always well-defined or practical. For instance, in $C[a, b]$, the Euclidean norm would involve summing an infinite series, which may not converge. Therefore, we need a more general notion of distance that can be applied to both finite and infinite-dimensional spaces.
+## The Four Axioms, Stripped to the Bone
 
-### Definitions and Theorems
+A **metric space** is a pair $(X, d)$ where $X$ is a set and $d: X \times X \to \mathbb{R}$ is a function such that for every $x, y, z \in X$:
 
-A **metric space** is a set $X$ together with a function $d: X \times X \to \mathbb{R}$, called a **metric**, that satisfies the following properties for all $x, y, z \in X$:
-1. **Non-negativity**: $d(x, y) \geq 0$, and $d(x, y) = 0$ if and only if $x = y$.
-2. **Symmetry**: $d(x, y) = d(y, x)$.
-3. **Triangle Inequality**: $d(x, z) \leq d(x, y) + d(y, z)$.
+1. $d(x, y) \geq 0$ (non-negativity).
+2. $d(x, y) = 0 \iff x = y$ (positive definiteness).
+3. $d(x, y) = d(y, x)$ (symmetry).
+4. $d(x, z) \leq d(x, y) + d(y, z)$ (triangle inequality).
 
-These properties ensure that $d$ behaves like a distance function, allowing us to measure the "distance" between any two points in $X$.
+Three of those are bookkeeping; the triangle inequality is where all the work happens. It is the only axiom that connects three points, and it is precisely what makes "distance" propagate from local information to global information. Without it, an open ball would not even be open in any useful sense: I could have $x$ close to $y$ and $y$ close to $z$ but $x$ arbitrarily far from $z$, and continuity would be a hallucination.
 
-### Proof Sketches and Examples
+A useful sanity check is to write down a function on $\mathbb{R}^2$ that satisfies axioms 1-3 but not 4 and watch the consequences. Take $d(x,y) = (x_1-y_1)^2 + (x_2-y_2)^2$ — the squared Euclidean distance. It is non-negative, definite, and symmetric. But for $x=(0,0)$, $y=(1,0)$, $z=(2,0)$, we get $d(x,z)=4$, $d(x,y)+d(y,z)=1+1=2$, and the inequality goes the wrong way. Squaring breaks the metric property and creates exactly the pathology I described above. The square root in the Euclidean distance is not aesthetic — it is doing real work.
 
-To illustrate the need for metric spaces, consider the space $C[a, b]$ with the **supremum norm** (or **uniform norm**):
-$$
-\|f\|_\infty = \sup_{x \in [a, b]} |f(x)|.
-$$
-This norm induces a metric on $C[a, b]$ given by:
-$$
-d(f, g) = \|f - g\|_\infty = \sup_{x \in [a, b]} |f(x) - g(x)|.
-$$
-The supremum norm is well-defined and finite for all continuous functions on $[a, b]$, making it a suitable choice for measuring distances in $C[a, b]$.
+### Worked Numerical Example
 
-### Worked Example
+Take $X = \mathbb{R}^2$ with the Euclidean metric $d_2(x,y) = \sqrt{(x_1-y_1)^2 + (x_2-y_2)^2}$. Set $x = (0,0)$, $y = (3,0)$, $z = (3,4)$. Then $d_2(x,y) = 3$, $d_2(y,z) = 4$, and $d_2(x,z) = 5$. The triangle inequality reads $5 \leq 3 + 4 = 7$, with slack 2. Now switch to the taxicab metric $d_1(x,y) = |x_1-y_1| + |x_2-y_2|$. Same three points: $d_1(x,y) = 3$, $d_1(y,z) = 4$, $d_1(x,z) = 7$. The triangle inequality becomes $7 \leq 3 + 4 = 7$ — saturated, no slack. The reason is geometric: under $d_1$ the path $x \to y \to z$ is the *only* shortest path, while under $d_2$ the diagonal cheats by a factor of $\sqrt{2}$. The same axioms accommodate both, which is exactly the point of working with the abstract definition.
 
-Let $f(x) = x$ and $g(x) = x^2$ on the interval $[0, 1]$. Compute the distance between $f$ and $g$ using the supremum norm.
+For the supremum metric $d_\infty(x,y) = \max_i |x_i - y_i|$, the same three points give $d_\infty(x,y) = 3$, $d_\infty(y,z) = 4$, $d_\infty(x,z) = 4$. Triangle inequality: $4 \leq 3 + 4 = 7$. The discrepancies between $d_1$, $d_2$, $d_\infty$ on the same three points — $7$, $5$, $4$ — quantify how much each metric "spreads out" distances. In $\mathbb{R}^n$ they are all bounded by each other up to factors of $\sqrt{n}$, so they generate the same topology, but in infinite dimensions there is no such bound and the topologies genuinely diverge.
 
-**Solution:**
-\[
-\|f - g\|_\infty = \sup_{x \in [0, 1]} |x - x^2|.
-\]
-To find the supremum, we first find the maximum value of the function $h(x) = x - x^2$ on $[0, 1]$. The derivative of $h(x)$ is:
-\[
-h'(x) = 1 - 2x.
-\]
-Setting $h'(x) = 0$ gives $x = \frac{1}{2}$. Evaluating $h(x)$ at the critical point and the endpoints of the interval, we get:
-\[
-h(0) = 0, \quad h(1) = 0, \quad h\left(\frac{1}{2}\right) = \frac{1}{4}.
-\]
-Thus, the maximum value of $|x - x^2|$ on $[0, 1]$ is $\frac{1}{4}$. Therefore,
-\[
-\|f - g\|_\infty = \frac{1}{4}.
-\]
+### Why this matters
 
-In summary, the need for new tools in infinite-dimensional spaces arises from the limitations of the Euclidean norm. Metric spaces provide a flexible and powerful framework for studying these spaces, allowing us to define and analyze concepts such as distance, convergence, and continuity in a general setting.
+The axioms are deliberately weak. They have to be, because I want to plug in:
 
-## Metric Spaces: Definition and Examples
+- $d_p(x,y) = \big(\sum_{i=1}^n |x_i - y_i|^p\big)^{1/p}$ on $\mathbb{R}^n$ for any $1 \leq p \leq \infty$;
+- the discrete metric $d(x,y) = 1 - \delta_{xy}$ on any set, where every two distinct points are exactly distance $1$ apart;
+- the supremum metric $d_\infty(f,g) = \sup_{t} |f(t) - g(t)|$ on bounded functions;
+- the integral metric $d_1(f,g) = \int |f - g|$ on integrable functions;
+- the Hausdorff metric $d_H(A, B) = \max\{\sup_{a \in A} d(a, B), \sup_{b \in B} d(b, A)\}$ on closed subsets of a metric space, which makes the space of compact sets into a metric space;
+- the edit distance on strings, with no algebraic structure at all.
 
-In the previous section, we introduced the concept of a metric space and discussed why it is necessary for studying infinite-dimensional spaces. In this section, we will provide a formal definition of metric spaces and explore several important examples, including $\mathbb{R}^n$, discrete spaces, $C[a, b]$, and $l^p$ spaces.
+A theorem proved from the four axioms applies to all of these simultaneously. That is the leverage I am buying. The price is that I have to give up coordinate-based proofs and learn to argue using only $d$.
 
-### Motivation
+## Convergence and Open Sets
 
-Metric spaces are fundamental in analysis and topology because they allow us to generalize the notion of distance and convergence. By understanding different types of metric spaces, we can apply these concepts to a wide range of mathematical objects and problems.
+A sequence $(x_n) \subset X$ **converges** to $x \in X$, written $x_n \to x$, if $d(x_n, x) \to 0$ in $\mathbb{R}$. The definition is so familiar in $\mathbb{R}^n$ that it can mask an important point: convergence is metric-dependent. The same sequence of functions can converge in one metric and diverge in another, and this is not a pathology — it is the entire reason I bother distinguishing metrics.
 
-### Definitions and Theorems
+The **open ball** of radius $r$ around $x$ is $B(x, r) = \{ y \in X : d(x,y) < r \}$. A set $U \subseteq X$ is **open** if every point of $U$ is the center of some open ball contained in $U$. This generates a topology, and convergence in the metric agrees with convergence in this topology, so I get topology and metric for the price of one definition. A set is **closed** if its complement is open, equivalently if it contains the limit of every convergent sequence of its elements — the metric makes the topological notion of closure (smallest closed set containing $A$) coincide with the sequential notion (limits of sequences in $A$).
 
-A **metric space** is a pair $(X, d)$, where $X$ is a set and $d: X \times X \to \mathbb{R}$ is a metric, satisfying the properties of non-negativity, symmetry, and the triangle inequality.
+![Open balls under Euclidean, taxicab, and supremum metrics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/01-metric-spaces/fa_v2_01_2_open_balls.png)
 
-#### Examples of Metric Spaces
+What changes is the *shape* of the balls. In $\mathbb{R}^2$, the unit ball under $d_2$ is a disk, under $d_1$ a square rotated $45°$, under $d_\infty$ an axis-aligned square. The same set of open sets emerges (the metrics are equivalent in finite dimensions, as we will prove next article), but the geometric "feel" is different, and in infinite dimensions the equivalence breaks. The shape of the unit ball is what carries the convexity and reflexivity properties of the space, and a major theme of Article 2 is that the geometry of unit balls in different norms is what distinguishes Hilbert spaces (round balls) from generic Banach spaces (potentially very flat balls).
 
-1. **Euclidean Space $\mathbb{R}^n$**:
-   - **Set**: $X = \mathbb{R}^n$
-   - **Metric**: The Euclidean metric is given by
-     \[
-     d(x, y) = \sqrt{\sum_{i=1}^n (x_i - y_i)^2},
-     \]
-     where $x = (x_1, x_2, \ldots, x_n)$ and $y = (y_1, y_2, \ldots, y_n)$.
+A continuous map between metric spaces $f: (X, d_X) \to (Y, d_Y)$ is one for which preimages of open sets are open, equivalently: for every $\varepsilon > 0$ and every $x \in X$ there exists $\delta > 0$ such that $d_X(x, x') < \delta$ implies $d_Y(f(x), f(x')) < \varepsilon$. Continuity in the metric sense is automatically continuity in the topological sense, but the metric formulation buys me **uniform continuity** ($\delta$ depending only on $\varepsilon$, not on $x$) and **Lipschitz continuity** ($d_Y(f(x), f(x')) \leq L \cdot d_X(x, x')$). These are quantitative notions absent from pure topology, and they are what let me prove rate-of-convergence theorems.
 
-2. **Discrete Space**:
-   - **Set**: Any non-empty set $X$
-   - **Metric**: The discrete metric is defined by
-     \[
-     d(x, y) = \begin{cases}
-     0 & \text{if } x = y, \\
-     1 & \text{if } x \neq y.
-     \end{cases}
-     \]
+## Cauchy Sequences and the Hidden Hypothesis
 
-3. **Space of Continuous Functions $C[a, b]$**:
-   - **Set**: $X = C[a, b]$, the set of all continuous functions on the interval $[a, b]$
-   - **Metric**: The supremum metric is given by
-     \[
-     d(f, g) = \|f - g\|_\infty = \sup_{x \in [a, b]} |f(x) - g(x)|.
-     \]
+A sequence $(x_n)$ is **Cauchy** if for every $\varepsilon > 0$ there exists $N$ such that $d(x_m, x_n) < \varepsilon$ for all $m, n \geq N$. The eyes-glaze-over phrasing hides the actual content: the terms get arbitrarily close *to each other*, with no reference to a candidate limit.
 
-4. **Sequence Space $l^p$**:
-   - **Set**: $X = l^p$, the set of all sequences $(x_n)$ such that $\sum_{n=1}^\infty |x_n|^p < \infty$
-   - **Metric**: The $l^p$ metric is defined by
-     \[
-     d(x, y) = \|x - y\|_p = \left( \sum_{n=1}^\infty |x_n - y_n|^p \right)^{1/p},
-     \]
-     where $1 \leq p < \infty$.
+Every convergent sequence is Cauchy (triangle inequality, again: $d(x_m, x_n) \leq d(x_m, x) + d(x, x_n) \to 0$). The converse — every Cauchy sequence is convergent — is the defining property of a **complete** metric space. It is *not* a free gift. It is an extra hypothesis that has to be earned space by space.
 
-### Proof Sketches and Examples
+![Cauchy sequences: convergent vs non-convergent in incomplete spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/01-metric-spaces/fa_v2_01_3_cauchy_seq.png)
 
-We will now verify that each of these metrics satisfies the properties of a metric.
+### A Cauchy Sequence That Does Not Converge
 
-#### Euclidean Space $\mathbb{R}^n$
+Take the rationals $\mathbb{Q}$ with $d(x,y) = |x-y|$. Define
+$$a_1 = 1,\quad a_{n+1} = \tfrac{1}{2}\big(a_n + 2/a_n\big).$$
+This is the Newton iteration for $\sqrt{2}$. Each $a_n$ is rational. Numerically: $a_1=1$, $a_2=1.5$, $a_3 \approx 1.4167$, $a_4 \approx 1.4142157$, $a_5 \approx 1.4142136$. The differences $|a_{n+1} - a_n|$ shrink quadratically, so the sequence is Cauchy in the obvious sense. But the limit $\sqrt{2}$ is irrational. The sequence is escaping from $\mathbb{Q}$. To $\mathbb{Q}$, this Cauchy sequence has *no limit*, full stop.
 
-- **Non-negativity**: $d(x, y) \geq 0$ and $d(x, y) = 0$ if and only if $x = y$.
-- **Symmetry**: $d(x, y) = d(y, x)$.
-- **Triangle Inequality**: $d(x, z) \leq d(x, y) + d(y, z)$ follows from the Minkowski inequality.
+That is exactly the kind of leak completeness rules out. The reals $\mathbb{R}$ are constructed precisely to plug holes like this — every Cauchy sequence of reals converges to a real. This is not a theorem about $\mathbb{R}$; it is the *definition* by which we build $\mathbb{R}$ from $\mathbb{Q}$, either via Dedekind cuts or via Cauchy-sequence equivalence classes (which is the construction we will generalize below).
 
-#### Discrete Space
+A second example, closer to functional analysis. Consider $C[0,1]$ with the metric $d_1(f,g) = \int_0^1 |f-g|\,dt$. Define
+$$f_n(t) = \begin{cases} 0, & 0 \leq t \leq 1/2,\\ n(t - 1/2), & 1/2 < t < 1/2 + 1/n,\\ 1, & 1/2 + 1/n \leq t \leq 1.\end{cases}$$
+Each $f_n$ is continuous. A short calculation gives $d_1(f_n, f_m) \leq |1/n - 1/m|/2$, so $(f_n)$ is Cauchy. The pointwise limit is the indicator $\mathbb{1}_{[1/2, 1]}$, which is discontinuous and not in $C[0,1]$. Like $\mathbb{Q}$, the space $C[0,1]$ leaks Cauchy sequences when measured in the integral metric.
 
-- **Non-negativity**: $d(x, y) \geq 0$ and $d(x, y) = 0$ if and only if $x = y$.
-- **Symmetry**: $d(x, y) = d(y, x)$.
-- **Triangle Inequality**: If $x = y$ or $y = z$, then $d(x, z) \leq d(x, y) + d(y, z)$. If $x \neq y$ and $y \neq z$, then $d(x, z) = 1 \leq 1 + 1 = d(x, y) + d(y, z)$.
+### Why this matters
 
-#### Space of Continuous Functions $C[a, b]$
+Completeness is the algebraic license to do limit-based arguments. Want to define the integral as a limit of Riemann sums? You need the limit to exist somewhere. Want to solve a differential equation by Picard iteration? You need the iterates to converge to a solution *inside the function space you started in*. Want to define a derivative via difference quotients of operators? You need the resulting operator to live in the same operator space. Without completeness, you have a ladder with the top rung sawed off: you can climb forever but never arrive.
 
-- **Non-negativity**: $d(f, g) \geq 0$ and $d(f, g) = 0$ if and only if $f = g$.
-- **Symmetry**: $d(f, g) = d(g, f)$.
-- **Triangle Inequality**: $d(f, h) \leq d(f, g) + d(g, h)$ follows from the properties of the supremum.
+The completeness of a space is *metric-dependent*, not just space-dependent. The space $C[0,1]$ is complete under the supremum metric $d_\infty(f,g) = \sup_t |f-g|$ (the sequence above does not converge uniformly, so it is not Cauchy in $d_\infty$), but incomplete under $d_1$. The question is never just "is this complete?" — it is "is this complete under that metric?"
 
-#### Sequence Space $l^p$
+## The Completion of a Metric Space
 
-- **Non-negativity**: $d(x, y) \geq 0$ and $d(x, y) = 0$ if and only if $x = y$.
-- **Symmetry**: $d(x, y) = d(y, x)$.
-- **Triangle Inequality**: $d(x, z) \leq d(x, y) + d(y, z)$ follows from the Minkowski inequality for sequences.
+The good news: every metric space $(X, d)$ has a **completion** $(\widehat X, \widehat d)$ — a complete metric space containing an isometric, dense copy of $X$. The construction is canonical. Take all Cauchy sequences in $X$, declare two of them equivalent if their pointwise distance tends to zero, and define the distance between equivalence classes as the limit of pointwise distances. This is essentially how Cantor builds $\mathbb{R}$ from $\mathbb{Q}$.
 
-### Worked Example
+![Completing the rationals to the reals via Cauchy sequences](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/01-metric-spaces/fa_v2_01_4_completion.png)
 
-Consider the sequence space $l^2$ with the metric
-\[
-d(x, y) = \|x - y\|_2 = \left( \sum_{n=1}^\infty |x_n - y_n|^2 \right)^{1/2}.
-\]
-Let $x = (1, \frac{1}{2}, \frac{1}{3}, \ldots)$ and $y = (0, 0, 0, \ldots)$. Compute the distance $d(x, y)$.
+In more detail. Let $\mathcal{C}$ be the set of all Cauchy sequences in $X$. Define $(x_n) \sim (y_n)$ iff $d(x_n, y_n) \to 0$. This is an equivalence relation (reflexivity and symmetry are obvious; transitivity uses the triangle inequality). Define $\widehat X = \mathcal{C}/{\sim}$ and
+$$\widehat d\big([(x_n)], [(y_n)]\big) = \lim_{n \to \infty} d(x_n, y_n).$$
+The limit exists because $(d(x_n, y_n))$ is a Cauchy sequence in $\mathbb{R}$ (by the triangle inequality, $|d(x_n, y_n) - d(x_m, y_m)| \leq d(x_n, x_m) + d(y_n, y_m)$), and $\mathbb{R}$ is complete. The map $X \to \widehat X$ sending $x$ to the class of the constant sequence $(x, x, x, \ldots)$ is an isometric embedding, and its image is dense in $\widehat X$.
 
-**Solution:**
-\[
-d(x, y) = \left( \sum_{n=1}^\infty \left| \frac{1}{n} - 0 \right|^2 \right)^{1/2} = \left( \sum_{n=1}^\infty \frac{1}{n^2} \right)^{1/2}.
-\]
-The series $\sum_{n=1}^\infty \frac{1}{n^2}$ converges to $\frac{\pi^2}{6}$. Therefore,
-\[
-d(x, y) = \left( \frac{\pi^2}{6} \right)^{1/2} = \frac{\pi}{\sqrt{6}}.
-\]
+Completeness of $\widehat X$ requires a diagonal argument. Given a Cauchy sequence $(\widehat{\xi}^{(k)})$ of equivalence classes, pick a representative $(\xi^{(k)}_n)$ for each. Choose $n_k$ large enough that $d(\xi^{(k)}_n, \xi^{(k)}_{n_k}) < 1/k$ for all $n \geq n_k$, and form the diagonal sequence $y_k = \xi^{(k)}_{n_k}$. A bit of bookkeeping shows $(y_k)$ is Cauchy in $X$, and its equivalence class in $\widehat X$ is the limit of $(\widehat{\xi}^{(k)})$.
 
-In conclusion, metric spaces provide a versatile framework for studying various mathematical objects. By understanding the properties and examples of metric spaces, we can apply these concepts to a wide range of problems in analysis and topology.
+The completion has a universal property: any uniformly continuous map from $X$ to a complete metric space extends uniquely to $\widehat X$. This is the categorical reason completion shows up everywhere, from $L^p$ spaces (the completion of continuous functions in the $L^p$ norm) to $p$-adic numbers (the completion of $\mathbb{Q}$ under the $p$-adic absolute value $|p^k m/n|_p = p^{-k}$ for $\gcd(m, p) = \gcd(n, p) = 1$).
 
-## Convergence, Open/Closed Sets, and Continuity
+### Worked Example: completing $C[0,1]$ in the $L^1$ norm
 
-In the previous sections, we introduced the concept of metric spaces and provided several important examples. In this section, we will delve into the fundamental concepts of convergence, open and closed sets, and continuity in metric spaces. These concepts are essential for understanding the behavior of sequences and functions in a metric space.
+Take the sequence $(f_n)$ from above. It is Cauchy in $(C[0,1], d_1)$. Its equivalence class in the completion is what we call the indicator function $\mathbb{1}_{[1/2,1]}$, identified with any other Cauchy sequence converging to it pointwise almost everywhere. The completion of $C[0,1]$ under $d_1$ is the space $L^1[0,1]$ — Lebesgue-integrable functions modulo equality almost everywhere. The discontinuous indicator is a perfectly fine element there.
 
-### Motivation
+A subtler point: the elements of $L^1[0,1]$ are *equivalence classes*, not functions. You cannot ask for the value of an $L^1$ function at a point — that question is not even well-posed, because two equivalent functions can disagree on any prescribed measure-zero set. This is the price of completeness in the $L^1$ norm: I gain a complete space at the cost of pointwise evaluation. In Article 3 we will see Hilbert spaces ($L^2$ in particular) inherit the same trade-off.
 
-Convergence, open and closed sets, and continuity are central to the study of metric spaces. They allow us to describe the behavior of sequences and functions, and they provide a rigorous framework for analyzing the topological properties of a space.
+The lesson: every reasonable function space you have ever met — the $L^p$ spaces, the Sobolev spaces, the Hardy spaces — is the completion of a more concrete space (continuous functions, or smooth compactly supported functions) in some specific norm. Completeness is not optional decoration; it is the price of admission for limits.
 
-### Definitions and Theorems
+## The Baire Category Theorem
 
-#### Convergence
+Once a metric space is complete, a remarkable rigidity result kicks in. The **Baire Category Theorem** says: in a complete metric space, the countable intersection of dense open sets is still dense. Equivalently, a complete metric space cannot be written as a countable union of *nowhere-dense* sets (sets whose closure has empty interior).
 
-A sequence $(x_n)$ in a metric space $(X, d)$ **converges** to a point $x \in X$ if for every $\epsilon > 0$, there exists an integer $N$ such that for all $n \geq N$, $d(x_n, x) < \epsilon$. We write this as
-\[
-\lim_{n \to \infty} x_n = x \quad \text{or} \quad x_n \to x.
-\]
+![Baire category theorem: a complete metric space is not a countable union of nowhere-dense sets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/01-metric-spaces/fa_v2_01_5_baire.png)
 
-#### Open and Closed Sets
+The proof is short and feels like a magic trick. Suppose $\{U_n\}$ is a countable family of dense open sets, and let $V$ be any non-empty open set. I want to show $V \cap \bigcap_n U_n \neq \emptyset$. Since $U_1$ is dense and open, $V \cap U_1$ is non-empty and open, so it contains a closed ball $\overline{B(x_1, r_1)}$ with $r_1 < 1$. Since $U_2$ is dense and open, $B(x_1, r_1) \cap U_2$ contains a closed ball $\overline{B(x_2, r_2)}$ with $r_2 < 1/2$. Iterate, halving the radius each time. The centers $(x_n)$ form a Cauchy sequence — for $m \geq n$, $x_m \in \overline{B(x_n, r_n)}$, so $d(x_n, x_m) \leq r_n < 2^{-n+1}$. Completeness gives a limit point $x^*$. By construction $x^* \in \overline{B(x_n, r_n)}$ for every $n$, hence $x^* \in V \cap \bigcap_n U_n$. Done.
 
-- A set $U \subseteq X$ is **open** if for every $x \in U$, there exists an $\epsilon > 0$ such that the ball $B(x, \epsilon) = \{y \in X : d(x, y) < \epsilon\}$ is contained in $U$.
-- A set $F \subseteq X$ is **closed** if its complement $X \setminus F$ is open.
+The proof uses completeness in exactly one place: to conclude that the Cauchy sequence of centers has a limit. Without completeness the construction goes through but produces nothing. This is what makes Baire a *consequence* of completeness rather than an axiom.
 
-#### Continuity
+### Consequences
 
-A function $f: (X, d_X) \to (Y, d_Y)$ between two metric spaces is **continuous** at a point $x \in X$ if for every $\epsilon > 0$, there exists a $\delta > 0$ such that for all $y \in X$ with $d_X(x, y) < \delta$, we have $d_Y(f(x), f(y)) < \epsilon$. The function $f$ is **continuous** if it is continuous at every point in $X$.
+**Banach-Steinhaus / Uniform Boundedness Principle.** If $\{T_\alpha\}$ is a family of bounded linear operators from a Banach space $X$ to a normed space $Y$, and $\sup_\alpha \|T_\alpha x\| < \infty$ for every $x$, then $\sup_\alpha \|T_\alpha\| < \infty$. Pointwise boundedness implies uniform boundedness. The proof partitions $X$ into closed sets $F_n = \{ x : \|T_\alpha x\| \leq n \text{ for all } \alpha \}$; their union is $X$; Baire forces one of them to have non-empty interior; that interior gives the uniform bound. (Article 6 spells this out.)
 
-### Proof Sketches and Examples
+**Existence of nowhere-differentiable continuous functions.** The set of continuous functions on $[0,1]$ that are differentiable at *some* point can be written as a countable union of nowhere-dense sets in $(C[0,1], d_\infty)$. Hence, by Baire, this union is *not* all of $C[0,1]$, and the complement is dense. Most continuous functions, in a precise topological sense, fail to be differentiable anywhere.
 
-We will now provide some examples and proofs to illustrate these concepts.
+**Banach's open-mapping theorem and closed-graph theorem.** Both follow from Baire applied to the image or graph of the operator under consideration. Article 6 walks through them carefully.
 
-#### Convergence
+### Why this matters
 
-**Example 1: Convergence in $\mathbb{R}$**
+Baire is the engine that drives every "automatic" theorem in functional analysis: the uniform boundedness principle, the open mapping theorem, the closed graph theorem (all in Article 6). Each takes a "pointwise" hypothesis and concludes a "uniform" conclusion. The trick is always the same — partition the space into closed sets defined by the failure of the conclusion, observe their union is the whole space, and conclude one of them must have non-empty interior.
 
-Consider the sequence $(x_n) = \left( \frac{1}{n} \right)$ in $\mathbb{R}$ with the Euclidean metric. We claim that $x_n \to 0$.
+A second use is the production of generic objects. The set of continuous nowhere-differentiable functions on $[0,1]$ is the *complement* of a countable union of nowhere-dense sets in $C[0,1]$, hence a dense $G_\delta$. So in a precise topological sense, a generic continuous function fails to be differentiable anywhere. The functions you actually compute with are atypical. This is one of those theorems that should reset your defaults: smooth functions are the exception, not the rule.
 
-**Proof:**
-For any $\epsilon > 0$, choose $N$ such that $N > \frac{1}{\epsilon}$. Then for all $n \geq N$,
-\[
-|x_n - 0| = \left| \frac{1}{n} \right| < \epsilon.
-\]
-Thus, $x_n \to 0$.
+## The Banach Fixed-Point Theorem
 
-#### Open and Closed Sets
+The clean computational consequence of completeness is the **contraction mapping theorem**. Let $(X, d)$ be a complete metric space and $T: X \to X$ a contraction: there exists $0 \leq \lambda < 1$ with
+$$d(T x, T y) \leq \lambda \, d(x, y) \quad \text{for all } x, y \in X.$$
+Then $T$ has a unique fixed point $x^*$, and starting from any $x_0 \in X$, the iterates $x_{n+1} = T x_n$ satisfy $d(x_n, x^*) \leq \lambda^n d(x_0, x^*) \leq \frac{\lambda^n}{1-\lambda} d(x_1, x_0)$.
 
-**Example 2: Open and Closed Sets in $\mathbb{R}$**
+![Banach fixed-point iteration converging to a unique fixed point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/01-metric-spaces/fa_v2_01_6_fixed_point.png)
 
-- The interval $(0, 1)$ is an open set in $\mathbb{R}$ because for any $x \in (0, 1)$, we can choose $\epsilon = \min\{x, 1 - x\}$, and the ball $B(x, \epsilon) = (x - \epsilon, x + \epsilon)$ is contained in $(0, 1)$.
-- The interval $[0, 1]$ is a closed set in $\mathbb{R}$ because its complement, $(-\infty, 0) \cup (1, \infty)$, is open.
+The proof is the cleanest in the subject. First, $d(x_{n+1}, x_n) \leq \lambda \, d(x_n, x_{n-1}) \leq \cdots \leq \lambda^n d(x_1, x_0)$, so by the geometric series the iterates form a Cauchy sequence: for $m > n$,
+$$d(x_n, x_m) \leq \sum_{k=n}^{m-1} d(x_k, x_{k+1}) \leq \frac{\lambda^n}{1-\lambda} d(x_1, x_0).$$
+Completeness gives a limit $x^*$. Continuity of $T$ (built into the contraction inequality) gives $T x^* = \lim T x_n = \lim x_{n+1} = x^*$. Uniqueness drops out of the contraction inequality applied to two fixed points $x^*, y^*$: $d(x^*, y^*) = d(Tx^*, Ty^*) \leq \lambda d(x^*, y^*)$, forcing $d(x^*, y^*) = 0$ since $\lambda < 1$. Every step uses completeness exactly once.
 
-#### Continuity
+### Numerical example
 
-**Example 3: Continuity of a Function in $\mathbb{R}$**
+Take $X = [1, 2] \subset \mathbb{R}$ (complete because closed in $\mathbb{R}$), and $T x = \tfrac{1}{2}(x + 2/x)$ — Newton's iteration for $\sqrt{2}$, restricted to $[1,2]$. A short calculation shows $|T'(x)| = |1/2 - 1/x^2|$, which equals $1/2$ at $x=1$, $1/4$ at $x=2$, and $0$ at $x=\sqrt{2}$. So on $[1,2]$, $|T'(x)| \leq 1/2$, hence $T$ is a contraction with $\lambda = 1/2$. Starting from $x_0 = 1$:
+$x_1 = 1.5$, $x_2 \approx 1.41667$, $x_3 \approx 1.41422$, $x_4 \approx 1.41421$. The unique fixed point is $\sqrt{2} \approx 1.41421356$. The convergence is in fact quadratic for Newton — error squares each step — much faster than the linear bound the theorem promises, but the theorem already guarantees there is something to converge to. The point is that completeness is what *guarantees* a limit exists; the rate of convergence is an additional structure I read off from the specific operator.
 
-Consider the function $f: \mathbb{R} \to \mathbb{R}$ defined by $f(x) = x^2$. We claim that $f$ is continuous.
+### Picard-Lindelöf as a fixed-point theorem
 
-**Proof:**
-Let $x \in \mathbb{R}$ and $\epsilon > 0$. Choose $\delta = \min\{1, \frac{\epsilon}{2|x| + 1}\}$. For any $y \in \mathbb{R}$ with $|x - y| < \delta$,
-\[
-|f(x) - f(y)| = |x^2 - y^2| = |x - y||x + y| < \delta (|x| + |y|).
-\]
-Since $|y| \leq |x| + \delta \leq |x| + 1$, we have
-\[
-|f(x) - f(y)| < \delta (2|x| + 1) < \epsilon.
-\]
-Thus, $f$ is continuous at $x$.
+Consider the ODE $y'(t) = F(t, y(t))$ with $y(t_0) = y_0$, where $F: \mathbb{R}^2 \to \mathbb{R}$ is Lipschitz in $y$ with constant $L$. By integration this is equivalent to $y(t) = y_0 + \int_{t_0}^t F(s, y(s))\,ds$. Define the operator $T$ on $C[t_0, t_0 + h]$ by
+$$(Ty)(t) = y_0 + \int_{t_0}^t F(s, y(s))\,ds.$$
+For $h$ small enough, $T$ is a contraction in the supremum metric on $C[t_0, t_0+h]$ with $\lambda = Lh$. Banach's theorem produces the unique fixed point — which is the unique solution of the ODE on $[t_0, t_0+h]$. Existence and uniqueness, both falling out of completeness of $C[t_0, t_0+h]$ under the sup metric. This is the cleanest application of fixed-point theory to a non-trivial classical theorem, and a preview of how I will solve PDEs in later articles.
 
-### Worked Example
+### Why this matters
 
-Consider the sequence $(x_n) = \left( \frac{1}{n} \right)$ in the space of continuous functions $C[0, 1]$ with the supremum metric. Determine whether $(x_n)$ converges to the zero function $f(x) = 0$.
+The fixed-point theorem is how I solve almost every existence problem in this series. The Picard-Lindelöf theorem on existence of solutions to ODEs is a fixed-point argument in $C[a, b]$. The implicit function theorem in Banach spaces is a fixed-point argument. Solutions of integral equations of the form $f = g + Kf$ exist as fixed points of $T f = g + K f$ whenever $K$ is contractive. The Hartman-Grobman theorem on linearization of dynamical systems uses a fixed-point argument in a function space. Every time I solve $T x = x$ by iteration and bound the rate of convergence, I am cashing in the same theorem.
 
-**Solution:**
-We need to show that for every $\epsilon > 0$, there exists an integer $N$ such that for all $n \geq N$,
-\[
-\|x_n - 0\|_\infty = \sup_{x \in [0, 1]} \left| \frac{1}{n} - 0 \right| < \epsilon.
-\]
-Since $\left| \frac{1}{n} \right| = \frac{1}{n}$ for all $x \in [0, 1]$, we have
-\[
-\|x_n - 0\|_\infty = \frac{1}{n}.
-\]
-For any $\epsilon > 0$, choose $N$ such that $N > \frac{1}{\epsilon}$. Then for all $n \geq N$,
-\[
-\|x_n - 0\|_\infty = \frac{1}{n} < \epsilon.
-\]
-Thus, $x_n \to 0$ in $C[0, 1]$.
+## Compactness in Metric Spaces
 
-In summary, convergence, open and closed sets, and continuity are fundamental concepts in the study of metric spaces. By understanding these concepts, we can analyze the behavior of sequences and functions in a rigorous and systematic manner.
+The last piece I need before moving to normed spaces is **compactness**. A subset $K \subseteq X$ is compact if every open cover has a finite subcover. In a metric space this turns out to be equivalent to several other conditions, and that equivalence is what makes compactness so powerful.
 
-## Completeness and Cauchy Sequences
+![Equivalent characterizations of compactness in metric spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/01-metric-spaces/fa_v2_01_7_compactness.png)
 
-In the previous sections, we explored the basic concepts of metric spaces, including convergence, open and closed sets, and continuity. In this section, we will delve into the concept of completeness, which is a crucial property of metric spaces. We will also discuss Cauchy sequences and prove the completion theorem, which shows that every metric space can be embedded in a complete metric space.
+**Theorem.** For a subset $K$ of a metric space $X$, the following are equivalent:
 
-### Motivation
+1. Every open cover of $K$ has a finite subcover (covering compactness).
+2. Every sequence in $K$ has a convergent subsequence with limit in $K$ (sequential compactness).
+3. $K$ is complete and **totally bounded**: for every $\varepsilon > 0$, $K$ can be covered by finitely many balls of radius $\varepsilon$.
 
-Completeness is a fundamental property that ensures the existence of limits for certain sequences. In many applications, it is essential to work in a complete metric space to guarantee the convergence of iterative processes and the existence of solutions to equations. Cauchy sequences are a key tool in the study of completeness, as they capture the idea of sequences that should converge but may not in an incomplete space.
+The implication $(2) \Leftrightarrow (3)$ says that compactness in a metric space is "completeness plus a finiteness condition." In $\mathbb{R}^n$, total boundedness is the same as boundedness (Heine-Borel), so compact sets are exactly the closed bounded sets. In infinite dimensions, *boundedness is no longer enough*: the closed unit ball of $C[0,1]$ is not compact. Article 5 will revisit this and find the right replacement (weak-* compactness via Banach-Alaoglu).
 
-### Definitions and Theorems
+Why does the equivalence $(1) \Leftrightarrow (2)$ require the metric? In a general topological space these are different — sequential compactness is weaker. But in a metric space, every point has a countable neighborhood base (the balls of radius $1/n$), and that countability lets the diagonal argument convert sequence-level data into cover-level data. The metric is what makes the equivalence work.
 
-#### Cauchy Sequences
+### Numerical example
 
-A sequence $(x_n)$ in a metric space $(X, d)$ is a **Cauchy sequence** if for every $\epsilon > 0$, there exists an integer $N$ such that for all $m, n \geq N$, $d(x_m, x_n) < \epsilon$.
+In $\mathbb{R}$, the closed interval $[0, 1]$ is compact. Cover it by the open intervals $(k/n - 1/n, k/n + 1/n)$ for $k = 0, 1, \ldots, n$ — these $n+1$ sets cover $[0,1]$. So total boundedness is concrete. Now take the closed unit ball in $\ell^2$, the space of square-summable sequences. The standard basis vectors $e_n = (0, \ldots, 0, 1, 0, \ldots)$ all sit in the unit ball, and $\|e_n - e_m\|_2 = \sqrt{2}$ for $n \neq m$. No subsequence is Cauchy, so no subsequence converges. The ball is bounded but not compact. The dimension matters.
 
-#### Complete Metric Spaces
+A more striking example: in the space of continuous functions $C[0,1]$ with sup metric, the sequence $f_n(t) = \sin(n\pi t)$ has $\|f_n\|_\infty = 1$ for every $n$, so it sits in the unit ball. But $\|f_n - f_m\|_\infty = 2$ for $n \neq m$ in any range where the sines are out of phase. The ball is not even sequentially compact. A theorem of F. Riesz makes this precise: the closed unit ball of a normed space is compact iff the space is finite-dimensional. The presence of compactness in infinite dimensions requires giving up something — either passing to a weaker topology (weak compactness, Article 5) or restricting to a smaller class of operators (compact operators, Article 7).
 
-A metric space $(X, d)$ is **complete** if every Cauchy sequence in $X$ converges to a point in $X$.
+### Arzelà-Ascoli
 
-#### Completion Theorem
+Specializing to $C[K]$ for $K$ a compact metric space, the Arzelà-Ascoli theorem characterizes compact subsets:
 
-Every metric space $(X, d)$ can be embedded in a complete metric space $(\overline{X}, \overline{d})$ such that $X$ is dense in $\overline{X}$ and $\overline{d}(x, y) = d(x, y)$ for all $x, y \in X$.
+**Theorem (Arzelà-Ascoli).** A subset $\mathcal{F} \subseteq C[K]$ has compact closure iff $\mathcal{F}$ is pointwise bounded and equicontinuous: for every $\varepsilon > 0$ there exists $\delta > 0$ such that $d(s,t) < \delta$ implies $|f(s) - f(t)| < \varepsilon$ for *every* $f \in \mathcal{F}$ (the same $\delta$ works for all $f$).
 
-### Proof Sketches and Examples
+Total boundedness is the abstract notion; equicontinuity plus pointwise boundedness is its concrete form for $C[K]$. The condition rules out wild oscillation (like $\sin(n\pi t)$) by requiring uniform control across the family. Arzelà-Ascoli is the workhorse compactness theorem in classical analysis, and many of the existence theorems we will see — for solutions of ODEs, for minimizers of functionals, for limits of approximation schemes — go through it.
 
-#### Cauchy Sequences
+### Why this matters
 
-**Example 1: Cauchy Sequence in $\mathbb{R}$**
+Compactness is the topological substitute for "finite." Continuous functions on compact sets attain their extrema (Weierstrass), are uniformly continuous, and are bounded. Compactness lets me extract convergent subsequences and so converts existence questions ("does some maximizer exist?") into routine arguments. The whole calculus of variations, the whole theory of weak solutions of PDEs, and most of operator spectral theory cash in compactness at some critical step.
 
-Consider the sequence $(x_n) = \left( 1 + \frac{1}{2} + \frac{1}{3} + \cdots + \frac{1}{n} \right)$ in $\mathbb{R}$. This sequence is known as the harmonic series, and it is not a Cauchy sequence.
+## Separability and Density
 
-**Proof:**
-To show that $(x_n)$ is not a Cauchy sequence, we need to find an $\epsilon > 0$ such that for any $N$, there exist $m, n \geq N$ with $|x_m - x_n| \geq \epsilon$.
+One last topological notion before I move on. A metric space is **separable** if it has a countable dense subset. The rationals are dense in the reals, so $\mathbb{R}$ is separable. The polynomials with rational coefficients are dense in $C[0,1]$ (Weierstrass approximation), so $C[0,1]$ is separable. The classical sequence spaces $\ell^p$ for $1 \leq p < \infty$ are separable, with the finitely supported rational sequences as a countable dense subset. The space $\ell^\infty$ of bounded sequences is *not* separable — for any countable family of sequences, a diagonal construction produces a bounded sequence at distance $\geq 1$ from each, so no countable family is dense.
 
-Consider the partial sums of the harmonic series. For any $k \geq 1$,
-\[
-x_{2k} - x_k = \left( 1 + \frac{1}{2} + \cdots + \frac{1}{2k} \right) - \left( 1 + \frac{1}{2} + \cdots + \frac{1}{k} \right) = \frac{1}{k+1} + \frac{1}{k+2} + \cdots + \frac{1}{2k}.
-\]
-Each term in the sum $\frac{1}{k+1} + \frac{1}{k+2} + \cdots + \frac{1}{2k}$ is at least $\frac{1}{2k}$, and there are $k$ terms. Therefore,
-\[
-x_{2k} - x_k \geq k \cdot \frac{1}{2k} = \frac{1}{2}.
-\]
-Thus, for $\epsilon = \frac{1}{2}$, no matter how large $N$ is, we can always find $m = 2k$ and $n = k$ with $m, n \geq N$ such that $|x_m - x_n| \geq \epsilon$. Hence, $(x_n)$ is not a Cauchy sequence.
+Separability matters because it decides whether I can do "constructive" approximation. In a separable space I can hope to enumerate a basis and approximate every element by finite linear combinations. In a non-separable space, no countable enumeration will reach everything. Article 2 will discuss Schauder bases as the right notion of basis for separable Banach spaces; Article 3 will build orthonormal bases for separable Hilbert spaces. Non-separable spaces exist and matter (e.g., $L^\infty$, the space of bounded measurable functions), but the bulk of the theory we will develop assumes separability.
 
-#### Complete Metric Spaces
+A clean theorem combining the ideas of this article: a metric space is separable iff it has a countable basis for its topology iff every open cover has a countable subcover (Lindelöf property). For complete metric spaces, separability is equivalent to being homeomorphic to a subset of the Hilbert cube $[0,1]^{\mathbb{N}}$. So separability is roughly "no bigger than the continuum, in a structured way," and it is exactly the regularity condition we want for any space that pretends to extend $\mathbb{R}^n$.
 
-**Example 2: Completeness of $\mathbb{R}$**
 
-The real numbers $\mathbb{R}$ with the Euclidean metric are a complete metric space.
+## A Working Catalog of Metrics You Will Actually Meet
 
-**Proof:**
-Let $(x_n)$ be a Cauchy sequence in $\mathbb{R}$. We need to show that $(x_n)$ converges to a limit in $\mathbb{R}$.
+Theory is one thing; the catalog of metrics that show up in everyday analysis is another. A short list of the metrics I find myself reaching for, with the property that distinguishes each.
 
-Since $(x_n)$ is a Cauchy sequence, it is bounded. By the Bolzano-Weierstrass theorem, every bounded sequence in $\mathbb{R}$ has a convergent subsequence. Let $(x_{n_k})$ be a convergent subsequence of $(x_n)$, and let $L$ be its limit. We will show that $(x_n)$ converges to $L$.
+- **Discrete metric.** $d(x, y) = 0$ if $x = y$ and $1$ otherwise. Every set is open, every set is closed, the only convergent sequences are eventually constant. Useful as a sanity check (does my proof secretly assume connectivity?) and almost nothing else.
+- **Euclidean / $\ell^2$ metric.** $d(x, y) = \big(\sum (x_i - y_i)^2\big)^{1/2}$. The default; the only $\ell^p$ metric whose ball is round; the only one for which "rotation" makes sense as an isometry.
+- **Taxicab / $\ell^1$ metric.** $d(x, y) = \sum |x_i - y_i|$. The natural metric for sparsity-promoting optimization; produces polytopal balls with corners at the unit vectors. Geometrically penalizes "diagonal" movement compared to $\ell^2$.
+- **Sup / $\ell^\infty$ / Chebyshev metric.** $d(x, y) = \max_i |x_i - y_i|$. Cubical balls; the natural metric on $C[a,b]$ when "uniform approximation" is the goal; the one used for max-norm error bounds in numerics.
+- **Hamming metric on $\{0,1\}^n$.** $d(x, y) = \#\{i : x_i \neq y_i\}$. Discrete, finite-valued, used in coding theory and error-correcting codes. The unit ball is a Hamming ball, the discrete analogue of an $\ell^1$ ball.
+- **Edit distance on strings.** Smallest number of single-character insertions, deletions, and substitutions converting one string to another. Used in spell-check and bioinformatics. Triangle inequality holds because compositions of edits are still edits.
+- **Hausdorff distance on closed bounded sets.** $d_H(A, B) = \max(\sup_{a \in A} d(a, B), \sup_{b \in B} d(b, A))$. Two sets are close if every point of one is close to some point of the other. The right metric for set-valued limits, image processing, geometric measure theory.
+- **Wasserstein / earth-mover's distance on probability measures.** $W_p(\mu, \nu) = \inf_{\pi} \big(\int d(x,y)^p\,d\pi(x,y)\big)^{1/p}$ over couplings $\pi$ with marginals $\mu, \nu$. Captures how much "mass" must be moved to turn $\mu$ into $\nu$. Central in optimal transport, with deep connections to PDE and machine learning.
 
-Given $\epsilon > 0$, there exists an integer $K$ such that for all $k \geq K$, $|x_{n_k} - L| < \frac{\epsilon}{2}$. Since $(x_n)$ is a Cauchy sequence, there exists an integer $N$ such that for all $m, n \geq N$, $|x_m - x_n| < \frac{\epsilon}{2}$.
+These are not exotic. They are, individually, the natural metric of some specific application. Functional analysis is the language that lets you switch between them while keeping arguments portable. The inequalities that compare them — for example, on a finite-dimensional space, the standard $\ell^p$ norms differ by factors that depend on dimension but stay finite for any fixed $n$ — are the unsung utility theorems of the subject.
 
-Choose $M = \max\{N, n_K\}$. For any $n \geq M$, there exists $k \geq K$ such that $n_k \geq M$. Then,
-\[
-|x_n - L| \leq |x_n - x_{n_k}| + |x_{n_k} - L| < \frac{\epsilon}{2} + \frac{\epsilon}{2} = \epsilon.
-\]
-Thus, $(x_n)$ converges to $L$.
+### Why pointwise convergence is *not* a metric topology
 
-#### Completion Theorem
+A diagnostic example. On $C[0, 1]$, "pointwise convergence" — $f_n \to f$ if $f_n(t) \to f(t)$ for every $t$ — is a perfectly natural topological notion, but it is *not* induced by any metric. The proof is short: any metric topology is first-countable (the open balls of rational radii around a point form a countable neighborhood basis), but the pointwise convergence topology on $C[0,1]$ fails first-countability — there is no countable neighborhood basis at $0$. So pointwise convergence is genuinely outside the metric framework, and any theorem that wants to use it has to step into the (more general, more cumbersome) world of topological vector spaces.
 
-**Proof of the Completion Theorem:**
+This is one of the structural reasons functional analysis is biased toward metric and normed settings: most "natural" topologies turn out to be metric, and the few that don't (pointwise convergence, weak topology in the non-separable case) require the heavier machinery of Article 5.
 
-Let $(X, d)$ be a metric space. Define the set $\overline{X}$ to be the set of all equivalence classes of Cauchy sequences in $X$, where two Cauchy sequences $(x_n)$ and $(y_n)$ are equivalent if
-\[
-\lim_{n \to \infty} d(x_n, y_n) = 0.
-\]
-Define a metric $\overline{d}$ on $\overline{X}$ by
-\[
-\overline{d}([(x_n)], [(y_n)]) = \lim_{n \to \infty} d(x_n, y_n),
-\]
-where $[(x_n)]$ denotes the equivalence class of the Cauchy sequence $(x_n)$.
+## A Quick Test of Completeness Intuition
 
-1. **Well-definedness of $\overline{d}$**: If $(x_n) \sim (x_n')$ and $(y_n) \sim (y_n')$, then
-   \[
-   \lim_{n \to \infty} d(x_n, x_n') = 0 \quad \text{and} \quad \lim_{n \to \infty} d(y_n, y_n') = 0.
-   \]
-   By the triangle inequality,
-   \[
-   |d(x_n, y_n) - d(x_n', y_n')| \leq d(x_n, x_n') + d(y_n, y_n').
-   \]
-   Taking the limit as $n \to \infty$, we get
-   \[
-   \lim_{n \to \infty} |d(x_n, y_n) - d(x_n', y_n')| = 0,
-   \]
-   so $\lim_{n \to \infty} d(x_n, y_n) = \lim_{n \to \infty} d(x_n', y_n')$.
+Three quick true/false items to calibrate. (Answers below.)
 
-2. **Properties of $\overline{d}$**: It can be verified that $\overline{d}$ satisfies the properties of a metric.
+1. The space $C^1[0, 1]$ of continuously differentiable functions, with the sup metric $d_\infty$, is complete.
+2. The space $\mathbb{Q}^n$ with Euclidean distance is complete.
+3. The space of polynomials on $[0, 1]$ with $L^2$ inner product is complete.
 
-3. **Embedding of $X$ in $\overline{X}$**: Define a map $i: X \to \overline{X}$ by $i(x) = [(x, x, x, \ldots)]$. This map is an isometry, i.e., $\overline{d}(i(x), i(y)) = d(x, y)$ for all $x, y \in X$.
+Answers: (1) **No** — a uniform limit of $C^1$ functions need not be $C^1$ (only continuous), so $C^1$ is not closed in $C[0,1]$ under the sup metric. The right metric for $C^1$ is $d(f, g) = \|f - g\|_\infty + \|f' - g'\|_\infty$, in which it is complete. (2) **No** — $\mathbb{Q}^n$ is dense in $\mathbb{R}^n$ but not closed; Cauchy sequences of rationals converge to irrationals. (3) **No** — polynomials are dense in $L^2[0,1]$ (Weierstrass) but not closed; the completion is the whole of $L^2[0,1]$.
 
-4. **Density of $X$ in $\overline{X}$**: For any equivalence class $[(x_n)] \in \overline{X}$ and any $\epsilon > 0$, there exists an integer $N$ such that for all $m, n \geq N$, $d(x_m, x_n) < \epsilon$. Thus, $d(x_N, x_n) < \epsilon$ for all $n \geq N$, and
-   \[
-   \overline{d}([(x_n)], i(x_N)) = \lim_{n \to \infty} d(x_n, x_N) \leq \epsilon.
-   \]
-   Therefore, $i(X)$ is dense in $\overline{X}$.
+These three together encode the central rule: completeness depends jointly on the *space* and the *metric*. Choosing the wrong metric on a perfectly nice space gives an incomplete object whose completion may be mysterious or unwelcome.
 
-5. **Completeness of $\overline{X}$**: Let $([(x_n^k)])$ be a Cauchy sequence in $\overline{X}$. For each $k$, choose a representative $(x_n^k)$ of the equivalence class $[(x_n^k)]$. Since $([(x_n^k)])$ is a Cauchy sequence, for any $\epsilon > 0$, there exists an integer $K$ such that for all $j, k \geq K$,
-   \[
-   \overline{d}([(x_n^j)], [(x_n^k)]) = \lim_{n \to \infty} d(x_n^j, x_n^k) < \epsilon.
-   \]
-   In particular, for each fixed $n$, $(x_n^k)$ is a Cauchy sequence in $X$. Since $X$ is a metric space, we can choose a subsequence $(x_n^{k_n})$ such that $(x_n^{k_n})$ converges to some $x_n \in X$ for each $n$. The sequence $(x_n)$ is a Cauchy sequence in $X$, and $[(x_n)] \in \overline{X}$. Moreover,
-   \[
-   \overline{d}([(x_n^k)], [(x_n)]) = \lim_{n \to \infty} d(x_n^k, x_n) \to 0 \quad \text{as} \quad k \to \infty.
-   \]
-   Therefore, $([(x_n^k)])$ converges to $[(x_n)]$ in $\overline{X}$, and $\overline{X}$ is complete.
+## Connectedness, Path-Connectedness, and Why They Matter Less
 
-### Worked Example
+A metric space is **connected** if it is not the disjoint union of two non-empty open sets. It is **path-connected** if any two points are joined by a continuous path. Path-connected implies connected; the converse fails (the topologist's sine curve is the standard counterexample).
 
-Consider the space of rational numbers $\mathbb{Q}$ with the Euclidean metric. Show that the sequence $(x_n) = \left( 1 + \frac{1}{2!} + \frac{1}{3!} + \cdots + \frac{1}{n!} \right)$ is a Cauchy sequence in $\mathbb{Q}$, but it does not converge to a point in $\mathbb{Q}$.
+These properties matter much less in functional analysis than they do in topology proper, because most of the spaces we care about — Banach spaces, function spaces, Sobolev spaces — are linear and hence path-connected via straight-line paths. The exceptions are quotients, projective spaces, and other algebraic constructions where the linearity is broken; there connectivity becomes a non-trivial input.
 
-**Solution:**
+Where connectivity *does* matter is in the spectral theory of operators. A bounded operator with disconnected spectrum can be decomposed by the Riesz functional calculus into "spectral parts," and the decomposition is what powers the Jordan-canonical-form-style classification of compact operators (Article 7). So connectivity in the *spectrum* (a subset of $\mathbb{C}$) is the place where this metric-space concept earns its keep, even when connectivity in the underlying Banach space is automatic.
 
-1. **Cauchy Sequence**:
-   To show that $(x_n)$ is a Cauchy sequence, we need to show that for every $\epsilon > 0$, there exists an integer $N$ such that for all $m, n \geq N$, $|x_m - x_n| < \epsilon$.
 
-   Without loss of generality, assume $m > n$. Then,
-   \[
-   |x_m - x_n| = \left| \frac{1}{(n+1)!} + \frac{1}{(n+2)!} + \cdots + \frac{1}{m!} \right|.
-   \]
-   Using the fact that $\frac{1}{k!} \leq \frac{1}{2^{k-1}}$ for $k \geq 2$, we get
-   \[
-   |x_m - x_n| \leq \frac{1}{(n+1)!} + \frac{1}{(n+2)!} + \cdots + \frac{1}{m!} \leq \frac{1}{(n+1)!} \left( 1 + \frac{1}{2} + \frac{1}{2^2} + \cdots \right) = \frac{1}{(n+1)!} \cdot 2.
-   \]
-   For any $\epsilon > 0$, choose $N$ such that $\frac{2}{(N+1)!} < \epsilon$. Then for all $m, n \geq N$,
-   \[
-   |x_m - x_n| < \epsilon.
-   \]
-   Therefore, $(x_n)$ is a Cauchy sequence in $\mathbb{Q}$.
+## Looking Ahead
 
-2. **Non-convergence in $\mathbb{Q}$**:
-   The sequence $(x_n)$ converges to $e$ in $\mathbb{R}$, where $e = \sum_{k=0}^\infty \frac{1}{k!}$. However, $e$ is an irrational number, so it does not belong to $\mathbb{Q}$. Therefore, $(x_n)$ does not converge to a point in $\mathbb{Q}$.
+Metric spaces give me distance and convergence, completeness lets me actually compute limits, Baire and Banach fixed-point provide leverage, and compactness recovers finite-dimensional intuition under controlled hypotheses. None of this required any algebraic structure on $X$. In the next article I add a vector space structure compatible with the metric — a *norm* — and the theory immediately tightens: I can talk about linear maps, closed subspaces, finite-dimensional approximation, and the very particular completeness that makes a normed space a Banach space. The metric framework is general enough to host edit distance and the discrete metric; the normed framework will be specific enough to support actual analysis.
 
-In conclusion, completeness and Cauchy sequences are essential concepts in the study of metric spaces. The completion theorem provides a way to embed any metric space in a complete metric space, ensuring the existence of limits for Cauchy sequences. By understanding these concepts, we can analyze the topological and analytical properties of metric spaces in a more comprehensive manner.
-
-## Baire Category Theorem
-
-The Baire Category Theorem is a fundamental result in topology and functional analysis. It provides a powerful tool for understanding the structure of complete metric spaces and has numerous applications in various areas of mathematics. In this section, we will state and prove the Baire Category Theorem and discuss some of its important consequences.
-
-### Motivation
-
-The Baire Category Theorem is motivated by the need to understand the "size" and "density" of subsets in a complete metric space. It asserts that a complete metric space cannot be written as a countable union of nowhere dense sets, which has profound implications for the structure of the space.
-
-### Definitions and Theorems
-
-#### Nowhere Dense Sets
-
-A subset $A$ of a metric space $(X, d)$ is **nowhere dense** if the interior of its closure is empty, i.e., $\text{int}(\overline{A}) = \emptyset$.
-
-#### Baire Category Theorem
-
-**Theorem (Baire Category Theorem):** Let $(X, d)$ be a complete metric space. If $\{A_n\}_{n=1}^\infty$ is a countable collection of nowhere dense subsets of $X$, then the union $\bigcup_{n=1}^\infty A_n$ is not dense in $X$. Equivalently, the complement $X \setminus \bigcup_{n=1}^\infty A_n$ is dense in $X$.
-
-### Proof of the Baire Category Theorem
-
-**Proof:**
-
-Assume, for contradiction, that $\bigcup_{n=1}^\infty A_n$ is dense in $X$. This means that for every non-empty open set $U \subseteq X$, $U \cap \bigcup_{n=1}^\infty A_n \neq \emptyset$. We will construct a nested sequence of closed balls whose intersection is empty, leading to a contradiction.
-
-1. **Step 1: Constructing the Nested Sequence of Closed Balls**
-
-   - Start with a non-empty open set $U_1 \subseteq X$. Since $\bigcup_{n=1}^\infty A_n$ is dense in $X$, there exists an integer $n_1$ such that $U_1 \cap A_{n_1} \neq \emptyset$.
-   - Since $A_{n_1}$ is nowhere dense, $\text{int}(\overline{A_{n_1}}) = \emptyset$. Therefore, $U_1 \setminus \overline{A_{n_1}}$ is a non-empty open set.
-   - Choose a closed ball $B_1 = \overline{B(x_1, r_1)} \subseteq U_1 \setminus \overline{A_{n_1}}$ with radius $r_1 < 1$.
-
-   - Inductively, suppose we have constructed a closed ball $B_k = \overline{B(x_k, r_k)} \subseteq U_k \setminus \overline{A_{n_k}}$ with radius $r_k < \frac{1}{k}$.
-   - Since $\bigcup_{n=1}^\infty A_n$ is dense in $X$, there exists an integer $n_{k+1}$ such that $B_k \cap A_{n_{k+1}} \neq \emptyset$.
-   - Since $A_{n_{k+1}}$ is nowhere dense, $\text{int}(\overline{A_{n_{k+1}}}) = \emptyset$. Therefore, $B_k \setminus \overline{A_{n_{k+1}}}$ is a non-empty open set.
-   - Choose a closed ball $B_{k+1} = \overline{B(x_{k+1}, r_{k+1})} \subseteq B_k \setminus \overline{A_{n_{k+1}}}$ with radius $r_{k+1} < \frac{1}{k+1}$.
-
-2. **Step 2: Intersection of the Nested Sequence**
-
-   - The sequence of closed balls $\{B_k\}_{k=1}^\infty$ is nested, i.e., $B_1 \supseteq B_2 \supseteq B_3 \supseteq \cdots$.
-   - The radii of the balls satisfy $r_k < \frac{1}{k}$, so the diameters of the balls tend to zero.
-   - Since $(X, d)$ is a complete metric space, the intersection of the nested sequence of closed balls is non-empty. Let $x \in \bigcap_{k=1}^\infty B_k$.
-
-3. **Step 3: Contradiction**
-
-   - For each $k$, $x \in B_k \subseteq U_k \setminus \overline{A_{n_k}}$.
-   - Therefore, $x \notin \overline{A_{n_k}}$ for any $k$.
-   - Since $\{A_{n_k}\}_{k=1}^\infty$ is a subsequence of $\{A_n\}_{n=1}^\infty$, $x \notin \bigcup_{n=1}^\infty A_n$.
-   - This contradicts the assumption that $\bigcup_{n=1}^\infty A_n$ is dense in $X$.
-
-Thus, the union $\bigcup_{n=1}^\infty A_n$ is not dense in $X$, and the complement $X \setminus \bigcup_{n=1}^\infty A_n$ is dense in $X$.
-
-### Consequences of the Baire Category Theorem
-
-The Baire Category Theorem has several important consequences, including:
-
-1. **Non-emptiness of Residual Sets**: A **residual set** in a complete metric space is a countable intersection of dense open sets. The Baire Category Theorem implies that residual sets are dense in the space. This is often used to show the existence of "generic" elements with certain properties.
-
-2. **Existence of Nowhere Differentiable Continuous Functions**: The Baire Category Theorem can be used to show that the set of continuous functions on $[0, 1]$ that are nowhere differentiable is residual in $C[0, 1]$. This implies that most continuous functions are nowhere differentiable in a topological sense.
-
-3. **Banach-Steinhaus Theorem (Uniform Boundedness Principle)**: The Baire Category Theorem is a key ingredient in the proof of the Banach-Steinhaus Theorem, which states that a family of continuous linear operators between Banach spaces is uniformly bounded if it is pointwise bounded.
-
-### Worked Example
-
-Consider the space of continuous functions $C[0, 1]$ with the supremum metric. Show that the set of continuous functions that are nowhere differentiable is residual in $C[0, 1]$.
-
-**Solution:**
-
-1. **Nowhere Differentiable Functions**:
-   A function $f \in C
+One last meta-point. Notice how each tool in this article cashed in completeness exactly once, in subtly different ways. Cauchy sequences in the construction of completion: completeness is the conclusion. Baire: completeness produces a non-empty intersection. Contraction mapping: completeness produces the limit of iterates. Compactness in metric spaces (via $(3)$): completeness is half the definition. The definition of complete metric space is so concentrated that essentially every theorem we will prove that goes beyond first-year topology can be traced back to it. When you get stuck on a proof in functional analysis, asking "where am I using completeness?" is the question that most often unblocks you.
 
 ---
 
@@ -473,4 +273,3 @@ Consider the space of continuous functions $C[0, 1]$ with the supremum metric. S
 ## What's next
 
 With metric spaces providing the foundation of distance and convergence, we are ready to add algebraic structure. In the next article, we equip our spaces with a norm — a single function that simultaneously gives us distance and a vector space structure — and discover Banach spaces, where completeness and linearity combine to produce the powerful theorems that make functional analysis tick.
-

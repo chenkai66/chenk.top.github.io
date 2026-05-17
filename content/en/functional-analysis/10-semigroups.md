@@ -17,337 +17,307 @@ series_total: 12
 translationKey: "functional-analysis-10"
 ---
 
-Consider the simplest ordinary differential equation: $u'(t) = au(t)$, $u(0) = u_0$, where $a$ is a real number. The solution is $u(t) = e^{at}u_0$. The family of maps $T(t): u_0 \mapsto e^{at}u_0$ forms a one-parameter group satisfying $T(0) = I$, $T(t+s) = T(t)T(s)$, and $T(t) \to I$ as $t \to 0$.
+The simplest interesting differential equation is $u' = a u$, with $a \in \mathbb{R}$. The solution $u(t) = e^{at} u_0$ is so familiar that it is easy to forget it is a piece of structure: the map $T(t) = e^{at}$ is a one-parameter family of operators on $\mathbb{R}$ satisfying $T(0) = I$, $T(t + s) = T(t) T(s)$, and continuity in $t$. Replace $a$ with a self-adjoint matrix $A$ and you have $T(t) = e^{tA}$, the matrix exponential, which solves the system $u' = Au$. Replace $A$ with an unbounded operator on a Hilbert space — the Laplacian, the Schrödinger Hamiltonian, a Fokker-Planck operator — and you would like to do the same thing. But the matrix-exponential power series may not converge, the operator may not be defined on all of $H$, and ordinary calculus stops working.
 
-Now replace the scalar $a$ by a bounded operator $A$ on a Banach space $X$. The exponential $e^{tA} = \sum_{n=0}^\infty (tA)^n / n!$ converges in operator norm, and $T(t) = e^{tA}$ solves the abstract Cauchy problem $u'(t) = Au(t)$, $u(0) = u_0$, for every initial condition $u_0 \in X$.
+The semigroup theory developed by Hille, Yosida, and Phillips is what salvages the situation. It says: under appropriate conditions on the operator $A$ (a generator), there is a one-parameter family $T(t)$ satisfying the same algebraic and continuity properties, and it solves $u' = A u$ in a precise sense. The conditions on $A$ are spelled out by the **Hille-Yosida theorem**, which characterizes generators of strongly continuous semigroups. Once we have it, the framework solves the heat equation, the wave equation, the Schrödinger equation, and a vast range of evolution PDE in a single uniform language. This article is the tour.
 
-But the operators that arise in PDE — the Laplacian, wave operators, Schrodinger operators — are *unbounded*. The power series for $e^{tA}$ diverges. We cannot simply exponentiate. Yet the physical intuition is clear: the heat equation, the wave equation, and the Schrodinger equation all describe time evolution, and we expect the map $u_0 \mapsto u(t)$ to be a well-defined bounded operator for each $t \ge 0$.
+## $C_0$-Semigroups
 
-The theory of $C_0$-semigroups resolves this tension. It identifies the precise conditions under which an unbounded operator $A$ generates a family of bounded operators $\{T(t)\}_{t \ge 0}$ that evolve solutions forward in time.
+Let $X$ be a Banach space. A **strongly continuous one-parameter semigroup**, or $C_0$-semigroup, is a family $\{T(t) : t \geq 0\} \subset B(X)$ such that:
 
----
+1. $T(0) = I$.
+2. $T(t + s) = T(t) T(s)$ for all $t, s \geq 0$.
+3. $\lim_{t \to 0^+} T(t) x = x$ for all $x \in X$ (strong continuity at zero).
 
-## From Finite ODE to Infinite-Dimensional Evolution
+![Orbit of a C_0 semigroup acting on an initial state](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/10-semigroups/fa_v2_10_1_semigroup_orbit.png)
 
-### The finite-dimensional picture
+The semigroup gives a map $t \mapsto T(t) x$, the **orbit** of the initial state $x$. Strong continuity at zero plus the semigroup property implies strong continuity for all $t \geq 0$: $\|T(t + h) x - T(t) x\| = \|T(t)(T(h) - I) x\| \leq \|T(t)\| \|(T(h) - I) x\| \to 0$. So orbits are continuous trajectories in $X$.
 
-In $\mathbb{R}^n$, the system $u'(t) = Au(t)$ with $A \in \mathbb{R}^{n \times n}$ has the matrix exponential solution $u(t) = e^{tA}u_0$. The key properties are:
+Note the asymmetry: the semigroup is defined for $t \geq 0$, not for all $t \in \mathbb{R}$. If we have $T(t)$ for all $t \in \mathbb{R}$ with $T(t) T(-t) = I$, we have a **group** rather than a semigroup. Groups of unitaries on Hilbert space are particularly important — they correspond to time evolution in conservative systems. Semigroups that fail to extend to groups correspond to dissipative systems (heat flow, diffusion, fluid viscosity).
 
-![Evolution semigroup and generator](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/10-semigroups/fa_fig4_big_theorems.png)
+A standard estimate: for a $C_0$-semigroup, there exist $M \geq 1$ and $\omega \in \mathbb{R}$ such that $\|T(t)\| \leq M e^{\omega t}$ for all $t \geq 0$. The infimum of admissible $\omega$ is the **growth bound** of the semigroup. Semigroups with $\omega \leq 0$ are bounded; semigroups with $\omega < 0$ are exponentially decaying; **contraction semigroups** are those with $M = 1$ and $\omega \leq 0$.
 
+## The Generator
 
-1. **Semigroup property:** $e^{(t+s)A} = e^{tA}e^{sA}$ for all $t, s \ge 0$.
-2. **Strong continuity:** $e^{tA} \to I$ as $t \to 0$ (in any matrix norm).
-3. **Generator recovery:** $A = \lim_{t \to 0^+} (e^{tA} - I)/t$.
-4. **Growth bound:** $\|e^{tA}\| \le Me^{\omega t}$ for constants $M, \omega$ depending on $A$.
+Given a $C_0$-semigroup $T(t)$, its **generator** $A$ is defined by
 
-The infinite-dimensional theory abstracts these properties, asking: given an operator $A$ (possibly unbounded), when does there exist a family of bounded operators $\{T(t)\}_{t \ge 0}$ satisfying properties 1-4? And if so, how do we construct it?
+$$ A x = \lim_{t \to 0^+} \frac{T(t) x - x}{t}, $$
 
-### Why "semigroup" and not "group"?
+with domain $D(A) = \{x \in X : \text{the limit exists}\}$.
 
-For the heat equation $u_t = \Delta u$, solutions smooth out as time progresses forward but cannot generally be continued backward in time (the backward heat equation is ill-posed). The evolution operators $T(t)$ exist only for $t \ge 0$, forming a *semigroup* rather than a group. This asymmetry reflects the irreversibility encoded in parabolic equations.
+![Generator A of a strongly continuous semigroup as the time derivative at zero](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/10-semigroups/fa_v2_10_2_generator.png)
 
-For the Schrodinger equation $iu_t = -\Delta u$, the evolution is reversible — $T(t)$ extends to a group. But the general theory focuses on semigroups, which encompass both cases.
+The generator is the "infinitesimal version" of the semigroup, the operator-theoretic analog of "$a = \log T(1)$" for the scalar exponential. Two basic facts:
 
----
+- $D(A)$ is dense in $X$, and $A$ is a closed operator.
+- For $x \in D(A)$, the orbit $u(t) = T(t) x$ is differentiable, $u(t) \in D(A)$ for all $t$, and $u'(t) = A u(t)$.
 
-## Strongly Continuous (C₀) Semigroups: Definition and Basic Properties
+So the orbit solves the abstract Cauchy problem $u'(t) = A u(t)$ with $u(0) = x$, for any $x \in D(A)$. For $x \notin D(A)$, the orbit is still continuous, but it may not be differentiable. The key is that $D(A)$ is dense, so every initial condition can be approximated by a smooth one.
 
-**Definition.** A **$C_0$-semigroup** (or strongly continuous semigroup) on a Banach space $X$ is a family $\{T(t)\}_{t \ge 0}$ of bounded linear operators $T(t) \in B(X)$ satisfying:
+A small exercise: for the scalar example $T(t) = e^{at}$ on $\mathbb{R}$, the generator is multiplication by $a$, with domain all of $\mathbb{R}$. For a finite matrix $A$, $T(t) = e^{tA}$ has generator $A$ with domain $\mathbb{C}^n$. For an unbounded operator $A$ on $L^2(\mathbb{R})$, the generator's domain is a proper dense subspace, and the unbounded-operator domain considerations of the previous article come back into play.
 
-1. $T(0) = I$ (identity operator),
-2. $T(t+s) = T(t)T(s)$ for all $t, s \ge 0$ (semigroup property),
-3. $\lim_{t \to 0^+} T(t)x = x$ for every $x \in X$ (strong continuity at $0$).
+## A Concrete Computation: Heat Semigroup on $[0, 1]$ with Dirichlet Boundary
 
-The "$C_0$" stands for "class zero," Hille's original notation for continuity at the origin.
+Let me walk through a complete example. The Dirichlet Laplacian on $L^2[0, 1]$ has eigenfunctions $\phi_n(x) = \sqrt{2} \sin(n\pi x)$ with eigenvalues $-n^2 \pi^2$, $n = 1, 2, 3, \ldots$. The heat semigroup is then
 
-**Remark on terminology.** A *semigroup* in the algebraic sense is a set with an associative binary operation. The operators $\{T(t)\}$ form a semigroup under composition: $T(t) \circ T(s) = T(t+s)$. The parameter $t \ge 0$ makes it a "one-parameter semigroup." The adjective "strongly continuous" (or $C_0$) specifies the topology in which continuity holds — pointwise convergence on vectors in $X$, not convergence in operator norm.
+$$ T(t) f = \sum_{n=1}^\infty e^{-n^2 \pi^2 t} \langle f, \phi_n \rangle \phi_n. $$
 
-The distinction between strong and uniform continuity is significant: a $C_0$-semigroup is uniformly continuous ($\|T(t) - I\| \to 0$) if and only if its generator $A$ is bounded. Since we are interested in unbounded generators (differential operators), we must work with the weaker notion of strong continuity.
+For $t > 0$, the exponential damping factors $e^{-n^2 \pi^2 t}$ kill all high-frequency components, so $T(t) f$ is $C^\infty$ regardless of how rough $f$ is. The semigroup is compact for every $t > 0$ (the operator is Hilbert-Schmidt with rapidly decaying singular values). This compactness is what gives the heat semigroup its remarkable regularizing properties.
 
-**Proposition (uniform boundedness on compacts).** If $\{T(t)\}_{t \ge 0}$ is a $C_0$-semigroup, then for every $\tau > 0$ there exists $M_\tau \ge 1$ such that $\|T(t)\| \le M_\tau$ for all $t \in [0, \tau]$.
+Numerically, take $f(x) = \mathbf{1}_{[1/4, 3/4]}(x)$. Its Fourier coefficients are $\langle f, \phi_n \rangle = (\sqrt{2}/(n\pi))(\cos(n\pi/4) - \cos(3 n\pi/4))$. At $t = 0.001$, the factor $e^{-\pi^2 \cdot 10^{-3}} \approx 0.99$ leaves the first mode nearly intact, while $e^{-100 \pi^2 \cdot 10^{-3}} \approx e^{-0.987} \approx 0.37$ damps the tenth mode to about a third. By $t = 0.1$, only the first few modes survive. The solution is by then visibly close to a low-frequency profile, with a single peak around $x = 1/2$.
 
-*Proof.* By strong continuity, for each $x \in X$ the orbit $\{T(t)x : t \in [0,1]\}$ is bounded (as the continuous image of a compact set in the strong topology of $X$, this follows from the continuity $t \mapsto T(t)x$). By the uniform boundedness principle (Banach-Steinhaus), $\sup_{t \in [0,1]} \|T(t)\| = M < \infty$. For general $\tau$, write $t = n + s$ with $n \in \mathbb{N}$ and $0 \le s < 1$, then $\|T(t)\| \le M^{n+1} \le M^{\tau + 1}$. $\square$
+This example also illustrates why **spectral methods** for PDE are popular: when an exact spectral expansion of the operator is available, the time evolution becomes coordinate-wise multiplication by exponentials, which is trivial. The challenge is typically not the time integration but the spectral expansion itself, which requires either an explicit eigenfunction basis (separable geometries) or a numerical eigenvalue solver (general geometries via finite elements).
 
-**Corollary (exponential growth bound).** There exist constants $M \ge 1$ and $\omega \in \mathbb{R}$ such that $\|T(t)\| \le Me^{\omega t}$ for all $t \ge 0$.
+## The Hille-Yosida Theorem
 
-The infimum of all admissible $\omega$ is called the **growth bound** $\omega_0$ of the semigroup. When $\omega_0 \le 0$, the semigroup does not grow; when $\omega_0 < 0$, it decays exponentially.
+The defining theorem of the subject. It tells us *exactly* which operators are generators of $C_0$-semigroups.
 
-**Special classes:**
-- **Contraction semigroup:** $\|T(t)\| \le 1$ for all $t \ge 0$ (equivalently, $M = 1$, $\omega = 0$).
-- **Uniformly continuous semigroup:** $\lim_{t \to 0^+} \|T(t) - I\| = 0$ (convergence in operator norm, not just pointwise). These are precisely the semigroups generated by bounded operators: $T(t) = e^{tA}$ with $A \in B(X)$. They are too restrictive for PDE applications.
-
-### Basic examples
-
-**Example 1 (Translation semigroup).** On $X = L^p(\mathbb{R})$ for $1 \le p < \infty$, define $(T(t)f)(x) = f(x+t)$. This is a $C_0$-semigroup of isometries. The generator turns out to be $Af = f'$ with domain $\mathcal{D}(A) = W^{1,p}(\mathbb{R})$.
-
-**Example 2 (Heat semigroup).** On $X = L^2(\mathbb{R}^n)$, define
-
-$$
-(T(t)f)(x) = \frac{1}{(4\pi t)^{n/2}} \int_{\mathbb{R}^n} e^{-|x-y|^2/(4t)} f(y) \, dy, \quad t > 0,
-$$
-
-and $T(0) = I$. This is a $C_0$-semigroup of contractions. Its generator is the Laplacian $A = \Delta$ with domain $\mathcal{D}(A) = H^2(\mathbb{R}^n)$.
-
-**Example 3 (Multiplication semigroup).** On $L^2(\mathbb{R})$, let $q: \mathbb{R} \to \mathbb{C}$ be measurable with $\text{Re}(q) \le \omega$, and define $(T(t)f)(x) = e^{tq(x)}f(x)$. This is a $C_0$-semigroup with $\|T(t)\| \le e^{\omega t}$. The generator is the multiplication operator $Af = qf$ with its natural domain.
-
-**Example 4 (Poisson semigroup).** On $L^2(\mathbb{R}^n)$, the Poisson semigroup $(T(t)f)(x) = c_n \int_{\mathbb{R}^n} \frac{t}{(|x-y|^2 + t^2)^{(n+1)/2}} f(y)\,dy$ solves the Laplace equation in the upper half-space. Its generator is $-(-\Delta)^{1/2}$, the negative of the fractional Laplacian of order $1/2$. This example shows that semigroups naturally arise from operators that are not standard differential operators.
-
-### Non-examples
-
-Not every family of bounded operators parameterized by $t \ge 0$ is a $C_0$-semigroup. The family $T(t) = I$ for $t = 0$ and $T(t) = 0$ for $t > 0$ satisfies the semigroup property but not strong continuity. The "backward heat semigroup" (attempting to define $T(t)f = $ solution of the backward heat equation at time $-t$) fails because the backward heat equation is ill-posed — the operators do not exist as bounded maps on $L^2$.
-
----
-
-## The Generator and Its Domain
-
-**Definition.** The **(infinitesimal) generator** of a $C_0$-semigroup $\{T(t)\}_{t \ge 0}$ is the operator $A$ defined by
-
-$$
-Ax = \lim_{t \to 0^+} \frac{T(t)x - x}{t},
-$$
-
-with domain $\mathcal{D}(A) = \{x \in X : \text{the above limit exists}\}$.
-
-**Theorem (properties of the generator).** Let $A$ be the generator of a $C_0$-semigroup $\{T(t)\}$.
-
-1. $\mathcal{D}(A)$ is dense in $X$.
-2. $A$ is a closed operator.
-3. For $x \in \mathcal{D}(A)$, the map $t \mapsto T(t)x$ is continuously differentiable and $\frac{d}{dt}T(t)x = AT(t)x = T(t)Ax$.
-4. For $x \in \mathcal{D}(A)$, $T(t)x \in \mathcal{D}(A)$ for all $t \ge 0$.
-5. The generator uniquely determines the semigroup: if two $C_0$-semigroups have the same generator, they are identical.
-
-*Proof of (1).* For $x \in X$, define $x_t = \frac{1}{t}\int_0^t T(s)x \, ds$. The integral exists as a Bochner integral in $X$. Then $x_t \to x$ as $t \to 0^+$ (by strong continuity). We claim $x_t \in \mathcal{D}(A)$:
-
-$$
-\frac{T(h)x_t - x_t}{h} = \frac{1}{t}\left(\frac{1}{h}\int_0^t [T(s+h) - T(s)]x \, ds\right) = \frac{1}{t}\left(\frac{1}{h}\int_t^{t+h} T(s)x \, ds - \frac{1}{h}\int_0^h T(s)x \, ds\right).
-$$
-
-As $h \to 0^+$, the first integral converges to $T(t)x$ and the second to $x$, giving $Ax_t = \frac{1}{t}(T(t)x - x)$. Since $x_t \to x$, the domain $\mathcal{D}(A)$ is dense. $\square$
-
-*Proof of (3).* For $x \in \mathcal{D}(A)$:
-
-$$
-\frac{T(t+h)x - T(t)x}{h} = T(t)\frac{T(h)x - x}{h} \to T(t)Ax \quad \text{as } h \to 0^+.
-$$
-
-The right derivative is $T(t)Ax$. Since $T(t)x \in \mathcal{D}(A)$ (provable by a similar argument), we also get the left derivative, establishing continuous differentiability. The identity $AT(t)x = T(t)Ax$ follows from the commutativity of $T(t)$ with $A$ on $\mathcal{D}(A)$. $\square$
-
-*Proof of (2): closedness.* Suppose $x_n \in \mathcal{D}(A)$, $x_n \to x$, and $Ax_n \to y$. For any $t > 0$:
-
-$$
-T(t)x_n - x_n = \int_0^t T(s)Ax_n \, ds.
-$$
-
-Taking $n \to \infty$: $T(t)x - x = \int_0^t T(s)y \, ds$ (justified by uniform boundedness of $T(s)$ on $[0, t]$ and the dominated convergence theorem for Bochner integrals). Dividing by $t$ and sending $t \to 0^+$:
-
-$$
-\frac{T(t)x - x}{t} = \frac{1}{t}\int_0^t T(s)y \, ds \to y,
-$$
-
-so $x \in \mathcal{D}(A)$ and $Ax = y$. Hence $A$ is closed. $\square$
-
-*Proof of (5): uniqueness.* This is a consequence of the identity $T(t)x - x = \int_0^t T(s)Ax \, ds$ for $x \in \mathcal{D}(A)$. If two semigroups $T_1(t)$ and $T_2(t)$ share the same generator $A$, then for $x \in \mathcal{D}(A)$, the function $s \mapsto T_1(t-s)T_2(s)x$ is differentiable (in $s$) with derivative zero, hence constant. Evaluating at $s = 0$ and $s = t$ gives $T_1(t)x = T_2(t)x$. By density of $\mathcal{D}(A)$, $T_1(t) = T_2(t)$ for all $t$. $\square$
-
-### The resolvent of the generator
-
-The generator $A$ and its resolvent are intimately connected to the semigroup via the **Laplace transform identity**: for $\text{Re}(\lambda) > \omega_0$ (the growth bound),
-
-$$
-R(\lambda, A)x = (\lambda I - A)^{-1}x = \int_0^\infty e^{-\lambda t}T(t)x \, dt \quad \text{for all } x \in X.
-$$
-
-This is a Bochner integral in $X$, converging absolutely since $\|e^{-\lambda t}T(t)x\| \le Me^{(\omega - \text{Re}(\lambda))t}\|x\|$. The identity shows that the resolvent is the Laplace transform of the semigroup — a connection that underlies the entire Hille-Yosida theory.
-
-From this identity one derives the resolvent estimate $\|R(\lambda, A)^n\| \le M/(\text{Re}(\lambda) - \omega)^n$ for $\text{Re}(\lambda) > \omega$ and $n \ge 1$, which appears in the general Hille-Yosida theorem.
-
-### The abstract Cauchy problem
-
-Property (3) means that $u(t) = T(t)u_0$ solves the **abstract Cauchy problem**
-
-$$
-\begin{cases} u'(t) = Au(t), & t > 0, \\ u(0) = u_0, \end{cases}
-$$
-
-for every initial condition $u_0 \in \mathcal{D}(A)$. The solution is *classical* (continuously differentiable in $X$ and satisfies the equation pointwise in $t$) precisely when $u_0 \in \mathcal{D}(A)$. For $u_0 \in X \setminus \mathcal{D}(A)$, the orbit $T(t)u_0$ is a *mild solution* — continuous but not differentiable at $t = 0$.
-
-The concept of mild solutions is important because in many applications, the initial data is not smooth enough to lie in $\mathcal{D}(A)$. For the heat equation, an initial temperature distribution in $L^2$ (say, a step function) does not lie in $H^2$, but the heat semigroup still produces a well-defined $L^2$-valued function $t \mapsto T(t)u_0$ that is continuous for $t \ge 0$ and smooth for $t > 0$.
-
-### Inhomogeneous equations
-
-The abstract Cauchy problem can be extended to inhomogeneous equations: $u'(t) = Au(t) + f(t)$, $u(0) = u_0$. The solution is given by the **variation of constants formula** (also called Duhamel's formula):
-
-$$
-u(t) = T(t)u_0 + \int_0^t T(t-s)f(s)\,ds.
-$$
-
-This is the semigroup analogue of the familiar formula for first-order linear ODE. The integral term accounts for the accumulated effect of the forcing function $f$, propagated by the semigroup.
-
----
-
-## The Hille-Yosida Generation Theorem
-
-The fundamental question of semigroup theory is: *which operators generate $C_0$-semigroups?* The Hille-Yosida theorem gives a complete answer for contraction semigroups.
-
-**Theorem (Hille-Yosida, 1948).** A linear operator $A$ on a Banach space $X$ is the generator of a $C_0$-semigroup of contractions if and only if:
+**Theorem (Hille-Yosida, 1948).** A linear operator $A: D(A) \to X$ is the generator of a contraction $C_0$-semigroup on $X$ if and only if:
 
 1. $A$ is closed and densely defined.
-2. The resolvent set $\rho(A)$ contains $(0, \infty)$, and for every $\lambda > 0$,
+2. The resolvent set $\rho(A)$ contains $(0, \infty)$.
+3. For every $\lambda > 0$, $\|R(\lambda; A)\| \leq 1/\lambda$, equivalently $\|\lambda R(\lambda; A) x\| \leq \|x\|$ for all $x$.
 
-$$
-\|(\lambda I - A)^{-1}\| \le \frac{1}{\lambda}.
-$$
+![Hille-Yosida: characterizing generators of contraction semigroups](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/10-semigroups/fa_v2_10_3_hille_yosida.png)
 
-More generally, $A$ generates a $C_0$-semigroup with $\|T(t)\| \le Me^{\omega t}$ if and only if $A$ is closed, densely defined, $(\omega, \infty) \subset \rho(A)$, and
+The conditions are necessary and sufficient. The forward direction is straightforward: integrating $T(t)$ against $e^{-\lambda t}$ gives $R(\lambda; A) = \int_0^\infty e^{-\lambda t} T(t) \, dt$, the Laplace transform, and the resolvent estimate follows from $\|T(t)\| \leq 1$.
 
-$$
-\|(\lambda I - A)^{-n}\| \le \frac{M}{(\lambda - \omega)^n} \quad \text{for all } \lambda > \omega, \; n \ge 1.
-$$
+The reverse direction is more interesting. Yosida's idea: define the **Yosida approximation** $A_\lambda = \lambda A R(\lambda; A) = \lambda^2 R(\lambda; A) - \lambda I$, which is a *bounded* operator on $X$. The semigroup $T_\lambda(t) = e^{t A_\lambda}$ is then well-defined (matrix exponential of a bounded operator). One shows $T_\lambda(t) \to T(t)$ in the strong topology as $\lambda \to \infty$, and the limit is the desired semigroup. The whole construction is a careful approximation of an unbounded generator by bounded ones, a workhorse pattern in semigroup theory.
 
-**Proof outline (contraction case, sufficiency).** The proof constructs the semigroup via the **Yosida approximation**. For $\lambda > 0$, define the bounded operator
+The general (non-contraction) Hille-Yosida theorem replaces (3) with $\|R(\lambda; A)^n\| \leq M/(\lambda - \omega)^n$ for all $\lambda > \omega$, $n \geq 1$. The growth bound becomes $\omega$ and the constant becomes $M$.
 
-$$
-A_\lambda = \lambda A R(\lambda, A) = \lambda^2 R(\lambda, A) - \lambda I,
-$$
+A corollary worth flagging: **Stone's theorem**. A skew-symmetric operator (i.e., $iA$ self-adjoint) generates a $C_0$-semigroup iff $A$ is skew-adjoint. The semigroup is then a unitary group $T(t) = e^{tA}$ defined for all $t \in \mathbb{R}$. This is the special case of Hille-Yosida for unitary groups, and it is what makes the time evolution of quantum mechanics rigorous.
 
-where $R(\lambda, A) = (\lambda I - A)^{-1}$ is the resolvent. Each $A_\lambda$ is bounded, so $T_\lambda(t) = e^{tA_\lambda}$ is a well-defined uniformly continuous semigroup.
+## Perturbation of Generators
 
-**Step 1 (Yosida approximation converges on the domain).** For $x \in \mathcal{D}(A)$, $A_\lambda x \to Ax$ as $\lambda \to \infty$. This follows from $A_\lambda x = \lambda R(\lambda, A)Ax$ and the fact that $\lambda R(\lambda, A) \to I$ strongly (a standard resolvent identity argument).
+A standard issue in applications: given a generator $A$ of a $C_0$-semigroup, when does $A + B$ also generate a semigroup? The answer depends on what kind of perturbation $B$ is.
 
-**Step 2 (Uniform bound).** The contraction resolvent estimate $\|\lambda R(\lambda, A)\| \le 1$ implies $\|T_\lambda(t)\| \le e^{t\|A_\lambda\|}$. A sharper computation using $A_\lambda = \lambda^2 R(\lambda, A) - \lambda I$ and $\|\lambda R(\lambda, A)\| \le 1$ gives:
+**Bounded perturbation theorem.** If $A$ generates a $C_0$-semigroup and $B$ is bounded, then $A + B$ generates a $C_0$-semigroup, with $T_{A+B}(t)$ given by a Dyson series:
 
-$$
-\|T_\lambda(t)\| = \|e^{t(\lambda^2 R(\lambda,A) - \lambda I)}\| \le e^{-\lambda t} e^{\lambda^2 t \|R(\lambda,A)\|} \le e^{-\lambda t} e^{\lambda t} = 1.
-$$
+$$ T_{A+B}(t) = \sum_{n=0}^\infty \int_{0 \leq s_1 \leq \cdots \leq s_n \leq t} T_A(t - s_n) B T_A(s_n - s_{n-1}) B \cdots B T_A(s_1) \, ds. $$
 
-So each $T_\lambda(t)$ is a contraction.
+This is the operator-theoretic Duhamel formula, generalized. It is the foundation of perturbation theory in quantum mechanics (the Dyson series for the time-evolution operator of a perturbed Hamiltonian).
 
-**Step 3 (Convergence).** For $x \in \mathcal{D}(A)$:
+**Relatively bounded perturbations.** If $A$ generates a contraction semigroup and $B$ is relatively $A$-bounded with bound less than 1 (i.e., $\|Bx\| \leq a \|Ax\| + b\|x\|$ with $a < 1$), then $A + B$ also generates a $C_0$-semigroup. This is the analog of the Kato-Rellich theorem from the previous article. It handles a wide range of physical perturbations.
 
-$$
-T_\lambda(t)x - T_\mu(t)x = \int_0^t \frac{d}{ds}[T_\lambda(t-s)T_\mu(s)x] \, ds = \int_0^t T_\lambda(t-s)T_\mu(s)(A_\mu x - A_\lambda x) \, ds.
-$$
+**Trotter formula.** If $A$ and $B$ separately generate semigroups and $A + B$ (densely defined) is the generator of a semigroup, then
 
-Using the contraction bound and Step 1, $\|T_\lambda(t)x - T_\mu(t)x\| \le t\|A_\mu x - A_\lambda x\| \to 0$ as $\lambda, \mu \to \infty$. By density of $\mathcal{D}(A)$ and the uniform bound, $T_\lambda(t)x$ converges for all $x \in X$, uniformly on compact time intervals.
+$$ T_{A+B}(t) = \lim_{n \to \infty} \left( T_A(t/n) T_B(t/n) \right)^n, $$
 
-**Step 4 (Verification).** Define $T(t)x = \lim_{\lambda \to \infty} T_\lambda(t)x$. One verifies that $T(t)$ is a $C_0$-contraction semigroup and that its generator is $A$. $\square$
+with the limit in the strong topology. This factorizes the combined dynamics into alternating short steps of each individual dynamics. It is the basis of operator splitting methods in numerical PDE.
 
-**Significance.** The Hille-Yosida theorem is the *existence and uniqueness theorem for linear evolution equations in Banach spaces*. It reduces the problem of solving an infinite-dimensional ODE to verifying resolvent estimates — an algebraic/analytic condition that can be checked in concrete cases.
+The perturbation theory of generators is itself a major subject. For full coverage one can consult Engel-Nagel's "One-Parameter Semigroups for Linear Evolution Equations," which is the modern standard reference and well worth reading when one is doing serious work with evolution PDE.
 
-### Historical note
+## The Heat Equation
 
-Einar Hille (1948) and Kosaku Yosida (1948) independently proved this theorem. Hille's approach used Laplace transforms and complex analysis; Yosida's used the approximation scheme described above (now called the Yosida approximation). The two approaches are complementary: Hille's is elegant for proving necessity, while Yosida's construction is more explicit and generalizes better.
+The cleanest example. The heat semigroup on $L^2(\mathbb{R}^n)$ is
 
-The theorem has been extended in many directions: to semigroups on locally convex spaces, to bi-continuous semigroups, to integrated semigroups (which handle operators that are not densely defined), and to nonlinear semigroups (the Crandall-Liggett theorem for accretive operators in Banach spaces).
+$$ (T(t) f)(x) = (4\pi t)^{-n/2} \int_{\mathbb{R}^n} e^{-|x-y|^2/(4t)} f(y) \, dy. $$
 
----
+![The heat equation semigroup smoothing an initial profile](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/10-semigroups/fa_v2_10_4_heat_eq.png)
 
-## Lumer-Phillips Theorem and Dissipative Operators
+This is convolution with the Gaussian heat kernel of width $\sqrt{4t}$. Direct verification: $T(0) = I$ (Gaussian becomes a delta as $t \to 0$), $T(t + s) = T(t) T(s)$ (convolution of Gaussians gives a Gaussian with summed widths), and $T(t) f \to f$ in $L^2$ as $t \to 0^+$ (standard mollifier argument). So $T(t)$ is a $C_0$-semigroup.
 
-The Hille-Yosida resolvent estimates can be difficult to verify directly. The Lumer-Phillips theorem provides a more geometric criterion using the concept of dissipativity.
+The generator is $A = \Delta$, with domain $H^2(\mathbb{R}^n)$. To verify: pick a smooth Schwartz function $f$, expand the heat kernel in a Taylor series, and show that
 
-**Definition.** An operator $A$ on a Banach space $X$ is **dissipative** if for every $x \in \mathcal{D}(A)$, there exists $x^* \in J(x)$ (the duality set: $x^* \in X^*$ with $\langle x, x^* \rangle = \|x\|^2 = \|x^*\|^2$) such that
+$$ \frac{T(t) f - f}{t} \to \Delta f $$
 
-$$
-\text{Re}\,\langle Ax, x^* \rangle \le 0.
-$$
+in $L^2$ as $t \to 0^+$. The orbit $u(t, \cdot) = T(t) f$ then solves the heat equation $\partial_t u = \Delta u$ with initial condition $u(0, \cdot) = f$.
 
-On a Hilbert space $H$, this simplifies to $\text{Re}\,\langle Ax, x \rangle \le 0$ for all $x \in \mathcal{D}(A)$.
+The heat semigroup has a remarkable smoothing property: for any $f \in L^2$ (no smoothness assumed) and any $t > 0$, the function $T(t) f$ is in $C^\infty(\mathbb{R}^n)$. The Gaussian kernel is so well-behaved that convolving with it is an instant regularizer. This is the analytic heart of why the heat equation is parabolic — small in time means smooth in space, immediately.
 
-**Intuition.** Dissipativity means the operator "dissipates energy." For the heat equation, $\text{Re}\,\langle \Delta u, u \rangle = -\|\nabla u\|^2 \le 0$, reflecting the physical fact that heat diffusion reduces temperature gradients.
+A numerical exercise: take $f(x) = \mathbf{1}_{[-1, 1]}(x)$ on $\mathbb{R}$. Then $T(t) f$ is the integral of the Gaussian kernel over $[x - 1, x + 1]$, which equals $\frac{1}{2}(\text{erf}((x+1)/(2\sqrt{t})) - \text{erf}((x-1)/(2\sqrt{t})))$. At $t = 0$ this is the indicator function (with discontinuities at $\pm 1$); at $t > 0$ it is $C^\infty$, with the discontinuity instantly smoothed into an $\text{erf}$ profile. The smoothing is instant and global.
 
-**Theorem (Lumer-Phillips).** Let $A$ be a densely defined operator on a Banach space $X$. Then $A$ generates a $C_0$-semigroup of contractions if and only if:
+## Mean and Variance Picture
 
-1. $A$ is dissipative, and
-2. $\text{Range}(\lambda I - A) = X$ for some (equivalently, all) $\lambda > 0$.
+The heat semigroup has a probabilistic interpretation: $T(t) f = E[f(X_t) | X_0 = x]$, where $X_t$ is Brownian motion starting at $x$. The variance of $X_t$ is $2t$ in each coordinate (in the convention where the generator is $\Delta$, not $\Delta/2$), so the kernel spreads with width proportional to $\sqrt{t}$. This is **Feynman-Kac in disguise**, and it is the foundation of stochastic methods in PDE: solving the heat equation by simulating Brownian motion.
 
-*Proof sketch.* Necessity: the contraction property implies dissipativity via a direct computation. Sufficiency: dissipativity implies $\|(\lambda I - A)x\| \ge \lambda \|x\|$ for all $x \in \mathcal{D}(A)$ and $\lambda > 0$ (this is the key estimate). Combined with the range condition, this gives $(\lambda I - A)^{-1}$ exists on all of $X$ with $\|(\lambda I - A)^{-1}\| \le 1/\lambda$, which is exactly the Hille-Yosida condition. One also verifies closedness using the surjectivity of $\lambda I - A$. $\square$
+The heat semigroup on $L^2$ is also a contraction: $\|T(t) f\|_{L^2} \leq \|f\|_{L^2}$ for all $t \geq 0$, with strict inequality unless $f = 0$. This corresponds to the dissipative nature of heat conduction. In contrast, the Schrödinger semigroup $e^{it\Delta}$ is unitary on $L^2$ — it preserves $L^2$ norm exactly, corresponding to conservation of probability.
 
-**Example: Verifying Lumer-Phillips for the Laplacian.** On $L^2(\Omega)$, the Laplacian $A = \Delta$ with domain $\mathcal{D}(A) = H^2(\Omega) \cap H_0^1(\Omega)$ is dissipative: $\text{Re}\,\langle \Delta u, u \rangle = -\|\nabla u\|^2 \le 0$. The range condition holds because $(\lambda I - \Delta)u = f$ is an elliptic equation with unique solution for every $f \in L^2$ and $\lambda > 0$ (by the Lax-Milgram theorem, which we will prove in Article 12). So Lumer-Phillips gives a contraction semigroup — exactly the heat semigroup on $\Omega$.
+## Analytic Semigroups: A Special Class
 
-This example illustrates a typical workflow: (1) identify the operator and its natural domain, (2) verify dissipativity (often by an integration-by-parts computation), (3) verify the range condition (often by solving an elliptic equation), (4) conclude existence of the semigroup.
+A $C_0$-semigroup $T(t)$ is **analytic** if it extends to a holomorphic function $T(z)$ defined on a sector $\Sigma_\theta = \{z \in \mathbb{C} : |\arg z| < \theta\}$ for some $\theta > 0$, with $\|T(z)\|$ bounded on each sub-sector. Analytic semigroups have remarkable smoothing properties: $T(t) X \subset D(A^k)$ for every $k$ and every $t > 0$, and the orbits are real-analytic in time.
 
-**Corollary.** On a Hilbert space, if $A$ is densely defined, symmetric ($\langle Ax, y \rangle = \langle x, Ay \rangle$), and non-positive ($\langle Ax, x \rangle \le 0$), then $A$ generates a $C_0$-contraction semigroup if and only if the range of $\lambda I - A$ is dense for some $\lambda > 0$.
+The heat semigroup is the standard analytic semigroup: it extends to $T(z) = e^{z \Delta}$ for $\text{Re}(z) > 0$, with the Gaussian kernel $G_z(x) = (4\pi z)^{-n/2} e^{-|x|^2/(4z)}$ analytic in $z$ on the right half-plane. Most parabolic equations give analytic semigroups; their generators are characterized by spectrum lying in a sector and resolvent estimates of the form $\|R(\lambda; A)\| \leq C/|\lambda|$ on the complement of the sector.
 
----
+Analytic semigroups are the cleanest setting for **maximal regularity** results in PDE: the parabolic equation $u' = Au + f$ has solutions with the same regularity as $f$ (modulo derivatives), provided $A$ generates an analytic semigroup. This is the foundation of $L^p$ theory for parabolic equations and one of the main reasons semigroup theory is the right framework for parabolic PDE.
 
-## Application: The Heat Equation via Semigroups
+The complementary class is **contraction semigroups** (which include the unitary groups of Stone's theorem and the Markov semigroups of probability). Contraction semigroups are not generally analytic — the Schrödinger semigroup $e^{it\Delta}$ is unitary but not analytic in $t$, since $\sigma(i\Delta) = i \cdot [0, \infty)$ lies on the imaginary axis, which is the boundary between sectors and not in the interior of any sector. Different physics (parabolic vs hyperbolic vs unitary) gives different semigroup classes, and the technical tools differ accordingly.
 
-Let us work through the heat equation on a bounded domain to see the theory in action.
+## The Wave Equation
 
-**Problem.** Let $\Omega \subset \mathbb{R}^n$ be bounded with smooth boundary. Solve
+Wave equations require a slight reformulation, since they are second-order. Write $\partial_t^2 u = \Delta u$ as a first-order system: with $v = \partial_t u$, the system is
 
-$$
-\begin{cases} u_t = \Delta u & \text{in } \Omega \times (0, \infty), \\ u = 0 & \text{on } \partial\Omega \times (0, \infty), \\ u(0) = u_0 & \text{in } \Omega. \end{cases}
-$$
+$$ \partial_t \begin{pmatrix} u \\ v \end{pmatrix} = \begin{pmatrix} 0 & I \\ \Delta & 0 \end{pmatrix} \begin{pmatrix} u \\ v \end{pmatrix}. $$
 
-**Step 1: Set up the operator.** Let $X = L^2(\Omega)$ and define $A = \Delta$ (the Laplacian) with domain $\mathcal{D}(A) = H^2(\Omega) \cap H_0^1(\Omega)$ (the Friedrichs extension from the previous article). We know $A$ is self-adjoint and non-positive: $\langle Au, u \rangle = -\|\nabla u\|^2 \le 0$.
+This is an abstract Cauchy problem on the energy space $H^1 \oplus L^2$. The generator is the matrix operator above, and the resulting semigroup (actually a group, since it is unitary) is the wave semigroup. The energy $\|\nabla u\|_{L^2}^2 + \|v\|_{L^2}^2$ is conserved, which gives unitarity in the energy norm.
 
-**Step 2: Verify the Lumer-Phillips conditions.**
+Most hyperbolic PDE can be cast as semigroups in a similar way. The semigroup framework subsumes the wave equation, the Klein-Gordon equation, the Maxwell equations, and many others. Each becomes a special case of "$u' = A u$ with appropriate generator," and the general semigroup theory (Hille-Yosida, Trotter, perturbation theory) applies uniformly.
 
-- *Dissipativity:* $\text{Re}\,\langle Au, u \rangle = -\|\nabla u\|^2 \le 0$. Check.
-- *Range condition:* For $\lambda > 0$, the equation $(\lambda I - A)u = f$ reads $\lambda u - \Delta u = f$ with $u \in H^2 \cap H_0^1$. This is an elliptic BVP. By elliptic theory (Lax-Milgram, which we will prove in Article 12), for every $f \in L^2(\Omega)$ there exists a unique $u \in H^2(\Omega) \cap H_0^1(\Omega)$ solving this equation. So $\text{Range}(\lambda I - A) = L^2(\Omega)$. Check.
+## Markov Semigroups and Stochastic Processes
 
-**Step 3: Apply Lumer-Phillips.** The operator $A = \Delta$ (with Dirichlet domain) generates a $C_0$-contraction semigroup $\{T(t)\}_{t \ge 0}$ on $L^2(\Omega)$.
+A semigroup $T(t)$ on a function space is a **Markov semigroup** if it is positive ($f \geq 0 \Rightarrow T(t) f \geq 0$) and preserves constants ($T(t) 1 = 1$). These correspond to Markov processes via $T(t) f(x) = E_x[f(X_t)]$. The generator is the **infinitesimal generator** of the process, given by the Itô formula on the smooth part of the domain.
 
-**Step 4: Interpret.** The solution to the heat equation is $u(t) = T(t)u_0$. For $u_0 \in \mathcal{D}(A) = H^2 \cap H_0^1$, this is a classical solution: $u \in C^1((0,\infty); L^2) \cap C([0,\infty); H^2)$, satisfying $u_t = \Delta u$ in $L^2$ for all $t > 0$. For $u_0 \in L^2(\Omega)$, it is a mild solution.
+Examples:
 
-**Step 5: Further properties.** The spectral theorem for the self-adjoint operator $A$ gives eigenvalues $-\lambda_k$ with $0 < \lambda_1 \le \lambda_2 \le \cdots \to \infty$ and orthonormal eigenfunctions $\{e_k\}$. The semigroup has the explicit representation
+- **Brownian motion** on $\mathbb{R}^n$ has generator $\frac{1}{2} \Delta$ (note the factor of $1/2$ relative to the heat semigroup's $\Delta$, depending on convention).
+- **Ornstein-Uhlenbeck process** has generator $\frac{1}{2} \Delta - x \cdot \nabla$ (drift toward the origin).
+- **Reflected Brownian motion** on a half-line has generator $\frac{1}{2} d^2/dx^2$ with Neumann boundary at $0$.
+- **Killed Brownian motion** has generator $\frac{1}{2} \Delta$ with Dirichlet boundary at the killing set.
+- **Lévy processes** have generators that are Fourier multipliers (the Lévy symbol), generalizing diffusion.
 
-$$
-T(t)u_0 = \sum_{k=1}^\infty e^{-\lambda_k t} \langle u_0, e_k \rangle e_k.
-$$
+The semigroup framework is the right setting for almost all of probability theory's "operator side." The Hille-Yosida theorem becomes a generation theorem for Markov processes — given an operator $A$ satisfying a positivity-preserving and contraction condition, there is a stochastic process whose semigroup has $A$ as generator. This is the bridge between analytic operator theory and probabilistic process theory.
 
-This immediately shows:
-- **Exponential decay:** $\|T(t)u_0\| \le e^{-\lambda_1 t}\|u_0\|$ — the solution decays at a rate determined by the first eigenvalue.
-- **Smoothing:** For $t > 0$, the rapid decay of $e^{-\lambda_k t}$ as $k \to \infty$ means $T(t)u_0$ is in $\mathcal{D}(A^n)$ for every $n$, hence is infinitely smooth. The heat semigroup converts rough initial data into smooth solutions instantaneously.
-- **Irreversibility:** The series cannot be run backward ($t < 0$) because $e^{-\lambda_k t} \to \infty$ — confirming the ill-posedness of the backward heat equation.
+A small numerical example: the OU process generator $A f = \frac{1}{2} f''(x) - x f'(x)$ on $L^2(\mathbb{R}, e^{-x^2/2} dx)$ has eigenfunctions the Hermite polynomials $H_n(x)$ with eigenvalues $-n/2$. The OU semigroup is then $T(t) f = \sum_n e^{-nt/2} \langle f, H_n \rangle H_n / n!$, with explicit decay rate $1/2$ (the **spectral gap** of the OU process). This decay rate translates directly to convergence rates of the OU process to its stationary distribution.
 
-### The wave equation: a group example
+## Long-Time Behavior and Spectral Gaps
 
-For contrast, consider the wave equation $u_{tt} = \Delta u$ on $\Omega$ with Dirichlet boundary conditions. Rewriting as a first-order system $U' = AU$ where $U = (u, u_t)^T$ and $A = \begin{pmatrix} 0 & I \\ \Delta & 0 \end{pmatrix}$, the operator $A$ generates a $C_0$-*group* (not just a semigroup) on $H_0^1(\Omega) \times L^2(\Omega)$. The group property $U(t)U(-t) = I$ reflects the time-reversibility of the wave equation.
+The asymptotic behavior of $T(t) x$ as $t \to \infty$ is controlled by the spectrum of $A$. For self-adjoint $A$ with spectrum $\sigma(A) \subset (-\infty, 0]$, the orbit decays as $\|T(t) x\| \leq e^{-\alpha t} \|x\|$ where $-\alpha = \sup\{\text{Re}(\lambda) : \lambda \in \sigma(A)\}$. The **spectral gap** $\alpha$ is the rate of exponential return to equilibrium.
 
-Unlike the heat semigroup, the wave group does not smooth initial data: singularities propagate at finite speed (Huygens' principle). The wave equation preserves the $H^1 \times L^2$ energy $\|u(t)\|_{H^1}^2 + \|u_t(t)\|_{L^2}^2$ exactly, while the heat equation dissipates energy monotonically. This stark difference between parabolic and hyperbolic evolution is captured cleanly by the semigroup/group distinction.
+In Markov chain theory, the spectral gap of the generator is the rate of mixing — how fast does the chain forget its initial distribution. The **Poincaré inequality** $\text{Var}_\mu(f) \leq C \int |\nabla f|^2 d\mu$, where $\mu$ is the invariant measure, is exactly the spectral gap condition for the diffusion operator on $L^2(\mu)$. The constant $C$ is the inverse spectral gap.
 
-### Beyond Hilbert spaces: the Schrodinger group
+A more refined bound, the **logarithmic Sobolev inequality**, controls relative entropy convergence rather than $L^2$ convergence, and gives much sharper concentration estimates. The Bakry-Émery criterion, which says that a diffusion satisfies a logarithmic Sobolev inequality if a certain curvature-dimension bound holds, is the operator-theoretic foundation of the modern theory of Ricci curvature and gradient flows on metric measure spaces. All of this rests on the same semigroup framework.
 
-The Schrodinger equation $iu_t = -\Delta u$ generates a unitary group $U(t) = e^{it\Delta}$ on $L^2(\mathbb{R}^n)$ (by Stone's theorem, which we will prove in Article 12). Like the wave group, it is reversible; like the heat semigroup, its generator is the Laplacian. The difference lies in the factor $i$: the Schrodinger group preserves $L^2$ norms (probability conservation) but does not dissipate energy or smooth data in the $L^2$ sense (though it does have dispersive estimates in $L^p$).
+For non-self-adjoint generators, spectral gaps and asymptotic behavior are subtler. The spectral radius does not in general control the operator norm of $T(t)$ — there can be **transient growth** before exponential decay sets in (the **pseudospectrum** of Trefethen and Embree captures this). For applications in fluid dynamics, where the linearized Navier-Stokes generator is highly non-normal, transient growth from non-orthogonality of eigenvectors plays a major role in stability theory.
 
-### Analytic semigroups
+## Resolvent Representation: Recovering $T(t)$ from $A$
 
-An important subclass of $C_0$-semigroups consists of **analytic semigroups**: those for which $t \mapsto T(t)$ extends to an analytic function on a sector $\{z \in \mathbb{C} : |\arg z| < \theta\}$ for some $\theta > 0$. The heat semigroup is analytic (the heat kernel makes sense for complex time in a sector), while the wave group and Schrodinger group are not.
+A useful technical tool: given the generator $A$, can we write down the semigroup $T(t)$ explicitly? The Laplace transform identity
 
-Analytic semigroups enjoy additional regularity: $T(t)x \in \mathcal{D}(A^n)$ for all $t > 0$, $n \ge 1$, and $x \in X$ (not just $x \in \mathcal{D}(A)$). This is the abstract manifestation of the instantaneous smoothing property of parabolic equations. A generator $A$ produces an analytic semigroup if and only if the resolvent $(\lambda I - A)^{-1}$ satisfies $\|\lambda(\lambda I - A)^{-1}\| \le M$ in a larger sector $\{|\arg(\lambda - \omega)| < \pi/2 + \theta\}$ (not just the right half-plane).
+$$ R(\lambda; A) = \int_0^\infty e^{-\lambda t} T(t) \, dt $$
 
-### Perturbation theory
+inverts to an inverse Laplace transform / contour integral expression for $T(t)$.
 
-One of the most useful features of semigroup theory is its perturbation results.
+![Resolvent representation: T(t) recovered from the resolvent of A](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/10-semigroups/fa_v2_10_6_resolvent_repr.png)
 
-**Theorem (Bounded perturbation).** If $A$ generates a $C_0$-semigroup and $B \in B(X)$ is a bounded operator, then $A + B$ also generates a $C_0$-semigroup.
+For an analytic semigroup (one whose generator has spectrum in a left half-plane and resolvent estimates extending to a sector), the formula is
 
-This is the infinite-dimensional analogue of the fact that $e^{t(A+B)}$ is well-defined when $B$ is bounded. The proof uses the Dyson series (perturbation expansion) or the Duhamel formula. In applications, this allows one to treat lower-order terms (bounded perturbations of the principal part) without redoing the entire generation argument.
+$$ T(t) = \frac{1}{2\pi i} \int_\Gamma e^{\lambda t} R(\lambda; A) \, d\lambda, $$
 
-**Theorem (Relatively bounded perturbation, Kato).** If $A$ generates a contraction semigroup and $B$ is $A$-bounded with relative bound less than 1 (meaning $\|Bx\| \le a\|x\| + b\|Ax\|$ for all $x \in \mathcal{D}(A)$ with $b < 1$), then $A + B$ also generates a $C_0$-semigroup.
+where $\Gamma$ is a contour around the spectrum of $A$ in the left half-plane. This is **Dunford's formula** for the operator exponential, and it generalizes the contour-integral representation of $e^{tA}$ for matrices.
 
-Kato's perturbation theorem is the workhorse of mathematical physics. It is used to establish self-adjointness and semigroup generation for Schrodinger operators $-\Delta + V$ where the potential $V$ is unbounded (e.g., the Coulomb potential $V(x) = -e^2/|x|$). The idea is that the singular potential, while unbounded, grows slower than the Laplacian and hence can be treated as a "relatively bounded" perturbation.
+The formula is mostly of theoretical use — it lets one transfer estimates on the resolvent to estimates on the semigroup. For practical computation of semigroups, one usually has either an explicit formula (like the heat kernel) or a numerical method (Crank-Nicolson, exponential integrators). But the formula is what makes the abstract correspondence between generator and semigroup precise.
 
-### Asymptotic behavior
+## Time Evolution Under a Semigroup
 
-For many applications, the long-time behavior of the semigroup is as important as its existence. Key results include:
+![Time evolution of a vector under a semigroup](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/10-semigroups/fa_v2_10_5_evolution.png)
 
-- **Exponential stability:** If $\omega_0 < 0$, then $\|T(t)\| \to 0$ exponentially. This corresponds to decay of solutions — physically, to energy dissipation. For the heat semigroup on a bounded domain, $\omega_0 = -\lambda_1$ where $\lambda_1$ is the first eigenvalue of $-\Delta$.
+The semigroup defines a flow on the Banach space, with each initial condition tracing out a continuous trajectory. For $x \in D(A)$ this trajectory is differentiable; for general $x \in X$ it is at least continuous. The decay or growth of the trajectory is controlled by the spectral properties of $A$:
 
-- **Spectral mapping theorem (partial):** For analytic semigroups, $\sigma(T(t)) \setminus \{0\} = e^{t\sigma(A)}$. This connects the spectrum of the semigroup to the spectrum of its generator. For general $C_0$-semigroups, only the weaker inclusion $e^{t\sigma(A)} \subset \sigma(T(t))$ holds; the full spectral mapping theorem can fail.
+- If $\sigma(A) \subset \{\text{Re}(\lambda) \leq 0\}$ and $A$ is the generator of a contraction semigroup, $T(t)$ is bounded.
+- If $\sigma(A) \subset \{\text{Re}(\lambda) \leq -\alpha < 0\}$, then under suitable conditions (e.g., normality), $T(t)$ decays exponentially.
+- If $A$ is skew-adjoint (Stone's theorem case), $T(t)$ is unitary and conserves all norms derived from the inner product.
 
-- **Ergodic theorems:** For bounded semigroups, the Cesaro mean $\frac{1}{t}\int_0^t T(s)\,ds$ converges strongly to a projection onto $\ker(A)$ as $t \to \infty$. This is the continuous analogue of the mean ergodic theorem for operators.
+The connection between spectral properties of $A$ and asymptotic behavior of $T(t)$ is a major theme in stability theory of evolution equations. For self-adjoint $A$ with discrete spectrum bounded above, the dominant decay rate of $T(t)$ is set by the largest (most negative) eigenvalue of $A$ — the **spectral gap**. Spectral gaps appear everywhere in the convergence theory of Markov chains and stochastic processes (the Poincaré inequality, the Cheeger inequality), and they trace back to this same operator-theoretic mechanism.
 
----
+## Stone's Theorem
 
-## What's Next
+The unitary case is so important it deserves its own statement.
 
-We have seen how $C_0$-semigroups provide a rigorous framework for evolution equations, with the Hille-Yosida and Lumer-Phillips theorems characterizing which operators generate well-posed dynamics. The heat equation illustrated the theory in a concrete PDE setting, revealing exponential decay, instantaneous smoothing, and irreversibility as natural consequences of the spectral properties of the generator.
+**Theorem (Stone, 1932).** Let $\{U(t) : t \in \mathbb{R}\}$ be a one-parameter unitary group on a Hilbert space $H$ that is strongly continuous. There exists a unique self-adjoint operator $A$ on $H$ such that $U(t) = e^{itA}$ for all $t$.
 
-In the next article, we develop the theory of **distributions and Sobolev spaces** — the function spaces that underlie the domains of differential operators and make weak solutions to PDE rigorous. These spaces are the natural habitat for the operators and semigroups we have studied.
+Conversely, every self-adjoint operator $A$ generates a unitary group $U(t) = e^{itA}$ via the spectral theorem ($U(t) = \int e^{it\lambda} dE(\lambda)$).
+
+The bijection between self-adjoint operators and one-parameter unitary groups is one of the cleanest results in operator theory. It is the rigorous statement that "observables generate symmetries" in quantum mechanics: the Hamiltonian generates time evolution, momentum generates space translation, angular momentum generates rotation. The group law $U(t + s) = U(t) U(s)$ is the additivity of "amount of time / space / angle of rotation," and the strong continuity is the natural physical assumption that small actions produce small changes.
+
+I will return to Stone's theorem in detail in article 12, where it gets applied directly to the Schrödinger equation.
+
+## Examples to Catalog
+
+A few canonical semigroups and their generators.
+
+![Classical semigroups: heat, transport, Schrodinger](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/10-semigroups/fa_v2_10_7_examples.png)
+
+**Heat semigroup** on $L^2(\mathbb{R}^n)$: $T(t) f = G_t * f$, generator $\Delta$ on $H^2$. Contraction, regularizing.
+
+**Translation semigroup** on $L^2(\mathbb{R})$: $(T(t) f)(x) = f(x - t)$ for $t \geq 0$, generator $-d/dx$ on $H^1$. Isometry (norm-preserving).
+
+**Schrödinger semigroup** on $L^2(\mathbb{R}^n)$: $T(t) f = e^{it\Delta} f$, generator $i\Delta$ on $H^2$. Unitary group (extends to $t \in \mathbb{R}$).
+
+**Ornstein-Uhlenbeck semigroup** on $L^2(\mathbb{R}^n, e^{-|x|^2/2})$: $(T(t) f)(x) = E[f(e^{-t} x + \sqrt{1 - e^{-2t}} G)]$ for $G$ standard Gaussian, generator $A = \Delta - x \cdot \nabla$ on the Sobolev space adapted to the Gaussian measure. Contraction, ergodic.
+
+**Markov semigroup** on $L^p(\Omega, \mu)$ for a Markov chain or process: $T(t) f(x) = E_x[f(X_t)]$. Generator is the infinitesimal generator of the process, defined via the Itô formula.
+
+These cover diffusion, drift, oscillation, and stochastic dynamics — essentially the whole zoo of evolution PDE in mathematical physics and probability.
+
+## Numerical Aspects: Time-Stepping
+
+In practice, when one solves a PDE numerically, one is implicitly approximating a semigroup. The basic schemes:
+
+- **Forward Euler:** $u_{n+1} = (I + \tau A) u_n$, equivalent to approximating $T(\tau) \approx I + \tau A$. Conditionally stable; for the heat equation in 1D, requires $\tau \leq Ch^2$ where $h$ is spatial mesh size (the **CFL condition**).
+- **Backward Euler:** $u_{n+1} = (I - \tau A)^{-1} u_n$, approximating $T(\tau) \approx (I - \tau A)^{-1}$. Unconditionally stable, first-order accurate.
+- **Crank-Nicolson:** $u_{n+1} = (I - \tau A/2)^{-1}(I + \tau A/2) u_n$, approximating $T(\tau) \approx \text{Padé}_{1,1}(\tau A)$. Unconditionally stable, second-order accurate.
+- **Exponential integrators:** $u_{n+1} = e^{\tau A} u_n$ exactly, computed via Krylov subspace methods or direct exponentiation. Higher-order accurate, useful when $A$ has a wide spectral range.
+
+The convergence theory of these schemes is a direct consequence of semigroup theory. The **Lax equivalence theorem** states: for a well-posed Cauchy problem (i.e., one whose solution is given by a $C_0$-semigroup), a consistent finite-difference scheme is convergent iff it is stable. The semigroup framework is the right setting for proving this, since "well-posed Cauchy problem" is precisely "operator generates a $C_0$-semigroup."
+
+## A Worked Example: Population Dynamics with Diffusion
+
+Consider $\partial_t u = \Delta u + r u(1 - u)$ on $L^2(\Omega)$ for some bounded $\Omega$ with Dirichlet boundary, where $r > 0$ is a growth rate. The linearization around $u = 0$ has generator $\Delta + r I$. The semigroup is $T(t) = e^{rt} S(t)$, where $S(t)$ is the Dirichlet heat semigroup on $\Omega$. Spectral analysis: $\Delta$ on $\Omega$ has eigenvalues $-\lambda_n \to -\infty$, so the linearization has eigenvalues $-\lambda_n + r$, which can be positive (instability) if $r > \lambda_1$, the principal Dirichlet eigenvalue.
+
+This is the **Fisher-KPP** equation, and its dynamics — invasion fronts traveling at speed $2\sqrt{r}$, asymptotic stability of the constant state $u = 1$, exponential transients — all follow from the spectral analysis of the linearization. The semigroup framework gives a uniform language for all of this, from existence of solutions to long-time behavior.
+
+A small numerical observation: if you simulate this equation on a 1D interval starting from a bump initial condition, you see the bump first decay (if the interval is small relative to $1/\sqrt{r}$, the linearization is stable) or grow (otherwise) and approach the saturated state $u = 1$. The transition is sharp and is captured by the principal eigenvalue $\lambda_1$ crossing $r$.
+
+## The Lumer-Phillips Theorem and Dissipativity
+
+A useful refinement of Hille-Yosida for contraction semigroups. An operator $A$ on a Banach space is **dissipative** if for every $x \in D(A)$ and every $x^* \in J(x)$ (the duality set), $\text{Re}\langle Ax, x^*\rangle \leq 0$. On a Hilbert space this simplifies to $\text{Re}\langle Ax, x\rangle \leq 0$.
+
+**Lumer-Phillips theorem.** A densely defined operator $A$ generates a contraction $C_0$-semigroup iff $A$ is dissipative and $\text{range}(I - A) = X$.
+
+The advantage of Lumer-Phillips over Hille-Yosida is that one only has to check one resolvent estimate (at $\lambda = 1$, say) rather than estimates at all $\lambda > 0$. For physically motivated operators (Markov generators, dissipative differential operators), checking dissipativity is often easier than estimating the full resolvent. This is the standard tool for proving generation theorems in stochastic analysis.
+
+A canonical example: $A = -d^2/dx^2$ on $L^2[0, 1]$ with Dirichlet boundary conditions. Dissipativity follows from $\langle -u'', u \rangle = \int (u')^2 \geq 0$, so $\langle Au, u \rangle \leq 0$. The range condition $\text{range}(I + A) = L^2$ is the existence of a Dirichlet solution to $u - u'' = f$, a standard elliptic regularity result. Hence by Lumer-Phillips, $-A$ generates a contraction semigroup — the heat semigroup with Dirichlet boundary, our familiar friend.
+
+## Why This Matters: Well-Posedness of Evolution PDE
+
+The single most important consequence of Hille-Yosida is **well-posedness**. A Cauchy problem $u' = Au$, $u(0) = u_0$ on a Banach space is **well-posed** if for every $u_0 \in X$ there is a unique solution $u: [0, \infty) \to X$ that depends continuously on $u_0$. Hille-Yosida says: the Cauchy problem is well-posed iff $A$ is the generator of a $C_0$-semigroup, in which case the solution is $u(t) = T(t) u_0$.
+
+This is the abstract version of Hadamard's three criteria for well-posedness (existence, uniqueness, continuous dependence on data). Semigroup theory turns these criteria into a single resolvent estimate. Once the estimate is verified, well-posedness is automatic.
+
+For the heat equation, the wave equation, the Schrödinger equation, and many others, well-posedness is proved by checking Hille-Yosida or Lumer-Phillips for the appropriate generator. The semigroup framework is therefore not just a convenient unifying language; it is the right framework in which to even ask the well-posedness question for linear evolution PDE.
+
+## Application: Existence Theory for Nonlinear PDE
+
+Although this article is primarily about linear evolution equations, the semigroup framework also forms the backbone of existence theory for **semilinear PDE** of the form
+
+$$ u' = A u + f(u), \quad u(0) = u_0, $$
+
+where $A$ generates a $C_0$-semigroup and $f$ is a Lipschitz nonlinearity. The Duhamel principle gives the integral form
+
+$$ u(t) = T(t) u_0 + \int_0^t T(t - s) f(u(s)) \, ds, $$
+
+and the existence of solutions is then a fixed-point problem for the right-hand side as a map of the unknown function $u$. Banach contraction principle gives short-time existence; Gronwall-type bounds give global existence for sublinear nonlinearities; standard blow-up criteria handle superlinear nonlinearities.
+
+This approach handles a vast number of equations: the Allen-Cahn equation, the Cahn-Hilliard equation, the nonlinear Schrödinger equation, the Navier-Stokes equations (with caveats on uniqueness in 3D), the Hartree equation. For all of these, the linear part generates a semigroup (heat, wave, Schrödinger), and the nonlinear part is added perturbatively. The semigroup structure is what makes the Duhamel formulation possible. Without it, even short-time existence becomes difficult.
+
+The same principle drives **Strichartz estimates** for dispersive equations: refined $L^p L^q$ bounds on the linear semigroup $e^{it\Delta}$, beyond what unitarity gives, lead to small-data global existence for nonlinear Schrödinger equations and the Klein-Gordon equation. The operator-theoretic content is "estimates on the linear semigroup imply estimates on the nonlinear flow," and this is the engine of much of modern dispersive PDE.
+
+## A Few Working Examples to Sit With
+
+Before moving on, here are a few small worked examples that I think capture the flavor of the subject more efficiently than abstract theorems.
+
+**(a) The semigroup $T(t) f(x) = f(x - t)$ on $L^2(\mathbb{R})$, the translation semigroup.** Generator $-d/dx$, dom $H^1(\mathbb{R})$. The semigroup is an isometry: it preserves $L^2$ norm exactly. Spectrum of generator: the imaginary axis. For "$t \in \mathbb{R}$" we extend to a unitary group; the generator is essentially self-adjoint after multiplication by $i$, namely $i \cdot (-i d/dx) = d/dx$, but in the context of the right shift the generator $-d/dx$ is not self-adjoint, only skew-adjoint.
+
+**(b) Decay semigroup $T(t) f = e^{-t} f$ on any Banach space.** Generator: $-I$. Spectrum: $\{-1\}$. Norm: $e^{-t}$. The simplest possible nontrivial example, and a useful sanity check for any new theorem about semigroups.
+
+**(c) Diagonal semigroup on $\ell^2$:** $T(t)(x_1, x_2, \ldots) = (e^{a_1 t} x_1, e^{a_2 t} x_2, \ldots)$ with $a_n$ a real bounded sequence going to $-\infty$. Generator: diagonal multiplication by $a_n$. Spectrum: $\overline{\{a_n\}}$. Norm: $e^{(\sup a_n) t}$. The rate of decay is set by the largest $a_n$.
+
+**(d) Free Schrödinger semigroup $T(t) f = e^{it\Delta} f$.** Unitary group on $L^2(\mathbb{R}^n)$. Explicit kernel: $T(t) f(x) = (4\pi i t)^{-n/2} \int e^{i|x-y|^2/(4t)} f(y) dy$. Smoothing in some senses (Strichartz estimates) but not in regularity (preserves all Sobolev norms). The dispersive analog of the heat semigroup.
+
+These four together — translation, decay, diagonal, Schrödinger — span the qualitative behaviors one encounters in semigroup theory: isometric, contractive, dissipative on different scales, dispersive. Most semigroups in practice are perturbations or combinations of these. Building intuition by working through them is, in my experience, the fastest route to fluency.
+
+## What's Next, and Why
+
+We have reached evolution equations in operator form. The next article is somewhat of an interlude before the grand finale: it introduces **distributions** and **Sobolev spaces**, the analytic infrastructure on which much of PDE rests. Distributions are continuous linear functionals on test functions — generalized functions like the Dirac delta. Sobolev spaces are the natural domains for differential operators, providing the right level of regularity for weak solutions to PDE. The interplay between semigroups (this article) and Sobolev spaces (next article) is what gives us the modern theory of weak and variational solutions to elliptic and parabolic problems.
+
+After that, article 12 brings everything together in applications: Lax-Milgram for elliptic PDE, variational principles, Stone's theorem applied to the Schrödinger equation, and the general framework of quantum observables. The semigroup framework of this article will be the dynamical complement to the static spectral theory we have been building.
+
+Functional analysis is at its best when it provides a single language for problems that look very different on the surface. The semigroup formalism is a particularly clean example: heat conduction, wave propagation, quantum dynamics, stochastic processes — all of these become "$u' = A u$" with different generators. The differences between them are encoded in the spectral properties of the generator, not in any difference of mathematical formalism. This unification is the long-standing payoff of operator theory.
+
+A historical note worth mentioning: Hille's theorem dates from 1948, Yosida's almost simultaneously, and Phillips refined the theory in the 1950s. The framework was a deliberate attempt to unify the disparate existence theories for different evolution PDE that had grown up in the first half of the 20th century. The unification was so successful that within a decade, every textbook on PDE had adopted the semigroup language for evolution problems. It is a rare example of a mathematical framework that absorbed a generation of ad-hoc results into a single theorem.
+
+The downside of the semigroup framework is that it covers only the linear case, with nonlinear perturbations handled via fixed-point techniques. For genuinely nonlinear evolution (the Navier-Stokes equations in 3D, fully nonlinear Hamilton-Jacobi equations, Ricci flow), one needs additional tools: viscosity solutions, weak solutions, geometric measure theory. But in every case the linear backbone is still semigroup theory, and the nonlinear add-ons are precisely that — add-ons. Get the semigroup right, and the rest follows. The Hille-Yosida theorem is the gateway, and once one is comfortable applying it, evolution PDE stop being mysterious — they become exercises in identifying the right generator, verifying the hypotheses, and then reading off the dynamics from the spectrum. Twenty pages of textbook reduce to a sequence of concrete checks.
 
 ---
 

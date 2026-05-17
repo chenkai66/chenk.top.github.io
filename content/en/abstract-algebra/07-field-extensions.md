@@ -17,36 +17,42 @@ series_total: 12
 translationKey: "abstract-algebra-7"
 ---
 
-Every mathematician, at some point, encounters a polynomial that refuses to be solved within the number system at hand. The ancient Greeks discovered that $\sqrt{2}$ is irrational — that is, $x^2 - 2$ has no solution in $\mathbb{Q}$. The resolution was not to abandon the polynomial, but to enlarge the field. Field extensions formalize this enlargement and provide the structural scaffolding on which Galois theory is built.
+Every mathematician, at some point, encounters a polynomial that refuses to be solved within the number system at hand. The ancient Greeks discovered that $\sqrt{2}$ is irrational — that is, $x^2 - 2$ has no solution in $\mathbb{Q}$. The resolution was not to abandon the polynomial, but to enlarge the field. Field extensions formalize this enlargement and give us the structural scaffolding on which Galois theory is built.
 
-This article develops the theory of field extensions from the ground up: degrees and bases, simple extensions and minimal polynomials, the tower law, splitting fields, and separability. By the end, we will have the full toolkit needed to state and prove the Fundamental Theorem of Galois Theory in the next article.
+I find it useful to think of a field extension as a kind of controlled inflation of a number system. We pump in just enough new elements to solve the equations we care about, and the tower law tells us exactly how much air we used. The resulting picture is much cleaner than I expected when I first met it: every step has a finite degree, the degrees multiply along chains, and the whole thing turns into linear algebra over the base field. This article develops the theory from the ground up: degrees and bases, simple extensions and minimal polynomials, the tower law, splitting fields, and separability. By the end, we will have the full toolkit needed to state and prove the Fundamental Theorem of Galois Theory in the next article.
 
 ---
 
 ## Motivation: Solving Polynomials Requires Bigger Fields
 
-Consider the polynomial $f(x) = x^2 + 1$ over $\mathbb{R}$. It has no real roots, since $x^2 \geq 0$ for all $x \in \mathbb{R}$. But if we pass to the larger field $\mathbb{C} = \mathbb{R}(i)$, the polynomial factors as $(x - i)(x + i)$.
+Consider the polynomial $f(x) = x^2 + 1$ over $\mathbb{R}$. It has no real roots, since $x^2 \geq 0$ for all $x \in \mathbb{R}$. But if we pass to the larger field $\mathbb{C} = \mathbb{R}(i)$, the polynomial factors as $(x - i)(x + i)$. The strategy is brutally simple: if your equation has no solution, build a field where it does.
 
 This situation is ubiquitous in algebra:
 
 - $x^2 - 2$ has no root in $\mathbb{Q}$, but has roots $\pm\sqrt{2}$ in $\mathbb{Q}(\sqrt{2})$.
 - $x^2 - 5$ has no root in $\mathbb{Q}(\sqrt{2})$, but does in $\mathbb{Q}(\sqrt{2}, \sqrt{5})$.
 - $x^3 - 2$ has no root in $\mathbb{Q}$, but has a real root $\sqrt[3]{2}$ in $\mathbb{Q}(\sqrt[3]{2})$ and all three roots in $\mathbb{Q}(\sqrt[3]{2}, \omega)$, where $\omega = e^{2\pi i/3}$ is a primitive cube root of unity.
+- $x^p - x - 1$ over $\mathbb{F}_p$ never factors completely until you adjoin a root from $\overline{\mathbb{F}_p}$.
 
-The pattern is always the same: given a polynomial over a field $K$ that we cannot factor completely, we build a bigger field $L \supseteq K$ in which the polynomial does factor. The theory of field extensions makes this process precise, answering three fundamental questions: how do we construct these larger fields, how "big" are they relative to the base field, and when does a minimal such extension exist?
+The pattern is always the same: given a polynomial over a field $K$ that we cannot factor completely, we build a bigger field $L \supseteq K$ in which the polynomial does factor. The theory of field extensions makes this process precise, answering three fundamental questions: how do we construct these larger fields, how big are they relative to the base field, and when does a minimal such extension exist?
 
 Historically, this line of thinking emerged from centuries of attempts to find root formulas for polynomials. The quadratic formula works in degree 2. Cardano's formula handles degree 3. Ferrari's method extends to degree 4. But degree 5 resisted all attacks. Understanding *why* required a completely new perspective — not on the roots themselves, but on the symmetries of the field extensions they generate. Field extensions are thus not merely a technical convenience; they are the language in which the deepest structural results of algebra are expressed.
 
+![Tower of field extensions: Q ⊂ Q(√2) ⊂ Q(√2,√3)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/07-field-extensions/aa_v2_07_1_extension_tower.png)
+
+A small concrete computation to anchor things. Take $K = \mathbb{Q}$ and $L = \mathbb{Q}(\sqrt{2})$. Every element of $L$ has the form $a + b\sqrt{2}$ with $a, b \in \mathbb{Q}$. Multiplication: $(a + b\sqrt{2})(c + d\sqrt{2}) = (ac + 2bd) + (ad + bc)\sqrt{2}$. Inversion: $(a + b\sqrt{2})^{-1} = \frac{a - b\sqrt{2}}{a^2 - 2b^2}$, well-defined as long as $a^2 - 2b^2 \neq 0$, which holds whenever $(a,b) \neq (0,0)$ since $\sqrt{2}$ is irrational. So $L$ really is a field, and as a $\mathbb{Q}$-vector space it has basis $\{1, \sqrt{2}\}$.
+
+**Why this matters.** Once you accept that "solve a polynomial" means "build the right field," a huge swath of classical mathematics becomes uniform. Trisecting an angle, doubling a cube, constructing a regular 17-gon, deciding whether a quintic admits a closed-form solution — all of these reduce to questions about the existence and degree of certain extensions. The Greeks had no way to phrase "$60^\circ$ cannot be trisected" as a clean theorem; we do, and the language is field extensions. The conceptual leap from "find a number" to "construct a field" is the whole point of the subject.
+
+There is also a useful bookkeeping benefit. When you start hopping between $\mathbb{Q}$, $\mathbb{Q}(\sqrt{2})$, $\mathbb{Q}(\sqrt{2}, i)$, and $\overline{\mathbb{Q}}$, you can lose track of which arithmetic identities hold where. Treating each field as a vector space over the previous one gives you dimension-counting as a built-in sanity check: if the degrees don't multiply correctly, you have a bug somewhere in your derivation. I have caught more than one mistake of my own this way.
+
 ---
-
-
-![Tower of field extensions over Q](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/07-field-extensions/aa_fig7_field_tower.png)
 
 ## Field Extensions and Degree
 
 **Definition.** A *field extension* is a pair of fields $K \subseteq L$ (equivalently, an injective field homomorphism $K \hookrightarrow L$). We write $L/K$ and call $K$ the *base field* (or *ground field*) and $L$ the *extension field*. The notation $L/K$ does not mean a quotient — it is simply a conventional way to indicate that $L$ extends $K$.
 
-Since $L$ is a field containing $K$, it carries the structure of a vector space over $K$: addition in $L$ is the vector addition, and scalar multiplication by elements of $K$ is given by the field multiplication in $L$. The *degree* of the extension is
+Since $L$ is a field containing $K$, it carries the structure of a vector space over $K$: addition in $L$ is the vector addition, and scalar multiplication by elements of $K$ is given by the field multiplication in $L$. This is the linchpin that lets us bring linear algebra to bear on what looks like a question about roots of polynomials. The *degree* of the extension is
 
 $$[L : K] = \dim_K L,$$
 
@@ -54,258 +60,250 @@ the dimension of $L$ as a $K$-vector space. If $[L:K]$ is finite, we say $L/K$ i
 
 **Example 1 ($\mathbb{C}/\mathbb{R}$, degree 2).** Every complex number can be written as $a + bi$ with $a, b \in \mathbb{R}$. The set $\{1, i\}$ is linearly independent over $\mathbb{R}$ (since $a + bi = 0$ with $a,b$ real forces $a = b = 0$) and spans $\mathbb{C}$. So $[\mathbb{C}:\mathbb{R}] = 2$.
 
-**Example 2 ($\mathbb{Q}(\sqrt{2})/\mathbb{Q}$, degree 2).** Define $\mathbb{Q}(\sqrt{2}) = \{a + b\sqrt{2} : a, b \in \mathbb{Q}\}$. This is indeed a field: it is closed under addition and multiplication (using $(\sqrt{2})^2 = 2$), and inverses exist because $1/(a + b\sqrt{2}) = (a - b\sqrt{2})/(a^2 - 2b^2)$, and the denominator $a^2 - 2b^2$ is nonzero when $(a,b) \neq (0,0)$ since $\sqrt{2}$ is irrational. A basis over $\mathbb{Q}$ is $\{1, \sqrt{2}\}$, so $[\mathbb{Q}(\sqrt{2}):\mathbb{Q}] = 2$.
+**Example 2 ($\mathbb{Q}(\sqrt{2})/\mathbb{Q}$, degree 2).** Define $\mathbb{Q}(\sqrt{2}) = \{a + b\sqrt{2} : a, b \in \mathbb{Q}\}$. This is indeed a field: it is closed under addition and multiplication (using $(\sqrt{2})^2 = 2$), and inverses exist because $1/(a + b\sqrt{2}) = (a - b\sqrt{2})/(a^2 - 2b^2)$, and the denominator is nonzero when $(a,b) \neq (0,0)$ since $\sqrt{2}$ is irrational. A basis over $\mathbb{Q}$ is $\{1, \sqrt{2}\}$.
 
-**Example 3 ($\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q}$, degree 3).** We claim $[\mathbb{Q}(\sqrt[3]{2}):\mathbb{Q}] = 3$ with basis $\{1, \sqrt[3]{2}, \sqrt[3]{4}\}$. Every element of $\mathbb{Q}(\sqrt[3]{2})$ can be written as $a + b\sqrt[3]{2} + c\sqrt[3]{4}$ with $a,b,c \in \mathbb{Q}$. To verify linear independence: suppose $a + b\sqrt[3]{2} + c\sqrt[3]{4} = 0$ with $a,b,c \in \mathbb{Q}$. If any coefficient is nonzero, then $\sqrt[3]{2}$ satisfies a polynomial of degree at most 2 over $\mathbb{Q}$. But the minimal polynomial of $\sqrt[3]{2}$ over $\mathbb{Q}$ is $x^3 - 2$, which is irreducible by the rational root theorem (the only candidates $\pm 1, \pm 2$ fail). A root of an irreducible cubic cannot satisfy a quadratic. Contradiction.
+**Example 3 ($\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q}$, degree 3).** $\{1, \sqrt[3]{2}, \sqrt[3]{4}\}$ is a $\mathbb{Q}$-basis. Linear independence follows because the minimal polynomial of $\sqrt[3]{2}$ over $\mathbb{Q}$ is $x^3 - 2$, which is irreducible by Eisenstein at $p = 2$; a root of an irreducible cubic cannot satisfy a quadratic.
 
-**Example 4 ($\mathbb{R}/\mathbb{Q}$, infinite).** The extension $\mathbb{R}/\mathbb{Q}$ has infinite degree. One way to see this: $\mathbb{R}$ is uncountable, while any finite-dimensional vector space over $\mathbb{Q}$ is countable (being a countable union of countable sets). More concretely, the elements $1, \sqrt{2}, \sqrt{3}, \sqrt{5}, \sqrt{7}, \ldots$ (square roots of distinct primes) are linearly independent over $\mathbb{Q}$, which already shows $[\mathbb{R}:\mathbb{Q}] \geq \aleph_0$. In fact, $[\mathbb{R}:\mathbb{Q}]$ has the cardinality of the continuum.
+**Example 4 ($\mathbb{Q}(\sqrt{2}, \sqrt{3})/\mathbb{Q}$, degree 4).** Basis $\{1, \sqrt{2}, \sqrt{3}, \sqrt{6}\}$. Independence: suppose $a + b\sqrt{2} + c\sqrt{3} + d\sqrt{6} = 0$, regroup as $(a+b\sqrt{2}) + \sqrt{3}(c+d\sqrt{2}) = 0$. Since $\sqrt{3} \notin \mathbb{Q}(\sqrt{2})$ (otherwise $\sqrt{3} = p + q\sqrt{2}$ would force $3 = p^2 + 2q^2 + 2pq\sqrt{2}$, hence $pq = 0$, leading to a contradiction in either branch), both bracketed terms vanish, and Example 2 finishes the job.
 
-**Algebraic vs. transcendental elements.** An element $\alpha \in L$ is *algebraic over $K$* if there exists a nonzero polynomial $f(x) \in K[x]$ with $f(\alpha) = 0$. Otherwise, $\alpha$ is *transcendental over $K$*. A field extension $L/K$ is *algebraic* if every element of $L$ is algebraic over $K$.
+**Example 5 ($\mathbb{R}/\mathbb{Q}$, infinite).** $\mathbb{R}$ is uncountable, while any finite-dimensional vector space over $\mathbb{Q}$ is countable. More concretely, the elements $1, \sqrt{2}, \sqrt{3}, \sqrt{5}, \sqrt{7}, \ldots$ (square roots of distinct primes) are $\mathbb{Q}$-linearly independent, which already produces an infinite-dimensional subspace.
 
-**Proposition.** Every finite extension is algebraic.
+**Example 6 ($\mathbb{C}/\mathbb{Q}$, infinite).** Same argument as for $\mathbb{R}/\mathbb{Q}$.
 
-*Proof.* If $[L:K] = n$ and $\alpha \in L$, then the $n+1$ elements $1, \alpha, \alpha^2, \ldots, \alpha^n$ are linearly dependent over $K$, so there exist $a_0, \ldots, a_n \in K$, not all zero, with $a_0 + a_1\alpha + \cdots + a_n\alpha^n = 0$. This is a polynomial relation, so $\alpha$ is algebraic over $K$. $\blacksquare$
+**Why this matters.** The degree is the single most informative invariant of an extension. It tells us how much the field grew, it bounds the number of automorphisms (a fact we will exploit ruthlessly in the Galois correspondence), and via the tower law it composes multiplicatively, turning what could be a tangled lattice computation into arithmetic on integers. When you see "degree" in the rest of this article, read it as "the structural dial we will turn."
 
-The converse is false: $\overline{\mathbb{Q}}/\mathbb{Q}$ (the field of all algebraic numbers) is an algebraic extension of infinite degree.
+Two practical heuristics worth internalizing now:
+
+1. *To lower-bound a degree, exhibit linearly independent elements.* If you can show that $1, \alpha, \alpha^2, \ldots, \alpha^{k-1}$ are $K$-independent, then $[K(\alpha) : K] \geq k$. This is usually the easy half; people get tripped up on the next step.
+2. *To upper-bound a degree, exhibit a polynomial.* If $\alpha$ satisfies a degree-$k$ polynomial in $K[x]$, then $[K(\alpha) : K] \leq k$. Combined with the lower bound and irreducibility, this nails the degree exactly.
+
+The same two-sided argument — find a polynomial, then check it is the minimal one — is how almost every degree computation in this article actually proceeds.
 
 ---
 
 ## Simple Extensions and Minimal Polynomials
 
-**Definition.** Given a field extension $L/K$ and an element $\alpha \in L$, the *simple extension* $K(\alpha)$ is the smallest subfield of $L$ containing both $K$ and $\alpha$. Concretely, $K(\alpha)$ consists of all elements of $L$ that can be expressed as rational functions of $\alpha$ with coefficients in $K$:
+**Definition.** An extension $L/K$ is *simple* if $L = K(\alpha)$ for some $\alpha \in L$. The element $\alpha$ is a *primitive element*.
 
-$$K(\alpha) = \left\{ \frac{f(\alpha)}{g(\alpha)} : f, g \in K[x], \ g(\alpha) \neq 0 \right\}.$$
+**Definition.** Let $\alpha \in L$. We say $\alpha$ is *algebraic over $K$* if $f(\alpha) = 0$ for some nonzero polynomial $f(x) \in K[x]$. Otherwise, $\alpha$ is *transcendental over $K$*.
 
-There are two fundamentally different cases, depending on whether $\alpha$ is algebraic or transcendental over $K$.
+**Examples.**
 
-### The Algebraic Case
+- $\sqrt{2}$ is algebraic over $\mathbb{Q}$, satisfying $x^2 - 2 = 0$.
+- $i$ is algebraic over $\mathbb{Q}$, satisfying $x^2 + 1 = 0$.
+- $\pi$ and $e$ are transcendental over $\mathbb{Q}$ (Lindemann 1882, Hermite 1873). The proofs are not algebraic — they use analytic estimates on power-series remainders — and they are also not easy.
+- Every element of $\mathbb{F}_q$ (the field of $q$ elements) is algebraic over $\mathbb{F}_p$, since $\mathbb{F}_q$ is a finite-dimensional $\mathbb{F}_p$-vector space.
 
-Suppose $\alpha$ is algebraic over $K$. Among all nonzero polynomials in $K[x]$ having $\alpha$ as a root, there is a unique monic polynomial of smallest degree.
+![The minimal polynomial determining the degree of an extension](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/07-field-extensions/aa_v2_07_2_minimal_poly.png)
 
-**Definition.** The *minimal polynomial* of $\alpha$ over $K$, denoted $\min_K(\alpha)$ or $m_\alpha(x)$, is the unique monic polynomial of smallest degree in $K[x]$ that vanishes at $\alpha$.
+**Theorem (Minimal Polynomial).** If $\alpha \in L$ is algebraic over $K$, then there exists a unique monic irreducible polynomial $m_\alpha(x) \in K[x]$ such that $m_\alpha(\alpha) = 0$. Moreover, $m_\alpha(x)$ divides every polynomial $f(x) \in K[x]$ with $f(\alpha) = 0$, and $K(\alpha) \cong K[x]/(m_\alpha)$.
 
-**Theorem (Properties of the minimal polynomial).** Let $\alpha$ be algebraic over $K$ with minimal polynomial $m(x)$ of degree $n$. Then:
+*Proof.* Consider the evaluation homomorphism $\varphi : K[x] \to L$ sending $f(x) \mapsto f(\alpha)$. The kernel is a nonzero ideal of $K[x]$ (since $\alpha$ is algebraic). $K[x]$ is a PID, so the kernel is generated by a single polynomial; the unique monic generator is $m_\alpha$. It is irreducible because $K[x]/\ker\varphi \cong K[\alpha]$ is a subring of $L$, hence an integral domain, and an ideal in a PID has integral-domain quotient iff it is prime iff its generator is irreducible. Maximality of $(m_\alpha)$ then gives that $K[\alpha]$ is itself a field, so $K(\alpha) = K[\alpha]$. $\square$
 
-1. $m(x)$ is irreducible over $K$.
-2. If $f(x) \in K[x]$ satisfies $f(\alpha) = 0$, then $m(x) \mid f(x)$ in $K[x]$.
-3. $K(\alpha) \cong K[x]/(m(x))$ as $K$-algebras.
-4. $[K(\alpha) : K] = n$, and $\{1, \alpha, \alpha^2, \ldots, \alpha^{n-1}\}$ is a basis for $K(\alpha)$ over $K$.
+**Theorem (Structure of Simple Algebraic Extensions).** If $\alpha$ is algebraic over $K$ with minimal polynomial $m_\alpha$ of degree $n$, then $\{1, \alpha, \alpha^2, \ldots, \alpha^{n-1}\}$ is a $K$-basis of $K(\alpha)$, so $[K(\alpha) : K] = n$.
 
-*Proof.*
+The reason is that polynomials of degree $< n$ are a complete set of coset representatives in $K[x]/(m_\alpha)$; under the isomorphism with $K(\alpha)$ they map to $1, \alpha, \ldots, \alpha^{n-1}$.
 
-(1) Suppose $m(x) = g(x)h(x)$ with $1 \leq \deg g, \deg h < \deg m$. Then $0 = m(\alpha) = g(\alpha)h(\alpha)$. Since $L$ is a field (hence an integral domain), either $g(\alpha) = 0$ or $h(\alpha) = 0$. Either way, we have a monic polynomial of degree less than $\deg m$ vanishing at $\alpha$ (after dividing by the leading coefficient), contradicting the minimality of $m$.
+**Why this matters.** This single theorem replaces a potentially infinite-dimensional field with a finite-dimensional vector space whose multiplication table you can write on a napkin. Every computation in $\mathbb{Q}(\sqrt[3]{2})$ becomes a computation in $\mathbb{Q}[x]/(x^3 - 2)$ — and the latter is just polynomial arithmetic mod $x^3 - 2$. Inverses come for free via Bezout: if $f(\alpha) \neq 0$, then $\gcd(f, m_\alpha) = 1$, so $sf + tm_\alpha = 1$ for some $s, t \in K[x]$, and evaluating at $\alpha$ gives $f(\alpha)^{-1} = s(\alpha)$, a polynomial in $\alpha$.
 
-(2) By the division algorithm, $f(x) = q(x)m(x) + r(x)$ with $\deg r < \deg m$. Evaluating at $\alpha$: $0 = f(\alpha) = q(\alpha) \cdot 0 + r(\alpha) = r(\alpha)$. If $r \neq 0$, dividing by its leading coefficient gives a monic polynomial of degree less than $\deg m$ vanishing at $\alpha$ — contradiction. So $r = 0$ and $m \mid f$.
-
-(3) Consider the evaluation homomorphism $\operatorname{ev}_\alpha : K[x] \to L$ defined by $f(x) \mapsto f(\alpha)$. Its image is $K[\alpha]$, the ring of polynomial expressions in $\alpha$. Its kernel is $\{f \in K[x] : f(\alpha) = 0\}$, which equals $(m(x))$ by part (2). Since $K[x]$ is a PID and $m(x)$ is irreducible, $(m(x))$ is a maximal ideal, so $K[x]/(m(x)) \cong K[\alpha]$ is a field. But $K[\alpha]$ is a subfield of $L$ containing $K$ and $\alpha$, and it is contained in every such subfield, so $K[\alpha] = K(\alpha)$.
-
-(4) In $K[x]/(m(x))$, every coset is represented by a unique polynomial of degree $< n$ (by the division algorithm). So $\{\overline{1}, \overline{x}, \ldots, \overline{x^{n-1}}\}$ is a basis over $K$. Under the isomorphism $K[x]/(m(x)) \cong K(\alpha)$, these correspond to $\{1, \alpha, \ldots, \alpha^{n-1}\}$. $\blacksquare$
-
-**Remark.** Part (3) reveals something important: in the algebraic case, $K(\alpha) = K[\alpha]$ — every rational expression in $\alpha$ can be reduced to a polynomial expression. The point is that inverses come for free: if $f(\alpha) \neq 0$, then $\gcd(f(x), m(x)) = 1$ (since $m$ is irreducible and $m \nmid f$), so by Bezout's identity there exist $s, t \in K[x]$ with $s(x)f(x) + t(x)m(x) = 1$. Evaluating at $\alpha$: $s(\alpha)f(\alpha) = 1$, so $f(\alpha)^{-1} = s(\alpha)$ is a polynomial in $\alpha$.
+There is also a representation-theoretic angle that I find pleasant: multiplication by $\alpha$ is a $K$-linear endomorphism of $K(\alpha)$. In the basis $\{1, \alpha, \ldots, \alpha^{n-1}\}$ it is the *companion matrix* of $m_\alpha$. So $m_\alpha$ is simultaneously the minimal polynomial of $\alpha$ as an algebraic element *and* the minimal polynomial of "multiplication by $\alpha$" as a linear operator. That is not a coincidence — it is the same ideal of polynomials annihilating the same vector. Field theory and linear algebra fit together more tightly than they look on a first pass.
 
 ### Worked Example: Arithmetic in $\mathbb{Q}(\sqrt{2})$
 
-The minimal polynomial of $\sqrt{2}$ over $\mathbb{Q}$ is $m(x) = x^2 - 2$, which is irreducible over $\mathbb{Q}$ by Eisenstein's criterion at $p = 2$ (or by the rational root theorem). Therefore $[\mathbb{Q}(\sqrt{2}) : \mathbb{Q}] = 2$ with basis $\{1, \sqrt{2}\}$.
+Minimal polynomial $m(x) = x^2 - 2$ (irreducible by Eisenstein at $p=2$). Basis $\{1, \sqrt{2}\}$.
 
-**Multiplication.** $(3 + 5\sqrt{2})(1 - 2\sqrt{2}) = 3 - 6\sqrt{2} + 5\sqrt{2} - 10(\sqrt{2})^2 = 3 - \sqrt{2} - 20 = -17 - \sqrt{2}$.
+Multiplication: $(3 + 5\sqrt{2})(1 - 2\sqrt{2}) = 3 - 6\sqrt{2} + 5\sqrt{2} - 10\cdot 2 = -17 - \sqrt{2}$.
 
-**Inversion.** To find $(3 + 5\sqrt{2})^{-1}$, multiply numerator and denominator by the conjugate:
-
-$$\frac{1}{3 + 5\sqrt{2}} = \frac{3 - 5\sqrt{2}}{(3)^2 - 2(5)^2} = \frac{3 - 5\sqrt{2}}{9 - 50} = \frac{3 - 5\sqrt{2}}{-41} = -\frac{3}{41} + \frac{5}{41}\sqrt{2}.$$
+Inversion: $(3 + 5\sqrt{2})^{-1} = \frac{3 - 5\sqrt{2}}{9 - 50} = -\frac{3}{41} + \frac{5}{41}\sqrt{2}$.
 
 ### Worked Example: Arithmetic in $\mathbb{Q}(\sqrt[3]{2})$
 
-The minimal polynomial of $\sqrt[3]{2}$ over $\mathbb{Q}$ is $x^3 - 2$. Let $\alpha = \sqrt[3]{2}$. Then $[\mathbb{Q}(\alpha):\mathbb{Q}] = 3$ with basis $\{1, \alpha, \alpha^2\}$.
+Let $\alpha = \sqrt[3]{2}$, so $\alpha^3 = 2$. Basis $\{1, \alpha, \alpha^2\}$.
 
-**Multiplication.** $(1 + \alpha)(2 - \alpha + \alpha^2) = 2 - \alpha + \alpha^2 + 2\alpha - \alpha^2 + \alpha^3 = 2 + \alpha + \alpha^3 = 2 + \alpha + 2 = 4 + \alpha$, using $\alpha^3 = 2$.
+Multiplication: $(1 + \alpha)(2 - \alpha + \alpha^2) = 2 - \alpha + \alpha^2 + 2\alpha - \alpha^2 + \alpha^3 = 2 + \alpha + 2 = 4 + \alpha$.
 
-**Inversion.** To find $(1 + \alpha)^{-1}$, use the extended Euclidean algorithm on $1 + x$ and $x^3 - 2$ in $\mathbb{Q}[x]$. We need $s(x)(1+x) + t(x)(x^3-2) = 1$. Performing polynomial long division: $x^3 - 2 = (x^2 - x + 1)(x + 1) + (-3)$, so $-3 = (x^3 - 2) - (x^2 - x + 1)(x+1)$, giving $1 = -\frac{1}{3}(x^3-2) + \frac{1}{3}(x^2-x+1)(x+1)$. Setting $x = \alpha$: $(1+\alpha)^{-1} = \frac{1}{3}(\alpha^2 - \alpha + 1)$.
-
-Check: $\frac{1}{3}(\alpha^2 - \alpha + 1)(1 + \alpha) = \frac{1}{3}(\alpha^2 - \alpha + 1 + \alpha^3 - \alpha^2 + \alpha) = \frac{1}{3}(1 + 2) = 1$. Correct.
+Inversion: extended Euclidean on $1+x$ and $x^3 - 2$ gives $(1+\alpha)^{-1} = \frac{1}{3}(\alpha^2 - \alpha + 1)$. Verify: $\frac{1}{3}(\alpha^2 - \alpha + 1)(1 + \alpha) = \frac{1}{3}(1 + \alpha^3) = \frac{1}{3}(1 + 2) = 1$. Good.
 
 ### The Transcendental Case
 
-If $\alpha$ is transcendental over $K$, then $\operatorname{ev}_\alpha : K[x] \to K[\alpha]$ is injective (no nonzero polynomial vanishes at $\alpha$). So $K[\alpha] \cong K[x]$, a polynomial ring, which is *not* a field. In this case $K(\alpha) \cong K(x)$, the field of rational functions, and $[K(\alpha):K] = \infty$.
+If $\alpha$ is transcendental over $K$, the evaluation map $K[x] \to K[\alpha]$ is injective. So $K[\alpha] \cong K[x]$, a polynomial ring (which is *not* a field), and $K(\alpha) \cong K(x)$, the field of rational functions. We have $[K(\alpha) : K] = \infty$. Example: $\mathbb{Q}(\pi) \cong \mathbb{Q}(x)$.
 
-**Example.** Since $\pi$ is transcendental over $\mathbb{Q}$ (Lindemann, 1882), we have $\mathbb{Q}(\pi) \cong \mathbb{Q}(x)$ and $[\mathbb{Q}(\pi):\mathbb{Q}] = \infty$.
+![Algebraic numbers vs transcendental numbers as a Venn-style diagram](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/07-field-extensions/aa_v2_07_3_alg_vs_trans.png)
+
+**Algebraic vs. transcendental, in pictures.** The algebraic numbers $\overline{\mathbb{Q}}$ form a countable subfield of $\mathbb{C}$; the transcendentals are everything else (uncountably many). Almost every real number is transcendental, but exhibiting *any specific* transcendental number requires real work. Liouville (1844) gave the first explicit examples by constructing numbers with absurdly good rational approximations; that historical detour is the spiritual ancestor of modern Diophantine approximation. The fact that $\pi$ is transcendental was not proved until 1882 (Lindemann), and that $e + \pi$ is irrational is, somewhat embarrassingly, still open.
+
+A tiny taste of why transcendence is hard: any finite list of polynomials with integer coefficients has only finitely many roots, so the algebraic numbers are a countable union of finite sets. Cardinality alone forces "most" reals to be transcendental. But pointing at a specific real number $r$ and saying "this one is transcendental" requires showing that *no* polynomial in $\mathbb{Z}[x]$ vanishes at $r$, which is a universal statement over an infinite set. Liouville's trick was clever: he wrote down numbers like $\sum_{n \geq 1} 10^{-n!}$ that admit absurdly accurate rational approximations $p/q$ with error $\ll q^{-k}$ for *every* $k$, then showed that algebraic numbers cannot be approximated that well. The same approximation philosophy, refined through the 20th century by Roth and Schmidt, drives a lot of contemporary number theory.
+
+**Closure under arithmetic.** $\overline{\mathbb{Q}}$ is closed under $+, -, \times, \div$: if $\alpha, \beta$ are algebraic, so are $\alpha + \beta$, $\alpha\beta$, and (for nonzero $\beta$) $\alpha/\beta$. The proof is structural — $\mathbb{Q}(\alpha, \beta)$ is a finite extension of $\mathbb{Q}$ by the tower law, hence every element of it is algebraic. The same argument shows that the algebraic *numbers* form a field; this is one of those statements where having the dimension-counting tool turns a potentially messy direct verification into a one-liner.
 
 ---
 
 ## The Tower Law and Its Consequences
 
-The tower law is the multiplicativity of degrees in a tower of field extensions. It is the single most frequently used tool in computing degrees.
+The tower law is the workhorse of dimension counting. Given three nested fields $K \subseteq M \subseteq L$, we can climb $K \to M \to L$ in two steps and the dimensions multiply.
 
-**Theorem (Tower Law).** If $K \subseteq M \subseteq L$ are fields with $[M:K]$ and $[L:M]$ both finite, then $[L:K]$ is finite and
-
+**Theorem (Tower Law).** If $K \subseteq M \subseteq L$ are fields and $L/M$, $M/K$ are both finite, then $L/K$ is finite and
 $$[L : K] = [L : M] \cdot [M : K].$$
 
-*Proof.* Let $m = [M:K]$ and $n = [L:M]$. Choose a basis $\{e_1, \ldots, e_m\}$ for $M$ over $K$ and a basis $\{f_1, \ldots, f_n\}$ for $L$ over $M$. We claim that the set
+*Proof.* Let $\{e_1, \ldots, e_m\}$ be a $K$-basis of $M$ and $\{f_1, \ldots, f_n\}$ an $M$-basis of $L$. We show $\{e_i f_j\}_{i,j}$ is a $K$-basis of $L$.
 
-$$\mathcal{B} = \{e_i f_j : 1 \leq i \leq m, \ 1 \leq j \leq n\}$$
+*Spanning.* Any $\ell \in L$ is $\sum_j \mu_j f_j$ with $\mu_j \in M$. Each $\mu_j = \sum_i a_{ij} e_i$ with $a_{ij} \in K$. Substituting, $\ell = \sum_{i,j} a_{ij} e_i f_j$.
 
-is a basis for $L$ over $K$. Since $|\mathcal{B}| = mn$, this gives $[L:K] = mn$.
+*Linear independence.* Suppose $\sum_{i,j} a_{ij} e_i f_j = 0$ with $a_{ij} \in K$. Group by $j$: $\sum_j (\sum_i a_{ij} e_i) f_j = 0$. By independence of $\{f_j\}$ over $M$, each inner sum is zero. By independence of $\{e_i\}$ over $K$, each $a_{ij} = 0$. $\square$
 
-*Spanning.* Let $\ell \in L$. Since $\{f_j\}$ is a basis for $L/M$, write $\ell = \sum_{j=1}^{n} \mu_j f_j$ with $\mu_j \in M$. Since $\{e_i\}$ is a basis for $M/K$, write each $\mu_j = \sum_{i=1}^{m} a_{ij} e_i$ with $a_{ij} \in K$. Substituting:
+**Corollary (Degree Divisibility).** If $K \subseteq M \subseteq L$ with $[L:K]$ finite, then $[M:K]$ divides $[L:K]$. In particular, if $\alpha$ is algebraic over $K$ and $\alpha \in L$ with $[L:K] = n$, then $\deg m_\alpha$ divides $n$.
 
-$$\ell = \sum_{j=1}^{n} \left(\sum_{i=1}^{m} a_{ij} e_i\right) f_j = \sum_{i,j} a_{ij} (e_i f_j).$$
+This is the source of nearly all "no such extension exists" arguments.
 
-So $\mathcal{B}$ spans $L$ over $K$.
+### Application 1: $\sqrt{2} + \sqrt{3}$ Generates $\mathbb{Q}(\sqrt{2},\sqrt{3})$
 
-*Linear independence.* Suppose $\sum_{i,j} a_{ij} (e_i f_j) = 0$ with $a_{ij} \in K$. Rearranging:
+Climb the tower $\mathbb{Q} \subset \mathbb{Q}(\sqrt{2}) \subset \mathbb{Q}(\sqrt{2}, \sqrt{3})$. Both steps are degree 2 (the second because $\sqrt{3} \notin \mathbb{Q}(\sqrt{2})$, as shown earlier), so the total degree is 4.
 
-$$\sum_{j=1}^{n} \underbrace{\left(\sum_{i=1}^{m} a_{ij} e_i\right)}_{\mu_j \in M} f_j = 0.$$
+Now let $\alpha = \sqrt{2} + \sqrt{3}$. Then $\alpha^2 = 5 + 2\sqrt{6}$, so $\sqrt{6} = (\alpha^2 - 5)/2 \in \mathbb{Q}(\alpha)$. From $\alpha\sqrt{6} = 3\sqrt{2} + 2\sqrt{3}$ and $\alpha = \sqrt{2} + \sqrt{3}$, we recover $\sqrt{2} = \alpha\sqrt{6} - 2\alpha = \alpha(\sqrt{6} - 2)$ and $\sqrt{3} = \alpha - \sqrt{2}$. So $\mathbb{Q}(\alpha) = \mathbb{Q}(\sqrt{2}, \sqrt{3})$.
 
-Since $\{f_j\}$ is linearly independent over $M$, each $\mu_j = \sum_{i} a_{ij} e_i = 0$. Since $\{e_i\}$ is linearly independent over $K$, each $a_{ij} = 0$. $\blacksquare$
+By the tower law, the minimal polynomial of $\alpha$ over $\mathbb{Q}$ has degree 4. Squaring twice: $\alpha^2 - 5 = 2\sqrt{6} \Rightarrow (\alpha^2 - 5)^2 = 24 \Rightarrow m_\alpha(x) = x^4 - 10x^2 + 1$.
 
-### Application 1: Degree Divisibility
+This is the *primitive element theorem* in action: every separable finite extension is in fact simple.
 
-If $K \subseteq M \subseteq L$ with $[L:K]$ finite, then $[M:K]$ divides $[L:K]$. In particular, if $\alpha$ is algebraic over $K$ and belongs to some finite extension $L/K$ of degree $n$, then $\deg \min_K(\alpha)$ divides $n$.
+![Constructible numbers form a tower of degree-2 extensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/07-field-extensions/aa_v2_07_6_constructible.png)
 
-### Application 2: $\sqrt{2} + \sqrt{3}$ Generates $\mathbb{Q}(\sqrt{2}, \sqrt{3})$
+### Application 2: The Impossibility of Doubling the Cube
 
-We compute $[\mathbb{Q}(\sqrt{2},\sqrt{3}):\mathbb{Q}]$ via the tower:
+Doubling the cube means: given a unit cube, construct one of volume 2 using straightedge and compass. The geometry forces us to construct a length $\sqrt[3]{2}$ using only $+, -, \times, \div, \sqrt{\cdot}$ starting from $\mathbb{Q}$. Each square root extends the field by degree 2 (or 1, if the radicand was already a square). So a constructible number lies in a tower
+$$\mathbb{Q} = K_0 \subseteq K_1 \subseteq \cdots \subseteq K_n$$
+with $[K_{i+1} : K_i] \in \{1, 2\}$. By the tower law, $[K_n : \mathbb{Q}]$ is a power of 2. But $[\mathbb{Q}(\sqrt[3]{2}) : \mathbb{Q}] = 3$, which does not divide any power of 2. So $\sqrt[3]{2}$ is not constructible. The Greeks struggled with this for two thousand years; we dispatch it in a paragraph.
 
-$$K = \mathbb{Q} \subset \mathbb{Q}(\sqrt{2}) \subset \mathbb{Q}(\sqrt{2}, \sqrt{3}).$$
+Trisection of a $60^\circ$ angle reduces to constructing $\cos(20^\circ)$, which satisfies $8x^3 - 6x - 1 = 0$, irreducible over $\mathbb{Q}$. Same conclusion: degree 3, not a power of 2, not constructible.
 
-First, $[\mathbb{Q}(\sqrt{2}):\mathbb{Q}] = 2$. Next, we need $[\mathbb{Q}(\sqrt{2},\sqrt{3}):\mathbb{Q}(\sqrt{2})]$. The polynomial $x^2 - 3$ has $\sqrt{3}$ as a root, so this degree is at most 2. It equals exactly 2 provided $\sqrt{3} \notin \mathbb{Q}(\sqrt{2})$.
+Squaring the circle reduces to constructing $\sqrt{\pi}$. But $\pi$ is transcendental, so $[\mathbb{Q}(\sqrt{\pi}) : \mathbb{Q}] = \infty$, definitely not a power of 2. Impossible.
 
-**Claim:** $\sqrt{3} \notin \mathbb{Q}(\sqrt{2})$.
+The constructible regular $n$-gons are exactly those for which $n = 2^k p_1 \cdots p_r$ with the $p_i$ distinct Fermat primes. Gauss showed at age 19 that the regular 17-gon is constructible (it produces a tower of quadratic extensions of total degree $\varphi(17) = 16 = 2^4$); he also conjectured the converse, finally proved by Wantzel in 1837.
 
-*Proof.* Suppose $\sqrt{3} = a + b\sqrt{2}$ with $a, b \in \mathbb{Q}$. Squaring: $3 = a^2 + 2b^2 + 2ab\sqrt{2}$. Since $\sqrt{2}$ is irrational and $a^2 + 2b^2, 2ab$ are rational, we need $2ab = 0$ and $a^2 + 2b^2 = 3$. If $a = 0$: $2b^2 = 3$, so $b^2 = 3/2$, impossible for $b \in \mathbb{Q}$ (since $\sqrt{6}/2 \notin \mathbb{Q}$). If $b = 0$: $a^2 = 3$, impossible for $a \in \mathbb{Q}$. $\blacksquare$
+**Why this matters.** A purely algebraic divisibility argument settles three classical problems that had been open for two millennia. This is the kind of leverage abstract algebra provides: by encoding a geometric question as a question about field degrees, the answer becomes a one-line check.
 
-So $[\mathbb{Q}(\sqrt{2},\sqrt{3}):\mathbb{Q}] = 2 \times 2 = 4$, with basis $\{1, \sqrt{2}, \sqrt{3}, \sqrt{6}\}$.
+It is worth pausing on what the tower law is *really* doing. Take any finite extension $L/K$, pick an element $\alpha \in L$, and consider the chain $K \subseteq K(\alpha) \subseteq L$. The tower law says
+$$[L : K] = [L : K(\alpha)] \cdot [K(\alpha) : K],$$
+so the degree of the minimal polynomial of $\alpha$ divides $[L : K]$. Every algebraic element in a finite extension carries a divisibility constraint that is dictated entirely by the dimension of the ambient field. That single observation is the essence of the constructibility arguments above and a good chunk of inverse Galois theory.
 
-Now let $\alpha = \sqrt{2} + \sqrt{3}$. We show $\mathbb{Q}(\alpha) = \mathbb{Q}(\sqrt{2},\sqrt{3})$.
-
-- $\alpha^2 = 5 + 2\sqrt{6}$, so $\sqrt{6} = (\alpha^2 - 5)/2 \in \mathbb{Q}(\alpha)$.
-- $\alpha \sqrt{6} = \sqrt{12} + \sqrt{18} = 2\sqrt{3} + 3\sqrt{2}$.
-- From $\alpha = \sqrt{2} + \sqrt{3}$ and $\alpha\sqrt{6} = 3\sqrt{2} + 2\sqrt{3}$, subtract $2\alpha$ from $\alpha\sqrt{6}$:
-
-$$\alpha\sqrt{6} - 2\alpha = 3\sqrt{2} + 2\sqrt{3} - 2\sqrt{2} - 2\sqrt{3} = \sqrt{2}.$$
-
-So $\sqrt{2} = \alpha(\sqrt{6} - 2) \in \mathbb{Q}(\alpha)$, and $\sqrt{3} = \alpha - \sqrt{2} \in \mathbb{Q}(\alpha)$.
-
-Since $\mathbb{Q}(\alpha) \supseteq \mathbb{Q}(\sqrt{2},\sqrt{3})$ and the reverse inclusion is trivial ($\alpha \in \mathbb{Q}(\sqrt{2},\sqrt{3})$), we have equality.
-
-The minimal polynomial of $\alpha$ over $\mathbb{Q}$ has degree 4. We find it explicitly: $\alpha^2 = 5 + 2\sqrt{6}$, so $\alpha^2 - 5 = 2\sqrt{6}$, and $(\alpha^2 - 5)^2 = 24$, giving:
-
-$$\alpha^4 - 10\alpha^2 + 25 = 24, \quad \text{i.e.,} \quad \alpha^4 - 10\alpha^2 + 1 = 0.$$
-
-Therefore $\min_\mathbb{Q}(\sqrt{2}+\sqrt{3}) = x^4 - 10x^2 + 1$.
-
-### Application 3: Classical Impossibility Results
-
-The tower law connects to the classical Greek construction problems through the following observation: a real number $\alpha$ is *constructible* (by straightedge and compass) from a unit segment if and only if $\alpha$ lies in a field obtained from $\mathbb{Q}$ by a sequence of quadratic extensions. In other words, $[\mathbb{Q}(\alpha):\mathbb{Q}]$ must be a power of 2.
-
-- **Doubling the cube** requires constructing $\sqrt[3]{2}$. But $[\mathbb{Q}(\sqrt[3]{2}):\mathbb{Q}] = 3$, which is not a power of 2. Impossible.
-- **Trisecting a $60°$ angle** requires constructing $\cos(20°)$, which satisfies $8x^3 - 6x - 1 = 0$. This cubic is irreducible over $\mathbb{Q}$ (rational root theorem), so $[\mathbb{Q}(\cos 20°):\mathbb{Q}] = 3$. Impossible.
-- **Squaring the circle** requires constructing $\sqrt{\pi}$, which is transcendental (since $\pi$ is). So $[\mathbb{Q}(\sqrt{\pi}):\mathbb{Q}] = \infty$. Impossible.
+A small numerical reality check: for $\mathbb{Q}(\sqrt{2}, \sqrt{3})$ over $\mathbb{Q}$ we have degree 4, and the eight elements $\sqrt{2}, \sqrt{3}, \sqrt{6}, \sqrt{2}+\sqrt{3}, \sqrt{2}+\sqrt{6}, \sqrt{2}\sqrt{3}=\sqrt{6}, \ldots$ all have minimal-polynomial degree dividing 4 (so 1, 2, or 4). You cannot have an element of degree 3 sitting in a degree-4 extension, no matter how baroque your construction.
 
 ---
 
 ## Splitting Fields and Algebraic Closures
 
-So far, we have adjoined individual roots. But many questions — especially in Galois theory — require us to adjoin *all* roots of a polynomial at once.
+We now move from "adjoin one root" to "adjoin all the roots."
 
-**Definition.** Let $f(x) \in K[x]$ be a polynomial of degree $n$. A *splitting field* for $f$ over $K$ is an extension $L/K$ such that:
+**Definition.** Let $f(x) \in K[x]$ be a polynomial of degree $n \geq 1$. A *splitting field* of $f$ over $K$ is a field $L \supseteq K$ such that:
 
-1. $f$ factors completely in $L[x]$: $f(x) = c(x - \alpha_1)(x - \alpha_2)\cdots(x - \alpha_n)$ with each $\alpha_i \in L$.
-2. $L = K(\alpha_1, \ldots, \alpha_n)$ — that is, $L$ is generated over $K$ by the roots of $f$.
+1. $f(x)$ factors into linear factors over $L$: $f(x) = c(x - \alpha_1)(x - \alpha_2) \cdots (x - \alpha_n)$ with $\alpha_i \in L$.
+2. $L = K(\alpha_1, \ldots, \alpha_n)$ is generated over $K$ by the roots.
 
-Condition (2) ensures minimality: $L$ is the smallest field over $K$ in which $f$ splits completely.
+The second condition keeps us honest: we want the *smallest* such field, not just any field containing the roots.
 
-**Theorem (Existence of splitting fields).** Every nonconstant polynomial $f(x) \in K[x]$ has a splitting field.
+![Constructing the splitting field of a polynomial step by step](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/07-field-extensions/aa_v2_07_4_splitting_field.png)
 
-*Proof.* By induction on $n = \deg f$.
+**Theorem (Existence and Uniqueness).** For every $f(x) \in K[x]$, a splitting field exists and is unique up to $K$-isomorphism.
 
-*Base case:* $n = 1$. Then $f(x) = c(x - a)$ already splits in $K$. Take $L = K$.
+*Existence sketch.* Induct on $\deg f$. Linear case is trivial. Otherwise, factor $f$ into irreducibles over $K$. Pick an irreducible factor $g$ of degree $\geq 2$. Form $K_1 = K[x]/(g(x))$; in $K_1$, $g$ has the root $\overline{x}$, so $f$ factors as $(x - \overline{x}) \cdot h(x)$ in $K_1[x]$, and induction applies to $h$ over $K_1$. $\square$
 
-*Inductive step:* Suppose $n > 1$ and the result holds for polynomials of degree $< n$. Let $p(x)$ be an irreducible factor of $f(x)$ in $K[x]$. The quotient $K_1 = K[x]/(p(x))$ is a field extension of $K$ containing a root $\alpha_1 = \overline{x}$ of $p$ (and hence of $f$). Write $f(x) = (x - \alpha_1) g(x)$ in $K_1[x]$, where $\deg g = n - 1$. By the inductive hypothesis, $g$ has a splitting field $L$ over $K_1$. Then $f$ splits completely in $L$, and $L$ is generated over $K$ by all roots of $f$ (the roots of $g$ together with $\alpha_1$). So $L$ is a splitting field for $f$ over $K$. $\blacksquare$
+*Uniqueness sketch.* Induct on $[L_1 : K]$. If $f$ already splits in $K$, both splitting fields equal $K$. Otherwise pick an irreducible factor $p$ with roots $\alpha \in L_1$ and $\beta \in L_2$. Sending $\overline{x} \mapsto \beta$ gives an isomorphism $K(\alpha) \to K(\beta)$. Now $L_1$ is a splitting field for $f/(x-\alpha)$ over $K(\alpha)$ and $L_2$ for $f/(x-\beta)$ over $K(\beta)$; induction extends the isomorphism. $\square$
 
-**Theorem (Uniqueness of splitting fields).** If $L_1$ and $L_2$ are both splitting fields for $f(x) \in K[x]$ over $K$, then there exists a $K$-isomorphism $\sigma : L_1 \xrightarrow{\sim} L_2$ (i.e., $\sigma|_K = \operatorname{id}_K$).
+**Examples.**
 
-*Proof outline.* Induct on $[L_1:K]$. If $f$ splits in $K$ already, both $L_1 = L_2 = K$ and the identity works. Otherwise, pick an irreducible factor $p(x)$ of $f$ over $K$ with a root $\alpha \in L_1$ and a root $\beta \in L_2$. The map $\overline{x} \mapsto \beta$ gives an isomorphism $\sigma_0 : K(\alpha) = K[x]/(p(x)) \xrightarrow{\sim} K(\beta)$. Now $L_1$ is a splitting field for $f/(x-\alpha)$ over $K(\alpha)$, and $L_2$ is a splitting field for $f/(x-\beta)$ over $K(\beta)$. By induction, $\sigma_0$ extends to an isomorphism $L_1 \to L_2$. $\blacksquare$
+- $x^2 - 2$ over $\mathbb{Q}$: splitting field $\mathbb{Q}(\sqrt{2})$, degree 2.
+- $x^2 + 1$ over $\mathbb{R}$: splitting field $\mathbb{C}$, degree 2.
+- $x^3 - 2$ over $\mathbb{Q}$: splitting field $\mathbb{Q}(\sqrt[3]{2}, \omega)$ with $\omega = e^{2\pi i/3}$, degree 6. The tower $\mathbb{Q} \subset \mathbb{Q}(\sqrt[3]{2}) \subset \mathbb{Q}(\sqrt[3]{2}, \omega)$ has steps 3 and 2.
+- $x^4 - 2$ over $\mathbb{Q}$: splitting field $\mathbb{Q}(\sqrt[4]{2}, i)$. Tower: $\mathbb{Q} \subset \mathbb{Q}(\sqrt[4]{2}) \subset \mathbb{Q}(\sqrt[4]{2}, i)$ with steps 4 and 2 (since $i \notin \mathbb{Q}(\sqrt[4]{2}) \subset \mathbb{R}$). Degree 8. We will dissect this one in detail next article.
 
-This uniqueness is crucial: it allows us to speak of "*the* splitting field" of a polynomial, up to isomorphism.
+Note that the degree of a splitting field can be much larger than the degree of the polynomial — or equal to it. The ratio is exactly the size of the Galois group, which is no coincidence at all.
 
-### Worked Example: Splitting Field of $x^4 - 2$ over $\mathbb{Q}$
+**Definition.** A field $\overline{K}$ is an *algebraic closure* of $K$ if every nonconstant polynomial in $\overline{K}[x]$ has a root in $\overline{K}$ (i.e., $\overline{K}$ is algebraically closed) and $\overline{K}/K$ is algebraic.
 
-The roots of $x^4 - 2$ in $\mathbb{C}$ are $\sqrt[4]{2}, \ i\sqrt[4]{2}, \ -\sqrt[4]{2}, \ -i\sqrt[4]{2}$. These can be written as $\sqrt[4]{2} \cdot i^k$ for $k = 0,1,2,3$. The splitting field is therefore
+**Theorem.** Every field has an algebraic closure, unique up to (non-canonical) $K$-isomorphism.
 
-$$L = \mathbb{Q}(\sqrt[4]{2}, \ i).$$
+The existence proof leans on Zorn's lemma. For $\mathbb{Q}$, the algebraic closure $\overline{\mathbb{Q}}$ is the field of all algebraic numbers, sitting inside $\mathbb{C}$. It is countable, infinite-dimensional over $\mathbb{Q}$, and contains every root of every rational polynomial. For $\mathbb{F}_p$, the algebraic closure $\overline{\mathbb{F}_p}$ is the union $\bigcup_{n \geq 1} \mathbb{F}_{p^n}$ of all finite fields of characteristic $p$. The Fundamental Theorem of Algebra says $\mathbb{C}$ is the algebraic closure of $\mathbb{R}$.
 
-We compute $[L:\mathbb{Q}]$ using the tower $\mathbb{Q} \subset \mathbb{Q}(\sqrt[4]{2}) \subset L$.
+![Building the finite field GF(p^n) as a quotient of polynomials](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/07-field-extensions/aa_v2_07_5_finite_field.png)
 
-- $[\mathbb{Q}(\sqrt[4]{2}) : \mathbb{Q}] = 4$, since $x^4 - 2$ is irreducible over $\mathbb{Q}$ by Eisenstein at $p = 2$.
-- $[L : \mathbb{Q}(\sqrt[4]{2})] = 2$, since $i \notin \mathbb{Q}(\sqrt[4]{2}) \subset \mathbb{R}$, and $i$ satisfies the quadratic $x^2 + 1$.
+**Finite fields, concretely.** $\mathrm{GF}(p^n) = \mathbb{F}_p[x]/(f(x))$ for any irreducible $f$ of degree $n$. Different choices of $f$ give isomorphic fields. For instance, $\mathrm{GF}(8) = \mathbb{F}_2[x]/(x^3 + x + 1)$. Elements: $\{0, 1, \alpha, \alpha+1, \alpha^2, \alpha^2+1, \alpha^2+\alpha, \alpha^2+\alpha+1\}$ where $\alpha^3 = \alpha + 1$. Multiplication: $\alpha \cdot \alpha^2 = \alpha^3 = \alpha + 1$. Inversion: $\alpha^{-1} = \alpha^2 + 1$ since $\alpha(\alpha^2+1) = \alpha^3 + \alpha = (\alpha+1) + \alpha = 1$. The multiplicative group $\mathrm{GF}(8)^\times$ is cyclic of order 7, generated by $\alpha$.
 
-By the tower law: $[L:\mathbb{Q}] = 4 \times 2 = 8$.
+Every finite field has prime-power order. Every two finite fields of the same order are isomorphic. $\mathbb{F}_{p^n}$ contains $\mathbb{F}_{p^m}$ as a subfield iff $m \mid n$. This makes the lattice of subfields of $\overline{\mathbb{F}_p}$ literally the divisibility lattice of $\mathbb{N}$ — a startling cleanness that does not happen over $\mathbb{Q}$.
 
-A basis for $L$ over $\mathbb{Q}$ is $\{1, \sqrt[4]{2}, \sqrt{2}, \sqrt[4]{8}, i, i\sqrt[4]{2}, i\sqrt{2}, i\sqrt[4]{8}\}$.
+The Frobenius endomorphism $\mathrm{Frob}_p : x \mapsto x^p$ is a field automorphism of any field of characteristic $p$, and on $\mathbb{F}_{p^n}$ it generates the entire automorphism group, which is cyclic of order $n$. So $\mathrm{Gal}(\mathbb{F}_{p^n}/\mathbb{F}_p) \cong \mathbb{Z}/n\mathbb{Z}$. This is the cleanest example of a Galois group I know — abelian, cyclic, and the same group for every choice of $n$. Compare to $\mathrm{Gal}(\overline{\mathbb{Q}}/\mathbb{Q})$, the absolute Galois group of $\mathbb{Q}$, which is profinite, non-abelian, and currently understood only in pieces (the Langlands program, class field theory, Grothendieck's anabelian dreams).
 
-Note that $[L:\mathbb{Q}] = 8$ while $\deg(x^4-2) = 4$. In general, the degree of a splitting field can be much larger than the degree of the polynomial — or equal to it (as for $x^2 - 2$ over $\mathbb{Q}$, where $[\mathbb{Q}(\sqrt{2}):\mathbb{Q}] = 2$).
+**Why this matters.** Splitting fields are the right universe in which to study a polynomial: every root is present, no factor is hiding. The Galois group, which we meet next article, is the group of $K$-automorphisms of the splitting field, and it controls the entire factorization story. Algebraic closure is the limit of all of this — once you are inside $\overline{K}$, every algebraic question over $K$ has an answer somewhere finite-dimensional.
 
-### Algebraic Closures
-
-**Definition.** A field $K$ is *algebraically closed* if every nonconstant polynomial in $K[x]$ has a root in $K$. Equivalently, every polynomial in $K[x]$ splits completely in $K[x]$.
-
-**Definition.** An *algebraic closure* of $K$, denoted $\overline{K}$, is a field extension of $K$ that is both algebraically closed and algebraic over $K$.
-
-**Theorem.** Every field $K$ has an algebraic closure, and any two algebraic closures of $K$ are isomorphic over $K$.
-
-The existence proof requires Zorn's lemma (or an equivalent set-theoretic axiom). The most familiar example is $\overline{\mathbb{Q}}$, the field of algebraic numbers, sitting inside $\mathbb{C}$. By contrast, $\mathbb{C}$ itself is $\overline{\mathbb{R}}$ (the Fundamental Theorem of Algebra).
-
-A less familiar example: $\overline{\mathbb{F}_p}$, the algebraic closure of the finite field with $p$ elements, is the union $\bigcup_{n \geq 1} \mathbb{F}_{p^n}$.
+A subtle but useful observation: the splitting field of $f$ depends only on $f$ up to multiplication by nonzero constants, so we may assume $f$ is monic without losing anything. Also, the splitting field of $f \cdot g$ is generated by the splitting fields of $f$ and $g$, which gives a clean way to build "compositum" extensions out of simpler pieces. You see this trick used constantly in computational Galois theory: factor your big polynomial into irreducibles, compute splitting fields for each factor, glue.
 
 ---
 
 ## Separability and Perfect Fields
 
-In characteristic zero, all algebraic extensions behave nicely: minimal polynomials have distinct roots. In positive characteristic, pathologies can arise. The concept of separability identifies and excludes these pathologies.
+In characteristic 0 every irreducible polynomial has distinct roots, and most readers can blissfully ignore separability. In positive characteristic, repeated roots can appear in irreducible polynomials, breaking the Galois correspondence. Let me make this precise so we know exactly what we are paying for.
 
-**Definition.** A polynomial $f(x) \in K[x]$ is *separable* if it has no repeated roots in its splitting field (i.e., all roots are distinct). An algebraic element $\alpha$ over $K$ is *separable* if its minimal polynomial is separable. An algebraic extension $L/K$ is *separable* if every element of $L$ is separable over $K$.
+**Definition.** A polynomial $f(x) \in K[x]$ is *separable* if it has no repeated roots in any extension field (equivalently, in its splitting field, equivalently, in $\overline{K}$). An algebraic element $\alpha$ is separable if $m_\alpha$ is separable. An algebraic extension $L/K$ is separable if every element of $L$ is.
 
-**Proposition (Derivative criterion).** A polynomial $f(x)$ has a repeated root in its splitting field if and only if $\gcd(f, f') \neq 1$, where $f'$ is the formal derivative.
+**Lemma (Derivative criterion).** $f(x)$ is separable iff $\gcd(f, f') = 1$, where $f'$ is the formal derivative.
 
-*Proof.* If $\alpha$ is a repeated root, write $f(x) = (x - \alpha)^2 g(x)$. Then $f'(x) = 2(x - \alpha)g(x) + (x - \alpha)^2 g'(x)$, so $(x - \alpha) \mid \gcd(f, f')$. Conversely, if $\alpha$ is a root of $f$ but not a repeated root, write $f(x) = (x - \alpha)h(x)$ with $h(\alpha) \neq 0$. Then $f'(\alpha) = h(\alpha) \neq 0$, so $\alpha$ is not a root of $f'$, and $\gcd(f, f')$ is not divisible by $(x - \alpha)$. $\blacksquare$
+*Proof.* If $\alpha$ is a repeated root, $f = (x-\alpha)^2 g$, so $f' = 2(x-\alpha)g + (x-\alpha)^2 g'$ and $(x - \alpha) \mid \gcd(f, f')$. Conversely, if $\alpha$ is a simple root $f = (x - \alpha) h$ with $h(\alpha) \neq 0$, then $f'(\alpha) = h(\alpha) \neq 0$. $\square$
 
-**Corollary.** An irreducible polynomial $p(x) \in K[x]$ is inseparable if and only if $p'(x) = 0$.
+**Corollary.** An irreducible $p(x)$ is inseparable iff $p'(x) = 0$.
 
-*Proof.* Since $p$ is irreducible and $\deg p' < \deg p$, we have $\gcd(p, p') \neq 1$ iff $p \mid p'$ iff $p' = 0$ (by degree). $\blacksquare$
+*Proof.* $\gcd(p, p') \neq 1$ and $\deg p' < \deg p$ force $p' = 0$. $\square$
 
-Now, $p'(x) = 0$ means every monomial $a_k x^k$ with $a_k \neq 0$ satisfies $k \cdot a_k = 0$ in $K$. In characteristic 0, this forces $k = 0$ for all such terms, meaning $p$ is constant — contradicting irreducibility. Therefore:
+In characteristic 0, $p' = 0$ forces $p$ constant (contradiction). In characteristic $p$, $p'(x) = 0$ means $p(x) = g(x^p)$ for some $g$. The smallest counterexample lives over $\mathbb{F}_p(t)$: the polynomial $f(x) = x^p - t \in \mathbb{F}_p(t)[x]$ is irreducible (Eisenstein at the prime $t \in \mathbb{F}_p[t]$) but $f'(x) = px^{p-1} = 0$, so it has a single root $\sqrt[p]{t}$ of multiplicity $p$.
 
-**In characteristic 0, every irreducible polynomial is separable.** This is why separability rarely appears in a first algebra course that stays in characteristic 0.
+**Definition.** A field $K$ is *perfect* if every irreducible polynomial in $K[x]$ is separable. Equivalently:
 
-In characteristic $p > 0$, the condition $p' = 0$ means $p(x)$ is a polynomial in $x^p$: $p(x) = a_0 + a_1 x^p + a_2 x^{2p} + \cdots$.
+- $\mathrm{char}(K) = 0$, or
+- $\mathrm{char}(K) = p > 0$ and the Frobenius map $x \mapsto x^p$ is surjective (every element is a $p$-th power).
 
-**Definition.** A field $K$ is *perfect* if every irreducible polynomial over $K$ is separable.
+**Examples.**
 
-All fields of characteristic 0 are perfect. All finite fields $\mathbb{F}_q$ are perfect (the Frobenius $a \mapsto a^p$ is injective on a finite set, hence surjective). In general, a field of characteristic $p$ is perfect if and only if every element has a $p$-th root: $K^p = K$.
+- All fields of characteristic 0 are perfect.
+- All finite fields are perfect (Frobenius is bijective by pigeonhole on a finite set).
+- Algebraically closed fields are perfect.
+- $\mathbb{F}_p(t)$ is *not* perfect: $t$ has no $p$-th root in $\mathbb{F}_p(t)$.
 
-**Counterexample.** The field $\mathbb{F}_p(t)$ of rational functions over $\mathbb{F}_p$ is not perfect. The polynomial $x^p - t$ is irreducible over $\mathbb{F}_p(t)$ (by Eisenstein's criterion applied with the prime element $t$ in $\mathbb{F}_p[t]$), yet in its splitting field $x^p - t = (x - t^{1/p})^p$, so it has a single root with multiplicity $p$.
+**Counterexample.** The field $\mathbb{F}_p(t)$ of rational functions over $\mathbb{F}_p$ is *not* perfect: $t$ has no $p$-th root in $\mathbb{F}_p(t)$. The polynomial $f(x) = x^p - t$ is irreducible (Eisenstein at the prime $t \in \mathbb{F}_p[t]$) but $f'(x) = px^{p-1} = 0$, so it has a single root $\sqrt[p]{t}$ of multiplicity $p$. The extension $\mathbb{F}_p(t)(\sqrt[p]{t})/\mathbb{F}_p(t)$ has degree $p$, but its automorphism group over the base is trivial — the only candidate $\sqrt[p]{t} \mapsto \sqrt[p]{t}\zeta$ requires a $p$-th root of unity, and the only $p$-th root of unity in characteristic $p$ is 1. So $|\mathrm{Aut}_K(L)| = 1 \neq p = [L:K]$. This is the prototypical example of how the Galois correspondence breaks for inseparable extensions: the group is too small to see the field.
 
-**Why separability matters for Galois theory.** A finite extension $L/K$ is a *Galois extension* if it is both *normal* (i.e., $L$ is a splitting field for some polynomial over $K$) and *separable*. The Galois group $\operatorname{Gal}(L/K)$ of such an extension has order exactly $[L:K]$. Without separability, this equality breaks down: for an inseparable extension, $|\operatorname{Aut}_K(L)| < [L:K]$, and the Galois correspondence fails. For extensions of perfect fields (which covers $\mathbb{Q}$ and all finite fields), separability is automatic, so the only condition to check is normality.
-
----
+For the rest of this series we work in characteristic 0 or with finite fields, so separability comes for free.
 
 ### Normal Extensions
 
-Splitting fields lead naturally to the concept of normality, which will be central in the next article.
+**Definition.** A finite extension $L/K$ is *normal* if it is the splitting field of some polynomial in $K[x]$. Equivalently, every irreducible polynomial in $K[x]$ that has *one* root in $L$ has *all* its roots in $L$.
 
-**Definition.** An algebraic extension $L/K$ is *normal* if every irreducible polynomial in $K[x]$ that has at least one root in $L$ splits completely in $L[x]$.
+**Example.** $\mathbb{Q}(\sqrt{2})/\mathbb{Q}$ is normal: it is the splitting field of $x^2 - 2$. However, $\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q}$ is *not* normal: $x^3 - 2$ has the root $\sqrt[3]{2}$ in $\mathbb{Q}(\sqrt[3]{2}) \subset \mathbb{R}$, but its other two roots $\sqrt[3]{2}\omega$ and $\sqrt[3]{2}\omega^2$ are non-real, hence outside $\mathbb{Q}(\sqrt[3]{2})$. Adjoining one root of an irreducible polynomial does not always give a normal extension; you may need to adjoin all the roots.
 
-**Theorem.** A finite extension $L/K$ is normal if and only if $L$ is a splitting field for some polynomial $f(x) \in K[x]$.
+**Example.** The splitting field of $x^3 - 2$ over $\mathbb{Q}$ is $\mathbb{Q}(\sqrt[3]{2}, \omega)$, which is normal (being a splitting field), of degree 6.
 
-**Example.** $\mathbb{Q}(\sqrt{2})/\mathbb{Q}$ is normal: it is the splitting field of $x^2 - 2$. However, $\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q}$ is *not* normal: the polynomial $x^3 - 2$ has one root $\sqrt[3]{2}$ in $\mathbb{Q}(\sqrt[3]{2}) \subset \mathbb{R}$, but its other two roots $\sqrt[3]{2}\omega$ and $\sqrt[3]{2}\omega^2$ (where $\omega = e^{2\pi i/3}$) are non-real and therefore not in $\mathbb{Q}(\sqrt[3]{2})$. This is a key distinction: adjoining one root of an irreducible polynomial does not always give you a normal extension; you may need to adjoin all the roots.
+![Catalog of classical field extensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/07-field-extensions/aa_v2_07_7_extension_examples.png)
 
-**Example.** The splitting field of $x^3 - 2$ over $\mathbb{Q}$ is $\mathbb{Q}(\sqrt[3]{2}, \omega)$, which *is* normal (being a splitting field). Its degree over $\mathbb{Q}$ is $[\mathbb{Q}(\sqrt[3]{2},\omega):\mathbb{Q}] = 6$: we have $[\mathbb{Q}(\sqrt[3]{2}):\mathbb{Q}] = 3$ and $[\mathbb{Q}(\sqrt[3]{2},\omega):\mathbb{Q}(\sqrt[3]{2})] = 2$ since $\omega$ satisfies $x^2 + x + 1 = 0$, which is irreducible over $\mathbb{Q}(\sqrt[3]{2}) \subset \mathbb{R}$ (it has no real roots).
+**Definition.** A finite extension $L/K$ is *Galois* if it is both normal and separable.
+
+The combination of "all roots present" (normal) and "all roots distinct" (separable) gives us exactly the right setting in which the automorphism group has the maximum allowed size, namely $|\mathrm{Gal}(L/K)| = [L : K]$. This is what makes the Galois correspondence go through, and it is the point at which Part 8 will pick up.
+
+**Why this matters.** Separability and normality are the two technical conditions that make Galois theory clean. Strip them away and you get pathologies: non-bijective correspondences, automorphism groups that are too small, intermediate fields with no group-theoretic shadow. Insisting on Galois extensions is not pedantry; it is the price of admission to the central theorem of the subject. Over $\mathbb{Q}$ and over finite fields — i.e., for almost everyone reading this article — that price is zero, since separability is automatic and we just need the splitting-field condition.
+
+A useful mental picture: the Galois correspondence is a contravariant equivalence between subfields of $L$ containing $K$ and subgroups of $\mathrm{Gal}(L/K)$. Inseparability bloats the field side without bloating the group side; non-normality does the opposite. Either failure breaks the bijection, and you can tell exactly which side broke just by counting.
+
+One more remark to close out this section. There is a useful "transitivity" fact for separability: if $K \subseteq M \subseteq L$ with $M/K$ and $L/M$ both separable, then $L/K$ is separable. (Proof: any element $\alpha \in L$ has a separable minimal polynomial over $M$; the coefficients of that polynomial are themselves separable over $K$; combining, $\alpha$ generates a separable extension of $K$.) The analogous statement for "normal" is *false* — normality does not transit through towers. This is the first sign that normality is the more delicate of the two conditions, and it is why much of next article is spent identifying which subgroups of the Galois group correspond to normal subfields.
 
 ---
 
 ## What's Next
 
-We have assembled all the ingredients: field extensions and their degrees, the tower law for computing degrees in chains, minimal polynomials that describe simple extensions, splitting fields that give us "complete" factorizations, normality, and separability to prevent degenerate behavior. In the next article, we combine these tools into Galois theory proper: the group of automorphisms of a field extension and its remarkable correspondence with the lattice of intermediate fields. This correspondence will ultimately explain why the general quintic cannot be solved by radicals, settling a question that puzzled mathematicians for three centuries.
+We have assembled all the ingredients: field extensions and their degrees, the tower law for computing degrees in chains, minimal polynomials that describe simple extensions, splitting fields that give us "complete" factorizations, normality and separability to prevent degenerate behavior. In the next article, we combine these tools into Galois theory proper: the group of automorphisms of a field extension and its remarkable correspondence with the lattice of intermediate fields. This correspondence will ultimately explain why the general quintic cannot be solved by radicals, settling a question that puzzled mathematicians for three centuries.
+
+A short forward-looking checklist, so you know what you are walking into. Given a finite Galois extension $L/K$:
+
+- The order of $\mathrm{Gal}(L/K)$ equals $[L:K]$. (This already pins down the group up to a finite list of possibilities.)
+- Subgroups of $\mathrm{Gal}(L/K)$ correspond bijectively to intermediate fields $K \subseteq M \subseteq L$.
+- Normal subgroups correspond to *normal* (= Galois over $K$) intermediate extensions.
+- "Solvable by radicals" translates into "the Galois group is solvable as a group."
+- The general quintic has Galois group $S_5$, which is not solvable. End of story.
+
+If any of those bullets feels mysterious, that is the right state of mind to enter Part 8 with. We will earn each of them, and along the way the entire scaffolding of this article — degrees, towers, splitting fields, minimal polynomials — will pay off all at once.
 
 ---
 

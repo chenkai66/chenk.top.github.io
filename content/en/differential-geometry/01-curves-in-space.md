@@ -16,366 +16,320 @@ translationKey: "differential-geometry-1"
 description: "Parametrized curves, arc length, curvature, torsion, and the Frenet-Serret apparatus — the complete local theory of space curves."
 ---
 
-Differential geometry begins with curves. Before we can study the curvature of surfaces or the abstract machinery of manifolds, we need a precise language for describing how a one-dimensional object — a curve — bends and twists as it moves through Euclidean space. This chapter develops that language from scratch. By the end, we will have the Frenet-Serret formulas, a compact system of ordinary differential equations that encodes all the local geometry of a space curve in two scalar functions: curvature and torsion.
+I am going to start this series the way every honest course on differential geometry starts: with a single moving particle in $\mathbb{R}^3$. Not a manifold, not a fiber bundle, not even a surface — just a dot tracing a path. Everything later — Gauss maps, second fundamental forms, connections, Riemannian curvature tensors — is in some sense an effort to do for higher-dimensional objects what we are about to do, very thoroughly, for a one-dimensional one. So bear with the warm-up. The pay-off is that by the end of this article we will own a complete local theory: two scalar functions ($\kappa$, $\tau$) and one orthonormal frame ($\mathbf{T}, \mathbf{N}, \mathbf{B}$) that together pin down a curve up to rigid motion. The slogan is "curve = two numbers per point", and that slogan deserves a proof.
+
+If you want one image to keep in your head while reading, keep this one.
+
+![Frenet frame T, N, B moving along a helix in 3D](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/01-curves-in-space/dg_v2_01_1_helix_frenet.png)
+
+The triple of arrows you see — tangent, normal, binormal — slides along the helix as a rigid little gyroscope. Curvature says how fast the tangent is turning; torsion says how fast that gyroscope is twisting around the tangent. Two numbers per point. That is the whole story.
+
+A note on tone before we start. This series is going to favour computation over decoration. I will derive things carefully but I will also push numbers through, because differential geometry has a long tradition of beautiful theorems that go fuzzy in the reader's hands the moment a real example is required. The intuition lives in the numbers. So expect a lot of helices, paraboloids, and spheres with explicit coordinates and explicit answers. Where the answer is messy, I will say so.
 
 ---
 
 ## Curves as Paths through Space
 
-A curve in $\mathbb{R}^3$ is, informally, a path traced out by a moving point. But there is already a subtlety lurking here: should we think of a curve as the *image* — the set of points the path passes through — or as the *parametrization* — the specific function describing the motion?
+Informally, a curve is a path traced out by a moving point. There is one subtlety to flag right away: do we mean the *image* (the set of points on the path) or the *parametrization* (the specific function describing the motion)? Differential geometers care about both, and in fact a lot of the early grunt work is making sure our definitions distinguish properties of the image from properties of the particular speedometer reading.
 
-**Definition (Parametrized curve).** A *parametrized curve* in $\mathbb{R}^3$ is a smooth map $\alpha: I \to \mathbb{R}^3$, where $I \subseteq \mathbb{R}$ is an open interval. In coordinates we write
-
-![Frenet frame (T, N, B) moving along a helix](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/01-curves-in-space/dg_fig1_frenet.png)
-
-
+**Definition (Parametrized curve).** A *parametrized curve* in $\mathbb{R}^3$ is a smooth map $\alpha: I \to \mathbb{R}^3$, where $I \subseteq \mathbb{R}$ is an open interval. In coordinates,
 $$\alpha(t) = \bigl(x(t),\, y(t),\, z(t)\bigr),$$
+with each component $C^\infty$.
 
-where each component function is $C^\infty$ (infinitely differentiable).
+The velocity at $t$ is $\alpha'(t) = (x'(t), y'(t), z'(t))$, and the speed is $|\alpha'(t)|$.
 
-The velocity vector at $t$ is $\alpha'(t) = (x'(t), y'(t), z'(t))$, and the speed is $|\alpha'(t)|$.
+**Definition (Regular curve).** $\alpha$ is *regular* if $\alpha'(t) \neq 0$ for every $t$.
 
-**Definition (Regular curve).** A parametrized curve $\alpha$ is *regular* if $\alpha'(t) \neq 0$ for all $t \in I$.
+Regularity is the smallest non-degeneracy condition we can ask for. It guarantees a well-defined tangent direction at every point and prevents collapse onto a single value of $t$. Drop it and you can engineer cusps without effort: $\alpha(t) = (t^2, t^3, 0)$ has $\alpha'(0) = 0$ and the image has a sharp corner at the origin. The curve technically still exists as a map, but the geometry has a hiccup at $t = 0$.
 
-Regularity is a minimal nondegeneracy condition: it ensures that the curve has a well-defined tangent direction at every point, and that the image of $\alpha$ is genuinely one-dimensional. A curve that fails regularity at a point $t_0$ can develop a cusp there (consider $\alpha(t) = (t^2, t^3, 0)$ at $t = 0$, where $\alpha'(0) = (0,0,0)$).
+**Definition (Reparametrization).** A *reparametrization* of $\alpha$ is $\beta = \alpha \circ \phi$ where $\phi: J \to I$ is a diffeomorphism of intervals. Reparametrizations come in two flavours: orientation-preserving ($\phi' > 0$) and orientation-reversing ($\phi' < 0$). The image of $\beta$ is the same as the image of $\alpha$; only the labelling of points has changed.
 
-Two parametrized curves $\alpha: I \to \mathbb{R}^3$ and $\beta: J \to \mathbb{R}^3$ are *reparametrizations* of each other if there exists a smooth bijection $\phi: J \to I$ with $\phi' > 0$ everywhere such that $\beta = \alpha \circ \phi$. The condition $\phi' > 0$ preserves orientation — the direction of travel. A reparametrization changes the speed at which we traverse the curve but not the geometric shape of the image.
+**Why this matters.** Throughout the series I will quietly assume regularity and consider only orientation-preserving reparametrizations equivalent. Whenever you see "curve" without further qualification, read "regular smooth curve up to orientation-preserving reparametrization". The reason is purely operational: every formula involving $\mathbf{T}$, $\mathbf{N}$, or $\kappa$ requires dividing by $|\alpha'|$ at some stage.
 
-**Example 1 (Circle).** The map $\alpha(t) = (\cos t, \sin t, 0)$ for $t \in (0, 2\pi)$ is a parametrized curve whose image is the unit circle in the $xy$-plane. We have $\alpha'(t) = (-\sin t, \cos t, 0)$ and $|\alpha'(t)| = 1$, so the speed is constant and the curve is certainly regular. The reparametrization $\beta(s) = (\cos 2s, \sin 2s, 0)$ for $s \in (0, \pi)$ traces the same circle twice as fast.
+There is also a deeper reason. The whole project of defining curvature is to extract numbers that depend on the *image* and not on the *speed*. We will see this play out concretely: $\kappa$ has a clean formula in arc-length parametrization (just $|\alpha''|$), but the formula in arbitrary parametrization is uglier and involves a cross product to "kill" the parametrization-dependent part.
 
-**Example 2 (Circular helix).** The curve $\alpha(t) = (a\cos t,\, a\sin t,\, bt)$ for constants $a > 0$, $b \neq 0$ traces a helix of radius $a$ and pitch $2\pi b$. The velocity is $\alpha'(t) = (-a\sin t, a\cos t, b)$, so $|\alpha'(t)| = \sqrt{a^2 + b^2}$, which is constant. The helix is regular, and it provides a fundamental test case for everything that follows.
+### A numerical warm-up
 
-The distinction between a parametrized curve and its image matters throughout differential geometry. The image of $\alpha(t) = (t, t^2, 0)$ and $\beta(t) = (t^3, t^6, 0)$ is the same parabola, but they are different parametrized curves with different velocity fields. Most of our constructions (curvature, torsion, the Frenet frame) depend on the parametrization, although the most important quantities turn out to be invariant under orientation-preserving reparametrization.
+Take the helix
+$$\alpha(t) = (\cos t,\, \sin t,\, 0.4\, t).$$
+Then $\alpha'(t) = (-\sin t, \cos t, 0.4)$, and $|\alpha'(t)| = \sqrt{1 + 0.16} = \sqrt{1.16} \approx 1.0770$. The speed is constant — a pleasant accident of this particular helix that makes the rest of the calculations clean.
 
----
+If we instead reparametrize as $\beta(s) = \alpha(s / \sqrt{1.16})$, then $|\beta'(s)| = 1$. We have not changed the image (still the same helix); we have only relabelled the points so that traversing the curve at unit speed corresponds to advancing $s$ by one unit. This is the *arc-length parametrization*, and it is going to make life much easier in a moment.
 
-## Arc Length and the Natural Parameter
-
-Among all parametrizations of a given curve, there is a canonical one: parametrization by arc length. It is the differential-geometric analogue of choosing "natural" units.
-
-**Definition (Arc length).** Let $\alpha: I \to \mathbb{R}^3$ be a regular curve. The *arc length function* starting from a fixed point $t_0 \in I$ is
-
-$$s(t) = \int_{t_0}^{t} |\alpha'(u)|\, du.$$
-
-Since $\alpha$ is regular, $|\alpha'(u)| > 0$ for all $u$, so $s'(t) = |\alpha'(t)| > 0$, and $s$ is a strictly increasing function. By the inverse function theorem, $s$ has a smooth inverse $t = t(s)$, and we can reparametrize the curve as $\beta(s) = \alpha(t(s))$.
-
-**Proposition.** A parametrized curve $\beta$ is parametrized by arc length if and only if $|\beta'(s)| = 1$ for all $s$.
-
-*Proof.* By the chain rule,
-
-$$\beta'(s) = \alpha'(t(s)) \cdot t'(s) = \alpha'(t(s)) \cdot \frac{1}{s'(t(s))} = \frac{\alpha'(t(s))}{|\alpha'(t(s))|},$$
-
-so $|\beta'(s)| = 1$. Conversely, if $|\beta'(s)| = 1$, then the arc length computed from any starting point $s_0$ is $\int_{s_0}^{s} 1\, du = s - s_0$, which is the identity map up to a constant shift. $\square$
-
-Arc length parametrization is elegant but rarely practical for computation: the integral $\int |\alpha'(u)|\, du$ seldom has a closed form. For instance, the arc length of an ellipse leads to an elliptic integral. This is why we develop formulas that work for *arbitrary* parametrizations, not just unit-speed ones.
-
-**Example 3 (Arc length of the helix).** For $\alpha(t) = (a\cos t, a\sin t, bt)$ we already computed $|\alpha'(t)| = \sqrt{a^2 + b^2}$. Taking $t_0 = 0$:
-
-$$s(t) = \int_0^t \sqrt{a^2 + b^2}\, du = t\sqrt{a^2 + b^2}.$$
-
-So $t = s / \sqrt{a^2+b^2}$, and the arc-length reparametrization is
-
-$$\beta(s) = \left(a\cos\frac{s}{\sqrt{a^2+b^2}},\; a\sin\frac{s}{\sqrt{a^2+b^2}},\; \frac{bs}{\sqrt{a^2+b^2}}\right).$$
-
-One can verify directly that $|\beta'(s)| = 1$.
-
-The arc length between two points $\alpha(t_1)$ and $\alpha(t_2)$ is independent of the parametrization: if $\beta = \alpha \circ \phi$, then
-
-$$\int_{s_1}^{s_2} |\beta'(u)|\, du = \int_{\phi(s_1)}^{\phi(s_2)} |\alpha'(v)|\, dv$$
-
-by the substitution $v = \phi(u)$. This confirms that arc length is a geometric — not parametric — quantity. It is the first *intrinsic* measurement associated with a curve.
+Aside on the helix's universality. Among all curves with constant curvature *and* constant torsion, the helix is the unique example up to rigid motion. We will prove this at the end of the chapter (the Fundamental Theorem of Curves). It is a small marvel of differential geometry: from two arbitrary positive constants you can integrate up a helix, and that helix is essentially the only curve those two constants describe.
 
 ---
 
-## Curvature: Measuring How a Curve Bends
+## Arc Length and Reparametrization
 
-Once we have a curve parametrized by arc length, the tangent vector $\mathbf{T}(s) = \beta'(s)$ is a unit vector. The rate at which this unit tangent rotates as we move along the curve is a measure of bending.
+The total length of a curve from $t = a$ to $t = b$ is
+$$L(\alpha; a, b) = \int_a^b |\alpha'(t)|\, dt.$$
+This formula is invariant under orientation-preserving reparametrization: if $\beta = \alpha \circ \phi$ with $\phi'>0$, then by the change-of-variables formula,
+$$\int_a^b |\beta'(s)|\,ds = \int_a^b |\alpha'(\phi(s))|\phi'(s)\,ds = \int_{\phi(a)}^{\phi(b)} |\alpha'(t)|\,dt.$$
+Length is therefore a property of the image, not the parametrization.
 
-**Definition (Curvature, unit-speed case).** Let $\beta: J \to \mathbb{R}^3$ be a unit-speed curve. The *curvature* at $s$ is
+Define the *arc-length function* with reference point $t_0$:
+$$s(t) = \int_{t_0}^{t} |\alpha'(\tau)|\, d\tau.$$
+Then $s'(t) = |\alpha'(t)| > 0$, so $s$ is a strictly increasing smooth function — invertible by the inverse function theorem. We can therefore reparametrize: write $t = t(s)$, and define
+$$\tilde\alpha(s) = \alpha\bigl(t(s)\bigr).$$
+The chain rule gives
+$$\tilde\alpha'(s) = \alpha'(t)\cdot \frac{dt}{ds} = \frac{\alpha'(t)}{|\alpha'(t)|},$$
+which has unit length. The curve has been relabelled to "unit speed".
 
-$$\kappa(s) = |\mathbf{T}'(s)| = |\beta''(s)|.$$
+![Arc length parameterization of a curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/01-curves-in-space/dg_v2_01_4_arc_length.png)
 
-Since $\mathbf{T}$ has constant length 1, we have $\mathbf{T} \cdot \mathbf{T} = 1$, so differentiating gives $\mathbf{T}' \cdot \mathbf{T} = 0$. The acceleration $\mathbf{T}'$ is always perpendicular to $\mathbf{T}$: it measures how much the direction changes, not the speed. This is the geometric content of curvature.
+**Why this matters.** Arc length is the only parameter that is *intrinsic* to the curve as a subset of $\mathbb{R}^3$ — it does not depend on the speed at which we happen to be tracing it. Curvature and torsion, defined intrinsically below, are most naturally computed in arc-length parametrization. Of course, when we have to do calculations on a specific curve we usually do not want to invert the integral $s(t)$ explicitly (and often cannot — the integrand for an ellipse already involves elliptic integrals, the namesake of those special functions). So we will derive working formulas for arbitrary parametrization and use them for actual computation, while reasoning about the theory in arc length.
 
-A straight line has $\mathbf{T}$ constant, so $\kappa \equiv 0$. A circle of radius $R$ traversed at unit speed has $\kappa = 1/R$. The quantity $R_\kappa = 1/\kappa$ is the *radius of curvature*: it is the radius of the circle that best approximates the curve at a given point (the *osculating circle*).
+### Worked example: arc length of a helix
 
-For a curve with arbitrary parametrization $\alpha(t)$, we need a formula that does not require computing arc length explicitly.
+For $\alpha(t) = (\cos t, \sin t, 0.4 t)$ on $[0, 2\pi]$:
+$$L = \int_0^{2\pi}\sqrt{1.16}\,dt = 2\pi\sqrt{1.16} \approx 6.7298.$$
+One full turn of the helix has length about $6.73$, slightly more than $2\pi$ (the length of the projected circle), as one would expect because the helix is "slanted upward". The arc-length parameter is $s = t\sqrt{1.16}$, so the helix at unit speed is
+$$\tilde\alpha(s) = \bigl(\cos(s/\sqrt{1.16}),\, \sin(s/\sqrt{1.16}),\, 0.4\, s/\sqrt{1.16}\bigr).$$
 
-**Proposition (Curvature formula for arbitrary parameter).** If $\alpha: I \to \mathbb{R}^3$ is a regular curve, then
+### Worked example: ellipse and elliptic integrals
 
-$$\kappa(t) = \frac{|\alpha'(t) \times \alpha''(t)|}{|\alpha'(t)|^3}.$$
+For $\alpha(t) = (a\cos t, b\sin t, 0)$ with $a > b > 0$, the speed is $|\alpha'(t)| = \sqrt{a^2\sin^2 t + b^2\cos^2 t}$. Write $a^2\sin^2 t + b^2\cos^2 t = b^2 + (a^2 - b^2)\sin^2 t = a^2(1 - e^2 \cos^2 t)$ where $e = \sqrt{1 - b^2/a^2}$ is the eccentricity. The total perimeter is
+$$L = 4 a \int_0^{\pi/2}\sqrt{1 - e^2\cos^2 t}\,dt = 4 a\, E(e),$$
+the complete elliptic integral of the second kind. This is one of the simplest curves whose arc length cannot be expressed in elementary functions, and it is the historical reason "elliptic integrals" got their name. So when we say "use arc-length parametrization where you can", we mean "where you can"; in practice, almost no analytic curve has a closed-form $s^{-1}$.
 
-*Proof.* Write $\alpha(t) = \beta(s(t))$ where $\beta$ is the arc-length reparametrization and $s' = |\alpha'|$. Then:
-
-$$\alpha' = \beta' s' = \mathbf{T}\, s',$$
-
-$$\alpha'' = \mathbf{T}' (s')^2 + \mathbf{T}\, s'' = \kappa\,\mathbf{N}\,(s')^2 + \mathbf{T}\, s'',$$
-
-where $\mathbf{N}$ is the unit principal normal (defined in the next section). Now compute the cross product:
-
-$$\alpha' \times \alpha'' = \mathbf{T}\,s' \times \bigl[\kappa\,\mathbf{N}\,(s')^2 + \mathbf{T}\,s''\bigr] = \kappa\,(s')^3\,(\mathbf{T} \times \mathbf{N}) + 0.$$
-
-The second term vanishes because $\mathbf{T} \times \mathbf{T} = 0$. Since $\mathbf{T} \perp \mathbf{N}$ and both are unit vectors, $|\mathbf{T} \times \mathbf{N}| = 1$, giving $|\alpha' \times \alpha''| = \kappa\, (s')^3 = \kappa\, |\alpha'|^3$. $\square$
-
-This formula is the workhorse for computation. It requires only the first and second derivatives of $\alpha$ and avoids the arc-length integral entirely.
-
-**Example 4 (Curvature of a circle of radius $R$).** Take $\alpha(t) = (R\cos t, R\sin t, 0)$. Then $\alpha' = (-R\sin t, R\cos t, 0)$, $\alpha'' = (-R\cos t, -R\sin t, 0)$, and
-
-$$\alpha' \times \alpha'' = \begin{vmatrix} \mathbf{i} & \mathbf{j} & \mathbf{k} \\ -R\sin t & R\cos t & 0 \\ -R\cos t & -R\sin t & 0 \end{vmatrix} = (0,\, 0,\, R^2\sin^2 t + R^2\cos^2 t) = (0,\, 0,\, R^2).$$
-
-So $|\alpha' \times \alpha''| = R^2$, $|\alpha'| = R$, and $\kappa = R^2 / R^3 = 1/R$. The curvature of a circle of radius $R$ is $1/R$ — exactly as intuition suggests. A tighter circle bends more.
-
-**Example 5 (Curvature of the circular helix).** For $\alpha(t) = (a\cos t, a\sin t, bt)$:
-
-$$\alpha' = (-a\sin t, a\cos t, b), \quad \alpha'' = (-a\cos t, -a\sin t, 0).$$
-
-The cross product:
-
-$$\alpha' \times \alpha'' = \begin{vmatrix} \mathbf{i} & \mathbf{j} & \mathbf{k} \\ -a\sin t & a\cos t & b \\ -a\cos t & -a\sin t & 0 \end{vmatrix} = (ab\sin t,\; -ab\cos t,\; a^2).$$
-
-Thus $|\alpha' \times \alpha''| = \sqrt{a^2 b^2 + a^4} = a\sqrt{a^2 + b^2}$ and $|\alpha'|^3 = (a^2 + b^2)^{3/2}$, so
-
-$$\kappa = \frac{a\sqrt{a^2 + b^2}}{(a^2 + b^2)^{3/2}} = \frac{a}{a^2 + b^2}.$$
-
-The curvature of a circular helix is constant. When $b = 0$ this reduces to $1/a$ (a circle of radius $a$), and as $b \to \infty$ (the helix stretches out toward a vertical line) the curvature tends to zero. Both limiting cases match geometric intuition perfectly.
-
-For a plane curve $\alpha(t) = (x(t), y(t))$, the general formula simplifies to:
-
-$$\kappa = \frac{|x'y'' - y'x''|}{(x'^2 + y'^2)^{3/2}}.$$
-
-One can also define a *signed curvature* $\kappa_s = (x'y'' - y'x'') / (x'^2 + y'^2)^{3/2}$ for oriented plane curves, which is positive when the curve turns counterclockwise and negative when it turns clockwise. The signed curvature completely determines a plane curve up to rigid motion — this is the Fundamental Theorem of Plane Curves, a two-dimensional precursor of the theorem we will state for space curves below.
+The moral: arc length is a beautiful theoretical parameter and a frustrating computational one. Working geometers reach for it for proofs and formulas; they reach for the parametrization-friendly cross-product formulas for examples.
 
 ---
 
-## The Frenet-Serret Frame: T, N, B
+## The Tangent Vector and Curvature
 
-At each point of a regular curve with nonvanishing curvature, we can construct an orthonormal basis of $\mathbb{R}^3$ that moves with the curve. This is the Frenet-Serret frame, and it is the fundamental tool for analyzing the local geometry of space curves.
+Once we are in arc-length parametrization, $\mathbf{T}(s) = \alpha'(s)$ is a unit vector — the unit tangent. Differentiating the identity $\mathbf{T}\cdot\mathbf{T} = 1$ gives
+$$2\mathbf{T}\cdot \mathbf{T}' = 0,$$
+so $\mathbf{T}'(s)$ is orthogonal to $\mathbf{T}(s)$. The magnitude of $\mathbf{T}'$ measures how fast the unit tangent rotates as we walk along the curve.
 
-**Definition (Unit tangent).** For a unit-speed curve $\beta(s)$, the *unit tangent vector* is
+**Definition (Curvature).** $\kappa(s) = |\mathbf{T}'(s)| = |\alpha''(s)|$.
 
-$$\mathbf{T}(s) = \beta'(s).$$
+A straight line has $\mathbf{T}' = 0$, hence $\kappa = 0$ identically. A circle of radius $r$ has $\kappa = 1/r$ — sharp curves (small $r$) give large $\kappa$. The "sharp turn" intuition is correct, but pinned to a precise quantity: the rate of change of the tangent direction with respect to arc length.
 
-We have $|\mathbf{T}| = 1$ by the unit-speed assumption.
+![Curvature kappa as the rate at which the tangent direction rotates](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/01-curves-in-space/dg_v2_01_2_curvature_geom.png)
 
-**Definition (Principal normal).** If $\kappa(s) \neq 0$, the *principal normal vector* is
+If $\mathbf{T}'(s) \neq 0$, the *principal normal* is
+$$\mathbf{N}(s) = \frac{\mathbf{T}'(s)}{|\mathbf{T}'(s)|} = \frac{\mathbf{T}'(s)}{\kappa(s)},$$
+so that
+$$\mathbf{T}'(s) = \kappa(s)\mathbf{N}(s).$$
+$\mathbf{N}$ points toward the center of curvature: it is the direction the curve is "trying to bend toward". For a circle in the plane, $\mathbf{N}$ always points to the centre. For a helix, $\mathbf{N}$ points horizontally inward, toward the axis of the helix.
 
-$$\mathbf{N}(s) = \frac{\mathbf{T}'(s)}{|\mathbf{T}'(s)|} = \frac{\mathbf{T}'(s)}{\kappa(s)}.$$
+### Computing $\kappa$ for an arbitrary parametrization
 
-We showed that $\mathbf{T}' \perp \mathbf{T}$, so $\mathbf{N}$ is a unit vector perpendicular to $\mathbf{T}$. The principal normal points in the direction the curve is turning — toward the center of the osculating circle. The osculating circle has radius $1/\kappa$ and its center lies at $\beta(s) + (1/\kappa)\,\mathbf{N}(s)$.
+We rarely have $|\alpha'| = 1$ in practice, so we need a chain-rule formula. With $s' = |\alpha'|$ and $\mathbf{T} = \alpha'/s'$, two derivatives of $\alpha$ give
+$$\alpha'' = s''\mathbf{T} + (s')^2 \kappa \mathbf{N}.$$
+Cross with $\alpha' = s'\mathbf{T}$:
+$$\alpha'\times\alpha'' = (s')^3\kappa\,(\mathbf{T}\times\mathbf{N}),$$
+and $|\mathbf{T}\times\mathbf{N}| = 1$ since $\mathbf{T}\perp\mathbf{N}$. Hence
+$$\boxed{\kappa = \frac{|\alpha'\times\alpha''|}{|\alpha'|^3}}.$$
 
-**Definition (Binormal).** The *binormal vector* is
+The cross product elegantly cancels the parametrization-dependent component $s''\mathbf{T}$ (since $\mathbf{T}\times\mathbf{T} = 0$), leaving only the parametrization-invariant geometric information. Worth pausing over: this is one of the classic "tricks of the trade" in classical differential geometry, and it shows up again and again.
 
+**Numerical check on the helix.** For $\alpha(t) = (\cos t, \sin t, 0.4 t)$, we have $\alpha'\times\alpha'' = (0.4\sin t, -0.4\cos t, 1)$, so $|\alpha'\times\alpha''| = \sqrt{0.16 + 1} = \sqrt{1.16}$. Then
+$$\kappa = \frac{\sqrt{1.16}}{1.16^{3/2}} = \frac{1}{1.16} \approx 0.8621.$$
+Constant curvature, as one would expect from a uniformly tilted screw motion. Compare with a circle of unit radius: $\kappa = 1$. The helix curves slightly less because the upward drift "uses up" some of the motion that would otherwise go into bending. Physically: if you projected the helix onto the $xy$-plane you would get a unit circle ($\kappa = 1$); lifting it into 3D dilutes the curvature.
+
+![Curvature comparison: a circle with constant kappa and a helix with kappa and tau](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/01-curves-in-space/dg_v2_01_3_circle_helix.png)
+
+### A second worked example: parabola
+
+$\alpha(t) = (t, t^2, 0)$. Then $\alpha' = (1, 2t, 0)$, $\alpha'' = (0, 2, 0)$, $\alpha'\times\alpha'' = (0,0,2)$. So
+$$\kappa(t) = \frac{2}{(1+4t^2)^{3/2}}.$$
+At $t = 0$ (the vertex), $\kappa = 2$. As $|t|\to\infty$, $\kappa\to 0$ — the parabola straightens out. The radius of curvature at the vertex is $1/2$; if you placed a circle of radius $1/2$ tangent to the parabola at the origin, it would match the parabola to second order. This is the *osculating circle* — literally "kissing circle" in Latin. It is the geometric content of curvature.
+
+**Why this matters.** Curvature is the first geometric invariant of a curve. It is independent of orientation-preserving reparametrization and rigid motion. Two curves with the same $\kappa(s)$ are "almost" the same — they could still differ by how much they twist out of any plane. That residual twist is what we capture next.
+
+---
+
+## The Binormal and Torsion
+
+We have two orthogonal unit vectors at every point where $\kappa > 0$: $\mathbf{T}$ and $\mathbf{N}$. The third leg of the right-handed frame is the *binormal*:
 $$\mathbf{B}(s) = \mathbf{T}(s) \times \mathbf{N}(s).$$
 
-Since $\mathbf{T}$ and $\mathbf{N}$ are orthogonal unit vectors, $\mathbf{B}$ is also a unit vector, perpendicular to both, and $\{\mathbf{T}, \mathbf{N}, \mathbf{B}\}$ forms a positively oriented orthonormal basis of $\mathbb{R}^3$ at each point.
+The plane spanned by $\mathbf{T}$ and $\mathbf{N}$ (the *osculating plane*) contains the curve to second order at the point of evaluation. Geometrically, it is the plane that "best fits" the curve at that point.
 
-The triple $(\mathbf{T}, \mathbf{N}, \mathbf{B})$ is the *Frenet-Serret frame* (also called the *Frenet frame* or *moving trihedron*). It depends on the point $\beta(s)$ and rotates as $s$ varies. The entire content of the Frenet-Serret theory is to describe *how* this frame rotates.
+![Osculating plane to a curve at a point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/01-curves-in-space/dg_v2_01_5_osculating.png)
 
-**Geometric meaning of the associated planes.** The plane spanned by $\mathbf{T}$ and $\mathbf{N}$ is the *osculating plane* — the plane in which the curve "most nearly lies" at that point. If you freeze the curve's bending at a given instant, the resulting circle lies in the osculating plane. The plane spanned by $\mathbf{N}$ and $\mathbf{B}$ is the *normal plane*, perpendicular to the direction of travel. The plane spanned by $\mathbf{T}$ and $\mathbf{B}$ is the *rectifying plane*.
+The plane spanned by $\mathbf{N}$ and $\mathbf{B}$ is called the *normal plane* (perpendicular to the direction of motion); the plane spanned by $\mathbf{T}$ and $\mathbf{B}$ is the *rectifying plane* (the unique plane onto which the curve, when projected, has zero curvature at the projected point). These three planes — osculating, normal, rectifying — are sometimes drawn as a little orthogonal "cross" sliding along the curve.
 
-For a plane curve (one that lies entirely in a fixed plane), the binormal $\mathbf{B}$ is a constant vector (the unit normal to that plane), and the osculating plane equals the plane of the curve at every point.
+For a planar curve, the osculating plane is just the plane of the curve, and $\mathbf{B}$ is constant. For a genuinely 3D curve, $\mathbf{B}$ rotates — and that rotation is what torsion measures.
 
-**Example 6 (Frenet frame of the helix).** We computed the arc-length parametrization of the helix: set $c = \sqrt{a^2 + b^2}$, then $s = ct$ and
+**Definition (Torsion).** Differentiating $\mathbf{B}\cdot\mathbf{B} = 1$ shows $\mathbf{B}'\perp\mathbf{B}$. Differentiating $\mathbf{B}\cdot\mathbf{T} = 0$ and using $\mathbf{T}' = \kappa\mathbf{N}$ shows $\mathbf{B}'\perp\mathbf{T}$ (because $\mathbf{B}'\cdot\mathbf{T} = -\mathbf{B}\cdot\mathbf{T}' = -\kappa\mathbf{B}\cdot\mathbf{N} = 0$). So $\mathbf{B}'$ is parallel to $\mathbf{N}$, and we define $\tau$ by
+$$\mathbf{B}'(s) = -\tau(s)\,\mathbf{N}(s).$$
+The minus sign is the standard convention; with it, a right-handed helix winding upward will have $\tau > 0$.
 
-$$\beta(s) = \left(a\cos\frac{s}{c},\; a\sin\frac{s}{c},\; \frac{bs}{c}\right).$$
+For an arbitrary parametrization,
+$$\boxed{\tau = \frac{(\alpha'\times\alpha'')\cdot\alpha'''}{|\alpha'\times\alpha''|^2}}.$$
 
-Differentiating:
+The derivation is similar to that of the curvature formula. Express $\alpha'''$ in the Frenet basis and dot against $\alpha'\times\alpha'' = (s')^3\kappa\mathbf{B}$; the only surviving component is the $\mathbf{B}$-component of $\alpha'''$, which involves $\tau$.
 
-$$\mathbf{T}(s) = \beta'(s) = \left(-\frac{a}{c}\sin\frac{s}{c},\; \frac{a}{c}\cos\frac{s}{c},\; \frac{b}{c}\right).$$
+**Numerical check on the helix.** With $\alpha = (\cos t, \sin t, 0.4 t)$ we get $\alpha''' = (\sin t, -\cos t, 0)$, and $(\alpha'\times\alpha'')\cdot\alpha''' = 0.4$. So
+$$\tau = \frac{0.4}{1.16} \approx 0.3448.$$
+Constant. The helix has constant curvature *and* constant torsion. In fact, this is essentially a characterization (see the Fundamental Theorem below).
 
-$$\mathbf{T}'(s) = \left(-\frac{a}{c^2}\cos\frac{s}{c},\; -\frac{a}{c^2}\sin\frac{s}{c},\; 0\right).$$
+### Sign of torsion: a small but useful sanity check
 
-So $|\mathbf{T}'| = a/c^2 = \kappa$ (consistent with $\kappa = a/(a^2+b^2) = a/c^2$). The principal normal:
+A right-handed helix (the standard one above with positive vertical drift) has $\tau > 0$. Replacing the helix by its mirror image — say, swapping $t\mapsto -t$ in the third component, $\alpha(t) = (\cos t, \sin t, -0.4 t)$ — flips the sign of $\tau$ but leaves $\kappa$ unchanged. Torsion is therefore a *signed* quantity, sensitive to the orientation of $\mathbb{R}^3$, while curvature is unsigned. The asymmetry is a direct consequence of using the cross product, which in turn relies on the right-hand rule.
 
-$$\mathbf{N}(s) = \frac{\mathbf{T}'}{\kappa} = \left(-\cos\frac{s}{c},\; -\sin\frac{s}{c},\; 0\right).$$
-
-The principal normal of the helix always points horizontally inward, toward the axis of the cylinder — confirming the geometric picture of a curve winding around a cylinder and being pulled inward at each point.
-
-The binormal:
-
-$$\mathbf{B}(s) = \mathbf{T} \times \mathbf{N} = \left(\frac{b}{c}\sin\frac{s}{c},\; -\frac{b}{c}\cos\frac{s}{c},\; \frac{a}{c}\right).$$
-
-One can verify directly that $|\mathbf{B}| = 1$ and $\mathbf{B} \cdot \mathbf{T} = \mathbf{B} \cdot \mathbf{N} = 0$. Notice that $\mathbf{B}$ has a constant vertical component $a/c$, so the osculating plane of the helix makes a constant angle with the horizontal.
-
-**Computing the Frenet frame for an arbitrary parametrization.** Given $\alpha(t)$ (not necessarily unit-speed), the Frenet frame can be computed directly:
-
-$$\mathbf{T} = \frac{\alpha'}{|\alpha'|}, \quad \mathbf{B} = \frac{\alpha' \times \alpha''}{|\alpha' \times \alpha''|}, \quad \mathbf{N} = \mathbf{B} \times \mathbf{T}.$$
-
-The formula for $\mathbf{B}$ works because we showed that $\alpha' \times \alpha''$ is parallel to $\mathbf{T} \times \mathbf{N} = \mathbf{B}$. This is the practical recipe: compute derivatives, take cross products, normalize.
+**Why this matters.** Torsion is the second geometric invariant. A planar curve has $\tau \equiv 0$; conversely, if $\tau \equiv 0$ then the curve lies in a fixed plane (proof: $\mathbf{B}$ is constant, so the function $f(s) = (\alpha(s) - \alpha(s_0))\cdot \mathbf{B}$ has zero derivative, hence is identically zero — the curve stays in the plane through $\alpha(s_0)$ orthogonal to $\mathbf{B}$). Curvature and torsion together distinguish planar wiggling from genuine 3D twisting. In the language of invariants: $\kappa$ is a $SO(3)$-invariant, $\tau$ is an $O(3)$-pseudo-invariant (it picks up a sign under orientation reversal).
 
 ---
 
-## Torsion: Measuring How a Curve Twists Out of a Plane
+## The Frenet-Serret Formulas
 
-Curvature measures how rapidly the tangent vector $\mathbf{T}$ rotates — equivalently, how much the curve deviates from a straight line. Torsion measures how rapidly the osculating plane rotates — equivalently, how much the curve deviates from being planar.
+Putting the three derivatives together — $\mathbf{T}'$, $\mathbf{N}'$, $\mathbf{B}'$ — gives a tidy linear ODE for the moving frame. Since the frame is orthonormal at every point, the matrix governing its evolution must be skew-symmetric. Working out
+$$\mathbf{N}' = (\mathbf{B}\times\mathbf{T})' = \mathbf{B}'\times\mathbf{T} + \mathbf{B}\times\mathbf{T}' = -\tau\mathbf{N}\times\mathbf{T} + \kappa\mathbf{B}\times\mathbf{N} = -\kappa\mathbf{T} + \tau\mathbf{B},$$
+we land on:
 
-**Definition (Torsion).** For a unit-speed curve with $\kappa > 0$, the *torsion* $\tau$ is defined by
+$$\frac{d}{ds}\begin{pmatrix}\mathbf{T}\\ \mathbf{N}\\ \mathbf{B}\end{pmatrix} = \begin{pmatrix}0 & \kappa & 0 \\ -\kappa & 0 & \tau \\ 0 & -\tau & 0\end{pmatrix}\begin{pmatrix}\mathbf{T}\\ \mathbf{N}\\ \mathbf{B}\end{pmatrix}.$$
 
-$$\tau(s) = -\mathbf{B}'(s) \cdot \mathbf{N}(s),$$
+These are the *Frenet-Serret formulas*. The coefficient matrix is skew-symmetric, exactly as required for orthogonal frames evolving in time.
 
-or equivalently by the equation $\mathbf{B}' = -\tau\, \mathbf{N}$.
+![Frenet-Serret formulas as a system of ODEs for the moving frame](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/01-curves-in-space/dg_v2_01_6_frenet_serret.png)
 
-The negative sign is a convention that makes right-handed helices have positive torsion.
+A linear-algebra remark. The skew-symmetric matrix
+$$\Omega = \begin{pmatrix}0 & \kappa & 0 \\ -\kappa & 0 & \tau \\ 0 & -\tau & 0\end{pmatrix}$$
+has eigenvalues $0$ and $\pm i\sqrt{\kappa^2 + \tau^2}$, with the zero eigenvalue corresponding to the *Darboux vector* $\boldsymbol{\omega} = \tau\mathbf{T} + \kappa\mathbf{B}$. Geometrically, $\boldsymbol{\omega}$ is the instantaneous axis of rotation of the Frenet frame. The frame at time $s + ds$ is obtained from the frame at time $s$ by an infinitesimal rotation about $\boldsymbol{\omega}$ by an angle $|\boldsymbol{\omega}|\,ds = \sqrt{\kappa^2+\tau^2}\,ds$. So the *total angular speed* of the frame is $\sqrt{\kappa^2+\tau^2}$, decomposed into a "twisting" part ($\tau\mathbf{T}$, around the tangent) and a "bending" part ($\kappa\mathbf{B}$, around the binormal).
 
-**Why is $\mathbf{B}'$ proportional to $\mathbf{N}$?** Since $|\mathbf{B}| = 1$, we have $\mathbf{B}' \perp \mathbf{B}$. Differentiating $\mathbf{B} \cdot \mathbf{T} = 0$ gives:
+**Why this matters.** The Frenet-Serret system is a closed ODE for the frame. Given $\kappa(s)$, $\tau(s)$, and an initial frame at $s = 0$, we can integrate forward and recover the entire moving frame, and then recover $\alpha$ itself by integrating $\mathbf{T}$. This is the engine behind the next theorem.
 
-$$\mathbf{B}' \cdot \mathbf{T} + \mathbf{B} \cdot \mathbf{T}' = \mathbf{B}' \cdot \mathbf{T} + \kappa\,(\mathbf{B} \cdot \mathbf{N}) = \mathbf{B}' \cdot \mathbf{T} + 0 = 0.$$
+### Fundamental Theorem of Curves
 
-So $\mathbf{B}' \perp \mathbf{T}$ as well. Being perpendicular to both $\mathbf{B}$ and $\mathbf{T}$, it must be a scalar multiple of $\mathbf{N}$. We write this scalar as $-\tau$.
+**Theorem.** Let $\kappa: I \to \mathbb{R}_{>0}$ and $\tau: I \to \mathbb{R}$ be smooth. There exists a regular curve $\alpha: I \to \mathbb{R}^3$, parametrized by arc length, with curvature $\kappa$ and torsion $\tau$. Moreover, this curve is unique up to a rigid motion of $\mathbb{R}^3$.
 
-**Proposition (Planar curves have zero torsion).** A regular curve with $\kappa > 0$ lies in a plane if and only if $\tau \equiv 0$.
+*Sketch of existence.* Solve the Frenet-Serret ODE
+$$F'(s) = \Omega(s)F(s),\qquad F(0) = I_3,$$
+where $F$ is the $3\times 3$ matrix whose rows are $\mathbf{T}$, $\mathbf{N}$, $\mathbf{B}$ and $\Omega(s)$ is built from $\kappa(s), \tau(s)$. Skew-symmetry of $\Omega$ forces $F(s)$ to remain orthogonal: $(FF^T)' = F'F^T + F (F')^T = F\Omega^T F^T + F\Omega F^T = F(\Omega + \Omega^T)F^T = 0$, so $F(s)F(s)^T = F(0)F(0)^T = I$. Then $\alpha(s) = \int_0^s \mathbf{T}(u)\,du$ is the desired curve.
 
-*Proof.* ($\Rightarrow$) If $\alpha$ lies in a plane with unit normal $\mathbf{n}$, then $\alpha' \cdot \mathbf{n} = 0$, so $\mathbf{T} \cdot \mathbf{n} = 0$. Since $\mathbf{T}' = \kappa\mathbf{N}$ lies in the same plane (it is a derivative of a vector tangent to the plane, hence tangent to the plane), $\mathbf{N} \cdot \mathbf{n} = 0$ as well. Therefore $\mathbf{B} = \mathbf{T} \times \mathbf{N}$ is parallel to $\mathbf{n}$, hence constant, and $\mathbf{B}' = 0$ gives $\tau = 0$.
+*Sketch of uniqueness.* If $\beta$ is another such curve with the same $\kappa, \tau$, apply a rigid motion to align $\beta(0)$ with $\alpha(0)$ and the Frenet frame of $\beta$ at $0$ with that of $\alpha$. Both frames now satisfy the same ODE with the same initial condition; they coincide. Integrating, $\alpha = \beta$. $\square$
 
-($\Leftarrow$) If $\tau = 0$ then $\mathbf{B}' = 0$, so $\mathbf{B}$ is a constant vector $\mathbf{B}_0$. Consider $f(s) = (\beta(s) - \beta(s_0)) \cdot \mathbf{B}_0$. Then $f'(s) = \mathbf{T}(s) \cdot \mathbf{B}_0 = 0$ for all $s$ (since $\mathbf{T} \perp \mathbf{B}$ at every point), so $f \equiv 0$. This means $\beta(s) - \beta(s_0)$ is always perpendicular to $\mathbf{B}_0$, i.e., $\beta(s)$ lies in the plane through $\beta(s_0)$ with normal $\mathbf{B}_0$. $\square$
+This is the precise sense in which $(\kappa, \tau)$ "determine" the curve. They are the analog of the metric for 1D objects: knowing them is knowing the curve.
 
-This theorem gives a clean criterion: a space curve is actually planar if and only if its torsion vanishes identically. The geometric content is that $\tau = 0$ means the osculating plane is not rotating at all — it stays the same plane.
+### Worked corollary: helix from $(\kappa, \tau)$
 
-**Torsion formula for arbitrary parametrization.** If $\alpha(t)$ is a regular curve with $\kappa > 0$:
+Suppose $\kappa$ and $\tau$ are both constant. Solve the Frenet-Serret ODE: the system has constant coefficients, so the solution is a matrix exponential. One obtains
+$$\alpha(s) = \biggl(\frac{\kappa}{\kappa^2+\tau^2}\cos(\omega s),\, \frac{\kappa}{\kappa^2+\tau^2}\sin(\omega s),\, \frac{\tau}{\kappa^2+\tau^2}\,\omega s\biggr)$$
+where $\omega = \sqrt{\kappa^2+\tau^2}$. This is a helix with radius $r = \kappa/(\kappa^2+\tau^2)$ and pitch (vertical advance per turn) $h = 2\pi\tau/(\kappa^2+\tau^2)$. Check: $\kappa^2+\tau^2 = \kappa^2 + \tau^2$, and $r^2 + (h/2\pi)^2 = (\kappa^2+\tau^2)/(\kappa^2+\tau^2)^2 = 1/(\kappa^2+\tau^2) = 1/\omega^2$, so $r$ and $h/2\pi$ live on a circle of radius $1/\omega$ in the $(r, h/2\pi)$-plane. As $\tau\to 0$ the helix flattens to a circle (radius $1/\kappa$, no pitch); as $\kappa\to 0$ it straightens to a line.
 
-$$\tau = \frac{(\alpha' \times \alpha'') \cdot \alpha'''}{|\alpha' \times \alpha''|^2}.$$
+Set $\kappa = 1/1.16$, $\tau = 0.4/1.16$, and you recover (after rigid motion) the original $\alpha = (\cos t, \sin t, 0.4 t)$.
 
-*Derivation outline.* Starting from $\alpha' = s'\mathbf{T}$ and $\alpha'' = s''\mathbf{T} + \kappa(s')^2 \mathbf{N}$, differentiate once more. After considerable bookkeeping with the Frenet formulas, one obtains:
-
-$$\alpha''' = [s''' - \kappa^2(s')^3]\,\mathbf{T} + [3\kappa\, s'\, s'' + \kappa'(s')^2]\,\mathbf{N} + \kappa\,\tau\,(s')^3\,\mathbf{B}.$$
-
-Taking the dot product with $\alpha' \times \alpha'' = \kappa(s')^3\,\mathbf{B}$:
-
-$$(\alpha' \times \alpha'') \cdot \alpha''' = \kappa^2\,\tau\,(s')^6.$$
-
-Since $|\alpha' \times \alpha''|^2 = \kappa^2(s')^6$, dividing gives $\tau$.
-
-The numerator $(\alpha' \times \alpha'') \cdot \alpha'''$ is the scalar triple product of the first three derivatives. It has a pleasant geometric interpretation: it measures the volume of the parallelepiped spanned by $\alpha'$, $\alpha''$, $\alpha'''$. This volume is zero precisely when the three derivatives are coplanar — which happens exactly when the curve lies in a plane (consistent with $\tau = 0$).
-
-**Example 7 (Torsion of the helix).** For $\alpha(t) = (a\cos t, a\sin t, bt)$:
-
-$$\alpha' = (-a\sin t, a\cos t, b), \quad \alpha'' = (-a\cos t, -a\sin t, 0), \quad \alpha''' = (a\sin t, -a\cos t, 0).$$
-
-We computed $\alpha' \times \alpha'' = (ab\sin t, -ab\cos t, a^2)$, so $|\alpha' \times \alpha''|^2 = a^2 b^2 + a^4 = a^2(a^2 + b^2)$.
-
-The scalar triple product:
-
-$$(\alpha' \times \alpha'') \cdot \alpha''' = (ab\sin t)(a\sin t) + (-ab\cos t)(-a\cos t) + a^2 \cdot 0 = a^2 b\sin^2 t + a^2 b\cos^2 t = a^2 b.$$
-
-Therefore $\tau = a^2 b / [a^2(a^2 + b^2)] = b/(a^2 + b^2)$.
-
-The torsion of the circular helix is constant, just like its curvature. When $b > 0$ (right-handed helix), $\tau > 0$; when $b < 0$ (left-handed), $\tau < 0$. When $b = 0$, the helix degenerates to a circle and $\tau = 0$.
-
-Note the symmetry: $\kappa = a/(a^2+b^2)$ and $\tau = b/(a^2+b^2)$. The ratio $\tau/\kappa = b/a = \tan\theta$, where $\theta$ is the pitch angle of the helix. This is a purely geometric relationship.
-
-**Example 8 (Twisted cubic).** Consider $\alpha(t) = (t, t^2, t^3)$. At $t = 0$:
-
-$$\alpha'(0) = (1, 0, 0), \quad \alpha''(0) = (0, 2, 0), \quad \alpha'''(0) = (0, 0, 6).$$
-
-$$\alpha'(0) \times \alpha''(0) = (0, 0, 2), \quad |\alpha'(0) \times \alpha''(0)|^2 = 4.$$
-
-$$(\alpha'(0) \times \alpha''(0)) \cdot \alpha'''(0) = 12, \quad \tau(0) = 12/4 = 3.$$
-
-Also $|\alpha'(0)| = 1$, so $\kappa(0) = 2/1 = 2$. The twisted cubic at the origin has curvature 2 and torsion 3. The Frenet frame there: $\mathbf{T} = (1,0,0)$, $\mathbf{B} = (0,0,1)$, $\mathbf{N} = \mathbf{B} \times \mathbf{T} = (0,1,0)$. The osculating plane at the origin is the $xy$-plane.
-
-For general $t$, the calculation is more involved. We have:
-
-$$\alpha'(t) = (1, 2t, 3t^2), \quad \alpha''(t) = (0, 2, 6t), \quad \alpha'''(t) = (0, 0, 6).$$
-
-$$\alpha' \times \alpha'' = (12t^2 - 6t^2,\, -6t,\, 2) = (6t^2,\, -6t,\, 2).$$
-
-$$|\alpha' \times \alpha''|^2 = 36t^4 + 36t^2 + 4.$$
-
-$$(\alpha' \times \alpha'') \cdot \alpha''' = 12.$$
-
-So $\tau(t) = 12/(36t^4 + 36t^2 + 4)$, which decreases from $\tau(0) = 3$ as $|t|$ increases. The torsion is everywhere positive, confirming that the twisted cubic consistently twists in the same direction.
+In other words: the helix is, up to rigid motion, *the* curve with constant curvature and constant torsion. This is the differential-geometric reason every screw, every spring, every DNA double-strand looks the same up close.
 
 ---
 
-## The Frenet-Serret Formulas and the Fundamental Theorem
+## A Tour of Classical Curves
 
-We have defined $\kappa$ and $\tau$ by specifying how $\mathbf{T}'$ and $\mathbf{B}'$ relate to the frame vectors. The derivative of $\mathbf{N}$ can be deduced from these. The result is a clean system of ODEs that encodes the complete local geometry of a space curve.
+Numerical examples solidify the apparatus. I will take the time to compute $\kappa$ and $\tau$ on a few standards.
 
-**Theorem (Frenet-Serret formulas).** Let $\beta(s)$ be a unit-speed curve with $\kappa(s) > 0$. Then:
+![Classical curves: cardioid, lemniscate, logarithmic spiral](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/01-curves-in-space/dg_v2_01_7_classical_curves.png)
 
-$$\begin{aligned}
-\mathbf{T}' &= \kappa\,\mathbf{N}, \\
-\mathbf{N}' &= -\kappa\,\mathbf{T} + \tau\,\mathbf{B}, \\
-\mathbf{B}' &= -\tau\,\mathbf{N}.
-\end{aligned}$$
+**Plane circle.** $\alpha(t) = (r\cos t, r\sin t, 0)$. Then $|\alpha'| = r$, $\alpha'\times\alpha'' = (0,0,r^2)$, $|\alpha'\times\alpha''| = r^2$, so $\kappa = r^2/r^3 = 1/r$. And $\alpha''' = (r\sin t, -r\cos t, 0)$ has zero dot product with $\alpha'\times\alpha''$ (it lies in the $xy$-plane), so $\tau = 0$. As expected.
 
-In matrix form:
+**Cardioid.** $\alpha(t) = (a(2\cos t - \cos 2t), a(2\sin t - \sin 2t), 0)$ traces a heart shape with a single cusp at $t = 0$. The curve is regular except at the cusp; away from there, $\kappa$ can be computed and turns out to be $\kappa(t) = 3/(8 a |\sin(t/2)|)$. Notice: $\kappa\to\infty$ as $t\to 0$. The cusp is where curvature blows up — a polite way of saying the curve "violently changes direction".
 
-$$\frac{d}{ds}\begin{pmatrix} \mathbf{T} \\ \mathbf{N} \\ \mathbf{B} \end{pmatrix} = \begin{pmatrix} 0 & \kappa & 0 \\ -\kappa & 0 & \tau \\ 0 & -\tau & 0 \end{pmatrix} \begin{pmatrix} \mathbf{T} \\ \mathbf{N} \\ \mathbf{B} \end{pmatrix}.$$
+**Lemniscate of Bernoulli.** $\alpha(t) = \bigl(\cos t/(1+\sin^2 t), \sin t \cos t/(1+\sin^2 t), 0\bigr)$ is the figure-eight. It is planar ($\tau = 0$) but has a self-intersection at the origin. The curve is regular as a parametrized curve but the image is not an embedded submanifold.
 
-**The skew-symmetric structure.** The coefficient matrix is skew-symmetric (antisymmetric): $\Omega^T = -\Omega$. This is not a coincidence but a necessity. The Frenet frame is orthonormal, meaning the matrix $F = (\mathbf{T}\ \mathbf{N}\ \mathbf{B})$ satisfies $F^T F = I$. Differentiating: $F'^T F + F^T F' = 0$, so $F^T F' = -(F^T F')^T$, i.e., $F^T F' = \Omega$ is skew-symmetric. Physically, a skew-symmetric matrix generates rotations: the Frenet frame rotates rigidly as we move along the curve, with instantaneous angular velocity given by the *Darboux vector* $\boldsymbol{\omega} = \tau\,\mathbf{T} + \kappa\,\mathbf{B}$.
+**Logarithmic spiral.** $\alpha(t) = (e^{kt}\cos t, e^{kt}\sin t, 0)$ for $k > 0$. A computation gives $\kappa(t) = e^{-kt}/\sqrt{1+k^2}$. So curvature decays exponentially: the spiral becomes "straighter" as it unwinds. This explains why log spirals show up in nautilus shells, pinecones, and Romanesco broccoli — biological growth patterns that scale geometrically have constant *logarithmic* derivative, exactly the property of $e^{kt}$.
 
-*Derivation of $\mathbf{N}' = -\kappa\,\mathbf{T} + \tau\,\mathbf{B}$.* We derive the middle equation, the only one not given by definition. Expand $\mathbf{N}' = a\,\mathbf{T} + b\,\mathbf{N} + c\,\mathbf{B}$ and determine the coefficients using orthonormality:
+The logarithmic spiral has another property worth noting: the angle between the tangent $\mathbf{T}$ and the position vector $\alpha$ is constant. (Compute $\alpha\cdot\alpha'/|\alpha||\alpha'|$.) This is the *equiangular* property, and it characterizes the log spiral among all plane curves.
 
-- $b = \mathbf{N}' \cdot \mathbf{N} = \frac{1}{2}\frac{d}{ds}|\mathbf{N}|^2 = 0$.
-- $a = \mathbf{N}' \cdot \mathbf{T}$. Differentiating $\mathbf{N} \cdot \mathbf{T} = 0$: $\mathbf{N}' \cdot \mathbf{T} + \mathbf{N} \cdot \mathbf{T}' = 0$, so $a = -\mathbf{N} \cdot \kappa\mathbf{N} = -\kappa$.
-- $c = \mathbf{N}' \cdot \mathbf{B}$. Differentiating $\mathbf{N} \cdot \mathbf{B} = 0$: $\mathbf{N}' \cdot \mathbf{B} + \mathbf{N} \cdot \mathbf{B}' = 0$, so $c = -\mathbf{N} \cdot (-\tau\mathbf{N}) = \tau$.
+**Viviani's curve.** $\alpha(t) = (1+\cos t, \sin t, 2\sin(t/2))$ is the intersection of the cylinder $(x-1)^2+y^2 = 1$ with the sphere $x^2+y^2+z^2 = 4$. Both $\kappa$ and $\tau$ are non-trivial here; you will learn more from computing them yourself than from me writing it out. The shape is a figure-eight on the sphere, sometimes called a "spherical lemniscate".
 
-Therefore $\mathbf{N}' = -\kappa\,\mathbf{T} + \tau\,\mathbf{B}$. $\square$
+**Astroid.** $\alpha(t) = (\cos^3 t, \sin^3 t, 0)$ has cusps at $t = 0, \pi/2, \pi, 3\pi/2$. Between cusps the curvature is finite, but at cusps it blows up. The astroid is planar but full of corners; it is the trace of a point on a small circle rolling inside a larger one (a *hypocycloid*).
 
-Alternatively, differentiate $\mathbf{N} = \mathbf{B} \times \mathbf{T}$ using the product rule:
+**Toroidal knot.** $\alpha(t) = ((R + r\cos pt)\cos qt, (R + r\cos pt)\sin qt, r\sin pt)$ with coprime $p, q$ traces a closed curve on a torus that wraps $p$ times the small way and $q$ times the long way. The $(2,3)$-knot is the trefoil; $(3,2)$ is also a trefoil (mirror image). The curvature and torsion oscillate but remain bounded. Knots are an entry point to topology, and the connection between geometry and topology will become explicit in our Gauss-Bonnet chapter.
 
-$$\mathbf{N}' = \mathbf{B}' \times \mathbf{T} + \mathbf{B} \times \mathbf{T}' = (-\tau\mathbf{N}) \times \mathbf{T} + \mathbf{B} \times (\kappa\mathbf{N}).$$
+---
 
-Using $\mathbf{N} \times \mathbf{T} = -\mathbf{B}$ and $\mathbf{B} \times \mathbf{N} = -\mathbf{T}$:
+## Limits, Generalizations, and What Comes Next
 
-$$\mathbf{N}' = \tau\mathbf{B} - \kappa\mathbf{T}.$$
+A few honest caveats about the local theory.
 
-Both approaches give the same answer, as they must.
+**The Frenet frame fails when $\kappa = 0$.** At an inflection point the principal normal $\mathbf{N}$ is undefined. This is not a defect of the curve but of the frame. The *Bishop frame* (a "relatively parallel" alternative) replaces $\mathbf{N}$ and $\mathbf{B}$ by two normal vectors that are parallel-transported along the curve, and exists everywhere. It is the standard tool in computer graphics and tubing/extrusion algorithms, where the Frenet frame's tendency to spin near inflection points causes textures and twisting cross-sections to flicker. The Bishop frame is unique up to a choice of initial rotation, so it has one continuous degree of freedom; the Frenet frame is canonical wherever $\kappa > 0$.
 
-**Example 9 (Verifying the Frenet-Serret formulas for the helix).** We computed the Frenet frame of the helix in Example 6. Let us verify the formula $\mathbf{N}' = -\kappa\mathbf{T} + \tau\mathbf{B}$. The principal normal is $\mathbf{N}(s) = (-\cos(s/c), -\sin(s/c), 0)$, so:
+**Higher dimensions.** In $\mathbb{R}^n$, a curve has a generalized Frenet frame $(\mathbf{e}_1, \ldots, \mathbf{e}_n)$ at each point and $n - 1$ curvature functions $\kappa_1, \ldots, \kappa_{n-1}$, related by an $n\times n$ skew-symmetric matrix of derivatives. The Fundamental Theorem extends. We will not need this in the series, but it is good to know the apparatus generalizes cleanly.
 
-$$\mathbf{N}'(s) = \left(\frac{1}{c}\sin\frac{s}{c},\; -\frac{1}{c}\cos\frac{s}{c},\; 0\right).$$
+**Smoothness.** I have assumed $C^\infty$ everywhere. For the basic theorems we only need $C^3$ (so that $\alpha'''$ exists and is continuous). For most engineering applications $C^2$ is enough to talk about $\kappa$ but not $\tau$. Splines, piecewise-polynomial curves common in CAD, are typically only $C^2$ at knot points, and torsion can jump discontinuously there even if curvature is continuous.
 
-On the other hand:
+**Closed curves.** A closed curve is one with $\alpha(s + L) = \alpha(s)$ for all $s$ (where $L$ is the period). For closed planar curves, the *total curvature* $\int_0^L \kappa\,ds$ is an integer multiple of $2\pi$ (the winding number times $2\pi$); this is the Whitney-Graustein theorem in disguise. We will encounter the analog for surfaces in the Gauss-Bonnet chapter; the connection is not a coincidence.
 
-$$-\kappa\,\mathbf{T} + \tau\,\mathbf{B} = -\frac{a}{c^2}\left(-\frac{a}{c}\sin\frac{s}{c},\; \frac{a}{c}\cos\frac{s}{c},\; \frac{b}{c}\right) + \frac{b}{c^2}\left(\frac{b}{c}\sin\frac{s}{c},\; -\frac{b}{c}\cos\frac{s}{c},\; \frac{a}{c}\right).$$
+**Knot energy.** For a closed curve, the integral $\int_0^L \kappa^2\,ds$ is called the *bending energy*. Minimizing it among closed curves of fixed length and topological type leads to *elastica* (in the planar case) and to the more elaborate world of knot energies. These are not idle curiosities: they appear in modelling DNA supercoiling, plant stems, and anything else that treats the bending of a 1D filament as a physical quantity.
 
-The first component: $\frac{a^2}{c^3}\sin\frac{s}{c} + \frac{b^2}{c^3}\sin\frac{s}{c} = \frac{a^2+b^2}{c^3}\sin\frac{s}{c} = \frac{1}{c}\sin\frac{s}{c}$. Similarly for the other components. The third component: $-\frac{ab}{c^3} + \frac{ab}{c^3} = 0$. Everything checks out.
+### A longer worked example: where $\kappa$ alone fails to distinguish curves
 
-The Frenet-Serret formulas show that $\kappa(s)$ and $\tau(s)$ completely determine the evolution of the moving frame along the curve. The next theorem says they also determine the curve itself.
+To drive home the point that curvature alone is not enough in 3D, consider two curves with identical $\kappa(s)$ but different $\tau(s)$.
 
-**Theorem (Fundamental Theorem of Space Curves).** Let $\kappa: I \to \mathbb{R}_{>0}$ and $\tau: I \to \mathbb{R}$ be smooth functions on an interval $I$. Then:
+Curve A: a circle of radius $1$ in the $xy$-plane, $\alpha_A(s) = (\cos s, \sin s, 0)$. Constant $\kappa_A = 1$, $\tau_A = 0$.
 
-1. **(Existence)** There exists a unit-speed curve $\beta: I \to \mathbb{R}^3$ whose curvature is $\kappa$ and whose torsion is $\tau$.
-2. **(Uniqueness)** If $\gamma: I \to \mathbb{R}^3$ is another unit-speed curve with the same $\kappa$ and $\tau$, then $\gamma$ differs from $\beta$ by a rigid motion of $\mathbb{R}^3$: there exist $A \in SO(3)$ and $\mathbf{b} \in \mathbb{R}^3$ such that $\gamma(s) = A\,\beta(s) + \mathbf{b}$ for all $s \in I$.
+Curve B: the helix with constant $\kappa_B = 1$ and constant $\tau_B = 0.5$. By the Fundamental Theorem this is a uniquely determined helix (up to rigid motion); a quick computation gives radius $r = \kappa/(\kappa^2+\tau^2) = 1/1.25 = 0.8$ and pitch $h = 2\pi\tau/(\kappa^2+\tau^2) = \pi$. So $\alpha_B(s)$ traces a helix of radius $0.8$ around the $z$-axis, climbing $\pi$ per revolution.
 
-*Proof sketch.* **Existence.** The Frenet-Serret formulas form a $9 \times 9$ linear ODE system (three vector equations, each with three components). Given an initial point $p_0 \in \mathbb{R}^3$ and an initial orthonormal frame $(\mathbf{T}_0, \mathbf{N}_0, \mathbf{B}_0)$, the Picard-Lindelof theorem guarantees a unique global solution $(\mathbf{T}(s), \mathbf{N}(s), \mathbf{B}(s))$ on all of $I$.
+Both have $\kappa \equiv 1$. They look nothing alike. The difference is entirely in the torsion: zero for the planar circle, $0.5$ for the helix. If you only had access to a curvature function, you would mistake them for the same curve.
 
-We need to verify that the solution remains orthonormal. Define the $6$ inner products $f_{ij} = \mathbf{e}_i \cdot \mathbf{e}_j$ where $\mathbf{e}_1 = \mathbf{T}, \mathbf{e}_2 = \mathbf{N}, \mathbf{e}_3 = \mathbf{B}$. One can show that the $f_{ij}$ satisfy a linear ODE system with initial conditions $f_{ij}(s_0) = \delta_{ij}$, and the constant solution $f_{ij} \equiv \delta_{ij}$ also satisfies this system. By uniqueness, $f_{ij} = \delta_{ij}$ for all $s$, so the frame remains orthonormal. (This is the key step — it uses the skew-symmetry of the coefficient matrix.)
+A reverse experiment: fix $\tau \equiv 0$ and choose any smooth $\kappa$. The Fundamental Theorem yields a unique curve up to rigid motion; this curve is *planar* (we proved this above). So planar curves are exactly those for which $\tau$ vanishes identically, and within the planar world, $\kappa$ alone determines the curve up to rigid motion. The full 3D world is genuinely two-functional.
 
-Once $\mathbf{T}(s)$ is known, define $\beta(s) = p_0 + \int_{s_0}^{s} \mathbf{T}(u)\, du$. Then $\beta'(s) = \mathbf{T}(s)$, so $\beta$ is unit-speed, and by construction its curvature and torsion are $\kappa$ and $\tau$.
+### Curvature in coordinates: a Maple-style sanity script
 
-**Uniqueness.** Suppose $\beta$ and $\gamma$ have the same $\kappa, \tau$. Choose $s_0$ and let $A \in SO(3)$ be the rotation mapping the Frenet frame of $\beta$ at $s_0$ to that of $\gamma$, and let $\mathbf{b} = \gamma(s_0) - A\beta(s_0)$. Set $\tilde\beta(s) = A\beta(s) + \mathbf{b}$. The curve $\tilde\beta$ has the same curvature and torsion as $\beta$ (rigid motions preserve both), and at $s_0$ its Frenet frame matches $\gamma$'s. Both $\tilde\beta$ and $\gamma$ solve the Frenet-Serret ODE with identical initial conditions, so by uniqueness of ODE solutions, $\tilde\beta = \gamma$. $\square$
+For sanity, here is the kind of pencil-and-paper computation worth running through once:
 
-The Fundamental Theorem tells us that a space curve is completely characterized, up to its position and orientation in ambient space, by the two functions $\kappa(s)$ and $\tau(s)$. These are the *natural invariants* of the curve. No matter how complicated a space curve looks, its shape is encoded in just two functions of one variable. This is both a compression result and a classification result.
+Take $\alpha(t) = (t, t^3, t^2)$. Then $\alpha' = (1, 3t^2, 2t)$, $\alpha'' = (0, 6t, 2)$, $\alpha''' = (0, 6, 0)$.
 
-**Corollary.** A curve with constant $\kappa > 0$ and constant $\tau$ is (a portion of) a circular helix. If additionally $\tau = 0$, it is a circle.
+Cross product: $\alpha'\times\alpha'' = \det\begin{pmatrix}\mathbf{i}&\mathbf{j}&\mathbf{k}\\1&3t^2&2t\\0&6t&2\end{pmatrix} = (6t^2 - 12t^2, -2 + 0, 6t - 0) = (-6t^2, -2, 6t)$.
 
-*Proof.* We computed that the circular helix $\alpha(t) = (a\cos t, a\sin t, bt)$ with $a = \kappa/(\kappa^2+\tau^2)$ and $b = \tau/(\kappa^2+\tau^2)$ has the given curvature and torsion. By the Fundamental Theorem, any other curve with the same constants must be a rigid motion of this helix. $\square$
+Magnitudes: $|\alpha'|^2 = 1 + 9t^4 + 4t^2$, $|\alpha'\times\alpha''|^2 = 36t^4 + 4 + 36t^2 = 4(9t^4 + 9t^2 + 1)$.
 
-**Remark (Curves with vanishing curvature).** The Frenet frame requires $\kappa > 0$ to define $\mathbf{N}$. At a point where $\kappa = 0$ (an inflection point), the curve instantaneously travels in a straight line and there is no preferred normal direction. The theory can be extended using the *Bishop frame* (or *relatively parallel adapted frame*), which replaces $\mathbf{N}$ and $\mathbf{B}$ with two normal vectors that are parallel-transported along the curve rather than determined by the curvature direction. The Bishop frame is always defined (even when $\kappa = 0$) and is widely used in computer graphics and engineering, where the Frenet frame's tendency to spin rapidly near inflection points is undesirable.
+Curvature: $\kappa(t) = 2\sqrt{9t^4 + 9t^2 + 1}/(1 + 4t^2 + 9t^4)^{3/2}$.
 
-**Summary of formulas.** For a regular curve $\alpha(t)$ in $\mathbb{R}^3$ with arbitrary parametrization:
+At $t = 0$: $\kappa = 2$. At $t = 1$: $\kappa = 2\sqrt{19}/14^{3/2} \approx 2(4.359)/52.38 \approx 0.166$. So the curve bends sharply near the origin and straightens out as $t$ grows, much like the parabola but in 3D.
+
+Triple product for torsion: $(\alpha'\times\alpha'')\cdot\alpha''' = (-6t^2)\cdot 0 + (-2)\cdot 6 + 6t\cdot 0 = -12$. Constant. So
+$$\tau(t) = \frac{-12}{4(9t^4 + 9t^2 + 1)} = \frac{-3}{9t^4 + 9t^2 + 1}.$$
+At $t = 0$, $\tau = -3$. At $t = 1$, $\tau = -3/19 \approx -0.158$. Negative torsion: the curve is "left-handed" under the standard right-hand convention.
+
+This is what real computation of $\kappa$ and $\tau$ looks like. The formulas are mechanical; the algebra is finicky. Most working differential geometers verify their hand computations with a CAS for anything more complicated than a helix, and so should you.
+
+### Curves on surfaces: foreshadowing the next chapter
+
+A curve does not have to live in $\mathbb{R}^3$ — it can live on a surface, like a great circle on a sphere or a contour line on a hillside. When a curve lies on a surface, its curvature decomposes into two pieces: the *normal curvature* (how much the curve bends because the surface itself is bending) and the *geodesic curvature* (how much the curve "turns within" the surface). A geodesic is a curve with zero geodesic curvature — it bends only as much as the surface forces it to. We will spend a lot of time on geodesics in chapter 4.
+
+The decomposition is striking: the same curve, viewed in $\mathbb{R}^3$, has one curvature; viewed on the surface, it has two. The second piece, $\kappa_g$, is *intrinsic* — it can be computed from the surface's metric alone, without reference to how the surface is embedded in space. The first piece, $\kappa_n$, is *extrinsic*. This distinction will dominate the rest of the series.
+
+### Why I belabour the helix
+
+I have come back to the helix three times in this article, and I will come back to it again. The reason is pedagogical and unapologetic: the helix is to differential geometry what the simple harmonic oscillator is to physics. It is the unique non-trivial curve with both invariants constant, it admits closed-form expressions for everything, it makes a striking 3D picture, and it shows up in nature whenever something with translational and rotational symmetry has to fit into a tube. Spring, screw, bolt, drill bit, double helix of DNA, alpha helix in a protein, the curl of a fern, the spiral staircase. Anywhere you see a long thin object that has to make the same handed turn over and over, you are seeing a helix, and locally that helix obeys the formulas in this chapter.
+
+If at the end of the series you remember nothing else, remember this: the helix is the geometry of "constant rate of turn plus constant rate of twist". Curvature is the rate of turn; torsion is the rate of twist. Two numbers, computed in coordinates by simple cross-product formulas, generate every helix you will ever see. And then everything we do for surfaces and manifolds is a careful generalization of that idea — find the right invariants, express them in coordinates, prove they determine the geometry up to symmetry. The story scales up but the structure is already in your hands.
+
+A final philosophical aside. The Frenet-Serret apparatus is sometimes criticized as "old-fashioned" — too tied to $\mathbb{R}^3$, too coordinate-dependent. There is some truth to that. Modern differential geometry uses connections and Lie algebras of frame bundles to talk about moving frames in greater generality, and many graduate texts skip the classical theory entirely. But there is value in seeing the machinery from the ground up: the Frenet-Serret system is a genuine mini-laboratory for the entire subject. Its skew-symmetric matrix becomes a connection one-form, its Darboux vector becomes the curvature of that connection, its Fundamental Theorem becomes the integrability statement of a flat connection on the trivial bundle. Once you have seen it concretely, the abstract version is much easier to swallow.
+
+There is one more loose thread worth pulling. We have made a careful distinction between the curve as a parametrization (a map $\alpha: I\to \mathbb{R}^3$) and the curve as an image (a subset of $\mathbb{R}^3$). The image is what physically exists; the parametrization is a labelling we impose. The geometric invariants $\kappa$ and $\tau$ are functions of arc length, which is itself a property of the image. So when we say "this curve has constant curvature $1$", we mean that the function $\kappa$, viewed as a function on the image (parametrized however you like), takes the value $1$ at every point. That is a statement about the image, not the labelling. Conflating these two perspectives is one of the most common sources of confusion in introductory differential geometry, and resolving it pays dividends throughout the series. We will encounter the same distinction for surfaces and again for manifolds: the underlying geometric object versus a particular parametrization or chart. The invariants that survive change of parametrization or chart are the geometrically meaningful ones; everything else is bookkeeping.
+
+With those bookkeeping conventions in place, we are ready to move up a dimension.
+
+**Summary table.** For a regular curve $\alpha(t)$ in $\mathbb{R}^3$ with arbitrary parametrization:
 
 | Quantity | Formula |
 |---|---|
-| Speed | $v = |\alpha'|$ |
-| Unit tangent | $\mathbf{T} = \alpha'/|\alpha'|$ |
-| Curvature | $\kappa = |\alpha' \times \alpha''| / |\alpha'|^3$ |
+| Speed | $v = \|\alpha'\|$ |
+| Unit tangent | $\mathbf{T} = \alpha'/\|\alpha'\|$ |
+| Curvature | $\kappa = \|\alpha' \times \alpha''\| / \|\alpha'\|^3$ |
+| Binormal | $\mathbf{B} = (\alpha' \times \alpha'') / \|\alpha' \times \alpha''\|$ |
 | Principal normal | $\mathbf{N} = \mathbf{B} \times \mathbf{T}$ |
-| Binormal | $\mathbf{B} = (\alpha' \times \alpha'') / |\alpha' \times \alpha''|$ |
-| Torsion | $\tau = (\alpha' \times \alpha'') \cdot \alpha''' / |\alpha' \times \alpha''|^2$ |
+| Torsion | $\tau = (\alpha' \times \alpha'') \cdot \alpha''' / \|\alpha' \times \alpha''\|^2$ |
+| Darboux vector | $\boldsymbol{\omega} = \tau\mathbf{T} + \kappa\mathbf{B}$ |
+| Total bending energy | $\int \kappa^2\,ds$ |
+
+Keep this at hand. We will not derive these from scratch again.
 
 ---
 
 ## What's Next
 
-We have developed the complete local theory of curves in $\mathbb{R}^3$: the Frenet-Serret apparatus gives us a moving orthonormal frame, two scalar invariants ($\kappa$ and $\tau$), and a fundamental theorem asserting that these invariants determine the curve up to rigid motion. This is, in a sense, the warm-up act: curves are one-dimensional objects, and their geometry is governed by ODEs.
+We now have the complete local theory of curves. The Frenet-Serret apparatus provides a moving orthonormal frame and two scalar invariants ($\kappa, \tau$) which determine the curve up to rigid motion. The whole story is governed by ODEs.
 
-The next chapter moves to surfaces — two-dimensional objects in $\mathbb{R}^3$. The jump from one dimension to two is qualitatively different. Instead of a single tangent vector, we will have a tangent *plane* at each point. Instead of curvature and torsion (two functions of one variable), we will encounter the *first fundamental form* — a $2 \times 2$ matrix of functions that encodes how to measure lengths, angles, and areas on the surface. The theory will shift from ODEs to bilinear algebra and eventually to PDEs, and the distinction between *intrinsic* and *extrinsic* geometry will become central.
+The next chapter moves to surfaces — two-dimensional objects in $\mathbb{R}^3$. The jump from one dimension to two is qualitatively different. Instead of a single tangent vector we have a tangent *plane*; instead of two scalar invariants we have the *first fundamental form* — a $2\times 2$ matrix-valued function — and later a second one. The theory will shift from ODEs to bilinear algebra and PDEs, and the distinction between *intrinsic* and *extrinsic* geometry, which has barely surfaced for curves (whose intrinsic geometry is trivially that of an interval), will become the entire game.
 
-In the curve setting, there is no real intrinsic geometry: a curve "from the inside" is just a copy of $\mathbb{R}$ (or an interval), and all the interesting geometry — curvature, torsion — comes from how the curve sits in the ambient space. For surfaces, the situation is fundamentally different: a surface has its own internal metric, its own notion of distance and angle, which can be measured by a being living on the surface with no knowledge of the surrounding $\mathbb{R}^3$. Understanding this intrinsic geometry begins with the first fundamental form, and it will eventually lead us to Gauss's *Theorema Egregium* — the remarkable theorem that Gaussian curvature is an intrinsic invariant, detectable from within the surface itself.
+The deepest result waiting for us in that direction is Gauss's *Theorema Egregium*: even though Gaussian curvature is defined extrinsically (in terms of how the surface bends in space), it can in fact be computed entirely from the intrinsic metric. A flatlander could measure it from inside the surface. That is the kind of theorem that gets named "egregious".
 
 ---
 

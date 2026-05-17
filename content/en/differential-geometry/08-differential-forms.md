@@ -10,312 +10,286 @@ categories: Mathematics
 series: differential-geometry
 lang: en
 mathjax: true
-description: "Differential forms unify gradient, curl, and divergence into a single framework — the exterior derivative d and wedge product ∧ make calculus coordinate-free."
+description: "Differential forms unify gradient, curl, and divergence into a single framework — the exterior derivative d and wedge product turn calculus coordinate-free."
 disableNunjucks: true
 series_order: 8
 series_total: 12
 translationKey: "differential-geometry-8"
 ---
 
-In vector calculus on $\mathbb{R}^3$, we have three derivative operations: gradient ($\nabla f$), curl ($\nabla \times F$), and divergence ($\nabla \cdot F$). Each operates on a different type of object (scalar fields, vector fields), and two identities — $\nabla \times (\nabla f) = 0$ and $\nabla \cdot (\nabla \times F) = 0$ — seem like happy coincidences. The three theorems of integral calculus (the fundamental theorem for line integrals, Stokes' theorem, the divergence theorem) look unrelated.
+In vector calculus on $\mathbb{R}^3$, we have three derivative operations: gradient ($\nabla f$), curl ($\nabla \times F$), and divergence ($\nabla \cdot F$). Each operates on a different type of object (scalar fields, vector fields). Two identities — $\nabla \times (\nabla f) = 0$ and $\nabla \cdot (\nabla \times F) = 0$ — sit there looking like happy coincidences. The three integral theorems (the fundamental theorem for line integrals, the classical Stokes' theorem, the divergence theorem) appear unrelated and unmotivated except by their statements.
 
-This is an artifact of dimension 3 and the Euclidean metric. Differential forms reveal the unified structure behind all of this. On any smooth manifold of any dimension, there is a single derivative operator $d$ (the exterior derivative) and a single integration theorem (the generalized Stokes' theorem). Gradient, curl, and divergence are all $d$ in disguise; the three integral theorems are all the same theorem. The price of this unification is a shift in perspective: we must learn to work with forms rather than vector fields.
+This is an artifact of $\mathbb{R}^3$ and the Euclidean metric. The truth is simpler and more general. On any smooth manifold of any dimension, there is a *single* derivative operator $d$ (the **exterior derivative**) and a *single* integration theorem (the generalized Stokes' theorem). Gradient, curl, and divergence are all $d$ in disguise. The three classical integral theorems are all the same theorem at different dimensions. The two "happy coincidences" — $\mathrm{curl}\,\mathrm{grad} = 0$ and $\mathrm{div}\,\mathrm{curl} = 0$ — collapse into the single identity $d^2 = 0$, which is essentially the equality of mixed partials.
 
----
+The price of this unification is a shift in perspective. Vector calculus uses *vectors* as its fundamental objects (with the metric implicitly converting between tangent and cotangent). Differential geometry uses *forms* — objects that live in $\Lambda^k T^* M$, the bundle of antisymmetric multilinear forms on tangent spaces. Forms are designed to be integrated on submanifolds. Vectors are designed to point. Once you accept that integration wants forms (not vectors), every classical theorem reorganizes itself, and the apparent miracles of vector calculus become routine.
 
-## Why Forms? Unifying Vector Calculus in Arbitrary Dimensions
-
-The fundamental problem of integration on manifolds is this: what can you integrate over a $k$-dimensional oriented submanifold? A smooth function? No — an integral like $\int_S f$ depends on a choice of "volume element," which is extra structure. What you can integrate, without any additional choices, is a $k$-form.
-
-Consider the familiar line integral $\int_C \mathbf{F} \cdot d\mathbf{r}$ in $\mathbb{R}^3$. This looks like it involves a vector field $\mathbf{F} = (P, Q, R)$, but what it really computes is $\int_C (P\,dx + Q\,dy + R\,dz)$. The expression $P\,dx + Q\,dy + R\,dz$ is a 1-form — an object that eats tangent vectors and produces numbers. The vector field $\mathbf{F}$ is the 1-form in disguise, converted using the Euclidean metric (which identifies tangent vectors with cotangent vectors via $\mathbf{F} \cdot d\mathbf{r} = F^i dx^i$).
-
-![Differential forms and the exterior derivative](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/08-differential-forms/dg_fig8_forms.png)
-
-
-Similarly, the flux integral $\iint_S \mathbf{F} \cdot d\mathbf{S}$ is really the integral of a 2-form $P\,dy \wedge dz + Q\,dz \wedge dx + R\,dx \wedge dy$ over $S$. And the volume integral $\iiint_V f\,dV$ is the integral of a 3-form $f\,dx \wedge dy \wedge dz$.
-
-On a general manifold without a metric, there is no canonical way to convert between vector fields and 1-forms, or between vector fields and 2-forms. But forms exist intrinsically and integrate naturally. This is why the language of forms is essential once we leave Euclidean space.
-
-**Why forms pull back but vector fields don't.** A smooth map $F: M \to N$ lets you pull back forms from $N$ to $M$ — but there is no natural way to push forward or pull back vector fields (unless $F$ is a diffeomorphism). This asymmetry is fundamental. Physically, it corresponds to the fact that you can always restrict an "intensity" (like a voltage drop or a force along a path) to a subsystem, but you cannot generally extend a "flow" from a subsystem to the whole system. Forms represent intensities; vector fields represent flows. The two are dual, and the form perspective is more natural for integration.
-
-**The payoff in $\mathbb{R}^3$.** Even before moving to abstract manifolds, forms clarify the structure of vector calculus:
-
-| Operation | Input | Output | As forms |
-|-----------|-------|--------|----------|
-| $\text{grad}$ | 0-form $f$ | 1-form | $df$ |
-| $\text{curl}$ | 1-form $\omega$ | 2-form | $d\omega$ |
-| $\text{div}$ | 2-form $\eta$ | 3-form | $d\eta$ |
-
-The identities $\text{curl}(\text{grad}\,f) = 0$ and $\text{div}(\text{curl}\,F) = 0$ are both the single identity $d^2 = 0$.
+The plan: build $\Lambda^k V^*$ for a single vector space, glue across the manifold to get $\Omega^k(M)$, define wedge product, exterior derivative, pullback. Work numerical examples, recover the classical operators, define de Rham cohomology, and motivate Stokes' theorem (which is the centerpiece of the next article).
 
 ---
 
-## The Cotangent Space and 1-Forms
+## 1. One-Forms: The Dual of Tangent Vectors
 
-**Definition.** The **cotangent space** at $p \in M$ is the dual vector space $T_p^*M = (T_pM)^*$ — the space of all linear maps $\omega_p: T_pM \to \mathbb{R}$.
+Recall from earlier in the series that the **cotangent space** $T_p^* M$ is the dual vector space of $T_p M$ — the space of linear functionals $\alpha: T_p M \to \mathbb{R}$. A **1-form** $\omega$ on $M$ is a smooth assignment $p \mapsto \omega_p \in T_p^* M$. Equivalently, it is a smooth section of the cotangent bundle $T^*M \to M$.
 
-If $(U, \varphi)$ is a chart with coordinates $(x^1, \ldots, x^n)$, the basis for $T_pM$ is $\{\frac{\partial}{\partial x^i}\big|_p\}$. The dual basis for $T_p^*M$ is $\{dx^i|_p\}$, defined by:
-
-$$dx^i\left(\frac{\partial}{\partial x^j}\right) = \delta^i_j.$$
-
-Every element $\omega_p \in T_p^*M$ can be written as $\omega_p = \omega_i\, dx^i|_p$ where $\omega_i = \omega_p(\frac{\partial}{\partial x^i})$.
-
-**Definition.** A **smooth 1-form** (or covector field) on $M$ is a smooth section of the cotangent bundle $T^*M$: it assigns to each point $p$ a covector $\omega_p \in T_p^*M$, varying smoothly. In local coordinates:
-
+In a coordinate chart $(x^1, \dots, x^n)$, the differentials $dx^1, \dots, dx^n$ form a basis of $T_p^*M$ at each point, dual to the coordinate basis $\partial_1, \dots, \partial_n$ in the sense that $dx^i(\partial_j) = \delta^i_j$. Every 1-form can be written
 $$\omega = \omega_i(x)\, dx^i$$
+with smooth coefficients $\omega_i$. The space of 1-forms is denoted $\Omega^1(M)$.
 
-where $\omega_i: U \to \mathbb{R}$ are smooth functions. The space of smooth 1-forms is denoted $\Omega^1(M)$.
+![A 1-form acting on a vector to produce a scalar](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/08-differential-forms/dg_v2_08_1_one_form.png)
 
-**The canonical example: $df$.** For any $f \in C^\infty(M)$, the **differential** $df$ is the 1-form defined by:
+**Acting on vector fields.** A 1-form $\omega$ acts on a vector field $X$ to produce a smooth function:
+$$\omega(X)(p) = \omega_p(X_p) = \omega_i(p) X^i(p) \in \mathbb{R}.$$
+The pairing is $C^\infty(M)$-linear in *both* arguments: $\omega(fX) = f\omega(X)$ and $(f\omega)(X) = f\omega(X)$. This pointwise linearity is the defining feature of forms; it distinguishes them from operators like the Lie bracket.
 
-$$(df)_p(v) = v(f) \quad \text{for all } v \in T_pM.$$
+**Two natural sources of 1-forms.**
 
-In coordinates, $df = \frac{\partial f}{\partial x^i} dx^i$. This is the coordinate-free version of the gradient: $df$ encodes the same information as $\nabla f$ but without using a metric. The metric is needed only to convert $df$ (a covector) into $\text{grad}\,f$ (a vector) via $g(\text{grad}\,f, \cdot) = df$.
+1. **Differentials.** Every smooth function $f \in C^\infty(M)$ produces a 1-form $df$ by $df(X) = X(f)$. In coordinates, $df = \frac{\partial f}{\partial x^i}dx^i$. Geometrically, $df_p$ is the linear approximation to $f$ at $p$. A 1-form of the form $df$ for some $f$ is called **exact**.
 
-**1-forms pair with vector fields.** If $\omega \in \Omega^1(M)$ and $X \in \mathfrak{X}(M)$, then $\omega(X) \in C^\infty(M)$ is the smooth function $p \mapsto \omega_p(X_p)$. In coordinates, $\omega(X) = \omega_i X^i$.
+2. **Co-vectors via metric.** If $M$ has a Riemannian metric $g$, then every vector field $X$ has a *musical isomorphism* $X^\flat$ — a 1-form defined by $X^\flat(Y) = g(X, Y)$. In Euclidean coordinates, this is just lowering the index. This is the operation that secretly happens whenever vector calculus pretends "gradient" is a vector field rather than a 1-form.
 
-**Example.** On $\mathbb{R}^2$ with polar coordinates $(r, \theta)$, we have $dx = \cos\theta\,dr - r\sin\theta\,d\theta$ and $dy = \sin\theta\,dr + r\cos\theta\,d\theta$. The 1-form $\omega = x\,dy - y\,dx$ becomes:
+**Numerical example.** On $\mathbb{R}^2$, take $f(x, y) = x^2 + xy$. Its differential is
+$$df = (2x + y)\,dx + x\,dy.$$
+At $p = (1, 2)$, we get $df_p = 4\,dx + 1\,dy$. Acting on the vector $X = 3\partial_x - 5\partial_y$ at $p$:
+$$df_p(X_p) = 4 \cdot 3 + 1 \cdot (-5) = 7.$$
+Sanity check via directional derivative: $\nabla f(1,2) = (4, 1)$, vector $X = (3, -5)$, dot product $= 12 - 5 = 7$. Same answer, as it must be.
 
-$$\omega = r\cos\theta(\sin\theta\,dr + r\cos\theta\,d\theta) - r\sin\theta(\cos\theta\,dr - r\sin\theta\,d\theta) = r^2\,d\theta.$$
+**Why this matters.** 1-forms are the natural objects to *integrate over curves*. Given a curve $\gamma: [a, b] \to M$, the integral $\int_\gamma \omega = \int_a^b \omega_{\gamma(t)}(\dot\gamma(t))\,dt$ is parametrization-independent (the chain rule works out). Vectors cannot be integrated over curves — at least not without the metric to convert them to 1-forms first. Forms are integration-ready by design.
 
-This is a 1-form that, on the unit circle, equals $d\theta$ — the angular form. It is smooth on $\mathbb{R}^2 \setminus \{0\}$ even though $\theta$ itself is not globally defined.
+**Aside on units.** A subtle but important distinction: in physics, the gradient and the force have *different units* in the most general setting (force has units of force, gradient of a function has units of function-per-length). Treating force as a 1-form makes this dimensional structure explicit — a 1-form eats a vector with units of length and returns a scalar with units of (force times length) = energy. Vector calculus glosses over this because the metric secretly carries the dimensional conversion. Field theorists, who care about scaling and renormalization, must keep the form-vs-vector distinction straight.
 
-**The action of 1-forms on vector fields.** A 1-form $\omega$ and a vector field $X$ pair to give a function $\omega(X) \in C^\infty(M)$. In coordinates, if $\omega = \omega_i\,dx^i$ and $X = X^j\frac{\partial}{\partial x^j}$, then $\omega(X) = \omega_i X^i$ — a contraction of indices. This pairing is $C^\infty(M)$-bilinear: $\omega(fX) = f\omega(X)$ and $(f\omega)(X) = f\omega(X)$. The pairing is non-degenerate: if $\omega(X) = 0$ for all $X$, then $\omega = 0$; if $\omega(X) = 0$ for all $\omega$, then $X = 0$.
-
-**Physical interpretation.** In classical mechanics, the force on a particle is naturally a 1-form (a covector), not a vector. Given a displacement vector $v \in T_pM$ (where $M$ is the configuration space), the work done is $F(v)$ — a number, obtained by pairing the force 1-form $F$ with the displacement vector. Newton wrote $\mathbf{F} \cdot d\mathbf{r}$, but the dot product here is the pairing between $T^*_p\mathbb{R}^3$ and $T_p\mathbb{R}^3$, not the inner product of two vectors. In Euclidean space this distinction is invisible (the metric identifies vectors with covectors), but on a general manifold it becomes essential. The Lagrangian formulation of mechanics naturally produces equations in the cotangent bundle $T^*M$ (momenta are covectors), not the tangent bundle.
-
----
-
-## $k$-Forms and the Wedge Product
-
-To integrate over $k$-dimensional submanifolds, we need $k$-forms — objects that eat $k$ tangent vectors and produce a number, in a way that is alternating (antisymmetric).
-
-**Definition.** A **$k$-form** at $p$ is an alternating $k$-linear map:
-
-$$\omega_p: \underbrace{T_pM \times \cdots \times T_pM}_{k \text{ times}} \to \mathbb{R}.$$
-
-"Alternating" means that swapping any two arguments changes the sign: $\omega_p(\ldots, v, \ldots, w, \ldots) = -\omega_p(\ldots, w, \ldots, v, \ldots)$.
-
-The space of $k$-forms at $p$ is denoted $\Lambda^k(T_p^*M)$. A smooth $k$-form is a smooth section of $\Lambda^k(T^*M)$; the space of all smooth $k$-forms is $\Omega^k(M)$.
-
-**By convention:** $\Omega^0(M) = C^\infty(M)$ (smooth functions are 0-forms), and $\Omega^k(M) = 0$ for $k > n = \dim M$ (there are no nonzero alternating $(n+1)$-linear maps on an $n$-dimensional space).
-
-**The wedge product.** The fundamental algebraic operation on forms is the **wedge product** $\wedge: \Omega^j(M) \times \Omega^k(M) \to \Omega^{j+k}(M)$. For 1-forms $\alpha, \beta \in \Omega^1(M)$:
-
-$$(\alpha \wedge \beta)(X, Y) = \alpha(X)\beta(Y) - \alpha(Y)\beta(X).$$
-
-More generally, if $\alpha \in \Omega^j(M)$ and $\beta \in \Omega^k(M)$:
-
-$$(\alpha \wedge \beta)(v_1, \ldots, v_{j+k}) = \frac{1}{j!\,k!} \sum_{\sigma \in S_{j+k}} \text{sgn}(\sigma)\, \alpha(v_{\sigma(1)}, \ldots, v_{\sigma(j)}) \cdot \beta(v_{\sigma(j+1)}, \ldots, v_{\sigma(j+k)}).$$
-
-**Properties of $\wedge$:**
-1. **Associativity:** $(\alpha \wedge \beta) \wedge \gamma = \alpha \wedge (\beta \wedge \gamma)$.
-2. **Graded commutativity:** $\alpha \wedge \beta = (-1)^{jk} \beta \wedge \alpha$ for $\alpha \in \Omega^j$, $\beta \in \Omega^k$.
-3. **Bilinearity** over $C^\infty(M)$.
-
-Property (2) is crucial: for 1-forms, $\alpha \wedge \beta = -\beta \wedge \alpha$, and in particular $\alpha \wedge \alpha = 0$.
-
-**Basis for $k$-forms.** In coordinates $(x^1, \ldots, x^n)$, every $k$-form can be written:
-
-$$\omega = \sum_{i_1 < i_2 < \cdots < i_k} \omega_{i_1 \cdots i_k}(x)\, dx^{i_1} \wedge \cdots \wedge dx^{i_k}$$
-
-where the sum is over increasing multi-indices. The number of independent components is $\binom{n}{k}$. For $n = 3$:
-- 0-forms: $\binom{3}{0} = 1$ component (a function).
-- 1-forms: $\binom{3}{1} = 3$ components ($f_1\,dx + f_2\,dy + f_3\,dz$).
-- 2-forms: $\binom{3}{2} = 3$ components ($g_1\,dy \wedge dz + g_2\,dz \wedge dx + g_3\,dx \wedge dy$).
-- 3-forms: $\binom{3}{3} = 1$ component ($h\,dx \wedge dy \wedge dz$).
-
-The coincidence $\binom{3}{1} = \binom{3}{2} = 3$ is why vector calculus in $\mathbb{R}^3$ can get away with using vector fields for both 1-forms and 2-forms. In $\mathbb{R}^4$, we would have $\binom{4}{2} = 6$ independent components for 2-forms but only 4 for 1-forms — the disguise fails.
-
-**Example: the area form on $S^2$.** On $S^2$ with spherical coordinates $(\theta, \phi)$, the area form (the unique 2-form whose integral over $S^2$ gives the total surface area $4\pi$) is:
-
-$$\Omega = \sin\theta\, d\theta \wedge d\phi.$$
-
-This is a 2-form on a 2-dimensional manifold, hence a top-degree form. In Cartesian coordinates on $\mathbb{R}^3$ restricted to $S^2$, it can be written as:
-
-$$\Omega = x\,dy \wedge dz + y\,dz \wedge dx + z\,dx \wedge dy \big|_{S^2}.$$
-
-This form is closed ($d\Omega = 0$ trivially since $\Omega$ is top-degree on $S^2$) but not exact: $\int_{S^2} \Omega = 4\pi \neq 0$, so $\Omega \neq d\alpha$ for any 1-form $\alpha$ on $S^2$ (by Stokes' theorem, since $\partial S^2 = \emptyset$).
-
-**Example: the symplectic form.** On $\mathbb{R}^{2n}$ with coordinates $(q^1, \ldots, q^n, p_1, \ldots, p_n)$ (positions and momenta), the standard symplectic form is:
-
-$$\omega = \sum_{i=1}^n dp_i \wedge dq^i = dp_1 \wedge dq^1 + dp_2 \wedge dq^2 + \cdots + dp_n \wedge dq^n.$$
-
-This 2-form is closed ($d\omega = 0$) and non-degenerate (the matrix $\omega_{ij}$ is invertible at every point). A manifold equipped with such a form is a **symplectic manifold**, and Hamilton's equations of classical mechanics are precisely the statement that the time evolution is the flow of the vector field $X_H$ satisfying $\iota_{X_H}\omega = dH$ (where $H$ is the Hamiltonian). This shows that the entire structure of classical mechanics is encoded in a 2-form.
-
-**$n$-forms and orientation.** On an $n$-dimensional manifold, $\Omega^n(M)$ is a rank-1 module: locally, every $n$-form is $f(x)\,dx^1 \wedge \cdots \wedge dx^n$ for some function $f$. A nowhere-vanishing $n$-form (a **volume form**) exists if and only if $M$ is orientable. The choice of a volume form determines an orientation.
-
-**The Hodge star in $\mathbb{R}^3$.** On an oriented $n$-dimensional Riemannian manifold, the Hodge star operator $\star: \Omega^k(M) \to \Omega^{n-k}(M)$ converts $k$-forms into $(n-k)$-forms using the metric and orientation. In $\mathbb{R}^3$ with the standard metric and orientation:
-
-$$\star dx = dy \wedge dz, \quad \star dy = dz \wedge dx, \quad \star dz = dx \wedge dy,$$
-$$\star(dy \wedge dz) = dx, \quad \star(dz \wedge dx) = dy, \quad \star(dx \wedge dy) = dz.$$
-
-This is exactly the "cross product identification" that lets us convert 1-forms to 2-forms (and vice versa) in $\mathbb{R}^3$. The curl of a vector field is the composition $\star \circ d$ (applied to the corresponding 1-form), and the divergence is $\star \circ d \circ \star$ (applied to the corresponding 1-form). The Hodge star is what makes the vector calculus identities in $\mathbb{R}^3$ work; without it (or without a metric), we must think in terms of forms of different degrees.
+**Cotangent bundle as a manifold.** $T^*M$ is itself a $2n$-dimensional smooth manifold, with canonical "tautological" 1-form and induced symplectic 2-form. This is the configuration space of Hamiltonian mechanics — every classical mechanical system lives on $T^*M$ for some $M$. The 1-form / cotangent picture is therefore not optional decoration; it is the fundamental setting for half of classical physics.
 
 ---
 
-## The Exterior Derivative $d$
+## 2. $k$-Forms and the Wedge Product
 
-The exterior derivative is the unique operator $d: \Omega^k(M) \to \Omega^{k+1}(M)$ that generalizes the differential of functions to forms of all degrees.
+A $k$-form on $M$ is a smooth section of $\Lambda^k T^*M$ — the bundle of **antisymmetric** multilinear maps $T_pM \times \dots \times T_pM \to \mathbb{R}$ (with $k$ inputs). At each point, $\omega_p$ is a function eating $k$ tangent vectors and spitting out a number, with the rule that swapping two inputs flips the sign. The space of $k$-forms is $\Omega^k(M)$.
 
-**Definition (axiomatic).** There exists a unique family of $\mathbb{R}$-linear maps $d: \Omega^k(M) \to \Omega^{k+1}(M)$ for $k = 0, 1, 2, \ldots$ satisfying:
-1. **On functions:** $d f$ is the differential of $f$ (as defined above).
-2. **$d^2 = 0$:** $d(d\omega) = 0$ for all forms $\omega$.
-3. **Graded Leibniz rule:** $d(\alpha \wedge \beta) = (d\alpha) \wedge \beta + (-1)^j \alpha \wedge (d\beta)$ for $\alpha \in \Omega^j$.
+For $k = 0$, $\Omega^0(M) = C^\infty(M)$. For $k = 1$, we recover 1-forms. For $k = n = \dim M$, $\Omega^n(M)$ is locally 1-dimensional — every $n$-form is a function times a chosen volume form. For $k > n$, $\Omega^k(M) = 0$ (you cannot have an antisymmetric $(n+1)$-form on an $n$-dimensional space — pigeonhole).
 
-**In local coordinates:** if $\omega = \omega_{i_1 \cdots i_k}\,dx^{i_1} \wedge \cdots \wedge dx^{i_k}$ (summing over increasing indices), then:
+**Wedge product.** The wedge product $\wedge: \Omega^k \times \Omega^l \to \Omega^{k+l}$ is the antisymmetrization of the tensor product. For 1-forms, $\alpha \wedge \beta = \alpha \otimes \beta - \beta \otimes \alpha$; this gives a 2-form satisfying $(\alpha \wedge \beta)(X, Y) = \alpha(X)\beta(Y) - \alpha(Y)\beta(X)$. In general,
+$$(\alpha \wedge \beta)(X_1, \dots, X_{k+l}) = \frac{1}{k!\,l!}\sum_\sigma \mathrm{sgn}(\sigma) \alpha(X_{\sigma(1)}, \dots, X_{\sigma(k)})\beta(X_{\sigma(k+1)}, \dots, X_{\sigma(k+l)}).$$
 
-$$d\omega = \frac{\partial \omega_{i_1 \cdots i_k}}{\partial x^j}\,dx^j \wedge dx^{i_1} \wedge \cdots \wedge dx^{i_k}.$$
+The wedge product satisfies:
+1. **Bilinearity.**
+2. **Associativity.**
+3. **Graded commutativity:** $\alpha \wedge \beta = (-1)^{kl}\,\beta \wedge \alpha$ for $\alpha \in \Omega^k$, $\beta \in \Omega^l$.
 
-Let us verify $d^2 = 0$ on functions: $d(df) = d\left(\frac{\partial f}{\partial x^i} dx^i\right) = \frac{\partial^2 f}{\partial x^j \partial x^i} dx^j \wedge dx^i$. Since $\frac{\partial^2 f}{\partial x^j \partial x^i}$ is symmetric in $i, j$ while $dx^j \wedge dx^i$ is antisymmetric, the sum vanishes. This is the deep reason behind $d^2 = 0$: the symmetry of mixed partial derivatives combined with the antisymmetry of the wedge product.
+Note $\alpha \wedge \alpha = 0$ for any 1-form $\alpha$ (since $-1)^{1\cdot 1} = -1$, antisymmetry forces it). For higher-degree forms, $\alpha \wedge \alpha$ may be nonzero (a 2-form can wedge with itself).
 
-**Recovering vector calculus in $\mathbb{R}^3$.** With coordinates $(x, y, z)$:
+![A 2-form measuring oriented area](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/08-differential-forms/dg_v2_08_2_two_form.png)
 
-**Gradient.** For a 0-form $f$:
+**The 2-form $dx \wedge dy$.** This is the prototypical example. On $\mathbb{R}^2$ with vectors $X = (X^1, X^2)$, $Y = (Y^1, Y^2)$,
+$$(dx \wedge dy)(X, Y) = X^1 Y^2 - X^2 Y^1.$$
+This is exactly the determinant of the matrix $[X | Y]$ — the **signed area** of the parallelogram spanned by $X$ and $Y$. Antisymmetry encodes the *orientation* of the parallelogram: swap $X$ and $Y$, the area flips sign.
 
-$$df = \frac{\partial f}{\partial x}dx + \frac{\partial f}{\partial y}dy + \frac{\partial f}{\partial z}dz.$$
+![Wedge product dx wedge dy as an antisymmetric area element](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/08-differential-forms/dg_v2_08_3_wedge.png)
 
-Under the identification $dx^i \leftrightarrow \mathbf{e}_i$, this corresponds to $\nabla f$.
+**Basis.** In a chart, $\Omega^k(M)$ is a free $C^\infty$-module with basis $\{dx^{i_1} \wedge \dots \wedge dx^{i_k} : i_1 < \dots < i_k\}$. The dimension of $\Lambda^k T_p^* M$ is $\binom{n}{k}$. So a 2-form on $\mathbb{R}^4$ has dimension $6$ at each point, a 3-form on $\mathbb{R}^4$ has dimension $4$, and so on — symmetric in $k \leftrightarrow n-k$.
 
-**Curl.** For a 1-form $\omega = P\,dx + Q\,dy + R\,dz$:
+**Worked numerical example.** On $\mathbb{R}^3$, let $\alpha = x\,dy - y\,dx$ and $\beta = z\,dx$. Compute $\alpha \wedge \beta$:
+$$\alpha \wedge \beta = (x\,dy - y\,dx) \wedge z\,dx = xz\,dy\wedge dx - yz\,dx\wedge dx = -xz\,dx\wedge dy + 0 = -xz\,dx\wedge dy.$$
+We used $dx \wedge dx = 0$ and $dy \wedge dx = -dx\wedge dy$. Note that $\beta$ has no $dz$, so $\alpha\wedge\beta$ has no $dz$ — sensible.
 
-$$d\omega = \left(\frac{\partial R}{\partial y} - \frac{\partial Q}{\partial z}\right)dy \wedge dz + \left(\frac{\partial P}{\partial z} - \frac{\partial R}{\partial x}\right)dz \wedge dx + \left(\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}\right)dx \wedge dy.$$
+**Worked example 2.** Compute $(dx + dy)\wedge(dx - dy) = dx\wedge dx - dx\wedge dy + dy\wedge dx - dy\wedge dy = 0 - dx\wedge dy - dx\wedge dy - 0 = -2\,dx\wedge dy$. Notice the cross-terms add (they don't cancel) because of antisymmetry — this is the signed-area pattern.
 
-Under the identification $dy \wedge dz \leftrightarrow \mathbf{e}_x$, etc. (using the Hodge star), this corresponds to $\nabla \times \mathbf{F}$.
+**Worked example 3.** On $\mathbb{R}^3$, compute $(dx + 2dy)\wedge(dy + 3dz)\wedge(dz + dx)$. Expanding the first wedge: $dx\wedge dy + 3dx\wedge dz + 2dy\wedge dz + 0 = dx\wedge dy + 3dx\wedge dz + 2dy\wedge dz$. Wedging with $dz + dx$:
+$$(dx\wedge dy)\wedge dz + (dx\wedge dy)\wedge dx + 3(dx\wedge dz)\wedge dz + 3(dx\wedge dz)\wedge dx + 2(dy\wedge dz)\wedge dz + 2(dy\wedge dz)\wedge dx$$
+The terms with repeated factors vanish, leaving $dx\wedge dy\wedge dz + 0 + 0 + 0 + 0 + 2(dy\wedge dz\wedge dx)$. Now $dy\wedge dz\wedge dx = dx\wedge dy\wedge dz$ (cyclic permutation, even). So the answer is $3\,dx\wedge dy\wedge dz$. This is also $\det\begin{pmatrix}1 & 0 & 1\\ 2 & 1 & 0 \\ 0 & 3 & 1\end{pmatrix} dx\wedge dy\wedge dz = 3\,dx\wedge dy\wedge dz$ — the wedge of $n$ 1-forms in dimension $n$ produces the determinant.
 
-**Divergence.** For a 2-form $\eta = A\,dy \wedge dz + B\,dz \wedge dx + C\,dx \wedge dy$:
+**Determinant as wedge product.** This last observation is general: if $\alpha_1, \dots, \alpha_n$ are 1-forms on an $n$-manifold and $A_{ij}$ is the matrix expressing them in a basis $dx^i$, then $\alpha_1 \wedge \dots \wedge \alpha_n = \det(A)\,dx^1\wedge\dots\wedge dx^n$. The wedge product is the multilinear, antisymmetric construction the determinant secretly always was. This is why volumes and areas come out right — and why orientation-reversing maps flip the sign.
 
-$$d\eta = \left(\frac{\partial A}{\partial x} + \frac{\partial B}{\partial y} + \frac{\partial C}{\partial z}\right)dx \wedge dy \wedge dz.$$
-
-This corresponds to $(\nabla \cdot \mathbf{F})\,dV$.
-
-The identity $d^2 = 0$ now gives both $\text{curl}(\text{grad}\,f) = 0$ and $\text{div}(\text{curl}\,\mathbf{F}) = 0$ as a single statement.
-
-**Electromagnetic fields as 2-forms.** In four-dimensional spacetime with coordinates $(t, x, y, z)$, the electromagnetic field is naturally a 2-form:
-
-$$F = E_x\,dx \wedge dt + E_y\,dy \wedge dt + E_z\,dz \wedge dt + B_x\,dy \wedge dz + B_y\,dz \wedge dx + B_z\,dx \wedge dy.$$
-
-Two of Maxwell's equations — $\nabla \cdot B = 0$ and $\nabla \times E + \frac{\partial B}{\partial t} = 0$ — are compactly expressed as $dF = 0$ (the electromagnetic field strength is a closed 2-form). The other two Maxwell equations involve the Hodge star and the current density. This reformulation, due to Minkowski and Cartan, reveals that electromagnetism is fundamentally a theory about a 2-form on a 4-manifold.
-
-**The global formula for $d$ on 1-forms.** For $\omega \in \Omega^1(M)$ and vector fields $X, Y$:
-
-$$d\omega(X, Y) = X(\omega(Y)) - Y(\omega(X)) - \omega([X, Y]).$$
-
-This formula is coordinate-free and makes the role of the Lie bracket explicit. More generally, for a $k$-form $\omega$:
-
-$$d\omega(X_0, \ldots, X_k) = \sum_{i=0}^k (-1)^i X_i(\omega(X_0, \ldots, \hat{X}_i, \ldots, X_k)) + \sum_{i < j} (-1)^{i+j} \omega([X_i, X_j], X_0, \ldots, \hat{X}_i, \ldots, \hat{X}_j, \ldots, X_k)$$
-
-where $\hat{X}_i$ denotes omission.
-
-**Example: verifying the formula for 1-forms.** Let $\omega \in \Omega^1(\mathbb{R}^3)$ with $\omega = P\,dx + Q\,dy + R\,dz$, and let $X = \frac{\partial}{\partial x}$, $Y = \frac{\partial}{\partial y}$. Then $[X, Y] = 0$ and:
-
-$$d\omega(X, Y) = X(\omega(Y)) - Y(\omega(X)) - \omega([X, Y]) = \frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}.$$
-
-This is the $z$-component of the curl of $(P, Q, R)$, confirming the connection.
+**Why this matters.** The wedge product is the algebra structure that lets you build higher-degree forms from lower ones. In physics, the field strength tensor $F = dA$ is a 2-form on spacetime — and writing the Yang-Mills Lagrangian requires $F \wedge {*F}$, a 4-form to integrate over spacetime. None of this is doable with vector calculus.
 
 ---
 
-## Pullback of Differential Forms
+## 3. The Exterior Derivative $d$
 
-One of the most important properties of forms: they pull back naturally along smooth maps.
+The **exterior derivative** is the unique $\mathbb{R}$-linear operator $d: \Omega^k(M) \to \Omega^{k+1}(M)$ satisfying:
+1. On functions ($k = 0$): $df$ is the differential, $df(X) = X(f)$.
+2. **Graded Leibniz rule:** $d(\alpha \wedge \beta) = (d\alpha) \wedge \beta + (-1)^k \alpha \wedge d\beta$ for $\alpha \in \Omega^k$.
+3. **Nilpotency:** $d \circ d = 0$.
 
-**Definition.** Let $F: M \to N$ be a smooth map. The **pullback** $F^*: \Omega^k(N) \to \Omega^k(M)$ is defined by:
+That is the entire definition. From these axioms, $d$ is determined uniquely.
 
-$$(F^*\omega)_p(v_1, \ldots, v_k) = \omega_{F(p)}(dF_p(v_1), \ldots, dF_p(v_k))$$
+![Exterior derivative d turning a k-form into a (k+1)-form](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/08-differential-forms/dg_v2_08_4_exterior_d.png)
 
-for $v_1, \ldots, v_k \in T_pM$.
+**Coordinate formula.** If $\omega = \sum_{i_1 < \dots < i_k} \omega_{i_1\dots i_k}\,dx^{i_1}\wedge\dots\wedge dx^{i_k}$, then
+$$d\omega = \sum_{i_1 < \dots < i_k} \sum_j \frac{\partial \omega_{i_1\dots i_k}}{\partial x^j}\,dx^j \wedge dx^{i_1}\wedge\dots\wedge dx^{i_k}.$$
+Take the partial derivatives of every coefficient, wedge with the new $dx^j$ on the left. That is the operational rule.
 
-In coordinates, if $F$ has coordinate representation $(y^1, \ldots, y^n) = F(x^1, \ldots, x^m)$ and $\omega = \omega_{j_1 \cdots j_k}(y)\,dy^{j_1} \wedge \cdots \wedge dy^{j_k}$, then:
+**Worked example 1.** On $\mathbb{R}^3$, $\omega = x^2 y\,dx + xz\,dy + y^2\,dz$ (a 1-form). Then
+$$d\omega = (2xy\,dy + x^2\,dx)\wedge dx + (z\,dx + x\,dz)\wedge dy + (2y\,dy)\wedge dz$$
+$$= 2xy\,dy\wedge dx + 0 + z\,dx\wedge dy + x\,dz\wedge dy + 2y\,dy\wedge dz$$
+$$= -2xy\,dx\wedge dy + z\,dx\wedge dy - x\,dy\wedge dz + 2y\,dy\wedge dz$$
+$$= (z - 2xy)\,dx\wedge dy + (2y - x)\,dy\wedge dz + 0\,dx\wedge dz.$$
+Compare with the curl of the vector field $F = (x^2y, xz, y^2)$:
+$$\nabla \times F = (\partial_y(y^2) - \partial_z(xz), \partial_z(x^2y) - \partial_x(y^2), \partial_x(xz) - \partial_y(x^2y)) = (2y - x, 0, z - 2xy).$$
+The components $(2y - x, 0, z - 2xy)$ of $\nabla \times F$ match the coefficients of $dy\wedge dz$, $dz\wedge dx$, $dx\wedge dy$ in $d\omega$. So $d$ on a 1-form is precisely the curl, packaged as a 2-form.
 
-$$F^*\omega = \omega_{j_1 \cdots j_k}(F(x))\, \frac{\partial F^{j_1}}{\partial x^{i_1}} \cdots \frac{\partial F^{j_k}}{\partial x^{i_k}} dx^{i_1} \wedge \cdots \wedge dx^{i_k}.$$
+**Worked example 2.** Let $f(x, y, z) = x^2 + y^2 + z^2$. Then $df = 2x\,dx + 2y\,dy + 2z\,dz$ — exactly $\nabla f$ as a 1-form. So $d$ on a 0-form is the gradient.
 
-**Properties of pullback:**
-1. $F^*(f) = f \circ F$ for functions (0-forms).
-2. $F^*(\omega \wedge \eta) = F^*\omega \wedge F^*\eta$.
-3. $(G \circ F)^* = F^* \circ G^*$ (contravariant functoriality).
-4. **Naturality with $d$:** $F^*(d\omega) = d(F^*\omega)$.
+**Worked example 3.** Let $\eta = P\,dy\wedge dz + Q\,dz\wedge dx + R\,dx\wedge dy$ (a 2-form). Then
+$$d\eta = \partial_x P\,dx\wedge dy\wedge dz + \partial_y Q\,dy\wedge dz\wedge dx + \partial_z R\,dz\wedge dx\wedge dy = (\partial_x P + \partial_y Q + \partial_z R)\,dx\wedge dy\wedge dz.$$
+That is the divergence of the vector field $(P, Q, R)$, packaged as a 3-form. So $d$ on a 2-form is the divergence.
 
-Property (4) — the **naturality** of $d$ — is remarkable: the exterior derivative commutes with pullback. In category-theoretic language, $d$ is a natural transformation. This is why $d$ is coordinate-independent: a change of coordinates is a diffeomorphism, and pullback by a diffeomorphism commutes with $d$.
+**The unification.** In $\mathbb{R}^3$, the de Rham complex
+$$\Omega^0 \xrightarrow{d} \Omega^1 \xrightarrow{d} \Omega^2 \xrightarrow{d} \Omega^3$$
+is, term by term:
+$$C^\infty \xrightarrow{\nabla} \mathrm{vec.\ fields} \xrightarrow{\nabla\times} \mathrm{vec.\ fields} \xrightarrow{\nabla\cdot} C^\infty.$$
+And $d^2 = 0$ becomes $\nabla \times \nabla = 0$ and $\nabla \cdot (\nabla \times) = 0$. The two identities of vector calculus are one identity in form language.
 
-**Example.** Let $\iota: S^2 \hookrightarrow \mathbb{R}^3$ be the inclusion. The 2-form $\omega = x\,dy \wedge dz + y\,dz \wedge dx + z\,dx \wedge dy$ on $\mathbb{R}^3$ pulls back to $\iota^*\omega$, which is the area form on $S^2$ (the form whose integral over $S^2$ gives the surface area $4\pi$). The pullback automatically restricts the ambient form to the submanifold.
+**Why this matters.** $d$ is **coordinate-free**. The classical formulas for grad, curl, div in spherical or cylindrical coordinates have intimidating coefficients (factors of $r^2 \sin\theta$ etc.). Those factors are artifacts of expressing the metric in those coordinates; $d$ itself is the same in any chart, and the formula is always "differentiate coefficients, wedge with new $dx^j$." This is one of the genuine simplifications of differential geometry: $d$ is *the* derivative on manifolds.
 
-**Example: change-of-variables formula.** The classical change-of-variables formula in multiple integration is a statement about pullback. If $F: U \to V$ is a diffeomorphism between open sets in $\mathbb{R}^n$ and $\omega = f(y)\,dy^1 \wedge \cdots \wedge dy^n$, then:
-
-$$F^*\omega = f(F(x)) \det\left(\frac{\partial F^j}{\partial x^i}\right) dx^1 \wedge \cdots \wedge dx^n.$$
-
-The Jacobian determinant appears because $F^*(dy^1 \wedge \cdots \wedge dy^n) = \det(dF)\, dx^1 \wedge \cdots \wedge dx^n$.
-
-**Pullback and integration.** The naturality of pullback with $d$ (Property 4) has a fundamental consequence for integration. If $\sigma: \Delta^k \to M$ is a smooth singular $k$-simplex and $\omega \in \Omega^k(M)$, then the integral $\int_\sigma \omega$ is defined as $\int_{\Delta^k} \sigma^*\omega$. The pullback $\sigma^*\omega$ is a $k$-form on $\Delta^k \subseteq \mathbb{R}^k$, which is just a function times $dx^1 \wedge \cdots \wedge dx^k$ — and we know how to integrate functions on $\mathbb{R}^k$. This is the universal recipe for integration on manifolds: pull the form back to Euclidean space and use ordinary integration.
-
-The change-of-variables formula then says that if we reparametrize $\sigma$ (replace it by $\sigma \circ \phi$ where $\phi$ is an orientation-preserving diffeomorphism of $\Delta^k$), the integral does not change. This is because $(\sigma \circ \phi)^*\omega = \phi^*(\sigma^*\omega)$, and pullback by an orientation-preserving diffeomorphism preserves the integral. The coordinate-independence of the exterior calculus is what makes integration on manifolds well-defined.
+**Invariant formula for $d$.** There is a beautiful coordinate-free formula:
+$$d\omega(X_0, \dots, X_k) = \sum_{i} (-1)^i X_i(\omega(X_0, \dots, \hat X_i, \dots, X_k)) + \sum_{i<j} (-1)^{i+j}\omega([X_i, X_j], X_0, \dots, \hat X_i, \dots, \hat X_j, \dots, X_k),$$
+where the hat means "omit." For a 1-form $\omega$, this collapses to $d\omega(X, Y) = X(\omega(Y)) - Y(\omega(X)) - \omega([X, Y])$. Two consequences: (a) $d$ is uniquely determined by its action on functions and the Leibniz rule, (b) $d$ involves only smooth structure — no metric, no connection. This is the deepest reason $d$ is "the universal first-order operator."
 
 ---
 
-## Closed and Exact Forms: The Poincare Lemma
+## 4. Closed and Exact Forms; $d^2 = 0$
 
-The identity $d^2 = 0$ means that every exact form is closed. The converse question — is every closed form exact? — is topological.
+A form $\omega$ is **closed** if $d\omega = 0$. It is **exact** if $\omega = d\eta$ for some form $\eta$ of degree one less. The identity $d^2 = 0$ implies *every exact form is closed*. The converse — is every closed form exact? — is the question that gives birth to **de Rham cohomology**.
 
-**Definition.** A $k$-form $\omega$ is **closed** if $d\omega = 0$. It is **exact** if $\omega = d\eta$ for some $(k-1)$-form $\eta$.
+**Why $d^2 = 0$.** In coordinates, $df = \partial_i f\,dx^i$ and $d^2 f = \partial_j \partial_i f\,dx^j \wedge dx^i$. Mixed partials are symmetric, $\partial_j\partial_i f = \partial_i\partial_j f$, while $dx^j \wedge dx^i = -dx^i \wedge dx^j$ is antisymmetric. The product of symmetric and antisymmetric vanishes. So $d^2 f = 0$. By the Leibniz rule and induction on degree, $d^2 \omega = 0$ for all $\omega$.
 
-Since $d^2 = 0$, exact implies closed. The question is: does closed imply exact?
+**A closed but not exact form.** On $\mathbb{R}^2 \setminus \{0\}$, define
+$$\omega = \frac{-y\,dx + x\,dy}{x^2 + y^2}.$$
+Compute $d\omega$. Setting $r^2 = x^2 + y^2$, the coefficient of $dy\wedge dx$ is $\partial_y\frac{-y}{r^2} = -\frac{r^2 - y \cdot 2y}{r^4} = -\frac{x^2 - y^2}{r^4}$. The coefficient of $dx\wedge dy$ from the second term is $\partial_x\frac{x}{r^2} = \frac{r^2 - x\cdot 2x}{r^4} = \frac{y^2 - x^2}{r^4}$. So
+$$d\omega = \frac{y^2 - x^2}{r^4}\,dx\wedge dy + \frac{x^2 - y^2}{r^4}\,dx\wedge dy = 0.$$
+So $\omega$ is closed. But $\omega$ is **not exact** on $\mathbb{R}^2 \setminus \{0\}$: integrating $\omega$ around the unit circle gives $\int_{S^1}\omega = 2\pi \neq 0$, while every exact form has zero integral over a closed loop (by Stokes — see article 9). The form $\omega$ is essentially $d\theta$ where $\theta$ is the angle, and the angle is not a globally defined function on $\mathbb{R}^2\setminus\{0\}$.
 
-**Theorem (Poincare Lemma).** On a contractible open set $U \subseteq \mathbb{R}^n$ (or any contractible manifold), every closed $k$-form with $k \geq 1$ is exact.
+This single example contains the entire idea of de Rham cohomology: closedness is local, exactness is global, and the difference detects holes in the manifold.
 
-The proof is constructive: given a contraction $H: U \times [0,1] \to U$ with $H(x, 1) = x$ and $H(x, 0) = p_0$, one builds a **homotopy operator** $K: \Omega^k(U) \to \Omega^{k-1}(U)$ satisfying $\omega = d(K\omega) + K(d\omega)$. If $\omega$ is closed ($d\omega = 0$), then $\omega = d(K\omega)$ is exact.
+**Poincare lemma.** On a contractible open set (e.g. a ball), every closed form *is* exact. So the failure of "closed implies exact" is purely a global, topological phenomenon. On $\mathbb{R}^n$, every closed form is exact. On the punctured plane, the angle form $\omega$ above gives a non-trivial cohomology class.
 
-For $\mathbb{R}^n$ (which is contractible), the homotopy operator in coordinates is:
+**Sketch of proof of Poincare lemma.** On a star-shaped domain (around the origin, say), define a homotopy operator $h: \Omega^k \to \Omega^{k-1}$ by integrating along radii: $(h\omega)_p = \int_0^1 t^{k-1}\,\iota_{\vec r}\omega_{tp}\,dt$, where $\vec r$ is the radial vector field. One then checks $dh + hd = \mathrm{id}$ on $\Omega^k$ for $k \geq 1$. Applied to a closed form ($d\omega = 0$), this gives $\omega = d(h\omega)$ — so $\omega$ is exact, with explicit primitive $h\omega$. The technical content of the lemma is just the existence of this homotopy operator on contractible domains.
 
-$$(K\omega)_{i_1 \cdots i_{k-1}}(x) = \int_0^1 t^{k-1} x^j \omega_{j i_1 \cdots i_{k-1}}(tx)\, dt.$$
+**Cech-de Rham connection.** When the manifold is *not* contractible, you cannot construct a global homotopy operator. But you can cover the manifold by contractible open sets, build local primitives on each, and track how they fail to agree on overlaps. The discrepancies form a Cech cocycle, and the Cech-de Rham theorem identifies the resulting cohomology with $H^k_{dR}$. This is how cohomology classes encode obstructions: a class is nonzero precisely when there is no global solution to a system of equations whose local solutions exist.
 
-**When the Poincare Lemma fails.** On manifolds with nontrivial topology, closed forms need not be exact. The classic example: on $\mathbb{R}^2 \setminus \{0\}$, the 1-form
+---
 
-$$\omega = \frac{-y\,dx + x\,dy}{x^2 + y^2}$$
+## 5. Pullback: Forms Behave Naturally Under Maps
 
-is closed ($d\omega = 0$, as one can verify by direct computation), but not exact. If $\omega = df$ for some function $f$, then $\int_{S^1} \omega = f(\text{end}) - f(\text{start}) = 0$. But $\int_{S^1} \omega = 2\pi \neq 0$. This is the "angle form" $d\theta$ — except that $\theta$ is not a globally defined smooth function on $\mathbb{R}^2 \setminus \{0\}$.
+If $f: M \to N$ is a smooth map, vector fields cannot be pushed forward in any natural way (you would need $f$ to be a diffeomorphism, or at least an immersion with extra data). But **forms can always be pulled back**. Given $\omega \in \Omega^k(N)$, define $f^*\omega \in \Omega^k(M)$ by
+$$(f^*\omega)_p(X_1, \dots, X_k) = \omega_{f(p)}(df_p(X_1), \dots, df_p(X_k)).$$
+The form on $M$ "feels" the form on $N$ through the differential of $f$.
 
-The essential point is that $\mathbb{R}^2 \setminus \{0\}$ has a "hole" (the missing origin), and the closed-but-not-exact form $\omega$ detects this hole. If we tried to define $f(p) = \int_{\gamma} \omega$ for some path $\gamma$ from a base point to $p$, the result would depend on which side of the origin the path goes around. This path-dependence — the non-trivial monodromy — is the analytical manifestation of the topological hole.
+![Pullback f^* omega of a form under a smooth map](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/08-differential-forms/dg_v2_08_5_pullback.png)
 
-**de Rham cohomology.** The failure of the Poincare Lemma on topologically nontrivial spaces is captured by the **de Rham cohomology groups**:
+**Properties.** Pullback is:
+1. **$\mathbb{R}$-linear.**
+2. **Multiplicative:** $f^*(\alpha \wedge \beta) = (f^*\alpha)\wedge(f^*\beta)$.
+3. **Functorial:** $(f \circ g)^* = g^* \circ f^*$, $\mathrm{id}^* = \mathrm{id}$.
+4. **Commutes with $d$:** $f^*(d\omega) = d(f^*\omega)$.
 
-$$H^k_{\text{dR}}(M) = \frac{\ker(d: \Omega^k \to \Omega^{k+1})}{\text{im}(d: \Omega^{k-1} \to \Omega^k)} = \frac{\{\text{closed } k\text{-forms}\}}{\{\text{exact } k\text{-forms}\}}.$$
+The fact that pullback commutes with $d$ is critical — it is what makes the de Rham complex *natural* under maps, and it is the engine of every change-of-variables computation.
 
-This is a vector space whose dimension (the $k$-th Betti number $b_k$) is a topological invariant of $M$. The Poincare Lemma says $H^k_{\text{dR}}(U) = 0$ for $k \geq 1$ when $U$ is contractible.
+**Computational rule.** In coordinates, pullback is "substitute and expand." If $f: \mathbb{R}^2 \to \mathbb{R}^2$ is given by $f(u, v) = (u^2 - v^2, 2uv)$ and $\omega = x\,dy$ on the target, then
+$$f^*\omega = (u^2 - v^2)\,d(2uv) = (u^2 - v^2)(2v\,du + 2u\,dv) = 2v(u^2 - v^2)\,du + 2u(u^2 - v^2)\,dv.$$
+Substitute $x = u^2 - v^2$ into the coefficient and replace $dy$ by $df^y = 2v\,du + 2u\,dv$. That's it.
 
-**Examples:**
-- $H^1_{\text{dR}}(\mathbb{R}^2 \setminus \{0\}) \cong \mathbb{R}$, generated by $[\omega]$ above. Every closed 1-form on $\mathbb{R}^2 \setminus \{0\}$ differs from a multiple of $\omega$ by an exact form.
-- $H^k_{\text{dR}}(S^n) \cong \mathbb{R}$ for $k = 0$ and $k = n$, and $0$ otherwise. The generator of $H^n$ is the volume form.
-- $H^1_{\text{dR}}(T^2) \cong \mathbb{R}^2$, reflecting the two independent "holes" of the torus. The generators are $d\theta$ and $d\phi$ (the angle forms on each $S^1$ factor).
+**Worked example 2: change of variables.** On $\mathbb{R}^2$, $\omega = dx\wedge dy$. Polar coordinates $f(r, \theta) = (r\cos\theta, r\sin\theta)$. Then
+$$dx = \cos\theta\,dr - r\sin\theta\,d\theta, \quad dy = \sin\theta\,dr + r\cos\theta\,d\theta.$$
+$$f^*(dx\wedge dy) = (\cos\theta\,dr - r\sin\theta\,d\theta)\wedge(\sin\theta\,dr + r\cos\theta\,d\theta)$$
+$$= r\cos^2\theta\,dr\wedge d\theta - r\sin^2\theta\,d\theta\wedge dr$$ (cross terms with $dr\wedge dr$ and $d\theta\wedge d\theta$ vanish)
+$$= r\cos^2\theta\,dr\wedge d\theta + r\sin^2\theta\,dr\wedge d\theta = r\,dr\wedge d\theta.$$
+The factor of $r$ — the Jacobian of polar coordinates — falls out automatically. No need to memorize "for polar coordinates, multiply by $r$": it is built into the algebra of forms.
 
-The de Rham theorem (proved by de Rham in 1931) establishes that de Rham cohomology is isomorphic to singular cohomology with real coefficients, connecting the smooth and topological worlds. This is one of the most beautiful bridges in mathematics: solving a PDE ($d\omega = 0$ but $\omega \neq d\eta$) is equivalent to detecting a topological hole.
+**Why this matters.** Pullback is the operation that makes integration coordinate-independent. When you compute $\int_M f^*\omega$ for $f: M \to N$, you are integrating "the form $\omega$ as seen from $M$." If $f$ is a parametrization of $M$ inside $N$, this is exactly the change-of-variables formula in disguise. In gauge theory, pullback under a gauge transformation is how you change frames. In statistical mechanics, pullback under a coordinate change is how the partition function transforms. The algebraic rules are the same in every case.
 
-**Hodge theory preview.** On a compact oriented Riemannian manifold, the Hodge theorem refines de Rham cohomology: every cohomology class contains a unique **harmonic representative** $\omega$ satisfying $\Delta \omega = 0$ (where $\Delta = dd^* + d^*d$ is the Hodge Laplacian). This connects topology ($H^k_{\text{dR}}$), analysis (the Laplace equation), and geometry (the Riemannian metric) in a deep way. The dimension $b_k = \dim H^k_{\text{dR}}(M)$ (the Betti number) is both a topological invariant and the dimension of the space of harmonic $k$-forms — a space that depends on the metric but whose dimension does not.
+**Aside: why no pushforward of forms.** The reason 1-forms cannot be pushed forward in general is that $f: M \to N$ may not be injective — at a single point of $N$, you have multiple preimages in $M$, and there is no canonical way to combine the form data from all of them. With pullback, the situation is reverse: every point of $M$ has a unique image $f(p) \in N$, so you simply transport the form data from $f(p)$ back to $p$. Asymmetry is intrinsic. This is why the language of forms is *covariant* (well-behaved under any smooth map), while vector fields are *contravariant* (only under diffeomorphisms or careful immersions).
 
-**Preview: the generalized Stokes' theorem.** The deepest consequence of the exterior derivative is the generalized Stokes' theorem, which unifies all the classical integral theorems of vector calculus:
+---
 
-$$\int_M d\omega = \int_{\partial M} \omega.$$
+## 6. Interior Product and Cartan's Magic Formula
 
-Here $M$ is a compact oriented manifold with boundary $\partial M$, and $\omega$ is a $(k-1)$-form. This single formula contains:
-- The fundamental theorem of calculus ($\dim M = 1$).
-- Green's theorem ($\dim M = 2$ in $\mathbb{R}^2$).
-- The classical Stokes' theorem ($\dim M = 2$ in $\mathbb{R}^3$).
-- The divergence theorem ($\dim M = 3$).
+Given a vector field $X$ and a $k$-form $\omega$, the **interior product** $\iota_X \omega$ is the $(k-1)$-form
+$$(\iota_X \omega)(Y_1, \dots, Y_{k-1}) = \omega(X, Y_1, \dots, Y_{k-1}).$$
+Plug $X$ into the first slot of $\omega$. For a 0-form (function), $\iota_X f = 0$.
 
-We will develop this theorem in full generality when we discuss integration on manifolds in a later article.
+**Cartan's magic formula** relates the Lie derivative, exterior derivative, and interior product:
+$$\mathcal{L}_X = d \iota_X + \iota_X d.$$
+This formula is the bridge between the differential geometry of section 7 (vector fields, flows, Lie derivatives) and the form calculus of this article. Both sides are degree-preserving operators on $\Omega^*(M)$ that satisfy the same axioms; you can prove equality on functions (where it reduces to $\mathcal{L}_X f = X(f) = df(X) = \iota_X df$) and on $df$ (where both sides give $d(X(f))$), then extend by Leibniz.
+
+**Consequence: invariance via interior product.** A form $\omega$ is invariant under the flow of $X$ iff $\mathcal{L}_X \omega = 0$. Cartan's formula then says $d\iota_X\omega + \iota_X d\omega = 0$. If $\omega$ is closed, this reduces to $d(\iota_X\omega) = 0$ — the function (or form) $\iota_X\omega$ is also closed. This is the geometric content of Hamilton's equations: a Hamiltonian flow on a symplectic manifold preserves the symplectic form, and the "function" you contract with is the Hamiltonian itself.
+
+**Why "magic"?** Cartan's formula collapses three different operations into a tidy identity. Without it, you would prove invariance of forms under flows by laboriously expanding pullback formulas in coordinates. With it, you check $d\iota_X\omega + \iota_X d\omega = 0$ algebraically, never invoking the flow at all. In symplectic geometry, this turns "Liouville's theorem" (volume preservation under Hamiltonian flow) from a calculation into a one-liner: if $\omega$ is the symplectic form and $X_H$ is Hamiltonian, then $\iota_{X_H}\omega = -dH$, so $d\iota_{X_H}\omega = -d^2H = 0$, and $\mathcal{L}_{X_H}\omega = d(-dH) + \iota_{X_H}d\omega = 0 + 0 = 0$ since $\omega$ is closed.
+
+**Worked numerical example.** On $\mathbb{R}^2$ with $X = -y\partial_x + x\partial_y$ (rotation) and $\omega = dx\wedge dy$ (area). $\iota_X\omega = -y\,dy + x\,dx \cdot (-1) = -y\,dy - x\,dx$? Let me redo: $(\iota_X\omega)(Y) = \omega(X, Y) = X^1 Y^2 - X^2 Y^1 = -y Y^2 - x Y^1$. So $\iota_X\omega = -x\,dx - y\,dy = -\frac{1}{2}d(x^2+y^2)$. Then $d\iota_X\omega = 0$. Also $d\omega = 0$ (already a top form). So $\mathcal{L}_X\omega = 0$ — rotation preserves area. The Cartan calculation took two lines.
+
+---
+
+## 7. de Rham Cohomology
+
+Define the $k$-th **de Rham cohomology**
+$$H^k_{dR}(M) = \frac{\ker(d: \Omega^k \to \Omega^{k+1})}{\mathrm{im}(d: \Omega^{k-1} \to \Omega^k)} = \frac{\text{closed }k\text{-forms}}{\text{exact }k\text{-forms}}.$$
+The denominator makes sense because exact forms are closed, so the image sits inside the kernel.
+
+![de Rham cohomology measuring closed-mod-exact forms](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/08-differential-forms/dg_v2_08_6_de_rham.png)
+
+**de Rham's theorem.** $H^k_{dR}(M)$ is canonically isomorphic to singular cohomology $H^k(M; \mathbb{R})$. The theorem says: a smooth-geometric invariant (closed-mod-exact forms) coincides with a topological invariant (cohomology classes of cocycles). The bridge is the integration pairing: a closed $k$-form integrates over $k$-cycles, giving a class in $H^k(M; \mathbb{R})$, and this map is an isomorphism.
+
+**Examples.**
+- $H^0_{dR}(M) = \mathbb{R}^c$, where $c$ is the number of connected components of $M$. (A 0-form is closed iff locally constant.)
+- $H^k_{dR}(\mathbb{R}^n) = 0$ for $k \geq 1$ (Poincare lemma — $\mathbb{R}^n$ is contractible).
+- $H^1_{dR}(S^1) = \mathbb{R}$, generated by $d\theta$. The angle form is closed but not exact.
+- $H^1_{dR}(\mathbb{R}^2 \setminus \{0\}) = \mathbb{R}$, generated by the same angle form $\omega$ from section 4. The "hole" at the origin is detected by cohomology.
+- $H^k_{dR}(\mathrm{torus}\,T^2) = \mathbb{R}^{\binom{2}{k}}$: dimensions $1, 2, 1$ for $k = 0, 1, 2$.
+
+**Why this matters.** Cohomology is the algebraic shadow of topology, and de Rham's theorem says you can compute it analytically — using calculus on the manifold rather than combinatorial machinery. In physics, every "topological term" in a Lagrangian (instantons, theta vacua, Chern-Simons) is a cohomology class. Quantization conditions on charge or flux (Dirac monopole, Aharonov-Bohm) are integrality conditions on cohomology. The marriage of differential geometry and topology is consummated in this isomorphism.
+
+**Functoriality.** The pullback $f^*: H^k_{dR}(N) \to H^k_{dR}(M)$ is well-defined because $f^*$ commutes with $d$ (closed maps to closed) and pullbacks of exact forms are exact. So smooth maps induce maps on cohomology, and homotopic maps induce *the same* map (the homotopy invariance of de Rham cohomology). This is what makes cohomology a topological invariant: it depends only on the homotopy type of $M$, not on its smooth structure or its metric. Two smoothly inequivalent manifolds with the same homotopy type have the same de Rham cohomology — though they may differ in finer invariants.
+
+**Computational tools.** Mayer-Vietoris, Kunneth, and Poincare duality are the workhorses for computing de Rham cohomology. The Kunneth formula gives $H^*(M\times N) \cong H^*(M)\otimes H^*(N)$, which is how the torus's $H^* = \mathbb{R}, \mathbb{R}^2, \mathbb{R}$ falls out of $H^*(S^1) = \mathbb{R}, \mathbb{R}$. Poincare duality on a compact oriented $n$-manifold says $H^k \cong H^{n-k}$, with the pairing given by integration of $\alpha \wedge \beta$. Both tools will be used heavily in article 9.
+
+---
+
+## 8. Classical Differential Forms in Physics
+
+To consolidate, here are the natural physical interpretations of forms.
+
+![Classical differential forms in physics: dx wedge dy, force, flux](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/08-differential-forms/dg_v2_08_7_examples.png)
+
+**Work.** A **force** $F$ in classical mechanics is most naturally a **1-form**: it eats a displacement vector and returns work. $W = \int_\gamma F$, a line integral of a 1-form. The "force vector" of vector calculus is really the metric dual of this 1-form — and on Euclidean space, the metric is so trivial that the distinction is invisible.
+
+**Flux.** The **flux** of a fluid through a surface is most naturally a **2-form**. On $\mathbb{R}^3$, a velocity field $v = (v^1, v^2, v^3)$ gives the flux 2-form $\eta = v^1\,dy\wedge dz + v^2\,dz\wedge dx + v^3\,dx\wedge dy$. Then $\int_S \eta$ is the rate at which fluid crosses $S$. The "vector" $v$ and the "2-form" $\eta$ are related by the Hodge star (which depends on metric and orientation).
+
+**Maxwell's equations.** The **electromagnetic field** is a 2-form $F$ on spacetime, with components encoding both $E$ and $B$:
+$$F = -E_i\,dx^i\wedge dt + B_i\,*dx^i,$$
+where $*$ is Hodge dual on space. Maxwell's four equations reduce to two:
+$$dF = 0, \qquad d{*}F = J,$$
+where $J$ is the source 3-form (current). The first ($dF = 0$) packages "no magnetic monopoles" ($\nabla\cdot B = 0$) and Faraday's law ($\nabla\times E = -\partial_t B$). The second ($d{*}F = J$) packages Gauss's law and Ampere-Maxwell. The geometric formulation makes Lorentz covariance manifest, and the gauge symmetry $A \to A + d\chi$ (with $F = dA$) is automatic from $d^2 = 0$.
+
+**Aharonov-Bohm effect.** The vector potential $A$ is a 1-form whose exterior derivative is $F = dA$. Outside an infinite solenoid carrying flux $\Phi$, the field $F = 0$ but $A$ has $\oint_\gamma A = \Phi$ for any loop $\gamma$ encircling the solenoid. The form $A$ is closed (since $dA = F = 0$ outside) but not exact (the integral is nonzero). The cohomology class of $A$ in $H^1(\mathbb{R}^3 \setminus \mathrm{solenoid}) = \mathbb{R}$ is what charged particles see — this is the Aharonov-Bohm phase. A purely topological effect, with measurable physical consequences. Differential forms turn it into a one-line statement.
+
+**Symplectic form.** Phase space $T^*M$ carries a canonical 2-form $\omega = dp_i \wedge dq^i$. Hamiltonian dynamics is the geometry of this form: a Hamiltonian function $H$ generates a vector field $X_H$ via $\iota_{X_H}\omega = -dH$. The flow of $X_H$ preserves $\omega$ ($\mathcal{L}_{X_H}\omega = 0$ — Liouville's theorem) and preserves $H$ (energy conservation). The whole of classical mechanics is symplectic geometry in disguise.
+
+**Worked example: harmonic oscillator.** Phase space $\mathbb{R}^2$ with coordinates $(q, p)$, symplectic form $\omega = dp\wedge dq$, Hamiltonian $H = \tfrac{1}{2}(p^2 + q^2)$. Then $dH = p\,dp + q\,dq$, and we want $X_H$ with $\iota_{X_H}(dp\wedge dq) = -dH = -p\,dp - q\,dq$. Setting $X_H = a\partial_q + b\partial_p$, $\iota_{X_H}\omega = a\,dp - b\,dq$. Matching: $a = -p$, $-b = -q$ so $b = q$. Wait — let me redo: $\iota_{X_H}(dp\wedge dq)(Y) = (dp\wedge dq)(X_H, Y) = X_H^p Y^q - X_H^q Y^p = b Y^q - a Y^p$. So $\iota_{X_H}\omega = b\,dq - a\,dp$. Setting equal to $-p\,dp - q\,dq$: $b = -q$, $a = p$. Thus $X_H = p\partial_q - q\partial_p$. The flow has $\dot q = p, \dot p = -q$ — the harmonic oscillator equations. Three lines of form algebra reproduce all of mechanics.
+
+**Volume form and Hodge star.** A Riemannian metric $g$ on an oriented $n$-manifold gives a canonical volume $n$-form $\mathrm{vol}_g$ and a Hodge star $*: \Omega^k \to \Omega^{n-k}$. The Hodge star is the bridge between "$k$-form" and "$(n-k)$-form" — and it is what lets you interconvert vectors (via $\flat$) and 2-forms (via $\flat$ then $*$) in $\mathbb{R}^3$. Vector calculus on $\mathbb{R}^3$ is a specific use of Hodge star in dimension 3 with the Euclidean metric.
+
+**The Laplacian as $d\delta + \delta d$.** With Hodge star and metric, define the codifferential $\delta = (-1)^? *d*$ (sign depending on dimension and degree). The Laplace-de Rham operator $\Delta = d\delta + \delta d$ acts on forms of any degree, generalizing the Laplacian on functions. Harmonic forms ($\Delta\omega = 0$) correspond — via the Hodge theorem — to de Rham cohomology classes: every cohomology class has a unique harmonic representative on a compact oriented Riemannian manifold. This is the analytic foundation of Hodge theory and the starting point for the heat-kernel proof of the Atiyah-Singer index theorem.
+
+**Connections in physics — preview.** A connection on a principal bundle (article 12) is a Lie-algebra-valued 1-form. Its curvature is a Lie-algebra-valued 2-form. Yang-Mills and general relativity are theories *about* differential forms with values in a Lie algebra. Without forms, you have no machinery; with forms, the equations write themselves in two lines. This is why every modern textbook on gauge theory devotes early chapters to differential forms — the machinery is non-negotiable.
+
+**A small philosophical remark.** Vector calculus on $\mathbb{R}^3$ is genuinely useful, and most physicists go their whole careers without translating into differential forms. The argument for forms is not that vector calculus is wrong — it is that *every miracle* of vector calculus (the identities, the integral theorems, the change-of-variables formulas) becomes routine in form language, and *every difficulty* of vector calculus (curvilinear coordinates, generalization to higher dimensions, geometric meaning of cross product) dissolves. The investment of learning forms is paid back tenfold once you actually need to compute on a curved 4-dimensional spacetime or a $2n$-dimensional symplectic manifold.
 
 ---
 
 ## What's Next
 
-With smooth manifolds, tangent spaces, vector fields, and now differential forms, we have assembled the core toolkit of modern differential geometry. The next step is to add a **metric** — a smoothly varying inner product on each tangent space — turning a smooth manifold into a **Riemannian manifold**. The metric gives us lengths of curves, angles between vectors, volumes of regions, and the Levi-Civita connection that enables parallel transport and covariant differentiation. This is where the intrinsic theory reconnects with the classical geometry of surfaces that we studied in the first five articles, but now in arbitrary dimension and without any ambient space.
+We have built the calculus of differential forms: wedge product, exterior derivative, pullback, interior product, Cartan's magic formula, de Rham cohomology. These are all *local* operations on the manifold. The next article ties them to *global* integration via Stokes' theorem — the single statement that subsumes the fundamental theorem of calculus, Green's theorem, the classical Stokes' theorem, and the divergence theorem.
 
-**Summary of the key ideas.** The conceptual structure of exterior calculus:
+**Summary of the key ideas.**
 
-1. The **cotangent space** $T_p^*M$ is dual to the tangent space. A 1-form $\omega$ assigns a covector to each point, eating tangent vectors to produce numbers.
-2. **$k$-forms** are alternating multilinear maps on tangent vectors. The **wedge product** $\wedge$ is the algebraic operation that builds higher-degree forms from lower-degree ones, with graded commutativity $\alpha \wedge \beta = (-1)^{jk}\beta \wedge \alpha$.
-3. The **exterior derivative** $d: \Omega^k \to \Omega^{k+1}$ is the unique extension of the differential of functions that satisfies $d^2 = 0$ and the graded Leibniz rule. It unifies gradient, curl, and divergence.
-4. **Pullback** $F^*$ transports forms backward along smooth maps. It commutes with both $\wedge$ and $d$, making exterior calculus functorial and coordinate-independent.
-5. **Closed forms** ($d\omega = 0$) that are not **exact** ($\omega \neq d\eta$) detect topological holes. The **de Rham cohomology** $H^k_{\text{dR}}(M)$ quantifies this failure and is a topological invariant.
-6. The generalized **Stokes' theorem** $\int_M d\omega = \int_{\partial M} \omega$ unifies all classical integral theorems of vector calculus into a single statement.
+1. A **$k$-form** is a smooth section of $\Lambda^k T^* M$ — an antisymmetric multilinear functional on tangent vectors. Forms are designed to be integrated.
+2. The **wedge product** $\wedge$ makes $\Omega^*(M)$ a graded-commutative algebra. The 2-form $dx\wedge dy$ measures signed area.
+3. The **exterior derivative** $d: \Omega^k \to \Omega^{k+1}$ is the unique antiderivation extending $df$ on functions, with $d^2 = 0$.
+4. **Closed** forms ($d\omega = 0$) and **exact** forms ($\omega = d\eta$) coincide locally (Poincare lemma) but differ globally — the gap is **de Rham cohomology**.
+5. **Pullback** $f^*$ is the natural action of smooth maps on forms, commuting with $d$ and $\wedge$.
+6. **Cartan's magic formula** $\mathcal{L}_X = d\iota_X + \iota_X d$ ties the form calculus to vector fields and flows.
+7. Vector calculus on $\mathbb{R}^3$ is the form calculus translated through the metric and Hodge star — gradient, curl, divergence are all $d$ in disguise.
 
 ---
 

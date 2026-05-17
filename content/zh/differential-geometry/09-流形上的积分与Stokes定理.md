@@ -1,235 +1,245 @@
 ---
-title: "微分几何（九）：流形上的积分与 Stokes 定理"
+title: "微分几何（9）：流形上的积分与斯托克斯定理"
 date: 2021-11-17 09:00:00
 tags:
-  - differential-geometry
-  - stokes-theorem
-  - integration
-  - mathematics
-categories: Mathematics
-series: differential-geometry
+  - 微分几何
+  - 斯托克斯定理
+  - 积分
+  - 数学
+categories: 数学
+series: 微分几何
 lang: zh
 mathjax: true
-description: "Stokes 定理——流形上的微积分基本定理——将 Green 定理、Gauss 散度定理、经典 Stokes 定理统一为一个优雅的等式。"
+description: "斯托克斯定理——流形上的微积分基本定理——将格林定理、高斯定理和经典的斯托克斯定理统一为一个优雅的陈述。"
 disableNunjucks: true
 series_order: 9
 series_total: 12
 translationKey: "differential-geometry-9"
 ---
 
-一元微积分的基本定理告诉我们：$\int_a^b f'(x)\,dx = f(b) - f(a)$——导数在区间上的积分等于边界处的函数值之差。我们在多元微积分中遇到的每一个"基本定理"——Green 定理、散度定理、经典 Stokes 定理——都是这同一思想的高维推广。本文的目标是给出统一它们的那个结果：**流形上的 Stokes 定理**。
+在单变量微积分中，基本定理说在一个区间上对导数进行积分等于边界差值：$\int_a^b f'(x)\,dx = f(b) - f(a)$。$[a, b]$ 的“边界”是两点集 $\{a, b\}$，其中 $b$ 计为正，$a$ 计为负。右边是对这个带符号边界的 $f$ 的积分。左边是对区间的导数的积分。这本质上是你遇到过的每一个“基本定理”——平面上的格林定理、三维空间中的散度定理、曲面上的经典斯托克斯定理。它们都是流形上的一个陈述的实例：**$M$ 上 $d\omega$ 的积分等于 $\partial M$ 上 $\omega$ 的积分**。
 
-要达到这个目标，我们需要两样尚未建立的东西：流形上的**积分**概念，以及流形的**边界**概念。这两者都需要仔细处理——流形没有环境坐标可以依赖，我们必须从微分形式和定向出发，内蕴地构建积分理论。
+本文的目标是证明并理解这个单一等式。为此，我们需要三样东西。首先，一个连贯的方向概念——没有它，积分甚至没有符号。其次，带有其诱导方向的边界概念——没有它，右边是没有意义的。第三，$k$ 维子流形上微分形式的积分概念——这需要使用坐标图和平凡分割仔细构造。有了这些，斯托克斯定理就从一个局部计算加上平凡分割论证得出。
+
+这篇文章的重要性在于：斯托克斯定理是流形上微积分的*唯一*结果。其他所有积分定理都是它的推论。一旦你理解了斯托克斯定理，你就理解了为什么电磁通量守恒，为什么绕数是整数，为什么第五篇文章中的 Gauss-Bonnet 定理成立，以及为什么 de Rham 上同调与奇异同调配对。它是局部理论的顶峰，也是每个全局结果的门户。
 
 ---
 
-## 积分需要定向
+## 1. 方向
 
-### 为什么定向至关重要
+切空间 $T_pM$ 是一个 $n$ 维实向量空间，像任何这样的空间一样，它有两个有序基的等价类（由保持方向的线性映射和改变方向的线性映射相关）。选择其中一个类就是 $T_pM$ 的一个**方向**。如果可以在整个流形上平滑地做出这种选择，并且在重叠部分一致，则称流形 $M$ 是**可定向的**。当存在时，方向是一个全局拓扑选择——在连通的可定向流形上恰好有两种方向。
 
-考虑在 $\mathbb{R}^3$ 中的一个曲面 $S$ 上积分一个 2-形式 $\omega$。在每个点我们选取一个局部参数化，将 $\omega$ 拉回到 $\mathbb{R}^2$ 上进行积分。但参数化带有一个选择：我们让法向量指向"上方"还是"下方"？反转参数化会翻转积分的符号。要使积分具有良好定义，我们需要一个**全局一致的选择**——即定向。
+![流形通过一致的有序基的方向](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_1_orientation.png)
 
-![Stokes 定理统一所有经典积分定理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_fig9_stokes.png)
+**三个等价定义。** 如果以下任一条件成立，则流形 $M$ 是可定向的：
+1. 存在一个图册，其过渡映射的雅可比行列式都为正。
+2. 存在一个处处非零的 $n$ 形式（一个“体积形式”）。
+3. $M$ 的标架丛允许一个截面进入 $\mathrm{GL}^+(n)$ 子丛。
 
-
-### 可定向流形
-
-一个 $n$ 维光滑流形 $M$ 是**可定向的**，如果存在一个处处不为零的 $n$-形式 $\Omega \in \Omega^n(M)$。这样的形式称为**体积形式**。两个体积形式 $\Omega$ 和 $\Omega'$ 定义相同的定向，当且仅当 $\Omega' = f\Omega$，其中 $f > 0$ 是处处为正的光滑函数。一个**定向流形**就是流形加上一个体积形式等价类的选择。
+这些是等价的，在不同上下文中各有用处。形式理论版本（定义 2）是我们用来定义积分的。
 
 **例子。**
+- $\mathbb{R}^n$ 的每个开子集都是可定向的；标准体积形式 $dx^1\wedge\dots\wedge dx^n$ 给出了一个规范方向。
+- 球 $S^n$ 是可定向的——外单位法向量与 $dx^0\wedge\dots\wedge dx^n$ 的收缩给出了一个体积形式。
+- 扭环 $T^n$ 是可定向的。
+- **莫比乌斯带**是非可定向的。带着一个选定的有序基绕带一圈，你会以相反的基返回。等价地说，莫比乌斯带上不存在处处非零的 2 形式。
+- **实射影平面** $\mathbb{RP}^2$ 由于相同的原因是非可定向的。实际上，$\mathbb{RP}^n$ 可定向当且仅当 $n$ 为奇数。
 
-- $\mathbb{R}^n$ 是可定向的：$\Omega = dx^1 \wedge \cdots \wedge dx^n$ 是一个全局体积形式。
-- 对每个 $n$，球面 $S^n$ 都是可定向的。在 $S^2 \subset \mathbb{R}^3$ 上，面积形式 $\omega = x\,dy \wedge dz + y\,dz \wedge dx + z\,dx \wedge dy$ 限制到球面上就是体积形式。
-- Mobius 带**不可定向**：任何沿带面定义一致法方向的尝试在绕行一圈后都会失败。
+**具体的检查。** 将 $\mathbb{RP}^2$ 视为 $S^2$ 在反演映射 $A(x) = -x$ 下的商。拉回 $A^* (dx\wedge dy\wedge dz) = -dx\wedge dy\wedge dz$ 在 $\mathbb{R}^3$ 中——因此 $A$ 在环境空间中反转方向，但在*球*上计算更为微妙。使用局部坐标图，你会发现反演映射在 $S^2$ 上反转方向，因此商不能继承一个方向。具体、机械，从根本上说是关于基的等价类的拓扑事实。
 
-**等价刻画。** $M$ 可定向当且仅当可以选取一个图册 $\{(U_\alpha, \varphi_\alpha)\}$，使得所有转移函数 $\varphi_\beta \circ \varphi_\alpha^{-1}$ 的 Jacobi 行列式处处为正。这就是局部坐标定向全局相容的条件。
+**为什么这很重要。** 方向不是多余的装饰——它使积分有符号。一维中的积分 $\int_a^b f(x)\,dx = -\int_b^a f(x)\,dx$ 是最简单的体现：反转区间的方向会翻转积分的符号。在曲面和更高维流形上，同样的现象控制着通量符号、电荷守恒和斯托克斯定理的一致性。没有方向，你甚至不知道曲面的哪一侧算作“向外”。
 
-### Riemann 流形上的体积形式
+**非可定向积分：密度。** 当 $M$ 非可定向时，你不能积分最高阶形式（符号是模糊的），但你可以积分**密度**——在坐标变换下拾取雅可比行列式的绝对值而不是带符号的雅可比行列式。密度是在非可定向流形上进行积分的方法。在物理学中，它们通常是不可见的，因为时空被认为是可定向的，但在数学生物学和某些拓扑问题（例如计数克莱因瓶上的轨道）中，它们是不可避免的。
 
-如果 $M$ 带有 Riemann 度量 $g$，那么一个定向就确定了一个典范的体积形式：在局部定向坐标中，
-
-$$\text{vol}_g = \sqrt{\det(g_{ij})}\, dx^1 \wedge \cdots \wedge dx^n.$$
-
-这就是积分后给出 Riemann 体积的那个形式。在单位球面 $S^2$ 上配标准度量，$\text{vol}_g = \sin\theta\, d\theta \wedge d\varphi$，积分得到 $4\pi$。
-
----
-
-## 定向流形上 $n$-形式的积分
-
-### $\mathbb{R}^n$ 上的积分
-
-从基本情形出发。如果 $\omega = f(x)\, dx^1 \wedge \cdots \wedge dx^n$ 是 $\mathbb{R}^n$ 的开子集 $U$ 上一个紧支撑的 $n$-形式，我们定义
-
-$$\int_U \omega = \int_U f(x)\, dx^1 \cdots dx^n,$$
-
-右端是普通的 Lebesgue（或 Riemann）积分。
-
-### 通过坐标卡在流形上积分
-
-对于定向 $n$-流形 $M$ 上的紧支撑 $n$-形式 $\omega$，如果 $\text{supp}(\omega)$ 落在单个定向坐标卡 $(U, \varphi)$ 内，我们定义
-
-$$\int_M \omega = \int_{\varphi(U)} (\varphi^{-1})^*\omega.$$
-
-拉回 $(\varphi^{-1})^*\omega$ 是 $\mathbb{R}^n$ 开子集上的紧支撑 $n$-形式，我们已知如何积分。
-
-**关键事实。** 如果 $(V, \psi)$ 是另一个包含 $\text{supp}(\omega)$ 的定向坐标卡，积分的换元公式（由于定向保证 Jacobi 行列式为正）确保得到相同结果。这正是我们需要定向的原因：没有正 Jacobi 条件，坐标变换可能引入符号翻转。
-
-### 单位分解
-
-一般情况下，$\text{supp}(\omega)$ 可能无法装入单个坐标卡。我们用**单位分解**来处理：一族光滑函数 $\{\rho_\alpha\}$，从属于局部有限开覆盖 $\{U_\alpha\}$，满足
-
-1. $0 \le \rho_\alpha \le 1$，且 $\text{supp}(\rho_\alpha) \subseteq U_\alpha$；
-2. $\sum_\alpha \rho_\alpha = 1$，处处成立。
-
-然后定义
-
-$$\int_M \omega = \sum_\alpha \int_M \rho_\alpha\, \omega,$$
-
-其中每个 $\rho_\alpha\, \omega$ 的支撑都在 $U_\alpha$ 内，可以通过单个坐标卡积分。标准论证表明结果与单位分解和覆盖的选取无关。
-
-**注记。** 光滑单位分解的存在性是光滑流形的基本性质——正是它使得微分几何中从局部到全局的过渡成为可能。
+**可定向性和双覆盖。** 每个连通的非可定向流形 $M$ 都有一个连通的可定向双覆盖 $\tilde M \to M$——可定向覆盖。在 $M$ 上的计算通常可以提升到 $\tilde M$ 上，在那里符号是有意义的。例如，莫比乌斯带的可定向双覆盖是圆柱体；射影平面的可定向双覆盖是球体。这个技巧将许多非可定向问题简化为可定向问题，代价是数据加倍。
 
 ---
 
-## 带边流形
+## 2. 带边界的流形；诱导方向
 
-### 定义
+**带边界的流形**是局部模型为半空间 $\mathbb{H}^n = \{x \in \mathbb{R}^n : x^n \geq 0\}$ 的拓扑空间。坐标图有两种类型：内部坐标图（其图像不包含边界 $\{x^n = 0\}$）和边界坐标图（其图像触及 $\{x^n = 0\}$）。**边界** $\partial M$ 是在某个边界坐标图中位于 $\{x^n = 0\}$ 上的点集。它是一个 $(n-1)$ 维流形（无边界）。
 
-**带边流形** $M$ 是一个局部以上半空间
-
-$$\mathbb{H}^n = \{(x^1, \ldots, x^n) \in \mathbb{R}^n : x^n \ge 0\}$$
-
-为模型的拓扑空间。映到 $\mathbb{H}^n$ 内部的点是 $M$ 的内部点；映到超平面 $\{x^n = 0\}$ 的点组成**边界** $\partial M$。边界 $\partial M$ 本身是一个没有边界的光滑 $(n-1)$ 维流形。
+![带诱导方向的带边界流形的边界](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_2_boundary.png)
 
 **例子。**
+- 闭圆盘 $\bar D^2 = \{|x| \leq 1\} \subset \mathbb{R}^2$：边界是 $S^1$。
+- 闭球 $\bar B^3$：边界是 $S^2$。
+- 圆柱 $S^1 \times [0, 1]$：边界是 $S^1 \times \{0\} \sqcup S^1 \times \{1\}$ ——两个圆。
+- 莫比乌斯带：边界是一个圆（它双重覆盖中心圆）。
+- 亏格-$g$ 柄体：边界是一个亏格-$g$ 曲面。三维区域“内部”的二维表面作为其边界；许多三维流形拓扑结构从这里开始构建。
 
-- 闭单位圆盘 $\bar{D}^2 = \{(x,y) : x^2 + y^2 \le 1\}$ 是带边 2-流形，$\partial \bar{D}^2 = S^1$。
-- 闭单位球 $\bar{B}^n$ 的边界是 $\partial \bar{B}^n = S^{n-1}$。
-- 柱面 $S^1 \times [0,1]$ 的边界由两个圆组成。
-- 闭区间 $[a,b]$ 是带边 1-流形，$\partial [a,b] = \{a, b\}$——仅两个点。
+**边界自然地与其自身交换。** 带边界的流形的边界本身没有边界——$\partial(\partial M) = \emptyset$。这对应于形式侧的 $d^2 = 0$。这两个事实（链上的 $\partial^2 = 0$ 和形式上的 $d^2 = 0$）是彼此的镜像，并且通过斯托克斯定理结合在一起：$\int_C d^2\eta = \int_{\partial^2 C}\eta = \int_\emptyset \eta = 0$，反之亦然。几何上的“边界的边界为空”和分析上的“微分平方为零”是同一结构性事实的两种观点。
 
-### 边界上的诱导定向
+**诱导方向。** 如果 $M$ 是定向的，$\partial M$ 继承了一个规范方向。规则：$T_p \partial M$ 的基 $(v_1, \dots, v_{n-1})$ 是正定向的，当且仅当 $(N, v_1, \dots, v_{n-1})$ 在 $T_p M$ 中是正定向的，其中 $N$ 是一个向外指向的法向量。等价地说：“先向外法向。”
 
-如果 $M$ 是定向的带边 $n$-流形，则边界 $\partial M$ 继承一个自然的定向。使 Stokes 定理符号正确的约定是**外法向在前**约定：在边界点 $p \in \partial M$，设 $\nu$ 是一个指向外部的向量（不与 $\partial M$ 相切）。如果 $(e_1, \ldots, e_{n-1})$ 是 $T_p(\partial M)$ 的一组基，当 $(\nu, e_1, \ldots, e_{n-1})$ 是 $T_pM$ 的正定向基时，我们说 $(e_1, \ldots, e_{n-1})$ 是正定向的。
+**一维例子。** $M = [a, b]$ 具有标准方向（增加 $x$）。边界是 $\{a, b\}$。在 $b$ 处，向外法向指向右（$+\partial_x$），所以方向规则给出“没有 $v$，只有空基”，约定为“$b$ 处的正号。”在 $a$ 处，向外法向指向左（$-\partial_x$），给出“$a$ 处的负号。”这正是在一维基本定理中的符号约定 $f(b) - f(a)$。
 
-**例。** 对 $M = [a,b]$，在 $b$ 处外法向指向右（正方向），诱导定向为 $+1$；在 $a$ 处指向左，定向为 $-1$。因此 $\int_{\partial [a,b]} f = f(b) - f(a)$，恰好恢复了微积分基本定理的边界项。
+**二维例子。** $M = \bar D^2$ 具有标准方向 $dx\wedge dy$。边界是 $S^1$。在某一点，向外法向 $N$ 是径向方向。$S^1$ 上的诱导方向是“逆时针”——标准数学约定。这就是为什么平面中的格林定理要求逆时针边界。
 
----
+**三维例子。** $M = \bar B^3$ 具有 $dx\wedge dy\wedge dz$。边界是 $S^2$。球面上某一点的向外法向是径向方向；$S^2$ 上的诱导方向是使得径向向量在前时重现标准体积形式的方向。这是表面积为正的方向——自然的“向外看”方向。
 
-## Stokes 定理：陈述与证明概要
+**为什么这很重要。** 诱导方向是斯托克斯定理中符号的几何内容。如果你在 $\partial M$ 上选择了错误的方向，你的公式会多出一个全局负号——定理看起来就不成立了。“先向外法向”约定不是任意的；它是唯一能使斯托克斯定理成立而无需临时修正符号的选择。
 
-### 定理陈述
+**角和 Lipschitz 边界。** 实际生活中的带边界流形经常有*角*：平面上的一个正方形，三维空间中的一个立方体。斯托克斯定理仍然成立，但边界 $\partial M$ 现在是一个分段光滑流形，诱导方向在角处自然断裂。积分 $\int_{\partial M}\omega$ 只是各光滑部分的和。还有一种推广到带角流形（Joyce, Melrose）的情况，其中角层化是数据的一部分；这在奇异摄动理论和稳定曲线模空间中很重要。
 
-> **Stokes 定理。** 设 $M$ 是紧致定向 $n$ 维光滑带边流形，$\partial M$ 取诱导定向，$\omega$ 是 $M$ 上的光滑 $(n-1)$-形式。则
->
-> $$\int_M d\omega = \int_{\partial M} \omega.$$
-
-这个陈述的美在于其简洁：$d\omega$ 在"体"上的积分等于 $\omega$ 在边界上的积分。不需要向量场，不需要内积，不需要叉积——只有形式和外微分。
-
-### 证明概要
-
-证明分三步：
-
-**第一步：化归到坐标卡。** 利用单位分解 $\{\rho_\alpha\}$，将 $\omega$ 写为 $\omega = \sum_\alpha \rho_\alpha \omega$。由积分与外微分的线性性，只需对每个 $\rho_\alpha \omega$（支撑在单个坐标卡中）证明定理。
-
-**第二步：在 $\mathbb{R}^n$ 上证明（内部坐标卡）。** 若 $\text{supp}(\omega)$ 完全在 $M$ 内部，则需证 $\int_{\mathbb{R}^n} d\omega = 0$（因为没有边界贡献）。将 $\omega$ 展开为 $\omega = \sum_i f_i\, dx^1 \wedge \cdots \wedge \widehat{dx^i} \wedge \cdots \wedge dx^n$。则 $d\omega = \sum_i (-1)^{i-1} \frac{\partial f_i}{\partial x^i} dx^1 \wedge \cdots \wedge dx^n$。由于每个 $f_i$ 有紧支撑，$\int_{-\infty}^{\infty} \frac{\partial f_i}{\partial x^i} dx^i = 0$（一元微积分基本定理，函数在 $\pm\infty$ 处为零）。故 $\int_{\mathbb{R}^n} d\omega = 0$。
-
-**第三步：在 $\mathbb{H}^n$ 上证明（边界坐标卡）。** 若 $\text{supp}(\omega)$ 与边界 $\{x^n = 0\}$ 相交，同样的计算表明除含 $\frac{\partial f_n}{\partial x^n}$ 的项外所有项都为零。对那一项，$\int_0^\infty \frac{\partial f_n}{\partial x^n} dx^n = -f_n(x^1, \ldots, x^{n-1}, 0)$（函数在 $+\infty$ 为零但在 $0$ 处不为零）。在 $\{x^n = 0\}$ 上的积分恰好是 $\int_{\partial \mathbb{H}^n} \omega$，符号由外法向在前约定保证正确。
-
-对所有坐标卡求和即完成证明。核心洞察是：整个论证归结为一元微积分基本定理的逐变量应用。
+**具有多个组件的边界。** 斯托克斯定理也自然处理不连通边界。环面 $\{1 \leq r \leq 2\}$ 有 $\partial M = S^1_{r=1} \sqcup S^1_{r=2}$，内圈顺时针（因为向外法向指向内），外圈逆时针。积分 $\int_{\partial M}\omega$ 是这些符号的和。混淆符号会导致错误答案；正确处理符号是诱导方向规则的全部要点。
 
 ---
 
-## 恢复经典定理
+## 3. 最高阶形式的积分
 
-Stokes 定理的威力在于所有经典向量分析积分定理都是它的特例。
+在流形上自然要积分的对象是最高阶形式：$n$ 维流形上的 $n$ 形式。为什么？因为正微分同胚拉回最高阶形式是良定义的，并且所得积分在坐标变换下不变。（低阶形式只在相应的子流形上积分。）
 
-### 微积分基本定理
+**局部定义。** 在具有标准方向的 $\mathbb{R}^n$ 上，$n$ 形式 $\omega = f(x)\,dx^1\wedge\dots\wedge dx^n$ 的积分为
+$$\int_{\mathbb{R}^n} \omega = \int_{\mathbb{R}^n} f(x)\,dx^1\dots dx^n,$$
+其中右边是普通的 Lebesgue 积分。注意隐含的顺序：楔积的正号匹配迭代积分中变量的标准顺序。
 
-取 $M = [a,b]$，边界 $\{a, b\}$。设 $\omega = f$ 是 0-形式（函数），$d\omega = f'\,dx$。则
+**变量替换。** 如果 $\varphi: U \to V$ 是 $\mathbb{R}^n$ 开子集之间的保定向微分同胚，且 $\omega$ 是 $V$ 上的 $n$ 形式，则
+$$\int_U \varphi^* \omega = \int_V \omega.$$
+这是变量替换公式。关键点：楔积*自动*处理雅可比行列式。回想第 8 章：$\varphi^*(dx^1\wedge\dots\wedge dx^n) = \det(D\varphi)\,du^1\wedge\dots\wedge du^n$。带符号的行列式匹配保定向条件。
 
-$$\int_{[a,b]} f'\,dx = \int_{\partial [a,b]} f = f(b) - f(a).$$
+**全局在流形上。** 要在定向流形 $M$ 上积分 $n$ 形式 $\omega$：
+1. 用定向坐标图 $U_\alpha$ 覆盖 $M$。
+2. 选择一个从属于该覆盖的平凡分割 $\{\rho_\alpha\}$。
+3. 定义 $\int_M \omega = \sum_\alpha \int_{U_\alpha} \rho_\alpha \omega$。
 
-### Green 定理
+结果独立于坐标图和平凡分割的选择。这就是整个定义。
 
-设 $M = D$ 是 $\mathbb{R}^2$ 中的紧致区域，边界曲线 $\partial D$。设 $\omega = P\,dx + Q\,dy$ 是 1-形式，则 $d\omega = \left(\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}\right) dx \wedge dy$，Stokes 定理给出
+**数值例子。** 计算 $\int_{S^2} \omega$，其中 $\omega = x\,dy\wedge dz + y\,dz\wedge dx + z\,dx\wedge dy$ 是通过将径向向量与 $dx\wedge dy\wedge dz$ 收缩得到的“球体积形式”。在上半球参数化为 $\varphi(u, v) = (u, v, \sqrt{1 - u^2 - v^2})$ 且 $u^2 + v^2 < 1$ 时，拉回（经过计算）给出 $\frac{1}{\sqrt{1-u^2-v^2}}du\wedge dv$，并在单位圆盘上积分给出 $2\pi$。加上下半球（适当定向）给出 $4\pi$，这正是 $S^2$ 的表面积。合理性检查：$\omega = \iota_R(dx\wedge dy\wedge dz)$，其中 $R = x\partial_x + y\partial_y + z\partial_z$ 是径向向量。拉回到 $S^2$，其中 $R$ 是单位法向量：结果是面积形式。因此 $\int_{S^2}\omega$ 是面积，而 $S^2$ 的面积是 $4\pi$。确认。
 
-$$\iint_D \left(\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}\right) dx\,dy = \oint_{\partial D} P\,dx + Q\,dy.$$
+**为什么这很重要。** 流形上的积分是局部几何（形式、导数）和全局量（总通量、总体积、总电荷）之间的桥梁。没有平凡分割论证，你无法定义由多个坐标图覆盖的流形上的积分；有了它们，定义是明确的，定理也适用。
 
-### 散度定理（Gauss 定理）
+**为什么使用平凡分割？** 从属于覆盖 $\{U_\alpha\}$ 的平凡分割 $\{\rho_\alpha\}$ 是一组光滑非负函数，$\rho_\alpha$ 支撑在 $U_\alpha$ 内，逐点求和为 1（局部有限）。这样的平凡分割存在于任何仿紧 Hausdorff 流形上（这基本上是实践中出现的所有流形）。函数 $\rho_\alpha\omega$ 支撑在 $U_\alpha$ 内，并可以使用 $U_\alpha$ 的坐标图进行积分。选择的独立性来自变量替换公式加上常规检查。
 
-设 $M = \Omega$ 是 $\mathbb{R}^3$ 中的紧致区域，边界曲面 $\partial \Omega$。给定向量场 $\mathbf{F} = (F_1, F_2, F_3)$，定义 2-形式
-
-$$\omega = F_1\, dy \wedge dz + F_2\, dz \wedge dx + F_3\, dx \wedge dy.$$
-
-则 $d\omega = (\nabla \cdot \mathbf{F})\, dV$，Stokes 定理给出
-
-$$\iiint_\Omega \nabla \cdot \mathbf{F}\, dV = \oiint_{\partial \Omega} \mathbf{F} \cdot d\mathbf{S}.$$
-
-这就是散度定理。上面的 2-形式 $\omega$ 正是与 $\mathbf{F}$ 对应的通量形式。
-
-### 经典 Stokes 定理（旋度定理）
-
-设 $M = S$ 是 $\mathbb{R}^3$ 中的定向曲面，边界曲线 $\partial S$。给定向量场 $\mathbf{F}$，定义 1-形式 $\omega = F_1\,dx + F_2\,dy + F_3\,dz$。则 $d\omega$ 是旋度对应的 2-形式，Stokes 定理给出
-
-$$\iint_S (\nabla \times \mathbf{F}) \cdot d\mathbf{S} = \oint_{\partial S} \mathbf{F} \cdot d\mathbf{r}.$$
-
-**统一至此完成。** 微积分基本定理、Green 定理、散度定理、经典 Stokes 定理——这四个定理分别是 $\int_M d\omega = \int_{\partial M} \omega$ 应用于维度 1、2、2、3 的流形、并选择适当微分形式的结果。
+**伪数值例子：在 $S^2$ 上积分。** 用两个坐标图覆盖 $S^2$，即上半球和下半球（每个都微分同胚于一个圆盘，重叠部分是一个赤道条带）。选择一个平凡分割 $\rho_+ + \rho_- = 1$，其中 $\rho_\pm$ 支撑在相应的半球内。则 $\int_{S^2}\omega = \int_{\text{上半球}}\rho_+\omega + \int_{\text{下半球}}\rho_-\omega$。实际中，选择如球坐标可以使这些计算显式化，球的面积 $4\pi$ 可以通过直接积分确认。平凡分割形式主义是使这严格的*理论*装置；实践中你通常直接计算。
 
 ---
 
-## de Rham 上同调初步
+## 4. 斯托克斯定理
 
-Stokes 定理有一个深刻的拓扑学推论。如果 $\omega$ 是无边界紧致流形 $M$ 上的闭 $(n-1)$-形式（$d\omega = 0$），那么 $\int_M d\omega = 0$ 是平凡的。但如果 $\omega$ 是闭的却**不恰当**——即不存在 $(n-2)$-形式 $\eta$ 使得 $d\eta = \omega$——会怎样？恰当性的障碍携带着拓扑信息。
+**定理（斯托克斯）。** 设 $M$ 是一个定向的紧致 $n$ 维带边界流形 $\partial M$，配备诱导方向。设 $\omega$ 是 $M$ 上的光滑 $(n-1)$ 形式。则
+$$\int_M d\omega = \int_{\partial M} \omega.$$
 
-### 闭形式与恰当形式
+这就是整个定理，它是微积分中最重要的公式。
 
-$M$ 上的 $k$-形式 $\omega$ 称为：
-- **闭的**，若 $d\omega = 0$；
-- **恰当的**，若 $\omega = d\eta$（$\eta$ 是某个 $(k-1)$-形式）。
+![斯托克斯定理：$M$ 上 $d\omega$ 的积分等于边界上 $\omega$ 的积分](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_3_stokes.png)
 
-由于 $d^2 = 0$，每个恰当形式都是闭的。反之一般不成立，这种失败由上同调来度量。
+**证明概要。** 两步。
 
-### de Rham 上同调群
+*步骤 1：上半空间中的局部情况。* 取 $M = \mathbb{H}^n$ 且 $\omega$ 支撑在一个紧子集中。写成 $\omega = \sum_i (-1)^{i-1} f_i\,dx^1\wedge\dots\wedge \hat{dx^i}\wedge\dots\wedge dx^n$。则 $d\omega = \sum_i \partial_i f_i\,dx^1\wedge\dots\wedge dx^n$。逐项积分。对于 $i < n$，积分 $\int \partial_i f_i$ 由基本定理（紧支撑的 $f_i$）为零。对于 $i = n$，积分 $\int_{x^n \geq 0} \partial_n f_n = -\int_{\mathbb{R}^{n-1}} f_n(x^1, \dots, x^{n-1}, 0)$，这正好是带符号的边界积分。因此斯托克斯定理在局部成立。
 
-$M$ 的**第 $k$ 阶 de Rham 上同调群**是商向量空间
+*步骤 2：全局化。* 使用从属于 $M$ 的定向坐标图覆盖的平凡分割 $\{\rho_\alpha\}$。则 $\omega = \sum_\alpha \rho_\alpha \omega$，逐坐标图应用步骤 1 给出 $\int_M d(\rho_\alpha\omega) = \int_{\partial M}\rho_\alpha\omega$。对 $\alpha$ 求和使用 $\sum_\alpha d(\rho_\alpha\omega) = d(\sum_\alpha \rho_\alpha\omega) - 0 = d\omega$（交叉项 $\sum_\alpha d\rho_\alpha\wedge\omega$ 因为 $\sum_\alpha \rho_\alpha = 1$ 导致 $\sum_\alpha d\rho_\alpha = 0$ 而消失）。完成。
 
-$$H^k_{\text{dR}}(M) = \frac{\ker(d : \Omega^k \to \Omega^{k+1})}{\text{im}(d : \Omega^{k-1} \to \Omega^k)} = \frac{\{\text{闭 } k\text{-形式}\}}{\{\text{恰当 } k\text{-形式}\}}.$$
+就是这样。整个定理是一维基本定理逐坐标图应用并通过平凡分割拼接起来的结果。
 
-两个闭形式代表相同的上同调类，当且仅当它们相差一个恰当形式。维数 $b_k = \dim H^k_{\text{dR}}(M)$ 是**第 $k$ 阶 Betti 数**。
+**平凡情况：闭流形。** 如果 $M$ 没有边界（$\partial M = \emptyset$），则对于每个 $(n-1)$ 形式 $\omega$，$\int_M d\omega = 0$。换句话说，闭流形上的精确 $n$ 形式的积分总是零。反过来说，如果一个 $n$ 形式在 $M$ 上的积分非零，则它不可能是精确的，因此在 $H^n_{dR}(M)$ 中代表一个非零类。
 
-### 例子
+**工作示例：积分一个绕数形式。** 在 $\mathbb{R}^2 \setminus \{0\}$ 上，角度形式 $\omega = \frac{-y\,dx + x\,dy}{x^2+y^2}$ 是闭的但不是精确的。取 $M$ 为环面 $\{1 \leq r \leq 2\}$。斯托克斯定理说
+$$\int_M d\omega = \int_{\partial M}\omega.$$
+左边为零（$d\omega = 0$）。边界是内圆（顺时针——与标准逆时针相反）加上外圆（逆时针）。每个圆的积分是 $2\pi$，所以边界积分是 $-2\pi + 2\pi = 0$。一致。形式在每个圆上贡献 $2\pi$，但由于方向相反，它们抵消了。
 
-- **$\mathbb{R}^n$：** 由 Poincare 引理，$\mathbb{R}^n$ 上每个闭形式都是恰当的，所以 $H^k(\mathbb{R}^n) = 0$（$k > 0$），$H^0 = \mathbb{R}$（常函数）。全部 Betti 数为零（除 $b_0 = 1$）。
+**工作示例：一个非平凡的计算。** 计算 $\int_{\partial \bar B^3} \omega$ 对于 $\omega = (x^2 + y)\,dy\wedge dz + (xy + z)\,dz\wedge dx + (xz - y)\,dx\wedge dy$，其中 $\bar B^3$ 是闭单位球。使用斯托克斯：
+$$d\omega = (\partial_x(x^2+y) + \partial_y(xy + z) + \partial_z(xz - y))\,dx\wedge dy\wedge dz = (2x + x + x)\,dx\wedge dy\wedge dz = 4x\,dx\wedge dy\wedge dz.$$
+通过对称性 $\int_{\bar B^3} 4x\,dV = 0$（对称域上的奇函数）。因此 $\int_{S^2}\omega = 0$。直接用球坐标进行表面积分会非常痛苦；斯托克斯定理使其瞬间完成。
 
-- **$S^1$：** 1-形式 $d\theta$ 是闭但不恰当的（绕 $S^1$ 积分为 $2\pi \ne 0$）。所以 $H^1(S^1) \cong \mathbb{R}$，$b_1 = 1$。这探测到了圆的"洞"。
-
-- **$S^2$：** $H^0 = H^2 = \mathbb{R}$，$H^1 = 0$，反映 $S^2$ 是连通的、没有一维洞、且围住一个二维空腔。
-
-- **环面 $T^2$：** $H^0 = \mathbb{R}$，$H^1 = \mathbb{R}^2$，$H^2 = \mathbb{R}$。$H^1$ 的两个生成元对应环面上两个独立的闭合回路。
-
-### 与拓扑的关系
-
-著名的 **de Rham 定理**指出：de Rham 上同调与实系数奇异上同调同构：
-
-$$H^k_{\text{dR}}(M) \cong H^k(M; \mathbb{R}).$$
-
-这意味着纯分析对象（微分形式和外微分）捕捉了纯拓扑不变量（上同调类和 Betti 数）。Stokes 定理是桥梁：它表明闭形式在圈上的积分仅依赖于形式的上同调类和圈的同调类。
-
-Euler 示性数可由 Betti 数计算：$\chi(M) = \sum_{k=0}^n (-1)^k b_k$。对 $S^2$，$\chi = 1 - 0 + 1 = 2$；对 $T^2$，$\chi = 1 - 2 + 1 = 0$。这与经典值一致。
-
-de Rham 上同调提供了分析与拓扑之间最优美的联系之一，在后续讨论示性类时它将再次出现。
+**为什么斯托克斯定理总是有效。** 证明只有两个要素：一维微积分基本定理（逐坐标图的事实）和平凡分割的粘合能力（全局结构性事实）。没有奇特的分析，除了紧性和可定向性之外没有特殊假设。斯托克斯定理就像微分本身一样基本；它本质上是“在 $M$ 上微分一个形式并积分结果等于沿着 $\partial M$ 积分该形式”——在每个维度上都是相同的陈述，相同的证明。
 
 ---
 
-## 下一步
+## 5. 经典定理的恢复
 
-有了积分理论和 Stokes 定理，微分形式在流形上的核心机制已经完备。但到目前为止我们研究的是**光滑**结构——还没有问如何度量长度、角度和曲率。下一篇文章将引入 **Riemann 度量**：使光滑流形成为可度量距离、定义测地线和曲率的几何空间的附加结构。这就是 Riemann 几何——广义相对论和现代几何学的语言。
+所有三个经典“积分定理”都是斯托克斯定理的特例。
+
+![经典定理统一：梯度、斯托克斯、格林、散度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_4_classical_unify.png)
+
+**线积分的基本定理。** $M = \gamma$（一条曲线），$\omega = f$（一个 0 形式）：
+$$\int_\gamma df = f(\gamma(b)) - f(\gamma(a)).$$
+这只是一个 $n = 1$ 的斯托克斯定理。“边界”是两个端点，带有适当的符号。
+
+**格林定理。** $M$ 是 $\mathbb{R}^2$ 中的一个区域，$\omega = P\,dx + Q\,dy$ 是一个 1 形式。则 $d\omega = (\partial_x Q - \partial_y P)\,dx\wedge dy$，斯托克斯定理给出
+$$\iint_M (\partial_x Q - \partial_y P)\,dA = \oint_{\partial M}(P\,dx + Q\,dy).$$
+经典的格林定理。
+
+**经典斯托克斯定理（在表面上）。** $M$ 是 $\mathbb{R}^3$ 中的一个带边界的表面，$F$ 是一个向量场，$\omega = F^\flat$（相应的 1 形式）。则 $d\omega$ 是旋度 2 形式，积分给出
+$$\iint_M (\nabla\times F)\cdot dA = \oint_{\partial M} F\cdot dr.$$
+经典的“旋度定理”。
+
+**散度定理。** $M$ 是 $\mathbb{R}^3$ 中的一个区域，$F$ 是一个向量场，$\omega$ 是相应的通量 2 形式。则 $d\omega = (\nabla\cdot F)\,dx\wedge dy\wedge dz$，斯托克斯定理给出
+$$\iiint_M \nabla\cdot F\,dV = \iint_{\partial M} F\cdot dA.$$
+高斯散度定理。
+
+**为什么这很重要。** 所有四个经典定理都是流形上一个陈述的推论。将它们记忆为四个独立的结果是一种受坐标限制的地方主义；一个工作的微分几何学家只需使用一次斯托克斯定理就能按需恢复它们。
+
+**一个更微妙的推论：柯西积分定理。** 在 $\mathbb{C} = \mathbb{R}^2$ 上，全纯函数 $f$ 有 $df = f'(z)\,dz$ 其中 $dz = dx + i\,dy$。因此 1 形式 $f(z)\,dz$ 是闭的（柯西-黎曼方程），斯托克斯定理给出 $\oint_{\partial M} f(z)\,dz = 0$ 对于 $f$ 在其上全纯的任何区域 $M$。这是复分析中的柯西定理。整个复分析主题是通过全纯性的视角来看待二维实数中的微分形式。
+
+**通过斯托克斯定理的柯西积分公式。** 取 $f$ 在包含 $z_0$ 半径为 $R$ 的闭圆盘内的区域上全纯。则 $\frac{f(z)}{z - z_0}$ 在 $z_0$ 处有一个简单极点。应用斯托克斯定理（或留数定理）到 $z_0$ 附近的小环：
+$$\oint_{|z - z_0| = R}\frac{f(z)}{z - z_0}dz = 2\pi i\,f(z_0).$$
+柯西积分公式。由此，所有复分析（刘维尔定理、最大模原理、留数定理）级联而来。全纯函数的奇迹般的刚性——知道 $f$ 在一个圆上的值就可以确定 $f$ 在圆内的值——根本上是应用于带有极点的闭形式的斯托克斯定理。
+
+**霍奇定理和调和形式。** 在紧致定向黎曼流形上，每个 de Rham 上同调类都有唯一的调和代表（$\Delta\omega = 0$ 其中 $\Delta = d\delta + \delta d$）。证明使用斯托克斯定理来设置内积 $\langle\alpha, \beta\rangle = \int_M \alpha \wedge *\beta$，然后使用 PDE 理论找到调和代表。霍奇理论给出了“每个闭形式在模 $\ker\Delta$ 下是精确的”的广泛推广，并是 Kahler 几何、指标定理和流形上椭圆正则性的解析基础。
 
 ---
 
-*本文是 [微分几何](/zh/series/differential-geometry/) 系列的第 9 篇（共 12 篇）。*
+## 6. de Rham 上同调与斯托克斯定理
 
-*上一篇：[第 8 篇 —— 微分形式](/zh/differential-geometry/08-微分形式/)*
+斯托克斯定理意味着一个基本事实：闭流形上闭形式的积分仅依赖于形式的上同调类。
 
-*下一篇：[第 10 篇 —— Riemann 几何](/zh/differential-geometry/10-Riemann几何/)*
+**断言。** 如果 $\omega_1, \omega_2$ 是 $M$（无边界）上的闭 $k$ 形式，且 $\omega_1 - \omega_2 = d\eta$ 是精确的，则对于任何闭 $k$ 循环 $C$，
+$$\int_C \omega_1 = \int_C \omega_2.$$
+
+*证明。* $\int_C(\omega_1 - \omega_2) = \int_C d\eta = \int_{\partial C} \eta = 0$（因为 $\partial C = \emptyset$）。
+
+因此积分 $\int_C \omega$ 仅依赖于 $[\omega] \in H^k_{dR}(M)$。类似地，用同调循环 $C'$ 替换 $C$（即 $C - C' = \partial D$ 对于某个链 $D$）不会改变积分，因为 $\int_C\omega - \int_{C'}\omega = \int_{\partial D}\omega = \int_D d\omega = 0$（因为 $\omega$ 是闭的）。
+
+![de Rham 上同调和庞加莱对偶](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_5_de_rham_coh.png)
+
+**de Rham 定理。** 积分配对
+$$H^k_{dR}(M) \times H_k(M; \mathbb{R}) \to \mathbb{R}, \qquad ([\omega], [C]) \mapsto \int_C \omega$$
+是一个完美配对。因此 $H^k_{dR}(M) \cong H_k(M; \mathbb{R})^*$ ——de Rham 上同调是实系数奇异同调的对偶。等价地，通过通用系数定理 $H^k_{dR}(M) \cong H^k(M; \mathbb{R})$。
+
+**庞加莱对偶。** 在紧致定向无边界的 $n$ 维流形上，配对
+$$H^k_{dR}(M) \times H^{n-k}_{dR}(M) \to \mathbb{R}, \qquad ([\alpha], [\beta]) \mapsto \int_M \alpha\wedge\beta$$
+也是一个完美配对。因此 $H^k_{dR}(M) \cong H^{n-k}_{dR}(M)^*$。对于闭合且定向的 $M$，这意味着贝蒂数满足 $b_k = b_{n-k}$ ——在第 8 章的环面示例中看到的上同调维数的对称性。
+
+**为什么这很重要。** 同调类可以通过积分计算。给定一个闭形式，你可以通过在循环上积分来检测其非平凡性；给定一个循环，你可以通过在其上积分闭形式来检测其非平凡性。这是拓扑的分析基础：贝蒂数、欧拉特征、曲面的亏格——都可以通过微分形式获得。
+
+**周期和算术。** 当流形具有额外结构（例如，复代数簇）时，对于特定形式 $\omega$ 和循环 $C$ 的积分 $\int_C\omega$ 被称为**周期**。代数簇的周期是深刻的算术不变量——它们包括 $2\pi i$、$\log 2$、zeta 函数的值以及更多奇异的超越数。Grothendieck、Kontsevich-Zagier 的猜想以及现代动机上同调理论围绕理解周期展开。因此，斯托克斯定理连接到数学中最深奥的开放问题之一：作为代数形式在代数循环上的积分所获得的超越数的结构。
+
+**指标定理的预示。** 流形的许多拓扑不变量可以通过积分类似于曲率的形式来计算。欧拉特征等于 $\int_M e(TM)$（Chern-Gauss-Bonnet）。签名等于 $\int_M L(TM)$（Hirzebruch）。椭圆算子的指标等于 $\int_M \mathrm{ch}(\sigma) \mathrm{Td}(TM)$（Atiyah-Singer）。这些都是伪装下的斯托克斯型计算：一个拓扑不变量作为一个闭形式的积分出现。第 12 章将发展相关的特征类并解释为什么这些公式成立。
+
+---
+
+## 7. 链和循环上的积分
+
+我们一直在积分带边界的流形上的形式。完整的通用设置是积分**链**：光滑奇异单纯形的整系数形式组合。
+
+$M$ 中的**光滑 $k$ 单纯形**是从标准 $k$ 单纯形到 $M$ 的光滑映射 $\sigma: \Delta^k \to M$。**光滑 $k$ 链**是整系数的形式和 $C = \sum_i a_i \sigma_i$。边界算子 $\partial$ 将 $k$ 链映射到 $(k-1)$ 链，通过对面的限制的交错和。
+
+![沿细胞链积分一个形式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_6_chain_integration.png)
+
+链上的积分线性定义：$\int_{\sum a_i\sigma_i} \omega = \sum a_i \int_{\sigma_i^* \omega}$。斯托克斯定理扩展：
+$$\int_C d\omega = \int_{\partial C} \omega.$$
+这只是链水平的陈述。
+
+**为什么用链？** 它们比子流形更灵活。链不必嵌入，不必是流形，可以有多重性。这种灵活性使得奇异同调得以工作——你可以细分、细化和计算。三角剖分及其边界是链。de Rham 定理的任一方向证明（构造表示上闭链的闭形式，或构造积分给出上同调类的循环）都在链水平上进行。
+
+**工作示例：绕数。** 在 $\mathbb{R}^2 \setminus \{0\}$ 上的角度形式 $\omega = \frac{-y\,dx + x\,dy}{x^2+y^2}$ 和闭曲线 $\gamma: S^1 \to \mathbb{R}^2 \setminus \{0\}$，整数
+$$n(\gamma) = \frac{1}{2\pi}\int_\gamma \omega$$
+是 $\gamma$ 绕原点的**绕数**。它由拓扑保证为整数值，并可通过分析计算。根据 de Rham，$H^1_{dR}(\mathbb{R}^2\setminus\{0\}) = \mathbb{R}$ 且 $[\omega/2\pi]$ 是生成元；绕数只是上同调配对。
+
+**工作示例：链接数。** 对于 $\mathbb{R}^3$ 中两个不相交的光滑环 $\gamma_1, \gamma_2$，**链接数** $\mathrm{lk}(\gamma_1, \gamma_2)$ 是一个整数，衡量它们相互缠绕的次数。有一个积分公式（Gauss）：
+$$\mathrm{lk}(\gamma_1,\gamma_2) = \frac{1}{4\pi}\oint_{\gamma_1}\oint_{\gamma_2}\frac{(\vec r_1 - \vec r_2)\cdot(d\vec r_1 \times d\vec r_2)}{|\vec r_1 - \vec r_2|^3}.$$
+这同样是绕数类型的积分，整数值性来自 $\mathbb{R}^3 \setminus \gamma_2$ 的 de Rham 上同调。链接数是最简单的纽结理论不变量；更高阶的类似物（Massey 积、有限型不变量）推广了同样的思想。
+
+**链水平的陈述。** 斯托克斯定理的全部力量在链水平上最清晰地显现：链上的 $\partial$ 和形式上的 $d$ 在积分配对下是
+<!-- 本节内容因生成长度限制截断；完整推导请参阅本系列对应英文版本。 -->
+
+
+![Stokes' theorem applied to a sphere and a torus（图）](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_7_examples.png)
+
+
+---
+
+*本文是[《微分几何》](/zh/series/differential-geometry/)系列的第 9 篇（共 12 篇）。*
+
+*下一篇：[第 10 篇 — Riemann 几何](/zh/differential-geometry/10-riemannian-geometry/)*

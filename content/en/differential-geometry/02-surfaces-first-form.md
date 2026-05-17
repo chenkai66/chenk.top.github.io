@@ -17,304 +17,379 @@ translationKey: "differential-geometry-2"
 description: "Regular surfaces, coordinate patches, the tangent plane, and the first fundamental form — how to measure lengths, angles, and areas on a surface without leaving it."
 ---
 
-In the previous chapter we developed the complete local theory of space curves: two scalar invariants ($\kappa$ and $\tau$) determined the curve up to rigid motion. Curves are one-dimensional, and their geometry was governed by a system of ODEs.
+Curves were a one-dimensional warm-up. The geometry was governed by ODEs, and a single moving frame caught everything interesting. From now on we go up a dimension and the difficulty rises in three directions at once. Tangent vectors get replaced by *tangent planes*. The single arc-length parameter splits into two coordinates $(u, v)$, and reparametrization becomes a $2\times 2$ Jacobian matrix instead of a scalar. And — the real change — we acquire two distinct kinds of geometry: *intrinsic* (what an ant living on the surface can measure) and *extrinsic* (how the surface bends in the surrounding $\mathbb{R}^3$). This article is the intrinsic story. We build the *first fundamental form*, the $2\times 2$ matrix-valued function that lets the ant measure lengths, angles, and areas without ever leaving the surface.
 
-Now we move to surfaces — two-dimensional objects in $\mathbb{R}^3$. The jump from one to two dimensions is qualitatively different. A surface has an internal geometry of its own: distances, angles, and areas can be measured by a creature living on the surface, without any reference to the surrounding space. The tool that makes this possible is the *first fundamental form*, a symmetric bilinear form on the tangent plane that encodes the surface's intrinsic metric. This chapter constructs that tool and uses it to compute lengths and areas on concrete surfaces.
+The intrinsic / extrinsic split is going to recur for the next ten chapters, so it is worth pinning down here. A surface is a 2D thing sitting inside a 3D ambient space. Some of its geometry depends on how it sits in $\mathbb{R}^3$ (its bending and twisting); some of it depends only on the surface itself (distances and angles between nearby points on the surface). The first fundamental form captures *exactly the latter*. The next chapter introduces the second fundamental form, which captures the former. Gauss's *Theorema Egregium*, two chapters later, will deliver the punchline: there is one extrinsic-looking quantity (Gaussian curvature) that is in fact intrinsic. But that is for chapter 4. Today we lay the foundation.
 
----
-
-## What Is a Surface?
-
-Before giving a formal definition, let us build some intuition. A surface in $\mathbb{R}^3$ is a subset that "looks locally like a piece of $\mathbb{R}^2$." The sphere $x^2 + y^2 + z^2 = 1$ is a surface; so is the torus; so is the graph of any smooth function $z = f(x,y)$. What these have in common is that near any point, you can set up two coordinates that smoothly label the points of the surface — like latitude and longitude on the sphere, or the $(x,y)$ coordinates on a graph.
-
-This idea of "local coordinates" is the starting point. A surface is not defined by a single equation or a single parametrization, but by the existence of enough parametrizations to cover it.
-
-**Definition (Coordinate patch).** A *coordinate patch* (or *parametrization*) of a subset $S \subseteq \mathbb{R}^3$ is a smooth map $\mathbf{x}: U \to S$, where $U \subseteq \mathbb{R}^2$ is open, such that:
-
-1. $\mathbf{x}$ is a homeomorphism onto its image $\mathbf{x}(U) \subseteq S$ (continuous with continuous inverse).
-2. The partial derivatives $\mathbf{x}_u = \partial \mathbf{x}/\partial u$ and $\mathbf{x}_v = \partial \mathbf{x}/\partial v$ are linearly independent at every point of $U$.
-
-Condition (2) is the *regularity condition*: it ensures that the image is a genuine two-dimensional surface, not something that collapses to a curve or a point. In coordinates, $\mathbf{x}(u,v) = (x(u,v),\, y(u,v),\, z(u,v))$, and the regularity condition says that the Jacobian matrix has rank 2 everywhere, or equivalently that $\mathbf{x}_u \times \mathbf{x}_v \neq 0$.
-
-**Definition (Regular surface).** A subset $S \subseteq \mathbb{R}^3$ is a *regular surface* if for every point $p \in S$, there exists a coordinate patch $\mathbf{x}: U \to S$ whose image contains $p$.
-
-This means $S$ can be covered by (possibly many overlapping) coordinate patches. The same surface can be parametrized in different ways, just as the same curve could be reparametrized. The challenge of surface theory is to extract quantities that do not depend on the choice of parametrization.
+![A regular surface patch with its parameterization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/02-surfaces-first-form/dg_v2_02_1_surface_patch.png)
 
 ---
 
+## What is a Surface?
 
-![Surface patch with tangent plane and normal vector](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/02-surfaces-first-form/dg_fig2_tangent_plane.png)
+The naive definition — "a 2D thing in 3D space" — is fine for intuition but useless for proofs. A precise definition has to say what "smooth" means, how to give the surface coordinates, and how to handle places where coordinates fail.
 
-## Regular Surfaces and Coordinate Patches
+**Definition (Regular surface, classical).** A subset $S\subseteq\mathbb{R}^3$ is a *regular surface* if for every point $p\in S$ there is an open neighborhood $V\subseteq\mathbb{R}^3$ of $p$, an open set $U\subseteq\mathbb{R}^2$, and a smooth map $\mathbf{x}: U\to V\cap S$ satisfying:
+1. $\mathbf{x}$ is a homeomorphism (continuous, with continuous inverse);
+2. $\mathbf{x}$ is smooth (each component is $C^\infty$);
+3. for every $q\in U$, the differential $d\mathbf{x}_q: \mathbb{R}^2 \to \mathbb{R}^3$ is injective.
 
-Let us see the definition in action on several important examples.
+The map $\mathbf{x}$ is called a *coordinate chart*, *parametrization*, or *patch*. The third condition — injective differential — is the analog of regularity for curves. Concretely, it says the two partial derivatives $\mathbf{x}_u = \partial\mathbf{x}/\partial u$ and $\mathbf{x}_v = \partial\mathbf{x}/\partial v$ are linearly independent. They span a 2D plane at every point.
 
-**Example 1 (The sphere).** The unit sphere $S^2 = \{(x,y,z) : x^2+y^2+z^2 = 1\}$ can be parametrized by spherical coordinates:
+**Why this matters.** Patch-by-patch, a surface looks like a smoothly deformed piece of $\mathbb{R}^2$. Calculus on the surface is just calculus on $\mathbb{R}^2$ with an extra layer of bookkeeping (the chart) on top. The $\mathbb{R}^2$ side is where the integrals and partial derivatives live; the surface is where the geometry lives.
 
-$$\mathbf{x}(\theta, \varphi) = (\sin\theta\cos\varphi,\; \sin\theta\sin\varphi,\; \cos\theta),$$
+### Common examples
 
-where $\theta \in (0, \pi)$ and $\varphi \in (0, 2\pi)$. The partial derivatives are:
+**Graph of a function.** $S = \{(u, v, f(u,v)) : (u,v)\in\mathbb{R}^2\}$ where $f$ is smooth. The chart $\mathbf{x}(u,v) = (u, v, f(u,v))$ trivially satisfies all three conditions. *Every* surface is locally a graph (after rotating coordinates), but the global picture often requires multiple charts.
 
-$$\mathbf{x}_\theta = (\cos\theta\cos\varphi,\; \cos\theta\sin\varphi,\; -\sin\theta),$$
-$$\mathbf{x}_\varphi = (-\sin\theta\sin\varphi,\; \sin\theta\cos\varphi,\; 0).$$
+**Sphere of radius $r$.** $S^2_r = \{(x,y,z) : x^2+y^2+z^2 = r^2\}$. No single chart covers it (a topological obstruction we will address in chapter 6). A common patch: spherical coordinates $\mathbf{x}(\theta,\varphi) = (r\sin\varphi\cos\theta, r\sin\varphi\sin\theta, r\cos\varphi)$ for $(\theta,\varphi)\in (0, 2\pi)\times(0,\pi)$. This covers everything except a meridian; you need a second patch (rotated) to cover the rest.
 
-One computes $\mathbf{x}_\theta \times \mathbf{x}_\varphi = \sin\theta\,(\sin\theta\cos\varphi, \sin\theta\sin\varphi, \cos\theta) = \sin\theta\,\mathbf{x}$. Since $\sin\theta > 0$ for $\theta \in (0,\pi)$, this is nonzero, confirming regularity. However, this parametrization misses the north pole ($\theta = 0$) and the south pole ($\theta = \pi$), and it is not injective along the meridian $\varphi = 0 = 2\pi$. To cover the entire sphere, we need additional patches — for instance, projecting from the north and south poles onto the equatorial plane (stereographic projection provides two patches that together cover all of $S^2$).
+**Cylinder.** $\mathbf{x}(u,v) = (\cos u, \sin u, v)$ for $(u,v)\in (0,2\pi)\times\mathbb{R}$. Covers everything except a single line.
 
-**Example 2 (The torus).** The torus with outer radius $R$ and tube radius $r$ ($0 < r < R$) is parametrized by:
+**Torus (donut).** $\mathbf{x}(u,v) = ((R+r\cos v)\cos u, (R+r\cos v)\sin u, r\sin v)$ for $(u,v)\in (0,2\pi)\times(0,2\pi)$. Covers most of the torus; you again need another patch.
 
-$$\mathbf{x}(\theta, \varphi) = ((R + r\cos\theta)\cos\varphi,\; (R + r\cos\theta)\sin\varphi,\; r\sin\theta),$$
-
-where $\theta, \varphi \in (0, 2\pi)$. The parameter $\theta$ goes around the tube and $\varphi$ goes around the central hole. Computing:
-
-$$\mathbf{x}_\theta = (-r\sin\theta\cos\varphi,\; -r\sin\theta\sin\varphi,\; r\cos\theta),$$
-$$\mathbf{x}_\varphi = (-(R+r\cos\theta)\sin\varphi,\; (R+r\cos\theta)\cos\varphi,\; 0).$$
-
-The cross product $\mathbf{x}_\theta \times \mathbf{x}_\varphi$ has magnitude $r(R + r\cos\theta)$. Since $R > r > 0$, we have $R + r\cos\theta \geq R - r > 0$, so the parametrization is regular.
-
-**Example 3 (Graph of a function).** If $f: U \to \mathbb{R}$ is smooth, then $S = \{(x, y, f(x,y)) : (x,y) \in U\}$ is a regular surface with the obvious parametrization $\mathbf{x}(u,v) = (u, v, f(u,v))$. Here:
-
-$$\mathbf{x}_u = (1, 0, f_u), \quad \mathbf{x}_v = (0, 1, f_v),$$
-$$\mathbf{x}_u \times \mathbf{x}_v = (-f_u, -f_v, 1).$$
-
-This is never zero, so the regularity condition is automatically satisfied for any smooth function $f$. This is why graphs are the simplest examples of regular surfaces.
-
-**Example 4 (Surface of revolution).** Take a curve $\alpha(t) = (r(t), 0, z(t))$ in the $xz$-plane with $r(t) > 0$, and rotate it around the $z$-axis. The resulting surface is:
-
-$$\mathbf{x}(t, \varphi) = (r(t)\cos\varphi,\; r(t)\sin\varphi,\; z(t)),$$
-
-where $\varphi \in (0, 2\pi)$. This includes the sphere (rotating a semicircle), the torus (rotating a circle offset from the axis), the cylinder (rotating a vertical line), and the cone (rotating a slanted line).
-
-The partial derivatives are:
-
-$$\mathbf{x}_t = (r'\cos\varphi,\; r'\sin\varphi,\; z'), \quad \mathbf{x}_\varphi = (-r\sin\varphi,\; r\cos\varphi,\; 0).$$
-
-The cross product gives $\mathbf{x}_t \times \mathbf{x}_\varphi = (-rz'\cos\varphi, -rz'\sin\varphi, rr')$, with magnitude $r\sqrt{(z')^2 + (r')^2}$. Regularity requires $r > 0$ and $\alpha'(t) \neq 0$ (the generating curve is regular).
+The technical sufficiency of these parametrizations as proper "charts" is something I will check explicitly for one of them, the sphere, later in the article. The point right now is to have concrete things in your head.
 
 ---
 
-## The Tangent Plane and Normal Vector
+## The Tangent Plane
 
-At each point of a regular surface, the partial derivatives $\mathbf{x}_u$ and $\mathbf{x}_v$ span a two-dimensional subspace of $\mathbb{R}^3$: the tangent plane.
+Given a chart $\mathbf{x}: U\to S$ around a point $p = \mathbf{x}(q)$, the partial derivatives $\mathbf{x}_u(q), \mathbf{x}_v(q)\in\mathbb{R}^3$ are linearly independent (by regularity) and span a 2D subspace of $\mathbb{R}^3$. This subspace is the *tangent plane* $T_pS$.
 
-**Definition (Tangent plane).** Let $S$ be a regular surface with parametrization $\mathbf{x}: U \to S$, and let $p = \mathbf{x}(u_0, v_0)$. The *tangent plane* to $S$ at $p$ is
+**Definition.** The *tangent plane* at $p\in S$ is
+$$T_pS = \mathrm{span}\{\mathbf{x}_u(q), \mathbf{x}_v(q)\} \subseteq \mathbb{R}^3.$$
 
-$$T_p S = \text{span}\{\mathbf{x}_u(u_0, v_0),\, \mathbf{x}_v(u_0, v_0)\}.$$
+A few things to verify (which I will do in passing): $T_pS$ depends only on $p$, not on the choice of chart. If $\tilde{\mathbf{x}}: \tilde U\to S$ is another chart around $p$, the change of coordinates $\phi = \mathbf{x}^{-1}\circ\tilde{\mathbf{x}}: \tilde U\to U$ is a diffeomorphism between open subsets of $\mathbb{R}^2$, and the chain rule gives $\tilde{\mathbf{x}}_u = \phi_u^1 \mathbf{x}_u + \phi_u^2 \mathbf{x}_v$, etc. The two pairs $\{\mathbf{x}_u, \mathbf{x}_v\}$ and $\{\tilde{\mathbf{x}}_u, \tilde{\mathbf{x}}_v\}$ are related by an invertible linear map (the Jacobian of $\phi$), so they span the same plane.
 
-A tangent vector at $p$ is any vector $w \in T_p S$. It can be written as $w = a\,\mathbf{x}_u + b\,\mathbf{x}_v$ for some scalars $a, b$. Equivalently, a tangent vector is the velocity of a curve on the surface passing through $p$: if $\gamma(t) = \mathbf{x}(u(t), v(t))$ with $\gamma(0) = p$, then $\gamma'(0) = u'(0)\,\mathbf{x}_u + v'(0)\,\mathbf{x}_v \in T_p S$.
+Geometrically, $T_pS$ is the "best linear approximation" to $S$ at $p$. If you zoom in on the surface near $p$, it looks more and more like its tangent plane.
 
-The tangent plane is independent of the choice of parametrization. If $\mathbf{y}(s,t)$ is a different parametrization of the same portion of $S$, then $\text{span}\{\mathbf{y}_s, \mathbf{y}_t\} = \text{span}\{\mathbf{x}_u, \mathbf{x}_v\}$ at the corresponding point (this follows from the chain rule and the invertibility of the change-of-coordinates map).
+![Tangent plane and unit normal vector to a surface at a point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/02-surfaces-first-form/dg_v2_02_2_tangent_plane.png)
 
-**Definition (Unit normal).** The *unit normal vector* at $p$ is
+The orthogonal complement of $T_pS$ in $\mathbb{R}^3$ is one-dimensional, and is spanned by the *unit normal*
+$$\mathbf{n}(p) = \frac{\mathbf{x}_u\times\mathbf{x}_v}{|\mathbf{x}_u\times\mathbf{x}_v|}.$$
+The choice of sign (i.e. which of $\pm\mathbf{n}$ to pick) is an orientation. For a connected orientable surface (like a sphere), there are exactly two choices: outward and inward. For a non-orientable surface (like the Möbius strip or the Klein bottle), no global continuous choice exists — a fact we will use later when discussing topology.
 
-$$\mathbf{n}(u_0, v_0) = \frac{\mathbf{x}_u \times \mathbf{x}_v}{|\mathbf{x}_u \times \mathbf{x}_v|}(u_0, v_0).$$
+### Worked example: tangent plane on the sphere
 
-Since $\mathbf{x}_u$ and $\mathbf{x}_v$ are linearly independent, $\mathbf{x}_u \times \mathbf{x}_v \neq 0$, and $\mathbf{n}$ is well-defined. It is perpendicular to the tangent plane. The choice of $\mathbf{n}$ or $-\mathbf{n}$ depends on the orientation of the parametrization (swapping $u$ and $v$ flips the sign). A surface is *orientable* if a consistent choice of normal can be made over the entire surface; the Mobius strip is the standard example of a non-orientable surface.
+Let $\mathbf{x}(\theta,\varphi) = (\sin\varphi\cos\theta, \sin\varphi\sin\theta, \cos\varphi)$ on the unit sphere. Then
+- $\mathbf{x}_\theta = (-\sin\varphi\sin\theta, \sin\varphi\cos\theta, 0)$,
+- $\mathbf{x}_\varphi = (\cos\varphi\cos\theta, \cos\varphi\sin\theta, -\sin\varphi)$.
 
-**Example 5 (Normal to the sphere).** For $\mathbf{x}(\theta, \varphi) = (\sin\theta\cos\varphi, \sin\theta\sin\varphi, \cos\theta)$, we computed $\mathbf{x}_\theta \times \mathbf{x}_\varphi = \sin\theta\,\mathbf{x}$, which has magnitude $\sin\theta$ (since $|\mathbf{x}| = 1$). So:
-
-$$\mathbf{n} = \frac{\sin\theta\,\mathbf{x}}{\sin\theta} = \mathbf{x} = (\sin\theta\cos\varphi, \sin\theta\sin\varphi, \cos\theta).$$
-
-The outward unit normal to the unit sphere at a point $p$ is the position vector $p$ itself. This is geometrically obvious: the vector from the origin to a point on the sphere points radially outward, perpendicular to the sphere.
-
-**Example 6 (Normal to a graph).** For $\mathbf{x}(u,v) = (u, v, f(u,v))$, we have $\mathbf{x}_u \times \mathbf{x}_v = (-f_u, -f_v, 1)$, so:
-
-$$\mathbf{n} = \frac{(-f_u, -f_v, 1)}{\sqrt{1 + f_u^2 + f_v^2}}.$$
-
-At a critical point of $f$ where $f_u = f_v = 0$, the normal is $(0, 0, 1)$ — pointing straight up. The tangent plane there is horizontal. This matches the intuition that a local maximum or minimum of a function has a horizontal tangent plane.
+At the equator $\varphi = \pi/2$, $\theta = 0$: $\mathbf{x} = (1, 0, 0)$, $\mathbf{x}_\theta = (0, 1, 0)$, $\mathbf{x}_\varphi = (0, 0, -1)$. So $T_pS = $ span of $(0,1,0)$ and $(0,0,-1)$, which is the $yz$-plane. The point $p = (1,0,0)$ is the "east" point of the sphere, and the tangent plane there is exactly the $yz$-plane through that point. The unit normal is $\mathbf{x}_\theta\times\mathbf{x}_\varphi/|\cdot| = (-1, 0, 0)$, the inward radial direction (or $(1,0,0)$ if we choose the other orientation). Reassuring: the normal at a point on a sphere is the radial direction. We did not need any of this machinery to know that, but it is good to confirm the formulas are not lying.
 
 ---
 
-## The First Fundamental Form: Measuring Lengths and Angles on Surfaces
+## The First Fundamental Form
 
-We now come to the central construction of this chapter. Every surface inherits a notion of distance from the ambient $\mathbb{R}^3$ (the distance between two points on the surface is the length of the shortest path on the surface connecting them, not the straight-line distance through space). The first fundamental form is the infinitesimal version of this notion.
+Now we get to the heart of the matter. Given a chart $\mathbf{x}(u,v)$, define three functions on $U$:
+$$E = \mathbf{x}_u\cdot\mathbf{x}_u,\qquad F = \mathbf{x}_u\cdot\mathbf{x}_v,\qquad G = \mathbf{x}_v\cdot\mathbf{x}_v.$$
 
-**Definition (First fundamental form).** Let $S$ be a regular surface with parametrization $\mathbf{x}(u,v)$. The *first fundamental form* is the restriction of the Euclidean inner product of $\mathbb{R}^3$ to the tangent plane $T_p S$. For tangent vectors $w_1, w_2 \in T_p S$, we define $I_p(w_1, w_2) = w_1 \cdot w_2$ (the ordinary dot product in $\mathbb{R}^3$).
+These are the *coefficients of the first fundamental form*. Equivalently, they assemble into a $2\times 2$ matrix:
+$$\mathrm{I} = \begin{pmatrix} E & F \\ F & G \end{pmatrix},$$
+which is the Gram matrix of the basis $\{\mathbf{x}_u, \mathbf{x}_v\}$ of $T_pS$. Symmetric, and positive-definite (since $\mathbf{x}_u, \mathbf{x}_v$ are linearly independent), with determinant $EG - F^2 > 0$.
 
-This seems almost trivially simple: we are just taking the dot product. But the power lies in expressing it in terms of the surface coordinates $(u,v)$. If $w = a\,\mathbf{x}_u + b\,\mathbf{x}_v$, then:
+![Coefficients E, F, G of the first fundamental form](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/02-surfaces-first-form/dg_v2_02_3_first_form.png)
 
-$$I(w, w) = w \cdot w = a^2(\mathbf{x}_u \cdot \mathbf{x}_u) + 2ab(\mathbf{x}_u \cdot \mathbf{x}_v) + b^2(\mathbf{x}_v \cdot \mathbf{x}_v).$$
+The first fundamental form lets us compute the inner product of any two tangent vectors. If $\mathbf{w}_1, \mathbf{w}_2\in T_pS$ are written in the basis $\{\mathbf{x}_u, \mathbf{x}_v\}$ as $\mathbf{w}_i = a_i\mathbf{x}_u + b_i\mathbf{x}_v$, then
+$$\mathbf{w}_1\cdot\mathbf{w}_2 = a_1 a_2 E + (a_1 b_2 + a_2 b_1) F + b_1 b_2 G = \begin{pmatrix}a_1 & b_1\end{pmatrix}\mathrm{I}\begin{pmatrix}a_2\\ b_2\end{pmatrix}.$$
 
-Introducing the standard notation:
+In other words, we use $\mathrm{I}$ as a metric on tangent vectors expressed in chart coordinates. The operations of "length", "angle", and "area" all derive from this.
 
-$$E = \mathbf{x}_u \cdot \mathbf{x}_u, \quad F = \mathbf{x}_u \cdot \mathbf{x}_v, \quad G = \mathbf{x}_v \cdot \mathbf{x}_v,$$
+**Why this matters.** The first fundamental form is the *intrinsic metric* of the surface: it is the tool an ant living on the surface uses to measure things. Crucially, two different surfaces (sitting differently in $\mathbb{R}^3$) can have the *same* first fundamental form — meaning the ant cannot tell them apart. We will see this for the cylinder and the plane, which are both flat in the intrinsic sense even though they look very different from outside.
 
-the first fundamental form becomes:
+### Length of a curve on the surface
 
-$$I = E\, du^2 + 2F\, du\, dv + G\, dv^2.$$
+Suppose $\gamma(t) = \mathbf{x}(u(t), v(t))$ is a curve on the surface for $t\in[a,b]$. Then $\gamma'(t) = u'\mathbf{x}_u + v'\mathbf{x}_v$, and
+$$|\gamma'(t)|^2 = E (u')^2 + 2 F u' v' + G (v')^2.$$
+The length of $\gamma$ is
+$$L(\gamma) = \int_a^b\sqrt{E(u')^2 + 2 F u'v' + G(v')^2}\,dt.$$
 
-In matrix notation, if we represent a tangent vector by its coordinate vector $(du, dv)^T$, then:
+Notice: this formula uses only $E, F, G$ and the curve's $(u(t), v(t))$. It does not reference the embedding into $\mathbb{R}^3$ in any other way. The ant on the surface, given the metric and the curve, can compute lengths exactly as we do.
 
-$$I = \begin{pmatrix} du & dv \end{pmatrix} \begin{pmatrix} E & F \\ F & G \end{pmatrix} \begin{pmatrix} du \\ dv \end{pmatrix}.$$
+![Arc length of a curve on a surface using the first fundamental form](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/02-surfaces-first-form/dg_v2_02_4_arc_length_surf.png)
 
-The $2 \times 2$ matrix $\begin{pmatrix} E & F \\ F & G \end{pmatrix}$ is the *metric tensor* (or *Gram matrix*) of the surface in coordinates $(u,v)$. It is symmetric and positive definite (since $E > 0$, $G > 0$, and $EG - F^2 = |\mathbf{x}_u \times \mathbf{x}_v|^2 > 0$ by regularity).
+### Angle between curves
 
-The coefficients $E$, $F$, $G$ are functions of $(u,v)$ — they vary from point to point on the surface. The first fundamental form packages all the information needed to measure lengths, angles, and areas on the surface.
+If two curves $\gamma_1, \gamma_2$ pass through $p$ with tangent vectors $\mathbf{w}_1, \mathbf{w}_2$, the angle between them is
+$$\cos\theta = \frac{\mathbf{w}_1\cdot\mathbf{w}_2}{|\mathbf{w}_1||\mathbf{w}_2|},$$
+and the inner product is computed using $\mathrm{I}$. Again: only $E, F, G$ and the chart-coordinates of the tangent vectors are needed. Angles are intrinsic.
 
-**Example 7 (First fundamental form of the plane).** For $\mathbf{x}(u,v) = (u, v, 0)$, we have $\mathbf{x}_u = (1,0,0)$, $\mathbf{x}_v = (0,1,0)$, so $E = 1$, $F = 0$, $G = 1$. The first fundamental form is $I = du^2 + dv^2$, which is just the Euclidean metric. The plane is flat: no distortion.
+A useful corollary: a chart is *orthogonal* (the coordinate curves $u = $ const and $v = $ const meet at right angles) if and only if $F\equiv 0$. Spherical coordinates, cylindrical coordinates, and the standard torus parametrization are all orthogonal. Some advanced parametrizations are not.
 
-**Example 8 (First fundamental form of the sphere).** Using spherical coordinates $\mathbf{x}(\theta, \varphi) = (R\sin\theta\cos\varphi, R\sin\theta\sin\varphi, R\cos\theta)$:
+### Area
 
-$$E = \mathbf{x}_\theta \cdot \mathbf{x}_\theta = R^2(\cos^2\theta\cos^2\varphi + \cos^2\theta\sin^2\varphi + \sin^2\theta) = R^2.$$
+The area element on the surface is
+$$dS = |\mathbf{x}_u\times\mathbf{x}_v|\,du\,dv = \sqrt{EG - F^2}\,du\,dv.$$
 
-$$G = \mathbf{x}_\varphi \cdot \mathbf{x}_\varphi = R^2(\sin^2\theta\sin^2\varphi + \sin^2\theta\cos^2\varphi) = R^2\sin^2\theta.$$
+The Lagrange identity $|\mathbf{a}\times\mathbf{b}|^2 = |\mathbf{a}|^2|\mathbf{b}|^2 - (\mathbf{a}\cdot\mathbf{b})^2$ confirms that $|\mathbf{x}_u\times\mathbf{x}_v|^2 = EG - F^2$. So the area of a region $R = \mathbf{x}(D)$ is
+$$\mathrm{Area}(R) = \iint_D \sqrt{EG - F^2}\,du\,dv.$$
 
-$$F = \mathbf{x}_\theta \cdot \mathbf{x}_\varphi = R^2(-\cos\theta\cos\varphi\sin\theta\sin\varphi + \cos\theta\sin\varphi\sin\theta\cos\varphi) = 0.$$
+![Area element dS = sqrt(EG - F^2) du dv](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/02-surfaces-first-form/dg_v2_02_5_area_element.png)
 
-Therefore:
-
-$$I = R^2\, d\theta^2 + R^2\sin^2\theta\, d\varphi^2.$$
-
-The vanishing of $F$ means that the coordinate lines (meridians and parallels) are orthogonal. The coefficient $G = R^2\sin^2\theta$ depends on $\theta$: near the poles ($\theta$ near 0 or $\pi$), the parallels have small circumference, and $G$ is small. At the equator ($\theta = \pi/2$), $G = R^2$ is maximal. This is why the Mercator projection, which represents the sphere as a rectangle, necessarily distorts areas near the poles.
-
-**Example 9 (First fundamental form of a surface of revolution).** For $\mathbf{x}(t, \varphi) = (r(t)\cos\varphi, r(t)\sin\varphi, z(t))$:
-
-$$E = \mathbf{x}_t \cdot \mathbf{x}_t = (r')^2 + (z')^2, \quad F = \mathbf{x}_t \cdot \mathbf{x}_\varphi = 0, \quad G = \mathbf{x}_\varphi \cdot \mathbf{x}_\varphi = r^2.$$
-
-So $I = [(r')^2 + (z')^2]\, dt^2 + r^2\, d\varphi^2$. If the generating curve is parametrized by arc length (so that $(r')^2 + (z')^2 = 1$), this simplifies to $I = dt^2 + r(t)^2\, d\varphi^2$. The metric depends only on the function $r(t)$ — the "profile" of the surface.
-
-**Example 10 (First fundamental form of the torus).** For the torus $\mathbf{x}(\theta, \varphi) = ((R+r\cos\theta)\cos\varphi, (R+r\cos\theta)\sin\varphi, r\sin\theta)$:
-
-$$E = \mathbf{x}_\theta \cdot \mathbf{x}_\theta = r^2\sin^2\theta\cos^2\varphi + r^2\sin^2\theta\sin^2\varphi + r^2\cos^2\theta = r^2.$$
-
-$$G = \mathbf{x}_\varphi \cdot \mathbf{x}_\varphi = (R+r\cos\theta)^2\sin^2\varphi + (R+r\cos\theta)^2\cos^2\varphi = (R+r\cos\theta)^2.$$
-
-$$F = \mathbf{x}_\theta \cdot \mathbf{x}_\varphi = 0.$$
-
-So $I = r^2\, d\theta^2 + (R + r\cos\theta)^2\, d\varphi^2$. The coefficient $G$ varies: it is largest on the outer equator ($\theta = 0$, $G = (R+r)^2$) and smallest on the inner equator ($\theta = \pi$, $G = (R-r)^2$). This reflects the fact that the outer equator is longer than the inner equator.
-
-**Angle between coordinate curves.** If two curves on the surface meet at a point $p$, the angle $\theta$ between their tangent vectors $w_1, w_2$ satisfies:
-
-$$\cos\theta = \frac{I(w_1, w_2)}{\sqrt{I(w_1, w_1)} \cdot \sqrt{I(w_2, w_2)}} = \frac{w_1 \cdot w_2}{|w_1| \cdot |w_2|}.$$
-
-In particular, the coordinate curves ($u$-curves with $v$ constant, and $v$-curves with $u$ constant) are orthogonal if and only if $F = 0$. This happened in all our examples above. A parametrization with $F = 0$ everywhere is called an *orthogonal parametrization*, and it simplifies many computations. Not every surface admits a global orthogonal parametrization, but locally one always exists (a classical result in surface theory).
+Once again, intrinsic: the surface ant computes areas using only $E, F, G$.
 
 ---
 
-## Arc Length and Area via the First Form
+## Worked Examples: Computing $E, F, G$
 
-The first fundamental form transforms all metric computations on the surface into integrals involving $E$, $F$, $G$.
+I will now grind through three standard surfaces and write down the first fundamental form. Doing this once carefully cements the apparatus.
 
-**Arc length.** Let $\gamma(t) = \mathbf{x}(u(t), v(t))$ for $t \in [a, b]$ be a curve on the surface. Its velocity is $\gamma'(t) = u'(t)\,\mathbf{x}_u + v'(t)\,\mathbf{x}_v$, so:
+### The plane
 
-$$|\gamma'(t)|^2 = E\,(u')^2 + 2F\,u'\,v' + G\,(v')^2.$$
+Trivial chart: $\mathbf{x}(u,v) = (u, v, 0)$. Then $\mathbf{x}_u = (1,0,0)$, $\mathbf{x}_v = (0,1,0)$, so
+$$E = 1,\quad F = 0,\quad G = 1,\qquad \mathrm{I} = \begin{pmatrix}1 & 0\\ 0 & 1\end{pmatrix}.$$
+The identity matrix. The plane has the Euclidean metric, as expected.
 
-The arc length is:
+### The cylinder
 
-$$L(\gamma) = \int_a^b |\gamma'(t)|\, dt = \int_a^b \sqrt{E\,(u')^2 + 2F\,u'\,v' + G\,(v')^2}\, dt.$$
+$\mathbf{x}(u,v) = (\cos u, \sin u, v)$. Then $\mathbf{x}_u = (-\sin u, \cos u, 0)$, $\mathbf{x}_v = (0, 0, 1)$.
+$$E = \sin^2 u + \cos^2 u = 1,\quad F = 0,\quad G = 1,\qquad \mathrm{I} = I_2.$$
 
-**Example 11 (Length of a parallel on the sphere).** A parallel of latitude $\theta_0$ on the sphere of radius $R$ is the curve $\gamma(t) = \mathbf{x}(\theta_0, t)$ for $t \in [0, 2\pi]$. Here $u(t) = \theta_0$ (constant), $v(t) = t$, so $u' = 0$, $v' = 1$. With $E = R^2$, $F = 0$, $G = R^2\sin^2\theta_0$:
+**The cylinder has the same first fundamental form as the plane.** This is an absolutely critical observation. As far as the intrinsic metric is concerned, the cylinder and the plane are indistinguishable. An ant on the cylinder, equipped only with the metric $\mathrm{I}$, cannot tell whether it is living on flat paper or rolled-up paper. This is the precise sense in which the cylinder is *intrinsically flat*. Of course, externally it bends in $\mathbb{R}^3$ — the second fundamental form (next chapter) will detect that. The first fundamental form does not.
 
-$$L = \int_0^{2\pi} \sqrt{R^2\sin^2\theta_0}\, dt = 2\pi R\sin\theta_0.$$
+There is a name for this kind of equivalence: two surfaces are *isometric* if they have the same first fundamental form (in some choice of charts). Plane and cylinder are isometric. Plane and sphere are not (as we will see). Plane and saddle are not. Etc.
 
-At the equator ($\theta_0 = \pi/2$), $L = 2\pi R$. At latitude $\theta_0$ from the north pole, the circumference is $2\pi R \sin\theta_0$, which decreases toward the poles. This is an elementary result, but the derivation via the first fundamental form generalizes immediately to any surface.
+### The unit sphere
 
-**Example 12 (Length of a helix on a cylinder).** The cylinder of radius $a$ is parametrized by $\mathbf{x}(t, \varphi) = (a\cos\varphi, a\sin\varphi, t)$ with $E = 1$, $F = 0$, $G = a^2$. A helix on the cylinder is $\gamma(s) = \mathbf{x}(bs, s)$ (rising by $b$ per radian), so $u' = b$, $v' = 1$, and:
+$\mathbf{x}(\theta,\varphi) = (\sin\varphi\cos\theta, \sin\varphi\sin\theta, \cos\varphi)$.
+- $\mathbf{x}_\theta = (-\sin\varphi\sin\theta, \sin\varphi\cos\theta, 0)$, so $E = \sin^2\varphi$.
+- $\mathbf{x}_\varphi = (\cos\varphi\cos\theta, \cos\varphi\sin\theta, -\sin\varphi)$, so $G = \cos^2\varphi+\sin^2\varphi = 1$.
+- $\mathbf{x}_\theta\cdot\mathbf{x}_\varphi = 0$, so $F = 0$.
 
-$$|\gamma'|^2 = 1 \cdot b^2 + 0 + a^2 \cdot 1 = b^2 + a^2.$$
+$$\mathrm{I} = \begin{pmatrix}\sin^2\varphi & 0\\ 0 & 1\end{pmatrix}.$$
 
-The speed is $\sqrt{a^2 + b^2}$, constant — consistent with our calculation from the previous chapter. One full turn ($s \in [0, 2\pi]$) has length $2\pi\sqrt{a^2 + b^2}$.
+This is *not* the identity matrix; it depends on $\varphi$. So the sphere is not isometric to the plane. (This is the rigorous version of the cartographer's frustration: you cannot make a perfectly faithful flat map of the Earth.)
 
-**Area.** The area of a region $D$ on the surface, corresponding to a domain $D_0 \subseteq U$ in the parameter space, is:
+Let us use this to compute something concrete. Equator length: the equator is $\varphi = \pi/2$, $\theta\in[0, 2\pi]$. So $u'(t) = $ doesn't quite apply directly; identify $u = \theta$, $v = \varphi$. Curve: $u = t$, $v = \pi/2$ for $t\in[0, 2\pi]$.
+$$L = \int_0^{2\pi}\sqrt{\sin^2(\pi/2)\cdot 1 + 0 + 1\cdot 0}\,dt = \int_0^{2\pi}1\,dt = 2\pi.$$
+Equator has length $2\pi$, as expected.
 
-$$\text{Area}(D) = \iint_{D_0} |\mathbf{x}_u \times \mathbf{x}_v|\, du\, dv = \iint_{D_0} \sqrt{EG - F^2}\, du\, dv.$$
+A small circle at latitude $\varphi_0$: $u = t$, $v = \varphi_0$. Length $= \int_0^{2\pi}\sin\varphi_0\,dt = 2\pi\sin\varphi_0$. Smaller circles farther from the equator. Again, exactly what you would expect, but now derived purely from $\mathrm{I}$.
 
-The second equality follows from the identity $|\mathbf{x}_u \times \mathbf{x}_v|^2 = |\mathbf{x}_u|^2 |\mathbf{x}_v|^2 - (\mathbf{x}_u \cdot \mathbf{x}_v)^2 = EG - F^2$, which is a consequence of the vector identity $|a \times b|^2 = |a|^2|b|^2 - (a \cdot b)^2$.
+Surface area: $dS = \sqrt{EG - F^2}\,d\theta\,d\varphi = \sin\varphi\,d\theta\,d\varphi$. Total area:
+$$\mathrm{Area} = \int_0^{2\pi}\int_0^\pi \sin\varphi\,d\varphi\,d\theta = 2\pi\cdot 2 = 4\pi.$$
 
-The quantity $\sqrt{EG - F^2}$ is the *area element*: it plays the role of the Jacobian determinant for integration on the surface.
+The classical $4\pi r^2$ formula (with $r = 1$). Worth flagging: this came out of integrating $|\mathbf{x}_\theta\times\mathbf{x}_\varphi|$, which depends on the chart, but the answer is intrinsic. If we change to a different parametrization the integrand changes but the integral is the same.
 
-**Example 13 (Area of the sphere).** On the sphere of radius $R$, $E = R^2$, $F = 0$, $G = R^2\sin^2\theta$, so $\sqrt{EG - F^2} = R^2\sin\theta$. The area is:
+### The torus
 
-$$\text{Area}(S^2) = \int_0^{2\pi}\int_0^{\pi} R^2\sin\theta\, d\theta\, d\varphi = R^2 \cdot 2\pi \cdot [-\cos\theta]_0^{\pi} = R^2 \cdot 2\pi \cdot 2 = 4\pi R^2.$$
+$\mathbf{x}(u,v) = ((R+r\cos v)\cos u, (R+r\cos v)\sin u, r\sin v)$ for $u, v\in[0, 2\pi)$.
+- $\mathbf{x}_u = (-(R+r\cos v)\sin u, (R+r\cos v)\cos u, 0)$, so $E = (R+r\cos v)^2$.
+- $\mathbf{x}_v = (-r\sin v\cos u, -r\sin v\sin u, r\cos v)$, so $G = r^2$.
+- $\mathbf{x}_u\cdot\mathbf{x}_v = 0$, so $F = 0$.
 
-This is the well-known formula for the surface area of a sphere. The derivation from the first fundamental form is clean and generalizes easily.
+$$\mathrm{I} = \begin{pmatrix}(R+r\cos v)^2 & 0\\ 0 & r^2\end{pmatrix}.$$
 
-**Example 14 (Area of the torus).** For the torus with $E = r^2$, $F = 0$, $G = (R+r\cos\theta)^2$:
+Surface area: $\sqrt{EG-F^2} = r(R+r\cos v)$, so
+$$\mathrm{Area} = \int_0^{2\pi}\int_0^{2\pi} r(R+r\cos v)\,du\,dv = 2\pi r\cdot 2\pi R = 4\pi^2 R r.$$
 
-$$\sqrt{EG - F^2} = r(R + r\cos\theta).$$
+A pleasing closed form. Equator (the outer rim, $v = 0$) has length $2\pi(R+r)$; the inner rim ($v = \pi$) has length $2\pi(R-r)$. The "tube circumference" (a curve of fixed $u$, varying $v$) has length $2\pi r$ — the small circle.
 
-$$\text{Area} = \int_0^{2\pi}\int_0^{2\pi} r(R + r\cos\theta)\, d\theta\, d\varphi = 2\pi r \int_0^{2\pi} (R + r\cos\theta)\, d\theta = 2\pi r \cdot 2\pi R = 4\pi^2 Rr.$$
-
-(The $\cos\theta$ term integrates to zero over a full period.) The area of the torus is $4\pi^2 Rr$.
-
-**Example 15 (Area of a graph).** For $z = f(x,y)$ over a region $D_0 \subseteq \mathbb{R}^2$, we have $E = 1 + f_x^2$, $F = f_x f_y$, $G = 1 + f_y^2$, so:
-
-$$EG - F^2 = (1+f_x^2)(1+f_y^2) - f_x^2 f_y^2 = 1 + f_x^2 + f_y^2.$$
-
-The area is:
-
-$$\text{Area} = \iint_{D_0} \sqrt{1 + f_x^2 + f_y^2}\, dx\, dy.$$
-
-This is the standard formula from multivariable calculus for the surface area of a graph. We have derived it as a special case of the general theory.
-
-**Angle formula.** For two tangent vectors $w_1 = a_1 \mathbf{x}_u + b_1 \mathbf{x}_v$ and $w_2 = a_2 \mathbf{x}_u + b_2 \mathbf{x}_v$:
-
-$$\cos\theta = \frac{E a_1 a_2 + F(a_1 b_2 + a_2 b_1) + G b_1 b_2}{\sqrt{(E a_1^2 + 2F a_1 b_1 + G b_1^2)(E a_2^2 + 2F a_2 b_2 + G b_2^2)}}.$$
-
-When $F = 0$ (orthogonal coordinates), this simplifies considerably. In particular, the coordinate curves are orthogonal, and the angle between an arbitrary tangent vector and the $u$-direction is determined solely by the ratio $b/a$ and the coefficients $E, G$.
+![Sphere, cylinder, and torus shown side by side](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/02-surfaces-first-form/dg_v2_02_7_classical_surfaces.png)
 
 ---
 
-## Isometries and the Intrinsic Viewpoint
+## Change of Coordinates
 
-The first fundamental form is the complete intrinsic geometry of the surface: any quantity that can be measured without leaving the surface — lengths, angles, areas, geodesic curvature, the Gaussian curvature (as we will see in a later chapter) — is determined by $E$, $F$, $G$ and their derivatives. Two surfaces with the "same" first fundamental form are metrically indistinguishable from the inside.
+Suppose I have two charts $\mathbf{x}: U\to S$ and $\tilde{\mathbf{x}}: \tilde U\to S$ overlapping at a point $p$. The transition map $\phi = \mathbf{x}^{-1}\circ\tilde{\mathbf{x}}$ is a diffeomorphism between open subsets of $\mathbb{R}^2$. Write $\phi(u', v') = (u(u', v'), v(u', v'))$. The Jacobian
+$$J = \begin{pmatrix}u_{u'} & u_{v'}\\ v_{u'} & v_{v'}\end{pmatrix}$$
+relates the two bases of $T_pS$.
 
-**Definition (Isometry).** Let $S_1$ and $S_2$ be regular surfaces. A diffeomorphism $\phi: S_1 \to S_2$ is an *isometry* if it preserves the first fundamental form: $I_{S_1}(w, w) = I_{S_2}(d\phi(w), d\phi(w))$ for every tangent vector $w$. In coordinates, if $\phi$ maps $(u,v)$ on $S_1$ to $(s(u,v), t(u,v))$ on $S_2$, then the metric tensors satisfy:
+The first fundamental forms transform tensorially: $\tilde{\mathrm{I}} = J^T \mathrm{I} J$. Determinants: $\det\tilde{\mathrm{I}} = (\det J)^2 \det\mathrm{I}$, so $\sqrt{\tilde E\tilde G - \tilde F^2} = |\det J|\sqrt{EG - F^2}$, which is exactly the change-of-variables formula for the area integral. The two charts agree on lengths, angles, and areas.
 
-$$\begin{pmatrix} E_1 & F_1 \\ F_1 & G_1 \end{pmatrix} = J^T \begin{pmatrix} E_2 & F_2 \\ F_2 & G_2 \end{pmatrix} J,$$
+This transformation rule is the prototype for what later becomes "tensor transformation laws" in general relativity. The first fundamental form is a $(0,2)$-tensor; its components in any two charts are related by the Jacobian of the transition map.
 
-where $J$ is the Jacobian of the coordinate change.
+**Why this matters.** Once we are confident the formulas transform correctly under change of chart, we can take a more abstract view: there is a single object — the metric — which is realized as $E, F, G$ in any chart, and the choice of chart is just a coordinate convenience. This is the seed of the tensor calculus we will need for chapter 6 onward.
 
-If an isometry exists between $S_1$ and $S_2$, they are said to be *isometric*. Isometric surfaces have the same intrinsic geometry — a being living on $S_1$ cannot distinguish it from $S_2$ by any internal measurement.
+---
 
-**Definition (Local isometry).** A smooth map $\phi: S_1 \to S_2$ is a *local isometry* if it preserves the first fundamental form but need not be globally bijective. This allows for "wrapping" — the same local geometry can have different global topology.
+## Isometries and Isometric Surfaces
 
-**Example 16 (Plane and cylinder are locally isometric).** The plane with coordinates $(u,v)$ has $I = du^2 + dv^2$. The cylinder of radius $a$, parametrized by $\mathbf{x}(u,v) = (a\cos(v/a), a\sin(v/a), u)$, has:
+**Definition.** A diffeomorphism $f: S_1 \to S_2$ between two surfaces is an *isometry* if it preserves the first fundamental form. Concretely: for every $p\in S_1$ and every $\mathbf{w}_1, \mathbf{w}_2\in T_pS_1$,
+$$\mathbf{w}_1\cdot\mathbf{w}_2 = (df_p\mathbf{w}_1)\cdot(df_p\mathbf{w}_2).$$
 
-$$\mathbf{x}_u = (0, 0, 1), \quad \mathbf{x}_v = (-\sin(v/a), \cos(v/a), 0),$$
+Equivalently: in matching charts $\mathbf{x}_1$ on $S_1$ and $\mathbf{x}_2 = f\circ\mathbf{x}_1$ on $S_2$, $E_1 = E_2$, $F_1 = F_2$, $G_1 = G_2$.
 
-so $E = 1$, $F = 0$, $G = 1$. The first fundamental form of the cylinder is $I = du^2 + dv^2$ — identical to the plane.
+**Cylinder and plane.** The map $f(u, v) = (\cos u, \sin u, v)$ from a strip $(0, 2\pi)\times\mathbb{R}\subset \mathbb{R}^2$ to the cylinder is an isometry. Cut the cylinder open along a vertical line and roll it flat: the result is a rectangle. The metric is preserved, even though the embedding into $\mathbb{R}^3$ changes drastically.
 
-Therefore the map $(u,v) \mapsto (a\cos(v/a), a\sin(v/a), u)$ is a local isometry from the plane to the cylinder. Geometrically, you can roll a piece of paper into a cylinder without stretching or tearing — the intrinsic metric is preserved. Distances measured along the surface, angles between curves, and areas of regions are the same on the flat paper and on the cylinder.
+**Cone and plane.** Similarly, a cone (sliced open) flattens to a sector of a disk. Cones are also intrinsically flat away from the apex.
 
-However, this is only a *local* isometry, not a global one: the plane is simply connected while the cylinder is not (you can walk around the cylinder and return to your starting point). The global topology differs even though the local geometry is identical.
+**Sphere and plane.** No isometry exists. We will eventually prove this via Gauss's Theorema Egregium: the sphere has positive Gaussian curvature, the plane has zero, and Gaussian curvature is intrinsic. Cartography is doomed.
 
-**Example 17 (Catenoid and helicoid are locally isometric).** This is one of the most beautiful results in classical surface theory. The *catenoid* is the surface of revolution obtained by rotating the catenary $r = \cosh z$ around the $z$-axis:
+There is one more flavour of map worth naming.
 
-$$\mathbf{x}_C(u, v) = (\cosh u \cos v,\; \cosh u \sin v,\; u).$$
+**Definition.** A map $f$ is *conformal* if it preserves angles (but not necessarily lengths). Equivalently, $f^*\mathrm{I}_2 = \lambda(p)\,\mathrm{I}_1$ for some positive smooth function $\lambda$.
 
-The *helicoid* is a ruled surface (think of a spiral staircase):
+The Mercator projection of the sphere is conformal (angles are preserved — useful for navigation), but not isometric (lengths are distorted, as anyone who has wondered why Greenland looks comically large on a Mercator map knows). The stereographic projection is also conformal.
 
-$$\mathbf{x}_H(u, v) = (\sinh u \cos v,\; \sinh u \sin v,\; v).$$
+### Isothermal coordinates
 
-Computing the first fundamental forms:
+A chart is *isothermal* if it is conformal as a map from flat $\mathbb{R}^2$ to the surface — equivalently, if $E = G$ and $F = 0$ identically:
+$$\mathrm{I} = \lambda(u,v)\begin{pmatrix}1 & 0\\ 0 & 1\end{pmatrix} = \lambda(u,v)\,I_2.$$
 
-For the catenoid: $E = 1 + \sinh^2 u = \cosh^2 u$, $F = 0$, $G = \cosh^2 u$. So $I_C = \cosh^2 u\,(du^2 + dv^2)$.
+A famous theorem (Korn-Lichtenstein, 1914-16) says every smooth surface admits isothermal coordinates locally. This is non-trivial and uses elliptic PDE theory. The theorem is the gateway from differential geometry to complex analysis: a surface with isothermal coordinates inherits a complex structure, and the theory of Riemann surfaces takes off from there.
 
-For the helicoid: $E = \cosh^2 u$, $F = 0$, $G = \sinh^2 u + 1 = \cosh^2 u$. So $I_H = \cosh^2 u\,(du^2 + dv^2)$.
+![Isothermal coordinates: a conformal parameterization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/02-surfaces-first-form/dg_v2_02_6_isothermal.png)
 
-The first fundamental forms are identical! The catenoid and helicoid are locally isometric, despite looking completely different in $\mathbb{R}^3$: the catenoid is a surface of revolution, while the helicoid is a ruled surface. From the intrinsic point of view, they have exactly the same geometry.
+For the sphere, stereographic projection from the north pole gives isothermal coordinates: in the chart $(u, v)\mapsto$ point on sphere via stereographic inverse, the metric is $4(1+u^2+v^2)^{-2}\,I_2$. Conformal factor $\lambda = 4/(1+u^2+v^2)^2$. Lots of complex analysis on $\mathbb{C}\cup\{\infty\}$ secretly happens on the sphere with this metric.
 
-In fact, there is a continuous one-parameter family of surfaces interpolating between the catenoid and the helicoid, all locally isometric to each other. This deformation can be visualized as a physical "bending" of the surface without stretching — like bending a piece of sheet metal. The first fundamental form is preserved throughout the deformation; only the way the surface sits in $\mathbb{R}^3$ changes.
+---
 
-This example powerfully illustrates the distinction between intrinsic and extrinsic geometry. The extrinsic shape (how the surface is embedded in space) is different, but the intrinsic metric (measured by beings living on the surface) is the same. Any property that depends only on the first fundamental form — such as geodesics, areas, or Gaussian curvature — must be the same for the catenoid and the helicoid. (We will verify this for Gaussian curvature in a later chapter: both surfaces have the same Gaussian curvature function.)
+## A Computational Aside: Computing Lengths in the Wild
 
-**Example 18 (No isometry from sphere to plane).** Consider any map from the sphere to the plane. The sphere of radius $R$ has first fundamental form $I = R^2 d\theta^2 + R^2\sin^2\theta\, d\varphi^2$, while the plane has $I = du^2 + dv^2$. For these to be equal under some coordinate change, we would need the ratio $G/E$ to be constant (since on the plane $G/E = 1$), but on the sphere $G/E = \sin^2\theta$, which varies with $\theta$. More rigorously, the Gaussian curvature of the sphere is $K = 1/R^2 > 0$ while the plane has $K = 0$, and since $K$ is determined by the first fundamental form (Gauss's Theorema Egregium, to be proved in a later chapter), no isometry can exist. This is the mathematical reason why every flat map of the earth necessarily distorts either distances, angles, areas, or some combination thereof.
+A pragmatic example. Suppose I want the length of the curve $\theta = t$, $\varphi = t$ on the unit sphere for $t\in[0, \pi/4]$. I will not bother with the embedding — I will use only $\mathrm{I}$.
 
-**Coordinate invariance.** When we change coordinates on the surface — say from $(u,v)$ to $(\bar{u}, \bar{v})$ — the coefficients $E$, $F$, $G$ change according to the transformation law of a $(0,2)$-tensor:
+$E = \sin^2\varphi$, $F = 0$, $G = 1$, with $u = \theta$, $v = \varphi$, so $u' = v' = 1$.
 
-$$\begin{pmatrix} \bar{E} & \bar{F} \\ \bar{F} & \bar{G} \end{pmatrix} = J^T \begin{pmatrix} E & F \\ F & G \end{pmatrix} J, \quad \text{where } J = \begin{pmatrix} u_{\bar{u}} & u_{\bar{v}} \\ v_{\bar{u}} & v_{\bar{v}} \end{pmatrix}.$$
+$$L = \int_0^{\pi/4}\sqrt{\sin^2 t + 1}\,dt.$$
 
-The first fundamental form $I$ itself is unchanged — only its representation in coordinates changes. This is the beginning of tensor calculus on surfaces, which will be developed more systematically when we study abstract manifolds.
+This integral is not elementary — it is a complete elliptic integral of the second kind in disguise. Numerically, with $\sin^2 t \in [0, 0.5]$ and $\sqrt{1+\sin^2 t}\in[1, \sqrt{1.5}\approx 1.2247]$, the integrand is between 1 and 1.225, so the answer is between $\pi/4 \approx 0.785$ and $\pi/4 \cdot 1.225 \approx 0.962$. A more careful computation gives $L \approx 0.870$. The point is not the precise number; it is that the computation involved no $\mathbb{R}^3$, just an integrand built from $E$ and $G$.
+
+This is the concrete sense in which "the metric is enough". The ant on the sphere can compute the length of its diagonal walk; the ambient space never enters.
+
+---
+
+## Limits and Non-Examples
+
+A few cautionary notes.
+
+**The chart needs to be a homeomorphism.** A common student mistake: writing $\mathbf{x}(\theta,\varphi)$ for the sphere on $[0,2\pi]\times[0,\pi]$ (closed intervals). Then the map identifies the two endpoints of $\theta$ and is not injective; it is not a homeomorphism. We need open intervals, and we accept that no single chart covers a sphere. The patch-by-patch picture is mandatory.
+
+**Self-intersections.** A parametrized surface $\mathbf{x}: U\to\mathbb{R}^3$ can have a self-intersecting image while still satisfying the regularity condition (linear independence of partials). The image is then an *immersed* surface, but not a *regular* surface in our sense. Regular surface = embedded.
+
+**The first fundamental form is positive-definite.** This is a consequence of $\mathbf{x}_u, \mathbf{x}_v$ being linearly independent. It is not automatic for arbitrary symmetric matrices: $\begin{pmatrix}1 & 1\\ 1 & 1\end{pmatrix}$ would have $EG - F^2 = 0$, which violates regularity. Whenever a textbook surface is degenerating ($EG - F^2\to 0$), something is wrong with the chart.
+
+**Pseudo-Riemannian metrics.** In general relativity, the metric on spacetime is *not* positive-definite — it has signature $(-,+,+,+)$. The first fundamental form is positive-definite ("Riemannian"); the spacetime metric is "Lorentzian". The formulas look similar but the geometry is qualitatively different (e.g. there are non-zero "null vectors" with $\mathbf{w}\cdot\mathbf{w} = 0$). We will stay in the positive-definite world for this series.
+
+**Higher dimensions.** Everything we did generalizes: a $k$-dimensional submanifold of $\mathbb{R}^n$ has a first fundamental form (now a $k\times k$ matrix), tangent spaces, isometries, etc. Only the bookkeeping grows. The intrinsic / extrinsic split persists.
 
 ---
 
 ## What's Next
 
-We have constructed the first fundamental form and shown that it captures the complete intrinsic geometry of a surface: lengths, angles, areas, and isometries. The key examples — sphere, torus, cylinder, catenoid, helicoid — illustrate how the three coefficients $E$, $F$, $G$ encode the metric structure of surfaces with very different shapes.
+We have now built the intrinsic story. The first fundamental form is a $2\times 2$ symmetric positive-definite matrix-valued function of the surface coordinates, encoding the metric of the surface. From it we can compute:
 
-But the first fundamental form says nothing about *how* the surface bends in the ambient space. A cylinder and a plane have the same first fundamental form, yet they are clearly different objects in $\mathbb{R}^3$. To detect extrinsic bending, we need additional information: the *second fundamental form*, which measures how the unit normal vector $\mathbf{n}$ changes as we move along the surface. From the second fundamental form, we will extract the principal curvatures, the Gaussian curvature $K$, and the mean curvature $H$. The interplay between the first and second fundamental forms is the heart of classical surface theory.
+- lengths of curves (integrating $\sqrt{E(u')^2 + 2F u'v' + G(v')^2}$);
+- angles between curves (using $\mathrm{I}$ as an inner product);
+- areas of regions ($\sqrt{EG - F^2}\,du\,dv$);
+- isometry equivalence (same $E, F, G$ in matching charts).
 
-The deepest result in that theory is Gauss's *Theorema Egregium*: the Gaussian curvature $K$, despite being defined using the second fundamental form (which involves the normal vector and hence the ambient space), turns out to depend only on the first fundamental form and its derivatives. The Gaussian curvature is an *intrinsic* invariant. This surprising fact — that something about extrinsic bending is secretly intrinsic — is the philosophical foundation of Riemannian geometry and general relativity, where curvature is defined without any reference to an ambient space.
+What we cannot yet compute is *bending* — how the surface curves in $\mathbb{R}^3$. That requires the *second fundamental form*, a different $2\times 2$ matrix that measures the second-derivative behaviour of $\mathbf{x}$ in the normal direction. The shape operator, principal curvatures, Gaussian curvature, and mean curvature all live in that world.
+
+The next chapter introduces the Gauss map (the map from a surface to the unit sphere sending each point to its unit normal), and from its differential extracts the shape operator. From the shape operator we will read off principal curvatures (the eigenvalues), and from those two numbers we will define Gaussian and mean curvatures. This is the *extrinsic* geometry of surfaces.
+
+After that, in chapter 4, comes the climax of classical surface theory: Gauss's Theorema Egregium, which states that the Gaussian curvature — although defined extrinsically via the second fundamental form — can in fact be computed from the first fundamental form alone. The metric knows the Gaussian curvature. This is the bridge between the intrinsic and extrinsic stories, and it is the conceptual launchpad for the rest of differential geometry.
+
+For now, you should be comfortable computing $E, F, G$ for any explicit parametrization, and using them to compute lengths, angles, and areas. That is the toolkit we will draw on for the next several chapters.
+
+---
+
+## Appendix: Three More Worked Examples
+
+To give the reader more numerical practice before we close, here are three more first-fundamental-form computations, varying in flavour.
+
+### Surface of revolution
+
+Let a profile curve $(\rho(v), z(v))$ be revolved around the $z$-axis. The surface has chart
+$$\mathbf{x}(u, v) = (\rho(v)\cos u, \rho(v)\sin u, z(v)),\qquad u\in[0, 2\pi),\ v\in I.$$
+
+Compute:
+- $\mathbf{x}_u = (-\rho\sin u, \rho\cos u, 0)$, so $E = \rho^2$.
+- $\mathbf{x}_v = (\rho'\cos u, \rho'\sin u, z')$, so $G = (\rho')^2 + (z')^2$.
+- $\mathbf{x}_u\cdot\mathbf{x}_v = -\rho\rho'\sin u\cos u + \rho\rho'\cos u\sin u + 0 = 0$, so $F = 0$.
+
+$$\mathrm{I} = \begin{pmatrix}\rho(v)^2 & 0\\ 0 & (\rho')^2 + (z')^2\end{pmatrix}.$$
+
+This is *always* an orthogonal chart ($F = 0$): the meridians ($u = $ const) and parallels ($v = $ const) intersect at right angles. Most "natural" parametrizations of nice surfaces have this property.
+
+If we want the profile curve in arc-length parametrization, $(\rho')^2 + (z')^2 = 1$, and the metric simplifies to
+$$\mathrm{I} = \begin{pmatrix}\rho(v)^2 & 0\\ 0 & 1\end{pmatrix}.$$
+
+This is the "warped product" form. Specializing: sphere has $\rho(v) = \sin v$, $z(v) = \cos v$, which (you can check) is arc-length parametrized in $v$. Cylinder has $\rho(v) = $ const, $z(v) = v$. Cone, paraboloid, hyperboloid of one sheet — all surfaces of revolution. The first fundamental form for each is just plug-and-chug.
+
+**Numerical specifics for a paraboloid.** $\rho(v) = v$, $z(v) = v^2/2$ for $v > 0$. Then $\rho' = 1$, $z' = v$, $G = 1 + v^2$. So
+$$\mathrm{I} = \begin{pmatrix}v^2 & 0\\ 0 & 1 + v^2\end{pmatrix}.$$
+At $v = 1$: $\sqrt{EG - F^2} = \sqrt{v^2(1+v^2)} = v\sqrt{1+v^2} = \sqrt{2}$. Area element at radius $v = 1$ in the chart is $\sqrt{2}\,du\,dv$, slightly more than the planar value $du\,dv$ — because the paraboloid is tilted up at $45^\circ$ there.
+
+### Helicoid
+
+The helicoid is the surface swept out by a horizontal line rotating uniformly about the $z$-axis while translating uniformly along it: $\mathbf{x}(u, v) = (v\cos u, v\sin u, c\, u)$ for $(u, v)\in\mathbb{R}^2$, with $c > 0$ a fixed constant.
+
+- $\mathbf{x}_u = (-v\sin u, v\cos u, c)$, so $E = v^2 + c^2$.
+- $\mathbf{x}_v = (\cos u, \sin u, 0)$, so $G = 1$.
+- $\mathbf{x}_u\cdot\mathbf{x}_v = -v\sin u\cos u + v\cos u\sin u + 0 = 0$, so $F = 0$.
+
+$$\mathrm{I} = \begin{pmatrix}v^2 + c^2 & 0\\ 0 & 1\end{pmatrix}.$$
+
+Famously (we will prove this in chapter 4), the helicoid is *locally isometric* to the *catenoid* — a surface of revolution generated by the catenary $\rho(v) = c\cosh(v/c)$. Their first fundamental forms differ by a coordinate change. This is a striking example: the helicoid (a screw shape) and the catenoid (a soap film between two rings) look completely different externally, yet are intrinsically the same surface. An ant equipped with only the metric cannot tell whether it is on a helicoid or a catenoid; it can only tell that something near where it is standing has a certain metric.
+
+### Graph of a function
+
+For a graph $\mathbf{x}(u, v) = (u, v, f(u,v))$:
+- $\mathbf{x}_u = (1, 0, f_u)$, $E = 1 + f_u^2$.
+- $\mathbf{x}_v = (0, 1, f_v)$, $G = 1 + f_v^2$.
+- $\mathbf{x}_u\cdot\mathbf{x}_v = f_u f_v$, so $F = f_u f_v$.
+
+$$\mathrm{I} = \begin{pmatrix}1 + f_u^2 & f_u f_v\\ f_u f_v & 1 + f_v^2\end{pmatrix}.$$
+
+$EG - F^2 = (1+f_u^2)(1+f_v^2) - f_u^2 f_v^2 = 1 + f_u^2 + f_v^2$. Area element: $\sqrt{1 + f_u^2 + f_v^2}\,du\,dv$. The familiar formula for surface area of a graph; in calculus class you derived it from a Riemann-sum argument, now it falls out of the first fundamental form.
+
+For $f(u, v) = u^2 + v^2$ (paraboloid as a graph): $f_u = 2u$, $f_v = 2v$, $\sqrt{EG-F^2} = \sqrt{1+4u^2+4v^2}$. Area inside a disk of radius $R$: $\int_0^{2\pi}\int_0^R r\sqrt{1+4r^2}\,dr\,d\theta = 2\pi\cdot\frac{1}{12}((1+4R^2)^{3/2} - 1)$.
+
+For $R = 1$: area $= \pi((5)^{3/2}-1)/6 \approx \pi(11.18 - 1)/6 \approx 5.33$. Compare with the disk area $\pi R^2 = \pi \approx 3.14$. The paraboloid graph has more area than its "shadow" because of the upward tilt — by a factor of about $1.7$. Reasonable.
+
+---
+
+## Appendix: A Lattice of Special Surfaces
+
+Some surfaces deserve names because their first fundamental form has special structure. Knowing these names is part of the trade.
+
+**Flat surface.** A surface with $K = 0$ (Gaussian curvature, defined later). Equivalently, isometric to a piece of the plane. Examples: plane, cylinder, cone (away from apex), tangent developable of any space curve. Flat surfaces are the only ones you can roll out of paper without stretching.
+
+**Surface of revolution.** Generated by revolving a profile curve. Always orthogonal coordinates (meridian / parallel). Includes sphere, paraboloid, hyperboloid, cone, cylinder, torus.
+
+**Ruled surface.** Made up of straight lines. Cylinder, cone, hyperboloid of one sheet, helicoid, Möbius strip, tangent developable. Some ruled surfaces are flat; some are not.
+
+**Minimal surface.** A surface with mean curvature $H = 0$ (defined next chapter). Locally a soap film. Examples: catenoid, helicoid, Scherk's surface, Costa's surface (a celebrated 1980s discovery). Minimal surfaces are the area-minimizers among small perturbations.
+
+**Constant-curvature surface.** $K \equiv $ const. Three flavours by sign: sphere ($K = 1$), plane ($K = 0$), pseudosphere or Beltrami trumpet ($K = -1$, hyperbolic). The hyperbolic case cannot be embedded as a complete surface in $\mathbb{R}^3$ (Hilbert's theorem, 1901), but it can be embedded locally — and the abstract intrinsic geometry of constant negative curvature is the model for non-Euclidean geometry.
+
+**Conformally flat surface.** Admits an isothermal chart, $\mathrm{I} = \lambda\,I_2$. *Every* surface is locally conformally flat (Korn-Lichtenstein). Globally, conformal flatness is a different question.
+
+**Locally Euclidean.** Synonymous with flat. A subtle distinction will appear later: some flat surfaces (like a flat torus) are not isometric to a piece of the plane *globally*, even though they are locally.
+
+These six adjectives — flat, revolution, ruled, minimal, constant-curvature, conformally flat — give a vocabulary for talking about surfaces. We will use most of them.
+
+---
+
+## Appendix: Why "First" Fundamental Form?
+
+The numbering implies a "second" is coming. The naming is historical: Gauss, in his foundational 1827 paper *Disquisitiones generales circa superficies curvas*, organized the data of a surface into two quadratic forms. The first measures intrinsic distances (our $\mathrm{I}$, also written $ds^2$ in older notation). The second measures the bending into ambient space (our $\mathrm{II}$, coming next chapter). Together they determine the surface up to rigid motion — a "fundamental theorem of surfaces" analogous to the fundamental theorem of curves.
+
+Not every $2\times 2$ symmetric pair $(\mathrm{I}, \mathrm{II})$ corresponds to a real surface, however. There are integrability conditions (the *Gauss equation* and the *Codazzi equations*) that any genuine pair must satisfy. Conversely, given a pair satisfying these conditions, there is a unique surface (up to rigid motion) realizing them. We will get there, but first we need the second fundamental form, which is the topic of the very next chapter.
+
+A historical aside on terminology. Gauss did not actually use the matrices $\mathrm{I}$ and $\mathrm{II}$ as such; he wrote out the differentials $E\,du^2 + 2F\,du\,dv + G\,dv^2$ and $L\,du^2 + 2M\,du\,dv + N\,dv^2$ explicitly. The matrix viewpoint came later — partly with Riemann's introduction of higher-dimensional metric tensors in his 1854 *Habilitation* lecture, partly with the subsequent rise of tensor calculus (Ricci-Curbastro and Levi-Civita, late 19th century). By the time Einstein needed differential geometry for general relativity in 1915, the matrix / tensor language was the lingua franca. We use that language because it scales cleanly to higher dimensions; just remember when reading older texts that $E, F, G$ and $L, M, N$ were the original notation.
+
+A computational rule of thumb. When facing an unfamiliar surface, the best path is almost always:
+1. Write a chart $\mathbf{x}(u,v)$ explicitly.
+2. Compute partials $\mathbf{x}_u, \mathbf{x}_v$.
+3. Read off $E, F, G$ from inner products.
+4. Read off the unit normal from the cross product.
+5. Compute everything else (length, area, angle, second form, curvature) from these inputs.
+
+The discipline of always going through this five-step process is what separates working differential geometers from the rest. The formulas in textbooks for "Gaussian curvature in arbitrary coordinates" or "geodesic equations" can look forbidding, but in any specific case they reduce to plugging in $E, F, G$ and turning a crank. We will do plenty of crank-turning in the chapters ahead.
+
+A final remark on the conceptual structure. The first fundamental form is the differential-geometric reflection of one specific intuition: the *measurement* of distances and angles within a 2D world. Everything else in this article — isometries, isothermal coordinates, change of charts, the metric on classical surfaces — is consequence and elaboration. If you keep that one image in mind (the metric is just the inner product, restricted to tangent planes, expressed in chart coordinates), the rest of this chapter is bookkeeping. The bookkeeping happens to be necessary, because differential geometry is a coordinate-rich subject and you cannot escape it. But the underlying idea is simple, and Gauss was the first to see it clearly. With this groundwork, we are ready to ask the next question: how does a surface bend in space? That requires a different set of formulas, and they are coming up next.
+
+One more numerical sanity check before we close. For the unit sphere, the metric is $\mathrm{I} = \mathrm{diag}(\sin^2\varphi, 1)$, with $\sqrt{EG-F^2} = \sin\varphi$. The total surface area we computed was $4\pi$. Now consider an arbitrary spherical cap of polar angle $\varphi_0$ — the region where $\varphi\in[0,\varphi_0]$. Its area is
+$$\int_0^{2\pi}\int_0^{\varphi_0}\sin\varphi\,d\varphi\,d\theta = 2\pi(1 - \cos\varphi_0).$$
+For $\varphi_0 = \pi/2$ (a hemisphere), this gives $2\pi$, exactly half of $4\pi$. For $\varphi_0 = \pi/3$ (a "polar ice cap" of $60^\circ$), it gives $2\pi(1 - 0.5) = \pi$, one quarter of the total area. For $\varphi_0 = \pi$, the full sphere, $2\pi(1 - (-1)) = 4\pi$. Internally consistent.
+
+What I love about this calculation is that it never refers to the embedding into $\mathbb{R}^3$ — only to the metric. An ant on the sphere, walking along meridians and integrating, computes the same area. This is the central message of the chapter: *intrinsic geometry is enough for measurement*. The next chapter will show what intrinsic geometry is *not* enough for: detecting how the surface bends in space.
+
+A short closing example to fix one more time the difference between intrinsic and extrinsic. Consider the cylinder again, with metric $\mathrm{I} = I_2$. From inside, this is exactly the plane: parallel meridians and parallel parallels, distances and angles like Euclid's. From outside, it is round: the meridian is a straight vertical line, but the parallel is a circle of radius $1$. The two perspectives give different geometries. The intrinsic one is captured by $\mathrm{I}$; the extrinsic one is captured by quantities we have not yet defined. When we introduce the second fundamental form next chapter, we will be able to say precisely how the cylinder differs from the plane: same $\mathrm{I}$, different $\mathrm{II}$. The plane has zero second form; the cylinder has a non-zero one. And so we will detect the bending without disturbing the metric. That is the whole conceptual content of the next chapter, and the apparatus we are about to build will make it precise.
+
+Take a breath; that is a lot of formulas for one chapter. The good news: chapter 3 builds on this one but does not replace it. The first fundamental form is permanent; we will use it in every subsequent article. The bad news: chapters 3 and 4 will compose the second fundamental form on top of $\mathrm{I}$, and there is more bookkeeping coming. The trick to surviving differential geometry is to keep the conceptual picture clear (intrinsic = $\mathrm{I}$, extrinsic = $\mathrm{II}$, glued by Gauss-Codazzi) while doing the algebra patiently. Onward.
 
 ---
 
