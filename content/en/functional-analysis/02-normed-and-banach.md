@@ -1,5 +1,5 @@
 ---
-title: "Normed Spaces and Banach Spaces: The Right Framework"
+title: "Normed Spaces and Banach Spaces"
 date: 2021-10-03 09:00:00
 tags:
   - functional-analysis
@@ -13,325 +13,236 @@ mathjax: true
 disableNunjucks: true
 series_order: 2
 series_total: 12
-translationKey: "functional-analysis-2"
-description: "Adding linear structure to metrics: norms, Banach spaces, and why finite dimensions are special."
+translationKey: "functional-analysis-02"
+description: "Norm axioms, classical examples, equivalence of norms in finite dimensions, completeness and why it matters, Schauder bases, quotient spaces, and the role of separability."
 ---
 
-# Normed Spaces and Banach Spaces
+If metric spaces are the bare landscape of "distance," then normed spaces are what you get when you add algebraic structure: a vector space where the distance comes from a norm. This is where functional analysis properly begins, because the interplay between the linear structure and the metric structure is what makes the subject sing. And within normed spaces, the Banach spaces --- the complete ones --- are where almost all of the deep theorems live.
 
-In the realm of functional analysis, normed spaces and Banach spaces play a fundamental role. These structures generalize the concept of Euclidean space by introducing a notion of "size" or "length" for vectors, which is crucial for many applications in mathematics and beyond. This article will delve into the definitions, properties, and examples of normed spaces and Banach spaces, providing rigorous proofs and worked examples to illustrate key concepts.
+In this article we build up the theory of normed spaces from the axioms, work through the classical examples that will accompany us for the rest of the series, prove that norms in finite dimensions are all equivalent (and explain why this fails spectacularly in infinite dimensions), and then turn to completeness. I want to convince you that completeness is not a mild technical convenience but an essential structural property without which the major theorems of functional analysis simply do not hold.
 
-## From Metrics to Norms (Adding Linear Structure)
+## Norms and normed spaces
 
-### Motivation
-In metric spaces, we have a notion of distance between points, but no inherent structure that allows us to add or scale these points. By adding a linear structure, we can define a norm, which not only measures the distance from a point to the origin but also respects the operations of vector addition and scalar multiplication. This leads to the concept of normed spaces, which are more structured and powerful than mere metric spaces.
+A **normed space** is a pair $(X, \|\cdot\|)$ where $X$ is a vector space over $\mathbb{K}$ (either $\mathbb{R}$ or $\mathbb{C}$) and $\|\cdot\|: X \to [0, \infty)$ is a function satisfying:
+
+1. **Positive definiteness:** $\|x\| = 0$ if and only if $x = 0$.
+2. **Absolute homogeneity:** $\|\alpha x\| = |\alpha|\|x\|$ for all $\alpha \in \mathbb{K}$, $x \in X$.
+3. **Triangle inequality:** $\|x + y\| \leq \|x\| + \|y\|$ for all $x, y \in X$.
+
+Every norm induces a metric via $d(x,y) = \|x - y\|$, so normed spaces are metric spaces. But not every metric on a vector space comes from a norm. The norm-induced metric has two special properties: it is *translation-invariant* ($d(x+z, y+z) = d(x,y)$) and *absolutely homogeneous* ($d(\alpha x, \alpha y) = |\alpha|d(x,y)$). These ensure that the metric "respects" the vector space operations.
+
+A **seminorm** satisfies axioms 2 and 3 but replaces 1 with the weaker condition $\|x\| \geq 0$. Seminorms appear naturally in many contexts (e.g., the $L^p$ "norm" before passing to equivalence classes is a seminorm on the space of measurable functions).
+
+It is worth noting what the norm axioms *do not* require. There is no inner product, no notion of orthogonality, no Pythagorean theorem. Normed spaces are strictly more general than inner product spaces. A norm comes from an inner product if and only if it satisfies the **parallelogram law**: $\|x + y\|^2 + \|x - y\|^2 = 2\|x\|^2 + 2\|y\|^2$ for all $x, y$. This is an easy exercise in one direction (expand the inner products) and a deep result in the other (the Jordan-von Neumann theorem: the parallelogram law implies the existence of an inner product inducing the norm). Most of the spaces we will meet do *not* satisfy the parallelogram law, which is why we work in the more general normed space setting.
+
+**Bounded linear maps.** A linear map $T: X \to Y$ between normed spaces is **bounded** if there exists $C \geq 0$ such that $\|Tx\| \leq C\|x\|$ for all $x \in X$. The smallest such $C$ is the **operator norm** $\|T\| = \sup_{\|x\|\leq 1}\|Tx\|$. For linear maps, boundedness is equivalent to continuity (and even to continuity at a single point). The space $B(X, Y)$ of all bounded linear maps from $X$ to $Y$, with the operator norm, is itself a normed space; it is Banach whenever $Y$ is Banach. This fact --- that the target's completeness is inherited by the operator space --- will be used repeatedly.
 
 
 ![Unit balls in different norms on R^2](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/02-normed-and-banach/fa_fig1_unit_balls.png)
 
-### Definitions and Theorems
-A **metric space** \((X, d)\) is a set \(X\) equipped with a metric \(d: X \times X \to \mathbb{R}\) that satisfies:
-1. \(d(x, y) \geq 0\) for all \(x, y \in X\), and \(d(x, y) = 0\) if and only if \(x = y\).
-2. \(d(x, y) = d(y, x)\) for all \(x, y \in X\).
-3. \(d(x, z) \leq d(x, y) + d(y, z)\) for all \(x, y, z \in X\).
+## The classical examples
 
-A **vector space** \(V\) over a field \(\mathbb{F}\) (typically \(\mathbb{R}\) or \(\mathbb{C}\)) is a set equipped with two operations: vector addition and scalar multiplication, satisfying certain axioms.
+The examples in this section are not mere illustrations --- they are the building blocks of the entire subject. Master them and you will be well-equipped for everything that follows.
 
-A **norm** on a vector space \(V\) is a function \(\|\cdot\|: V \to \mathbb{R}\) that satisfies:
-1. \(\|x\| \geq 0\) for all \(x \in V\), and \(\|x\| = 0\) if and only if \(x = 0\).
-2. \(\|\alpha x\| = |\alpha| \|x\|\) for all \(\alpha \in \mathbb{F}\) and \(x \in V\).
-3. \(\|x + y\| \leq \|x\| + \|y\|\) for all \(x, y \in V\).
+**The $\ell^p$ spaces.** For $1 \leq p < \infty$, the space $\ell^p$ consists of all sequences $x = (x_1, x_2, \ldots)$ of scalars with
+$$
+\|x\|_p = \left(\sum_{n=1}^{\infty} |x_n|^p\right)^{1/p} < \infty.
+$$
+For $p = \infty$,
+$$
+\ell^\infty = \\{x = (x_n) : \sup_n |x_n| < \infty\\}, \quad \|x\|_\infty = \sup_n |x_n|.
+$$
 
-The norm induces a metric \(d(x, y) = \|x - y\|\).
+That $\|\cdot\|_p$ satisfies the triangle inequality is Minkowski's inequality, which is itself a consequence of Holder's inequality: for $1/p + 1/q = 1$,
+$$
+\sum_{n=1}^\infty |x_n y_n| \leq \|x\|_p \|y\|_q.
+$$
 
-### Proof Sketches
-To show that a norm induces a metric, we need to verify the three properties of a metric:
-1. **Non-negativity and identity of indiscernibles**: \(\|x - y\| \geq 0\) and \(\|x - y\| = 0\) if and only if \(x = y\). This follows directly from the properties of the norm.
-2. **Symmetry**: \(\|x - y\| = \|-(x - y)\| = \|y - x\|\). This follows from the homogeneity property of the norm.
-3. **Triangle inequality**: \(\|x - z\| \leq \|x - y\| + \|y - z\|\). This follows from the triangle inequality property of the norm.
+The proof of Holder's inequality rests on Young's inequality $ab \leq a^p/p + b^q/q$ for $a,b \geq 0$, applied pointwise to the normalized sequences $x_n/\|x\|_p$ and $y_n/\|y\|_q$.
 
-### Worked Example
-Consider the vector space \(\mathbb{R}^2\) with the Euclidean norm \(\|(x, y)\| = \sqrt{x^2 + y^2}\). We will show that this norm induces a metric.
+Important subspaces of $\ell^\infty$:
+- $c$ = the space of convergent sequences (with the sup norm).
+- $c_0$ = the space of sequences converging to zero.
 
-1. **Non-negativity and identity of indiscernibles**: \(\|(x, y) - (a, b)\| = \sqrt{(x - a)^2 + (y - b)^2} \geq 0\). If \(\|(x, y) - (a, b)\| = 0\), then \((x - a)^2 + (y - b)^2 = 0\), which implies \(x = a\) and \(y = b\).
-2. **Symmetry**: \(\|(x, y) - (a, b)\| = \sqrt{(x - a)^2 + (y - b)^2} = \sqrt{(a - x)^2 + (b - y)^2} = \|(a, b) - (x, y)\|\).
-3. **Triangle inequality**: \(\|(x, y) - (c, d)\| = \sqrt{(x - c)^2 + (y - d)^2} \leq \sqrt{(x - a)^2 + (y - b)^2} + \sqrt{(a - c)^2 + (b - d)^2} = \|(x, y) - (a, b)\| + \|(a, b) - (c, d)\|\).
+Both $c$ and $c_0$ are closed subspaces of $\ell^\infty$, hence Banach spaces in their own right.
 
-Thus, the Euclidean norm on \(\mathbb{R}^2\) induces a metric.
+**The $L^p$ spaces.** For a measure space $(\Omega, \Sigma, \mu)$ and $1 \leq p \leq \infty$, the space $L^p(\Omega, \mu)$ consists of (equivalence classes of) measurable functions with
+$$
+\|f\|_p = \left(\int_\Omega |f|^p \, d\mu\right)^{1/p} < \infty \quad (p < \infty), \qquad \|f\|_\infty = \operatorname{ess\,sup} |f|.
+$$
 
-## Normed Spaces Definition, Induced Metric, Examples
+The identification of functions that agree almost everywhere is essential: without it, $\|\cdot\|_p$ is only a seminorm. The $L^p$ spaces are the functional-analytic backbone of modern PDE theory, probability, and harmonic analysis.
 
-### Motivation
-Normed spaces are vector spaces equipped with a norm, which provides a way to measure the "size" of vectors. This structure is essential for many areas of mathematics, including functional analysis, differential equations, and optimization. Understanding the definition and properties of normed spaces is crucial for working with these spaces.
+**$C[a,b]$ and its relatives.** The space $C[a,b]$ of continuous functions on a closed interval, with the supremum norm $\|f\|_\infty = \max_{t \in [a,b]}|f(t)|$, is a Banach space. More generally, for a compact Hausdorff space $K$, $C(K)$ with the sup norm is a Banach space. The completeness follows directly from the fact that a uniform limit of continuous functions is continuous.
 
-### Definitions and Theorems
-A **normed space** is a pair \((V, \|\cdot\|)\) where \(V\) is a vector space and \(\|\cdot\|\) is a norm on \(V\). The norm induces a metric \(d(x, y) = \|x - y\|\), making \((V, d)\) a metric space.
+One can also equip $C[a,b]$ with the $L^p$ norm $\|f\|_p = (\int_a^b |f(t)|^p \, dt)^{1/p}$. This is a perfectly good norm, but the resulting space is *not* complete: there exist Cauchy sequences of continuous functions whose $L^p$-limit is not continuous. The completion of $(C[a,b], \|\cdot\|_p)$ is precisely $L^p[a,b]$.
 
-### Examples
-1. **Euclidean space \(\mathbb{R}^n\)**: The Euclidean norm \(\|x\|_2 = \sqrt{\sum_{i=1}^n x_i^2}\) makes \(\mathbb{R}^n\) a normed space.
-2. **Sequence spaces \(\ell^p\)**: For \(1 \leq p < \infty\), the space \(\ell^p\) consists of all sequences \((x_n)\) such that \(\sum_{n=1}^\infty |x_n|^p < \infty\). The norm is \(\|x\|_p = \left(\sum_{n=1}^\infty |x_n|^p\right)^{1/p}\).
-3. **Function spaces \(C[a, b]\)**: The space of continuous functions on \([a, b]\) with the sup norm \(\|f\|_\infty = \sup_{t \in [a, b]} |f(t)|\).
+**$BV[a,b]$ --- the space of bounded variation.** A function $f: [a,b] \to \mathbb{R}$ has bounded variation if
+$$
+V_a^b(f) = \sup \sum_{k=1}^n |f(t_k) - f(t_{k-1})| < \infty,
+$$
+where the supremum is over all partitions $a = t_0 < t_1 < \cdots < t_n = b$. The space $BV[a,b]$ with the norm $\|f\| = |f(a)| + V_a^b(f)$ is a Banach space. Functions of bounded variation are important because they can be written as the difference of two increasing functions (Jordan decomposition), and they serve as the natural integrators for the Riemann-Stieltjes integral. The dual of $C[a,b]$ turns out to be the space of signed Borel measures on $[a,b]$, which by the Riesz representation theorem can be identified with a quotient of $BV[a,b]$.
 
-### Proof Sketches
-To show that \(\ell^p\) is a normed space, we need to verify the properties of the norm:
-1. **Non-negativity and identity of indiscernibles**: \(\|x\|_p \geq 0\) and \(\|x\|_p = 0\) if and only if \(x = 0\). This follows from the fact that the sum of non-negative terms is zero if and only if each term is zero.
-2. **Homogeneity**: \(\|\alpha x\|_p = \left(\sum_{n=1}^\infty |\alpha x_n|^p\right)^{1/p} = |\alpha| \left(\sum_{n=1}^\infty |x_n|^p\right)^{1/p} = |\alpha| \|x\|_p\).
-3. **Triangle inequality**: \(\|x + y\|_p = \left(\sum_{n=1}^\infty |x_n + y_n|^p\right)^{1/p} \leq \left(\sum_{n=1}^\infty (|x_n| + |y_n|)^p\right)^{1/p} \leq \left(\sum_{n=1}^\infty |x_n|^p\right)^{1/p} + \left(\sum_{n=1}^\infty |y_n|^p\right)^{1/p} = \|x\|_p + \|y\|_p\).
+**Sobolev spaces (a preview).** For $\Omega \subseteq \mathbb{R}^n$ open and $k \in \mathbb{N}$, $1 \leq p \leq \infty$, the Sobolev space $W^{k,p}(\Omega)$ consists of $L^p$ functions whose weak derivatives up to order $k$ are also in $L^p$. The norm is
+$$
+\|f\|_{W^{k,p}} = \sum_{|\alpha| \leq k} \|D^\alpha f\|_p.
+$$
+These spaces are Banach (as closed subspaces of products of $L^p$ spaces). We mention them here because they are the natural domains for differential operators in PDE theory. The special case $W^{k,2} = H^k$ is a Hilbert space, which we will meet again when we discuss unbounded operators.
 
-### Worked Example
-Consider the sequence space \(\ell^2\) with the norm \(\|x\|_2 = \left(\sum_{n=1}^\infty |x_n|^2\right)^{1/2}\). We will show that this norm satisfies the triangle inequality.
+## Equivalence of norms in finite dimensions
 
-Let \(x = (x_n)\) and \(y = (y_n)\) be sequences in \(\ell^2\). Then,
-\[
-\|x + y\|_2 = \left(\sum_{n=1}^\infty |x_n + y_n|^2\right)^{1/2}.
-\]
-Using the Minkowski inequality for sums, we have
-\[
-\left(\sum_{n=1}^\infty |x_n + y_n|^2\right)^{1/2} \leq \left(\sum_{n=1}^\infty |x_n|^2\right)^{1/2} + \left(\sum_{n=1}^\infty |y_n|^2\right)^{1/2} = \|x\|_2 + \|y\|_2.
-\]
-Thus, the norm \(\|\cdot\|_2\) on \(\ell^2\) satisfies the triangle inequality.
+One of the most striking facts in linear algebra is that all norms on a finite-dimensional vector space are equivalent:
 
-## \(l^p\) Spaces (Completeness Proof, Unit Ball Shapes)
+**Theorem.** Let $X$ be a finite-dimensional vector space over $\mathbb{K}$ with $\dim X = n$. If $\|\cdot\|_a$ and $\|\cdot\|_b$ are any two norms on $X$, then there exist constants $0 < c \leq C < \infty$ such that
+$$
+c\|x\|_a \leq \|x\|_b \leq C\|x\|_a \quad \text{for all } x \in X.
+$$
 
-### Motivation
-The \(l^p\) spaces are a fundamental class of normed spaces that arise naturally in various areas of mathematics. They are particularly important because they are complete, meaning every Cauchy sequence converges. This completeness property makes them Banach spaces, which are central to functional analysis.
+**Proof sketch.** Fix a basis $e_1, \ldots, e_n$ and use it to identify $X$ with $\mathbb{K}^n$. Consider the $\ell^1$ norm $\|x\|_1 = \sum |x_k|$ and an arbitrary norm $\|\cdot\|$. The triangle inequality and homogeneity give
+$$
+\|x\| = \left\|\sum_{k=1}^n x_k e_k\right\| \leq \sum_{k=1}^n |x_k| \|e_k\| \leq M \|x\|_1,
+$$
+where $M = \max_k \|e_k\|$. So every norm is bounded above by a multiple of $\|\cdot\|_1$.
 
-### Definitions and Theorems
-For \(1 \leq p < \infty\), the space \(l^p\) consists of all sequences \((x_n)\) such that \(\sum_{n=1}^\infty |x_n|^p < \infty\). The norm is given by
-\[
-\|x\|_p = \left(\sum_{n=1}^\infty |x_n|^p\right)^{1/p}.
-\]
-The unit ball in \(l^p\) is the set \(\{x \in l^p : \|x\|_p \leq 1\}\).
+For the lower bound, consider the unit sphere $S = \\{x \in \mathbb{K}^n : \|x\|_1 = 1\\}$ in the $\ell^1$ norm. The function $x \mapsto \|x\|$ is continuous with respect to $\|\cdot\|_1$ (by the upper bound just established), and $S$ is compact (since we are in finite dimensions). Since $\|x\| > 0$ on $S$ (because $x \neq 0$ on $S$ and $\|\cdot\|$ is a norm), the continuous function $\|\cdot\|$ attains a positive minimum $m > 0$ on $S$. By homogeneity, $\|x\| \geq m\|x\|_1$ for all $x$.
 
-### Completeness Proof
-To show that \(l^p\) is complete, we need to prove that every Cauchy sequence in \(l^p\) converges to a limit in \(l^p\).
+Since any two norms are each equivalent to $\|\cdot\|_1$, they are equivalent to each other.
 
-**Proof:**
-Let \((x^{(k)})\) be a Cauchy sequence in \(l^p\), where \(x^{(k)} = (x_n^{(k)})\). For any \(\epsilon > 0\), there exists \(N \in \mathbb{N}\) such that for all \(m, n \geq N\),
-\[
-\|x^{(m)} - x^{(n)}\|_p < \epsilon.
-\]
-This implies that for each fixed \(n\), the sequence \((x_n^{(k)})\) is a Cauchy sequence in \(\mathbb{R}\) (or \(\mathbb{C}\)). Since \(\mathbb{R}\) (or \(\mathbb{C}\)) is complete, \((x_n^{(k)})\) converges to some \(x_n \in \mathbb{R}\) (or \(\mathbb{C}\)). Define \(x = (x_n)\).
+**Why this fails in infinite dimensions.** The proof uses compactness of the unit sphere, which is equivalent (by the Riesz lemma) to finite-dimensionality. On $\ell^p$ for $p \neq q$, the norms $\|\cdot\|_p$ and $\|\cdot\|_q$ are not equivalent. The sequences $e_n = (0, \ldots, 0, 1, 0, \ldots)$ satisfy $\|e_n\|_p = 1$ for every $p$, so the norms agree on the basis vectors, but on the vector $x_N = (1, 1/2, 1/3, \ldots, 1/N, 0, 0, \ldots)$, the $\ell^1$ and $\ell^2$ norms grow at different rates as $N \to \infty$.
 
-We need to show that \(x \in l^p\) and that \(x^{(k)} \to x\) in \(l^p\). First, we show that \(x \in l^p\). Since \((x^{(k)})\) is Cauchy, there exists \(M \in \mathbb{N}\) such that for all \(m, n \geq M\),
-\[
-\|x^{(m)} - x^{(n)}\|_p < 1.
-\]
-Fix \(m \geq M\). Then for all \(n \geq M\),
-\[
-\left(\sum_{n=1}^\infty |x_n^{(m)} - x_n^{(n)}|^p\right)^{1/p} < 1.
-\]
-Taking the limit as \(n \to \infty\), we get
-\[
-\left(\sum_{n=1}^\infty |x_n^{(m)} - x_n|^p\right)^{1/p} \leq 1.
-\]
-Thus,
-\[
-\sum_{n=1}^\infty |x_n^{(m)} - x_n|^p < \infty.
-\]
-Since \(x^{(m)} \in l^p\), we have
-\[
-\sum_{n=1}^\infty |x_n^{(m)}|^p < \infty.
-\]
-Therefore,
-\[
-\sum_{n=1}^\infty |x_n|^p \leq \sum_{n=1}^\infty (|x_n^{(m)}| + |x_n^{(m)} - x_n|)^p < \infty.
-\]
-This shows that \(x \in l^p\).
+**The Riesz lemma.** This is the key tool that connects finite-dimensionality to compactness. It states: if $M$ is a proper closed subspace of a normed space $X$ and $0 < \theta < 1$, then there exists $x \in X$ with $\|x\| = 1$ and $d(x, M) = \inf_{m \in M}\|x - m\| \geq \theta$. In finite dimensions we could take $\theta = 1$ (attaining the distance), but in infinite dimensions we generally cannot.
 
-Next, we show that \(x^{(k)} \to x\) in \(l^p\). Given \(\epsilon > 0\), choose \(N \in \mathbb{N}\) such that for all \(m, n \geq N\),
-\[
-\|x^{(m)} - x^{(n)}\|_p < \frac{\epsilon}{2}.
-\]
-For \(k \geq N\),
-\[
-\|x^{(k)} - x\|_p = \left(\sum_{n=1}^\infty |x_n^{(k)} - x_n|^p\right)^{1/p} \leq \frac{\epsilon}{2} < \epsilon.
-\]
-Thus, \(x^{(k)} \to x\) in \(l^p\).
+Using the Riesz lemma, one can show that the closed unit ball of a normed space is compact if and only if the space is finite-dimensional. The proof constructs an infinite $\theta$-separated sequence ($\|x_n - x_m\| \geq \theta$ for $n \neq m$) by repeatedly applying the lemma to the span of previous vectors. Such a sequence has no convergent subsequence, so the ball is not sequentially compact.
 
-### Unit Ball Shapes
-The unit ball in \(l^p\) has different shapes depending on \(p\):
-- For \(p = 1\), the unit ball is a diamond.
-- For \(p = 2\), the unit ball is a sphere.
-- For \(p = \infty\), the unit ball is a cube.
+**Consequence.** In finite dimensions, all topological and metric notions (convergence, completeness, continuity of linear maps) are norm-independent. In infinite dimensions, the choice of norm is a crucial modeling decision.
 
-### Worked Example
-Consider the sequence space \(l^2\) with the norm \(\|x\|_2 = \left(\sum_{n=1}^\infty |x_n|^2\right)^{1/2}\). We will show that the sequence \((x^{(k)})\) defined by \(x_n^{(k)} = \frac{1}{k}\) for \(n \leq k\) and \(x_n^{(k)} = 0\) for \(n > k\) is a Cauchy sequence in \(l^2\).
+## Banach spaces: completeness
 
-For \(m, n \geq N\),
-\[
-\|x^{(m)} - x^{(n)}\|_2 = \left(\sum_{k=\min(m, n)+1}^{\max(m, n)} \left(\frac{1}{k}\right)^2\right)^{1/2}.
-\]
-Since \(\sum_{k=1}^\infty \frac{1}{k^2}\) converges, for any \(\epsilon > 0\), there exists \(N \in \mathbb{N}\) such that for all \(m, n \geq N\),
-\[
-\left(\sum_{k=\min(m, n)+1}^{\max(m, n)} \left(\frac{1}{k}\right)^2\right)^{1/2} < \epsilon.
-\]
-Thus, \((x^{(k)})\) is a Cauchy sequence in \(l^2\).
+A normed space that is complete --- every Cauchy sequence converges --- is called a **Banach space**, in honor of Stefan Banach, who systematically developed the theory in his 1932 monograph.
 
-## \(C[a, b]\) with Sup Norm (Completeness, Weierstrass Connection)
+All of our main examples are Banach spaces:
+- $\ell^p$ for $1 \leq p \leq \infty$ (the proof for $\ell^p$ uses the completeness of $\mathbb{K}$ and a diagonalization argument).
+- $L^p(\Omega, \mu)$ for $1 \leq p \leq \infty$ (the Riesz-Fischer theorem).
+- $C(K)$ for compact Hausdorff $K$ (uniform limit of continuous functions is continuous).
+- $BV[a,b]$ (Helly's selection theorem provides the key compactness).
 
-### Motivation
-The space \(C[a, b]\) of continuous functions on a closed interval \([a, b]\) with the sup norm is a classic example of a Banach space. This space is important in many areas of analysis, including approximation theory and the study of differential equations. The completeness of \(C[a, b]\) and its connection to the Weierstrass approximation theorem make it a fundamental object in functional analysis.
+**Completeness of $\ell^p$ (proof).** Let $(x^{(k)})_{k=1}^\infty$ be a Cauchy sequence in $\ell^p$, where $x^{(k)} = (x_n^{(k)})_{n=1}^\infty$. For each fixed $n$, the sequence $(x_n^{(k)})_{k=1}^\infty$ is Cauchy in $\mathbb{K}$ (since $|x_n^{(k)} - x_n^{(j)}| \leq \|x^{(k)} - x^{(j)}\|_p$), so it converges to some $x_n \in \mathbb{K}$. Set $x = (x_1, x_2, \ldots)$. We need to show $x \in \ell^p$ and $\|x^{(k)} - x\|_p \to 0$.
 
-### Definitions and Theorems
-The space \(C[a, b]\) consists of all continuous functions \(f: [a, b] \to \mathbb{R}\) (or \(\mathbb{C}\)). The sup norm is given by
-\[
-\|f\|_\infty = \sup_{t \in [a, b]} |f(t)|.
-\]
+Given $\varepsilon > 0$, choose $K$ so that $\|x^{(k)} - x^{(j)}\|_p < \varepsilon$ for $k, j \geq K$. For any finite $N$:
+$$
+\left(\sum_{n=1}^N |x_n^{(k)} - x_n^{(j)}|^p\right)^{1/p} \leq \|x^{(k)} - x^{(j)}\|_p < \varepsilon.
+$$
+Letting $j \to \infty$ (so $x_n^{(j)} \to x_n$):
+$$
+\left(\sum_{n=1}^N |x_n^{(k)} - x_n|^p\right)^{1/p} \leq \varepsilon.
+$$
+Since this holds for all $N$, we get $\|x^{(k)} - x\|_p \leq \varepsilon$ for $k \geq K$. In particular, $x = (x - x^{(K)}) + x^{(K)} \in \ell^p$ (sum of two $\ell^p$ elements), and $x^{(k)} \to x$ in $\ell^p$.
 
-### Completeness Proof
-To show that \(C[a, b]\) is complete, we need to prove that every Cauchy sequence in \(C[a, b]\) converges to a limit in \(C[a, b]\).
+**Completeness of $L^p$ (the Riesz-Fischer theorem).** The proof for $L^p$ is more subtle because we work with equivalence classes of functions. The standard approach uses the following lemma: a normed space is complete if and only if every absolutely convergent series converges. Given a Cauchy sequence $(f_n)$ in $L^p$, pass to a subsequence $(f_{n_k})$ with $\|f_{n_{k+1}} - f_{n_k}\|_p < 2^{-k}$. The telescoping series $f_{n_1} + \sum_k (f_{n_{k+1}} - f_{n_k})$ converges absolutely in $L^p$ norm. One then shows (using the monotone convergence theorem) that the pointwise limit exists a.e. and equals an $L^p$ function to which the subsequence converges in norm. Since the original Cauchy sequence has a convergent subsequence, the whole sequence converges.
 
-**Proof:**
-Let \((f_n)\) be a Cauchy sequence in \(C[a, b]\). For any \(\epsilon > 0\), there exists \(N \in \mathbb{N}\) such that for all \(m, n \geq N\),
-\[
-\|f_m - f_n\|_\infty < \epsilon.
-\]
-This implies that for each fixed \(t \in [a, b]\), the sequence \((f_n(t))\) is a Cauchys sequence in \(\mathbb{R}\) (or \(\mathbb{C}\)). Since \(\mathbb{R}\) (or \(\mathbb{C}\)) is complete, \((f_n(t))\) converges to some \(f(t) \in \mathbb{R}\) (or \(\mathbb{C}\)). Define \(f: [a, b] \to \mathbb{R}\) (or \(\mathbb{C}\)) by \(f(t) = \lim_{n \to \infty} f_n(t)\).
+## Why completeness matters
 
-We need to show that \(f \in C[a, b]\) and that \(f_n \to f\) in \(C[a, b]\). First, we show that \(f\) is continuous. Fix \(t_0 \in [a, b]\) and \(\epsilon > 0\). Choose \(N \in \mathbb{N}\) such that for all \(n \geq N\),
-\[
-\|f_n - f_N\|_\infty < \frac{\epsilon}{3}.
-\]
-Since \(f_N\) is continuous at \(t_0\), there exists \(\delta > 0\) such that for all \(t \in [a, b]\) with \(|t - t_0| < \delta\),
-\[
-|f_N(t) - f_N(t_0)| < \frac{\epsilon}{3}.
-\]
-For such \(t\),
-\[
-|f(t) - f(t_0)| \leq |f(t) - f_N(t)| + |f_N(t) - f_N(t_0)| + |f_N(t_0) - f(t_0)| < \frac{\epsilon}{3} + \frac{\epsilon}{3} + \frac{\epsilon}{3} = \epsilon.
-\]
-Thus, \(f\) is continuous at \(t_0\).
+Completeness is not an aesthetic preference; it is the structural property that makes the major theorems of functional analysis work. Here are two fundamental reasons.
 
-Next, we show that \(f_n \to f\) in \(C[a, b]\). Given \(\epsilon > 0\), choose \(N \in \mathbb{N}\) such that for all \(m, n \geq N\),
-\[
-\|f_m - f_n\|_\infty < \frac{\epsilon}{2}.
-\]
-For \(n \geq N\),
-\[
-\|f_n - f\|_\infty = \sup_{t \in [a, b]} |f_n(t) - f(t)| \leq \frac{\epsilon}{2} < \epsilon.
-\]
-Thus, \(f_n \to f\) in \(C[a, b]\).
+**Absolute convergence implies convergence.** In a Banach space, a series $\sum_{n=1}^\infty x_n$ converges whenever $\sum_{n=1}^\infty \|x_n\| < \infty$. (In fact, this property is *equivalent* to completeness.) This means we can manipulate infinite series with the same confidence as in $\mathbb{R}$. In a non-complete normed space, absolutely convergent series can fail to converge, making even basic constructions unreliable.
 
-### Weierstrass Approximation Theorem
-The Weierstrass approximation theorem states that for any continuous function \(f \in C[a, b]\) and any \(\epsilon > 0\), there exists a polynomial \(P\) such that
-\[
-\|f - P\|_\infty < \epsilon.
-\]
-This theorem shows that polynomials are dense in \(C[a, b]\) with respect to the sup norm.
+*Proof:* Let $S_N = \sum_{n=1}^N x_n$. For $M > N$, $\|S_M - S_N\| = \|\sum_{n=N+1}^M x_n\| \leq \sum_{n=N+1}^M \|x_n\| \to 0$ as $N, M \to \infty$ (because the tail of a convergent series tends to zero). So $(S_N)$ is Cauchy, hence convergent by completeness.
 
-### Worked Example
-Consider the sequence of functions \(f_n(t) = t^n\) on \([0, 1]\). We will show that \((f_n)\) is a Cauchy sequence in \(C[0, 1]\) with the sup norm.
+**Fixed point theorems.** The Banach contraction mapping principle --- the most fundamental fixed point theorem in analysis --- requires completeness. If $T: X \to X$ is a contraction ($\|Tx - Ty\| \leq q\|x-y\|$ for some $q < 1$) on a complete metric space, then $T$ has a unique fixed point. The proof constructs the fixed point as the limit of the iterates $x, Tx, T^2x, \ldots$; without completeness, this Cauchy sequence might not converge.
 
-For \(m, n \geq N\),
-\[
-\|f_m - f_n\|_\infty = \sup_{t \in [0, 1]} |t^m - t^n|.
-\]
-Since \(t^m\) and \(t^n\) are both continuous and \(t \in [0, 1]\), the maximum value of \(|t^m - t^n|\) occurs at \(t = 1\). Thus,
-\[
-\|f_m - f_n\|_\infty = |1^m - 1^n| = 0.
-\]
-This shows that \((f_n)\) is a Cauchy sequence in \(C[0, 1]\).
+Applications of the contraction mapping principle include:
+- The Picard-Lindelof theorem on existence and uniqueness of ODE solutions.
+- The inverse function theorem and the implicit function theorem.
+- The existence of solutions to integral equations of the form $f(x) = g(x) + \lambda \int K(x,t) f(t) \, dt$ for small $|\lambda|$.
 
-## Finite vs Infinite Dimensions (Equivalence of Norms Proof, Riesz Lemma)
+**The big three theorems.** Completeness is a hypothesis (or consequence) in each of the three pillars:
+- The *Baire category theorem* requires completeness (Article 3).
+- The *open mapping theorem* and *closed graph theorem* require both the domain and codomain to be Banach.
+- The *uniform boundedness principle* requires the domain to be Banach (the codomain can be any normed space).
 
-### Motivation
-The distinction between finite-dimensional and infinite-dimensional normed spaces is a fundamental one in functional analysis. In finite dimensions, all norms are equivalent, and the unit ball is compact. In infinite dimensions, these properties do not hold, and the geometry of the space can be much more complex. Understanding these differences is crucial for working with normed spaces.
+Without completeness, each of these fails. A well-known counterexample: on $c_{00}$ (finitely supported sequences, a non-complete subspace of $\ell^2$), the coordinate functionals $e_n^*(x) = x_n$ are each bounded with norm 1, and they are pointwise bounded on every $x \in c_{00}$ (since each $x$ has finite support). But the norms $\|e_n^*\| = 1$ are already uniformly bounded, so this particular example does not demonstrate the failure. A subtler example is needed: consider the partial sum operators $S_N(f) = \sum_{n=1}^N \hat{f}(n) e^{inx}$ on $(C[-\pi,\pi], \|\cdot\|_\infty)$, which is a Banach space --- the uniform boundedness principle applies and shows that $\|S_N\| \to \infty$, which implies the existence of continuous functions whose Fourier series diverges. If we tried to run this argument on a non-complete subspace, the conclusion would not follow.
 
-### Definitions and Theorems
-A normed space \(V\) is **finite-dimensional** if it has a finite basis. Otherwise, it is **infinite-dimensional**.
+**Neumann series.** Here is a direct application of completeness to operator theory that illustrates its computational power. If $X$ is a Banach space and $T \in B(X)$ with $\|T\| < 1$, then $I - T$ is invertible and
+$$
+(I - T)^{-1} = \sum_{n=0}^\infty T^n.
+$$
+The series converges absolutely: $\sum \|T^n\| \leq \sum \|T\|^n = 1/(1-\|T\|) < \infty$. In a Banach space, absolute convergence implies convergence, so the series converges to some $S \in B(X)$. Checking $(I-T)S = S(I-T) = I$ is a formal computation. This is the Banach space analogue of the geometric series $1/(1-z) = \sum z^n$ for $|z| < 1$. In a non-complete normed space, the series might not converge even though it converges absolutely, and the inverse might not exist in the space.
 
-**Theorem (Equivalence of Norms in Finite Dimensions):** All norms on a finite-dimensional normed space are equivalent. That is, if \(\|\cdot\|_1\) and \(\|\cdot\|_2\) are norms on a finite-dimensional space \(V\), there exist constants \(c, C > 0\) such that for all \(x \in V\),
-\[
-c \|x\|_1 \leq \|x\|_2 \leq C \|x\|_1.
-\]
+## Schauder bases
 
-**Riesz Lemma:** Let \(V\) be an infinite-dimensional normed space and \(Y \subset V\) a proper closed subspace. For any \(0 < \theta < 1\), there exists \(x \in V\) with \(\|x\| = 1\) such that \(\|x - y\| \geq \theta\) for all \(y \in Y\).
+In finite-dimensional linear algebra, every vector space has a basis (by Zorn's lemma in general, or by explicit construction in concrete cases), and every vector can be written uniquely as a finite linear combination of basis vectors. In infinite-dimensional Banach spaces, we need infinite series, which requires a notion of convergence.
 
-### Proof Sketches
-**Equivalence of Norms in Finite Dimensions:**
-Let \(\{e_1, e_2, \ldots, e_n\}\) be a basis for \(V\). Any \(x \in V\) can be written as \(x = \sum_{i=1}^n \alpha_i e_i\). Define
-\[
-\|x\|_1 = \sum_{i=1}^n |\alpha_i|, \quad \|x\|_2 = \left(\sum_{i=1}^n |\alpha_i|^2\right)^{1/2}.
-\]
-By the Cauchy-Schwarz inequality,
-\[
-\|x\|_1 \leq \sqrt{n} \|x\|_2.
-\]
-Also,
-\[
-\|x\|_2 \leq \sqrt{n} \|x\|_1.
-\]
-Thus, \(\|x\|_1\) and \(\|x\|_2\) are equivalent. By a similar argument, any two norms on \(V\) are equivalent.
+A sequence $(e_n)_{n=1}^\infty$ in a Banach space $X$ is a **Schauder basis** if every $x \in X$ has a unique representation
+$$
+x = \sum_{n=1}^\infty \alpha_n e_n
+$$
+where the series converges in the norm of $X$. The coefficient functionals $e_n^*: X \to \mathbb{K}$, defined by $e_n^*(x) = \alpha_n$, are automatically continuous (this is a non-trivial consequence of the Banach-Steinhaus theorem).
 
-**Riesz Lemma:**
-Let \(Y\) be a proper closed subspace of \(V\). Choose \(z \in V \setminus Y\) and let \(d = \inf_{y \in Y} \|z - y\|\). Since \(Y\) is closed, \(d > 0\). For any \(0 < \theta < 1\), choose \(y_0 \in Y\) such that \(\|z - y_0\| < \frac{d}{\theta}\). Let \(x = \frac{z - y_0}{\|z - y_0\|}\). Then \(\|x\| = 1\) and for any \(y \in Y\),
-\[
-\|x - y\| = \left\|\frac{z - y_0}{\|z - y_0\|} - y\right\| = \frac{1}{\|z - y_0\|} \|z - (y_0 + \|z - y_0\| y)\| \geq \frac{d}{\|z - y_0\|} > \theta.
-\]
+**Examples:**
+- The standard basis $(e_n)$ is a Schauder basis for $\ell^p$ ($1 \leq p < \infty$) and $c_0$, but *not* for $\ell^\infty$ (the constant sequence $(1,1,1,\ldots)$ is not a norm-convergent series in the standard basis).
+- The trigonometric system $\\{e^{inx}\\}_{n \in \mathbb{Z}}$ is a Schauder basis for $L^p[-\pi, \pi]$ when $1 < p < \infty$ (Carleson-Hunt theorem for $L^2$, Marcel Riesz theorem for $L^p$), but *not* for $L^1$ (the Fourier series of an $L^1$ function can diverge in $L^1$).
+- The Haar system is a Schauder basis for $L^p[0,1]$ for all $1 \leq p < \infty$.
 
-### Worked Example
-Consider the finite-dimensional space \(\mathbb{R}^2\) with the Euclidean norm \(\|(x, y)\|_2 = \sqrt{x^2 + y^2}\) and the taxicab norm \(\|(x, y)\|_1 = |x| + |y|\). We will show that these norms are equivalent.
+A Banach space with a Schauder basis is necessarily separable (the finite rational linear combinations of basis vectors form a countable dense set). The converse was a famous open problem: does every separable Banach space have a Schauder basis? Per Enflo answered this negatively in 1973, constructing a separable Banach space with no Schauder basis.
 
-First, note that
-\[
-\|(x, y)\|_1 = |x| + |y| \leq \sqrt{2} \sqrt{x^2 + y^2} = \sqrt{2} \|(x, y)\|_2.
-\]
-Also,
-\[
-\|(x, y)\|_2 = \sqrt{x^2 + y^2} \leq \sqrt{2} \max(|x|, |y|) \leq \sqrt{2} (|x| + |y|) = \sqrt{2} \|(x, y)\|_1.
-\]
-Thus, the norms \(\|\cdot\|_1\) and \(\|\cdot\|_2\) are equivalent with constants \(c = \frac{1}{\sqrt{2}}\) and \(C = \sqrt{2}\).
+**Unconditional bases and conditional bases.** A Schauder basis $(e_n)$ is **unconditional** if the series $\sum \alpha_n e_n$ converges unconditionally (i.e., every rearrangement converges) for every $x = \sum \alpha_n e_n \in X$. The standard basis of $\ell^p$ ($1 \leq p < \infty$) is unconditional. The trigonometric system in $L^p$ for $p \neq 2$ is conditional (not unconditional) --- a deep fact related to the Khintchine inequality and Paley's theorem. A celebrated result of Gowers and Maurey (1993) shows that there exist Banach spaces in which *every* basis is conditional; their construction also produced the first example of an infinite-dimensional Banach space in which every bounded operator is a scalar multiple of the identity plus a compact operator.
 
-## Series in Banach Spaces (Absolute Convergence Implies Convergence)
+**Hamel bases versus Schauder bases.** Every vector space has a *Hamel basis* (by Zorn's lemma): a set $B$ such that every vector is a *finite* linear combination of elements of $B$. In infinite-dimensional Banach spaces, Hamel bases are necessarily uncountable (by the Baire category theorem: if $\\{e_n\\}$ were a countable Hamel basis, then $X = \bigcup_N \operatorname{span}\\{e_1, \ldots, e_N\\}$ would be a countable union of nowhere dense sets, contradicting Baire). So Hamel bases and Schauder bases are genuinely different objects: Hamel bases use finite sums, Schauder bases use convergent infinite series.
 
-### Motivation
-In Banach spaces, the concept of series is a natural extension of the familiar notion of series in \(\mathbb{R}\) or \(\mathbb{C}\). One of the key results in Banach spaces is that absolute convergence implies convergence. This property is crucial for many applications in functional analysis, including the study of Fourier series and the solution of differential equations.
+## Quotient spaces and direct sums
 
-### Definitions and Theorems
-A **Banach space** is a complete normed space. A series \(\sum_{n=1}^\infty x_n\) in a Banach space \(X\) is said to be **absolutely convergent** if \(\sum_{n=1}^\infty \|x_n\|\) converges in \(\mathbb{R}\).
+Two standard constructions produce new Banach spaces from old ones.
 
-**Theorem (Absolute Convergence Implies Convergence):** If \(\sum_{n=1}^\infty x_n\) is absolutely convergent in a Banach space \(X\), then \(\sum_{n=1}^\infty x_n\) converges in \(X\).
+**Quotient spaces.** Let $X$ be a Banach space and $M$ a closed subspace. The quotient space $X/M = \\{x + M : x \in X\\}$ has a natural norm:
+$$
+\|x + M\| = \inf_{m \in M} \|x + m\| = d(x, M).
+$$
 
-### Proof Sketch
-Let \(\sum_{n=1}^\infty x_n\) be an absolutely convergent series in a Banach space \(X\). Define the partial sums \(S_N = \sum_{n=1}^N x_n\). We need to show that \((S_N)\) is a Cauchy sequence in \(X\).
+**Theorem.** If $X$ is a Banach space and $M$ is closed, then $X/M$ is a Banach space.
 
-Given \(\epsilon > 0\), since \(\sum_{n=1}^\infty \|x_n\|\) converges, there exists \(N \in \mathbb{N}\) such that for all \(m > n \geq N\),
-\[
-\sum_{k=n+1}^m \|x_k\| < \epsilon.
-\]
-Then,
-\[
-\|S_m - S_n\| = \left\|\sum_{k=n+1}^m x_k\right\| \leq \sum_{k=n+1}^m \|x_k\| < \epsilon.
-\]
-Thus, \((S_N)\) is a Cauchy sequence in \(X\). Since \(X\) is complete, \((S_N)\) converges to some \(S \in X\). Therefore, \(\sum_{n=1}^\infty x_n\) converges to \(S\).
+*Proof.* We verify completeness. Let $(x_n + M)$ be a Cauchy sequence in $X/M$. By passing to a subsequence (which suffices for completeness), assume $\|x_{n+1} + M - (x_n + M)\| < 2^{-n}$. Choose representatives: pick $m_1 \in M$ with $\|(x_2 - x_1) + m_1\| < 2^{-1}$, then $m_2 \in M$ with $\|(x_3 - x_2) + m_2\| < 2^{-2}$, etc. Set $y_1 = x_1$ and $y_{n+1} = x_{n+1} + (m_1 + \cdots + m_n)$. Then $y_{n+1} + M = x_{n+1} + M$ and $\|y_{n+1} - y_n\| < 2^{-n}$, so $(y_n)$ is Cauchy in $X$, hence converges to some $y$. Then $x_n + M = y_n + M \to y + M$.
 
-### Worked Example
-Consider the Banach space \(\ell^2\) with the norm \(\|x\|_2 = \left(\sum_{n=1}^\infty |x_n|^2\right)^{1/2}\). Let \((x_n)\) be a sequence in \(\ell^2\) defined by \(x_n = \frac{1}{n^2}\). We will show that the series \(\sum_{n=1}^\infty x_n\) is absolutely convergent and hence convergent in \(\ell^2\).
+**Quotient spaces matter** because many important constructions produce them naturally: the space $L^p$ is a quotient of the space of $p$-integrable functions by the subspace of functions equal to zero almost everywhere. The first isomorphism theorem for Banach spaces says that if $T: X \to Y$ is a bounded surjection, then $Y \cong X/\ker T$ (as topological vector spaces).
 
-First, note that
-\[
-\sum_{n=1}^\infty \|x_n\|_2 = \sum_{n=1}^\infty \left(\sum_{k=1}^\infty \left|\frac{1}{n^2}\right|^2\right)^{1/2} = \sum_{n=1}^\infty \left(\frac{1}{n^4}\right)^{1/2} = \sum_{n=1}^\infty \frac{1}{n^2}.
-\]
-The series \(\sum_{n=1}^\infty \frac{1}{n^2}\) converges (it is a p-series with \(p = 2 > 1\)). Therefore, \(\sum_{n=1}^\infty \|x_n\|_2\) converges, and \(\sum_{n=1}^\infty x_n\) is absolutely convergent in \(\ell^2\).
+**Direct sums.** Given Banach spaces $X$ and $Y$, the direct sum $X \oplus_p Y$ is the set $X \times Y$ with the norm
+$$
+\|(x, y)\|_p = \begin{cases} (\|x\|^p + \|y\|^p)^{1/p}, & 1 \leq p < \infty, \\\ \max(\|x\|, \|y\|), & p = \infty. \end{cases}
+$$
+All these norms give equivalent topologies (since we are adding two coordinates, which is a finite-dimensional choice), and the resulting space is Banach if both $X$ and $Y$ are.
 
-By the theorem, \(\sum_{n=1}^\infty x_n\) converges in \(\ell^2\).
+More generally, for a sequence of Banach spaces $(X_n)$, the $\ell^p$-direct sum is
+$$
+\left(\bigoplus_{n=1}^\infty X_n\right)_p = \left\\{(x_n) : x_n \in X_n,\; \sum_{n=1}^\infty \|x_n\|^p < \infty\right\\},
+$$
+with the obvious norm. This construction allows us to build complicated Banach spaces from simpler pieces.
 
-## What's Next
+## Separable and non-separable spaces
 
-Having explored the fundamental concepts of normed spaces and Banach spaces, the next steps in your journey through functional analysis might include:
+A normed space is **separable** if it contains a countable dense subset. Separability is a measure of "size" that has deep structural consequences.
 
-1. **Hilbert Spaces:** These are Banach spaces with an additional inner product structure, allowing for a geometric interpretation and the use of orthogonal projections. Key topics include the Riesz representation theorem, orthonormal bases, and the spectral theorem for self-adjoint operators.
+**Separable examples:**
+- $\ell^p$ for $1 \leq p < \infty$ (the sequences with finitely many nonzero rational entries are countable and dense).
+- $c_0$ (same argument).
+- $L^p(\mathbb{R}^n)$ for $1 \leq p < \infty$ (step functions with rational heights on rational intervals are dense).
+- $C[a,b]$ (polynomials with rational coefficients, by Weierstrass approximation).
 
-2. **Operator Theory:** This branch of functional analysis studies linear operators between Banach spaces. Important concepts include bounded and unbounded operators, the spectrum of an operator, and the study of compact and Fredholm operators.
+**Non-separable examples:**
+- $\ell^\infty$ is not separable. To see this, for each subset $S \subseteq \mathbb{N}$, let $\mathbf{1}_S$ be the characteristic function of $S$. If $S \neq T$, then $\|\mathbf{1}_S - \mathbf{1}_T\|_\infty = 1$. The open balls $B(\mathbf{1}_S, 1/3)$ are uncountably many disjoint open sets, so no countable set can intersect all of them.
+- $L^\infty[0,1]$ is not separable (a similar uncountable family of well-separated functions can be constructed from characteristic functions of disjoint subsets of positive measure --- or more precisely, the argument uses an uncountable collection of measurable subsets no two of which agree up to a null set).
+- The space $B(H)$ of bounded operators on an infinite-dimensional Hilbert space is not separable in the operator norm (consider the uncountable family of projections onto one-dimensional subspaces).
 
-3. **Functional Analysis on Locally Convex Spaces:** These are generalizations of Banach spaces where the topology is defined by a family of seminorms. Key topics include the Hahn-Banach theorem, the Krein-Milman theorem, and the theory of distributions.
+**Why separability matters:**
+- In a separable Banach space, the weak$^*$ topology on bounded subsets of $X^*$ is metrizable. Combined with the Banach-Alaoglu theorem (the unit ball of $X^*$ is weak$^*$ compact), this gives sequential weak$^*$ compactness, which is essential in many existence proofs.
+- A Banach space is separable if and only if every bounded sequence has a weakly convergent subsequence (Eberlein-Smulian, for the reflexive case; more generally, if $X^*$ is separable then the unit ball of $X$ is weakly metrizable, and Alaoglu's theorem gives sequential compactness).
+- Separability is related to the existence of Schauder bases (every space with a Schauder basis is separable, but not conversely).
+- In probability theory, separability of the underlying function space is often needed to ensure that suprema of stochastic processes are measurable.
+- Many constructions in analysis (e.g., Gram-Schmidt orthogonalization, construction of conditional expectations) require a countable dense set.
 
-4. **Applications in Partial Differential Equations (PDEs):** Functional analysis provides a powerful framework for studying PDEs. Topics include the Lax-Milgram theorem, Sobolev spaces, and the theory of weak solutions.
+## What's next
 
-5. **Measure Theory and Integration:** A deeper understanding of measure theory and integration is essential for advanced topics in functional analysis, including the study of \(L^p\) spaces and the Radon-Nikodym theorem.
+We now have the vocabulary of normed and Banach spaces, along with a library of examples that will serve as test cases and counterexamples throughout the series. The key takeaways: norms give us a way to measure size that is compatible with the linear structure; in finite dimensions all norms are equivalent, but in infinite dimensions the choice of norm is a fundamental modeling decision; completeness --- the Banach property --- is not optional but essential for the deep theorems to hold.
 
-By delving into these topics, you will gain a comprehensive understanding of the rich and diverse landscape of functional analysis, equipping you with the tools to tackle a wide range of mathematical problems.
+The next article (Article 3) introduces the **Baire category theorem** and its three great consequences: the *uniform boundedness principle* (Banach-Steinhaus theorem), the *open mapping theorem*, and the *closed graph theorem*. These are the power tools of Banach space theory --- they take completeness as input and produce sweeping structural conclusions about bounded linear operators. The uniform boundedness principle says that pointwise boundedness of a family of operators implies uniform boundedness (in the operator norm). The open mapping theorem says that a surjective bounded linear map between Banach spaces is automatically an open map. The closed graph theorem says that a closed linear map between Banach spaces is automatically bounded. Each of these results is genuinely surprising --- it extracts a global conclusion from seemingly local hypotheses --- and each relies crucially on completeness. Once you have them in hand, the theory begins to feel remarkably powerful.
 
 ---
 
