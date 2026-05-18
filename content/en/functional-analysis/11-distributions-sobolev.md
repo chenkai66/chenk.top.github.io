@@ -21,6 +21,9 @@ I want to start with a confession. For years I treated the Dirac delta the way a
 
 The motivating problem is older than $\delta$ itself. Consider the wave equation $u_{tt} = c^2 u_{xx}$ on the line. Any twice-differentiable profile $f$ gives a traveling-wave solution $u(x,t) = f(x - ct)$. But physical waves carry shocks: the solution of a shallow-water equation can develop a step, a sound wave can have a sharp front, a light pulse can be a square envelope. The "function" $f$ in those cases is not even continuous. Calling such a discontinuous $u$ a "solution" of $u_{tt} = c^2 u_{xx}$ requires us to differentiate it twice, and the classical second derivative does not exist — neither at the shock nor on either side, since differentiating an indicator gives a delta.
 
+![Delta distribution as limit of bump functions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig11_delta_distribution.png)
+
+
 Laurent Schwartz's distribution theory (1944-1950) solves both problems with one trick. Stop trying to assign pointwise values to generalized "functions." Instead, define them by how they act on smooth test functions: $f$ is the linear map $\varphi \mapsto \int f\varphi$. Two functions equal a.e. give the same map, so $L^1_{\text{loc}}$ embeds into the dual space of test functions. But that dual space is much larger than $L^1_{\text{loc}}$; it contains $\delta$, derivatives of $\delta$, principal-value distributions, and a great deal of structure besides. Once we have the dual, every operation we want — derivative, Fourier transform, convolution — extends from smooth functions to all distributions by formal duality.
 
 Sobolev spaces are the second piece of the story. Schwartz's distributions are too big to be a useful Banach space (the dual of $C_c^\infty$ has no natural norm topology). For PDE we want concrete Hilbert spaces, with norms, embeddings, and compactness. Sergei Sobolev's 1930s construction does exactly this: $W^{k,p}(\Omega)$ contains functions whose distributional derivatives up to order $k$ live in $L^p$. These are the natural domains for differential operators, the right setting for weak solutions, and they come with three key tools — embedding theorems, trace theorems, Rellich-Kondrachov compactness — without which the Lax-Milgram theorem of the next article would have nothing to bite on.
@@ -62,6 +65,9 @@ A key result: every distribution is the limit (in $\mathcal{D}'$) of a sequence 
 ## Test Functions $\mathcal{D}(\Omega)$ and Distributions $\mathcal{D}'(\Omega)$
 
 ### The space of test functions
+
+![Test functions: smooth with compact support](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig11_test_functions.png)
+
 
 Let $\Omega \subseteq \mathbb{R}^n$ be open. The space of **test functions** is
 
@@ -119,6 +125,9 @@ A worked example for $|x|$ on $\mathbb{R}$: it is differentiable everywhere exce
 
 If $u \in \mathcal{D}'(\mathbb{R}^n)$ has compact support and $\varphi \in C^\infty(\mathbb{R}^n)$, the convolution $u * \varphi$ is defined and is $C^\infty$:
 
+![Animation: mollification smoothing a function](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/gif11_mollification.gif)
+
+
 $$
 (u * \varphi)(x) = \langle u_y, \varphi(x - y)\rangle.
 $$
@@ -160,6 +169,9 @@ For the heat equation $(\partial_t - \Delta)u = 0$, the fundamental solution is 
 ## Weak Derivatives and Sobolev Spaces
 
 ### From distributional to weak derivative
+
+![Weak derivative of |x|](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig11_weak_derivative.png)
+
 
 Distributional derivatives always exist; they are abstract objects in $\mathcal{D}'$. For PDE we want concrete derivatives that live in $L^p$.
 
@@ -257,6 +269,9 @@ A variant, the **Poincare-Wirtinger inequality**, holds for functions without bo
 
 The embedding theorems answer a fundamental question: if a function has $k$ derivatives in $L^p$, what can we say about its pointwise regularity?
 
+![Sobolev embedding in 1D](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig11_sobolev_embedding.png)
+
+
 ### Sobolev inequality (Gagliardo-Nirenberg-Sobolev)
 
 **Theorem.** Let $1 \le p < n$ and define $p^* = np/(n-p)$ (the **Sobolev conjugate exponent**). Then there exists $C = C(n, p)$ such that for all $u \in W^{1,p}(\mathbb{R}^n)$,
@@ -312,6 +327,9 @@ This extension reduces problems on domains to problems on $\mathbb{R}^n$, where 
 ## Trace Theorems and Boundary Values
 
 A function in $W^{1,p}(\Omega)$ is defined only up to a set of measure zero. The boundary $\partial\Omega$ has Lebesgue measure zero in $\mathbb{R}^n$, so pointwise restriction to the boundary is not well-defined. Yet boundary conditions like $u|_{\partial\Omega} = 0$ (Dirichlet) or $\partial u/\partial n|_{\partial\Omega} = g$ (Neumann) are essential for PDE.
+
+![Trace theorem: restricting to boundary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig11_trace_theorem.png)
+
 
 The **trace theorem** resolves this by showing that restriction to the boundary extends to a continuous operation on Sobolev spaces.
 

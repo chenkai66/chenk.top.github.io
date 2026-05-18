@@ -33,11 +33,17 @@ Functional analysis emerged in the early 20th century from two converging demand
 
 The flow of ideas has always been bidirectional. PDE theory motivated Sobolev spaces and distribution theory. Quantum mechanics demanded unbounded self-adjoint operators and the spectral theorem. And the abstract theory, once developed, revealed connections and simplifications invisible from the concrete side: the Lax-Milgram theorem unifies dozens of existence proofs for different elliptic equations, and Stone's theorem shows that Schrodinger's equation and Maxwell's equations share the same abstract structure.
 
+![Fredholm theory for elliptic PDE](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig12_fredholm_pde.png)
+
+
 ---
 
 ## Lax-Milgram Theorem and Elliptic Boundary Value Problems
 
 ### The theorem
+
+![Lax-Milgram: coercivity implies existence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig12_lax_milgram.png)
+
 
 **Theorem (Lax-Milgram).** Let $V$ be a real Hilbert space. Let $a: V \times V \to \mathbb{R}$ be a bilinear form satisfying:
 
@@ -122,6 +128,9 @@ Lax-Milgram applies, and we get a unique weak solution $u \in H_0^1(\Omega)$ wit
 
 ### From PDE to optimization
 
+![Variational formulation: minimizing energy functional](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig12_variational.png)
+
+
 Many PDE arise as **Euler-Lagrange equations** for energy functionals. Consider the energy
 
 $$
@@ -198,6 +207,9 @@ Monotonicity ($\langle Au - Av, u - v \rangle \ge 0$ for all $u, v$) replaces li
 
 ### The mathematical framework
 
+![Quantum mechanics operators: position, momentum, energy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig12_quantum_operators.png)
+
+
 In the Hilbert space formulation of quantum mechanics (von Neumann, 1932):
 
 - **States** are unit vectors $\psi \in H$ (or more precisely, rays $\{\lambda\psi : |\lambda| = 1\}$) in a separable Hilbert space $H$.
@@ -234,6 +246,9 @@ The spectral decomposition $\hat{H} = \int \lambda \, dE(\lambda)$ encodes all m
 The structure of the spectrum encodes the physics. A bound state — an electron trapped near the proton — corresponds to an eigenfunction $\psi_n$ with $\hat{H}\psi_n = E_n\psi_n$ and $E_n < 0$. The wavefunction $\psi_n$ decays exponentially at infinity; the electron is genuinely localised. A scattering state corresponds to a generalised eigenfunction in the continuous spectrum at some $E \ge 0$; the wavefunction does not decay (it is not in $L^2$), but suitable wave packets built from these generalised eigenfunctions are in $L^2$ and propagate to infinity.
 
 For hydrogen, the bound state energies are explicit: $E_n = -m_e e^4/(2\hbar^2 n^2) = -13.6\,\text{eV}/n^2$ in CGS units. The ground state $n=1$ has energy $-13.6\,\text{eV}$, with the spatial wavefunction $\psi_{100}(r) = \pi^{-1/2}a_0^{-3/2}e^{-r/a_0}$ where $a_0 = \hbar^2/(m_e e^2) \approx 0.529$ Angstrom is the Bohr radius. A short check that $\psi_{100} \in H^2(\mathbb{R}^3)$: the function and its first two derivatives all decay exponentially, so all $L^2$ norms are finite — a Gaussian-type integral away from $r = 0$, and at the origin the only worry is the Coulomb singularity in the equation, which is absorbed by the kinetic term via the Kato-Rellich relative bound.
+
+![Eigenfunction expansion of solutions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig12_eigenfunction_expansion.png)
+
 
 The $n = 2$ shell has energy $-3.4\,\text{eV}$, and four states (one $2s$ and three $2p$). Their energies coincide because of an "accidental" $SO(4)$ symmetry of the Coulomb problem (the Runge-Lenz vector commutes with $\hat{H}$). The degeneracy $n^2$ on level $n$ is a consequence of this symmetry, not of $SO(3)$ alone — for a non-Coulomb radial potential the $s$, $p$, $d$ states would split. This kind of symmetry-spectral analysis is exactly what the spectral theorem and Stone's theorem make rigorous; the formal manipulations of physicists are theorems once one specifies the operator domains.
 
@@ -280,6 +295,12 @@ All rigorous consequences of Stone's theorem and the spectral theorem.
 ## Stone's Theorem and Schrodinger Dynamics
 
 ### Statement
+
+![Animation: Schrodinger wave packet evolution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/gif12_schrodinger.gif)
+
+
+![Stone's theorem: unitary groups and self-adjoint generators](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig12_stone_theorem.png)
+
 
 **Theorem (Stone, 1932).** Let $A$ be a (possibly unbounded) self-adjoint operator on a Hilbert space $H$. Then the family
 

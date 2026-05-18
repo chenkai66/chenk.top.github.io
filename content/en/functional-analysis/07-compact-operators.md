@@ -21,6 +21,9 @@ I owe my fondness for compact operators to a small embarrassment. As an undergra
 
 The condition "maps bounded sets to precompact sets" sounds abstract, but it is a precise way of saying *this operator behaves nearly like a matrix*. Geometrically: while a generic bounded operator can map the unit ball to something as wild as the unit ball itself (no compactness gained), a compact operator must map it to something "essentially finite-dimensional" -- a set that, for any tolerance $\varepsilon$, can be covered by finitely many $\varepsilon$-balls. The operator cannot spread mass uniformly across infinitely many directions; it must concentrate its effect on finitely many directions (up to an arbitrarily small error). This concentration is what makes spectral decomposition possible -- the operator is "almost" a finite-rank operator, and finite-rank operators are just matrices.
 
+![Spectrum of compact operator clusters at zero](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig07_spectrum_compact.png)
+
+
 A terminological note: Riesz (1918) called these operators *vollstetig* (totally continuous). The older English translation "completely continuous" still appears in pre-1970 books. The modern definition (maps bounded sets to precompact sets) is the clean one; the older definition (maps weakly convergent sequences to norm-convergent ones) is equivalent on reflexive spaces but differs on $\ell^1$. I use the modern definition throughout.
 
 ![Compact operator: maps the unit ball to a precompact set](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/07-compact-operators/fa_v2_07_1_compact_def.png)
@@ -29,6 +32,12 @@ A terminological note: Riesz (1918) called these operators *vollstetig* (totally
 
 
 ![Spectrum of a compact operator: eigenvalues accumulate at 0](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa07_compact_spectrum.png)
+
+![Animation: finite-rank operators converging to compact operator](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/gif07_compact_approx.gif)
+
+
+![Finite-rank approximation of compact operators](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig07_finite_rank_approx.png)
+
 
 An operator $T: X \to Y$ between Banach spaces is **compact** if $\overline{T(B_X)}$ is compact in $Y$, equivalently if every bounded sequence $(x_n)$ has a subsequence $(x_{n_k})$ with $(Tx_{n_k})$ convergent. The operator does the work of compactification that the ambient space (in infinite dimensions) declined to do. Every clever argument in this article reduces to extracting a convergent subsequence of images at exactly the right moment.
 
@@ -53,6 +62,9 @@ The lack of a spectral decomposition for non-normal compact operators is not jus
 
 The centerpiece of compact operator theory is the spectral decomposition, which says that compact self-adjoint operators behave exactly like real diagonal matrices with entries tending to zero.
 
+![Compact operator maps bounded set to relatively compact set](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig07_compact_operator.png)
+
+
 **Theorem.** Let $T: H \to H$ be a compact self-adjoint operator on a separable Hilbert space. Then there exists an orthonormal system $(e_n)$ of eigenvectors with real eigenvalues $(\lambda_n)$ satisfying $\lambda_n \to 0$, such that $T = \sum_n \lambda_n \langle \cdot, e_n \rangle e_n$. The eigenvalues are the only nonzero spectral values, each has finite multiplicity, and they accumulate only at zero.
 
 *Proof sketch.* The key step is showing $T$ has at least one eigenvector. Since $T$ is self-adjoint, $\|T\| = \sup_{\|x\|=1} |\langle Tx, x\rangle|$, and by compactness this supremum is attained at some $e_1$ with $Te_1 = \lambda_1 e_1$ where $|\lambda_1| = \|T\|$. (Compactness converts the supremum over the non-compact unit sphere into an achieved maximum.) Now restrict $T$ to $\{e_1\}^\perp$ (which $T$ leaves invariant by self-adjointness) and repeat. The eigenvalues form a sequence tending to zero because the norms $\|T|_{\{e_1,...,e_n\}^\perp}\|$ decrease -- if they did not tend to zero, the subsequence $(e_n/\lambda_n)$ would be bounded with $T(e_n/\lambda_n) = e_n$ having no convergent subsequence, contradicting compactness.
@@ -74,6 +86,9 @@ The min-max characterization of eigenvalues (Courant-Fischer) extends from matri
 
 The **Fredholm alternative** for compact operators is the infinite-dimensional version of the statement that a square matrix equation $Ax = b$ either has a unique solution (when $A$ is invertible) or the homogeneous equation $Ax = 0$ has nontrivial solutions (when $A$ is singular) -- with no third possibility.
 
+![Fredholm alternative: either unique solution or finite-dimensional kernel](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig07_fredholm_alternative.png)
+
+
 **Theorem (Fredholm alternative).** Let $T: X \to X$ be compact and $\lambda \neq 0$. Then exactly one of the following holds:
 
 (A) $\ker(\lambda I - T) = \{0\}$, in which case $\lambda I - T$ is bijective and $(\lambda I - T)^{-1}$ is bounded. The equation $\lambda x - Tx = y$ has a unique solution for every $y$.
@@ -94,6 +109,12 @@ A more physically motivated example: the Neumann series. For $\|\lambda^{-1}T\| 
 ## Singular Values, Hilbert-Schmidt, and Trace Class
 
 For non-self-adjoint compact operators, the spectral theorem does not directly apply, but the **singular value decomposition** provides a complete structural description. For any compact $T: H \to H$, the operator $T^*T$ is compact, self-adjoint, and positive. Applying the spectral theorem to $T^*T$ gives eigenvalues $s_1^2 \geq s_2^2 \geq \ldots \geq 0$ tending to zero. The **singular values** are $s_n = \sqrt{\lambda_n(T^*T)}$, and the SVD is:
+
+![Singular value decomposition for compact operators](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig07_svd.png)
+
+
+![Hilbert-Schmidt operator as matrix with square-summable entries](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig07_hilbert_schmidt.png)
+
 
 $$T = \sum_n s_n \langle \cdot, v_n \rangle u_n$$
 

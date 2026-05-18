@@ -21,9 +21,15 @@ The simplest interesting differential equation is $u' = a u$, with $a \in \mathb
 
 The semigroup theory developed by Hille, Yosida, and Phillips is what salvages the situation. It says: under appropriate conditions on the operator $A$ (a generator), there is a one-parameter family $T(t)$ satisfying the same algebraic and continuity properties, and it solves $u' = A u$ in a precise sense. The conditions on $A$ are spelled out by the **Hille-Yosida theorem**, which characterizes generators of strongly continuous semigroups. Once we have it, the framework solves the heat equation, the wave equation, the Schrödinger equation, and a vast range of evolution PDE in a single uniform language. This article is the tour.
 
+![Exponential formula convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig10_exponential_formula.png)
+
+
 ## $C_0$-Semigroups
 
 Let $X$ be a Banach space. A **strongly continuous one-parameter semigroup**, or $C_0$-semigroup, is a family $\{T(t) : t \geq 0\} \subset B(X)$ such that:
+
+![Semigroup property: T(s+t) = T(s)T(t)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig10_semigroup_property.png)
+
 
 1. $T(0) = I$.
 2. $T(t + s) = T(t) T(s)$ for all $t, s \geq 0$.
@@ -40,6 +46,9 @@ A standard estimate: for a $C_0$-semigroup, there exist $M \geq 1$ and $\omega \
 ## The Generator
 
 Given a $C_0$-semigroup $T(t)$, its **generator** $A$ is defined by
+
+![Generator as infinitesimal limit of semigroup](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig10_generator.png)
+
 
 $$ A x = \lim_{t \to 0^+} \frac{T(t) x - x}{t}, $$
 
@@ -60,6 +69,9 @@ A small exercise: for the scalar example $T(t) = e^{at}$ on $\mathbb{R}$, the ge
 
 Let me walk through a complete example. The Dirichlet Laplacian on $L^2[0, 1]$ has eigenfunctions $\phi_n(x) = \sqrt{2} \sin(n\pi x)$ with eigenvalues $-n^2 \pi^2$, $n = 1, 2, 3, \ldots$. The heat semigroup is then
 
+![Heat kernel and the heat equation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig10_heat_equation.png)
+
+
 $$ T(t) f = \sum_{n=1}^\infty e^{-n^2 \pi^2 t} \langle f, \phi_n \rangle \phi_n. $$
 
 For $t > 0$, the exponential damping factors $e^{-n^2 \pi^2 t}$ kill all high-frequency components, so $T(t) f$ is $C^\infty$ regardless of how rough $f$ is. The semigroup is compact for every $t > 0$ (the operator is Hilbert-Schmidt with rapidly decaying singular values). This compactness is what gives the heat semigroup its remarkable regularizing properties.
@@ -71,6 +83,9 @@ This example also illustrates why **spectral methods** for PDE are popular: when
 ## The Hille-Yosida Theorem
 
 The defining theorem of the subject. It tells us *exactly* which operators are generators of $C_0$-semigroups.
+
+![Hille-Yosida resolvent bound](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig10_hille_yosida.png)
+
 
 **Theorem (Hille-Yosida, 1948).** A linear operator $A: D(A) \to X$ is the generator of a contraction $C_0$-semigroup on $X$ if and only if:
 
@@ -182,6 +197,9 @@ For non-self-adjoint generators, spectral gaps and asymptotic behavior are subtl
 
 ## Resolvent Representation: Recovering $T(t)$ from $A$
 
+![Stability types for semigroups](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig10_stability.png)
+
+
 A useful technical tool: given the generator $A$, can we write down the semigroup $T(t)$ explicitly? The Laplace transform identity
 
 $$ R(\lambda; A) = \int_0^\infty e^{-\lambda t} T(t) \, dt $$
@@ -201,6 +219,9 @@ The formula is mostly of theoretical use — it lets one transfer estimates on t
 ## Time Evolution Under a Semigroup
 
 ![Time evolution of a vector under a semigroup](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/10-semigroups/fa_v2_10_5_evolution.png)
+
+![Animation: heat equation evolution over time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/gif10_heat_evolution.gif)
+
 
 The semigroup defines a flow on the Banach space, with each initial condition tracing out a continuous trajectory. For $x \in D(A)$ this trajectory is differentiable; for general $x \in X$ it is at least continuous. The decay or growth of the trajectory is controlled by the spectral properties of $A$:
 

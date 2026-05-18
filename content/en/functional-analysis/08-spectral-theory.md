@@ -25,6 +25,9 @@ So we need a notion of "spectral value" that is broader than eigenvalue. The ide
 
 Let $T \in B(X)$ be a bounded operator on a complex Banach space $X$. The **resolvent set** is
 
+![Spectrum decomposition: point, continuous, residual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig08_spectrum_parts.png)
+
+
 $$ \rho(T) = \{\lambda \in \mathbb{C} : \lambda I - T \text{ is bijective with bounded inverse}\}. $$
 
 The **spectrum** is the complement: $\sigma(T) = \mathbb{C} \setminus \rho(T)$. By the open mapping theorem, $\lambda I - T$ being bijective is enough to guarantee bounded inverse, so the second condition is automatic. The spectrum is therefore the set of $\lambda$ for which $\lambda I - T$ fails to be either injective or surjective.
@@ -53,6 +56,9 @@ The third example is the prototype non-compact self-adjoint operator. It shows i
 
 For $\lambda \in \rho(T)$, define the **resolvent**
 
+![Resolvent function and its analytic properties](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig08_resolvent.png)
+
+
 $$ R(\lambda; T) = (\lambda I - T)^{-1}. $$
 
 The resolvent is the technical workhorse of spectral theory. Its first virtue: as a function of $\lambda$, it is operator-valued and analytic on $\rho(T)$.
@@ -75,6 +81,9 @@ A standard consequence is the **first resolvent identity**: $R(\lambda) - R(\mu)
 
 Define the **spectral radius** $r(T) = \sup\{|\lambda| : \lambda \in \sigma(T)\}$. The neat fact is that this geometric quantity equals an analytic limit:
 
+![Spectral radius formula](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig08_spectral_radius.png)
+
+
 ![Spectral radius formula r(T) = lim ||T^n||^(1/n)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/08-spectral-theory/fa_v2_08_3_spectral_radius.png)
 
 **Spectral radius formula.** $r(T) = \lim_{n \to \infty} \|T^n\|^{1/n}$.
@@ -93,6 +102,9 @@ Then $A^2$ has a single $1$ in the top-right corner, $A^3 = 0$. So $\|A^n\| = 0$
 
 From here on, $H$ is a complex Hilbert space and $T \in B(H)$ is self-adjoint, meaning $T = T^*$. The world becomes much friendlier.
 
+![Self-adjoint operators have real spectrum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig08_selfadjoint_spectrum.png)
+
+
 ![Spectrum of a self-adjoint operator lies on the real line](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/08-spectral-theory/fa_v2_08_4_self_adjoint.png)
 
 **The spectrum of a self-adjoint operator is real.** For $\lambda = a + ib \in \mathbb{C}$ with $b \neq 0$, the operator $T - \lambda I$ satisfies
@@ -108,6 +120,9 @@ The spectrum of a self-adjoint operator therefore lies on $\mathbb{R}$. In fact,
 ## The Continuous Functional Calculus
 
 This is the key idea, and it is the cleanest one in spectral theory. Given $T = T^*$ bounded with spectrum $\sigma(T) \subset [m, M] \subset \mathbb{R}$, we want to *apply functions to* $T$. For polynomials this is trivial: $p(T) = \sum a_n T^n$. For power series with radius of convergence exceeding $\|T\|$, the same. But what about the function $f(t) = e^t$ on the spectrum? Or $f(t) = \sqrt{t}$ on $[0, M]$ for positive $T$? Or $f(t) = \mathbf{1}_{(\lambda_0, \infty)}(t)$, the indicator of an interval?
+
+![Functional calculus: applying functions to operators](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig08_functional_calculus.png)
+
 
 The clean answer is the **continuous functional calculus**.
 
@@ -128,6 +143,9 @@ A small numerical instance. Take $T = \text{diag}(1, 2, 3)$ on $\mathbb{C}^3$. T
 ## The Spectral Theorem for Bounded Self-Adjoint Operators
 
 There are several equivalent formulations. The two I find most useful are the **multiplication operator form** and the **spectral measure form**.
+
+![Spectral theorem: decomposition via projection-valued measure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig08_spectral_theorem.png)
+
 
 ![Spectral theorem for bounded self-adjoint operators on Hilbert space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/08-spectral-theory/fa_v2_08_5_spectral_thm.png)
 
@@ -172,6 +190,9 @@ These examples are worth building intuition around. Almost any self-adjoint oper
 Consider the bounded self-adjoint operator $(T f)(x) = (1 - x^2) f(x) + \int_{-1}^1 K(x, y) f(y) \, dy$ on $L^2[-1, 1]$, with $K(x, y)$ a small Hilbert-Schmidt kernel. The first part is multiplication by $1 - x^2$, with continuous spectrum $[0, 1]$. The second part is a compact self-adjoint operator. The full operator has both a continuous spectrum (from the multiplication part) and possibly a discrete eigenvalue set (perturbations from the compact part).
 
 Numerically, one discretizes the interval into $N = 1000$ points, builds the resulting $1000 \times 1000$ symmetric matrix, and diagonalizes. The eigenvalues cluster densely on $[0, 1]$ (approximating the continuous spectrum) and possibly have a few outliers (approximating discrete eigenvalues). As $N \to \infty$, the cluster of eigenvalues fills out $[0, 1]$ at a rate predicted by the spectral density of the multiplication operator, and the outliers stabilize. This is the qualitative picture of operator spectra: in the limit, multiplication operators give continuous spectrum, compact operators give discrete eigenvalues, and combinations give a mix. The spectral measure form of the theorem is the structural statement that captures both regimes.
+
+![Animation: spectrum shifting under perturbation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/gif08_spectrum_shift.gif)
+
 
 Concretely: for the multiplication operator $M_g$ on $L^2[0, 1]$ with $g(x) = x$, the spectral measure $E(B) = M_{\mathbf{1}_{B}}$ is multiplication by the indicator of $B$, and $\langle E(B) f, f \rangle = \int_B |f|^2 \, dx$. This *is* the Lebesgue measure of $B$ weighted by $|f|^2$. The eigenfunctions, in the strict sense, do not exist; the right replacement is the spectral measure.
 

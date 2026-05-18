@@ -17,15 +17,30 @@ translationKey: "functional-analysis-9"
 description: "Closed operators, the distinction between symmetric and self-adjoint, deficiency indices, Friedrichs extension, the spectral theorem for unbounded self-adjoint operators, and Stone's theorem."
 ---
 
+![Deficiency indices determine self-adjoint extensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_deficiency_indices.png)
+
+
+![Symmetric vs self-adjoint: domain matters](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_symmetric_vs_selfadjoint.png)
+
+
 Two articles ago I was talking about how spectral theory is the linear-algebraic infrastructure of quantum mechanics. The trouble is that nearly every operator a physicist actually cares about -- the position operator, the momentum operator, the Laplacian, the Schrodinger Hamiltonian -- is *not bounded*. They are not defined on the whole Hilbert space. They are densely defined, with domains that depend on the regularity or decay of the input function. None of the previous spectral apparatus applies directly. We need to extend it.
 
 The extension is delicate. With unbounded operators, simply writing "$T = T^*$" no longer makes unambiguous sense because the two sides may have different domains. There is a real distinction between *symmetric* operators (where $\langle Tx, y\rangle = \langle x, Ty\rangle$ on the common domain) and *self-adjoint* operators (where additionally the domain of $T$ equals the domain of $T^*$). For bounded operators these coincide; for unbounded ones they diverge in subtle ways, and the gap between them is where most of the difficulty of mathematical physics lives. The reward for handling this carefully is that the spectral theorem, the functional calculus, and Stone's theorem all extend -- and we get to do quantum mechanics rigorously.
+
+![Laplacian spectrum and eigenfunctions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_laplacian_spectrum.png)
+
 
 The historical context matters. Von Neumann developed the theory of unbounded operators in the late 1920s precisely to put quantum mechanics on firm foundations. Schrodinger's equation and Heisenberg's matrix mechanics were already in use, but without a clear statement of what "self-adjoint" means for differential operators -- and without a spectral theorem for such operators -- the mathematical foundations were unclear. Von Neumann's work (published 1929-1932, culminating in his *Mathematische Grundlagen der Quantenmechanik*) resolved this by introducing the notions of closed operators, deficiency indices, and self-adjoint extensions. The theory we develop here is essentially his framework, cleaned up by subsequent generations but unchanged in its core ideas.
 
 ## Domains and Why They Encode Physics
 
+![Essential spectrum vs discrete spectrum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_essential_spectrum.png)
+
+
 An **unbounded operator** on a Hilbert space $H$ is a linear map $T: D(T) \to H$ where the **domain** $D(T)$ is a dense linear subspace of $H$. The map need not be defined on all of $H$; the domain is part of the data. Two operators with the same formula but different domains are different operators -- with potentially different spectra and different physical interpretations.
+
+![Domain of unbounded operator as proper subspace](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_domain.png)
+
 
 ![Unbounded operators with their dense but proper domain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_1_unbounded_domain.png)
 
@@ -50,6 +65,9 @@ The physical principle: the number of boundary conditions needed to specify a se
 ## Closed Operators, Closability, and the Graph
 
 The fundamental regularity condition for unbounded operators is **closedness**. The graph $G(T) = \{(x, Tx) : x \in D(T)\} \subset H \times H$ is a linear subspace of the product Hilbert space. The operator $T$ is **closed** if $G(T)$ is closed in $H \times H$. Equivalently: if $x_n \in D(T)$, $x_n \to x$, and $Tx_n \to y$, then $x \in D(T)$ and $Tx = y$.
+
+![Closed operator: graph is closed subspace](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_closed_operator.png)
+
 
 ![Closed operator: graph is closed in the product topology](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_2_closed_op.png)
 
@@ -107,6 +125,9 @@ This unitary equivalence (via Fourier) is the prototype of the spectral theorem 
 **The min-max principle.** For semibounded self-adjoint operators with discrete spectrum below the essential spectrum, the eigenvalues are characterized variationally. If $\lambda_1 \leq \lambda_2 \leq \cdots$ are the eigenvalues (counted with multiplicity) below $\inf\sigma_{ess}$, then
 $$\lambda_k = \min_{\substack{V \subset D(T) \\ \dim V = k}} \max_{\substack{x \in V \\ \|x\| = 1}} \langle Tx, x\rangle.$$
 This is the Courant-Fischer minimax characterization. It is the foundation of variational methods in quantum chemistry (choosing a finite-dimensional subspace gives upper bounds on eigenvalues) and of domain monotonicity results (enlarging the domain -- loosening boundary conditions -- can only decrease eigenvalues). For the Dirichlet Laplacian on a bounded domain $\Omega$, the min-max gives the Weyl asymptotic: $\lambda_k \sim C_n(|\Omega|^{-2/n})k^{2/n}$ as $k \to \infty$, relating the growth rate of eigenvalues to the volume of the domain.
+
+![Animation: heat semigroup smoothing initial data](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/gif09_heat_semigroup.gif)
+
 
 ![Essential spectrum vs discrete spectrum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_6_essential.png)
 
