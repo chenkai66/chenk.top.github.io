@@ -37,13 +37,13 @@ $$0 = \sigma(0) = \sigma(f(\alpha)) = f(\sigma(\alpha)),$$
 
 ![Q(√2)/Q 的 Galois 群通过符号翻转作用](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/08-galois-theory/aa_v2_08_1_galois_group.png)
 
-**例子 ($\mathbb{Q}(\sqrt{2})/\mathbb{Q}$)。** 任何 $\sigma \in \mathrm{Gal}(\mathbb{Q}(\sqrt{2})/\mathbb{Q})$ 必须将 $\sqrt{2}$ 映射到 $x^2 - 2$ 的一个根，即 $\pm\sqrt{2}$。因此恰好有两个自同构：恒等映射和 $\sigma(\sqrt{2}) = -\sqrt{2}$。Galois 群是 $\mathbb{Z}/2\mathbb{Z}$。
+例子 ($\mathbb{Q}(\sqrt{2})/\mathbb{Q}$)：任何 $\sigma \in \mathrm{Gal}(\mathbb{Q}(\sqrt{2})/\mathbb{Q})$ 必须将 $\sqrt{2}$ 映射到 $x^2 - 2$ 的一个根，即 $\pm\sqrt{2}$。因此恰好有两个自同构：恒等映射和 $\sigma(\sqrt{2}) = -\sqrt{2}$。Galois 群是 $\mathbb{Z}/2\mathbb{Z}$。
 
 注意：$\sigma$ 由其在 $\sqrt{2}$ 上的作用决定，因为 $\mathbb{Q}(\sqrt{2})$ 中的每个元素都有形式 $a + b\sqrt{2}$，其中 $a, b \in \mathbb{Q}$，并且 $\sigma(a + b\sqrt{2}) = a + b\sigma(\sqrt{2})$。在符号翻转下保持不变的算术恒等式正是 $(a+b\sqrt{2})(a-b\sqrt{2}) = a^2 - 2b^2$ —— 即 *范数* —— 它自动是 $\mathbb{Q}$-值且 Galois 不变的。
 
-**例子 ($\mathbb{Q}(\sqrt{2}, \sqrt{3})/\mathbb{Q}$)。** 设 $L = \mathbb{Q}(\sqrt{2}, \sqrt{3})$。一个固定 $\mathbb{Q}$ 的自同构 $\sigma$ 将 $\sqrt{2} \mapsto \pm\sqrt{2}$ 和 $\sqrt{3} \mapsto \pm\sqrt{3}$ 独立地映射，给出四个自同构：恒等映射、$\sqrt{2} \mapsto -\sqrt{2}$、$\sqrt{3} \mapsto -\sqrt{3}$ 和它们的乘积。Galois 群是 $\mathbb{Z}/2 \times \mathbb{Z}/2$，即 Klein 四元群 $V_4$。并且 $|\mathrm{Gal}(L/\mathbb{Q})| = 4 = [L:\mathbb{Q}]$，与次数匹配。
+例子 ($\mathbb{Q}(\sqrt{2}, \sqrt{3})/\mathbb{Q}$)：设 $L = \mathbb{Q}(\sqrt{2}, \sqrt{3})$。一个固定 $\mathbb{Q}$ 的自同构 $\sigma$ 将 $\sqrt{2} \mapsto \pm\sqrt{2}$ 和 $\sqrt{3} \mapsto \pm\sqrt{3}$ 独立地映射，给出四个自同构：恒等映射、$\sqrt{2} \mapsto -\sqrt{2}$、$\sqrt{3} \mapsto -\sqrt{3}$ 和它们的乘积。Galois 群是 $\mathbb{Z}/2 \times \mathbb{Z}/2$，即 Klein 四元群 $V_4$。并且 $|\mathrm{Gal}(L/\mathbb{Q})| = 4 = [L:\mathbb{Q}]$，与次数匹配。
 
-**例子 ($\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q}$)。** 最小多项式 $x^3 - 2$ 只有一个实根 $\sqrt[3]{2}$，而其他两个是复数。任何 $\sigma : \mathbb{Q}(\sqrt[3]{2}) \to \mathbb{Q}(\sqrt[3]{2})$ 必须将 $\sqrt[3]{2}$ 映射到 $x^3 - 2$ 在 $\mathbb{Q}(\sqrt[3]{2}) \subset \mathbb{R}$ 内的一个根。只有一个这样的根存在。所以 $\sigma = \mathrm{id}$ 并且 $\mathrm{Gal}(\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q})$ 是平凡的。然而 $[\mathbb{Q}(\sqrt[3]{2}):\mathbb{Q}] = 3 \neq 1$。
+例子 ($\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q}$)：最小多项式 $x^3 - 2$ 只有一个实根 $\sqrt[3]{2}$，而其他两个是复数。任何 $\sigma : \mathbb{Q}(\sqrt[3]{2}) \to \mathbb{Q}(\sqrt[3]{2})$ 必须将 $\sqrt[3]{2}$ 映射到 $x^3 - 2$ 在 $\mathbb{Q}(\sqrt[3]{2}) \subset \mathbb{R}$ 内的一个根。只有一个这样的根存在。所以 $\sigma = \mathrm{id}$ 并且 $\mathrm{Gal}(\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q})$ 是平凡的。然而 $[\mathbb{Q}(\sqrt[3]{2}):\mathbb{Q}] = 3 \neq 1$。
 
 这是上一篇文章中关于可分性和正规性的要点：$|\mathrm{Gal}(L/K)| = [L:K]$ 恰好在 Galois 扩张中成立。这里 $\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q}$ 失去了正规性（扩展不是分裂域），群就坍缩了。
 

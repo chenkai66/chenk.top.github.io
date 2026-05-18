@@ -7,7 +7,7 @@ tags:
   - 赋范空间
   - 数学
 categories: 数学
-series: 泛函分析
+series: functional-analysis
 lang: zh
 mathjax: true
 disableNunjucks: true

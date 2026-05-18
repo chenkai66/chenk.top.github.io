@@ -72,7 +72,7 @@ Hilbert 空间理论的核心是投影定理：对于任何闭子空间 $M \subs
 
 正交投影 $P_M : \mathcal{H} \to M$ 将每个 $x$ 映射到 $M$ 中的最近点。它满足 $P_M^2 = P_M$（投影两次等同于投影一次），$P_M^* = P_M$（投影是自伴的），$\|P_M\| \leq 1$，并且 $\text{Range}(P_M) = M$。反过来，每个有界自伴幂等算子都是其值域上的正交投影。这种闭子空间与自伴幂等算子之间的双射是 Hilbert 空间上算子理论的一个结构支柱。
 
-**实例：Fourier 逼近作为投影。** 在 $L^2[-\pi, \pi]$ 中，设 $M_N = \text{span}\{e^{int} : |n| \leq N\}$——即次数不超过 $N$ 的三角多项式。$f$ 在 $M_N$ 上的正交投影是 Fourier 级数的第 $N$ 部分和：$P_{M_N} f = \sum_{|n| \leq N} \hat{f}(n) e^{int}$，其中 $\hat{f}(n) = \frac{1}{2\pi}\int_{-\pi}^{\pi} f(t) e^{-int}\,dt$。误差 $f - P_{M_N} f$ 与每个 $|n| \leq N$ 的 $e^{int}$ 正交——这正是误差的 Fourier 系数在 $|n| \leq N$ 时为零的陈述。Fourier 级数的 $L^2$ 逼近理论就是将投影定理应用于嵌套子空间 $M_1 \subset M_2 \subset \cdots$，这些子空间的并集在 $L^2$ 中稠密。
+实例：Fourier 逼近作为投影：在 $L^2[-\pi, \pi]$ 中，设 $M_N = \text{span}\{e^{int} : |n| \leq N\}$——即次数不超过 $N$ 的三角多项式。$f$ 在 $M_N$ 上的正交投影是 Fourier 级数的第 $N$ 部分和：$P_{M_N} f = \sum_{|n| \leq N} \hat{f}(n) e^{int}$，其中 $\hat{f}(n) = \frac{1}{2\pi}\int_{-\pi}^{\pi} f(t) e^{-int}\,dt$。误差 $f - P_{M_N} f$ 与每个 $|n| \leq N$ 的 $e^{int}$ 正交——这正是误差的 Fourier 系数在 $|n| \leq N$ 时为零的陈述。Fourier 级数的 $L^2$ 逼近理论就是将投影定理应用于嵌套子空间 $M_1 \subset M_2 \subset \cdots$，这些子空间的并集在 $L^2$ 中稠密。
 
 考虑一个具体函数：$f(t) = |t|$ 在 $[-\pi, \pi]$ 上。它的 Fourier 系数是 $\hat{f}(0) = \pi/2$ 和 $\hat{f}(n) = -\frac{2}{\pi n^2}$ 对于奇数 $n$，偶数 $n \neq 0$ 时为零。投影到 $M_1$ 得到 $P_{M_1}f = \frac{\pi}{2} - \frac{2}{\pi}\cos t$——这是 $L^2$ 意义下的一次三角多项式的最佳逼近。误差范数满足 $\|f - P_{M_1}f\|^2 = \|f\|^2 - |c_0|^2 - 2|c_1|^2 = \frac{\pi^2}{3} - \frac{\pi^2}{4} - \frac{8}{\pi^2} \approx 0.81 - 0.81 = 0.014$（近似）。投影定理保证这是所有 $1$、$\cos t$、$\sin t$ 的线性组合中最小的 $L^2$ 误差。
 
@@ -90,7 +90,7 @@ Fourier 展开 $x = \sum \langle x, e_n \rangle e_n$ 的收敛是无条件的—
 
 **Gram-Schmidt 过程** 从线性无关集合构造正交系统。从 $\{v_1, v_2, \ldots\}$ 开始，设 $e_1 = v_1/\|v_1\|$，然后迭代地 $e_n = (v_n - \sum_{k<n}\langle v_n, e_k\rangle e_k)/\|...\|$。每一步过程中，生成空间保持不变：$\text{span}\{e_1, \ldots, e_n\} = \text{span}\{v_1, \ldots, v_n\}$。
 
-**实例：经典的正交基。** 在 $L^2[-1,1]$ 中，多项式 $\{1, t, t^2, \ldots\}$ 是线性无关但不正交的。Gram-Schmidt 过程产生（归一化后）Legendre 多项式：$P_0 = 1/\sqrt{2}$，$P_1 = t\sqrt{3/2}$，$P_2 = (3t^2-1)\sqrt{5/8}$。指数函数 $\{e^{int}/(2\pi)^{1/2}\}_{n \in \mathbb{Z}}$ 形成 $L^2[-\pi,\pi]$ 的 Fourier 基。Hermite 函数 $h_n(x) = c_n H_n(x) e^{-x^2/2}$ 形成 $L^2(\mathbb{R})$ 的正交基——它们是量子谐振子的特征函数。每个基针对不同的问题：Legendre 用于区间上的多项式逼近，Fourier 用于周期现象，Hermite 用于 Schrodinger 方程的二次势。
+实例：经典的正交基：在 $L^2[-1,1]$ 中，多项式 $\{1, t, t^2, \ldots\}$ 是线性无关但不正交的。Gram-Schmidt 过程产生（归一化后）Legendre 多项式：$P_0 = 1/\sqrt{2}$，$P_1 = t\sqrt{3/2}$，$P_2 = (3t^2-1)\sqrt{5/8}$。指数函数 $\{e^{int}/(2\pi)^{1/2}\}_{n \in \mathbb{Z}}$ 形成 $L^2[-\pi,\pi]$ 的 Fourier 基。Hermite 函数 $h_n(x) = c_n H_n(x) e^{-x^2/2}$ 形成 $L^2(\mathbb{R})$ 的正交基——它们是量子谐振子的特征函数。每个基针对不同的问题：Legendre 用于区间上的多项式逼近，Fourier 用于周期现象，Hermite 用于 Schrodinger 方程的二次势。
 
 Bessel 不等式提供了一个实用的完备性测试。如果 $(e_n)$ 是一个正交系统，并且想验证它是否是一个基，可以检查 Parseval 等式是否对所有 $x$ 成立——等价于 $\|x - \sum_{n=1}^N \langle x, e_n\rangle e_n\| \to 0$ 是否对所有 $x$ 成立。对于 $L^2[-\pi,\pi]$ 上的 Fourier 系统，这正是 Fourier 级数对每个 $L^2$ 函数在 $L^2$ 范数意义下收敛到该函数的陈述——这是 Riesz 和 Fischer 在 1907 年证明的一个定理，也是 Lebesgue 积分理论早期的重要成果之一。
 
@@ -130,9 +130,9 @@ Hilbert 空间中最重要的结构性定理是 Riesz 表示定理（Riesz-Frech
 
 恒等式 $\ker(T^*) = \text{Range}(T)^\perp$ 连接了核和值域。取正交补：$\overline{\text{Range}(T)} = \ker(T^*)^\perp$。这是算子理论中的秩-零度定理，在 Fredholm 理论（第 7 章）中至关重要。
 
-**实例：移位算子。** 右移算子 $S(x_1, x_2, \ldots) = (0, x_1, x_2, \ldots)$ 在 $\ell^2$ 上的伴随算子是 $S^*(x_1, x_2, \ldots) = (x_2, x_3, \ldots)$（左移）。验证：$\langle Sx, y \rangle = \sum_{n \geq 2} x_{n-1}\overline{y_n} = \sum_{n \geq 1} x_n\overline{y_{n+1}} = \langle x, S^*y \rangle$。现在 $S^*S = I$（先右移再左移恢复原向量），但 $SS^*x = (0, x_2, x_3, \ldots) \neq x$ 一般不成立。移位算子是一个等距映射（$\|Sx\| = \|x\|$），但不是酉算子（不是满射）。这在有限维空间是不可能的，因为 $\mathbb{C}^n$ 到自身的等距映射自动是满射。移位算子是无限维空间中这种性质失效的经典例子。
+实例：移位算子：右移算子 $S(x_1, x_2, \ldots) = (0, x_1, x_2, \ldots)$ 在 $\ell^2$ 上的伴随算子是 $S^*(x_1, x_2, \ldots) = (x_2, x_3, \ldots)$（左移）。验证：$\langle Sx, y \rangle = \sum_{n \geq 2} x_{n-1}\overline{y_n} = \sum_{n \geq 1} x_n\overline{y_{n+1}} = \langle x, S^*y \rangle$。现在 $S^*S = I$（先右移再左移恢复原向量），但 $SS^*x = (0, x_2, x_3, \ldots) \neq x$ 一般不成立。移位算子是一个等距映射（$\|Sx\| = \|x\|$），但不是酉算子（不是满射）。这在有限维空间是不可能的，因为 $\mathbb{C}^n$ 到自身的等距映射自动是满射。移位算子是无限维空间中这种性质失效的经典例子。
 
-**实例：Volterra 算子。** 定义 $Vf(t) = \int_0^t f(s)\,ds$ 在 $L^2[0,1]$ 上。通过 Fubini 定理计算伴随算子：$\langle Vf, g\rangle = \int_0^1 g(t)\int_0^t f(s)\,ds\,dt = \int_0^1 f(s)\int_s^1 g(t)\,dt\,ds = \langle f, V^*g\rangle$，所以 $V^*g(s) = \int_s^1 g(t)\,dt$。算子 $V$ 不是自伴的（$V \neq V^*$），也不是正规的，并且谱为 $\{0\}$——它是拟幂零的。然而 $V \neq 0$。这表明紧算子（第 7 章）可以有平凡谱而不为零，这对自伴算子是不可能的。
+实例：Volterra 算子：定义 $Vf(t) = \int_0^t f(s)\,ds$ 在 $L^2[0,1]$ 上。通过 Fubini 定理计算伴随算子：$\langle Vf, g\rangle = \int_0^1 g(t)\int_0^t f(s)\,ds\,dt = \int_0^1 f(s)\int_s^1 g(t)\,dt\,ds = \langle f, V^*g\rangle$，所以 $V^*g(s) = \int_s^1 g(t)\,dt$。算子 $V$ 不是自伴的（$V \neq V^*$），也不是正规的，并且谱为 $\{0\}$——它是拟幂零的。然而 $V \neq 0$。这表明紧算子（第 7 章）可以有平凡谱而不为零，这对自伴算子是不可能的。
 
 **极分解** $T = U|T|$，其中 $|T| = (T^*T)^{1/2}$ 且 $U$ 是部分等距映射，将矩阵的奇异值分解扩展到无限维。对于 Volterra 算子，这给出了一个分解，一部分是正算子（捕捉 $V$ 的“拉伸程度”），另一部分是等距映射（捕捉“方向”）。
 
@@ -148,11 +148,11 @@ Hilbert 空间的一个有用性质（Radon-Riesz 性质）：$x_n \rightharpoon
 
 内积在范数拓扑下联合连续：$x_n \to x$ 和 $y_n \to y$ 意味着 $\langle x_n, y_n\rangle \to \langle x, y\rangle$。但在弱拓扑下，它只是分别连续：$x_n \rightharpoonup x$ 给出 $\langle x_n, y\rangle \to \langle x, y\rangle$ 对固定 $y$ 成立，但如果 $y_n \rightharpoonup y$，则 $\langle x_n, y_n\rangle$ 不一定收敛到 $\langle x, y\rangle$。反例：$\ell^2$ 中的 $x_n = y_n = e_n$ 给出 $\langle e_n, e_n\rangle = 1$ 但 $\langle 0, 0\rangle = 0$。这种联合弱连续性的失败是非线性偏微分方程中的常见困难来源——需要额外的紧性或补偿紧性论证来处理弱收敛序列的乘积。
 
-**直和。** 正交直和 $\mathcal{H}_1 \oplus \mathcal{H}_2$ 的元素是 $(x_1, x_2)$，其内积定义为 $\langle (x_1,x_2), (y_1,y_2)\rangle = \langle x_1,y_1\rangle_1 + \langle x_2,y_2\rangle_2$。分解 $\mathcal{H} = M \oplus M^\perp$ 是典型的例子。相对于直和分解的算子块矩阵表示是谱理论的基础：当一个正规算子表示为谱子空间上的乘法算子的直和时，它就被“对角化”了。
+直和：正交直和 $\mathcal{H}_1 \oplus \mathcal{H}_2$ 的元素是 $(x_1, x_2)$，其内积定义为 $\langle (x_1,x_2), (y_1,y_2)\rangle = \langle x_1,y_1\rangle_1 + \langle x_2,y_2\rangle_2$。分解 $\mathcal{H} = M \oplus M^\perp$ 是典型的例子。相对于直和分解的算子块矩阵表示是谱理论的基础：当一个正规算子表示为谱子空间上的乘法算子的直和时，它就被“对角化”了。
 
-**张量积。** 完备张量积 $\mathcal{H}_1 \otimes \mathcal{H}_2$ 通过在简单张量上定义 $\langle x_1 \otimes x_2, y_1 \otimes y_2\rangle = \langle x_1, y_1\rangle\langle x_2, y_2\rangle$ 并通过线性和完备性扩展来构建。基本识别：$\ell^2 \otimes \ell^2 \cong \ell^2(\mathbb{N} \times \mathbb{N})$ 和 $L^2(\Omega_1) \otimes L^2(\Omega_2) \cong L^2(\Omega_1 \times \Omega_2)$。在量子力学中，双系统状态空间是 $\mathcal{H}_A \otimes \mathcal{H}_B$；纠缠意味着状态不能写成简单张量 $\psi_A \otimes \psi_B$，而需要真正的和 $\sum c_k \psi_A^{(k)} \otimes \psi_B^{(k)}$。张量积结构也是为什么多变量傅里叶分析可以简化为迭代的一维变换：$L^2(\mathbb{R}^d) \cong L^2(\mathbb{R})^{\otimes d}$ 上的傅里叶变换是一维变换的张量积。
+张量积：完备张量积 $\mathcal{H}_1 \otimes \mathcal{H}_2$ 通过在简单张量上定义 $\langle x_1 \otimes x_2, y_1 \otimes y_2\rangle = \langle x_1, y_1\rangle\langle x_2, y_2\rangle$ 并通过线性和完备性扩展来构建。基本识别：$\ell^2 \otimes \ell^2 \cong \ell^2(\mathbb{N} \times \mathbb{N})$ 和 $L^2(\Omega_1) \otimes L^2(\Omega_2) \cong L^2(\Omega_1 \times \Omega_2)$。在量子力学中，双系统状态空间是 $\mathcal{H}_A \otimes \mathcal{H}_B$；纠缠意味着状态不能写成简单张量 $\psi_A \otimes \psi_B$，而需要真正的和 $\sum c_k \psi_A^{(k)} \otimes \psi_B^{(k)}$。张量积结构也是为什么多变量傅里叶分析可以简化为迭代的一维变换：$L^2(\mathbb{R}^d) \cong L^2(\mathbb{R})^{\otimes d}$ 上的傅里叶变换是一维变换的张量积。
 
-**实例。** 在 $L^2(\mathbb{R}^2)$ 中，高斯函数 $f(x,y) = e^{-(x^2+y^2)/2}$ 可以分解为 $f_1 \otimes f_2$，其中 $f_1(x) = f_2(x) = e^{-x^2/2}$。其 $L^2(\mathbb{R}^2)$ 范数平方是 $\int e^{-(x^2+y^2)}\,dx\,dy = \pi$。张量范数给出 $\|f_1\|^2 \cdot \|f_2\|^2 = \sqrt{\pi} \cdot \sqrt{\pi} = \pi$。函数 $g(x,y) = xe^{-(x^2+y^2)/2}$ 不能分解——它需要展开为 $g = (\text{某个关于 }x\text{ 的函数}) \otimes (\text{某个关于 }y\text{ 的函数})$，这是不可能的，因为 $g(x,y)/g(x',y)$ 通常依赖于 $y$。$L^2(\mathbb{R}^2)$ 中不可分解的函数对应于量子解释中的“纠缠”态。
+实例：在 $L^2(\mathbb{R}^2)$ 中，高斯函数 $f(x,y) = e^{-(x^2+y^2)/2}$ 可以分解为 $f_1 \otimes f_2$，其中 $f_1(x) = f_2(x) = e^{-x^2/2}$。其 $L^2(\mathbb{R}^2)$ 范数平方是 $\int e^{-(x^2+y^2)}\,dx\,dy = \pi$。张量范数给出 $\|f_1\|^2 \cdot \|f_2\|^2 = \sqrt{\pi} \cdot \sqrt{\pi} = \pi$。函数 $g(x,y) = xe^{-(x^2+y^2)/2}$ 不能分解——它需要展开为 $g = (\text{某个关于 }x\text{ 的函数}) \otimes (\text{某个关于 }y\text{ 的函数})$，这是不可能的，因为 $g(x,y)/g(x',y)$ 通常依赖于 $y$。$L^2(\mathbb{R}^2)$ 中不可分解的函数对应于量子解释中的“纠缠”态。
 
 ## 再生核希尔伯特空间
 

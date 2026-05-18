@@ -89,13 +89,13 @@ $$
 
 关键例子：
 
-1. **局部可积函数。** 每个$f \in L^1_{\text{loc}}(\Omega)$定义一个分布$\langle f, \varphi \rangle = \int_\Omega f\varphi\,dx$。
+1. 局部可积函数：每个$f \in L^1_{\text{loc}}(\Omega)$定义一个分布$\langle f, \varphi \rangle = \int_\Omega f\varphi\,dx$。
 
-2. **Dirac delta。** $\langle \delta_a, \varphi \rangle = \varphi(a)$。这*不是*上述形式；没有$L^1_{\text{loc}}$函数能满足定义恒等式（取$\varphi$为收缩到$a$的一系列凸起显示$f$必须以不允许的方式“集中”）。
+2. Dirac delta：$\langle \delta_a, \varphi \rangle = \varphi(a)$。这*不是*上述形式；没有$L^1_{\text{loc}}$函数能满足定义恒等式（取$\varphi$为收缩到$a$的一系列凸起显示$f$必须以不允许的方式“集中”）。
 
-3. **Heaviside。** $H(x) = 1$对于$x \ge 0$，否则为$0$。它的分布导数是$\delta$——一个分部积分：$\langle H', \varphi \rangle = -\langle H, \varphi' \rangle = -\int_0^\infty \varphi'(x)\,dx = \varphi(0)$。
+3. Heaviside：$H(x) = 1$对于$x \ge 0$，否则为$0$。它的分布导数是$\delta$——一个分部积分：$\langle H', \varphi \rangle = -\langle H, \varphi' \rangle = -\int_0^\infty \varphi'(x)\,dx = \varphi(0)$。
 
-4. **主值$1/x$。** 函数$1/x$在$\mathbb{R}$上在$0$附近不是局部可积的，但主值$\langle \mathrm{p.v.} \tfrac{1}{x}, \varphi \rangle = \lim_{\epsilon \to 0}\int_{|x|>\epsilon}\varphi(x)/x\,dx$定义了一个阶为$1$的分布。
+4. 主值$1/x$：函数$1/x$在$\mathbb{R}$上在$0$附近不是局部可积的，但主值$\langle \mathrm{p.v.} \tfrac{1}{x}, \varphi \rangle = \lim_{\epsilon \to 0}\int_{|x|>\epsilon}\varphi(x)/x\,dx$定义了一个阶为$1$的分布。
 
 ![像Dirac delta这样的分布在测试函数上的作用](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/11-distributions-sobolev/fa_v2_11_2_distributions.png)
 
