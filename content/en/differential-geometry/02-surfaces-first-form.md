@@ -28,7 +28,7 @@ The intrinsic / extrinsic split is going to recur for the next ten chapters, so 
 ## What is a Surface?
 
 
-![Tangent plane on a saddle surface with tangent vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg02_tangent_plane.png)
+![Tangent plane on a saddle surface with tangent vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg02_parametric_surfaces.png)
 
 ![Parametric surfaces: sphere, torus, and saddle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_parametric_surfaces.png)
 
@@ -210,7 +210,7 @@ Suppose I have two charts $\mathbf{x}: U\to S$ and $\tilde{\mathbf{x}}: \tilde U
 $$J = \begin{pmatrix}u_{u'} & u_{v'}\\ v_{u'} & v_{v'}\end{pmatrix}$$
 relates the two bases of $T_pS$.
 
-![Measuring curve length on a surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_length_on_surface.png)
+![Measuring curve length on a surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_curve_on_surface.png)
 
 
 The first fundamental forms transform tensorially: $\tilde{\mathrm{I}} = J^T \mathrm{I} J$. Determinants: $\det\tilde{\mathrm{I}} = (\det J)^2 \det\mathrm{I}$, so $\sqrt{\tilde E\tilde G - \tilde F^2} = |\det J|\sqrt{EG - F^2}$, which is exactly the change-of-variables formula for the area integral. The two charts agree on lengths, angles, and areas.

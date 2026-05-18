@@ -66,7 +66,7 @@ Armed with Christoffel symbols, we can state and understand the central theorem 
 ![Animation: geodesic flow on a surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_geodesic_flow.gif)
 
 
-![Geodesics on various surfaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_geodesic_on_surfaces.png)
+![Geodesics on various surfaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_geodesic_surfaces.png)
 
 
 **Theorem (Gauss, 1827 — Theorema Egregium).** The Gaussian curvature $K$ is expressible entirely in terms of the metric coefficients $g_{ij}$ and their first and second partial derivatives. In particular, $K$ does not depend on the second fundamental form $\mathrm{II}$ or on any information about how the surface is embedded in $\mathbb{R}^3$.
@@ -176,7 +176,7 @@ All three give the same number $K$, all three are computable from $\mathrm{I}$ a
 
 The Theorema Egregium opens a classification program: since isometries preserve $K$, surfaces with different $K$ are never isometric. What are the surfaces of constant curvature?
 
-![Parallel transport on the sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_parallel_transport_sphere.png)
+![Parallel transport on the sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_parallel_transport.png)
 
 
 **Theorem (Minding, 1839).** Any two surfaces with the same constant Gaussian curvature are locally isometric. That is, small patches of one can be mapped isometrically onto small patches of the other.

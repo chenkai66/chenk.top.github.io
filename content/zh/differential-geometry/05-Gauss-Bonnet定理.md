@@ -29,7 +29,7 @@ series_total: 12
 ## 局部 Gauss-Bonnet 定理
 
 
-![Gauss-Bonnet 定理：曲率积分等于拓扑不变量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/dg05_gauss_bonnet.png)
+![Gauss-Bonnet 定理：曲率积分等于拓扑不变量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/dg05_local_gauss_bonnet.png)
 
 ![不同曲面的 Euler 示性数](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/05_euler_characteristic.png)
 

@@ -32,7 +32,7 @@ A historical orientation, since the names accumulate quickly. Riemann introduced
 ## 1. Riemannian Metrics
 
 
-![Parallel transport on a sphere: vector rotates 90 degrees around a spherical triangle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg10_parallel_transport.png)
+![Parallel transport on a sphere: vector rotates 90 degrees around a spherical triangle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg10_parallel_transport_paths.png)
 
 ![Riemannian metric: unit balls in Euclidean vs hyperbolic geometry](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_riemannian_metric.png)
 

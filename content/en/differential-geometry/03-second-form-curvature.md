@@ -28,7 +28,7 @@ A spoiler for the next chapter: $K$ — the Gaussian curvature, defined extrinsi
 ## The Gauss Map and the Shape Operator
 
 
-![Gaussian curvature classification: sphere K>0, cylinder K=0, saddle K<0](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg03_gaussian_curvature.png)
+![Gaussian curvature classification: sphere K>0, cylinder K=0, saddle K<0](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg03_curvature_classification.png)
 
 ![Gauss map: surface normals mapped to the unit sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_gauss_map.png)
 
@@ -88,7 +88,7 @@ $$K = k_1 k_2 = \det S = \frac{LN - M^2}{EG - F^2}, \qquad H = \frac{k_1 + k_2}{
 ![Animation: normal curvature as direction rotates](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_normal_rotation.gif)
 
 
-![Principal curvatures: maximum and minimum normal curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_principal_curvatures.png)
+![Principal curvatures: maximum and minimum normal curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_normal_curvature.png)
 
 
 The Gaussian curvature $K$ is the product of principal curvatures; the mean curvature $H$ is their average. Together they determine $k_1$ and $k_2$ via $k_{1,2} = H \pm \sqrt{H^2 - K}$, so no information is lost.
@@ -170,7 +170,7 @@ This is the *minimal surface equation*. Its solutions include $f = 0$ (plane), S
 
 Beyond the principal curvatures, the variation of normal curvature $\kappa_n$ across directions in $T_pS$ reveals additional geometric structure.
 
-![Gaussian curvature coloring on a torus](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_curvature_coloring.png)
+![Gaussian curvature coloring on a torus](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_torus_curvature.png)
 
 
 Euler's theorem states: if $\mathbf{w}$ makes angle $\alpha$ with the first principal direction, then $\kappa_n(\mathbf{w}) = k_1\cos^2\alpha + k_2\sin^2\alpha$. The normal curvature varies sinusoidally between $k_1$ and $k_2$ as we rotate through the tangent plane. This gives a clean geometric picture: the two principal directions are where the surface bends the most and the least, and all other directions are intermediate.

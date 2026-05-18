@@ -30,7 +30,7 @@ translationKey: "differential-geometry-10"
 ## 1. 黎曼度量
 
 
-![球面上的平行移动与和乐：向量沿三角形路径传输后旋转 90°](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/dg10_parallel_transport.png)
+![球面上的平行移动与和乐：向量沿三角形路径传输后旋转 90°](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/dg10_parallel_transport_paths.png)
 
 ![Riemannian 度量：Euclid 几何 vs 双曲几何中的单位球](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_riemannian_metric.png)
 

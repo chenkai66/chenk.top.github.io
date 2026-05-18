@@ -31,7 +31,7 @@ A note on tone before we start. This series is going to favour computation over 
 ## Curves as Paths through Space
 
 
-![Frenet frame on a helix: tangent T (red), normal N (green), binormal B (purple)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg01_frenet_frame.png)
+![Frenet frame on a helix: tangent T (red), normal N (green), binormal B (purple)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg01_frenet_serret.png)
 
 Informally, a curve is a path traced out by a moving point. There is one subtlety to flag right away: do we mean the *image* (the set of points on the path) or the *parametrization* (the specific function describing the motion)? Differential geometers care about both, and in fact a lot of the early grunt work is making sure our definitions distinguish properties of the image from properties of the particular speedometer reading.
 
@@ -74,7 +74,7 @@ Length is therefore a property of the image, not the parametrization.
 ![Animation: Frenet frame moving along a curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_frenet_moving.gif)
 
 
-![Curvature comparison: circle, helix, and general curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_curvature_gallery.png)
+![Curvature comparison: circle, helix, and general curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_curves_gallery.png)
 
 
 Define the *arc-length function* with reference point $t_0$:
@@ -159,7 +159,7 @@ At $t = 0$ (the vertex), $\kappa = 2$. As $|t|\to\infty$, $\kappa\to 0$ — the 
 We have two orthogonal unit vectors at every point where $\kappa > 0$: $\mathbf{T}$ and $\mathbf{N}$. The third leg of the right-handed frame is the *binormal*:
 $$\mathbf{B}(s) = \mathbf{T}(s) \times \mathbf{N}(s).$$
 
-![Helix: constant curvature and torsion](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_helix.png)
+![Helix: constant curvature and torsion](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_arc_length.png)
 
 
 The plane spanned by $\mathbf{T}$ and $\mathbf{N}$ (the *osculating plane*) contains the curve to second order at the point of evaluation. Geometrically, it is the plane that "best fits" the curve at that point.
@@ -197,7 +197,7 @@ Putting the three derivatives together — $\mathbf{T}'$, $\mathbf{N}'$, $\mathb
 $$\mathbf{N}' = (\mathbf{B}\times\mathbf{T})' = \mathbf{B}'\times\mathbf{T} + \mathbf{B}\times\mathbf{T}' = -\tau\mathbf{N}\times\mathbf{T} + \kappa\mathbf{B}\times\mathbf{N} = -\kappa\mathbf{T} + \tau\mathbf{B},$$
 we land on:
 
-![Osculating circle at points of varying curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_osculating_circle.png)
+![Osculating circle at points of varying curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_curvature_osculating.png)
 
 
 $$\frac{d}{ds}\begin{pmatrix}\mathbf{T}\\ \mathbf{N}\\ \mathbf{B}\end{pmatrix} = \begin{pmatrix}0 & \kappa & 0 \\ -\kappa & 0 & \tau \\ 0 & -\tau & 0\end{pmatrix}\begin{pmatrix}\mathbf{T}\\ \mathbf{N}\\ \mathbf{B}\end{pmatrix}.$$

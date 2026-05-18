@@ -28,7 +28,7 @@ The plan for this article: define vector fields three different ways (geometric,
 ## 1. Vector Fields: Smooth Sections of the Tangent Bundle
 
 
-![Vector field with integral curves (spiral source)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg07_vector_field.png)
+![Vector field with integral curves (spiral source)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg07_vector_fields_2d.png)
 
 ![Vector fields on the plane: sources, sinks, and vortices](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/07_vector_field_2d.png)
 
