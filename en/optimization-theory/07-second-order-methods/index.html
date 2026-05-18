@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/optimization-theory/>Optimization Theory</a>
 · Chapter 7</div><h1>Optimization (7): Second-Order Methods</h1><p class=deck>Second-order methods break the sqrt(kappa) barrier by using curvature. We prove Newton's quadratic local convergence, derive BFGS from a secant condition + low-rank update, walk through L-BFGS's two-loop recursion that makes it the workhorse for medium-scale ML, and analyze trust-region subproblems with the dogleg solution.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-09-22>September 22, 2022</time> · 24 min read · 2501 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/ml/ class=tag>#ML</a><a href=/en/tags/optimization/ class=tag>#Optimization</a><a href=/en/tags/numerical-methods/ class=tag>#Numerical Methods</a></div><a class="pill pill-outline" href=/zh/optimization-theory/07-second-order-methods/>阅读中文版 →</a></div></header><div class=prose><p>First-order methods top out at <span class=math-inline>$O(\sqrt{\kappa})$</span>
+<span class=meta-line><time datetime=2022-09-22>September 22, 2022</time> · 26 min read · 2715 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/ml/ class=tag>#ML</a><a href=/en/tags/optimization/ class=tag>#Optimization</a><a href=/en/tags/numerical-methods/ class=tag>#Numerical Methods</a></div><a class="pill pill-outline" href=/zh/optimization-theory/07-second-order-methods/>阅读中文版 →</a></div></header><div class=prose><p>First-order methods top out at <span class=math-inline>$O(\sqrt{\kappa})$</span>
 iterations to reach <span class=math-inline>$\epsilon$</span>
 -accuracy (article 05). Second-order methods break this barrier by using curvature: Newton&rsquo;s method has <strong>quadratic</strong> local convergence — the number of correct digits doubles every iteration — and quasi-Newton methods retain most of this speed without computing the Hessian explicitly.</p><p>The cost is in the per-iteration work: Newton solves an <span class=math-inline>$n \times n$</span>
 linear system per step (<span class=math-inline>$O(n^3)$</span>
@@ -139,18 +139,123 @@ with <span class=math-inline>$\rho_i = 1 / (y_i^\top s_i)$</span></li><li>An ini
 (commonly <span class=math-inline>$H_k^0 = (s_{k-1}^\top y_{k-1} / y_{k-1}^\top y_{k-1}) I$</span>
 — a scalar multiple of identity)</li></ul><p>The recursion computes <span class=math-inline>$H_k g$</span>
 in <span class=math-inline>$O(mn)$</span>
-:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
+:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>q ← g
 </span></span><span class=line><span class=cl>for i = k-1, k-2, ..., k-m:           # first loop, &#34;going backward&#34;
 </span></span><span class=line><span class=cl>    α_i ← ρ_i s_i^T q
@@ -163,78 +268,116 @@ in <span class=math-inline>$O(mn)$</span>
 </span></span><span class=line><span class=cl>    r ← r + (α_i - β) s_i
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl>return r                              # r = H_k g
-</span></span></code></pre></td></tr></table></div></div><p>Each loop touches each pair once; the total work is <span class=math-inline>$4mn$</span>
-inner products plus a vector scaling — totally bypassing the <span class=math-inline>$O(n^2)$</span>
-matrix update.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig4.png alt="L-BFGS two-loop recursion" loading=lazy decoding=async class=content-image></figure><em>Figure 4. The L-BFGS two-loop recursion. The backward loop sweeps the m history pairs to produce alpha_i and an updated q; H_k^0 is applied; the forward loop sweeps in reverse, yielding r = H_k g in O(mn) without ever forming H_k.</em></p><h3 id=where-the-two-loop-comes-from class=heading-anchor>Where the two-loop comes from<a href=#where-the-two-loop-comes-from class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Apply (BFGS) recursively to expand <span class=math-inline>$H_k$</span>
-in terms of <span class=math-inline>$H_k^0$</span>
-and the pairs <span class=math-inline>$(s_i, y_i)$</span>
-. The first loop unwinds the right-most factor <span class=math-inline>$(I - \rho_i y_i s_i^\top)$</span>
-for each <span class=math-inline>$i$</span>
-from <span class=math-inline>$k-1$</span>
-down to <span class=math-inline>$k-m$</span>
-, applied to <span class=math-inline>$g$</span>
-. Multiplying by <span class=math-inline>$H_k^0$</span>
-gives the middle. The second loop applies the left factors <span class=math-inline>$(I - \rho_i s_i y_i^\top)$</span>
-in the reverse order. The <span class=math-inline>$\alpha_i$</span>
-values are reused because they appear symmetrically in both factors. (Nocedal & Wright, <em>Numerical Optimization</em>, Algorithm 7.4 has the full derivation.)</p><h3 id=practical-l-bfgs class=heading-anchor>Practical L-BFGS<a href=#practical-l-bfgs class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><ul><li><strong>Initial <span class=math-inline>$H_0$</span>
-.</strong> <span class=math-inline>$H_0 = \gamma_k I$</span>
-with <span class=math-inline>$\gamma_k = (s_{k-1}^\top y_{k-1}) / (y_{k-1}^\top y_{k-1})$</span>
-is the standard choice; it provides scale-invariance.</li><li><strong>Memory size <span class=math-inline>$m$</span>
-.</strong> <span class=math-inline>$m = 5$</span>
-is a sensible default; <span class=math-inline>$m = 20$</span>
-for problems where the gain matters. Larger <span class=math-inline>$m$</span>
-does not help past a point because old curvature pairs become irrelevant.</li><li><strong>Skipping pairs.</strong> If <span class=math-inline>$y_k^\top s_k \leq \epsilon \|s_k\| \|y_k\|$</span>
-(say <span class=math-inline>$\epsilon = 10^{-8}$</span>
-), the curvature condition fails and including the pair would damage positive definiteness; skip it.</li><li><strong>Line search.</strong> L-BFGS needs a proper Wolfe-condition line search to maintain <span class=math-inline>$y_k^\top s_k > 0$</span>
-. A pure Armijo backtracking can break BFGS.</li></ul><p>L-BFGS is the default solver for many ML problems: PyTorch&rsquo;s <code>torch.optim.LBFGS</code>, scikit-learn&rsquo;s <code>LogisticRegression</code> for moderate-scale problems, scipy&rsquo;s <code>minimize</code> family. It dominates first-order methods for problems that fit in memory and are not too noisy.</p><hr><h2 id=trust-region-methods class=heading-anchor>Trust-region methods<a href=#trust-region-methods class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Line search asks &ldquo;in which direction?&rdquo; then &ldquo;how far?&rdquo;. Trust region asks both at once: <strong>within a region of trust around <span class=math-inline>$x_k$</span>
-, what is the best step?</strong></p><h3 id=the-subproblem class=heading-anchor>The subproblem<a href=#the-subproblem class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
-m_k(d) = f(x_k) + g_k^\top d + \tfrac{1}{2} d^\top B_k d.
-$$</span>
-<span class=math-block>$$
-d_k^\star = \arg\min_{\|d\|_2 \leq \Delta_k} m_k(d),
-$$</span>
-<span class=math-block>$$
-\rho_k = \frac{f(x_k) - f(x_k + d_k^\star)}{m_k(0) - m_k(d_k^\star)}.
-$$</span><p>If <span class=math-inline>$\rho_k$</span>
-is close to 1 the model is good; expand the trust region. If <span class=math-inline>$\rho_k$</span>
-is poor or negative, contract the region and reject the step. Standard schedule: shrink <span class=math-inline>$\Delta_k$</span>
-by 4 if <span class=math-inline>$\rho_k &lt; 0.25$</span>
-, expand by 2 if <span class=math-inline>$\rho_k > 0.75$</span>
-and the step lies on the boundary.</p><h3 id=solving-the-subproblem class=heading-anchor>Solving the subproblem<a href=#solving-the-subproblem class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>The exact solution requires the <strong>Moré&ndash;Sorensen</strong> algorithm: find <span class=math-inline>$\lambda \geq 0$</span>
-such that <span class=math-inline>$(B_k + \lambda I) d = -g_k$</span>
-and <span class=math-inline>$\lambda (\|d\|_2 - \Delta_k) = 0$</span>
-. This is exact but expensive.</p><p>Two cheap approximations:</p><span class=math-block>$$
-d_k^C = -\tau \frac{\Delta_k}{\|g_k\|_2} g_k, \quad \tau = \begin{cases} 1 & g_k^\top B_k g_k \leq 0 \\ \min\big(\frac{\|g_k\|_2^3}{\Delta_k g_k^\top B_k g_k}, 1\big) & \text{otherwise.} \end{cases}
-$$</span><p>The Cauchy point gives at most a Cauchy decrease — comparable to gradient descent — but is always defined.</p><p><strong>Dogleg.</strong> When <span class=math-inline>$B_k \succ 0$</span>
-, compute the unconstrained Newton step <span class=math-inline>$d_k^N = -B_k^{-1} g_k$</span>
-and the steepest-descent step <span class=math-inline>$d_k^{SD} = -\frac{g_k^\top g_k}{g_k^\top B_k g_k} g_k$</span>
-. The dogleg path is</p><ul><li>If <span class=math-inline>$\|d_k^N\|_2 \leq \Delta_k$</span>
-: take <span class=math-inline>$d_k = d_k^N$</span>
-.</li><li>Else if <span class=math-inline>$\|d_k^{SD}\|_2 \geq \Delta_k$</span>
-: take <span class=math-inline>$d_k = -\Delta_k \frac{g_k}{\|g_k\|_2}$</span>
-(Cauchy direction, capped).</li><li>Else: take the linear combination that lies on the trust region boundary, giving a quasi-Newton step with reduced length.</li></ul><p>The dogleg path is a &ldquo;broken line&rdquo; from <span class=math-inline>$0$</span>
-to <span class=math-inline>$d_k^{SD}$</span>
-to <span class=math-inline>$d_k^N$</span>
-. The model decrease along this path is monotone, so the best feasible point is where the path meets the trust region boundary (or <span class=math-inline>$d_k^N$</span>
-if interior).</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig5.png alt="Trust region dogleg path" loading=lazy decoding=async class=content-image></figure><em>Figure 5. Trust-region subproblem in 2D: contours of the quadratic model m(d), the trust ball ||d||&lt;=Delta (dashed), the Cauchy direction d_SD, the Newton step d_N, and the dogleg broken line. The dogleg solution is the intersection of the path with the trust boundary.</em></p><h3 id=convergence class=heading-anchor>Convergence<a href=#convergence class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Trust-region methods with Cauchy decrease are <strong>globally convergent</strong> to a stationary point — i.e., <span class=math-inline>$\|\nabla f(x_k)\| \to 0$</span>
-— under mild assumptions on <span class=math-inline>$B_k$</span>
-(uniformly bounded). When <span class=math-inline>$B_k = \nabla^2 f(x_k)$</span>
-and the iterates are close to a strict minimum, trust regions inherit Newton&rsquo;s quadratic convergence.</p><p>Trust regions are the method of choice for problems with non-convex Hessians (the model handles indefiniteness gracefully) and for very high-precision solutions where each step&rsquo;s quality matters more than per-step cost.</p><hr><h2 id=choosing-among-the-second-order-methods class=heading-anchor>Choosing among the second-order methods<a href=#choosing-among-the-second-order-methods class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=table-wrap><table><thead><tr><th>Method</th><th>Per-step cost</th><th>Memory</th><th>Convergence near <span class=math-inline>$x^\star$</span></th><th>When to use</th></tr></thead><tbody><tr><td>Newton (full)</td><td><span class=math-inline>$O(n^3)$</span></td><td><span class=math-inline>$O(n^2)$</span></td><td>Quadratic</td><td>Small <span class=math-inline>$n$</span>
-, exact Hessian available, indefinite handled</td></tr><tr><td>BFGS</td><td><span class=math-inline>$O(n^2)$</span></td><td><span class=math-inline>$O(n^2)$</span></td><td>Superlinear</td><td>Medium <span class=math-inline>$n$</span>
-(<span class=math-inline>$10^3$</span>
-&ndash;<span class=math-inline>$10^4$</span>
-), good gradients</td></tr><tr><td>L-BFGS</td><td><span class=math-inline>$O(mn)$</span></td><td><span class=math-inline>$O(mn)$</span></td><td>Superlinear</td><td>Large <span class=math-inline>$n$</span>
-(<span class=math-inline>$10^4$</span>
-&ndash;<span class=math-inline>$10^7$</span>
-), the ML default</td></tr><tr><td>Trust region</td><td><span class=math-inline>$O(n^3)$</span>
-exact</td><td><span class=math-inline>$O(n^2)$</span></td><td>Quadratic</td><td>Indefinite Hessians, high-precision needs</td></tr><tr><td>Gauss&ndash;Newton</td><td><span class=math-inline>$O(n m^2)$</span></td><td><span class=math-inline>$O(n^2)$</span></td><td>Quadratic in residual</td><td>Nonlinear least squares (<span class=math-inline>$f = \frac{1}{2} \midr(x)\mid^2$</span>
-)</td></tr></tbody></table></div><p>For machine learning at the scale of millions of parameters, second-order methods are usually a poor fit because (a) gradients are noisy stochastic estimates, (b) memory is constrained, and (c) we don&rsquo;t need high precision — the validation error stops decreasing well before the optimization gap becomes small. SGD-type methods dominate.</p><p>For classical scientific computing — physics simulations, parameter estimation, signal recovery on convex domains — L-BFGS and trust-region Newton are the workhorses. They achieve solutions that gradient descent cannot reach in any reasonable wall-clock time.</p><hr><h2 id=summary class=heading-anchor>Summary<a href=#summary class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Second-order methods break the <span class=math-inline>$\sqrt{\kappa}$</span>
-barrier by using curvature, at a per-iteration cost. The hierarchy:</p><ul><li><strong>Newton</strong> — fast, expensive, fragile; needs globalization.</li><li><strong>BFGS</strong> — Newton&rsquo;s curvature, half the cost, full memory.</li><li><strong>L-BFGS</strong> — BFGS in <span class=math-inline>$O(mn)$</span>
-memory; the modern default.</li><li><strong>Trust region</strong> — robustness to indefinite Hessians and bounded steps.</li></ul><p>The next article (08) tackles constrained optimization using Lagrangian duality — the same Newton machinery applies, just to the augmented system.</p><h2 id=references class=heading-anchor>References<a href=#references class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>Nocedal & Wright, <em>Numerical Optimization</em> (2nd ed.), Ch. 3 (line search), 4 (trust region), 6 (BFGS), 7 (L-BFGS) — the canonical reference.</li><li>Boyd & Vandenberghe, <em>Convex Optimization</em>, §9.5 (Newton with damping) and §9.6 (self-concordance).</li><li>Nesterov & Polyak, <em>Cubic regularization of Newton method and its global performance</em>, MathProg 108, 2006 — modern non-convex Newton.</li><li>Liu & Nocedal, <em>On the limited memory BFGS method for large scale optimization</em>, MathProg 45, 1989 — the L-BFGS paper.</li></ul></div><div class=article-share aria-label="Share this article"><span class=share-label>Share</span>
+</span></span><span class=line><span class=cl>```python
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Each loop touches each pair once; the total work is $4mn$ inner products plus a vector scaling — totally bypassing the $O(n^2)$ matrix update.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>![L-BFGS two-loop recursion](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig4.png)
+</span></span><span class=line><span class=cl>*Figure 4. The L-BFGS two-loop recursion. The backward loop sweeps the m history pairs to produce alpha_i and an updated q; H_k^0 is applied; the forward loop sweeps in reverse, yielding r = H_k g in O(mn) without ever forming H_k.*
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>### Where the two-loop comes from
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Apply (BFGS) recursively to expand $H_k$ in terms of $H_k^0$ and the pairs $(s_i, y_i)$. The first loop unwinds the right-most factor $(I - \rho_i y_i s_i^\top)$ for each $i$ from $k-1$ down to $k-m$, applied to $g$. Multiplying by $H_k^0$ gives the middle. The second loop applies the left factors $(I - \rho_i s_i y_i^\top)$ in the reverse order. The $\alpha_i$ values are reused because they appear symmetrically in both factors. (Nocedal &amp; Wright, *Numerical Optimization*, Algorithm 7.4 has the full derivation.)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>### Practical L-BFGS
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>- **Initial $H_0$.** $H_0 = \gamma_k I$ with $\gamma_k = (s_{k-1}^\top y_{k-1}) / (y_{k-1}^\top y_{k-1})$ is the standard choice; it provides scale-invariance.
+</span></span><span class=line><span class=cl>- **Memory size $m$.** $m = 5$ is a sensible default; $m = 20$ for problems where the gain matters. Larger $m$ does not help past a point because old curvature pairs become irrelevant.
+</span></span><span class=line><span class=cl>- **Skipping pairs.** If $y_k^\top s_k \leq \epsilon \|s_k\| \|y_k\|$ (say $\epsilon = 10^{-8}$), the curvature condition fails and including the pair would damage positive definiteness; skip it.
+</span></span><span class=line><span class=cl>- **Line search.** L-BFGS needs a proper Wolfe-condition line search to maintain $y_k^\top s_k &gt; 0$. A pure Armijo backtracking can break BFGS.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>L-BFGS is the default solver for many ML problems: PyTorch&#39;s `torch.optim.LBFGS`, scikit-learn&#39;s `LogisticRegression` for moderate-scale problems, scipy&#39;s `minimize` family. It dominates first-order methods for problems that fit in memory and are not too noisy.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>---
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>## Trust-region methods
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Line search asks &#34;in which direction?&#34; then &#34;how far?&#34;. Trust region asks both at once: **within a region of trust around $x_k$, what is the best step?**
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>### The subproblem
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>At iterate $x_k$ with gradient $g_k$ and Hessian (or approximation) $B_k$, define the model
+</span></span><span class=line><span class=cl>$$
+</span></span><span class=line><span class=cl>m_k(d) = f(x_k) + g_k^\top d + \tfrac{1}{2} d^\top B_k d.
+</span></span><span class=line><span class=cl>$$
+</span></span><span class=line><span class=cl>The trust-region subproblem is
+</span></span><span class=line><span class=cl>$$
+</span></span><span class=line><span class=cl>d_k^\star = \arg\min_{\|d\|_2 \leq \Delta_k} m_k(d),
+</span></span><span class=line><span class=cl>$$
+</span></span><span class=line><span class=cl>where $\Delta_k &gt; 0$ is the trust radius. After computing $d_k^\star$, evaluate the **agreement ratio**
+</span></span><span class=line><span class=cl>$$
+</span></span><span class=line><span class=cl>\rho_k = \frac{f(x_k) - f(x_k + d_k^\star)}{m_k(0) - m_k(d_k^\star)}.
+</span></span><span class=line><span class=cl>$$
+</span></span><span class=line><span class=cl>If $\rho_k$ is close to 1 the model is good; expand the trust region. If $\rho_k$ is poor or negative, contract the region and reject the step. Standard schedule: shrink $\Delta_k$ by 4 if $\rho_k &lt; 0.25$, expand by 2 if $\rho_k &gt; 0.75$ and the step lies on the boundary.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>### Solving the subproblem
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>The exact solution requires the **Moré--Sorensen** algorithm: find $\lambda \geq 0$ such that $(B_k + \lambda I) d = -g_k$ and $\lambda (\|d\|_2 - \Delta_k) = 0$. This is exact but expensive.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Two cheap approximations:
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>**Cauchy point.** Step along $-g_k$ as far as the model allows or the trust region permits:
+</span></span><span class=line><span class=cl>$$
+</span></span><span class=line><span class=cl>d_k^C = -\tau \frac{\Delta_k}{\|g_k\|_2} g_k, \quad \tau = \begin{cases} 1 &amp; g_k^\top B_k g_k \leq 0 \\ \min\big(\frac{\|g_k\|_2^3}{\Delta_k g_k^\top B_k g_k}, 1\big) &amp; \text{otherwise.} \end{cases}
+</span></span><span class=line><span class=cl>$$
+</span></span><span class=line><span class=cl>The Cauchy point gives at most a Cauchy decrease — comparable to gradient descent — but is always defined.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>**Dogleg.** When $B_k \succ 0$, compute the unconstrained Newton step $d_k^N = -B_k^{-1} g_k$ and the steepest-descent step $d_k^{SD} = -\frac{g_k^\top g_k}{g_k^\top B_k g_k} g_k$. The dogleg path is
+</span></span><span class=line><span class=cl>- If $\|d_k^N\|_2 \leq \Delta_k$: take $d_k = d_k^N$.
+</span></span><span class=line><span class=cl>- Else if $\|d_k^{SD}\|_2 \geq \Delta_k$: take $d_k = -\Delta_k \frac{g_k}{\|g_k\|_2}$ (Cauchy direction, capped).
+</span></span><span class=line><span class=cl>- Else: take the linear combination that lies on the trust region boundary, giving a quasi-Newton step with reduced length.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>The dogleg path is a &#34;broken line&#34; from $0$ to $d_k^{SD}$ to $d_k^N$. The model decrease along this path is monotone, so the best feasible point is where the path meets the trust region boundary (or $d_k^N$ if interior).
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>![Trust region dogleg path](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig5.png)
+</span></span><span class=line><span class=cl>*Figure 5. Trust-region subproblem in 2D: contours of the quadratic model m(d), the trust ball ||d||&lt;=Delta (dashed), the Cauchy direction d_SD, the Newton step d_N, and the dogleg broken line. The dogleg solution is the intersection of the path with the trust boundary.*
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>### Convergence
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Trust-region methods with Cauchy decrease are **globally convergent** to a stationary point — i.e., $\|\nabla f(x_k)\| \to 0$ — under mild assumptions on $B_k$ (uniformly bounded). When $B_k = \nabla^2 f(x_k)$ and the iterates are close to a strict minimum, trust regions inherit Newton&#39;s quadratic convergence.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Trust regions are the method of choice for problems with non-convex Hessians (the model handles indefiniteness gracefully) and for very high-precision solutions where each step&#39;s quality matters more than per-step cost.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>---
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>## Choosing among the second-order methods
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>| Method        | Per-step cost  | Memory    | Convergence near $x^\star$ | When to use                                       |
+</span></span><span class=line><span class=cl>| ------------- | -------------- | --------- | -------------------------- | ------------------------------------------------- |
+</span></span><span class=line><span class=cl>| Newton (full) | $O(n^3)$       | $O(n^2)$  | Quadratic                  | Small $n$, exact Hessian available, indefinite handled |
+</span></span><span class=line><span class=cl>| BFGS          | $O(n^2)$       | $O(n^2)$  | Superlinear                | Medium $n$ ($10^3$--$10^4$), good gradients       |
+</span></span><span class=line><span class=cl>| L-BFGS        | $O(mn)$        | $O(mn)$   | Superlinear                | Large $n$ ($10^4$--$10^7$), the ML default        |
+</span></span><span class=line><span class=cl>| Trust region  | $O(n^3)$ exact | $O(n^2)$  | Quadratic                  | Indefinite Hessians, high-precision needs          |
+</span></span><span class=line><span class=cl>| Gauss--Newton | $O(n m^2)$     | $O(n^2)$  | Quadratic in residual      | Nonlinear least squares ($f = \frac{1}{2} \midr(x)\mid^2$) |
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>For machine learning at the scale of millions of parameters, second-order methods are usually a poor fit because (a) gradients are noisy stochastic estimates, (b) memory is constrained, and (c) we don&#39;t need high precision — the validation error stops decreasing well before the optimization gap becomes small. SGD-type methods dominate.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>For classical scientific computing — physics simulations, parameter estimation, signal recovery on convex domains — L-BFGS and trust-region Newton are the workhorses. They achieve solutions that gradient descent cannot reach in any reasonable wall-clock time.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>---
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>## Summary
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Second-order methods break the $\sqrt{\kappa}$ barrier by using curvature, at a per-iteration cost. The hierarchy:
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>- **Newton** — fast, expensive, fragile; needs globalization.
+</span></span><span class=line><span class=cl>- **BFGS** — Newton&#39;s curvature, half the cost, full memory.
+</span></span><span class=line><span class=cl>- **L-BFGS** — BFGS in $O(mn)$ memory; the modern default.
+</span></span><span class=line><span class=cl>- **Trust region** — robustness to indefinite Hessians and bounded steps.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>The next article (08) tackles constrained optimization using Lagrangian duality — the same Newton machinery applies, just to the augmented system.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>## References
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>- Nocedal &amp; Wright, *Numerical Optimization* (2nd ed.), Ch. 3 (line search), 4 (trust region), 6 (BFGS), 7 (L-BFGS) — the canonical reference.
+</span></span><span class=line><span class=cl>- Boyd &amp; Vandenberghe, *Convex Optimization*, §9.5 (Newton with damping) and §9.6 (self-concordance).
+</span></span><span class=line><span class=cl>- Nesterov &amp; Polyak, *Cubic regularization of Newton method and its global performance*, MathProg 108, 2006 — modern non-convex Newton.
+</span></span><span class=line><span class=cl>- Liu &amp; Nocedal, *On the limited memory BFGS method for large scale optimization*, MathProg 45, 1989 — the L-BFGS paper.
+</span></span></code></pre></td></tr></table></div></div></div><div class=article-share aria-label="Share this article"><span class=share-label>Share</span>
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=Optimization%2b%25287%2529%253A%2bSecond-Order%2bMethods&url=https%253A%252F%252Fwww.chenk.top%252Fen%252Foptimization-theory%252F07-second-order-methods%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fen%252Foptimization-theory%252F07-second-order-methods%252F&title=Optimization%2b%25287%2529%253A%2bSecond-Order%2bMethods" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/en/optimization-theory/07-second-order-methods/ aria-label="Copy article link" title="Copy link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2022-09-22>written <span class=days>…</span> days ago</span></div><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What You Will Learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#newtons-method>Newton&rsquo;s method</a><ul><li><a href=#derivation>Derivation</a></li><li><a href=#quadratic-local-convergence>Quadratic local convergence</a></li><li><a href=#the-catch-globalization>The catch: globalization</a></li><li><a href=#when-the-hessian-is-indefinite>When the Hessian is indefinite</a></li></ul></li><li><a href=#quasi-newton-methods-the-secant-equation>Quasi-Newton methods: the secant equation</a><ul><li><a href=#the-secant-condition>The secant condition</a></li><li><a href=#bfgs-the-canonical-quasi-newton-update>BFGS: the canonical quasi-Newton update</a></li><li><a href=#why-bfgs-works-in-one-paragraph>Why BFGS works in one paragraph</a></li></ul></li><li><a href=#l-bfgs-limited-memory>L-BFGS: limited memory</a><ul><li><a href=#the-two-loop-recursion>The two-loop recursion</a></li><li><a href=#where-the-two-loop-comes-from>Where the two-loop comes from</a></li><li><a href=#practical-l-bfgs>Practical L-BFGS</a></li></ul></li><li><a href=#trust-region-methods>Trust-region methods</a><ul><li><a href=#the-subproblem>The subproblem</a></li><li><a href=#solving-the-subproblem>Solving the subproblem</a></li><li><a href=#convergence>Convergence</a></li></ul></li><li><a href=#choosing-among-the-second-order-methods>Choosing among the second-order methods</a></li><li><a href=#summary>Summary</a></li><li><a href=#references>References</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/optimization-theory/ class=series-name>Optimization Theory</a>
+<span class=sig-meta data-days-since=2022-09-22>written <span class=days>…</span> days ago</span></div><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What You Will Learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#newtons-method>Newton&rsquo;s method</a><ul><li><a href=#derivation>Derivation</a></li><li><a href=#quadratic-local-convergence>Quadratic local convergence</a></li><li><a href=#the-catch-globalization>The catch: globalization</a></li><li><a href=#when-the-hessian-is-indefinite>When the Hessian is indefinite</a></li></ul></li><li><a href=#quasi-newton-methods-the-secant-equation>Quasi-Newton methods: the secant equation</a><ul><li><a href=#the-secant-condition>The secant condition</a></li><li><a href=#bfgs-the-canonical-quasi-newton-update>BFGS: the canonical quasi-Newton update</a></li><li><a href=#why-bfgs-works-in-one-paragraph>Why BFGS works in one paragraph</a></li></ul></li><li><a href=#l-bfgs-limited-memory>L-BFGS: limited memory</a><ul><li><a href=#the-two-loop-recursion>The two-loop recursion</a></li></ul></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/optimization-theory/ class=series-name>Optimization Theory</a>
 <span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/01-convex-analysis-foundations/><span class=chapter-num>01</span>
 <span class=chapter-title>Optimization (1): Convex Analysis Foundations</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/02-smoothness-strong-convexity-nesterov/><span class=chapter-num>02</span>
 <span class=chapter-title>Optimization (2): Smoothness, Strong Convexity, and Nesterov Acceleration</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/03-gradient-descent-family/><span class=chapter-num>03</span>
@@ -247,5 +390,5 @@ memory; the modern default.</li><li><strong>Trust region</strong> — robustness
 <span class=chapter-title>Optimization (9): Interior-Point Methods and Self-Concordant Barriers</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/10-stochastic-variance-reduction/><span class=chapter-num>10</span>
 <span class=chapter-title>Optimization (10): Stochastic Optimization and Variance Reduction</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/11-nonconvex-saddle-escape/><span class=chapter-num>11</span>
 <span class=chapter-title>Optimization (11): Non-Convex Optimization and Saddle Escape</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/12-discrete-global-optimization/><span class=chapter-num>12</span>
-<span class=chapter-title>Optimization (12): Discrete and Global Optimization</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>24 min</strong></div><div class=row><span>Word count</span><strong>2501</strong></div><div class=row><span>Published</span><strong>Sep 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Optimization (12): Discrete and Global Optimization</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>26 min</strong></div><div class=row><span>Word count</span><strong>2715</strong></div><div class=row><span>Published</span><strong>Sep 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

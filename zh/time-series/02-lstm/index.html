@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/time-series/>时间序列预测</a>
 · 第 2 篇</div><h1>时间序列模型（二）：LSTM——门控机制与长期依赖</h1><p class=deck>LSTM 的遗忘门、输入门和输出门如何解决梯度消失问题。完整的 PyTorch 时间序列预测代码和实用调参技巧。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2024-09-16>September 16, 2024</time> · 24 分钟 · 5555 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E6%97%B6%E9%97%B4%E5%BA%8F%E5%88%97/ class=tag>#时间序列</a><a href=/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/ class=tag>#深度学习</a><a href=/zh/tags/lstm/ class=tag>#LSTM</a></div><a class="pill pill-outline" href=/en/time-series/lstm/>Read in English →</a></div></header><div class=prose><p>我第一次训练 RNN 是 2017 年，做一个根据过去 50 天的销售额预测下一天的小项目。前向算梯度时一切都挺正常，跑起来 loss 也在降，但模型对 30 天前的数据基本"失忆"——明明历史里有清晰的月度周期，模型偏偏只学到了"最近三天的趋势"。当时我以为是数据不够，加了样本、加了层数，问题反而更糟：训练 loss 突然跳到 NaN，一切归零。</p><p>后来才明白，这就是普通 RNN 最经典的两个毛病：<strong>梯度消失</strong>和<strong>梯度爆炸</strong>。直观上说，RNN 把"记忆"压缩在一个隐藏向量里，每经过一个时间步，这个向量都要乘上一个权重矩阵。乘 50 次之后，要么衰减到接近零（远古信息丢了），要么炸成无穷大（数值溢出）。RNN 不是不想记住远的东西，是数学结构注定它记不住。</p><p>LSTM 的思路不是把 RNN 调好——而是在结构上加一条"高速公路"。它额外维护一个<strong>细胞状态</strong>，让信息可以几乎不衰减地一直流下去；再加上三个<strong>门</strong>（遗忘、输入、输出）来选择性地读写这条高速公路。门控机制（gating）听上去复杂，但本质就是用 sigmoid 输出 0-1 之间的"开关强度"——0 表示彻底忘掉，1 表示完整保留，0.7 表示保留七成。这一改动让 RNN 能稳定训练几百步的序列，是 2015-2018 年深度学习处理时序数据的事实标准。这一章我会把每个门拆开讲清楚，最后用 PyTorch 跑一个完整的销售预测案例。</p><hr><h2 id=本文要点 class=heading-anchor>本文要点<a href=#%e6%9c%ac%e6%96%87%e8%a6%81%e7%82%b9 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/illustration_1.png alt="时间序列与 LSTM 章节概念图" loading=lazy decoding=async class=content-image></figure></p><ul><li>普通 RNN 为何难以处理长序列，以及 LSTM 如何解决梯度消失与爆炸问题</li><li>遗忘门、输入门和输出门的直观作用，以及细胞状态这条“高速公路”如何维持长期记忆</li><li>在单步与多步时间序列预测中，如何合理设计 LSTM 的输入输出结构</li><li>实用技巧：正则化策略、序列长度选择、双向 vs 堆叠 LSTM 的适用场景，以及何时应优先选用 LSTM 而非 GRU</li></ul><h2 id=准备工作 class=heading-anchor>准备工作<a href=#%e5%87%86%e5%a4%87%e5%b7%a5%e4%bd%9c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>掌握神经网络基础知识（前向传播、反向传播）</li><li>熟悉 PyTorch 核心组件（<code>nn.Module</code>、张量、优化器）</li><li>建议阅读本系列第 1 篇（非必需）</li></ul><hr><h2 id=lstm-要解决的问题 class=heading-anchor>LSTM 要解决的问题<a href=#lstm-%e8%a6%81%e8%a7%a3%e5%86%b3%e7%9a%84%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$h_t = \tanh(W_h h_{t-1} + W_x x_t + b).$$</span>
+<span class=meta-line><time datetime=2024-09-16>September 16, 2024</time> · 28 分钟 · 6750 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E6%97%B6%E9%97%B4%E5%BA%8F%E5%88%97/ class=tag>#时间序列</a><a href=/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/ class=tag>#深度学习</a><a href=/zh/tags/lstm/ class=tag>#LSTM</a></div><a class="pill pill-outline" href=/en/time-series/lstm/>Read in English →</a></div></header><div class=prose><p>我第一次训练 RNN 是 2017 年，做一个根据过去 50 天的销售额预测下一天的小项目。前向算梯度时一切都挺正常，跑起来 loss 也在降，但模型对 30 天前的数据基本"失忆"——明明历史里有清晰的月度周期，模型偏偏只学到了"最近三天的趋势"。当时我以为是数据不够，加了样本、加了层数，问题反而更糟：训练 loss 突然跳到 NaN，一切归零。</p><p>后来才明白，这就是普通 RNN 最经典的两个毛病：<strong>梯度消失</strong>和<strong>梯度爆炸</strong>。直观上说，RNN 把"记忆"压缩在一个隐藏向量里，每经过一个时间步，这个向量都要乘上一个权重矩阵。乘 50 次之后，要么衰减到接近零（远古信息丢了），要么炸成无穷大（数值溢出）。RNN 不是不想记住远的东西，是数学结构注定它记不住。</p><p>LSTM 的思路不是把 RNN 调好——而是在结构上加一条"高速公路"。它额外维护一个<strong>细胞状态</strong>，让信息可以几乎不衰减地一直流下去；再加上三个<strong>门</strong>（遗忘、输入、输出）来选择性地读写这条高速公路。门控机制（gating）听上去复杂，但本质就是用 sigmoid 输出 0-1 之间的"开关强度"——0 表示彻底忘掉，1 表示完整保留，0.7 表示保留七成。这一改动让 RNN 能稳定训练几百步的序列，是 2015-2018 年深度学习处理时序数据的事实标准。这一章我会把每个门拆开讲清楚，最后用 PyTorch 跑一个完整的销售预测案例。</p><hr><h2 id=本文要点 class=heading-anchor>本文要点<a href=#%e6%9c%ac%e6%96%87%e8%a6%81%e7%82%b9 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/illustration_1.png alt="时间序列与 LSTM 章节概念图" loading=lazy decoding=async class=content-image></figure></p><ul><li>普通 RNN 为何难以处理长序列，以及 LSTM 如何解决梯度消失与爆炸问题</li><li>遗忘门、输入门和输出门的直观作用，以及细胞状态这条“高速公路”如何维持长期记忆</li><li>在单步与多步时间序列预测中，如何合理设计 LSTM 的输入输出结构</li><li>实用技巧：正则化策略、序列长度选择、双向 vs 堆叠 LSTM 的适用场景，以及何时应优先选用 LSTM 而非 GRU</li></ul><h2 id=准备工作 class=heading-anchor>准备工作<a href=#%e5%87%86%e5%a4%87%e5%b7%a5%e4%bd%9c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>掌握神经网络基础知识（前向传播、反向传播）</li><li>熟悉 PyTorch 核心组件（<code>nn.Module</code>、张量、优化器）</li><li>建议阅读本系列第 1 篇（非必需）</li></ul><hr><h2 id=lstm-要解决的问题 class=heading-anchor>LSTM 要解决的问题<a href=#lstm-%e8%a6%81%e8%a7%a3%e5%86%b3%e7%9a%84%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$h_t = \tanh(W_h h_{t-1} + W_x x_t + b).$$</span>
 <span class=math-block>$$\frac{\partial h_T}{\partial h_k} = \prod_{t=k+1}^{T} \mathrm{diag}\!\left(1 - h_t^2\right) W_h.$$</span><p>这会导致两种极端情况：</p><ul><li>若 <span class=math-inline>$W_h$</span>
 的主奇异值小于 1，梯度会<strong>指数级衰减</strong>，模型几乎无法学习超过约 10 步的历史信息；</li><li>若大于 1，梯度则会<strong>爆炸式增长</strong>，导致训练发散。</li></ul><p>LSTM（Hochreiter & Schmidhuber, 1997）通过引入<strong>两个状态</strong>（细胞状态 <span class=math-inline>$C_t$</span>
 和隐藏状态 <span class=math-inline>$h_t$</span>
@@ -47,26 +47,245 @@ $$</span><p>其中 <span class=math-inline>$\odot$</span>
 ）进行更新，<strong>从未经过新的矩阵乘法</strong>。正是这一设计让梯度得以跨越数百步稳定传播。
 <em>细胞状态 vs 隐藏状态——两条并行的信息流。</em></p><h3 id=梯度流动的显式表达 class=heading-anchor>梯度流动的显式表达<a href=#%e6%a2%af%e5%ba%a6%e6%b5%81%e5%8a%a8%e7%9a%84%e6%98%be%e5%bc%8f%e8%a1%a8%e8%be%be class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\frac{\partial C_t}{\partial C_{t-1}} = f_t,$$</span>
 <span class=math-block>$$\frac{\partial C_T}{\partial C_k} = \prod_{t=k+1}^{T} f_t.$$</span><p>当模型需要记住某段信息时，只需将对应维度的 <span class=math-inline>$f_t$</span>
-学习为接近 1，相应梯度也会保持接近 1。这便是 LSTM 的核心奥秘。</p><h2 id=一个最简的-pytorch-实现 class=heading-anchor>一个最简的 PyTorch 实现<a href=#%e4%b8%80%e4%b8%aa%e6%9c%80%e7%ae%80%e7%9a%84-pytorch-%e5%ae%9e%e7%8e%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>无论是单变量还是多变量预测，以下实现已足够应对大多数场景：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
+学习为接近 1，相应梯度也会保持接近 1。这便是 LSTM 的核心奥秘。</p><h2 id=一个最简的-pytorch-实现 class=heading-anchor>一个最简的 PyTorch 实现<a href=#%e4%b8%80%e4%b8%aa%e6%9c%80%e7%ae%80%e7%9a%84-pytorch-%e5%ae%9e%e7%8e%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>无论是单变量还是多变量预测，以下实现已足够应对大多数场景：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span><span class=lnt>132
+</span><span class=lnt>133
+</span><span class=lnt>134
+</span><span class=lnt>135
+</span><span class=lnt>136
+</span><span class=lnt>137
+</span><span class=lnt>138
+</span><span class=lnt>139
+</span><span class=lnt>140
+</span><span class=lnt>141
+</span><span class=lnt>142
+</span><span class=lnt>143
+</span><span class=lnt>144
+</span><span class=lnt>145
+</span><span class=lnt>146
+</span><span class=lnt>147
+</span><span class=lnt>148
+</span><span class=lnt>149
+</span><span class=lnt>150
+</span><span class=lnt>151
+</span><span class=lnt>152
+</span><span class=lnt>153
+</span><span class=lnt>154
+</span><span class=lnt>155
+</span><span class=lnt>156
+</span><span class=lnt>157
+</span><span class=lnt>158
+</span><span class=lnt>159
+</span><span class=lnt>160
+</span><span class=lnt>161
+</span><span class=lnt>162
+</span><span class=lnt>163
+</span><span class=lnt>164
+</span><span class=lnt>165
+</span><span class=lnt>166
+</span><span class=lnt>167
+</span><span class=lnt>168
+</span><span class=lnt>169
+</span><span class=lnt>170
+</span><span class=lnt>171
+</span><span class=lnt>172
+</span><span class=lnt>173
+</span><span class=lnt>174
+</span><span class=lnt>175
+</span><span class=lnt>176
+</span><span class=lnt>177
+</span><span class=lnt>178
+</span><span class=lnt>179
+</span><span class=lnt>180
+</span><span class=lnt>181
+</span><span class=lnt>182
+</span><span class=lnt>183
+</span><span class=lnt>184
+</span><span class=lnt>185
+</span><span class=lnt>186
+</span><span class=lnt>187
+</span><span class=lnt>188
+</span><span class=lnt>189
+</span><span class=lnt>190
+</span><span class=lnt>191
+</span><span class=lnt>192
+</span><span class=lnt>193
+</span><span class=lnt>194
+</span><span class=lnt>195
+</span><span class=lnt>196
+</span><span class=lnt>197
+</span><span class=lnt>198
+</span><span class=lnt>199
+</span><span class=lnt>200
+</span><span class=lnt>201
+</span><span class=lnt>202
+</span><span class=lnt>203
+</span><span class=lnt>204
+</span><span class=lnt>205
+</span><span class=lnt>206
+</span><span class=lnt>207
+</span><span class=lnt>208
+</span><span class=lnt>209
+</span><span class=lnt>210
+</span><span class=lnt>211
+</span><span class=lnt>212
+</span><span class=lnt>213
+</span><span class=lnt>214
+</span><span class=lnt>215
+</span><span class=lnt>216
+</span><span class=lnt>217
+</span><span class=lnt>218
+</span><span class=lnt>219
+</span><span class=lnt>220
+</span><span class=lnt>221
+</span><span class=lnt>222
+</span><span class=lnt>223
+</span><span class=lnt>224
+</span><span class=lnt>225
+</span><span class=lnt>226
+</span><span class=lnt>227
+</span><span class=lnt>228
+</span><span class=lnt>229
+</span><span class=lnt>230
+</span><span class=lnt>231
+</span><span class=lnt>232
+</span><span class=lnt>233
+</span><span class=lnt>234
+</span><span class=lnt>235
+</span><span class=lnt>236
+</span><span class=lnt>237
+</span><span class=lnt>238
+</span><span class=lnt>239
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl>
@@ -87,45 +306,147 @@ $$</span><p>其中 <span class=math-inline>$\odot$</span>
 </span></span><span class=line><span class=cl>        <span class=c1># x: (batch, seq_len, input_size)</span>
 </span></span><span class=line><span class=cl>        <span class=n>out</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>              <span class=c1># (batch, seq_len, hidden_size)</span>
 </span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>head</span><span class=p>(</span><span class=n>out</span><span class=p>[:,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=p>:])</span>     <span class=c1># 取最后一个时间步</span>
-</span></span></code></pre></td></tr></table></div></div><p>几点容易忽略的细节：</p><ul><li><code>batch_first=True</code> 将输入形状设为 <code>(batch, seq_len, features)</code>，这是业界通用约定，而非 PyTorch 示例中的默认格式。</li><li>内置 <code>dropout</code> 参数<strong>仅作用于层间</strong>，不会在时间步之间丢弃激活值。若需实现循环 dropout，可使用 <code>nn.LSTMCell</code> 并手动应用固定掩码，或采用 AWD-LSTM 中的 <code>weight_drop</code> 技巧。</li><li><strong>建议将遗忘门偏置初始化为 +1</strong>，使网络初始处于“记忆模式”。PyTorch 默认不启用此设置：</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>for</span> <span class=n>name</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>lstm</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>():</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>几点容易忽略的细节</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=err>`</span><span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=err>`</span> <span class=n>将输入形状设为</span> <span class=err>`</span><span class=p>(</span><span class=n>batch</span><span class=p>,</span> <span class=n>seq_len</span><span class=p>,</span> <span class=n>features</span><span class=p>)</span><span class=err>`，</span><span class=n>这是业界通用约定</span><span class=err>，</span><span class=n>而非</span> <span class=n>PyTorch</span> <span class=n>示例中的默认格式</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>内置</span> <span class=err>`</span><span class=n>dropout</span><span class=err>`</span> <span class=n>参数</span><span class=o>**</span><span class=n>仅作用于层间</span><span class=o>**</span><span class=err>，</span><span class=n>不会在时间步之间丢弃激活值</span><span class=err>。</span><span class=n>若需实现循环</span> <span class=n>dropout</span><span class=err>，</span><span class=n>可使用</span> <span class=err>`</span><span class=n>nn</span><span class=o>.</span><span class=n>LSTMCell</span><span class=err>`</span> <span class=n>并手动应用固定掩码</span><span class=err>，</span><span class=n>或采用</span> <span class=n>AWD</span><span class=o>-</span><span class=n>LSTM</span> <span class=n>中的</span> <span class=err>`</span><span class=n>weight_drop</span><span class=err>`</span> <span class=n>技巧</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>建议将遗忘门偏置初始化为</span> <span class=o>+</span><span class=mi>1</span><span class=o>**</span><span class=err>，</span><span class=n>使网络初始处于</span><span class=err>“</span><span class=n>记忆模式</span><span class=err>”。</span><span class=n>PyTorch</span> <span class=n>默认不启用此设置</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>name</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>lstm</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>():</span>
 </span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=s2>&#34;bias&#34;</span> <span class=ow>in</span> <span class=n>name</span><span class=p>:</span>
 </span></span><span class=line><span class=cl>        <span class=n>n</span> <span class=o>=</span> <span class=n>p</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>        <span class=n>p</span><span class=o>.</span><span class=n>data</span><span class=p>[</span><span class=n>n</span> <span class=o>//</span> <span class=mi>4</span> <span class=p>:</span> <span class=n>n</span> <span class=o>//</span> <span class=mi>2</span><span class=p>]</span><span class=o>.</span><span class=n>fill_</span><span class=p>(</span><span class=mf>1.0</span><span class=p>)</span>   <span class=c1># 遗忘门偏置</span>
-</span></span></code></pre></td></tr></table></div></div><h2 id=从单元到预测器 class=heading-anchor>从单元到预测器<a href=#%e4%bb%8e%e5%8d%95%e5%85%83%e5%88%b0%e9%a2%84%e6%b5%8b%e5%99%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig3_forecast.png alt="单步 LSTM 预测与实际序列对比" loading=lazy decoding=async class=content-image></figure></p><p>时间序列预测的标准流程如下：</p><ol><li><strong>划分窗口</strong>：将原始序列切分为长度为 <span class=math-inline>$L$</span>
-的重叠片段（即<em>回望窗口</em>）。</li><li><strong>标准化</strong>：使用训练集的均值与标准差对每个特征进行归一化。</li><li><strong>训练目标</strong>：预测下一个时间点（单步）或未来 <span class=math-inline>$H$</span>
-个点（多步）。</li><li><strong>验证方式</strong>：使用<strong>按时间顺序保留的尾部数据</strong>进行验证，严禁打乱时序。</li></ol><p>在一个带噪声的季节性信号上，干净的单步预测效果大致如下：
-<em>带噪季节信号上的单步 LSTM 预测 vs 实际值。</em></p><h3 id=多步预测递归-vs-直接 class=heading-anchor>多步预测：递归 vs 直接<a href=#%e5%a4%9a%e6%ad%a5%e9%a2%84%e6%b5%8b%e9%80%92%e5%bd%92-vs-%e7%9b%b4%e6%8e%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig4_multistep.png alt=多步预测：递归预测的不确定性扇形展开，而直接预测保持大致恒定的不确定性带宽 loading=lazy decoding=async class=content-image></figure></p><p>当预测视野 <span class=math-inline>$H > 1$</span>
-时，常用两种策略：</p><div class=table-wrap><table><thead><tr><th>策略</th><th>方法</th><th>权衡</th></tr></thead><tbody><tr><td><strong>递归</strong></td><td>训练一个单步模型，将其预测结果作为下一步输入递归使用。</td><td>实现简单，但误差会累积——方差随 <span class=math-inline>$\sqrt{H}$</span>
-增长。</td></tr><tr><td><strong>直接</strong></td><td>训练 <span class=math-inline>$H$</span>
-个独立输出头（或单模型输出 <span class=math-inline>$H$</span>
-维），直接预测各未来步。</td><td>参数更多，但避免了误差反馈循环。</td></tr><tr><td><em>多步预测——递归预测误差累积明显；直接预测参数开销大，但置信区间更紧。</em></td><td></td><td></td></tr></tbody></table></div><p>实践中常用一种折中方案：<strong>seq2seq + teacher forcing</strong>。LSTM 编码器读取回望窗口生成最终 <span class=math-inline>$(h, C)$</span>
-状态对，解码器逐步生成 <span class=math-inline>$H$</span>
-个输出。训练时，解码器以一定概率接收<strong>真实历史值</strong>（而非自身预测）作为输入，该技术称为 scheduled sampling。这也是当前生产环境中的主流做法。</p><h2 id=架构变体 class=heading-anchor>架构变体<a href=#%e6%9e%b6%e6%9e%84%e5%8f%98%e4%bd%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=双向-lstmbilstm class=heading-anchor>双向 LSTM（BiLSTM）<a href=#%e5%8f%8c%e5%90%91-lstmbilstm class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$y_t = [\,\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\,].$$</span><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig5_bilstm.png alt="双向 LSTM：紫色正向链从左到右读取，琥珀色反向链从右到左读取，每一步的输出是两个隐藏状态的拼接。" loading=lazy decoding=async class=content-image></figure><em>双向 LSTM——每一步结合过去和未来的上下文信息。</em></p><p><strong>适用场景</strong>：序列标注、分类、缺失值填补等——只要推理时能获取完整序列即可。<strong>禁用于实时预测</strong>：训练时偷看 <span class=math-inline>$x_{t+1}, x_{t+2}, \dots$</span>
-而推理时却要预测 <span class=math-inline>$x_{t+1}$</span>
-，属于典型的数据泄漏，上线必崩。</p><h3 id=堆叠深层lstm class=heading-anchor>堆叠（深层）LSTM<a href=#%e5%a0%86%e5%8f%a0%e6%b7%b1%e5%b1%82lstm class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>堆叠多层可使高层提取更平滑、更抽象的时序特征：第 1 层处理原始输入，第 2 层处理第 1 层的隐藏状态，依此类推。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig6_stacked_lstm.png alt="三层堆叠 LSTM：每一层从左到右递归，并将隐藏状态传递给上一层。底层捕捉短时局部结构，高层提取长程、更抽象的模式。" loading=lazy decoding=async class=content-image></figure><em>堆叠 LSTM——时间维度上的层级特征提取。</em></p><p>实践中，<strong>2～3 层</strong>通常是最佳选择。层数更深不仅收益有限，还会显著增加<strong>深度方向</strong>（非时间方向）的梯度消失风险，除非引入残差连接。</p><h2 id=真正有效的训练方法 class=heading-anchor>真正有效的训练方法<a href=#%e7%9c%9f%e6%ad%a3%e6%9c%89%e6%95%88%e7%9a%84%e8%ae%ad%e7%bb%83%e6%96%b9%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>以下默认配置适用于大多数单变量或中等规模多变量预测任务（训练窗口数在几千至几十万之间）：</p><div class=table-wrap><table><thead><tr><th>参数</th><th>默认值</th><th>调整时机</th></tr></thead><tbody><tr><td>回望长度 <span class=math-inline>$L$</span></td><td>序列主周期的 2～3 倍</td><td>通过自相关分析确定（见下文）</td></tr><tr><td><code>hidden_size</code></td><td>64</td><td>训练窗口 ≥ 5 万时可增至 128～256</td></tr><tr><td><code>num_layers</code></td><td>2</td><td>数据量小时用 1 层；3 层仅在有残差连接时考虑</td></tr><tr><td><code>dropout</code></td><td>0.2</td><td>出现过拟合时可增至 0.5</td></tr><tr><td>优化器</td><td>Adam，lr = 1e-3</td><td>长期训练建议改用 AdamW + 余弦学习率调度</td></tr><tr><td>Batch size</td><td>32～64</td><td>增大时需按 <span class=math-inline>$\sqrt{B/32}$</span>
-同步调整学习率</td></tr><tr><td>损失函数</td><td>MSE 或 Huber</td><td>目标含厚尾或离群点时优先选 Huber</td></tr><tr><td>梯度裁剪</td><td><code>clip_grad_norm_(..., 1.0)</code></td><td><strong>务必开启</strong>——防止梯度爆炸的低成本保险</td></tr><tr><td>早停</td><td>patience = 8～10</td><td>基于验证损失触发，并恢复最优权重</td></tr></tbody></table></div><h3 id=如何选择回望长度 class=heading-anchor>如何选择回望长度<a href=#%e5%a6%82%e4%bd%95%e9%80%89%e6%8b%a9%e5%9b%9e%e6%9c%9b%e9%95%bf%e5%ba%a6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>绘制自相关函数（ACF），找到自相关系数 <span class=math-inline>$|\rho_k|$</span>
-仍高于小阈值（如 0.1）的最大滞后 <span class=math-inline>$k$</span>
-，再向上取整至最近的主季节周期。例如，对含日/周双重周期的小时级数据，168（一周）是自然上限。</p><h3 id=一次健康训练的表现 class=heading-anchor>一次健康训练的表现<a href=#%e4%b8%80%e6%ac%a1%e5%81%a5%e5%ba%b7%e8%ae%ad%e7%bb%83%e7%9a%84%e8%a1%a8%e7%8e%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig7_training_curves.png alt="60 个 epoch 的训练和验证损失曲线，绿色虚线标记最佳验证 epoch，紫色虚线标记早停触发" loading=lazy decoding=async class=content-image></figure></p><p>健康的 LSTM 训练曲线中，验证损失会紧贴训练损失下降，直至达到最低点后开始回升（表明过拟合）。早停机制会在最优验证损失出现后继续等待若干 epoch，随后恢复该时刻的权重：
-<em>带早停的 LSTM 训练曲线——恢复绿色虚线处的权重，而不是紫色点划线处。</em></p><h2 id=lstm-和-gru到底该选哪个 class=heading-anchor>LSTM 和 GRU——到底该选哪个？<a href=#lstm-%e5%92%8c-gru%e5%88%b0%e5%ba%95%e8%af%a5%e9%80%89%e5%93%aa%e4%b8%aa class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=table-wrap><table><thead><tr><th>维度</th><th>LSTM</th><th>GRU</th></tr></thead><tbody><tr><td>门数量</td><td>3（遗忘、输入、输出）</td><td>2（重置、更新）</td></tr><tr><td>独立细胞状态 <span class=math-inline>$C_t$</span></td><td>有</td><td>无</td></tr><tr><td>单元参数量</td><td>4 个权重矩阵</td><td>3 个权重矩阵</td></tr><tr><td>推理速度</td><td>基准</td><td>快约 25%，精度相当</td></tr><tr><td>典型适用场景</td><td>超长序列、大数据集、需最大建模容量</td><td>小数据集、实时推理、移动端/边缘设备</td></tr></tbody></table></div><p>实证表明，在多数预测任务中，LSTM 与 GRU 的性能差距通常在噪声范围内。<strong>建议默认使用 GRU</strong> 以加速迭代；仅当数据量极大且依赖跨度达数百步时，才考虑切换至 LSTM。对于超过 500 步的超长序列，时序卷积网络（TCN，第 6 篇）或 Informer 类稀疏 Transformer（第 8 篇）往往表现更优。</p><h2 id=常见陷阱 class=heading-anchor>常见陷阱<a href=#%e5%b8%b8%e8%a7%81%e9%99%b7%e9%98%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li><strong>未对每个特征单独标准化</strong>：LSTM 对尺度敏感，混合原始股价与百分比回报会导致训练失败。</li><li><strong>跨训练/测试边界打乱时序窗口</strong>：必须使用 <code>TimeSeriesSplit</code> 或严格按时间切分。</li><li><strong>误将最后隐藏状态当作预测结果</strong>：它只是中间特征，仍需线性输出层，且目标值也需标准化。</li><li><strong>用 BiLSTM 做实时预测</strong>：Notebook 中看似效果惊艳（因偷看未来），上线即崩。</li><li><strong>未定回望长度就调大 hidden_size</strong>：窗口太短时，扩大 cell 宽度毫无意义。</li><li><strong>仅凭单次随机种子下结论</strong>：RNN 训练噪声大，至少运行 3 次种子，报告均值 ± 标准差。</li></ul><h2 id=给-lstm-找问题 class=heading-anchor>给 LSTM 找问题<a href=#%e7%bb%99-lstm-%e6%89%be%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>当 LSTM 预测效果不佳时，先别急着换架构。以下五类症状覆盖了绝大多数失败案例，且均有明确诊断方法。</p><h3 id=症状训练损失高验证损失同步高 class=heading-anchor>症状：训练损失高，验证损失同步高<a href=#%e7%97%87%e7%8a%b6%e8%ae%ad%e7%bb%83%e6%8d%9f%e5%a4%b1%e9%ab%98%e9%aa%8c%e8%af%81%e6%8d%9f%e5%a4%b1%e5%90%8c%e6%ad%a5%e9%ab%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>模型<strong>欠拟合</strong>。可能因回望窗口太短或 cell 容量不足。快速验证：固定其他参数，将 <code>hidden_size</code> 加倍（64 → 128）。若训练损失毫无变化，说明瓶颈在窗口长度——优先扩展回望窗口。</p><h3 id=症状训练损失下降验证损失早早停滞 class=heading-anchor>症状：训练损失下降，验证损失早早停滞<a href=#%e7%97%87%e7%8a%b6%e8%ae%ad%e7%bb%83%e6%8d%9f%e5%a4%b1%e4%b8%8b%e9%99%8d%e9%aa%8c%e8%af%81%e6%8d%9f%e5%a4%b1%e6%97%a9%e6%97%a9%e5%81%9c%e6%bb%9e class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>典型<strong>小数据过拟合</strong>。可尝试：增大 dropout（0.2 → 0.4）、缩小 cell、或改用 <code>AdamW</code> 并设 <code>weight_decay=1e-4</code>。<strong>切勿盲目增加特征</strong>——小数据下这通常适得其反。对窗口数 &lt; 5,000 的序列，最有效手段往往是将 <code>hidden_size</code> 降至 32。</p><h3 id=症状验证损失在-epoch-间剧烈波动 class=heading-anchor>症状：验证损失在 epoch 间剧烈波动<a href=#%e7%97%87%e7%8a%b6%e9%aa%8c%e8%af%81%e6%8d%9f%e5%a4%b1%e5%9c%a8-epoch-%e9%97%b4%e5%89%a7%e7%83%88%e6%b3%a2%e5%8a%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>常见原因：学习率过高（试 3e-4），或 batch 中含过长序列导致填充零主导损失。若窗口长度可变，务必使用 <code>pack_padded_sequence</code> 掩码，并通过 <code>collate_fn</code> 在 batch 内按长度排序。</p><h3 id=症状预测结果总是滞后真实值一步 class=heading-anchor>症状：预测结果总是滞后真实值一步<a href=#%e7%97%87%e7%8a%b6%e9%a2%84%e6%b5%8b%e7%bb%93%e6%9e%9c%e6%80%bb%e6%98%af%e6%bb%9e%e5%90%8e%e7%9c%9f%e5%ae%9e%e5%80%bc%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>模型退化为<strong>恒等预测器</strong>（即“下一步 = 当前值”）。这表明输入特征缺乏超越简单自回归的预测信号。建议：显式加入滞后特征（如 <code>y[t-7]</code>、<code>y[t-30]</code>）、构造日历变量（小时、星期、节假日标志），并先计算恒等基线 RMSE 以确认目标是否可预测。</p><h3 id=症状回测效果好上线即崩 class=heading-anchor>症状：回测效果好，上线即崩<a href=#%e7%97%87%e7%8a%b6%e5%9b%9e%e6%b5%8b%e6%95%88%e6%9e%9c%e5%a5%bd%e4%b8%8a%e7%ba%bf%e5%8d%b3%e5%b4%a9 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>几乎必是<strong>数据泄漏</strong>。常见来源：scaler 在全序列上拟合（而非仅训练集）、target encoding 使用未来统计量、或线上有延迟的特征（如“昨日结算价”实际当晚才更新）。重新运行严格 point-in-time 的回测，问题将立即暴露。</p><p>一个实用诊断技巧是记录门控激活值：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 从单元到预测器</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>单步</span> <span class=n>LSTM</span> <span class=n>预测与实际序列对比</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>en</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=n>lstm</span><span class=o>/</span><span class=n>fig3_forecast</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>时间序列预测的标准流程如下</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=mf>1.</span> <span class=o>**</span><span class=n>划分窗口</span><span class=o>**</span><span class=err>：</span><span class=n>将原始序列切分为长度为</span> <span class=err>$</span><span class=n>L</span><span class=err>$</span> <span class=n>的重叠片段</span><span class=err>（</span><span class=n>即</span><span class=o>*</span><span class=n>回望窗口</span><span class=o>*</span><span class=err>）。</span>
+</span></span><span class=line><span class=cl><span class=mf>2.</span> <span class=o>**</span><span class=n>标准化</span><span class=o>**</span><span class=err>：</span><span class=n>使用训练集的均值与标准差对每个特征进行归一化</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=mf>3.</span> <span class=o>**</span><span class=n>训练目标</span><span class=o>**</span><span class=err>：</span><span class=n>预测下一个时间点</span><span class=err>（</span><span class=n>单步</span><span class=err>）</span><span class=n>或未来</span> <span class=err>$</span><span class=n>H</span><span class=err>$</span> <span class=n>个点</span><span class=err>（</span><span class=n>多步</span><span class=err>）。</span>
+</span></span><span class=line><span class=cl><span class=mf>4.</span> <span class=o>**</span><span class=n>验证方式</span><span class=o>**</span><span class=err>：</span><span class=n>使用</span><span class=o>**</span><span class=n>按时间顺序保留的尾部数据</span><span class=o>**</span><span class=n>进行验证</span><span class=err>，</span><span class=n>严禁打乱时序</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>在一个带噪声的季节性信号上</span><span class=err>，</span><span class=n>干净的单步预测效果大致如下</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>带噪季节信号上的单步</span> <span class=n>LSTM</span> <span class=n>预测</span> <span class=n>vs</span> <span class=n>实际值</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 多步预测：递归 vs 直接</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>多步预测</span><span class=err>：</span><span class=n>递归预测的不确定性扇形展开</span><span class=err>，</span><span class=n>而直接预测保持大致恒定的不确定性带宽</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>en</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=n>lstm</span><span class=o>/</span><span class=n>fig4_multistep</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>当预测视野</span> <span class=err>$</span><span class=n>H</span> <span class=o>&gt;</span> <span class=mi>1</span><span class=err>$</span> <span class=n>时</span><span class=err>，</span><span class=n>常用两种策略</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>策略</span> <span class=o>|</span> <span class=n>方法</span> <span class=o>|</span> <span class=n>权衡</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>---</span> <span class=o>|</span> <span class=o>---</span> <span class=o>|</span> <span class=o>---</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>递归</span><span class=o>**</span> <span class=o>|</span> <span class=n>训练一个单步模型</span><span class=err>，</span><span class=n>将其预测结果作为下一步输入递归使用</span><span class=err>。</span> <span class=o>|</span> <span class=n>实现简单</span><span class=err>，</span><span class=n>但误差会累积</span><span class=err>——</span><span class=n>方差随</span> <span class=err>$</span>\<span class=n>sqrt</span><span class=p>{</span><span class=n>H</span><span class=p>}</span><span class=err>$</span> <span class=n>增长</span><span class=err>。</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>直接</span><span class=o>**</span> <span class=o>|</span> <span class=n>训练</span> <span class=err>$</span><span class=n>H</span><span class=err>$</span> <span class=n>个独立输出头</span><span class=err>（</span><span class=n>或单模型输出</span> <span class=err>$</span><span class=n>H</span><span class=err>$</span> <span class=n>维</span><span class=err>），</span><span class=n>直接预测各未来步</span><span class=err>。</span> <span class=o>|</span> <span class=n>参数更多</span><span class=err>，</span><span class=n>但避免了误差反馈循环</span><span class=err>。</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>多步预测</span><span class=err>——</span><span class=n>递归预测误差累积明显</span><span class=err>；</span><span class=n>直接预测参数开销大</span><span class=err>，</span><span class=n>但置信区间更紧</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>实践中常用一种折中方案</span><span class=err>：</span><span class=o>**</span><span class=n>seq2seq</span> <span class=o>+</span> <span class=n>teacher</span> <span class=n>forcing</span><span class=o>**</span><span class=err>。</span><span class=n>LSTM</span> <span class=n>编码器读取回望窗口生成最终</span> <span class=err>$</span><span class=p>(</span><span class=n>h</span><span class=p>,</span> <span class=n>C</span><span class=p>)</span><span class=err>$</span> <span class=n>状态对</span><span class=err>，</span><span class=n>解码器逐步生成</span> <span class=err>$</span><span class=n>H</span><span class=err>$</span> <span class=n>个输出</span><span class=err>。</span><span class=n>训练时</span><span class=err>，</span><span class=n>解码器以一定概率接收</span><span class=o>**</span><span class=n>真实历史值</span><span class=o>**</span><span class=err>（</span><span class=n>而非自身预测</span><span class=err>）</span><span class=n>作为输入</span><span class=err>，</span><span class=n>该技术称为</span> <span class=n>scheduled</span> <span class=n>sampling</span><span class=err>。</span><span class=n>这也是当前生产环境中的主流做法</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 架构变体</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 双向 LSTM（BiLSTM）</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BiLSTM</span> <span class=n>同时运行一个前向</span> <span class=n>LSTM</span> <span class=n>和一个后向</span> <span class=n>LSTM</span><span class=err>，</span><span class=n>并在每一步拼接两者隐藏状态</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span><span class=n>y_t</span> <span class=o>=</span> <span class=p>[</span>\<span class=p>,</span>\<span class=n>overrightarrow</span><span class=p>{</span><span class=n>h</span><span class=p>}</span><span class=n>_t</span> \<span class=p>,;</span>\<span class=p>,</span> \<span class=n>overleftarrow</span><span class=p>{</span><span class=n>h</span><span class=p>}</span><span class=n>_t</span>\<span class=p>,]</span><span class=o>.</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>双向</span> <span class=n>LSTM</span><span class=err>：</span><span class=n>紫色正向链从左到右读取</span><span class=err>，</span><span class=n>琥珀色反向链从右到左读取</span><span class=err>，</span><span class=n>每一步的输出是两个隐藏状态的拼接</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>en</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=n>lstm</span><span class=o>/</span><span class=n>fig5_bilstm</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>双向</span> <span class=n>LSTM</span><span class=err>——</span><span class=n>每一步结合过去和未来的上下文信息</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>适用场景</span><span class=o>**</span><span class=err>：</span><span class=n>序列标注</span><span class=err>、</span><span class=n>分类</span><span class=err>、</span><span class=n>缺失值填补等</span><span class=err>——</span><span class=n>只要推理时能获取完整序列即可</span><span class=err>。</span><span class=o>**</span><span class=n>禁用于实时预测</span><span class=o>**</span><span class=err>：</span><span class=n>训练时偷看</span> <span class=err>$</span><span class=n>x_</span><span class=p>{</span><span class=n>t</span><span class=o>+</span><span class=mi>1</span><span class=p>},</span> <span class=n>x_</span><span class=p>{</span><span class=n>t</span><span class=o>+</span><span class=mi>2</span><span class=p>},</span> \<span class=n>dots</span><span class=err>$</span> <span class=n>而推理时却要预测</span> <span class=err>$</span><span class=n>x_</span><span class=p>{</span><span class=n>t</span><span class=o>+</span><span class=mi>1</span><span class=p>}</span><span class=err>$，</span><span class=n>属于典型的数据泄漏</span><span class=err>，</span><span class=n>上线必崩</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 堆叠（深层）LSTM</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>堆叠多层可使高层提取更平滑</span><span class=err>、</span><span class=n>更抽象的时序特征</span><span class=err>：</span><span class=n>第</span> <span class=mi>1</span> <span class=n>层处理原始输入</span><span class=err>，</span><span class=n>第</span> <span class=mi>2</span> <span class=n>层处理第</span> <span class=mi>1</span> <span class=n>层的隐藏状态</span><span class=err>，</span><span class=n>依此类推</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>三层堆叠</span> <span class=n>LSTM</span><span class=err>：</span><span class=n>每一层从左到右递归</span><span class=err>，</span><span class=n>并将隐藏状态传递给上一层</span><span class=err>。</span><span class=n>底层捕捉短时局部结构</span><span class=err>，</span><span class=n>高层提取长程</span><span class=err>、</span><span class=n>更抽象的模式</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>en</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=n>lstm</span><span class=o>/</span><span class=n>fig6_stacked_lstm</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>堆叠</span> <span class=n>LSTM</span><span class=err>——</span><span class=n>时间维度上的层级特征提取</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>实践中</span><span class=err>，</span><span class=o>**</span><span class=mi>2</span><span class=err>～</span><span class=mi>3</span> <span class=n>层</span><span class=o>**</span><span class=n>通常是最佳选择</span><span class=err>。</span><span class=n>层数更深不仅收益有限</span><span class=err>，</span><span class=n>还会显著增加</span><span class=o>**</span><span class=n>深度方向</span><span class=o>**</span><span class=err>（</span><span class=n>非时间方向</span><span class=err>）</span><span class=n>的梯度消失风险</span><span class=err>，</span><span class=n>除非引入残差连接</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 真正有效的训练方法</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>以下默认配置适用于大多数单变量或中等规模多变量预测任务</span><span class=err>（</span><span class=n>训练窗口数在几千至几十万之间</span><span class=err>）：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>参数</span> <span class=o>|</span> <span class=n>默认值</span> <span class=o>|</span> <span class=n>调整时机</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>---</span> <span class=o>|</span> <span class=o>---</span> <span class=o>|</span> <span class=o>---</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>回望长度</span> <span class=err>$</span><span class=n>L</span><span class=err>$</span> <span class=o>|</span> <span class=n>序列主周期的</span> <span class=mi>2</span><span class=err>～</span><span class=mi>3</span> <span class=n>倍</span> <span class=o>|</span> <span class=n>通过自相关分析确定</span><span class=err>（</span><span class=n>见下文</span><span class=err>）</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=err>`</span><span class=n>hidden_size</span><span class=err>`</span> <span class=o>|</span> <span class=mi>64</span> <span class=o>|</span> <span class=n>训练窗口</span> <span class=err>≥</span> <span class=mi>5</span> <span class=n>万时可增至</span> <span class=mi>128</span><span class=err>～</span><span class=mi>256</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=err>`</span><span class=n>num_layers</span><span class=err>`</span> <span class=o>|</span> <span class=mi>2</span> <span class=o>|</span> <span class=n>数据量小时用</span> <span class=mi>1</span> <span class=n>层</span><span class=err>；</span><span class=mi>3</span> <span class=n>层仅在有残差连接时考虑</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=err>`</span><span class=n>dropout</span><span class=err>`</span> <span class=o>|</span> <span class=mf>0.2</span> <span class=o>|</span> <span class=n>出现过拟合时可增至</span> <span class=mf>0.5</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>优化器</span> <span class=o>|</span> <span class=n>Adam</span><span class=err>，</span><span class=n>lr</span> <span class=o>=</span> <span class=mf>1e-3</span> <span class=o>|</span> <span class=n>长期训练建议改用</span> <span class=n>AdamW</span> <span class=o>+</span> <span class=n>余弦学习率调度</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>Batch</span> <span class=n>size</span> <span class=o>|</span> <span class=mi>32</span><span class=err>～</span><span class=mi>64</span> <span class=o>|</span> <span class=n>增大时需按</span> <span class=err>$</span>\<span class=n>sqrt</span><span class=p>{</span><span class=n>B</span><span class=o>/</span><span class=mi>32</span><span class=p>}</span><span class=err>$</span> <span class=n>同步调整学习率</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>损失函数</span> <span class=o>|</span> <span class=n>MSE</span> <span class=n>或</span> <span class=n>Huber</span> <span class=o>|</span> <span class=n>目标含厚尾或离群点时优先选</span> <span class=n>Huber</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>梯度裁剪</span> <span class=o>|</span> <span class=err>`</span><span class=n>clip_grad_norm_</span><span class=p>(</span><span class=o>...</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>)</span><span class=err>`</span> <span class=o>|</span> <span class=o>**</span><span class=n>务必开启</span><span class=o>**</span><span class=err>——</span><span class=n>防止梯度爆炸的低成本保险</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>早停</span> <span class=o>|</span> <span class=n>patience</span> <span class=o>=</span> <span class=mi>8</span><span class=err>～</span><span class=mi>10</span> <span class=o>|</span> <span class=n>基于验证损失触发</span><span class=err>，</span><span class=n>并恢复最优权重</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 如何选择回望长度</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>绘制自相关函数</span><span class=err>（</span><span class=n>ACF</span><span class=err>），</span><span class=n>找到自相关系数</span> <span class=err>$</span><span class=o>|</span>\<span class=n>rho_k</span><span class=o>|</span><span class=err>$</span> <span class=n>仍高于小阈值</span><span class=err>（</span><span class=n>如</span> <span class=mf>0.1</span><span class=err>）</span><span class=n>的最大滞后</span> <span class=err>$</span><span class=n>k</span><span class=err>$，</span><span class=n>再向上取整至最近的主季节周期</span><span class=err>。</span><span class=n>例如</span><span class=err>，</span><span class=n>对含日</span><span class=o>/</span><span class=n>周双重周期的小时级数据</span><span class=err>，</span><span class=mi>168</span><span class=err>（</span><span class=n>一周</span><span class=err>）</span><span class=n>是自然上限</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 一次健康训练的表现</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=mi>60</span> <span class=n>个</span> <span class=n>epoch</span> <span class=n>的训练和验证损失曲线</span><span class=err>，</span><span class=n>绿色虚线标记最佳验证</span> <span class=n>epoch</span><span class=err>，</span><span class=n>紫色虚线标记早停触发</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>en</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=n>lstm</span><span class=o>/</span><span class=n>fig7_training_curves</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>健康的</span> <span class=n>LSTM</span> <span class=n>训练曲线中</span><span class=err>，</span><span class=n>验证损失会紧贴训练损失下降</span><span class=err>，</span><span class=n>直至达到最低点后开始回升</span><span class=err>（</span><span class=n>表明过拟合</span><span class=err>）。</span><span class=n>早停机制会在最优验证损失出现后继续等待若干</span> <span class=n>epoch</span><span class=err>，</span><span class=n>随后恢复该时刻的权重</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>带早停的</span> <span class=n>LSTM</span> <span class=n>训练曲线</span><span class=err>——</span><span class=n>恢复绿色虚线处的权重</span><span class=err>，</span><span class=n>而不是紫色点划线处</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## LSTM 和 GRU——到底该选哪个？</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>维度</span> <span class=o>|</span> <span class=n>LSTM</span> <span class=o>|</span> <span class=n>GRU</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>---</span> <span class=o>|</span> <span class=o>---</span> <span class=o>|</span> <span class=o>---</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>门数量</span> <span class=o>|</span> <span class=mi>3</span><span class=err>（</span><span class=n>遗忘</span><span class=err>、</span><span class=n>输入</span><span class=err>、</span><span class=n>输出</span><span class=err>）</span> <span class=o>|</span> <span class=mi>2</span><span class=err>（</span><span class=n>重置</span><span class=err>、</span><span class=n>更新</span><span class=err>）</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>独立细胞状态</span> <span class=err>$</span><span class=n>C_t</span><span class=err>$</span> <span class=o>|</span> <span class=n>有</span> <span class=o>|</span> <span class=n>无</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>单元参数量</span> <span class=o>|</span> <span class=mi>4</span> <span class=n>个权重矩阵</span> <span class=o>|</span> <span class=mi>3</span> <span class=n>个权重矩阵</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>推理速度</span> <span class=o>|</span> <span class=n>基准</span> <span class=o>|</span> <span class=n>快约</span> <span class=mi>25</span><span class=o>%</span><span class=err>，</span><span class=n>精度相当</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>典型适用场景</span> <span class=o>|</span> <span class=n>超长序列</span><span class=err>、</span><span class=n>大数据集</span><span class=err>、</span><span class=n>需最大建模容量</span> <span class=o>|</span> <span class=n>小数据集</span><span class=err>、</span><span class=n>实时推理</span><span class=err>、</span><span class=n>移动端</span><span class=o>/</span><span class=n>边缘设备</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>实证表明</span><span class=err>，</span><span class=n>在多数预测任务中</span><span class=err>，</span><span class=n>LSTM</span> <span class=n>与</span> <span class=n>GRU</span> <span class=n>的性能差距通常在噪声范围内</span><span class=err>。</span><span class=o>**</span><span class=n>建议默认使用</span> <span class=n>GRU</span><span class=o>**</span> <span class=n>以加速迭代</span><span class=err>；</span><span class=n>仅当数据量极大且依赖跨度达数百步时</span><span class=err>，</span><span class=n>才考虑切换至</span> <span class=n>LSTM</span><span class=err>。</span><span class=n>对于超过</span> <span class=mi>500</span> <span class=n>步的超长序列</span><span class=err>，</span><span class=n>时序卷积网络</span><span class=err>（</span><span class=n>TCN</span><span class=err>，</span><span class=n>第</span> <span class=mi>6</span> <span class=n>篇</span><span class=err>）</span><span class=n>或</span> <span class=n>Informer</span> <span class=n>类稀疏</span> <span class=n>Transformer</span><span class=err>（</span><span class=n>第</span> <span class=mi>8</span> <span class=n>篇</span><span class=err>）</span><span class=n>往往表现更优</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 常见陷阱</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>未对每个特征单独标准化</span><span class=o>**</span><span class=err>：</span><span class=n>LSTM</span> <span class=n>对尺度敏感</span><span class=err>，</span><span class=n>混合原始股价与百分比回报会导致训练失败</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>跨训练</span><span class=o>/</span><span class=n>测试边界打乱时序窗口</span><span class=o>**</span><span class=err>：</span><span class=n>必须使用</span> <span class=err>`</span><span class=n>TimeSeriesSplit</span><span class=err>`</span> <span class=n>或严格按时间切分</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>误将最后隐藏状态当作预测结果</span><span class=o>**</span><span class=err>：</span><span class=n>它只是中间特征</span><span class=err>，</span><span class=n>仍需线性输出层</span><span class=err>，</span><span class=n>且目标值也需标准化</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>用</span> <span class=n>BiLSTM</span> <span class=n>做实时预测</span><span class=o>**</span><span class=err>：</span><span class=n>Notebook</span> <span class=n>中看似效果惊艳</span><span class=err>（</span><span class=n>因偷看未来</span><span class=err>），</span><span class=n>上线即崩</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>未定回望长度就调大</span> <span class=n>hidden_size</span><span class=o>**</span><span class=err>：</span><span class=n>窗口太短时</span><span class=err>，</span><span class=n>扩大</span> <span class=n>cell</span> <span class=n>宽度毫无意义</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>仅凭单次随机种子下结论</span><span class=o>**</span><span class=err>：</span><span class=n>RNN</span> <span class=n>训练噪声大</span><span class=err>，</span><span class=n>至少运行</span> <span class=mi>3</span> <span class=n>次种子</span><span class=err>，</span><span class=n>报告均值</span> <span class=err>±</span> <span class=n>标准差</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 给 LSTM 找问题</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>当</span> <span class=n>LSTM</span> <span class=n>预测效果不佳时</span><span class=err>，</span><span class=n>先别急着换架构</span><span class=err>。</span><span class=n>以下五类症状覆盖了绝大多数失败案例</span><span class=err>，</span><span class=n>且均有明确诊断方法</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 症状：训练损失高，验证损失同步高</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>模型</span><span class=o>**</span><span class=n>欠拟合</span><span class=o>**</span><span class=err>。</span><span class=n>可能因回望窗口太短或</span> <span class=n>cell</span> <span class=n>容量不足</span><span class=err>。</span><span class=n>快速验证</span><span class=err>：</span><span class=n>固定其他参数</span><span class=err>，</span><span class=n>将</span> <span class=err>`</span><span class=n>hidden_size</span><span class=err>`</span> <span class=n>加倍</span><span class=err>（</span><span class=mi>64</span> <span class=err>→</span> <span class=mi>128</span><span class=err>）。</span><span class=n>若训练损失毫无变化</span><span class=err>，</span><span class=n>说明瓶颈在窗口长度</span><span class=err>——</span><span class=n>优先扩展回望窗口</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 症状：训练损失下降，验证损失早早停滞</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>典型</span><span class=o>**</span><span class=n>小数据过拟合</span><span class=o>**</span><span class=err>。</span><span class=n>可尝试</span><span class=err>：</span><span class=n>增大</span> <span class=n>dropout</span><span class=err>（</span><span class=mf>0.2</span> <span class=err>→</span> <span class=mf>0.4</span><span class=err>）、</span><span class=n>缩小</span> <span class=n>cell</span><span class=err>、</span><span class=n>或改用</span> <span class=err>`</span><span class=n>AdamW</span><span class=err>`</span> <span class=n>并设</span> <span class=err>`</span><span class=n>weight_decay</span><span class=o>=</span><span class=mf>1e-4</span><span class=err>`。</span><span class=o>**</span><span class=n>切勿盲目增加特征</span><span class=o>**</span><span class=err>——</span><span class=n>小数据下这通常适得其反</span><span class=err>。</span><span class=n>对窗口数</span> <span class=o>&lt;</span> <span class=mi>5</span><span class=p>,</span><span class=mi>000</span> <span class=n>的序列</span><span class=err>，</span><span class=n>最有效手段往往是将</span> <span class=err>`</span><span class=n>hidden_size</span><span class=err>`</span> <span class=n>降至</span> <span class=mi>32</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 症状：验证损失在 epoch 间剧烈波动</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>常见原因</span><span class=err>：</span><span class=n>学习率过高</span><span class=err>（</span><span class=n>试</span> <span class=mf>3e-4</span><span class=err>），</span><span class=n>或</span> <span class=n>batch</span> <span class=n>中含过长序列导致填充零主导损失</span><span class=err>。</span><span class=n>若窗口长度可变</span><span class=err>，</span><span class=n>务必使用</span> <span class=err>`</span><span class=n>pack_padded_sequence</span><span class=err>`</span> <span class=n>掩码</span><span class=err>，</span><span class=n>并通过</span> <span class=err>`</span><span class=n>collate_fn</span><span class=err>`</span> <span class=n>在</span> <span class=n>batch</span> <span class=n>内按长度排序</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 症状：预测结果总是滞后真实值一步</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>模型退化为</span><span class=o>**</span><span class=n>恒等预测器</span><span class=o>**</span><span class=err>（</span><span class=n>即</span><span class=err>“</span><span class=n>下一步</span> <span class=o>=</span> <span class=n>当前值</span><span class=err>”）。</span><span class=n>这表明输入特征缺乏超越简单自回归的预测信号</span><span class=err>。</span><span class=n>建议</span><span class=err>：</span><span class=n>显式加入滞后特征</span><span class=err>（</span><span class=n>如</span> <span class=err>`</span><span class=n>y</span><span class=p>[</span><span class=n>t</span><span class=o>-</span><span class=mi>7</span><span class=p>]</span><span class=err>`、`</span><span class=n>y</span><span class=p>[</span><span class=n>t</span><span class=o>-</span><span class=mi>30</span><span class=p>]</span><span class=err>`）、</span><span class=n>构造日历变量</span><span class=err>（</span><span class=n>小时</span><span class=err>、</span><span class=n>星期</span><span class=err>、</span><span class=n>节假日标志</span><span class=err>），</span><span class=n>并先计算恒等基线</span> <span class=n>RMSE</span> <span class=n>以确认目标是否可预测</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 症状：回测效果好，上线即崩</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>几乎必是</span><span class=o>**</span><span class=n>数据泄漏</span><span class=o>**</span><span class=err>。</span><span class=n>常见来源</span><span class=err>：</span><span class=n>scaler</span> <span class=n>在全序列上拟合</span><span class=err>（</span><span class=n>而非仅训练集</span><span class=err>）、</span><span class=n>target</span> <span class=n>encoding</span> <span class=n>使用未来统计量</span><span class=err>、</span><span class=n>或线上有延迟的特征</span><span class=err>（</span><span class=n>如</span><span class=err>“</span><span class=n>昨日结算价</span><span class=err>”</span><span class=n>实际当晚才更新</span><span class=err>）。</span><span class=n>重新运行严格</span> <span class=n>point</span><span class=o>-</span><span class=ow>in</span><span class=o>-</span><span class=n>time</span> <span class=n>的回测</span><span class=err>，</span><span class=n>问题将立即暴露</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>一个实用诊断技巧是记录门控激活值</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=nd>@torch.no_grad</span><span class=p>()</span>
 </span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>gate_stats</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>batch</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=n>cell</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>lstm</span>
 </span></span><span class=line><span class=cl>    <span class=n>h</span><span class=p>,</span> <span class=n>c</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span>
@@ -140,20 +461,33 @@ $$</span><p>其中 <span class=math-inline>$\odot$</span>
 </span></span><span class=line><span class=cl>                   <span class=s2>&#34;f&#34;</span><span class=p>:</span> <span class=n>chunks</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span><span class=o>.</span><span class=n>item</span><span class=p>(),</span>
 </span></span><span class=line><span class=cl>                   <span class=s2>&#34;g&#34;</span><span class=p>:</span> <span class=n>chunks</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span><span class=o>.</span><span class=n>item</span><span class=p>(),</span>
 </span></span><span class=line><span class=cl>                   <span class=s2>&#34;o&#34;</span><span class=p>:</span> <span class=n>chunks</span><span class=p>[</span><span class=mi>3</span><span class=p>]</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span><span class=o>.</span><span class=n>item</span><span class=p>()})</span>
-</span></span></code></pre></td></tr></table></div></div><p>若训练后遗忘门偏置低于 0，说明网络学会了“每步清空记忆”——通常因序列太短，记忆无价值。此时可进一步缩短序列，或直接改用无状态前馈模型。</p><h2 id=上线注意事项 class=heading-anchor>上线注意事项<a href=#%e4%b8%8a%e7%ba%bf%e6%b3%a8%e6%84%8f%e4%ba%8b%e9%a1%b9 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>LSTM 原型易写，部署却暗藏玄机。以下是我在项目中踩过的坑。</p><h3 id=跨调用的状态管理 class=heading-anchor>跨调用的状态管理<a href=#%e8%b7%a8%e8%b0%83%e7%94%a8%e7%9a%84%e7%8a%b6%e6%80%81%e7%ae%a1%e7%90%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>生产环境中通常每次仅接收一个新观测值。此时有两种选择：</p><ol><li><strong>无状态滚动窗口</strong>：每次调用时重新编码最近 <span class=math-inline>$L$</span>
-个观测值。逻辑清晰，延迟与 <span class=math-inline>$L$</span>
-成正比。</li><li><strong>有状态流式处理</strong>：缓存 <code>(h_t, C_t)</code> 并仅输入新观测值。延迟为 <span class=math-inline>$O(1)$</span>
-，但需确保缓存状态与训练一致——这意味着训练也需采用 TBPTT 等流式兼容方式。</li></ol><p>对 <span class=math-inline>$L &lt; 200$</span>
-的多数场景，<strong>无状态是更稳妥的默认选择</strong>。仅当需亚秒级高频预测且上下文极长时，才值得引入流式复杂度。</p><h3 id=量化和-onnx-导出 class=heading-anchor>量化和 ONNX 导出<a href=#%e9%87%8f%e5%8c%96%e5%92%8c-onnx-%e5%af%bc%e5%87%ba class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>LSTM 可顺利导出至 ONNX，但细胞状态对 int8 量化极为敏感。若必须量化，建议<strong>仅对线性投影层使用动态量化</strong>，门控部分保留 fp16。据我实测，全量化 LSTM 在多数预测任务上会损失 5%～15% 精度。相比之下，TCN 或 Transformer 的量化鲁棒性更强，这也是它们逐渐取代 LSTM 成为低延迟流水线首选的原因之一。</p><h3 id=给-scaler-打版本 class=heading-anchor>给 scaler 打版本<a href=#%e7%bb%99-scaler-%e6%89%93%e7%89%88%e6%9c%ac class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>我见过最多的 LSTM 线上事故，源于模型与 scaler 版本漂移。<strong>逐特征的均值与标准差就是模型的一部分</strong>。务必将其作为同版本工件存储并同步加载。若使用 TorchScript，可直接将标准化操作嵌入计算图：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span><span class=lnt>8
-</span><span class=lnt>9
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>WrappedForecaster</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>若训练后遗忘门偏置低于</span> <span class=mi>0</span><span class=err>，</span><span class=n>说明网络学会了</span><span class=err>“</span><span class=n>每步清空记忆</span><span class=err>”——</span><span class=n>通常因序列太短</span><span class=err>，</span><span class=n>记忆无价值</span><span class=err>。</span><span class=n>此时可进一步缩短序列</span><span class=err>，</span><span class=n>或直接改用无状态前馈模型</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 上线注意事项</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>LSTM</span> <span class=n>原型易写</span><span class=err>，</span><span class=n>部署却暗藏玄机</span><span class=err>。</span><span class=n>以下是我在项目中踩过的坑</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 跨调用的状态管理</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>生产环境中通常每次仅接收一个新观测值</span><span class=err>。</span><span class=n>此时有两种选择</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=mf>1.</span> <span class=o>**</span><span class=n>无状态滚动窗口</span><span class=o>**</span><span class=err>：</span><span class=n>每次调用时重新编码最近</span> <span class=err>$</span><span class=n>L</span><span class=err>$</span> <span class=n>个观测值</span><span class=err>。</span><span class=n>逻辑清晰</span><span class=err>，</span><span class=n>延迟与</span> <span class=err>$</span><span class=n>L</span><span class=err>$</span> <span class=n>成正比</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=mf>2.</span> <span class=o>**</span><span class=n>有状态流式处理</span><span class=o>**</span><span class=err>：</span><span class=n>缓存</span> <span class=err>`</span><span class=p>(</span><span class=n>h_t</span><span class=p>,</span> <span class=n>C_t</span><span class=p>)</span><span class=err>`</span> <span class=n>并仅输入新观测值</span><span class=err>。</span><span class=n>延迟为</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=err>$，</span><span class=n>但需确保缓存状态与训练一致</span><span class=err>——</span><span class=n>这意味着训练也需采用</span> <span class=n>TBPTT</span> <span class=n>等流式兼容方式</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>对</span> <span class=err>$</span><span class=n>L</span> <span class=o>&lt;</span> <span class=mi>200</span><span class=err>$</span> <span class=n>的多数场景</span><span class=err>，</span><span class=o>**</span><span class=n>无状态是更稳妥的默认选择</span><span class=o>**</span><span class=err>。</span><span class=n>仅当需亚秒级高频预测且上下文极长时</span><span class=err>，</span><span class=n>才值得引入流式复杂度</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 量化和 ONNX 导出</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>LSTM</span> <span class=n>可顺利导出至</span> <span class=n>ONNX</span><span class=err>，</span><span class=n>但细胞状态对</span> <span class=n>int8</span> <span class=n>量化极为敏感</span><span class=err>。</span><span class=n>若必须量化</span><span class=err>，</span><span class=n>建议</span><span class=o>**</span><span class=n>仅对线性投影层使用动态量化</span><span class=o>**</span><span class=err>，</span><span class=n>门控部分保留</span> <span class=n>fp16</span><span class=err>。</span><span class=n>据我实测</span><span class=err>，</span><span class=n>全量化</span> <span class=n>LSTM</span> <span class=n>在多数预测任务上会损失</span> <span class=mi>5</span><span class=o>%</span><span class=err>～</span><span class=mi>15</span><span class=o>%</span> <span class=n>精度</span><span class=err>。</span><span class=n>相比之下</span><span class=err>，</span><span class=n>TCN</span> <span class=n>或</span> <span class=n>Transformer</span> <span class=n>的量化鲁棒性更强</span><span class=err>，</span><span class=n>这也是它们逐渐取代</span> <span class=n>LSTM</span> <span class=n>成为低延迟流水线首选的原因之一</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 给 scaler 打版本</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>我见过最多的</span> <span class=n>LSTM</span> <span class=n>线上事故</span><span class=err>，</span><span class=n>源于模型与</span> <span class=n>scaler</span> <span class=n>版本漂移</span><span class=err>。</span><span class=o>**</span><span class=n>逐特征的均值与标准差就是模型的一部分</span><span class=o>**</span><span class=err>。</span><span class=n>务必将其作为同版本工件存储并同步加载</span><span class=err>。</span><span class=n>若使用</span> <span class=n>TorchScript</span><span class=err>，</span><span class=n>可直接将标准化操作嵌入计算图</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>WrappedForecaster</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>base</span><span class=p>,</span> <span class=n>mean</span><span class=p>,</span> <span class=n>std</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
 </span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>base</span> <span class=o>=</span> <span class=n>base</span>
@@ -162,12 +496,40 @@ $$</span><p>其中 <span class=math-inline>$\odot$</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=p>((</span><span class=n>x</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>mean</span><span class=p>)</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>std</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>这一改动已帮我避免三次线上事故。</p><h3 id=监控漂移 class=heading-anchor>监控漂移<a href=#%e7%9b%91%e6%8e%a7%e6%bc%82%e7%a7%bb class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>LSTM 不会主动报告性能退化。仪表盘中至少监控三项指标：hold-out 尾部的滚动 RMSE、输入特征分布漂移（今日直方图 vs 训练直方图的 KL 散度）、以及残差的自相关函数（ACF）。一旦残差在 lag=1 处出现显著自相关，说明模型已失效——该重新训练了。</p><h2 id=总结 class=heading-anchor>总结<a href=#%e6%80%bb%e7%bb%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>LSTM 通过一条近似加性的<strong>细胞状态高速公路</strong>解决了梯度消失问题，由三个乘法门控机制协同管理：遗忘门决定丢弃什么，输入门决定写入什么，输出门决定暴露什么。由于长程梯度是遗忘门的乘积而非循环雅可比矩阵的乘积，模型得以捕捉数百步的依赖关系。</p><p>在时间序列任务中，这转化为一套实用准则：使用合理回望窗口、堆叠 1～3 层中等宽度 LSTM、结合 dropout 与早停进行正则化、长视野预测优先采用直接多步而非递归方式、BiLSTM 仅用于离线任务。下一篇将介绍 GRU——LSTM 的轻量表亲，它用更少参数实现了几乎同等的性能。</p><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>LSTM 的三个门让 RNN 在数百步序列上稳定训练成为可能，是深度学习真正能处理时间序列的开端。但用过一段时间你会发现两个不舒服的地方：参数量偏大（导致过拟合和训练慢），以及理论上的"完整三门"在实践中往往用不满。</p><p>下一篇 <a href=/zh/time-series/03-gru>GRU</a>
-直接回应了这两个问题。它把三门简化为两门、把细胞状态吸收进隐藏状态、参数减少 25%，但在绝大多数时序任务上精度和 LSTM 持平。我会展示具体的对比基准——参数量、训练速度、预测质量——并给一份"什么时候选 GRU、什么时候选 LSTM"的决策表，让你在新项目上不用再凭直觉拍脑袋。</p><p>如果你还想继续深耕 LSTM，建议把这一章的 PyTorch 实现自己跑一遍，然后试试两件事：把序列长度从 30 增加到 200，观察训练时间怎么变；以及把 hidden_size 减半，观察预测质量损失多少。这两个实验会让你对 RNN 类模型的尺度规律建立非常具体的感觉，后面所有深度时序模型都会受益于这种感觉。</p><h2 id=参考文献 class=heading-anchor>参考文献<a href=#%e5%8f%82%e8%80%83%e6%96%87%e7%8c%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>Hochreiter & Schmidhuber, <em>Long Short-Term Memory</em>, Neural Computation (1997)</li><li>Gers, Schmidhuber & Cummins, <em>Learning to Forget: Continual Prediction with LSTM</em> (2000)——遗忘门偏置 +1 技巧的出处</li><li>Olah, <em>Understanding LSTM Networks</em>, colah.github.io (2015)——经典图示讲解</li><li>Greff et al., <em>LSTM: A Search Space Odyssey</em>, IEEE TNNLS (2017)——LSTM 变体的实证研究</li></ul></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>这一改动已帮我避免三次线上事故</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 监控漂移</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>LSTM</span> <span class=n>不会主动报告性能退化</span><span class=err>。</span><span class=n>仪表盘中至少监控三项指标</span><span class=err>：</span><span class=n>hold</span><span class=o>-</span><span class=n>out</span> <span class=n>尾部的滚动</span> <span class=n>RMSE</span><span class=err>、</span><span class=n>输入特征分布漂移</span><span class=err>（</span><span class=n>今日直方图</span> <span class=n>vs</span> <span class=n>训练直方图的</span> <span class=n>KL</span> <span class=n>散度</span><span class=err>）、</span><span class=n>以及残差的自相关函数</span><span class=err>（</span><span class=n>ACF</span><span class=err>）。</span><span class=n>一旦残差在</span> <span class=n>lag</span><span class=o>=</span><span class=mi>1</span> <span class=n>处出现显著自相关</span><span class=err>，</span><span class=n>说明模型已失效</span><span class=err>——</span><span class=n>该重新训练了</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 总结</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>LSTM</span> <span class=n>通过一条近似加性的</span><span class=o>**</span><span class=n>细胞状态高速公路</span><span class=o>**</span><span class=n>解决了梯度消失问题</span><span class=err>，</span><span class=n>由三个乘法门控机制协同管理</span><span class=err>：</span><span class=n>遗忘门决定丢弃什么</span><span class=err>，</span><span class=n>输入门决定写入什么</span><span class=err>，</span><span class=n>输出门决定暴露什么</span><span class=err>。</span><span class=n>由于长程梯度是遗忘门的乘积而非循环雅可比矩阵的乘积</span><span class=err>，</span><span class=n>模型得以捕捉数百步的依赖关系</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>在时间序列任务中</span><span class=err>，</span><span class=n>这转化为一套实用准则</span><span class=err>：</span><span class=n>使用合理回望窗口</span><span class=err>、</span><span class=n>堆叠</span> <span class=mi>1</span><span class=err>～</span><span class=mi>3</span> <span class=n>层中等宽度</span> <span class=n>LSTM</span><span class=err>、</span><span class=n>结合</span> <span class=n>dropout</span> <span class=n>与早停进行正则化</span><span class=err>、</span><span class=n>长视野预测优先采用直接多步而非递归方式</span><span class=err>、</span><span class=n>BiLSTM</span> <span class=n>仅用于离线任务</span><span class=err>。</span><span class=n>下一篇将介绍</span> <span class=n>GRU</span><span class=err>——</span><span class=n>LSTM</span> <span class=n>的轻量表亲</span><span class=err>，</span><span class=n>它用更少参数实现了几乎同等的性能</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 下一步</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>LSTM</span> <span class=n>的三个门让</span> <span class=n>RNN</span> <span class=n>在数百步序列上稳定训练成为可能</span><span class=err>，</span><span class=n>是深度学习真正能处理时间序列的开端</span><span class=err>。</span><span class=n>但用过一段时间你会发现两个不舒服的地方</span><span class=err>：</span><span class=n>参数量偏大</span><span class=err>（</span><span class=n>导致过拟合和训练慢</span><span class=err>），</span><span class=n>以及理论上的</span><span class=s2>&#34;完整三门&#34;</span><span class=n>在实践中往往用不满</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>下一篇</span> <span class=p>[</span><span class=n>GRU</span><span class=p>](</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=mi>03</span><span class=o>-</span><span class=n>gru</span><span class=p>)</span> <span class=n>直接回应了这两个问题</span><span class=err>。</span><span class=n>它把三门简化为两门</span><span class=err>、</span><span class=n>把细胞状态吸收进隐藏状态</span><span class=err>、</span><span class=n>参数减少</span> <span class=mi>25</span><span class=o>%</span><span class=err>，</span><span class=n>但在绝大多数时序任务上精度和</span> <span class=n>LSTM</span> <span class=n>持平</span><span class=err>。</span><span class=n>我会展示具体的对比基准</span><span class=err>——</span><span class=n>参数量</span><span class=err>、</span><span class=n>训练速度</span><span class=err>、</span><span class=n>预测质量</span><span class=err>——</span><span class=n>并给一份</span><span class=s2>&#34;什么时候选 GRU、什么时候选 LSTM&#34;</span><span class=n>的决策表</span><span class=err>，</span><span class=n>让你在新项目上不用再凭直觉拍脑袋</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>如果你还想继续深耕</span> <span class=n>LSTM</span><span class=err>，</span><span class=n>建议把这一章的</span> <span class=n>PyTorch</span> <span class=n>实现自己跑一遍</span><span class=err>，</span><span class=n>然后试试两件事</span><span class=err>：</span><span class=n>把序列长度从</span> <span class=mi>30</span> <span class=n>增加到</span> <span class=mi>200</span><span class=err>，</span><span class=n>观察训练时间怎么变</span><span class=err>；</span><span class=n>以及把</span> <span class=n>hidden_size</span> <span class=n>减半</span><span class=err>，</span><span class=n>观察预测质量损失多少</span><span class=err>。</span><span class=n>这两个实验会让你对</span> <span class=n>RNN</span> <span class=n>类模型的尺度规律建立非常具体的感觉</span><span class=err>，</span><span class=n>后面所有深度时序模型都会受益于这种感觉</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 参考文献</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Hochreiter</span> <span class=o>&amp;</span> <span class=n>Schmidhuber</span><span class=p>,</span> <span class=o>*</span><span class=n>Long</span> <span class=n>Short</span><span class=o>-</span><span class=n>Term</span> <span class=n>Memory</span><span class=o>*</span><span class=p>,</span> <span class=n>Neural</span> <span class=n>Computation</span> <span class=p>(</span><span class=mi>1997</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Gers</span><span class=p>,</span> <span class=n>Schmidhuber</span> <span class=o>&amp;</span> <span class=n>Cummins</span><span class=p>,</span> <span class=o>*</span><span class=n>Learning</span> <span class=n>to</span> <span class=n>Forget</span><span class=p>:</span> <span class=n>Continual</span> <span class=n>Prediction</span> <span class=k>with</span> <span class=n>LSTM</span><span class=o>*</span> <span class=p>(</span><span class=mi>2000</span><span class=p>)</span><span class=err>——</span><span class=n>遗忘门偏置</span> <span class=o>+</span><span class=mi>1</span> <span class=n>技巧的出处</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Olah</span><span class=p>,</span> <span class=o>*</span><span class=n>Understanding</span> <span class=n>LSTM</span> <span class=n>Networks</span><span class=o>*</span><span class=p>,</span> <span class=n>colah</span><span class=o>.</span><span class=n>github</span><span class=o>.</span><span class=n>io</span> <span class=p>(</span><span class=mi>2015</span><span class=p>)</span><span class=err>——</span><span class=n>经典图示讲解</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Greff</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span><span class=p>,</span> <span class=o>*</span><span class=n>LSTM</span><span class=p>:</span> <span class=n>A</span> <span class=n>Search</span> <span class=n>Space</span> <span class=n>Odyssey</span><span class=o>*</span><span class=p>,</span> <span class=n>IEEE</span> <span class=n>TNNLS</span> <span class=p>(</span><span class=mi>2017</span><span class=p>)</span><span class=err>——</span><span class=n>LSTM</span> <span class=n>变体的实证研究</span>
+</span></span></code></pre></td></tr></table></div></div></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E6%2597%25B6%25E9%2597%25B4%25E5%25BA%258F%25E5%2588%2597%25E6%25A8%25A1%25E5%259E%258B%25EF%25BC%2588%25E4%25BA%258C%25EF%25BC%2589%25EF%25BC%259ALSTM%25E2%2580%2594%25E2%2580%2594%25E9%2597%25A8%25E6%258E%25A7%25E6%259C%25BA%25E5%2588%25B6%25E4%25B8%258E%25E9%2595%25BF%25E6%259C%259F%25E4%25BE%259D%25E8%25B5%2596&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Ftime-series%252F02-lstm%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Ftime-series%252F02-lstm%252F&title=%25E6%2597%25B6%25E9%2597%25B4%25E5%25BA%258F%25E5%2588%2597%25E6%25A8%25A1%25E5%259E%258B%25EF%25BC%2588%25E4%25BA%258C%25EF%25BC%2589%25EF%25BC%259ALSTM%25E2%2580%2594%25E2%2580%2594%25E9%2597%25A8%25E6%258E%25A7%25E6%259C%25BA%25E5%2588%25B6%25E4%25B8%258E%25E9%2595%25BF%25E6%259C%259F%25E4%25BE%259D%25E8%25B5%2596" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/time-series/02-lstm/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2024-09-16>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#本文要点>本文要点</a></li><li><a href=#准备工作>准备工作</a></li><li><a href=#lstm-要解决的问题>LSTM 要解决的问题</a></li><li><a href=#lstm-单元的内部结构>LSTM 单元的内部结构</a><ul><li><a href=#为什么细胞状态如此特殊>为什么细胞状态如此特殊</a></li><li><a href=#梯度流动的显式表达>梯度流动的显式表达</a></li></ul></li><li><a href=#一个最简的-pytorch-实现>一个最简的 PyTorch 实现</a></li><li><a href=#从单元到预测器>从单元到预测器</a><ul><li><a href=#多步预测递归-vs-直接>多步预测：递归 vs 直接</a></li></ul></li><li><a href=#架构变体>架构变体</a><ul><li><a href=#双向-lstmbilstm>双向 LSTM（BiLSTM）</a></li><li><a href=#堆叠深层lstm>堆叠（深层）LSTM</a></li></ul></li><li><a href=#真正有效的训练方法>真正有效的训练方法</a><ul><li><a href=#如何选择回望长度>如何选择回望长度</a></li><li><a href=#一次健康训练的表现>一次健康训练的表现</a></li></ul></li><li><a href=#lstm-和-gru到底该选哪个>LSTM 和 GRU——到底该选哪个？</a></li><li><a href=#常见陷阱>常见陷阱</a></li><li><a href=#给-lstm-找问题>给 LSTM 找问题</a><ul><li><a href=#症状训练损失高验证损失同步高>症状：训练损失高，验证损失同步高</a></li><li><a href=#症状训练损失下降验证损失早早停滞>症状：训练损失下降，验证损失早早停滞</a></li><li><a href=#症状验证损失在-epoch-间剧烈波动>症状：验证损失在 epoch 间剧烈波动</a></li><li><a href=#症状预测结果总是滞后真实值一步>症状：预测结果总是滞后真实值一步</a></li><li><a href=#症状回测效果好上线即崩>症状：回测效果好，上线即崩</a></li></ul></li><li><a href=#上线注意事项>上线注意事项</a><ul><li><a href=#跨调用的状态管理>跨调用的状态管理</a></li><li><a href=#量化和-onnx-导出>量化和 ONNX 导出</a></li><li><a href=#给-scaler-打版本>给 scaler 打版本</a></li><li><a href=#监控漂移>监控漂移</a></li></ul></li><li><a href=#总结>总结</a></li><li><a href=#下一步>下一步</a></li><li><a href=#参考文献>参考文献</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/time-series/ class=series-name>时间序列预测</a>
+<span class=sig-meta data-days-since=2024-09-16>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#本文要点>本文要点</a></li><li><a href=#准备工作>准备工作</a></li><li><a href=#lstm-要解决的问题>LSTM 要解决的问题</a></li><li><a href=#lstm-单元的内部结构>LSTM 单元的内部结构</a><ul><li><a href=#为什么细胞状态如此特殊>为什么细胞状态如此特殊</a></li><li><a href=#梯度流动的显式表达>梯度流动的显式表达</a></li></ul></li><li><a href=#一个最简的-pytorch-实现>一个最简的 PyTorch 实现</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/time-series/ class=series-name>时间序列预测</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/time-series/01-%E4%BC%A0%E7%BB%9F%E6%A8%A1%E5%9E%8B/><span class=chapter-num>01</span>
 <span class=chapter-title>时间序列模型（一）：传统统计模型</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>02</span>
 <span class=chapter-title>时间序列模型（二）：LSTM——门控机制与长期依赖</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/time-series/03-gru/><span class=chapter-num>03</span>
@@ -176,5 +538,5 @@ $$</span><p>其中 <span class=math-inline>$\odot$</span>
 <span class=chapter-title>时间序列模型（五）：时间序列的 Transformer 架构</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9Ctcn/><span class=chapter-num>06</span>
 <span class=chapter-title>时间序列模型（六）：时序卷积网络 (TCN)</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/time-series/07-n-beats%E6%B7%B1%E5%BA%A6%E6%9E%B6%E6%9E%84/><span class=chapter-num>07</span>
 <span class=chapter-title>时间序列模型（七）：N-BEATS——可解释的深度架构</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/time-series/08-informer%E9%95%BF%E5%BA%8F%E5%88%97%E9%A2%84%E6%B5%8B/><span class=chapter-num>08</span>
-<span class=chapter-title>时间序列模型（八）：Informer——高效长序列预测</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>24 min</strong></div><div class=row><span>字数</span><strong>5555</strong></div><div class=row><span>写于</span><strong>Sep 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>时间序列模型（八）：Informer——高效长序列预测</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>28 min</strong></div><div class=row><span>字数</span><strong>6750</strong></div><div class=row><span>写于</span><strong>Sep 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

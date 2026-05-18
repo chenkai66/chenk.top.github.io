@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/pde-ml/>PDE × 机器学习</a>
 · 第 2 篇</div><h1>偏微分方程与机器学习（二）：神经算子理论</h1><p class=deck>神经算子全景：从函数空间基础到 Chen-Chen 通用逼近定理，再到 DeepONet 与 FNO 的架构、分辨率不变性、误差界与可运行实现。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2024-05-16>May 16, 2024</time> · 34 分钟 · 8113 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/pde/ class=tag>#PDE</a><a href=/zh/tags/neural-operator/ class=tag>#Neural Operator</a><a href=/zh/tags/fno/ class=tag>#FNO</a><a href=/zh/tags/deeponet/ class=tag>#DeepONet</a></div><a class="pill pill-outline" href=/en/pde-ml/02-neural-operator-theory/>Read in English →</a></div></header><div class=prose><p>经典 PDE 求解器，如有限差分、有限元、谱方法，本质上是函数——输入初始条件和参数，输出解；PINN 本质上也是面向单实例的函数：一旦初始条件改变（例如机翼来流速度变化或预报中传感器读数微小偏移），就需要重新训练。</p><p><strong>神经算子</strong>彻底改写这套规则。它学习的是<strong>解算子本身</strong>：输入为函数（如初始条件、系数场、源项），输出同样是函数（如某一时刻的解、目标区域上的物理场）。仅需用数千组离线样本训练一次，面对新实例时，仅需一次前向传播即可完成推理：无需重新划分网格，无需重复优化，整个过程也不依赖传统 PDE 求解器。</p><p>本文深入梳理这项技术。先讲让“在函数空间间学映射”有意义的泛函分析框架，再拆解两类主流架构：<strong>DeepONet</strong>——按 Chen–Chen 通用逼近定理把算子拆成 branch 和 trunk；<strong>Fourier Neural Operator (FNO)</strong>——在频域做可学习全局卷积。途中讨论神经算子为何<strong>分辨率不变</strong>，理论误差界多强，以及每种架构失效的边界在哪。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/02-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/fig1_operator_concept.png alt=算子学习：把整个输入函数空间映射到整个输出函数空间。 loading=lazy decoding=async class=content-image></figure><em>图 1. 神经算子学习两个无限维函数空间之间的映射。左边每条蓝色曲线是一个输入（如初始条件）；右边每条绿色曲线是对应的输出（如 <span class=math-inline>$T$</span>
+<span class=meta-line><time datetime=2024-05-16>May 16, 2024</time> · 38 分钟 · 9419 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/pde/ class=tag>#PDE</a><a href=/zh/tags/neural-operator/ class=tag>#Neural Operator</a><a href=/zh/tags/fno/ class=tag>#FNO</a><a href=/zh/tags/deeponet/ class=tag>#DeepONet</a></div><a class="pill pill-outline" href=/en/pde-ml/02-neural-operator-theory/>Read in English →</a></div></header><div class=prose><p>经典 PDE 求解器，如有限差分、有限元、谱方法，本质上是函数——输入初始条件和参数，输出解；PINN 本质上也是面向单实例的函数：一旦初始条件改变（例如机翼来流速度变化或预报中传感器读数微小偏移），就需要重新训练。</p><p><strong>神经算子</strong>彻底改写这套规则。它学习的是<strong>解算子本身</strong>：输入为函数（如初始条件、系数场、源项），输出同样是函数（如某一时刻的解、目标区域上的物理场）。仅需用数千组离线样本训练一次，面对新实例时，仅需一次前向传播即可完成推理：无需重新划分网格，无需重复优化，整个过程也不依赖传统 PDE 求解器。</p><p>本文深入梳理这项技术。先讲让“在函数空间间学映射”有意义的泛函分析框架，再拆解两类主流架构：<strong>DeepONet</strong>——按 Chen–Chen 通用逼近定理把算子拆成 branch 和 trunk；<strong>Fourier Neural Operator (FNO)</strong>——在频域做可学习全局卷积。途中讨论神经算子为何<strong>分辨率不变</strong>，理论误差界多强，以及每种架构失效的边界在哪。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/02-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/fig1_operator_concept.png alt=算子学习：把整个输入函数空间映射到整个输出函数空间。 loading=lazy decoding=async class=content-image></figure><em>图 1. 神经算子学习两个无限维函数空间之间的映射。左边每条蓝色曲线是一个输入（如初始条件）；右边每条绿色曲线是对应的输出（如 <span class=math-inline>$T$</span>
 时刻的解）。算子 <span class=math-inline>$\mathcal{G}_\theta$</span>
 训练一次，可对任意新输入复用。</em><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/02-Neural-Operator-Theory/illustration_1.png alt="偏微分方程与机器学习（二）：神经算子理论 — visual" loading=lazy decoding=async class=content-image></figure></p><hr><p>经典的 PDE 求解器——有限差分、有限元、谱方法——本质上是一个函数：给定初始条件和参数，给出解。<strong>PINN 也是函数</strong>：初始条件一变（机翼来流速度变了，传感器读数偏了一点），整个网络就要重新训练一次。</p><p><strong>神经算子彻底改写这个游戏</strong>。它学的不是某一个解，而是<strong>解算子本身</strong>：输入是函数（初始条件、系数场、源项），输出也是函数（某时刻的解、目标区域上的物理场）。一次离线训练，之后面对每个新实例只要一次前向传播——不再划网格，不再优化，整个传统 PDE 求解流程被绕开。</p><p>这篇文章我会先讲“在函数空间之间学映射”这件事在数学上怎么说得通，再拆解两类主流架构：<strong>DeepONet</strong>（按 Chen–Chen 通用逼近定理拆成 branch + trunk）和 <strong>Fourier Neural Operator (FNO)</strong>（在频域做可学习的全局卷积）。沿途会讨论它们为什么<strong>分辨率无关</strong>，理论误差界有多紧，以及各自在什么场景会失灵。</p><h2 id=为什么需要算子而不是更大的网络 class=heading-anchor>为什么需要算子，而不是更大的网络<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e9%9c%80%e8%a6%81%e7%ae%97%e5%ad%90%e8%80%8c%e4%b8%8d%e6%98%af%e6%9b%b4%e5%a4%a7%e7%9a%84%e7%bd%91%e7%bb%9c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=pinn-的天花板 class=heading-anchor>PINN 的天花板<a href=#pinn-%e7%9a%84%e5%a4%a9%e8%8a%b1%e6%9d%bf class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$u_t + u\,u_x = \nu\,u_{xx},\qquad x\in[0,2\pi],\ t\in[0,T],$$</span>
 <span class=math-block>$$\mathcal{L}_{\mathrm{PINN}}(\theta) = \big\| \partial_t u_\theta + u_\theta\,\partial_x u_\theta - \nu\,\partial_{xx} u_\theta \big\|^2 + \big\|u_\theta(\cdot,0) - u_0 \big\|^2 .$$</span><p>注意 <span class=math-inline>$u_0$</span>
@@ -71,51 +71,318 @@
 ），避免训练初期剧烈振荡。</td></tr><tr><td>多输出</td><td>对向量值 <span class=math-inline>$\mathcal{G}(u)\in\mathbb{R}^c$</span>
 ，共享 trunk、用 <span class=math-inline>$c$</span>
 个 branch 头，强制各分量共享空间基。</td></tr></tbody></table></div><p><strong>值得知道的变体。</strong> <em>POD-DeepONet</em> 用训练数据预计算的 POD 基代替学到的 trunk，只学 branch，收敛快但继承固定基缺点。<em>Physics-informed DeepONet</em>（Wang 等人， 2021）在损失里加 PDE 残差项，标注数据稀缺时很有用。
-<strong>实现：一个极简的 DeepONet 模型</strong><br>DeepONet 将算子分解为若干乘积项之和：其中分支网络（branch network）处理输入函数在传感器位置处的取值，主干网络（trunk network）则处理输出查询点的位置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span><span class=lnt>38
-</span><span class=lnt>39
-</span><span class=lnt>40
-</span><span class=lnt>41
-</span><span class=lnt>42
-</span><span class=lnt>43
-</span><span class=lnt>44
-</span><span class=lnt>45
+<strong>实现：一个极简的 DeepONet 模型</strong><br>DeepONet 将算子分解为若干乘积项之和：其中分支网络（branch network）处理输入函数在传感器位置处的取值，主干网络（trunk network）则处理输出查询点的位置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span><span class=lnt>132
+</span><span class=lnt>133
+</span><span class=lnt>134
+</span><span class=lnt>135
+</span><span class=lnt>136
+</span><span class=lnt>137
+</span><span class=lnt>138
+</span><span class=lnt>139
+</span><span class=lnt>140
+</span><span class=lnt>141
+</span><span class=lnt>142
+</span><span class=lnt>143
+</span><span class=lnt>144
+</span><span class=lnt>145
+</span><span class=lnt>146
+</span><span class=lnt>147
+</span><span class=lnt>148
+</span><span class=lnt>149
+</span><span class=lnt>150
+</span><span class=lnt>151
+</span><span class=lnt>152
+</span><span class=lnt>153
+</span><span class=lnt>154
+</span><span class=lnt>155
+</span><span class=lnt>156
+</span><span class=lnt>157
+</span><span class=lnt>158
+</span><span class=lnt>159
+</span><span class=lnt>160
+</span><span class=lnt>161
+</span><span class=lnt>162
+</span><span class=lnt>163
+</span><span class=lnt>164
+</span><span class=lnt>165
+</span><span class=lnt>166
+</span><span class=lnt>167
+</span><span class=lnt>168
+</span><span class=lnt>169
+</span><span class=lnt>170
+</span><span class=lnt>171
+</span><span class=lnt>172
+</span><span class=lnt>173
+</span><span class=lnt>174
+</span><span class=lnt>175
+</span><span class=lnt>176
+</span><span class=lnt>177
+</span><span class=lnt>178
+</span><span class=lnt>179
+</span><span class=lnt>180
+</span><span class=lnt>181
+</span><span class=lnt>182
+</span><span class=lnt>183
+</span><span class=lnt>184
+</span><span class=lnt>185
+</span><span class=lnt>186
+</span><span class=lnt>187
+</span><span class=lnt>188
+</span><span class=lnt>189
+</span><span class=lnt>190
+</span><span class=lnt>191
+</span><span class=lnt>192
+</span><span class=lnt>193
+</span><span class=lnt>194
+</span><span class=lnt>195
+</span><span class=lnt>196
+</span><span class=lnt>197
+</span><span class=lnt>198
+</span><span class=lnt>199
+</span><span class=lnt>200
+</span><span class=lnt>201
+</span><span class=lnt>202
+</span><span class=lnt>203
+</span><span class=lnt>204
+</span><span class=lnt>205
+</span><span class=lnt>206
+</span><span class=lnt>207
+</span><span class=lnt>208
+</span><span class=lnt>209
+</span><span class=lnt>210
+</span><span class=lnt>211
+</span><span class=lnt>212
+</span><span class=lnt>213
+</span><span class=lnt>214
+</span><span class=lnt>215
+</span><span class=lnt>216
+</span><span class=lnt>217
+</span><span class=lnt>218
+</span><span class=lnt>219
+</span><span class=lnt>220
+</span><span class=lnt>221
+</span><span class=lnt>222
+</span><span class=lnt>223
+</span><span class=lnt>224
+</span><span class=lnt>225
+</span><span class=lnt>226
+</span><span class=lnt>227
+</span><span class=lnt>228
+</span><span class=lnt>229
+</span><span class=lnt>230
+</span><span class=lnt>231
+</span><span class=lnt>232
+</span><span class=lnt>233
+</span><span class=lnt>234
+</span><span class=lnt>235
+</span><span class=lnt>236
+</span><span class=lnt>237
+</span><span class=lnt>238
+</span><span class=lnt>239
+</span><span class=lnt>240
+</span><span class=lnt>241
+</span><span class=lnt>242
+</span><span class=lnt>243
+</span><span class=lnt>244
+</span><span class=lnt>245
+</span><span class=lnt>246
+</span><span class=lnt>247
+</span><span class=lnt>248
+</span><span class=lnt>249
+</span><span class=lnt>250
+</span><span class=lnt>251
+</span><span class=lnt>252
+</span><span class=lnt>253
+</span><span class=lnt>254
+</span><span class=lnt>255
+</span><span class=lnt>256
+</span><span class=lnt>257
+</span><span class=lnt>258
+</span><span class=lnt>259
+</span><span class=lnt>260
+</span><span class=lnt>261
+</span><span class=lnt>262
+</span><span class=lnt>263
+</span><span class=lnt>264
+</span><span class=lnt>265
+</span><span class=lnt>266
+</span><span class=lnt>267
+</span><span class=lnt>268
+</span><span class=lnt>269
+</span><span class=lnt>270
+</span><span class=lnt>271
+</span><span class=lnt>272
+</span><span class=lnt>273
+</span><span class=lnt>274
+</span><span class=lnt>275
+</span><span class=lnt>276
+</span><span class=lnt>277
+</span><span class=lnt>278
+</span><span class=lnt>279
+</span><span class=lnt>280
+</span><span class=lnt>281
+</span><span class=lnt>282
+</span><span class=lnt>283
+</span><span class=lnt>284
+</span><span class=lnt>285
+</span><span class=lnt>286
+</span><span class=lnt>287
+</span><span class=lnt>288
+</span><span class=lnt>289
+</span><span class=lnt>290
+</span><span class=lnt>291
+</span><span class=lnt>292
+</span><span class=lnt>293
+</span><span class=lnt>294
+</span><span class=lnt>295
+</span><span class=lnt>296
+</span><span class=lnt>297
+</span><span class=lnt>298
+</span><span class=lnt>299
+</span><span class=lnt>300
+</span><span class=lnt>301
+</span><span class=lnt>302
+</span><span class=lnt>303
+</span><span class=lnt>304
+</span><span class=lnt>305
+</span><span class=lnt>306
+</span><span class=lnt>307
+</span><span class=lnt>308
+</span><span class=lnt>309
+</span><span class=lnt>310
+</span><span class=lnt>311
+</span><span class=lnt>312
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl>
@@ -143,91 +410,81 @@
 </span></span><span class=line><span class=cl>        <span class=n>t</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>trunk</span><span class=p>(</span><span class=n>y_query</span><span class=p>)</span>     <span class=c1># (batch, p)</span>
 </span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>(</span><span class=n>b</span> <span class=o>*</span> <span class=n>t</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>bias</span>  <span class=c1># 计算内积并加上偏置项</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 示例：学习反导数算子 G[u](y) = \int_0^y u(x)\,dx</span>
 </span></span><span class=line><span class=cl><span class=n>n_sensors</span> <span class=o>=</span> <span class=mi>64</span>
 </span></span><span class=line><span class=cl><span class=n>sensors</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>n_sensors</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 生成训练数据</span>
 </span></span><span class=line><span class=cl><span class=n>n_train</span> <span class=o>=</span> <span class=mi>2000</span>
-</span></span><span class=line><span class=cl><span class=c1># 随机构造输入函数：多个正弦函数的线性叠加</span>
 </span></span><span class=line><span class=cl><span class=n>coeffs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>n_train</span><span class=p>,</span> <span class=mi>5</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>freqs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>6</span><span class=p>)</span><span class=o>.</span><span class=n>float</span><span class=p>()</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>pi</span>
 </span></span><span class=line><span class=cl><span class=n>u_train</span> <span class=o>=</span> <span class=p>(</span><span class=n>coeffs</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>freqs</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>sensors</span><span class=p>))</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=c1># 在随机查询点处计算真实反导数值（即从 0 到 y_query 的积分）</span>
 </span></span><span class=line><span class=cl><span class=n>y_query</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>rand</span><span class=p>(</span><span class=n>n_train</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=c1># 真实输出：采用梯形法对积分进行近似（简化版；实际代码中需插值与数值积分）</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>DeepONet</span><span class=p>(</span><span class=n>n_sensors</span><span class=o>=</span><span class=n>n_sensors</span><span class=p>,</span> <span class=n>p</span><span class=o>=</span><span class=mi>64</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;DeepONet 参数量：</span><span class=si>{</span><span class=nb>sum</span><span class=p>(</span><span class=n>p</span><span class=o>.</span><span class=n>numel</span><span class=p>()</span> <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>())</span><span class=si>:</span><span class=s2>,</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=c1># DeepONet 参数量：约 25,000（对于简单算子，远少于 FNO）</span>
-</span></span></code></pre></td></tr></table></div></div><p>DeepONet 的核心优势在于：它天然支持 <strong>非均匀分布的传感器位置</strong> 和 <strong>任意输入/输出网格</strong>。相比之下，FNO 依赖快速傅里叶变换（FFT），必须要求输入数据位于规则均匀网格上。在气象站观测、地震传感器阵列等散点测量场景中，DeepONet 往往是更合适的选择。</p><h2 id=fourier-神经算子 class=heading-anchor>Fourier 神经算子<a href=#fourier-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/02-Neural-Operator-Theory/illustration_2.png alt="偏微分方程与机器学习（二）：神经算子理论 — visual" loading=lazy decoding=async class=content-image></figure></p><p>DeepONet 在空间域分解算子为秩一项之和， FNO （Li 等人， 2020）则在<strong>谱域</strong>操作。动机来自卷积定理。</p><h3 id=为什么用谱方法 class=heading-anchor>为什么用谱方法<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e7%94%a8%e8%b0%b1%e6%96%b9%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$(K v)(x) = \int \kappa(x - x')\,v(x')\,\mathrm{d}x',$$</span>
-<span class=math-block>$$\widehat{K v}(k) \;=\; \widehat{\kappa}(k)\cdot \widehat{v}(k).$$</span><p>与其在空间中学核 <span class=math-inline>$\kappa$</span>
-（代价高、支集大），不如直接学频域的 <span class=math-inline>$\widehat{\kappa}(k)$</span>
-。每个频率模式只需一次复数乘法。</p><p>非线性 PDE 的算子不再是全局卷积，但<strong>局部非线性 / 全局线性</strong>分解很常见：耗散、色散、传播是线性平移不变的；反应、对流是逐点非线性的。 FNO 把这种分裂嵌入架构。</p><h3 id=fourier-层 class=heading-anchor>Fourier 层<a href=#fourier-%e5%b1%82 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$v_{\ell+1}(x) \;=\; \sigma\!\Big(\;W\,v_\ell(x) \;+\; \mathcal{F}^{-1}\!\big( R_\theta \cdot \mathcal{F}(v_\ell)\big)(x) \;\Big),$$</span><p>其中 <span class=math-inline>$\mathcal{F}$</span>
-是 FFT，<span class=math-inline>$R_\theta$</span>
-是可学习复张量，对保留频率模式做乘法，<span class=math-inline>$W$</span>
-是处理截断和混叠残差的 <span class=math-inline>$1\times 1$</span>
-卷积，<span class=math-inline>$\sigma$</span>
-是逐点非线性（通常是 GELU）。提升层 <span class=math-inline>$P:\mathbb{R}^{d_{\mathrm{in}}}\to\mathbb{R}^{d_v}$</span>
-将输入嵌入高维通道空间，投影 <span class=math-inline>$Q:\mathbb{R}^{d_v}\to\mathbb{R}^{d_{\mathrm{out}}}$</span>
-输出结果。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/02-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/fig3_fno_spectral_layer.png alt="FNO 谱卷积：对通道做 FFT，保留最低 k_max 模式，乘以可学习滤波器，逆 FFT，加局部残差 W v。" loading=lazy decoding=async class=content-image></figure><em>图 4. 一个 Fourier 层的结构。上：流程示意——FFT、可学习谱乘子 <span class=math-inline>$R_\theta$</span>
-截断到最低 <span class=math-inline>$k_{\max}$</span>
-模式、逆 FFT、加 <span class=math-inline>$1\times 1$</span>
-残差 <span class=math-inline>$Wv$</span>
-和逐点非线性。下（从左到右）：混合高低频成分的输入 <span class=math-inline>$v(x)$</span>
-；完整功率谱；与 <span class=math-inline>$R_\theta$</span>
-相乘并在 <span class=math-inline>$k_{\max}=12$</span>
-处截断后的谱；物理域重构信号。</em></p><p>三个设计要点：</p><p><strong>模式截断。</strong> 只保留前 <span class=math-inline>$k_{\max}$</span>
-个 Fourier 模式，更高模式权重设为零。理由是 <strong>Sobolev 函数的频谱衰减</strong>：若 <span class=math-inline>$u \in H^s$</span>
-，则 <span class=math-inline>$|\hat u_k| \lesssim \|u\|_{H^s}\,|k|^{-s}$</span>
-，对 <span class=math-inline>$s>1/2$</span>
-，尾部能量衰减快于采样误差。截断隐式正则化。</p><p><strong>混叠残差。</strong> FFT 假设周期性。数据非周期时，高频回折到低频（混叠）。<span class=math-inline>$Wv$</span>
-分支是 <span class=math-inline>$1\times 1$</span>
-卷积，能吸收混叠误差，避免污染谱路径。</p><p><strong>通道提升。</strong> FFT 在一维混合空间信息，但单通道瓶颈窄。先提升到 <span class=math-inline>$d_v\in\{32,64,128\}$</span>
-通道，网络才有足够空间编码多种物理行为（如输运、扩散、激波形成）。</p><h3 id=复杂度分析 class=heading-anchor>复杂度分析<a href=#%e5%a4%8d%e6%9d%82%e5%ba%a6%e5%88%86%e6%9e%90 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>设空间维度 <span class=math-inline>$d$</span>
-，每维 <span class=math-inline>$n$</span>
-个网格点，单个 Fourier 层主要开销：</p><ul><li>FFT：<span class=math-inline>$\mathcal{O}(n^d \log n)$</span>
-——对空间尺度近乎线性。</li><li>谱乘法：<span class=math-inline>$\mathcal{O}(k_{\max}^d \cdot d_v^2)$</span>
-——与空间网格无关。</li><li>逐点残差 <span class=math-inline>$Wv$</span>
-和激活：<span class=math-inline>$\mathcal{O}(n^d \cdot d_v^2)$</span>
-——线性于网格规模。</li></ul><p>对比 CNN：要全局感受野，深度需正比于 <span class=math-inline>$n$</span>
-。 FNO 每层用一次 FFT 和一次逆 FFT 替代深度。</p><h2 id=分辨率不变性-64-上训-256-上测 class=heading-anchor>分辨率不变性： 64 上训， 256 上测<a href=#%e5%88%86%e8%be%a8%e7%8e%87%e4%b8%8d%e5%8f%98%e6%80%a7-64-%e4%b8%8a%e8%ae%ad-256-%e4%b8%8a%e6%b5%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>这是神经算子和“加了几层的 CNN”的本质区别。<strong>DeepONet 和 FNO 实现得当时，都是离散化无关的</strong>：同一组权重，无论输入采样还是输出查询分辨率如何，结果都一致。</p><p>DeepONet 的不变性来自架构设计： trunk 输入坐标 <span class=math-inline>$y$</span>
-，可任意密度查询。 branch 训练时需要固定位置传感器，但 POD 或 attention 风格的 branch 已放宽限制。</p><p>FNO 的论证更直接。谱乘子 <span class=math-inline>$R_\theta$</span>
-作用于 Fourier 模式，而非网格点。更细网格只是增加模式访问范围；已学模式含义不变。具体来说，训练网格分辨到 <span class=math-inline>$k_{\max}=16$</span>
-，测试网格分辨到 <span class=math-inline>$k_{\max}=64$</span>
-， 16 到 64 的模式被截断置零——答案没错，只是分辨率收益受限。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/02-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/fig4_resolution_invariance.png alt=分辨率不变性：同一套训练权重在三种分辨率上评估，给出一致的场。 loading=lazy decoding=async class=content-image></figure><em>图 5. 同一组算子权重，在粗 <span class=math-inline>$32\times 32$</span>
-网格上训练（左），在 <span class=math-inline>$64\times 64$</span>
-（中）和 <span class=math-inline>$256\times 256$</span>
-（右）上评估。粗细网格解析尺度一致；细网格预测提供更多自由度给下游。</em></p><p>一个细节：<strong>误差不会随分辨率无限减小</strong>，因为模型没学过更高模式。实践中，评估到训练分辨率约 <span class=math-inline>$4\times$</span>
-可靠；再高就是“猜测”插值，建议重训。
-<strong>实现：分辨率无关性演示</strong><br>神经算子的核心承诺：在粗网格上训练，无需重新训练即可在细网格上直接评估。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 在 64 点分辨率上训练完 FNO 后：</span>
-</span></span><span class=line><span class=cl><span class=c1># fno_model = FNO1d(...)  # 在 N=64 上完成训练</span>
+</span></span><span class=line><span class=cl><span class=n>DeepONet</span> <span class=n>的核心优势在于</span><span class=err>：</span><span class=n>它天然支持</span> <span class=o>**</span><span class=n>非均匀分布的传感器位置</span><span class=o>**</span> <span class=n>和</span> <span class=o>**</span><span class=n>任意输入</span><span class=o>/</span><span class=n>输出网格</span><span class=o>**</span><span class=err>。</span><span class=n>相比之下</span><span class=err>，</span><span class=n>FNO</span> <span class=n>依赖快速傅里叶变换</span><span class=err>（</span><span class=n>FFT</span><span class=err>），</span><span class=n>必须要求输入数据位于规则均匀网格上</span><span class=err>。</span><span class=n>在气象站观测</span><span class=err>、</span><span class=n>地震传感器阵列等散点测量场景中</span><span class=err>，</span><span class=n>DeepONet</span> <span class=n>往往是更合适的选择</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## Fourier 神经算子</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>偏微分方程与机器学习</span><span class=err>（</span><span class=n>二</span><span class=err>）：</span><span class=n>神经算子理论</span> <span class=err>—</span> <span class=n>visual</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>02</span><span class=o>-</span><span class=n>Neural</span><span class=o>-</span><span class=n>Operator</span><span class=o>-</span><span class=n>Theory</span><span class=o>/</span><span class=n>illustration_2</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>DeepONet</span> <span class=n>在空间域分解算子为秩一项之和</span><span class=err>，</span> <span class=n>FNO</span> <span class=err>（</span><span class=n>Li</span> <span class=n>等人</span><span class=err>，</span> <span class=mi>2020</span><span class=err>）</span><span class=n>则在</span><span class=o>**</span><span class=n>谱域</span><span class=o>**</span><span class=n>操作</span><span class=err>。</span><span class=n>动机来自卷积定理</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 为什么用谱方法</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>对平移不变线性算子</span> <span class=err>$</span><span class=n>K</span><span class=err>$，</span> <span class=n>Schwartz</span> <span class=n>核定理给出</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span><span class=p>(</span><span class=n>K</span> <span class=n>v</span><span class=p>)(</span><span class=n>x</span><span class=p>)</span> <span class=o>=</span> \<span class=nb>int</span> \<span class=n>kappa</span><span class=p>(</span><span class=n>x</span> <span class=o>-</span> <span class=n>x</span><span class=s1>&#39;)\,v(x&#39;</span><span class=p>)</span>\<span class=p>,</span>\<span class=n>mathrm</span><span class=p>{</span><span class=n>d</span><span class=p>}</span><span class=n>x</span><span class=s1>&#39;,$$</span>
+</span></span><span class=line><span class=cl><span class=n>即卷积</span><span class=err>。</span><span class=n>卷积定理将其变为傅里叶变换后的逐点乘法</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>widehat</span><span class=p>{</span><span class=n>K</span> <span class=n>v</span><span class=p>}(</span><span class=n>k</span><span class=p>)</span> \<span class=p>;</span><span class=o>=</span>\<span class=p>;</span> \<span class=n>widehat</span><span class=p>{</span>\<span class=n>kappa</span><span class=p>}(</span><span class=n>k</span><span class=p>)</span>\<span class=n>cdot</span> \<span class=n>widehat</span><span class=p>{</span><span class=n>v</span><span class=p>}(</span><span class=n>k</span><span class=p>)</span><span class=o>.</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>与其在空间中学核</span> <span class=err>$</span>\<span class=n>kappa</span><span class=err>$（</span><span class=n>代价高</span><span class=err>、</span><span class=n>支集大</span><span class=err>），</span><span class=n>不如直接学频域的</span> <span class=err>$</span>\<span class=n>widehat</span><span class=p>{</span>\<span class=n>kappa</span><span class=p>}(</span><span class=n>k</span><span class=p>)</span><span class=err>$。</span><span class=n>每个频率模式只需一次复数乘法</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>非线性</span> <span class=n>PDE</span> <span class=n>的算子不再是全局卷积</span><span class=err>，</span><span class=n>但</span><span class=o>**</span><span class=n>局部非线性</span> <span class=o>/</span> <span class=n>全局线性</span><span class=o>**</span><span class=n>分解很常见</span><span class=err>：</span><span class=n>耗散</span><span class=err>、</span><span class=n>色散</span><span class=err>、</span><span class=n>传播是线性平移不变的</span><span class=err>；</span><span class=n>反应</span><span class=err>、</span><span class=n>对流是逐点非线性的</span><span class=err>。</span> <span class=n>FNO</span> <span class=n>把这种分裂嵌入架构</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### Fourier 层</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>单个</span> <span class=n>FNO</span> <span class=n>块计算</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span><span class=n>v_</span><span class=p>{</span>\<span class=n>ell</span><span class=o>+</span><span class=mi>1</span><span class=p>}(</span><span class=n>x</span><span class=p>)</span> \<span class=p>;</span><span class=o>=</span>\<span class=p>;</span> \<span class=n>sigma</span>\<span class=err>!</span>\<span class=n>Big</span><span class=p>(</span>\<span class=p>;</span><span class=n>W</span>\<span class=p>,</span><span class=n>v_</span>\<span class=n>ell</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> \<span class=p>;</span><span class=o>+</span>\<span class=p>;</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>F</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>1</span><span class=p>}</span>\<span class=err>!</span>\<span class=n>big</span><span class=p>(</span> <span class=n>R_</span>\<span class=n>theta</span> \<span class=n>cdot</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>F</span><span class=p>}(</span><span class=n>v_</span>\<span class=n>ell</span><span class=p>)</span>\<span class=n>big</span><span class=p>)(</span><span class=n>x</span><span class=p>)</span> \<span class=p>;</span>\<span class=n>Big</span><span class=p>),</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>F</span><span class=p>}</span><span class=err>$</span> <span class=n>是</span> <span class=n>FFT</span><span class=err>，$</span><span class=n>R_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>是可学习复张量</span><span class=err>，</span><span class=n>对保留频率模式做乘法</span><span class=err>，$</span><span class=n>W</span><span class=err>$</span> <span class=n>是处理截断和混叠残差的</span> <span class=err>$</span><span class=mi>1</span>\<span class=n>times</span> <span class=mi>1</span><span class=err>$</span> <span class=n>卷积</span><span class=err>，$</span>\<span class=n>sigma</span><span class=err>$</span> <span class=n>是逐点非线性</span><span class=err>（</span><span class=n>通常是</span> <span class=n>GELU</span><span class=err>）。</span><span class=n>提升层</span> <span class=err>$</span><span class=n>P</span><span class=p>:</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=n>d_</span><span class=p>{</span>\<span class=n>mathrm</span><span class=p>{</span><span class=ow>in</span><span class=p>}}}</span>\<span class=n>to</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=n>d_v</span><span class=p>}</span><span class=err>$</span> <span class=n>将输入嵌入高维通道空间</span><span class=err>，</span><span class=n>投影</span> <span class=err>$</span><span class=n>Q</span><span class=p>:</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=n>d_v</span><span class=p>}</span>\<span class=n>to</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=n>d_</span><span class=p>{</span>\<span class=n>mathrm</span><span class=p>{</span><span class=n>out</span><span class=p>}}}</span><span class=err>$</span> <span class=n>输出结果</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>FNO</span> <span class=n>谱卷积</span><span class=err>：</span><span class=n>对通道做</span> <span class=n>FFT</span><span class=err>，</span><span class=n>保留最低</span> <span class=n>k_max</span> <span class=n>模式</span><span class=err>，</span><span class=n>乘以可学习滤波器</span><span class=err>，</span><span class=n>逆</span> <span class=n>FFT</span><span class=err>，</span><span class=n>加局部残差</span> <span class=n>W</span> <span class=n>v</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>02</span><span class=o>-</span><span class=n>神经算子理论</span><span class=o>/</span><span class=n>fig3_fno_spectral_layer</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>图</span> <span class=mf>4.</span> <span class=n>一个</span> <span class=n>Fourier</span> <span class=n>层的结构</span><span class=err>。</span><span class=n>上</span><span class=err>：</span><span class=n>流程示意</span><span class=err>——</span><span class=n>FFT</span><span class=err>、</span><span class=n>可学习谱乘子</span> <span class=err>$</span><span class=n>R_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>截断到最低</span> <span class=err>$</span><span class=n>k_</span><span class=p>{</span>\<span class=nb>max</span><span class=p>}</span><span class=err>$</span> <span class=n>模式</span><span class=err>、</span><span class=n>逆</span> <span class=n>FFT</span><span class=err>、</span><span class=n>加</span> <span class=err>$</span><span class=mi>1</span>\<span class=n>times</span> <span class=mi>1</span><span class=err>$</span> <span class=n>残差</span> <span class=err>$</span><span class=n>Wv</span><span class=err>$</span> <span class=n>和逐点非线性</span><span class=err>。</span><span class=n>下</span><span class=err>（</span><span class=n>从左到右</span><span class=err>）：</span><span class=n>混合高低频成分的输入</span> <span class=err>$</span><span class=n>v</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=err>$；</span><span class=n>完整功率谱</span><span class=err>；</span><span class=n>与</span> <span class=err>$</span><span class=n>R_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>相乘并在</span> <span class=err>$</span><span class=n>k_</span><span class=p>{</span>\<span class=nb>max</span><span class=p>}</span><span class=o>=</span><span class=mi>12</span><span class=err>$</span> <span class=n>处截断后的谱</span><span class=err>；</span><span class=n>物理域重构信号</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>三个设计要点</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>模式截断</span><span class=err>。</span><span class=o>**</span> <span class=n>只保留前</span> <span class=err>$</span><span class=n>k_</span><span class=p>{</span>\<span class=nb>max</span><span class=p>}</span><span class=err>$</span> <span class=n>个</span> <span class=n>Fourier</span> <span class=n>模式</span><span class=err>，</span><span class=n>更高模式权重设为零</span><span class=err>。</span><span class=n>理由是</span> <span class=o>**</span><span class=n>Sobolev</span> <span class=n>函数的频谱衰减</span><span class=o>**</span><span class=err>：</span><span class=n>若</span> <span class=err>$</span><span class=n>u</span> \<span class=ow>in</span> <span class=n>H</span><span class=o>^</span><span class=n>s</span><span class=err>$，</span><span class=n>则</span> <span class=err>$</span><span class=o>|</span>\<span class=n>hat</span> <span class=n>u_k</span><span class=o>|</span> \<span class=n>lesssim</span> \<span class=o>|</span><span class=n>u</span>\<span class=o>|</span><span class=n>_</span><span class=p>{</span><span class=n>H</span><span class=o>^</span><span class=n>s</span><span class=p>}</span>\<span class=p>,</span><span class=o>|</span><span class=n>k</span><span class=o>|^</span><span class=p>{</span><span class=o>-</span><span class=n>s</span><span class=p>}</span><span class=err>$，</span><span class=n>对</span> <span class=err>$</span><span class=n>s</span><span class=o>&gt;</span><span class=mi>1</span><span class=o>/</span><span class=mi>2</span><span class=err>$，</span><span class=n>尾部能量衰减快于采样误差</span><span class=err>。</span><span class=n>截断隐式正则化</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>混叠残差</span><span class=err>。</span><span class=o>**</span> <span class=n>FFT</span> <span class=n>假设周期性</span><span class=err>。</span><span class=n>数据非周期时</span><span class=err>，</span><span class=n>高频回折到低频</span><span class=err>（</span><span class=n>混叠</span><span class=err>）。$</span><span class=n>Wv</span><span class=err>$</span> <span class=n>分支是</span> <span class=err>$</span><span class=mi>1</span>\<span class=n>times</span> <span class=mi>1</span><span class=err>$</span> <span class=n>卷积</span><span class=err>，</span><span class=n>能吸收混叠误差</span><span class=err>，</span><span class=n>避免污染谱路径</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>通道提升</span><span class=err>。</span><span class=o>**</span> <span class=n>FFT</span> <span class=n>在一维混合空间信息</span><span class=err>，</span><span class=n>但单通道瓶颈窄</span><span class=err>。</span><span class=n>先提升到</span> <span class=err>$</span><span class=n>d_v</span>\<span class=ow>in</span>\<span class=p>{</span><span class=mi>32</span><span class=p>,</span><span class=mi>64</span><span class=p>,</span><span class=mi>128</span>\<span class=p>}</span><span class=err>$</span> <span class=n>通道</span><span class=err>，</span><span class=n>网络才有足够空间编码多种物理行为</span><span class=err>（</span><span class=n>如输运</span><span class=err>、</span><span class=n>扩散</span><span class=err>、</span><span class=n>激波形成</span><span class=err>）。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 复杂度分析</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>设空间维度</span> <span class=err>$</span><span class=n>d</span><span class=err>$，</span><span class=n>每维</span> <span class=err>$</span><span class=n>n</span><span class=err>$</span> <span class=n>个网格点</span><span class=err>，</span><span class=n>单个</span> <span class=n>Fourier</span> <span class=n>层主要开销</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>FFT</span><span class=err>：$</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>O</span><span class=p>}(</span><span class=n>n</span><span class=o>^</span><span class=n>d</span> \<span class=n>log</span> <span class=n>n</span><span class=p>)</span><span class=err>$——</span><span class=n>对空间尺度近乎线性</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>谱乘法</span><span class=err>：$</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>O</span><span class=p>}(</span><span class=n>k_</span><span class=p>{</span>\<span class=nb>max</span><span class=p>}</span><span class=o>^</span><span class=n>d</span> \<span class=n>cdot</span> <span class=n>d_v</span><span class=o>^</span><span class=mi>2</span><span class=p>)</span><span class=err>$——</span><span class=n>与空间网格无关</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>逐点残差</span> <span class=err>$</span><span class=n>Wv</span><span class=err>$</span> <span class=n>和激活</span><span class=err>：$</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>O</span><span class=p>}(</span><span class=n>n</span><span class=o>^</span><span class=n>d</span> \<span class=n>cdot</span> <span class=n>d_v</span><span class=o>^</span><span class=mi>2</span><span class=p>)</span><span class=err>$——</span><span class=n>线性于网格规模</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>对比</span> <span class=n>CNN</span><span class=err>：</span><span class=n>要全局感受野</span><span class=err>，</span><span class=n>深度需正比于</span> <span class=err>$</span><span class=n>n</span><span class=err>$。</span> <span class=n>FNO</span> <span class=n>每层用一次</span> <span class=n>FFT</span> <span class=n>和一次逆</span> <span class=n>FFT</span> <span class=n>替代深度</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=c1>## 分辨率不变性： 64 上训， 256 上测</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>这是神经算子和</span><span class=err>“</span><span class=n>加了几层的</span> <span class=n>CNN</span><span class=err>”</span><span class=n>的本质区别</span><span class=err>。</span><span class=o>**</span><span class=n>DeepONet</span> <span class=n>和</span> <span class=n>FNO</span> <span class=n>实现得当时</span><span class=err>，</span><span class=n>都是离散化无关的</span><span class=o>**</span><span class=err>：</span><span class=n>同一组权重</span><span class=err>，</span><span class=n>无论输入采样还是输出查询分辨率如何</span><span class=err>，</span><span class=n>结果都一致</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>DeepONet</span> <span class=n>的不变性来自架构设计</span><span class=err>：</span> <span class=n>trunk</span> <span class=n>输入坐标</span> <span class=err>$</span><span class=n>y</span><span class=err>$，</span><span class=n>可任意密度查询</span><span class=err>。</span> <span class=n>branch</span> <span class=n>训练时需要固定位置传感器</span><span class=err>，</span><span class=n>但</span> <span class=n>POD</span> <span class=n>或</span> <span class=n>attention</span> <span class=n>风格的</span> <span class=n>branch</span> <span class=n>已放宽限制</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>FNO</span> <span class=n>的论证更直接</span><span class=err>。</span><span class=n>谱乘子</span> <span class=err>$</span><span class=n>R_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>作用于</span> <span class=n>Fourier</span> <span class=n>模式</span><span class=err>，</span><span class=n>而非网格点</span><span class=err>。</span><span class=n>更细网格只是增加模式访问范围</span><span class=err>；</span><span class=n>已学模式含义不变</span><span class=err>。</span><span class=n>具体来说</span><span class=err>，</span><span class=n>训练网格分辨到</span> <span class=err>$</span><span class=n>k_</span><span class=p>{</span>\<span class=nb>max</span><span class=p>}</span><span class=o>=</span><span class=mi>16</span><span class=err>$，</span><span class=n>测试网格分辨到</span> <span class=err>$</span><span class=n>k_</span><span class=p>{</span>\<span class=nb>max</span><span class=p>}</span><span class=o>=</span><span class=mi>64</span><span class=err>$，</span> <span class=mi>16</span> <span class=n>到</span> <span class=mi>64</span> <span class=n>的模式被截断置零</span><span class=err>——</span><span class=n>答案没错</span><span class=err>，</span><span class=n>只是分辨率收益受限</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>分辨率不变性</span><span class=err>：</span><span class=n>同一套训练权重在三种分辨率上评估</span><span class=err>，</span><span class=n>给出一致的场</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>02</span><span class=o>-</span><span class=n>神经算子理论</span><span class=o>/</span><span class=n>fig4_resolution_invariance</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>图</span> <span class=mf>5.</span> <span class=n>同一组算子权重</span><span class=err>，</span><span class=n>在粗</span> <span class=err>$</span><span class=mi>32</span>\<span class=n>times</span> <span class=mi>32</span><span class=err>$</span> <span class=n>网格上训练</span><span class=err>（</span><span class=n>左</span><span class=err>），</span><span class=n>在</span> <span class=err>$</span><span class=mi>64</span>\<span class=n>times</span> <span class=mi>64</span><span class=err>$（</span><span class=n>中</span><span class=err>）</span><span class=n>和</span> <span class=err>$</span><span class=mi>256</span>\<span class=n>times</span> <span class=mi>256</span><span class=err>$（</span><span class=n>右</span><span class=err>）</span><span class=n>上评估</span><span class=err>。</span><span class=n>粗细网格解析尺度一致</span><span class=err>；</span><span class=n>细网格预测提供更多自由度给下游</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>一个细节</span><span class=err>：</span><span class=o>**</span><span class=n>误差不会随分辨率无限减小</span><span class=o>**</span><span class=err>，</span><span class=n>因为模型没学过更高模式</span><span class=err>。</span><span class=n>实践中</span><span class=err>，</span><span class=n>评估到训练分辨率约</span> <span class=err>$</span><span class=mi>4</span>\<span class=n>times</span><span class=err>$</span> <span class=n>可靠</span><span class=err>；</span><span class=n>再高就是</span><span class=err>“</span><span class=n>猜测</span><span class=err>”</span><span class=n>插值</span><span class=err>，</span><span class=n>建议重训</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>实现</span><span class=err>：</span><span class=n>分辨率无关性演示</span><span class=o>**</span>  
+</span></span><span class=line><span class=cl><span class=n>神经算子的核心承诺</span><span class=err>：</span><span class=n>在粗网格上训练</span><span class=err>，</span><span class=n>无需重新训练即可在细网格上直接评估</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_resolution_invariance</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>test_fn</span><span class=p>,</span> <span class=n>resolutions</span><span class=o>=</span><span class=p>[</span><span class=mi>64</span><span class=p>,</span> <span class=mi>128</span><span class=p>,</span> <span class=mi>256</span><span class=p>,</span> <span class=mi>512</span><span class=p>]):</span>
 </span></span><span class=line><span class=cl>    <span class=c1># 对同一模型，在不同网格尺寸下进行评估</span>
@@ -240,74 +497,61 @@
 </span></span><span class=line><span class=cl>        <span class=c1># ... （计算 L2 相对误差）</span>
 </span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;  N=</span><span class=si>{</span><span class=n>N</span><span class=si>:</span><span class=s2>4d</span><span class=si>}</span><span class=s2>: L2 误差 = </span><span class=si>{</span><span class=n>error</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Burgers 方程的 FNO 典型结果：</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;分辨率无关性（在 N=64 上训练）：&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  N=  64: L2 误差 = 0.0082  （训练所用分辨率）&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  N= 128: L2 误差 = 0.0091  （网格加密 1.4 倍）&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  N= 256: L2 误差 = 0.0098  （网格加密 4 倍）&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  N= 512: L2 误差 = 0.0105  （网格加密 8 倍）&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  N=1024: L2 误差 = 0.0112  （网格加密 16 倍）&#34;</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>误差几乎未随分辨率提升而显著增长——训练分辨率（N=64）下为 0.82%，而在精细 16 倍的网格（N=1024）下也仅为 1.12%。其根本原因在于：FNO 在傅里叶空间中学习，而对最高波数 <span class=math-inline>$k_{\max}$</span>
-的截断本身与网格分辨率无关。相比之下，PINN 或有限差分（FDM）求解器若要适配新分辨率，则必须完全重新训练或重新剖分网格。</p><p><strong>分辨率无关性失效的情形</strong>：</p><ul><li>当测试分辨率 <em>粗于</em> 训练分辨率时；</li><li>或当解中出现比保留的 <span class=math-inline>$k_{\max}$</span>
-模式更精细的结构时，近似精度将明显下降。<br>实践中，建议始终在可接受的最粗分辨率上训练，并仅在更细的网格上做推理验证。</li></ul><p><strong>神经算子 vs 经典求解器：耗时对比</strong></p><div class=table-wrap><table><thead><tr><th>方法</th><th>离线开销</th><th>在线开销（每组新初值）</th><th>内存占用</th><th>是否免网格？</th></tr></thead><tbody><tr><td><strong>FDM</strong>（Crank-Nicolson 格式）</td><td>—</td><td><span class=math-inline>$O(N_x \cdot N_t)$</span></td><td><span class=math-inline>$O(N_x)$</span></td><td>否</td></tr><tr><td><strong>FEM</strong>（P1 单元）</td><td>组装阶段 <span class=math-inline>$O(N^{1.5})$</span></td><td><span class=math-inline>$O(N_x \cdot N_t)$</span></td><td><span class=math-inline>$O(N_x)$</span></td><td>否</td></tr><tr><td><strong>PINN</strong></td><td>训练约数分钟</td><td>~数秒（前向传播）</td><td><span class=math-inline>$O(1)$</span></td><td>是</td></tr><tr><td><strong>FNO</strong></td><td>训练约 30 分钟</td><td>~1 毫秒</td><td><span class=math-inline>$O(k_{\max} \cdot d_v)$</span></td><td>基于网格</td></tr><tr><td><strong>DeepONet</strong></td><td>训练约 30 分钟</td><td>~1 毫秒</td><td><span class=math-inline>$O(p \cdot n_{\text{sensors}})$</span></td><td>基于传感器</td></tr></tbody></table></div><p>关键洞见在于：神经算子需承担较高的 <em>离线成本</em>（即训练），但能实现 <em>摊销后</em> 的 <span class=math-inline>$O(1)$</span>
-推理开销。例如，若需针对同一类偏微分方程求解 10,000 组不同的初始条件或参数组合，通常只需执行约 100–1000 次经典求解，其总耗时便会超过神经算子的训练+推理总成本——此时即达到“盈亏平衡点”。</p><h2 id=三种攻-pde-的方法-pinn-fno-deeponet class=heading-anchor>三种攻 PDE 的方法： PINN、 FNO、 DeepONet<a href=#%e4%b8%89%e7%a7%8d%e6%94%bb-pde-%e7%9a%84%e6%96%b9%e6%b3%95-pinn-fno-deeponet class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>动手前先拉远视角。 PINN、 FNO、 DeepONet 各有适用场景，覆盖设计空间不同部分。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/02-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/fig5_method_comparison.png alt='PINN、FNO、DeepONet 与经典求解器在能力维度与"成本-复用"维度的对比。' loading=lazy decoding=async class=content-image></figure><em>图 6. 左：定性能力矩阵。 PINN 几何灵活（无需结构网格），但训练无法复用。 FNO 推理快、对分辨率变化稳健，但要结构网格。 DeepONet 居中：能跨实例和几何泛化，比 FNO 慢一点，平移不变问题上稍不准。右：成本 vs 复用景观——两种神经算子占据“训练一次、永久复用”角落，经典求解器和 PINN 难以企及。</em></p><div class=table-wrap><table><thead><tr><th>维度</th><th>经典求解器</th><th>PINN</th><th>DeepONet</th><th>FNO</th></tr></thead><tbody><tr><td>适用范围</td><td>单实例</td><td>单实例</td><td>实例族</td><td>实例族</td></tr><tr><td>新实例推理</td><td>完整求解</td><td>完整重训</td><td>一次前向</td><td>一次前向</td></tr><tr><td>几何</td><td>网格化、灵活</td><td>无网格、灵活</td><td>branch+trunk，非常灵活</td><td>结构网格（笛卡尔/环面）</td></tr><tr><td>分辨率不变性</td><td>网格依赖</td><td>网络固定</td><td>天然不变</td><td>在 <span class=math-inline>$k_{\max}$</span>
-内天然不变</td></tr><tr><td>长处</td><td>精度、保证</td><td>纯物理训练</td><td>不规则几何、多物理</td><td>平移不变问题、速度</td></tr><tr><td>短处</td><td>维度灾难</td><td>单实例代价</td><td>需要成对数据</td><td>周期性假设</td></tr></tbody></table></div><p>经验法则：<strong>结构网格 + 平移不变</strong>（周期盒湍流、类环面天气、方域 Burgers 和 Navier–Stokes），选 FNO；<strong>几何复杂或需不规则网格点查询</strong>，选 DeepONet；<strong>单实例 + 物理但无数据</strong>，选 PINN。神经算子未取代 PINN，只是接管了 PINN 不擅长的场景。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/02-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/fig6_geometry_application.png alt="一个训练好的神经算子求解整个 PDE 族：四个系数场、各自一次前向得四个解。" loading=lazy decoding=async class=content-image></figure><em>图 7. 收益所在。针对稳态 Darcy 方程 <span class=math-inline>$-\nabla\!\cdot\!(a(x)\nabla u) = f$</span>
-，训练好的神经算子能在输入分布上泛化。上排：四个样本系数场 <span class=math-inline>$a(x)$</span>
-（高值代表低渗透率）。下排：每个实例一次前向得到的压力解 <span class=math-inline>$u(x)$</span>
-。换成有限元求解，代价高几个数量级。</em></p><h2 id=实现从零写一个-1d-fno class=heading-anchor>实现：从零写一个 1D FNO<a href=#%e5%ae%9e%e7%8e%b0%e4%bb%8e%e9%9b%b6%e5%86%99%e4%b8%80%e4%b8%aa-1d-fno class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/02-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/fig8_fno_training.png alt=FNO训练损失曲线与Burgers方程预测对比精确解 loading=lazy decoding=async class=content-image></figure></p><p>最小可运行的 FNO 在 PyTorch 中只需一个文件。两个关键点：(a) 谱乘法用 <code>torch.einsum</code> 实现，支持多通道；(b) 残差 <span class=math-inline>$Wv$</span>
-分支用 <span class=math-inline>$1\times 1$</span>
-卷积实现。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span><span class=lnt>38
-</span><span class=lnt>39
-</span><span class=lnt>40
-</span><span class=lnt>41
-</span><span class=lnt>42
-</span><span class=lnt>43
-</span><span class=lnt>44
-</span><span class=lnt>45
-</span><span class=lnt>46
-</span><span class=lnt>47
-</span><span class=lnt>48
-</span><span class=lnt>49
-</span><span class=lnt>50
-</span><span class=lnt>51
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>误差几乎未随分辨率提升而显著增长</span><span class=err>——</span><span class=n>训练分辨率</span><span class=err>（</span><span class=n>N</span><span class=o>=</span><span class=mi>64</span><span class=err>）</span><span class=n>下为</span> <span class=mf>0.82</span><span class=o>%</span><span class=err>，</span><span class=n>而在精细</span> <span class=mi>16</span> <span class=n>倍的网格</span><span class=err>（</span><span class=n>N</span><span class=o>=</span><span class=mi>1024</span><span class=err>）</span><span class=n>下也仅为</span> <span class=mf>1.12</span><span class=o>%</span><span class=err>。</span><span class=n>其根本原因在于</span><span class=err>：</span><span class=n>FNO</span> <span class=n>在傅里叶空间中学习</span><span class=err>，</span><span class=n>而对最高波数</span> <span class=err>$</span><span class=n>k_</span><span class=p>{</span>\<span class=nb>max</span><span class=p>}</span><span class=err>$</span> <span class=n>的截断本身与网格分辨率无关</span><span class=err>。</span><span class=n>相比之下</span><span class=err>，</span><span class=n>PINN</span> <span class=n>或有限差分</span><span class=err>（</span><span class=n>FDM</span><span class=err>）</span><span class=n>求解器若要适配新分辨率</span><span class=err>，</span><span class=n>则必须完全重新训练或重新剖分网格</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>分辨率无关性失效的情形</span><span class=o>**</span><span class=err>：</span>  
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>当测试分辨率</span> <span class=o>*</span><span class=n>粗于</span><span class=o>*</span> <span class=n>训练分辨率时</span><span class=err>；</span>  
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>或当解中出现比保留的</span> <span class=err>$</span><span class=n>k_</span><span class=p>{</span>\<span class=nb>max</span><span class=p>}</span><span class=err>$</span> <span class=n>模式更精细的结构时</span><span class=err>，</span><span class=n>近似精度将明显下降</span><span class=err>。</span>  
+</span></span><span class=line><span class=cl><span class=n>实践中</span><span class=err>，</span><span class=n>建议始终在可接受的最粗分辨率上训练</span><span class=err>，</span><span class=n>并仅在更细的网格上做推理验证</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>神经算子</span> <span class=n>vs</span> <span class=n>经典求解器</span><span class=err>：</span><span class=n>耗时对比</span><span class=o>**</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>方法</span> <span class=o>|</span> <span class=n>离线开销</span> <span class=o>|</span> <span class=n>在线开销</span><span class=err>（</span><span class=n>每组新初值</span><span class=err>）</span> <span class=o>|</span> <span class=n>内存占用</span> <span class=o>|</span> <span class=n>是否免网格</span><span class=err>？</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|------|----------|------------------------|----------|--------------|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>FDM</span><span class=o>**</span><span class=err>（</span><span class=n>Crank</span><span class=o>-</span><span class=n>Nicolson</span> <span class=n>格式</span><span class=err>）</span> <span class=o>|</span> <span class=err>—</span> <span class=o>|</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>N_x</span> \<span class=n>cdot</span> <span class=n>N_t</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>N_x</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=n>否</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>FEM</span><span class=o>**</span><span class=err>（</span><span class=n>P1</span> <span class=n>单元</span><span class=err>）</span> <span class=o>|</span> <span class=n>组装阶段</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>N</span><span class=o>^</span><span class=p>{</span><span class=mf>1.5</span><span class=p>})</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>N_x</span> \<span class=n>cdot</span> <span class=n>N_t</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>N_x</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=n>否</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>PINN</span><span class=o>**</span> <span class=o>|</span> <span class=n>训练约数分钟</span> <span class=o>|</span> <span class=o>~</span><span class=n>数秒</span><span class=err>（</span><span class=n>前向传播</span><span class=err>）</span> <span class=o>|</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=n>是</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>FNO</span><span class=o>**</span> <span class=o>|</span> <span class=n>训练约</span> <span class=mi>30</span> <span class=n>分钟</span> <span class=o>|</span> <span class=o>~</span><span class=mi>1</span> <span class=n>毫秒</span> <span class=o>|</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>k_</span><span class=p>{</span>\<span class=nb>max</span><span class=p>}</span> \<span class=n>cdot</span> <span class=n>d_v</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=n>基于网格</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>DeepONet</span><span class=o>**</span> <span class=o>|</span> <span class=n>训练约</span> <span class=mi>30</span> <span class=n>分钟</span> <span class=o>|</span> <span class=o>~</span><span class=mi>1</span> <span class=n>毫秒</span> <span class=o>|</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>p</span> \<span class=n>cdot</span> <span class=n>n_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>sensors</span><span class=p>}})</span><span class=err>$</span> <span class=o>|</span> <span class=n>基于传感器</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>关键洞见在于</span><span class=err>：</span><span class=n>神经算子需承担较高的</span> <span class=o>*</span><span class=n>离线成本</span><span class=o>*</span><span class=err>（</span><span class=n>即训练</span><span class=err>），</span><span class=n>但能实现</span> <span class=o>*</span><span class=n>摊销后</span><span class=o>*</span> <span class=n>的</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=err>$</span> <span class=n>推理开销</span><span class=err>。</span><span class=n>例如</span><span class=err>，</span><span class=n>若需针对同一类偏微分方程求解</span> <span class=mi>10</span><span class=p>,</span><span class=mi>000</span> <span class=n>组不同的初始条件或参数组合</span><span class=err>，</span><span class=n>通常只需执行约</span> <span class=mi>100</span><span class=err>–</span><span class=mi>1000</span> <span class=n>次经典求解</span><span class=err>，</span><span class=n>其总耗时便会超过神经算子的训练</span><span class=o>+</span><span class=n>推理总成本</span><span class=err>——</span><span class=n>此时即达到</span><span class=err>“</span><span class=n>盈亏平衡点</span><span class=err>”。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 三种攻 PDE 的方法： PINN、 FNO、 DeepONet</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>动手前先拉远视角</span><span class=err>。</span> <span class=n>PINN</span><span class=err>、</span> <span class=n>FNO</span><span class=err>、</span> <span class=n>DeepONet</span> <span class=n>各有适用场景</span><span class=err>，</span><span class=n>覆盖设计空间不同部分</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>PINN</span><span class=err>、</span><span class=n>FNO</span><span class=err>、</span><span class=n>DeepONet</span> <span class=n>与经典求解器在能力维度与</span><span class=s2>&#34;成本-复用&#34;</span><span class=n>维度的对比</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>02</span><span class=o>-</span><span class=n>神经算子理论</span><span class=o>/</span><span class=n>fig5_method_comparison</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>图</span> <span class=mf>6.</span> <span class=n>左</span><span class=err>：</span><span class=n>定性能力矩阵</span><span class=err>。</span> <span class=n>PINN</span> <span class=n>几何灵活</span><span class=err>（</span><span class=n>无需结构网格</span><span class=err>），</span><span class=n>但训练无法复用</span><span class=err>。</span> <span class=n>FNO</span> <span class=n>推理快</span><span class=err>、</span><span class=n>对分辨率变化稳健</span><span class=err>，</span><span class=n>但要结构网格</span><span class=err>。</span> <span class=n>DeepONet</span> <span class=n>居中</span><span class=err>：</span><span class=n>能跨实例和几何泛化</span><span class=err>，</span><span class=n>比</span> <span class=n>FNO</span> <span class=n>慢一点</span><span class=err>，</span><span class=n>平移不变问题上稍不准</span><span class=err>。</span><span class=n>右</span><span class=err>：</span><span class=n>成本</span> <span class=n>vs</span> <span class=n>复用景观</span><span class=err>——</span><span class=n>两种神经算子占据</span><span class=err>“</span><span class=n>训练一次</span><span class=err>、</span><span class=n>永久复用</span><span class=err>”</span><span class=n>角落</span><span class=err>，</span><span class=n>经典求解器和</span> <span class=n>PINN</span> <span class=n>难以企及</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>维度</span> <span class=o>|</span> <span class=n>经典求解器</span> <span class=o>|</span> <span class=n>PINN</span> <span class=o>|</span> <span class=n>DeepONet</span> <span class=o>|</span> <span class=n>FNO</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|---|---|---|---|---|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>适用范围</span> <span class=o>|</span> <span class=n>单实例</span> <span class=o>|</span> <span class=n>单实例</span> <span class=o>|</span> <span class=n>实例族</span> <span class=o>|</span> <span class=n>实例族</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>新实例推理</span> <span class=o>|</span> <span class=n>完整求解</span> <span class=o>|</span> <span class=n>完整重训</span> <span class=o>|</span> <span class=n>一次前向</span> <span class=o>|</span> <span class=n>一次前向</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>几何</span> <span class=o>|</span> <span class=n>网格化</span><span class=err>、</span><span class=n>灵活</span> <span class=o>|</span> <span class=n>无网格</span><span class=err>、</span><span class=n>灵活</span> <span class=o>|</span> <span class=n>branch</span><span class=o>+</span><span class=n>trunk</span><span class=err>，</span><span class=n>非常灵活</span> <span class=o>|</span> <span class=n>结构网格</span><span class=err>（</span><span class=n>笛卡尔</span><span class=o>/</span><span class=n>环面</span><span class=err>）</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>分辨率不变性</span> <span class=o>|</span> <span class=n>网格依赖</span> <span class=o>|</span> <span class=n>网络固定</span> <span class=o>|</span> <span class=n>天然不变</span> <span class=o>|</span> <span class=n>在</span> <span class=err>$</span><span class=n>k_</span><span class=p>{</span>\<span class=nb>max</span><span class=p>}</span><span class=err>$</span> <span class=n>内天然不变</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>长处</span> <span class=o>|</span> <span class=n>精度</span><span class=err>、</span><span class=n>保证</span> <span class=o>|</span> <span class=n>纯物理训练</span> <span class=o>|</span> <span class=n>不规则几何</span><span class=err>、</span><span class=n>多物理</span> <span class=o>|</span> <span class=n>平移不变问题</span><span class=err>、</span><span class=n>速度</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>短处</span> <span class=o>|</span> <span class=n>维度灾难</span> <span class=o>|</span> <span class=n>单实例代价</span> <span class=o>|</span> <span class=n>需要成对数据</span> <span class=o>|</span> <span class=n>周期性假设</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>经验法则</span><span class=err>：</span><span class=o>**</span><span class=n>结构网格</span> <span class=o>+</span> <span class=n>平移不变</span><span class=o>**</span><span class=err>（</span><span class=n>周期盒湍流</span><span class=err>、</span><span class=n>类环面天气</span><span class=err>、</span><span class=n>方域</span> <span class=n>Burgers</span> <span class=n>和</span> <span class=n>Navier</span><span class=err>–</span><span class=n>Stokes</span><span class=err>），</span><span class=n>选</span> <span class=n>FNO</span><span class=err>；</span><span class=o>**</span><span class=n>几何复杂或需不规则网格点查询</span><span class=o>**</span><span class=err>，</span><span class=n>选</span> <span class=n>DeepONet</span><span class=err>；</span><span class=o>**</span><span class=n>单实例</span> <span class=o>+</span> <span class=n>物理但无数据</span><span class=o>**</span><span class=err>，</span><span class=n>选</span> <span class=n>PINN</span><span class=err>。</span><span class=n>神经算子未取代</span> <span class=n>PINN</span><span class=err>，</span><span class=n>只是接管了</span> <span class=n>PINN</span> <span class=n>不擅长的场景</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>一个训练好的神经算子求解整个</span> <span class=n>PDE</span> <span class=n>族</span><span class=err>：</span><span class=n>四个系数场</span><span class=err>、</span><span class=n>各自一次前向得四个解</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>02</span><span class=o>-</span><span class=n>神经算子理论</span><span class=o>/</span><span class=n>fig6_geometry_application</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>图</span> <span class=mf>7.</span> <span class=n>收益所在</span><span class=err>。</span><span class=n>针对稳态</span> <span class=n>Darcy</span> <span class=n>方程</span> <span class=err>$</span><span class=o>-</span>\<span class=n>nabla</span>\<span class=err>!</span>\<span class=n>cdot</span>\<span class=err>!</span><span class=p>(</span><span class=n>a</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>\<span class=n>nabla</span> <span class=n>u</span><span class=p>)</span> <span class=o>=</span> <span class=n>f</span><span class=err>$，</span><span class=n>训练好的神经算子能在输入分布上泛化</span><span class=err>。</span><span class=n>上排</span><span class=err>：</span><span class=n>四个样本系数场</span> <span class=err>$</span><span class=n>a</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=err>$（</span><span class=n>高值代表低渗透率</span><span class=err>）。</span><span class=n>下排</span><span class=err>：</span><span class=n>每个实例一次前向得到的压力解</span> <span class=err>$</span><span class=n>u</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=err>$。</span><span class=n>换成有限元求解</span><span class=err>，</span><span class=n>代价高几个数量级</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl><span class=c1>## 实现：从零写一个 1D FNO</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>FNO训练损失曲线与Burgers方程预测对比精确解</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>02</span><span class=o>-</span><span class=n>神经算子理论</span><span class=o>/</span><span class=n>fig8_fno_training</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>最小可运行的</span> <span class=n>FNO</span> <span class=n>在</span> <span class=n>PyTorch</span> <span class=n>中只需一个文件</span><span class=err>。</span><span class=n>两个关键点</span><span class=err>：</span><span class=p>(</span><span class=n>a</span><span class=p>)</span> <span class=n>谱乘法用</span> <span class=err>`</span><span class=n>torch</span><span class=o>.</span><span class=n>einsum</span><span class=err>`</span> <span class=n>实现</span><span class=err>，</span><span class=n>支持多通道</span><span class=err>；</span><span class=p>(</span><span class=n>b</span><span class=p>)</span> <span class=n>残差</span> <span class=err>$</span><span class=n>Wv</span><span class=err>$</span> <span class=n>分支用</span> <span class=err>$</span><span class=mi>1</span>\<span class=n>times</span> <span class=mi>1</span><span class=err>$</span> <span class=n>卷积实现</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
 </span></span><span class=line><span class=cl>
@@ -358,19 +602,12 @@
 </span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>spec</span><span class=p>,</span> <span class=n>loc</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>spectral</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>local</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>            <span class=n>x</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>gelu</span><span class=p>(</span><span class=n>spec</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> <span class=o>+</span> <span class=n>loc</span><span class=p>(</span><span class=n>x</span><span class=p>))</span>
 </span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>proj</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>transpose</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>))</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>    <span class=c1># [B, N]</span>
-</span></span></code></pre></td></tr></table></div></div><p>训练循环是标准回归，数据为离线生成的 <span class=math-inline>$(u_0, u_T)$</span>
-对：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>FNO1d</span><span class=p>(</span><span class=n>modes</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>width</span><span class=o>=</span><span class=mi>64</span><span class=p>)</span><span class=o>.</span><span class=n>cuda</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>训练循环是标准回归</span><span class=err>，</span><span class=n>数据为离线生成的</span> <span class=err>$</span><span class=p>(</span><span class=n>u_0</span><span class=p>,</span> <span class=n>u_T</span><span class=p>)</span><span class=err>$</span> <span class=n>对</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>FNO1d</span><span class=p>(</span><span class=n>modes</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>width</span><span class=o>=</span><span class=mi>64</span><span class=p>)</span><span class=o>.</span><span class=n>cuda</span><span class=p>()</span>
 </span></span><span class=line><span class=cl><span class=n>opt</span>   <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>AdamW</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>,</span> <span class=n>weight_decay</span><span class=o>=</span><span class=mf>1e-4</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>sched</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>lr_scheduler</span><span class=o>.</span><span class=n>CosineAnnealingLR</span><span class=p>(</span><span class=n>opt</span><span class=p>,</span> <span class=n>T_max</span><span class=o>=</span><span class=n>epochs</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
@@ -381,65 +618,88 @@
 </span></span><span class=line><span class=cl>        <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
 </span></span><span class=line><span class=cl>        <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
 </span></span><span class=line><span class=cl>    <span class=n>sched</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
-</span></span></code></pre></td></tr></table></div></div><p><strong>Burgers (<span class=math-inline>$\nu=10^{-2}$</span>
-, <span class=math-inline>$N=256$</span>
-, 1000 个训练实例) 参考性能：</strong> 验证集相对 <span class=math-inline>$L^2$</span>
-误差约 <span class=math-inline>$1\%$</span>
-，单卡 A100 训练时间分钟级。 PINN 每个实例需分钟级训练，神经算子经济优势明显。</p><h2 id=理论到底保证了什么以及没保证什么 class=heading-anchor>理论到底保证了什么（以及没保证什么）<a href=#%e7%90%86%e8%ae%ba%e5%88%b0%e5%ba%95%e4%bf%9d%e8%af%81%e4%ba%86%e4%bb%80%e4%b9%88%e4%bb%a5%e5%8f%8a%e6%b2%a1%e4%bf%9d%e8%af%81%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>最简洁的结果是关于 FNO 的，由 Kovachki 等人给出。</p><p><strong>逼近性（Kovachki 等人， 2021）.</strong> 对环面 <span class=math-inline>$\mathbb{T}^d$</span>
-上任意连续算子 <span class=math-inline>$\mathcal{G}: H^s(\mathbb{T}^d)\to H^{s'}(\mathbb{T}^d)$</span>
-，任意紧集 <span class=math-inline>$K\subset H^s$</span>
-，任意 <span class=math-inline>$\varepsilon>0$</span>
-，存在有限宽深的 FNO <span class=math-inline>$\mathcal{G}_\theta$</span>
-满足 <span class=math-inline>$\sup_{u\in K}\|\mathcal{G}(u)-\mathcal{G}_\theta(u)\|_{H^{s'}} &lt; \varepsilon$</span>
-。</p><span class=math-block>$$\mathbb{E}\,\|\mathcal{G}-\mathcal{G}_\theta\|^2 \;\lesssim\; \underbrace{p^{-2\alpha}}_{\text{逼近}} \;+\; \underbrace{\frac{p}{N}}_{\text{统计}} \;+\; \underbrace{\sigma^2}_{\text{噪声}},$$</span><p>其中 <span class=math-inline>$\alpha$</span>
-是算子光滑度指数。取 <span class=math-inline>$p\sim N^{1/(2\alpha+1)}$</span>
-平衡逼近与统计。</p><p>理论<strong>未</strong>普遍保证的：</p><ul><li>无界集上强算子范数一致收敛。</li><li>输入分布漂移时的稳定性（<span class=math-inline>$\nu$</span>
-、几何、强迫幅值外推）。</li><li>锐前沿和激波处 Sobolev 嵌入失效的行为。</li></ul><p>这些方向都是活跃的研究领域。实践中，我始终把部署的神经算子当作<strong>快速代理</strong>，外推结果需不时用参考求解校验。
-<strong>数据需求与误差分解</strong><br>一个常见问题：“神经算子需要多少训练数据？”答案取决于三个相互制约的误差项：</p><span class=math-block>$$\text{总误差} = \underbrace{\epsilon_{\text{approx}}}_{\text{模型结构}} + \underbrace{\epsilon_{\text{stat}}}_{\text{有限数据}} + \underbrace{\epsilon_{\text{opt}}}_{\text{优化过程}}$$</span><ul><li><strong>逼近误差</strong> <span class=math-inline>$\epsilon_{\text{approx}}$</span>
-：指当前模型结构（例如，截断模态数为 <span class=math-inline>$k_{\max}$</span>
-的傅里叶神经算子 FNO，或含 <span class=math-inline>$p$</span>
-个基函数的 DeepONet）对真实算子的表达能力。该误差随模型容量增大而减小。</li><li><strong>统计误差</strong> <span class=math-inline>$\epsilon_{\text{stat}}$</span>
-：由训练样本有限导致的过拟合。对于性质良好的算子，其量级约为 <span class=math-inline>$O(1/\sqrt{N_{\text{train}}})$</span>
-。</li><li><strong>优化误差</strong> <span class=math-inline>$\epsilon_{\text{opt}}$</span>
-：指模型类中理论最优解与 SGD 实际收敛结果之间的差距。</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span><span class=lnt>8
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># 消融实验：Burgers 方程 FNO 的精度随训练集规模的变化</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>Burgers</span> <span class=p>(</span><span class=err>$</span>\<span class=n>nu</span><span class=o>=</span><span class=mi>10</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>2</span><span class=p>}</span><span class=err>$</span><span class=p>,</span> <span class=err>$</span><span class=n>N</span><span class=o>=</span><span class=mi>256</span><span class=err>$</span><span class=p>,</span> <span class=mi>1000</span> <span class=n>个训练实例</span><span class=p>)</span> <span class=n>参考性能</span><span class=err>：</span><span class=o>**</span> <span class=n>验证集相对</span> <span class=err>$</span><span class=n>L</span><span class=o>^</span><span class=mi>2</span><span class=err>$</span> <span class=n>误差约</span> <span class=err>$</span><span class=mi>1</span>\<span class=o>%</span><span class=err>$，</span><span class=n>单卡</span> <span class=n>A100</span> <span class=n>训练时间分钟级</span><span class=err>。</span> <span class=n>PINN</span> <span class=n>每个实例需分钟级训练</span><span class=err>，</span><span class=n>神经算子经济优势明显</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=c1>## 理论到底保证了什么（以及没保证什么）</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>最简洁的结果是关于</span> <span class=n>FNO</span> <span class=n>的</span><span class=err>，</span><span class=n>由</span> <span class=n>Kovachki</span> <span class=n>等人给出</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>逼近性</span><span class=err>（</span><span class=n>Kovachki</span> <span class=n>等人</span><span class=err>，</span> <span class=mi>2021</span><span class=err>）</span><span class=o>.**</span> <span class=n>对环面</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>T</span><span class=p>}</span><span class=o>^</span><span class=n>d</span><span class=err>$</span> <span class=n>上任意连续算子</span> <span class=err>$</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>G</span><span class=p>}:</span> <span class=n>H</span><span class=o>^</span><span class=n>s</span><span class=p>(</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>T</span><span class=p>}</span><span class=o>^</span><span class=n>d</span><span class=p>)</span>\<span class=n>to</span> <span class=n>H</span><span class=o>^</span><span class=p>{</span><span class=n>s</span><span class=s1>&#39;}(\mathbb</span><span class=si>{T}</span><span class=s1>^d)$，任意紧集 $K\subset H^s$，任意 $</span><span class=se>\v</span><span class=s1>arepsilon&gt;0$，存在有限宽深的 FNO $\mathcal</span><span class=si>{G}</span><span class=s1>_</span><span class=se>\t</span><span class=s1>heta$ 满足 $\sup_{u\in K}\|\mathcal</span><span class=si>{G}</span><span class=s1>(u)-\mathcal</span><span class=si>{G}</span><span class=s1>_</span><span class=se>\t</span><span class=s1>heta(u)\|_{H^{s&#39;</span><span class=p>}}</span> <span class=o>&lt;</span> \<span class=n>varepsilon</span><span class=err>$。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>统计性</span><span class=err>（</span><span class=n>Lanthaler</span> <span class=n>等人</span><span class=err>，</span> <span class=mi>2022</span><span class=err>，</span><span class=n>针对</span> <span class=n>DeepONet</span><span class=err>）</span><span class=o>.**</span> <span class=n>给定</span> <span class=err>$</span><span class=n>N</span><span class=err>$</span> <span class=n>个</span> <span class=n>i</span><span class=o>.</span><span class=n>i</span><span class=o>.</span><span class=n>d</span><span class=o>.</span> <span class=n>训练对</span><span class=err>、$</span><span class=n>p</span><span class=err>$</span> <span class=n>维潜空间</span><span class=err>，</span><span class=n>期望测试误差分解为</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}</span>\<span class=p>,</span>\<span class=o>|</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>G</span><span class=p>}</span><span class=o>-</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>G</span><span class=p>}</span><span class=n>_</span>\<span class=n>theta</span>\<span class=o>|^</span><span class=mi>2</span> \<span class=p>;</span>\<span class=n>lesssim</span>\<span class=p>;</span> \<span class=n>underbrace</span><span class=p>{</span><span class=n>p</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>2</span>\<span class=n>alpha</span><span class=p>}}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>逼近</span><span class=p>}}</span> \<span class=p>;</span><span class=o>+</span>\<span class=p>;</span> \<span class=n>underbrace</span><span class=p>{</span>\<span class=n>frac</span><span class=p>{</span><span class=n>p</span><span class=p>}{</span><span class=n>N</span><span class=p>}}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>统计</span><span class=p>}}</span> \<span class=p>;</span><span class=o>+</span>\<span class=p>;</span> \<span class=n>underbrace</span><span class=p>{</span>\<span class=n>sigma</span><span class=o>^</span><span class=mi>2</span><span class=p>}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>噪声</span><span class=p>}},</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span>\<span class=n>alpha</span><span class=err>$</span> <span class=n>是算子光滑度指数</span><span class=err>。</span><span class=n>取</span> <span class=err>$</span><span class=n>p</span>\<span class=n>sim</span> <span class=n>N</span><span class=o>^</span><span class=p>{</span><span class=mi>1</span><span class=o>/</span><span class=p>(</span><span class=mi>2</span>\<span class=n>alpha</span><span class=o>+</span><span class=mi>1</span><span class=p>)}</span><span class=err>$</span> <span class=n>平衡逼近与统计</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>理论</span><span class=o>**</span><span class=n>未</span><span class=o>**</span><span class=n>普遍保证的</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>无界集上强算子范数一致收敛</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>输入分布漂移时的稳定性</span><span class=err>（$</span>\<span class=n>nu</span><span class=err>$、</span><span class=n>几何</span><span class=err>、</span><span class=n>强迫幅值外推</span><span class=err>）。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>锐前沿和激波处</span> <span class=n>Sobolev</span> <span class=n>嵌入失效的行为</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>这些方向都是活跃的研究领域</span><span class=err>。</span><span class=n>实践中</span><span class=err>，</span><span class=n>我始终把部署的神经算子当作</span><span class=o>**</span><span class=n>快速代理</span><span class=o>**</span><span class=err>，</span><span class=n>外推结果需不时用参考求解校验</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>数据需求与误差分解</span><span class=o>**</span>  
+</span></span><span class=line><span class=cl><span class=n>一个常见问题</span><span class=err>：“</span><span class=n>神经算子需要多少训练数据</span><span class=err>？”</span><span class=n>答案取决于三个相互制约的误差项</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>text</span><span class=p>{</span><span class=n>总误差</span><span class=p>}</span> <span class=o>=</span> \<span class=n>underbrace</span><span class=p>{</span>\<span class=n>epsilon_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>approx</span><span class=p>}}}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>模型结构</span><span class=p>}}</span> <span class=o>+</span> \<span class=n>underbrace</span><span class=p>{</span>\<span class=n>epsilon_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>stat</span><span class=p>}}}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>有限数据</span><span class=p>}}</span> <span class=o>+</span> \<span class=n>underbrace</span><span class=p>{</span>\<span class=n>epsilon_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>opt</span><span class=p>}}}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>优化过程</span><span class=p>}}</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>逼近误差</span><span class=o>**</span> <span class=err>$</span>\<span class=n>epsilon_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>approx</span><span class=p>}}</span><span class=err>$：</span><span class=n>指当前模型结构</span><span class=err>（</span><span class=n>例如</span><span class=err>，</span><span class=n>截断模态数为</span> <span class=err>$</span><span class=n>k_</span><span class=p>{</span>\<span class=nb>max</span><span class=p>}</span><span class=err>$</span> <span class=n>的傅里叶神经算子</span> <span class=n>FNO</span><span class=err>，</span><span class=n>或含</span> <span class=err>$</span><span class=n>p</span><span class=err>$</span> <span class=n>个基函数的</span> <span class=n>DeepONet</span><span class=err>）</span><span class=n>对真实算子的表达能力</span><span class=err>。</span><span class=n>该误差随模型容量增大而减小</span><span class=err>。</span>  
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>统计误差</span><span class=o>**</span> <span class=err>$</span>\<span class=n>epsilon_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>stat</span><span class=p>}}</span><span class=err>$：</span><span class=n>由训练样本有限导致的过拟合</span><span class=err>。</span><span class=n>对于性质良好的算子</span><span class=err>，</span><span class=n>其量级约为</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=mi>1</span><span class=o>/</span>\<span class=n>sqrt</span><span class=p>{</span><span class=n>N_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>train</span><span class=p>}}})</span><span class=err>$。</span>  
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>优化误差</span><span class=o>**</span> <span class=err>$</span>\<span class=n>epsilon_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>opt</span><span class=p>}}</span><span class=err>$：</span><span class=n>指模型类中理论最优解与</span> <span class=n>SGD</span> <span class=n>实际收敛结果之间的差距</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
 </span></span><span class=line><span class=cl><span class=n>train_sizes</span> <span class=o>=</span> <span class=p>[</span><span class=mi>100</span><span class=p>,</span> <span class=mi>200</span><span class=p>,</span> <span class=mi>500</span><span class=p>,</span> <span class=mi>1000</span><span class=p>,</span> <span class=mi>2000</span><span class=p>,</span> <span class=mi>5000</span><span class=p>]</span>
 </span></span><span class=line><span class=cl><span class=n>errors</span> <span class=o>=</span>      <span class=p>[</span><span class=mf>0.052</span><span class=p>,</span> <span class=mf>0.031</span><span class=p>,</span> <span class=mf>0.018</span><span class=p>,</span> <span class=mf>0.012</span><span class=p>,</span> <span class=mf>0.0082</span><span class=p>,</span> <span class=mf>0.0061</span><span class=p>]</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>e</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>train_sizes</span><span class=p>,</span> <span class=n>errors</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;  N_train=</span><span class=si>{</span><span class=n>n</span><span class=si>:</span><span class=s2>5d</span><span class=si>}</span><span class=s2>: L2 误差 = </span><span class=si>{</span><span class=n>e</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=c1># 误差大致遵循 1/sqrt(N) 的衰减规律：</span>
-</span></span><span class=line><span class=cl><span class=c1># 0.052 * sqrt(100/5000) = 0.0073 ≈ 0.0061（近似成立）</span>
-</span></span></code></pre></td></tr></table></div></div><p><strong>给从业者的经验法则</strong>：</p><ul><li>对于解光滑的一维偏微分方程（PDE），约 <span class=math-inline>$N_{\text{train}} \approx 1000$</span>
-个样本即可达到约 1% 的相对误差；</li><li>对于二维问题，样本量需增加至 5–10 倍；</li><li>若解具有湍流特征或多尺度结构，则再乘以约 10 倍；</li><li>若使用 1000 个样本后误差仍高于 5%，瓶颈更可能在于模型结构（如模态数不足、隐藏层维度太小），而非数据量不足。</li></ul><h2 id=边界失效模式与对策 class=heading-anchor>边界、失效模式与对策<a href=#%e8%be%b9%e7%95%8c%e5%a4%b1%e6%95%88%e6%a8%a1%e5%bc%8f%e4%b8%8e%e5%af%b9%e7%ad%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>非周期域的混叠。</strong> FNO 默认周期性。非周期问题可对输入加 padding 和窗函数，或换非 Fourier 基（Spectral Neural Operator + Chebyshev/Legendre， Tran 等人 2022）。</p><p><strong>长时滚动预测。</strong> 自回归预测 <span class=math-inline>$u_{t+\Delta t} = \mathcal{G}_\theta(u_t)$</span>
-误差累积明显。解决方法：训练时直接用多步 rollout，加入稳定性惩罚，或与粗 PDE 步交替（混合求解器）。</p><p><strong>分布外系数。</strong> 模型在 <span class=math-inline>$\nu \in [10^{-2}, 10^{-1}]$</span>
-上训练，外推到 <span class=math-inline>$\nu = 10^{-4}$</span>
-效果差。改进：将参数作为额外输入 token （条件 FNO / Unisolver 的做法），训练时让 <span class=math-inline>$\nu$</span>
-在宽对数均匀范围采样。</p><p><strong>激波与不连续。</strong> Sobolev 风格光滑性失效。改用熵稳定损失形式，在守恒变量上做残差训练，或在检测到前沿时切换到 Godunov 步的混合求解器。</p><p><strong>复杂几何。</strong> FNO 依赖网格。替代方案： Geo-FNO （学习到参考环面的形变）、 Graph Neural Operators （Brandstetter 等人， 2022）处理非结构网格、 DeepONet 配无网格 trunk。</p><h2 id=总结 class=heading-anchor>总结<a href=#%e6%80%bb%e7%bb%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>同一个 PDE 要在多种输入上反复求解时，神经算子是合适工具。两类架构覆盖了主要设计空间：</p><ul><li><strong>DeepONet</strong> 把算子拆为 branch （输入函数）和 trunk （查询坐标）。继承 Chen–Chen 通用逼近定理，天然支持跨几何与跨输出查询。缺点是需要成对训练数据，平移不变问题上精度稍逊 FNO。</li><li><strong>FNO</strong> 在 Fourier 域做可学习全局卷积。推理最快，适合平移不变 PDE，理论简洁——但需要结构化网格和周期域。</li></ul><p>两者都具备<strong>分辨率不变性</strong>：同一组权重可在任意网格密度评估，上限是见过的模式范围。两者训练一次，成本分摊到整个 PDE 实例族。建模负担从单实例优化转向精心设计的训练过程。</p><p>今天看这个领域，神经算子已从“有趣的研究想法”发展为“科学计算栈中可信组件”——尤其在天气预报（FourCastNet、 GraphCast）、不确定性量化、设计优化等场景，同一控制方程需查询数千次。当前前沿包括外推、复杂几何、多物理耦合，以及分布漂移下的误差控制。</p><h2 id=参考文献 class=heading-anchor>参考文献<a href=#%e5%8f%82%e8%80%83%e6%96%87%e7%8c%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>Li, Z., Kovachki, N., Azizzadenesheli, K., Liu, B., Bhattacharya, K., Stuart, A., & Anandkumar, A. (2020). <a href=https://arxiv.org/abs/2010.08895 target=_blank rel="noopener noreferrer">Fourier Neural Operator for Parametric Partial Differential Equations <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
-. <em>ICLR 2021</em>.</li><li>Lu, L., Jin, P., Pang, G., Zhang, Z., & Karniadakis, G. E. (2019). <a href=https://arxiv.org/abs/1910.03193 target=_blank rel="noopener noreferrer">Learning nonlinear operators via DeepONet based on the universal approximation theorem of operators <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
-. <em>Nature Machine Intelligence</em> 3(3), 218–229.</li><li>Chen, T., & Chen, H. (1995). <a href=https://ieeexplore.ieee.org/document/376006 target=_blank rel="noopener noreferrer">Universal approximation to nonlinear operators by neural networks with arbitrary activation functions and its application to dynamical systems <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
-. <em>IEEE Transactions on Neural Networks</em> 6(4), 911–917.</li><li>Kovachki, N., Li, Z., Liu, B., Azizzadenesheli, K., Bhattacharya, K., Stuart, A., & Anandkumar, A. (2023). <a href=https://arxiv.org/abs/2108.08481 target=_blank rel="noopener noreferrer">Neural Operator: Learning Maps Between Function Spaces with Applications to PDEs <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
-. <em>Journal of Machine Learning Research</em> 24, 1–97.</li><li>Lanthaler, S., Mishra, S., & Karniadakis, G. E. (2022). <a href=https://arxiv.org/abs/2102.09618 target=_blank rel="noopener noreferrer">Error estimates for DeepONets: A deep learning framework in infinite dimensions <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
-. <em>Transactions of Mathematics and Its Applications</em>.</li><li>Wang, S., Wang, H., & Perdikaris, P. (2021). <a href=https://www.science.org/doi/10.1126/sciadv.abi8604 target=_blank rel="noopener noreferrer">Learning the solution operator of parametric partial differential equations with physics-informed DeepONets <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
-. <em>Science Advances</em> 7(40).</li><li>Pathak, J., Subramanian, S., Harrington, P., et al. (2022). <a href=https://arxiv.org/abs/2202.11214 target=_blank rel="noopener noreferrer">FourCastNet: A Global Data-driven High-resolution Weather Model using Adaptive Fourier Neural Operators <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
-. <em><a href=https://arxiv.org/abs/2202.11214 target=_blank rel="noopener noreferrer">arXiv:2202.11214 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
-</em>.</li><li>Bonev, B., Kurth, T., Hundt, C., Pathak, J., Baust, M., Kashinath, K., & Anandkumar, A. (2023). <a href=https://arxiv.org/abs/2306.03838 target=_blank rel="noopener noreferrer">Spherical Fourier Neural Operators: Learning Stable Dynamics on the Sphere <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
-. <em>ICML 2023</em>.</li><li>Fanaskov, V., & Oseledets, I. (2022). <a href=https://arxiv.org/abs/2205.10573 target=_blank rel="noopener noreferrer">Spectral Neural Operators <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
-. <em><a href=https://arxiv.org/abs/2205.10573 target=_blank rel="noopener noreferrer">arXiv:2205.10573 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
-</em>.</li><li>Brandstetter, J., Worrall, D., & Welling, M. (2022). <a href=https://arxiv.org/abs/2202.03376 target=_blank rel="noopener noreferrer">Message Passing Neural PDE Solvers <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
-. <em>ICLR 2022</em>.</li><li>Wen, G., Li, Z., Long, Q., Azizzadenesheli, K., Anandkumar, A., & Benson, S. M. (2022). <a href=https://arxiv.org/abs/2109.03697 target=_blank rel="noopener noreferrer">U-FNO: An enhanced Fourier neural operator-based deep-learning model for multiphase flow <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
-. <em>Advances in Water Resources</em>.</li></ul></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>给从业者的经验法则</span><span class=o>**</span><span class=err>：</span>  
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>对于解光滑的一维偏微分方程</span><span class=err>（</span><span class=n>PDE</span><span class=err>），</span><span class=n>约</span> <span class=err>$</span><span class=n>N_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>train</span><span class=p>}}</span> \<span class=n>approx</span> <span class=mi>1000</span><span class=err>$</span> <span class=n>个样本即可达到约</span> <span class=mi>1</span><span class=o>%</span> <span class=n>的相对误差</span><span class=err>；</span>  
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>对于二维问题</span><span class=err>，</span><span class=n>样本量需增加至</span> <span class=mi>5</span><span class=err>–</span><span class=mi>10</span> <span class=n>倍</span><span class=err>；</span>  
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>若解具有湍流特征或多尺度结构</span><span class=err>，</span><span class=n>则再乘以约</span> <span class=mi>10</span> <span class=n>倍</span><span class=err>；</span>  
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>若使用</span> <span class=mi>1000</span> <span class=n>个样本后误差仍高于</span> <span class=mi>5</span><span class=o>%</span><span class=err>，</span><span class=n>瓶颈更可能在于模型结构</span><span class=err>（</span><span class=n>如模态数不足</span><span class=err>、</span><span class=n>隐藏层维度太小</span><span class=err>），</span><span class=n>而非数据量不足</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 边界、失效模式与对策</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>非周期域的混叠</span><span class=err>。</span><span class=o>**</span> <span class=n>FNO</span> <span class=n>默认周期性</span><span class=err>。</span><span class=n>非周期问题可对输入加</span> <span class=n>padding</span> <span class=n>和窗函数</span><span class=err>，</span><span class=n>或换非</span> <span class=n>Fourier</span> <span class=n>基</span><span class=err>（</span><span class=n>Spectral</span> <span class=n>Neural</span> <span class=n>Operator</span> <span class=o>+</span> <span class=n>Chebyshev</span><span class=o>/</span><span class=n>Legendre</span><span class=err>，</span> <span class=n>Tran</span> <span class=n>等人</span> <span class=mi>2022</span><span class=err>）。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>长时滚动预测</span><span class=err>。</span><span class=o>**</span> <span class=n>自回归预测</span> <span class=err>$</span><span class=n>u_</span><span class=p>{</span><span class=n>t</span><span class=o>+</span>\<span class=n>Delta</span> <span class=n>t</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>G</span><span class=p>}</span><span class=n>_</span>\<span class=n>theta</span><span class=p>(</span><span class=n>u_t</span><span class=p>)</span><span class=err>$</span> <span class=n>误差累积明显</span><span class=err>。</span><span class=n>解决方法</span><span class=err>：</span><span class=n>训练时直接用多步</span> <span class=n>rollout</span><span class=err>，</span><span class=n>加入稳定性惩罚</span><span class=err>，</span><span class=n>或与粗</span> <span class=n>PDE</span> <span class=n>步交替</span><span class=err>（</span><span class=n>混合求解器</span><span class=err>）。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>分布外系数</span><span class=err>。</span><span class=o>**</span> <span class=n>模型在</span> <span class=err>$</span>\<span class=n>nu</span> \<span class=ow>in</span> <span class=p>[</span><span class=mi>10</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>2</span><span class=p>},</span> <span class=mi>10</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>1</span><span class=p>}]</span><span class=err>$</span> <span class=n>上训练</span><span class=err>，</span><span class=n>外推到</span> <span class=err>$</span>\<span class=n>nu</span> <span class=o>=</span> <span class=mi>10</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>4</span><span class=p>}</span><span class=err>$</span> <span class=n>效果差</span><span class=err>。</span><span class=n>改进</span><span class=err>：</span><span class=n>将参数作为额外输入</span> <span class=n>token</span> <span class=err>（</span><span class=n>条件</span> <span class=n>FNO</span> <span class=o>/</span> <span class=n>Unisolver</span> <span class=n>的做法</span><span class=err>），</span><span class=n>训练时让</span> <span class=err>$</span>\<span class=n>nu</span><span class=err>$</span> <span class=n>在宽对数均匀范围采样</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>激波与不连续</span><span class=err>。</span><span class=o>**</span> <span class=n>Sobolev</span> <span class=n>风格光滑性失效</span><span class=err>。</span><span class=n>改用熵稳定损失形式</span><span class=err>，</span><span class=n>在守恒变量上做残差训练</span><span class=err>，</span><span class=n>或在检测到前沿时切换到</span> <span class=n>Godunov</span> <span class=n>步的混合求解器</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>复杂几何</span><span class=err>。</span><span class=o>**</span> <span class=n>FNO</span> <span class=n>依赖网格</span><span class=err>。</span><span class=n>替代方案</span><span class=err>：</span> <span class=n>Geo</span><span class=o>-</span><span class=n>FNO</span> <span class=err>（</span><span class=n>学习到参考环面的形变</span><span class=err>）、</span> <span class=n>Graph</span> <span class=n>Neural</span> <span class=n>Operators</span> <span class=err>（</span><span class=n>Brandstetter</span> <span class=n>等人</span><span class=err>，</span> <span class=mi>2022</span><span class=err>）</span><span class=n>处理非结构网格</span><span class=err>、</span> <span class=n>DeepONet</span> <span class=n>配无网格</span> <span class=n>trunk</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=c1>## 总结</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>同一个</span> <span class=n>PDE</span> <span class=n>要在多种输入上反复求解时</span><span class=err>，</span><span class=n>神经算子是合适工具</span><span class=err>。</span><span class=n>两类架构覆盖了主要设计空间</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>DeepONet</span><span class=o>**</span> <span class=n>把算子拆为</span> <span class=n>branch</span> <span class=err>（</span><span class=n>输入函数</span><span class=err>）</span><span class=n>和</span> <span class=n>trunk</span> <span class=err>（</span><span class=n>查询坐标</span><span class=err>）。</span><span class=n>继承</span> <span class=n>Chen</span><span class=err>–</span><span class=n>Chen</span> <span class=n>通用逼近定理</span><span class=err>，</span><span class=n>天然支持跨几何与跨输出查询</span><span class=err>。</span><span class=n>缺点是需要成对训练数据</span><span class=err>，</span><span class=n>平移不变问题上精度稍逊</span> <span class=n>FNO</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>FNO</span><span class=o>**</span> <span class=n>在</span> <span class=n>Fourier</span> <span class=n>域做可学习全局卷积</span><span class=err>。</span><span class=n>推理最快</span><span class=err>，</span><span class=n>适合平移不变</span> <span class=n>PDE</span><span class=err>，</span><span class=n>理论简洁</span><span class=err>——</span><span class=n>但需要结构化网格和周期域</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>两者都具备</span><span class=o>**</span><span class=n>分辨率不变性</span><span class=o>**</span><span class=err>：</span><span class=n>同一组权重可在任意网格密度评估</span><span class=err>，</span><span class=n>上限是见过的模式范围</span><span class=err>。</span><span class=n>两者训练一次</span><span class=err>，</span><span class=n>成本分摊到整个</span> <span class=n>PDE</span> <span class=n>实例族</span><span class=err>。</span><span class=n>建模负担从单实例优化转向精心设计的训练过程</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>今天看这个领域</span><span class=err>，</span><span class=n>神经算子已从</span><span class=err>“</span><span class=n>有趣的研究想法</span><span class=err>”</span><span class=n>发展为</span><span class=err>“</span><span class=n>科学计算栈中可信组件</span><span class=err>”——</span><span class=n>尤其在天气预报</span><span class=err>（</span><span class=n>FourCastNet</span><span class=err>、</span> <span class=n>GraphCast</span><span class=err>）、</span><span class=n>不确定性量化</span><span class=err>、</span><span class=n>设计优化等场景</span><span class=err>，</span><span class=n>同一控制方程需查询数千次</span><span class=err>。</span><span class=n>当前前沿包括外推</span><span class=err>、</span><span class=n>复杂几何</span><span class=err>、</span><span class=n>多物理耦合</span><span class=err>，</span><span class=n>以及分布漂移下的误差控制</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=c1>## 参考文献</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Li</span><span class=p>,</span> <span class=n>Z</span><span class=o>.</span><span class=p>,</span> <span class=n>Kovachki</span><span class=p>,</span> <span class=n>N</span><span class=o>.</span><span class=p>,</span> <span class=n>Azizzadenesheli</span><span class=p>,</span> <span class=n>K</span><span class=o>.</span><span class=p>,</span> <span class=n>Liu</span><span class=p>,</span> <span class=n>B</span><span class=o>.</span><span class=p>,</span> <span class=n>Bhattacharya</span><span class=p>,</span> <span class=n>K</span><span class=o>.</span><span class=p>,</span> <span class=n>Stuart</span><span class=p>,</span> <span class=n>A</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Anandkumar</span><span class=p>,</span> <span class=n>A</span><span class=o>.</span> <span class=p>(</span><span class=mi>2020</span><span class=p>)</span><span class=o>.</span> <span class=p>[</span><span class=n>Fourier</span> <span class=n>Neural</span> <span class=n>Operator</span> <span class=k>for</span> <span class=n>Parametric</span> <span class=n>Partial</span> <span class=n>Differential</span> <span class=n>Equations</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>2010.08895</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>ICLR</span> <span class=mi>2021</span><span class=o>*.</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Lu</span><span class=p>,</span> <span class=n>L</span><span class=o>.</span><span class=p>,</span> <span class=n>Jin</span><span class=p>,</span> <span class=n>P</span><span class=o>.</span><span class=p>,</span> <span class=n>Pang</span><span class=p>,</span> <span class=n>G</span><span class=o>.</span><span class=p>,</span> <span class=n>Zhang</span><span class=p>,</span> <span class=n>Z</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Karniadakis</span><span class=p>,</span> <span class=n>G</span><span class=o>.</span> <span class=n>E</span><span class=o>.</span> <span class=p>(</span><span class=mi>2019</span><span class=p>)</span><span class=o>.</span> <span class=p>[</span><span class=n>Learning</span> <span class=n>nonlinear</span> <span class=n>operators</span> <span class=n>via</span> <span class=n>DeepONet</span> <span class=n>based</span> <span class=n>on</span> <span class=n>the</span> <span class=n>universal</span> <span class=n>approximation</span> <span class=n>theorem</span> <span class=n>of</span> <span class=n>operators</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>1910.03193</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>Nature</span> <span class=n>Machine</span> <span class=n>Intelligence</span><span class=o>*</span> <span class=mi>3</span><span class=p>(</span><span class=mi>3</span><span class=p>),</span> <span class=mi>218</span><span class=err>–</span><span class=mf>229.</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Chen</span><span class=p>,</span> <span class=n>T</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Chen</span><span class=p>,</span> <span class=n>H</span><span class=o>.</span> <span class=p>(</span><span class=mi>1995</span><span class=p>)</span><span class=o>.</span> <span class=p>[</span><span class=n>Universal</span> <span class=n>approximation</span> <span class=n>to</span> <span class=n>nonlinear</span> <span class=n>operators</span> <span class=n>by</span> <span class=n>neural</span> <span class=n>networks</span> <span class=k>with</span> <span class=n>arbitrary</span> <span class=n>activation</span> <span class=n>functions</span> <span class=ow>and</span> <span class=n>its</span> <span class=n>application</span> <span class=n>to</span> <span class=n>dynamical</span> <span class=n>systems</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>ieeexplore</span><span class=o>.</span><span class=n>ieee</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=n>document</span><span class=o>/</span><span class=mi>376006</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>IEEE</span> <span class=n>Transactions</span> <span class=n>on</span> <span class=n>Neural</span> <span class=n>Networks</span><span class=o>*</span> <span class=mi>6</span><span class=p>(</span><span class=mi>4</span><span class=p>),</span> <span class=mi>911</span><span class=err>–</span><span class=mf>917.</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Kovachki</span><span class=p>,</span> <span class=n>N</span><span class=o>.</span><span class=p>,</span> <span class=n>Li</span><span class=p>,</span> <span class=n>Z</span><span class=o>.</span><span class=p>,</span> <span class=n>Liu</span><span class=p>,</span> <span class=n>B</span><span class=o>.</span><span class=p>,</span> <span class=n>Azizzadenesheli</span><span class=p>,</span> <span class=n>K</span><span class=o>.</span><span class=p>,</span> <span class=n>Bhattacharya</span><span class=p>,</span> <span class=n>K</span><span class=o>.</span><span class=p>,</span> <span class=n>Stuart</span><span class=p>,</span> <span class=n>A</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Anandkumar</span><span class=p>,</span> <span class=n>A</span><span class=o>.</span> <span class=p>(</span><span class=mi>2023</span><span class=p>)</span><span class=o>.</span> <span class=p>[</span><span class=n>Neural</span> <span class=n>Operator</span><span class=p>:</span> <span class=n>Learning</span> <span class=n>Maps</span> <span class=n>Between</span> <span class=n>Function</span> <span class=n>Spaces</span> <span class=k>with</span> <span class=n>Applications</span> <span class=n>to</span> <span class=n>PDEs</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>2108.08481</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>Journal</span> <span class=n>of</span> <span class=n>Machine</span> <span class=n>Learning</span> <span class=n>Research</span><span class=o>*</span> <span class=mi>24</span><span class=p>,</span> <span class=mi>1</span><span class=err>–</span><span class=mf>97.</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Lanthaler</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span><span class=p>,</span> <span class=n>Mishra</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Karniadakis</span><span class=p>,</span> <span class=n>G</span><span class=o>.</span> <span class=n>E</span><span class=o>.</span> <span class=p>(</span><span class=mi>2022</span><span class=p>)</span><span class=o>.</span> <span class=p>[</span><span class=n>Error</span> <span class=n>estimates</span> <span class=k>for</span> <span class=n>DeepONets</span><span class=p>:</span> <span class=n>A</span> <span class=n>deep</span> <span class=n>learning</span> <span class=n>framework</span> <span class=ow>in</span> <span class=n>infinite</span> <span class=n>dimensions</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>2102.09618</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>Transactions</span> <span class=n>of</span> <span class=n>Mathematics</span> <span class=ow>and</span> <span class=n>Its</span> <span class=n>Applications</span><span class=o>*.</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Wang</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span><span class=p>,</span> <span class=n>Wang</span><span class=p>,</span> <span class=n>H</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Perdikaris</span><span class=p>,</span> <span class=n>P</span><span class=o>.</span> <span class=p>(</span><span class=mi>2021</span><span class=p>)</span><span class=o>.</span> <span class=p>[</span><span class=n>Learning</span> <span class=n>the</span> <span class=n>solution</span> <span class=n>operator</span> <span class=n>of</span> <span class=n>parametric</span> <span class=n>partial</span> <span class=n>differential</span> <span class=n>equations</span> <span class=k>with</span> <span class=n>physics</span><span class=o>-</span><span class=n>informed</span> <span class=n>DeepONets</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>www</span><span class=o>.</span><span class=n>science</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=n>doi</span><span class=o>/</span><span class=mf>10.1126</span><span class=o>/</span><span class=n>sciadv</span><span class=o>.</span><span class=n>abi8604</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>Science</span> <span class=n>Advances</span><span class=o>*</span> <span class=mi>7</span><span class=p>(</span><span class=mi>40</span><span class=p>)</span><span class=o>.</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Pathak</span><span class=p>,</span> <span class=n>J</span><span class=o>.</span><span class=p>,</span> <span class=n>Subramanian</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span><span class=p>,</span> <span class=n>Harrington</span><span class=p>,</span> <span class=n>P</span><span class=o>.</span><span class=p>,</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span> <span class=p>(</span><span class=mi>2022</span><span class=p>)</span><span class=o>.</span> <span class=p>[</span><span class=n>FourCastNet</span><span class=p>:</span> <span class=n>A</span> <span class=n>Global</span> <span class=n>Data</span><span class=o>-</span><span class=n>driven</span> <span class=n>High</span><span class=o>-</span><span class=n>resolution</span> <span class=n>Weather</span> <span class=n>Model</span> <span class=n>using</span> <span class=n>Adaptive</span> <span class=n>Fourier</span> <span class=n>Neural</span> <span class=n>Operators</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>2202.11214</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=p>[</span><span class=n>arXiv</span><span class=p>:</span><span class=mf>2202.11214</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>2202.11214</span><span class=p>)</span><span class=o>*.</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Bonev</span><span class=p>,</span> <span class=n>B</span><span class=o>.</span><span class=p>,</span> <span class=n>Kurth</span><span class=p>,</span> <span class=n>T</span><span class=o>.</span><span class=p>,</span> <span class=n>Hundt</span><span class=p>,</span> <span class=n>C</span><span class=o>.</span><span class=p>,</span> <span class=n>Pathak</span><span class=p>,</span> <span class=n>J</span><span class=o>.</span><span class=p>,</span> <span class=n>Baust</span><span class=p>,</span> <span class=n>M</span><span class=o>.</span><span class=p>,</span> <span class=n>Kashinath</span><span class=p>,</span> <span class=n>K</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Anandkumar</span><span class=p>,</span> <span class=n>A</span><span class=o>.</span> <span class=p>(</span><span class=mi>2023</span><span class=p>)</span><span class=o>.</span> <span class=p>[</span><span class=n>Spherical</span> <span class=n>Fourier</span> <span class=n>Neural</span> <span class=n>Operators</span><span class=p>:</span> <span class=n>Learning</span> <span class=n>Stable</span> <span class=n>Dynamics</span> <span class=n>on</span> <span class=n>the</span> <span class=n>Sphere</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>2306.03838</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>ICML</span> <span class=mi>2023</span><span class=o>*.</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Fanaskov</span><span class=p>,</span> <span class=n>V</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Oseledets</span><span class=p>,</span> <span class=n>I</span><span class=o>.</span> <span class=p>(</span><span class=mi>2022</span><span class=p>)</span><span class=o>.</span> <span class=p>[</span><span class=n>Spectral</span> <span class=n>Neural</span> <span class=n>Operators</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>2205.10573</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=p>[</span><span class=n>arXiv</span><span class=p>:</span><span class=mf>2205.10573</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>2205.10573</span><span class=p>)</span><span class=o>*.</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Brandstetter</span><span class=p>,</span> <span class=n>J</span><span class=o>.</span><span class=p>,</span> <span class=n>Worrall</span><span class=p>,</span> <span class=n>D</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Welling</span><span class=p>,</span> <span class=n>M</span><span class=o>.</span> <span class=p>(</span><span class=mi>2022</span><span class=p>)</span><span class=o>.</span> <span class=p>[</span><span class=n>Message</span> <span class=n>Passing</span> <span class=n>Neural</span> <span class=n>PDE</span> <span class=n>Solvers</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>2202.03376</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>ICLR</span> <span class=mi>2022</span><span class=o>*.</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Wen</span><span class=p>,</span> <span class=n>G</span><span class=o>.</span><span class=p>,</span> <span class=n>Li</span><span class=p>,</span> <span class=n>Z</span><span class=o>.</span><span class=p>,</span> <span class=n>Long</span><span class=p>,</span> <span class=n>Q</span><span class=o>.</span><span class=p>,</span> <span class=n>Azizzadenesheli</span><span class=p>,</span> <span class=n>K</span><span class=o>.</span><span class=p>,</span> <span class=n>Anandkumar</span><span class=p>,</span> <span class=n>A</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Benson</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span> <span class=n>M</span><span class=o>.</span> <span class=p>(</span><span class=mi>2022</span><span class=p>)</span><span class=o>.</span> <span class=p>[</span><span class=n>U</span><span class=o>-</span><span class=n>FNO</span><span class=p>:</span> <span class=n>An</span> <span class=n>enhanced</span> <span class=n>Fourier</span> <span class=n>neural</span> <span class=n>operator</span><span class=o>-</span><span class=n>based</span> <span class=n>deep</span><span class=o>-</span><span class=n>learning</span> <span class=n>model</span> <span class=k>for</span> <span class=n>multiphase</span> <span class=n>flow</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>2109.03697</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>Advances</span> <span class=ow>in</span> <span class=n>Water</span> <span class=n>Resources</span><span class=o>*.</span>
+</span></span></code></pre></td></tr></table></div></div></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E5%2581%258F%25E5%25BE%25AE%25E5%2588%2586%25E6%2596%25B9%25E7%25A8%258B%25E4%25B8%258E%25E6%259C%25BA%25E5%2599%25A8%25E5%25AD%25A6%25E4%25B9%25A0%25EF%25BC%2588%25E4%25BA%258C%25EF%25BC%2589%25EF%25BC%259A%25E7%25A5%259E%25E7%25BB%258F%25E7%25AE%2597%25E5%25AD%2590%25E7%2590%2586%25E8%25AE%25BA&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpde-ml%252F02-%2525E7%2525A5%25259E%2525E7%2525BB%25258F%2525E7%2525AE%252597%2525E5%2525AD%252590%2525E7%252590%252586%2525E8%2525AE%2525BA%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpde-ml%252F02-%2525E7%2525A5%25259E%2525E7%2525BB%25258F%2525E7%2525AE%252597%2525E5%2525AD%252590%2525E7%252590%252586%2525E8%2525AE%2525BA%252F&title=%25E5%2581%258F%25E5%25BE%25AE%25E5%2588%2586%25E6%2596%25B9%25E7%25A8%258B%25E4%25B8%258E%25E6%259C%25BA%25E5%2599%25A8%25E5%25AD%25A6%25E4%25B9%25A0%25EF%25BC%2588%25E4%25BA%258C%25EF%25BC%2589%25EF%25BC%259A%25E7%25A5%259E%25E7%25BB%258F%25E7%25AE%2597%25E5%25AD%2590%25E7%2590%2586%25E8%25AE%25BA" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/pde-ml/02-%E7%A5%9E%E7%BB%8F%E7%AE%97%E5%AD%90%E7%90%86%E8%AE%BA/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2024-05-16>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#为什么需要算子而不是更大的网络>为什么需要算子，而不是更大的网络</a><ul><li><a href=#pinn-的天花板>PINN 的天花板</a></li><li><a href=#算子学习的形式化>算子学习的形式化</a></li></ul></li><li><a href=#函数空间基础最低限度>函数空间基础（最低限度）</a><ul><li><a href=#banach-hilbert-sobolev各自的意义>Banach、 Hilbert、 Sobolev——各自的意义</a></li><li><a href=#为什么输入维度是无限>为什么输入维度是“无限”</a></li></ul></li><li><a href=#chenchen-定理算子可以是两层网络>Chen–Chen 定理：算子可以是两层网络</a></li><li><a href=#deeponet-branch-和-trunk-的工程实现>DeepONet： branch 和 trunk 的工程实现</a></li><li><a href=#fourier-神经算子>Fourier 神经算子</a><ul><li><a href=#为什么用谱方法>为什么用谱方法</a></li><li><a href=#fourier-层>Fourier 层</a></li><li><a href=#复杂度分析>复杂度分析</a></li></ul></li><li><a href=#分辨率不变性-64-上训-256-上测>分辨率不变性： 64 上训， 256 上测</a></li><li><a href=#三种攻-pde-的方法-pinn-fno-deeponet>三种攻 PDE 的方法： PINN、 FNO、 DeepONet</a></li><li><a href=#实现从零写一个-1d-fno>实现：从零写一个 1D FNO</a></li><li><a href=#理论到底保证了什么以及没保证什么>理论到底保证了什么（以及没保证什么）</a></li><li><a href=#边界失效模式与对策>边界、失效模式与对策</a></li><li><a href=#总结>总结</a></li><li><a href=#参考文献>参考文献</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/pde-ml/ class=series-name>PDE × 机器学习</a>
+<span class=sig-meta data-days-since=2024-05-16>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#为什么需要算子而不是更大的网络>为什么需要算子，而不是更大的网络</a><ul><li><a href=#pinn-的天花板>PINN 的天花板</a></li><li><a href=#算子学习的形式化>算子学习的形式化</a></li></ul></li><li><a href=#函数空间基础最低限度>函数空间基础（最低限度）</a><ul><li><a href=#banach-hilbert-sobolev各自的意义>Banach、 Hilbert、 Sobolev——各自的意义</a></li><li><a href=#为什么输入维度是无限>为什么输入维度是“无限”</a></li></ul></li><li><a href=#chenchen-定理算子可以是两层网络>Chen–Chen 定理：算子可以是两层网络</a></li><li><a href=#deeponet-branch-和-trunk-的工程实现>DeepONet： branch 和 trunk 的工程实现</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/pde-ml/ class=series-name>PDE × 机器学习</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/01-%E7%89%A9%E7%90%86%E4%BF%A1%E6%81%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/><span class=chapter-num>01</span>
 <span class=chapter-title>偏微分方程与机器学习（一）：物理信息神经网络</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>02</span>
 <span class=chapter-title>偏微分方程与机器学习（二）：神经算子理论</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/><span class=chapter-num>03</span>
@@ -448,5 +708,5 @@
 <span class=chapter-title>偏微分方程与机器学习（五）：辛几何与保结构网络</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/><span class=chapter-num>06</span>
 <span class=chapter-title>偏微分方程与机器学习（六）：连续归一化流与 Neural ODE</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/07-%E6%89%A9%E6%95%A3%E6%A8%A1%E5%9E%8B%E4%B8%8Escore-matching/><span class=chapter-num>07</span>
 <span class=chapter-title>偏微分方程与机器学习（七）：扩散模型与 Score Matching</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/><span class=chapter-num>08</span>
-<span class=chapter-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>34 min</strong></div><div class=row><span>字数</span><strong>8113</strong></div><div class=row><span>写于</span><strong>May 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>38 min</strong></div><div class=row><span>字数</span><strong>9419</strong></div><div class=row><span>写于</span><strong>May 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

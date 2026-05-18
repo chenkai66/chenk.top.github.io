@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/probability-statistics/>概率论与数理统计</a>
 · 第 7 篇</div><h1>概率与统计（七）：假设检验——p 值、置信区间及其全部陷阱</h1><p class=deck>对假设检验、p 值、I 类/II 类错误、置信区间及多重检验校正的严谨讲解——包括连资深实践者都会陷入的常见误读，并附 Python 实现代码。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2024-08-28>August 28, 2024</time> · 20 分钟 · 4675 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/probability/ class=tag>#Probability</a><a href=/zh/tags/statistics/ class=tag>#Statistics</a><a href=/zh/tags/hypothesis-testing/ class=tag>#Hypothesis Testing</a><a href=/zh/tags/confidence-intervals/ class=tag>#Confidence Intervals</a><a href=/zh/tags/a/b-testing/ class=tag>#A/B Testing</a></div><a class="pill pill-outline" href=/en/probability-statistics/07-hypothesis-testing/>Read in English →</a></div></header><div class=prose><p>你已经估计了一个参数，也量化了偏差-方差的权衡。现在，一个驱动绝大多数应用统计学的核心问题浮出水面：“这个效应是真实的，还是仅仅是噪声？”</p><p>假设检验正是回答这一问题的形式化框架，但它同时也是统计学中最常被误解的部分。大量论文专门探讨研究者如何误读 p 值、显著性阈值为何是任意设定的，以及多重检验问题如何推高假阳性发现率。对理论原理与常见陷阱的双重理解，对任何从事数据分析工作的人来说都至关重要。</p><hr><h2 id=框架 class=heading-anchor>框架<a href=#%e6%a1%86%e6%9e%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-rejection-region.png alt=拒绝域 loading=lazy decoding=async class=content-image></figure></p><h3 id=设定假设 class=heading-anchor>设定假设<a href=#%e8%ae%be%e5%ae%9a%e5%81%87%e8%ae%be class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>假设检验始于两个相互竞争的主张：</p><ul><li><strong>零假设</strong> <span class=math-inline>$H_0$</span>
+<span class=meta-line><time datetime=2024-08-28>August 28, 2024</time> · 22 分钟 · 5111 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/probability/ class=tag>#Probability</a><a href=/zh/tags/statistics/ class=tag>#Statistics</a><a href=/zh/tags/hypothesis-testing/ class=tag>#Hypothesis Testing</a><a href=/zh/tags/confidence-intervals/ class=tag>#Confidence Intervals</a><a href=/zh/tags/a/b-testing/ class=tag>#A/B Testing</a></div><a class="pill pill-outline" href=/en/probability-statistics/07-hypothesis-testing/>Read in English →</a></div></header><div class=prose><p>你已经估计了一个参数，也量化了偏差-方差的权衡。现在，一个驱动绝大多数应用统计学的核心问题浮出水面：“这个效应是真实的，还是仅仅是噪声？”</p><p>假设检验正是回答这一问题的形式化框架，但它同时也是统计学中最常被误解的部分。大量论文专门探讨研究者如何误读 p 值、显著性阈值为何是任意设定的，以及多重检验问题如何推高假阳性发现率。对理论原理与常见陷阱的双重理解，对任何从事数据分析工作的人来说都至关重要。</p><hr><h2 id=框架 class=heading-anchor>框架<a href=#%e6%a1%86%e6%9e%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-rejection-region.png alt=拒绝域 loading=lazy decoding=async class=content-image></figure></p><h3 id=设定假设 class=heading-anchor>设定假设<a href=#%e8%ae%be%e5%ae%9a%e5%81%87%e8%ae%be class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>假设检验始于两个相互竞争的主张：</p><ul><li><strong>零假设</strong> <span class=math-inline>$H_0$</span>
 ：即“默认”或“并无特殊事件发生”的主张，通常代表现状。</li><li><strong>备择假设</strong> <span class=math-inline>$H_1$</span>
 （或 <span class=math-inline>$H_a$</span>
 ）：我们希望证实为真的主张。</li></ul><p><strong>示例：</strong></p><ul><li>药物试验：<span class=math-inline>$H_0: \mu_{\text{drug}} = \mu_{\text{placebo}}$</span>
@@ -196,40 +196,25 @@ vs <span class=math-inline>$H_1: \mu \neq 10.0$</span></li></ul><p>备择假设�
 </span><span class=lnt>76
 </span><span class=lnt>77
 </span><span class=lnt>78
-</span><span class=lnt>79
-</span><span class=lnt>80
-</span><span class=lnt>81
-</span><span class=lnt>82
-</span><span class=lnt>83
-</span><span class=lnt>84
-</span><span class=lnt>85
-</span><span class=lnt>86
-</span><span class=lnt>87
-</span><span class=lnt>88
-</span><span class=lnt>89
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
 </span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>scipy</span> <span class=kn>import</span> <span class=n>stats</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>matplotlib.pyplot</span> <span class=k>as</span> <span class=nn>plt</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>seed</span><span class=p>(</span><span class=mi>42</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Example 1: One-sample t-test</span>
 </span></span><span class=line><span class=cl><span class=n>data</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=mf>10.2</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span> <span class=n>size</span><span class=o>=</span><span class=mi>25</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>t_stat</span><span class=p>,</span> <span class=n>p_value</span> <span class=o>=</span> <span class=n>stats</span><span class=o>.</span><span class=n>ttest_1samp</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>popmean</span><span class=o>=</span><span class=mf>10.0</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;One-sample t-test: t = </span><span class=si>{</span><span class=n>t_stat</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>, p = </span><span class=si>{</span><span class=n>p_value</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Example 2: Two-sample t-test (Welch&#39;s)</span>
 </span></span><span class=line><span class=cl><span class=n>group_a</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=mf>5.0</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>size</span><span class=o>=</span><span class=mi>30</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>group_b</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=mf>5.5</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mf>1.2</span><span class=p>,</span> <span class=n>size</span><span class=o>=</span><span class=mi>35</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>t_stat</span><span class=p>,</span> <span class=n>p_value</span> <span class=o>=</span> <span class=n>stats</span><span class=o>.</span><span class=n>ttest_ind</span><span class=p>(</span><span class=n>group_a</span><span class=p>,</span> <span class=n>group_b</span><span class=p>,</span> <span class=n>equal_var</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Two-sample t-test: t = </span><span class=si>{</span><span class=n>t_stat</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>, p = </span><span class=si>{</span><span class=n>p_value</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Example 3: Chi-squared test</span>
 </span></span><span class=line><span class=cl><span class=n>observed</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([[</span><span class=mi>30</span><span class=p>,</span> <span class=mi>10</span><span class=p>],</span> <span class=p>[</span><span class=mi>15</span><span class=p>,</span> <span class=mi>25</span><span class=p>]])</span>
 </span></span><span class=line><span class=cl><span class=n>chi2</span><span class=p>,</span> <span class=n>p_value</span><span class=p>,</span> <span class=n>dof</span><span class=p>,</span> <span class=n>expected</span> <span class=o>=</span> <span class=n>stats</span><span class=o>.</span><span class=n>chi2_contingency</span><span class=p>(</span><span class=n>observed</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Chi-squared test: chi2 = </span><span class=si>{</span><span class=n>chi2</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>, p = </span><span class=si>{</span><span class=n>p_value</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>, dof = </span><span class=si>{</span><span class=n>dof</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Example 4: A/B test</span>
 </span></span><span class=line><span class=cl><span class=n>n_A</span><span class=p>,</span> <span class=n>n_B</span> <span class=o>=</span> <span class=mi>5000</span><span class=p>,</span> <span class=mi>5000</span>
 </span></span><span class=line><span class=cl><span class=n>conversions_A</span><span class=p>,</span> <span class=n>conversions_B</span> <span class=o>=</span> <span class=mi>500</span><span class=p>,</span> <span class=mi>560</span>
 </span></span><span class=line><span class=cl><span class=n>p_A</span> <span class=o>=</span> <span class=n>conversions_A</span> <span class=o>/</span> <span class=n>n_A</span>
@@ -242,10 +227,8 @@ vs <span class=math-inline>$H_1: \mu \neq 10.0$</span></li></ul><p>备择假设�
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;  Lift: </span><span class=si>{</span><span class=n>p_B</span> <span class=o>-</span> <span class=n>p_A</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2> (</span><span class=si>{</span><span class=p>(</span><span class=n>p_B</span> <span class=o>-</span> <span class=n>p_A</span><span class=p>)</span><span class=o>/</span><span class=n>p_A</span><span class=o>*</span><span class=mi>100</span><span class=si>:</span><span class=s2>.1f</span><span class=si>}</span><span class=s2>%)&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;  95% CI for lift: [</span><span class=si>{</span><span class=n>p_B</span><span class=o>-</span><span class=n>p_A</span><span class=o>-</span><span class=mf>1.96</span><span class=o>*</span><span class=n>se</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>, </span><span class=si>{</span><span class=n>p_B</span><span class=o>-</span><span class=n>p_A</span><span class=o>+</span><span class=mf>1.96</span><span class=o>*</span><span class=n>se</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>]&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Visualization: p-value under null hypothesis</span>
 </span></span><span class=line><span class=cl><span class=n>fig</span><span class=p>,</span> <span class=n>axes</span> <span class=o>=</span> <span class=n>plt</span><span class=o>.</span><span class=n>subplots</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=n>figsize</span><span class=o>=</span><span class=p>(</span><span class=mi>16</span><span class=p>,</span> <span class=mi>5</span><span class=p>))</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Panel 1: p-value illustration</span>
 </span></span><span class=line><span class=cl><span class=n>ax</span> <span class=o>=</span> <span class=n>axes</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
 </span></span><span class=line><span class=cl><span class=n>x</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=o>-</span><span class=mi>4</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=mi>300</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>ax</span><span class=o>.</span><span class=n>plot</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>stats</span><span class=o>.</span><span class=n>norm</span><span class=o>.</span><span class=n>pdf</span><span class=p>(</span><span class=n>x</span><span class=p>),</span> <span class=s1>&#39;b-&#39;</span><span class=p>,</span> <span class=n>linewidth</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span>
@@ -261,16 +244,12 @@ vs <span class=math-inline>$H_1: \mu \neq 10.0$</span></li></ul><p>备择假设�
 </span></span><span class=line><span class=cl><span class=n>ax</span><span class=o>.</span><span class=n>set_ylabel</span><span class=p>(</span><span class=s1>&#39;Density under $H_0$&#39;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>ax</span><span class=o>.</span><span class=n>legend</span><span class=p>(</span><span class=n>fontsize</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Panel 2: Power illustration</span>
 </span></span><span class=line><span class=cl><span class=n>ax</span> <span class=o>=</span> <span class=n>axes</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span>
 </span></span><span class=line><span class=cl><span class=n>x</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=o>-</span><span class=mi>4</span><span class=p>,</span> <span class=mi>6</span><span class=p>,</span> <span class=mi>300</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=c1># Null distribution</span>
 </span></span><span class=line><span class=cl><span class=n>ax</span><span class=o>.</span><span class=n>plot</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>stats</span><span class=o>.</span><span class=n>norm</span><span class=o>.</span><span class=n>pdf</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=s1>&#39;b-&#39;</span><span class=p>,</span> <span class=n>linewidth</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>label</span><span class=o>=</span><span class=s1>&#39;$H_0$: $</span><span class=se>\\</span><span class=s1>mu = 0$&#39;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=c1># Alternative distribution</span>
 </span></span><span class=line><span class=cl><span class=n>delta</span> <span class=o>=</span> <span class=mf>2.0</span>
 </span></span><span class=line><span class=cl><span class=n>ax</span><span class=o>.</span><span class=n>plot</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>stats</span><span class=o>.</span><span class=n>norm</span><span class=o>.</span><span class=n>pdf</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>delta</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=s1>&#39;r-&#39;</span><span class=p>,</span> <span class=n>linewidth</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span>
 </span></span><span class=line><span class=cl>        <span class=n>label</span><span class=o>=</span><span class=sa>f</span><span class=s1>&#39;$H_1$: $</span><span class=se>\\</span><span class=s1>mu = </span><span class=si>{</span><span class=n>delta</span><span class=si>}</span><span class=s1>$&#39;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=c1># Critical value</span>
 </span></span><span class=line><span class=cl><span class=n>z_crit</span> <span class=o>=</span> <span class=mf>1.645</span>  <span class=c1># one-sided alpha = 0.05</span>
 </span></span><span class=line><span class=cl><span class=n>ax</span><span class=o>.</span><span class=n>axvline</span><span class=p>(</span><span class=n>z_crit</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=s1>&#39;gray&#39;</span><span class=p>,</span> <span class=n>linestyle</span><span class=o>=</span><span class=s1>&#39;--&#39;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>ax</span><span class=o>.</span><span class=n>fill_between</span><span class=p>(</span><span class=n>x</span><span class=p>[</span><span class=n>x</span> <span class=o>&gt;=</span> <span class=n>z_crit</span><span class=p>],</span> <span class=n>stats</span><span class=o>.</span><span class=n>norm</span><span class=o>.</span><span class=n>pdf</span><span class=p>(</span><span class=n>x</span><span class=p>[</span><span class=n>x</span> <span class=o>&gt;=</span> <span class=n>z_crit</span><span class=p>],</span> <span class=n>delta</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span>
@@ -281,7 +260,6 @@ vs <span class=math-inline>$H_1: \mu \neq 10.0$</span></li></ul><p>备择假设�
 </span></span><span class=line><span class=cl><span class=n>ax</span><span class=o>.</span><span class=n>set_xlabel</span><span class=p>(</span><span class=s1>&#39;Test statistic&#39;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>ax</span><span class=o>.</span><span class=n>legend</span><span class=p>(</span><span class=n>fontsize</span><span class=o>=</span><span class=mi>9</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Panel 3: Multiple testing</span>
 </span></span><span class=line><span class=cl><span class=n>ax</span> <span class=o>=</span> <span class=n>axes</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span>
 </span></span><span class=line><span class=cl><span class=n>m_tests</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>101</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>fwer</span> <span class=o>=</span> <span class=mi>1</span> <span class=o>-</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=mf>0.05</span><span class=p>)</span><span class=o>**</span><span class=n>m_tests</span>
@@ -296,61 +274,167 @@ vs <span class=math-inline>$H_1: \mu \neq 10.0$</span></li></ul><p>备择假设�
 </span></span><span class=line><span class=cl><span class=n>plt</span><span class=o>.</span><span class=n>tight_layout</span><span class=p>()</span>
 </span></span><span class=line><span class=cl><span class=n>plt</span><span class=o>.</span><span class=n>savefig</span><span class=p>(</span><span class=s1>&#39;hypothesis_testing.png&#39;</span><span class=p>,</span> <span class=n>dpi</span><span class=o>=</span><span class=mi>150</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>plt</span><span class=o>.</span><span class=n>show</span><span class=p>()</span>
-</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span><span class=lnt>38
-</span><span class=lnt>39
-</span><span class=lnt>40
-</span><span class=lnt>41
-</span><span class=lnt>42
-</span><span class=lnt>43
-</span><span class=lnt>44
-</span><span class=lnt>45
-</span><span class=lnt>46
-</span><span class=lnt>47
-</span><span class=lnt>48
-</span><span class=lnt>49
-</span><span class=lnt>50
-</span><span class=lnt>51
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Demonstrate Benjamini-Hochberg FDR control</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>scipy.stats</span> <span class=kn>import</span> <span class=n>false_discovery_control</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span><span class=lnt>132
+</span><span class=lnt>133
+</span><span class=lnt>134
+</span><span class=lnt>135
+</span><span class=lnt>136
+</span><span class=lnt>137
+</span><span class=lnt>138
+</span><span class=lnt>139
+</span><span class=lnt>140
+</span><span class=lnt>141
+</span><span class=lnt>142
+</span><span class=lnt>143
+</span><span class=lnt>144
+</span><span class=lnt>145
+</span><span class=lnt>146
+</span><span class=lnt>147
+</span><span class=lnt>148
+</span><span class=lnt>149
+</span><span class=lnt>150
+</span><span class=lnt>151
+</span><span class=lnt>152
+</span><span class=lnt>153
+</span><span class=lnt>154
+</span><span class=lnt>155
+</span><span class=lnt>156
+</span><span class=lnt>157
+</span><span class=lnt>158
+</span><span class=lnt>159
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>scipy.stats</span> <span class=kn>import</span> <span class=n>false_discovery_control</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Simulate: 100 tests, 10 true effects (mu=3), 90 null (mu=0)</span>
 </span></span><span class=line><span class=cl><span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>seed</span><span class=p>(</span><span class=mi>42</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>n_tests</span> <span class=o>=</span> <span class=mi>100</span>
 </span></span><span class=line><span class=cl><span class=n>n_true_effects</span> <span class=o>=</span> <span class=mi>10</span>
@@ -372,14 +456,11 @@ vs <span class=math-inline>$H_1: \mu \neq 10.0$</span></li></ul><p>备择假设�
 </span></span><span class=line><span class=cl><span class=n>p_values</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>p_values</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>truth</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>truth</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Bonferroni</span>
 </span></span><span class=line><span class=cl><span class=n>bonferroni_reject</span> <span class=o>=</span> <span class=n>p_values</span> <span class=o>&lt;</span> <span class=mf>0.05</span> <span class=o>/</span> <span class=n>n_tests</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Benjamini-Hochberg</span>
 </span></span><span class=line><span class=cl><span class=n>sorted_idx</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>argsort</span><span class=p>(</span><span class=n>p_values</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>bh_threshold</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>n_tests</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>/</span> <span class=n>n_tests</span> <span class=o>*</span> <span class=mf>0.05</span>
 </span></span><span class=line><span class=cl><span class=n>bh_reject_sorted</span> <span class=o>=</span> <span class=n>p_values</span><span class=p>[</span><span class=n>sorted_idx</span><span class=p>]</span> <span class=o>&lt;=</span> <span class=n>bh_threshold</span>
-</span></span><span class=line><span class=cl><span class=c1># Find largest k where p_(k) &lt;= k/m * alpha</span>
 </span></span><span class=line><span class=cl><span class=k>if</span> <span class=n>bh_reject_sorted</span><span class=o>.</span><span class=n>any</span><span class=p>():</span>
 </span></span><span class=line><span class=cl>    <span class=n>k</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>max</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>where</span><span class=p>(</span><span class=n>bh_reject_sorted</span><span class=p>)[</span><span class=mi>0</span><span class=p>])</span> <span class=o>+</span> <span class=mi>1</span>
 </span></span><span class=line><span class=cl>    <span class=n>bh_reject</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>n_tests</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=nb>bool</span><span class=p>)</span>
@@ -398,49 +479,64 @@ vs <span class=math-inline>$H_1: \mu \neq 10.0$</span></li></ul><p>备择假设�
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=s1>&#39;Benjamini-Hochberg&#39;</span><span class=si>:</span><span class=s2>&lt;25</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>bh_reject</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span><span class=si>:</span><span class=s2>&gt;10</span><span class=si>}</span><span class=s2> &#34;</span>
 </span></span><span class=line><span class=cl>      <span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=p>(</span><span class=n>bh_reject</span> <span class=o>&amp;</span> <span class=n>truth</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span><span class=si>:</span><span class=s2>&gt;10</span><span class=si>}</span><span class=s2> &#34;</span>
 </span></span><span class=line><span class=cl>      <span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=p>(</span><span class=n>bh_reject</span> <span class=o>&amp;</span> <span class=o>~</span><span class=n>truth</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span><span class=si>:</span><span class=s2>&gt;10</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>输出通常显示：未校正时，约 5–6 个假阳性混入 90 个零假设中。Bonferroni 消除了所有假阳性，但可能遗漏部分真实效应。Benjamini-Hochberg 则在控制假发现的同时捕获了大部分真实效应。这体现了 FDR 控制相比 FWER 控制的功效优势。</p><h2 id=效应量-p-值无法告诉你的信息 class=heading-anchor>效应量： p 值无法告诉你的信息<a href=#%e6%95%88%e5%ba%94%e9%87%8f-p-%e5%80%bc%e6%97%a0%e6%b3%95%e5%91%8a%e8%af%89%e4%bd%a0%e7%9a%84%e4%bf%a1%e6%81%af class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/07-hypothesis-testing-courtroom-trial-null-hypothesis-on-trial.jpg alt=假设检验法庭审判，零假设受审 loading=lazy decoding=async class=content-image></figure></p><p>p 值仅说明效应是否在统计上可与零区分。它<strong>无法</strong>告诉你效应有多大，或是否具有实际意义。</p><h3 id=cohens-d class=heading-anchor>Cohen&rsquo;s d<a href=#cohens-d class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$d = \frac{\bar{X}_1 - \bar{X}_2}{S_p}$$</span><p>其中 <span class=math-inline>$S_p$</span>
-是合并标准差。这是一个<strong>标准化效应量</strong>——以标准差为单位衡量差异。</p><div class=table-wrap><table><thead><tr><th><span class=math-inline>$d$</span></th><th>解释</th></tr></thead><tbody><tr><td>0.2</td><td>小效应</td></tr><tr><td>0.5</td><td>中等效应</td></tr><tr><td>0.8</td><td>大效应</td></tr></tbody></table></div><h3 id=为何效应量至关重要 class=heading-anchor>为何效应量至关重要<a href=#%e4%b8%ba%e4%bd%95%e6%95%88%e5%ba%94%e9%87%8f%e8%87%b3%e5%85%b3%e9%87%8d%e8%a6%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>当每组 <span class=math-inline>$n = 1{,}000{,}000$</span>
-时，你可在 <span class=math-inline>$p &lt; 0.001$</span>
-水平下检测到 <span class=math-inline>$d = 0.01$</span>
-。该效应“高度显著”，但实际毫无意义——0.01 个标准差的差异对任何个体而言都不可察觉。</p><p>应对之策：<strong>始终报告效应量的置信区间，而非仅报告 p 值。</strong> 均值差异的置信区间既可判断效应是否显著（CI 是否排除零？），也能揭示其可能的实际大小。</p><h2 id=neyman-pearson-引理 class=heading-anchor>Neyman-Pearson 引理<a href=#neyman-pearson-%e5%bc%95%e7%90%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$\Lambda(\mathbf{x}) = \frac{L(\theta_1; \mathbf{x})}{L(\theta_0; \mathbf{x})} > c$$</span><p>其中 <span class=math-inline>$c$</span>
-被选定为使 <span class=math-inline>$P(\Lambda > c \mid H_0) = \alpha$</span>
-。</p><p><strong>似然比</strong> <span class=math-inline>$\Lambda$</span>
-是最优检验统计量：在相同显著性水平下，没有任何其他检验能获得更高功效。这一理论结果为参数统计中广泛使用的似然比检验提供了正当性依据。</p><h3 id=广义似然比检验 class=heading-anchor>广义似然比检验<a href=#%e5%b9%bf%e4%b9%89%e4%bc%bc%e7%84%b6%e6%af%94%e6%a3%80%e9%aa%8c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\Lambda = \frac{\max_{\theta \in \Theta_0} L(\theta)}{\max_{\theta \in \Theta} L(\theta)} = \frac{L(\hat{\theta}_0)}{L(\hat{\theta}_{\text{MLE}})}.$$</span>
-<span class=math-block>$$-2 \ln \Lambda \xrightarrow{d} \chi^2_r$$</span><p>其中 <span class=math-inline>$r = \dim(\Theta) - \dim(\Theta_0)$</span>
-是自由参数数量之差。</p><p>此即<strong>Wilks 定理</strong>，也是嵌套模型比较的基础——从检验回归系数是否为零，到比较分层贝叶斯模型。</p><h2 id=置换检验免分布推断 class=heading-anchor>置换检验：免分布推断<a href=#%e7%bd%ae%e6%8d%a2%e6%a3%80%e9%aa%8c%e5%85%8d%e5%88%86%e5%b8%83%e6%8e%a8%e6%96%ad class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>当分布假设（正态性、方差齐性）存疑时，<strong>置换检验</strong>提供了一种精确替代方案。</p><p><strong>思想：</strong> 在 <span class=math-inline>$H_0$</span>
-（组间无差异）下，组标签是任意的。多次随机置换标签，每次重新计算检验统计量，并观察观测统计量在该置换分布中的位置。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>输出通常显示</span><span class=err>：</span><span class=n>未校正时</span><span class=err>，</span><span class=n>约</span> <span class=mi>5</span><span class=err>–</span><span class=mi>6</span> <span class=n>个假阳性混入</span> <span class=mi>90</span> <span class=n>个零假设中</span><span class=err>。</span><span class=n>Bonferroni</span> <span class=n>消除了所有假阳性</span><span class=err>，</span><span class=n>但可能遗漏部分真实效应</span><span class=err>。</span><span class=n>Benjamini</span><span class=o>-</span><span class=n>Hochberg</span> <span class=n>则在控制假发现的同时捕获了大部分真实效应</span><span class=err>。</span><span class=n>这体现了</span> <span class=n>FDR</span> <span class=n>控制相比</span> <span class=n>FWER</span> <span class=n>控制的功效优势</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 效应量： p 值无法告诉你的信息</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>假设检验法庭审判</span><span class=err>，</span><span class=n>零假设受审</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>covers</span><span class=o>/</span><span class=n>articles</span><span class=o>/</span><span class=n>probability</span><span class=o>-</span><span class=n>statistics</span><span class=o>/</span><span class=mi>07</span><span class=o>-</span><span class=n>hypothesis</span><span class=o>-</span><span class=n>testing</span><span class=o>-</span><span class=n>courtroom</span><span class=o>-</span><span class=n>trial</span><span class=o>-</span><span class=n>null</span><span class=o>-</span><span class=n>hypothesis</span><span class=o>-</span><span class=n>on</span><span class=o>-</span><span class=n>trial</span><span class=o>.</span><span class=n>jpg</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>p</span> <span class=n>值仅说明效应是否在统计上可与零区分</span><span class=err>。</span><span class=n>它</span><span class=o>**</span><span class=n>无法</span><span class=o>**</span><span class=n>告诉你效应有多大</span><span class=err>，</span><span class=n>或是否具有实际意义</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### Cohen&#39;s d</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>用于比较两组均值</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span><span class=n>d</span> <span class=o>=</span> \<span class=n>frac</span><span class=p>{</span>\<span class=n>bar</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_1</span> <span class=o>-</span> \<span class=n>bar</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_2</span><span class=p>}{</span><span class=n>S_p</span><span class=p>}</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span><span class=n>S_p</span><span class=err>$</span> <span class=n>是合并标准差</span><span class=err>。</span><span class=n>这是一个</span><span class=o>**</span><span class=n>标准化效应量</span><span class=o>**</span><span class=err>——</span><span class=n>以标准差为单位衡量差异</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=err>$</span><span class=n>d</span><span class=err>$</span> <span class=o>|</span> <span class=n>解释</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|---|---|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=mf>0.2</span> <span class=o>|</span> <span class=n>小效应</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=mf>0.5</span> <span class=o>|</span> <span class=n>中等效应</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=mf>0.8</span> <span class=o>|</span> <span class=n>大效应</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 为何效应量至关重要</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>当每组</span> <span class=err>$</span><span class=n>n</span> <span class=o>=</span> <span class=mi>1</span><span class=p>{,}</span><span class=mi>000</span><span class=p>{,}</span><span class=mi>000</span><span class=err>$</span> <span class=n>时</span><span class=err>，</span><span class=n>你可在</span> <span class=err>$</span><span class=n>p</span> <span class=o>&lt;</span> <span class=mf>0.001</span><span class=err>$</span> <span class=n>水平下检测到</span> <span class=err>$</span><span class=n>d</span> <span class=o>=</span> <span class=mf>0.01</span><span class=err>$。</span><span class=n>该效应</span><span class=err>“</span><span class=n>高度显著</span><span class=err>”，</span><span class=n>但实际毫无意义</span><span class=err>——</span><span class=mf>0.01</span> <span class=n>个标准差的差异对任何个体而言都不可察觉</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>应对之策</span><span class=err>：</span><span class=o>**</span><span class=n>始终报告效应量的置信区间</span><span class=err>，</span><span class=n>而非仅报告</span> <span class=n>p</span> <span class=n>值</span><span class=err>。</span><span class=o>**</span> <span class=n>均值差异的置信区间既可判断效应是否显著</span><span class=err>（</span><span class=n>CI</span> <span class=n>是否排除零</span><span class=err>？），</span><span class=n>也能揭示其可能的实际大小</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## Neyman-Pearson 引理</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>定理</span><span class=err>（</span><span class=n>Neyman</span><span class=o>-</span><span class=n>Pearson</span><span class=err>）。</span><span class=o>**</span> <span class=n>对于检验</span> <span class=err>$</span><span class=n>H_0</span><span class=p>:</span> \<span class=n>theta</span> <span class=o>=</span> \<span class=n>theta_0</span><span class=err>$</span> <span class=n>vs</span> <span class=err>$</span><span class=n>H_1</span><span class=p>:</span> \<span class=n>theta</span> <span class=o>=</span> \<span class=n>theta_1</span><span class=err>$（</span><span class=n>简单零假设</span> <span class=n>vs</span> <span class=n>简单备择假设</span><span class=err>），</span><span class=n>在水平</span> <span class=err>$</span>\<span class=n>alpha</span><span class=err>$</span> <span class=n>下最具功效的检验在如下条件下拒绝</span> <span class=err>$</span><span class=n>H_0</span><span class=err>$：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>Lambda</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})</span> <span class=o>=</span> \<span class=n>frac</span><span class=p>{</span><span class=n>L</span><span class=p>(</span>\<span class=n>theta_1</span><span class=p>;</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})}{</span><span class=n>L</span><span class=p>(</span>\<span class=n>theta_0</span><span class=p>;</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})}</span> <span class=o>&gt;</span> <span class=n>c</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span><span class=n>c</span><span class=err>$</span> <span class=n>被选定为使</span> <span class=err>$</span><span class=n>P</span><span class=p>(</span>\<span class=n>Lambda</span> <span class=o>&gt;</span> <span class=n>c</span> \<span class=n>mid</span> <span class=n>H_0</span><span class=p>)</span> <span class=o>=</span> \<span class=n>alpha</span><span class=err>$。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>似然比</span><span class=o>**</span> <span class=err>$</span>\<span class=n>Lambda</span><span class=err>$</span> <span class=n>是最优检验统计量</span><span class=err>：</span><span class=n>在相同显著性水平下</span><span class=err>，</span><span class=n>没有任何其他检验能获得更高功效</span><span class=err>。</span><span class=n>这一理论结果为参数统计中广泛使用的似然比检验提供了正当性依据</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 广义似然比检验</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>对于复合假设</span><span class=err>（$</span><span class=n>H_0</span><span class=p>:</span> \<span class=n>theta</span> \<span class=ow>in</span> \<span class=n>Theta_0</span><span class=err>$</span> <span class=n>vs</span> <span class=err>$</span><span class=n>H_1</span><span class=p>:</span> \<span class=n>theta</span> \<span class=n>notin</span> \<span class=n>Theta_0</span><span class=err>$）：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>Lambda</span> <span class=o>=</span> \<span class=n>frac</span><span class=p>{</span>\<span class=n>max_</span><span class=p>{</span>\<span class=n>theta</span> \<span class=ow>in</span> \<span class=n>Theta_0</span><span class=p>}</span> <span class=n>L</span><span class=p>(</span>\<span class=n>theta</span><span class=p>)}{</span>\<span class=n>max_</span><span class=p>{</span>\<span class=n>theta</span> \<span class=ow>in</span> \<span class=n>Theta</span><span class=p>}</span> <span class=n>L</span><span class=p>(</span>\<span class=n>theta</span><span class=p>)}</span> <span class=o>=</span> \<span class=n>frac</span><span class=p>{</span><span class=n>L</span><span class=p>(</span>\<span class=n>hat</span><span class=p>{</span>\<span class=n>theta</span><span class=p>}</span><span class=n>_0</span><span class=p>)}{</span><span class=n>L</span><span class=p>(</span>\<span class=n>hat</span><span class=p>{</span>\<span class=n>theta</span><span class=p>}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>MLE</span><span class=p>}})}</span><span class=o>.</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>在</span> <span class=err>$</span><span class=n>H_0</span><span class=err>$</span> <span class=n>及正则性条件下</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span><span class=o>-</span><span class=mi>2</span> \<span class=n>ln</span> \<span class=n>Lambda</span> \<span class=n>xrightarrow</span><span class=p>{</span><span class=n>d</span><span class=p>}</span> \<span class=n>chi</span><span class=o>^</span><span class=mi>2</span><span class=n>_r</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span><span class=n>r</span> <span class=o>=</span> \<span class=n>dim</span><span class=p>(</span>\<span class=n>Theta</span><span class=p>)</span> <span class=o>-</span> \<span class=n>dim</span><span class=p>(</span>\<span class=n>Theta_0</span><span class=p>)</span><span class=err>$</span> <span class=n>是自由参数数量之差</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>此即</span><span class=o>**</span><span class=n>Wilks</span> <span class=n>定理</span><span class=o>**</span><span class=err>，</span><span class=n>也是嵌套模型比较的基础</span><span class=err>——</span><span class=n>从检验回归系数是否为零</span><span class=err>，</span><span class=n>到比较分层贝叶斯模型</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 置换检验：免分布推断</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>当分布假设</span><span class=err>（</span><span class=n>正态性</span><span class=err>、</span><span class=n>方差齐性</span><span class=err>）</span><span class=n>存疑时</span><span class=err>，</span><span class=o>**</span><span class=n>置换检验</span><span class=o>**</span><span class=n>提供了一种精确替代方案</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>思想</span><span class=err>：</span><span class=o>**</span> <span class=n>在</span> <span class=err>$</span><span class=n>H_0</span><span class=err>$（</span><span class=n>组间无差异</span><span class=err>）</span><span class=n>下</span><span class=err>，</span><span class=n>组标签是任意的</span><span class=err>。</span><span class=n>多次随机置换标签</span><span class=err>，</span><span class=n>每次重新计算检验统计量</span><span class=err>，</span><span class=n>并观察观测统计量在该置换分布中的位置</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
 </span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>scipy</span> <span class=kn>import</span> <span class=n>stats</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>seed</span><span class=p>(</span><span class=mi>42</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Observed data</span>
 </span></span><span class=line><span class=cl><span class=n>group_a</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mf>5.1</span><span class=p>,</span> <span class=mf>4.8</span><span class=p>,</span> <span class=mf>5.3</span><span class=p>,</span> <span class=mf>4.9</span><span class=p>,</span> <span class=mf>5.0</span><span class=p>,</span> <span class=mf>5.2</span><span class=p>,</span> <span class=mf>5.4</span><span class=p>,</span> <span class=mf>4.7</span><span class=p>])</span>
 </span></span><span class=line><span class=cl><span class=n>group_b</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mf>5.5</span><span class=p>,</span> <span class=mf>5.8</span><span class=p>,</span> <span class=mf>5.3</span><span class=p>,</span> <span class=mf>5.7</span><span class=p>,</span> <span class=mf>5.9</span><span class=p>,</span> <span class=mf>5.6</span><span class=p>,</span> <span class=mf>5.4</span><span class=p>,</span> <span class=mf>5.8</span><span class=p>])</span>
 </span></span><span class=line><span class=cl>
@@ -449,7 +545,6 @@ vs <span class=math-inline>$H_1: \mu \neq 10.0$</span></li></ul><p>备择假设�
 </span></span><span class=line><span class=cl><span class=n>n_a</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>group_a</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>n_perms</span> <span class=o>=</span> <span class=mi>100_000</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Permutation test</span>
 </span></span><span class=line><span class=cl><span class=n>perm_diffs</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>n_perms</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_perms</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>shuffle</span><span class=p>(</span><span class=n>combined</span><span class=p>)</span>
@@ -459,20 +554,49 @@ vs <span class=math-inline>$H_1: \mu \neq 10.0$</span></li></ul><p>备择假设�
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Observed difference: </span><span class=si>{</span><span class=n>observed_diff</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Permutation p-value: </span><span class=si>{</span><span class=n>p_value</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># Compare with t-test</span>
 </span></span><span class=line><span class=cl><span class=n>t_stat</span><span class=p>,</span> <span class=n>t_pval</span> <span class=o>=</span> <span class=n>stats</span><span class=o>.</span><span class=n>ttest_ind</span><span class=p>(</span><span class=n>group_a</span><span class=p>,</span> <span class=n>group_b</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;t-test p-value: </span><span class=si>{</span><span class=n>t_pval</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>置换检验对任意检验统计量都是精确的（非近似），无需分布假设，且易于实现。其主要局限在于：它仅检验可交换性（在 <span class=math-inline>$H_0$</span>
-下组是否可互换？），而这未必涵盖所有感兴趣的零假设。</p><h2 id=可重复性危机及应对之道 class=heading-anchor>可重复性危机及应对之道<a href=#%e5%8f%af%e9%87%8d%e5%a4%8d%e6%80%a7%e5%8d%b1%e6%9c%ba%e5%8f%8a%e5%ba%94%e5%af%b9%e4%b9%8b%e9%81%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>自 2010 年左右起，系统性重复研究揭示，心理学与生物医学等领域中许多已发表成果——或许高达 50% 或更多——无法复现。常见诱因包括：</p><ol><li><strong>p 值操纵（p-hacking）：</strong> 尝试多种分析直至 <span class=math-inline>$p &lt; 0.05$</span>
-，然后仅报告“显著”结果。</li><li><strong>事后假设（HARKing）：</strong> 结果已知后提出假设——将事后的发现包装成预先设定的假设。</li><li><strong>发表偏倚（Publication bias）：</strong> 期刊偏好发表“显著”结果，导致文献偏向假阳性。</li><li><strong>统计功效不足的研究：</strong> 功效低时，显著结果更可能高估真实效应。</li></ol><p><strong>推荐实践：</strong></p><ul><li>提前注册假设与分析计划</li><li>报告效应量和置信区间，而非仅 p 值</li><li>使用适当的多重检验校正方法</li><li>考虑贝叶斯方法以累积证据</li><li>关注重复验证，而非单次研究</li></ul><h2 id=快速参考表 class=heading-anchor>快速参考表<a href=#%e5%bf%ab%e9%80%9f%e5%8f%82%e8%80%83%e8%a1%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=table-wrap><table><thead><tr><th>场景</th><th>检验方法</th><th>统计量</th><th><span class=math-inline>$H_0$</span>
-下分布</th></tr></thead><tbody><tr><td>单均值，<span class=math-inline>$\sigma$</span>
-已知</td><td>Z 检验</td><td><span class=math-inline>$(\bar{X}-\mu_0)/(\sigma/\sqrt{n})$</span></td><td><span class=math-inline>$\mathcal{N}(0,1)$</span></td></tr><tr><td>单均值，<span class=math-inline>$\sigma$</span>
-未知</td><td>t 检验</td><td><span class=math-inline>$(\bar{X}-\mu_0)/(S/\sqrt{n})$</span></td><td><span class=math-inline>$t_{n-1}$</span></td></tr><tr><td>双均值，独立样本</td><td>双样本 t 检验</td><td><span class=math-inline>$(\bar{X}-\bar{Y})/(S_p\sqrt{1/n_1+1/n_2})$</span></td><td><span class=math-inline>$t_{n_1+n_2-2}$</span></td></tr><tr><td>双均值，配对样本</td><td>配对 t 检验</td><td><span class=math-inline>$\bar{D}/(S_D/\sqrt{n})$</span></td><td><span class=math-inline>$t_{n-1}$</span></td></tr><tr><td>分类变量独立性</td><td>卡方检验</td><td><span class=math-inline>$\sum (O-E)^2/E$</span></td><td><span class=math-inline>$\chi^2_{(r-1)(c-1)}$</span></td></tr><tr><td>双比例</td><td>Z 检验</td><td><span class=math-inline>$(p_B-p_A)/\text{SE}$</span></td><td><span class=math-inline>$\mathcal{N}(0,1)$</span></td></tr><tr><td>模型比较</td><td>似然比检验</td><td><span class=math-inline>$-2\ln\Lambda$</span></td><td><span class=math-inline>$\chi^2_r$</span>
-（Wilks 定理）</td></tr><tr><td>非参数检验</td><td>置换检验</td><td>任意统计量</td><td>置换分布</td></tr></tbody></table></div><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>假设检验通过控制假阳性率来回答“该效应是否真实？”这一问题。但它将参数视为固定未知量，而将数据视为随机变量。贝叶斯统计则反转这一视角：数据是固定的（你已观测到），而参数是随机的（由某个分布描述）。下一篇文章将展开贝叶斯思维——先验、后验、共轭族，以及塑造统计学百年发展的哲学论争。</p></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>置换检验对任意检验统计量都是精确的</span><span class=err>（</span><span class=n>非近似</span><span class=err>），</span><span class=n>无需分布假设</span><span class=err>，</span><span class=n>且易于实现</span><span class=err>。</span><span class=n>其主要局限在于</span><span class=err>：</span><span class=n>它仅检验可交换性</span><span class=err>（</span><span class=n>在</span> <span class=err>$</span><span class=n>H_0</span><span class=err>$</span> <span class=n>下组是否可互换</span><span class=err>？），</span><span class=n>而这未必涵盖所有感兴趣的零假设</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 可重复性危机及应对之道</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>自</span> <span class=mi>2010</span> <span class=n>年左右起</span><span class=err>，</span><span class=n>系统性重复研究揭示</span><span class=err>，</span><span class=n>心理学与生物医学等领域中许多已发表成果</span><span class=err>——</span><span class=n>或许高达</span> <span class=mi>50</span><span class=o>%</span> <span class=n>或更多</span><span class=err>——</span><span class=n>无法复现</span><span class=err>。</span><span class=n>常见诱因包括</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=mf>1.</span> <span class=o>**</span><span class=n>p</span> <span class=n>值操纵</span><span class=err>（</span><span class=n>p</span><span class=o>-</span><span class=n>hacking</span><span class=err>）：</span><span class=o>**</span> <span class=n>尝试多种分析直至</span> <span class=err>$</span><span class=n>p</span> <span class=o>&lt;</span> <span class=mf>0.05</span><span class=err>$，</span><span class=n>然后仅报告</span><span class=err>“</span><span class=n>显著</span><span class=err>”</span><span class=n>结果</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=mf>2.</span> <span class=o>**</span><span class=n>事后假设</span><span class=err>（</span><span class=n>HARKing</span><span class=err>）：</span><span class=o>**</span> <span class=n>结果已知后提出假设</span><span class=err>——</span><span class=n>将事后的发现包装成预先设定的假设</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=mf>3.</span> <span class=o>**</span><span class=n>发表偏倚</span><span class=err>（</span><span class=n>Publication</span> <span class=n>bias</span><span class=err>）：</span><span class=o>**</span> <span class=n>期刊偏好发表</span><span class=err>“</span><span class=n>显著</span><span class=err>”</span><span class=n>结果</span><span class=err>，</span><span class=n>导致文献偏向假阳性</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=mf>4.</span> <span class=o>**</span><span class=n>统计功效不足的研究</span><span class=err>：</span><span class=o>**</span> <span class=n>功效低时</span><span class=err>，</span><span class=n>显著结果更可能高估真实效应</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>推荐实践</span><span class=err>：</span><span class=o>**</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>提前注册假设与分析计划</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>报告效应量和置信区间</span><span class=err>，</span><span class=n>而非仅</span> <span class=n>p</span> <span class=n>值</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>使用适当的多重检验校正方法</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>考虑贝叶斯方法以累积证据</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>关注重复验证</span><span class=err>，</span><span class=n>而非单次研究</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 快速参考表</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>场景</span> <span class=o>|</span> <span class=n>检验方法</span> <span class=o>|</span> <span class=n>统计量</span> <span class=o>|</span> <span class=err>$</span><span class=n>H_0</span><span class=err>$</span> <span class=n>下分布</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|---|---|---|---|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>单均值</span><span class=err>，$</span>\<span class=n>sigma</span><span class=err>$</span> <span class=n>已知</span> <span class=o>|</span> <span class=n>Z</span> <span class=n>检验</span> <span class=o>|</span> <span class=err>$</span><span class=p>(</span>\<span class=n>bar</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=o>-</span>\<span class=n>mu_0</span><span class=p>)</span><span class=o>/</span><span class=p>(</span>\<span class=n>sigma</span><span class=o>/</span>\<span class=n>sqrt</span><span class=p>{</span><span class=n>n</span><span class=p>})</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>N</span><span class=p>}(</span><span class=mi>0</span><span class=p>,</span><span class=mi>1</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>单均值</span><span class=err>，$</span>\<span class=n>sigma</span><span class=err>$</span> <span class=n>未知</span> <span class=o>|</span> <span class=n>t</span> <span class=n>检验</span> <span class=o>|</span> <span class=err>$</span><span class=p>(</span>\<span class=n>bar</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=o>-</span>\<span class=n>mu_0</span><span class=p>)</span><span class=o>/</span><span class=p>(</span><span class=n>S</span><span class=o>/</span>\<span class=n>sqrt</span><span class=p>{</span><span class=n>n</span><span class=p>})</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span><span class=n>t_</span><span class=p>{</span><span class=n>n</span><span class=o>-</span><span class=mi>1</span><span class=p>}</span><span class=err>$</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>双均值</span><span class=err>，</span><span class=n>独立样本</span> <span class=o>|</span> <span class=n>双样本</span> <span class=n>t</span> <span class=n>检验</span> <span class=o>|</span> <span class=err>$</span><span class=p>(</span>\<span class=n>bar</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=o>-</span>\<span class=n>bar</span><span class=p>{</span><span class=n>Y</span><span class=p>})</span><span class=o>/</span><span class=p>(</span><span class=n>S_p</span>\<span class=n>sqrt</span><span class=p>{</span><span class=mi>1</span><span class=o>/</span><span class=n>n_1</span><span class=o>+</span><span class=mi>1</span><span class=o>/</span><span class=n>n_2</span><span class=p>})</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span><span class=n>t_</span><span class=p>{</span><span class=n>n_1</span><span class=o>+</span><span class=n>n_2</span><span class=o>-</span><span class=mi>2</span><span class=p>}</span><span class=err>$</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>双均值</span><span class=err>，</span><span class=n>配对样本</span> <span class=o>|</span> <span class=n>配对</span> <span class=n>t</span> <span class=n>检验</span> <span class=o>|</span> <span class=err>$</span>\<span class=n>bar</span><span class=p>{</span><span class=n>D</span><span class=p>}</span><span class=o>/</span><span class=p>(</span><span class=n>S_D</span><span class=o>/</span>\<span class=n>sqrt</span><span class=p>{</span><span class=n>n</span><span class=p>})</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span><span class=n>t_</span><span class=p>{</span><span class=n>n</span><span class=o>-</span><span class=mi>1</span><span class=p>}</span><span class=err>$</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>分类变量独立性</span> <span class=o>|</span> <span class=n>卡方检验</span> <span class=o>|</span> <span class=err>$</span>\<span class=nb>sum</span> <span class=p>(</span><span class=n>O</span><span class=o>-</span><span class=n>E</span><span class=p>)</span><span class=o>^</span><span class=mi>2</span><span class=o>/</span><span class=n>E</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span>\<span class=n>chi</span><span class=o>^</span><span class=mi>2</span><span class=n>_</span><span class=p>{(</span><span class=n>r</span><span class=o>-</span><span class=mi>1</span><span class=p>)(</span><span class=n>c</span><span class=o>-</span><span class=mi>1</span><span class=p>)}</span><span class=err>$</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>双比例</span> <span class=o>|</span> <span class=n>Z</span> <span class=n>检验</span> <span class=o>|</span> <span class=err>$</span><span class=p>(</span><span class=n>p_B</span><span class=o>-</span><span class=n>p_A</span><span class=p>)</span><span class=o>/</span>\<span class=n>text</span><span class=p>{</span><span class=n>SE</span><span class=p>}</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>N</span><span class=p>}(</span><span class=mi>0</span><span class=p>,</span><span class=mi>1</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>模型比较</span> <span class=o>|</span> <span class=n>似然比检验</span> <span class=o>|</span> <span class=err>$</span><span class=o>-</span><span class=mi>2</span>\<span class=n>ln</span>\<span class=n>Lambda</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span>\<span class=n>chi</span><span class=o>^</span><span class=mi>2</span><span class=n>_r</span><span class=err>$（</span><span class=n>Wilks</span> <span class=n>定理</span><span class=err>）</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>非参数检验</span> <span class=o>|</span> <span class=n>置换检验</span> <span class=o>|</span> <span class=n>任意统计量</span> <span class=o>|</span> <span class=n>置换分布</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 下一步</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>假设检验通过控制假阳性率来回答</span><span class=err>“</span><span class=n>该效应是否真实</span><span class=err>？”</span><span class=n>这一问题</span><span class=err>。</span><span class=n>但它将参数视为固定未知量</span><span class=err>，</span><span class=n>而将数据视为随机变量</span><span class=err>。</span><span class=n>贝叶斯统计则反转这一视角</span><span class=err>：</span><span class=n>数据是固定的</span><span class=err>（</span><span class=n>你已观测到</span><span class=err>），</span><span class=n>而参数是随机的</span><span class=err>（</span><span class=n>由某个分布描述</span><span class=err>）。</span><span class=n>下一篇文章将展开贝叶斯思维</span><span class=err>——</span><span class=n>先验</span><span class=err>、</span><span class=n>后验</span><span class=err>、</span><span class=n>共轭族</span><span class=err>，</span><span class=n>以及塑造统计学百年发展的哲学论争</span><span class=err>。</span>
+</span></span></code></pre></td></tr></table></div></div></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E6%25A6%2582%25E7%258E%2587%25E4%25B8%258E%25E7%25BB%259F%25E8%25AE%25A1%25EF%25BC%2588%25E4%25B8%2583%25EF%25BC%2589%25EF%25BC%259A%25E5%2581%2587%25E8%25AE%25BE%25E6%25A3%2580%25E9%25AA%258C%25E2%2580%2594%25E2%2580%2594p%2b%25E5%2580%25BC%25E3%2580%2581%25E7%25BD%25AE%25E4%25BF%25A1%25E5%258C%25BA%25E9%2597%25B4%25E5%258F%258A%25E5%2585%25B6%25E5%2585%25A8%25E9%2583%25A8%25E9%2599%25B7%25E9%2598%25B1&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fprobability-statistics%252F07-hypothesis-testing%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fprobability-statistics%252F07-hypothesis-testing%252F&title=%25E6%25A6%2582%25E7%258E%2587%25E4%25B8%258E%25E7%25BB%259F%25E8%25AE%25A1%25EF%25BC%2588%25E4%25B8%2583%25EF%25BC%2589%25EF%25BC%259A%25E5%2581%2587%25E8%25AE%25BE%25E6%25A3%2580%25E9%25AA%258C%25E2%2580%2594%25E2%2580%2594p%2b%25E5%2580%25BC%25E3%2580%2581%25E7%25BD%25AE%25E4%25BF%25A1%25E5%258C%25BA%25E9%2597%25B4%25E5%258F%258A%25E5%2585%25B6%25E5%2585%25A8%25E9%2583%25A8%25E9%2599%25B7%25E9%2598%25B1" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/probability-statistics/07-hypothesis-testing/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2024-08-28>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#框架>框架</a><ul><li><a href=#设定假设>设定假设</a></li><li><a href=#检验统计量与拒绝域>检验统计量与拒绝域</a></li><li><a href=#显著性水平>显著性水平</a></li></ul></li><li><a href=#假设检验中的错误>假设检验中的错误</a><ul><li><a href=#权衡关系>权衡关系</a></li></ul></li><li><a href=#p-值>p 值</a><ul><li><a href=#定义>定义</a></li><li><a href=#p-值是什么>p 值<strong>是</strong>什么</a></li><li><a href=#p-值不是什么>p 值<strong>不是</strong>什么</a></li></ul></li><li><a href=#常见检验方法>常见检验方法</a><ul><li><a href=#z-检验>Z 检验</a></li><li><a href=#t-检验>t 检验</a></li><li><a href=#双样本-t-检验>双样本 t 检验</a></li><li><a href=#配对-t-检验>配对 t 检验</a></li><li><a href=#卡方独立性检验>卡方独立性检验</a></li></ul></li><li><a href=#置信区间>置信区间</a><ul><li><a href=#构造方法>构造方法</a></li><li><a href=#解释频率学派>解释（频率学派）</a></li><li><a href=#置信区间与假设检验的关系>置信区间与假设检验的关系</a></li></ul></li><li><a href=#多重检验问题>多重检验问题</a><ul><li><a href=#问题所在>问题所在</a></li><li><a href=#bonferroni-校正>Bonferroni 校正</a></li><li><a href=#错误发现率fdr-benjamini-hochberg-方法>错误发现率（FDR）： Benjamini-Hochberg 方法</a></li></ul></li><li><a href=#ab-测试>A/B 测试</a><ul><li><a href=#设置方式>设置方式</a></li><li><a href=#检验统计量>检验统计量</a></li><li><a href=#样本量计算>样本量计算</a></li><li><a href=#实际显著性-vs-统计显著性>实际显著性 vs 统计显著性</a></li></ul></li><li><a href=#python实践中的假设检验>Python：实践中的假设检验</a></li><li><a href=#效应量-p-值无法告诉你的信息>效应量： p 值无法告诉你的信息</a><ul><li><a href=#cohens-d>Cohen&rsquo;s d</a></li><li><a href=#为何效应量至关重要>为何效应量至关重要</a></li></ul></li><li><a href=#neyman-pearson-引理>Neyman-Pearson 引理</a><ul><li><a href=#广义似然比检验>广义似然比检验</a></li></ul></li><li><a href=#置换检验免分布推断>置换检验：免分布推断</a></li><li><a href=#可重复性危机及应对之道>可重复性危机及应对之道</a></li><li><a href=#快速参考表>快速参考表</a></li><li><a href=#下一步>下一步</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/probability-statistics/ class=series-name>概率论与数理统计</a>
+<span class=sig-meta data-days-since=2024-08-28>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#框架>框架</a><ul><li><a href=#设定假设>设定假设</a></li><li><a href=#检验统计量与拒绝域>检验统计量与拒绝域</a></li><li><a href=#显著性水平>显著性水平</a></li></ul></li><li><a href=#假设检验中的错误>假设检验中的错误</a><ul><li><a href=#权衡关系>权衡关系</a></li></ul></li><li><a href=#p-值>p 值</a><ul><li><a href=#定义>定义</a></li><li><a href=#p-值是什么>p 值<strong>是</strong>什么</a></li><li><a href=#p-值不是什么>p 值<strong>不是</strong>什么</a></li></ul></li><li><a href=#常见检验方法>常见检验方法</a><ul><li><a href=#z-检验>Z 检验</a></li><li><a href=#t-检验>t 检验</a></li><li><a href=#双样本-t-检验>双样本 t 检验</a></li><li><a href=#配对-t-检验>配对 t 检验</a></li><li><a href=#卡方独立性检验>卡方独立性检验</a></li></ul></li><li><a href=#置信区间>置信区间</a><ul><li><a href=#构造方法>构造方法</a></li><li><a href=#解释频率学派>解释（频率学派）</a></li><li><a href=#置信区间与假设检验的关系>置信区间与假设检验的关系</a></li></ul></li><li><a href=#多重检验问题>多重检验问题</a><ul><li><a href=#问题所在>问题所在</a></li><li><a href=#bonferroni-校正>Bonferroni 校正</a></li><li><a href=#错误发现率fdr-benjamini-hochberg-方法>错误发现率（FDR）： Benjamini-Hochberg 方法</a></li></ul></li><li><a href=#ab-测试>A/B 测试</a><ul><li><a href=#设置方式>设置方式</a></li><li><a href=#检验统计量>检验统计量</a></li><li><a href=#样本量计算>样本量计算</a></li><li><a href=#实际显著性-vs-统计显著性>实际显著性 vs 统计显著性</a></li></ul></li><li><a href=#python实践中的假设检验>Python：实践中的假设检验</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/probability-statistics/ class=series-name>概率论与数理统计</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/probability-statistics/01-probability-foundations/><span class=chapter-num>01</span>
 <span class=chapter-title>概率与统计（一）：概率空间——为何需要公理化（但不过度深究）</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/probability-statistics/02-random-variables/><span class=chapter-num>02</span>
 <span class=chapter-title>概率与统计（二）：随机变量及关键分布</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/probability-statistics/03-expectation-and-moments/><span class=chapter-num>03</span>
@@ -481,5 +605,5 @@ vs <span class=math-inline>$H_1: \mu \neq 10.0$</span></li></ul><p>备择假设�
 <span class=chapter-title>概率与统计（五）：大数定律与中心极限定理</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/probability-statistics/06-estimation-theory/><span class=chapter-num>06</span>
 <span class=chapter-title>概率与统计（六）：参数估计——极大似然估计、最大后验估计与偏差-方差分解</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
 <span class=chapter-title>概率与统计（七）：假设检验——p 值、置信区间及其全部陷阱</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/probability-statistics/08-bayesian-thinking/><span class=chapter-num>08</span>
-<span class=chapter-title>概率与统计（八）：贝叶斯统计——先验、后验，以及频率学派为何争论不休</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>20 min</strong></div><div class=row><span>字数</span><strong>4675</strong></div><div class=row><span>写于</span><strong>Aug 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>概率与统计（八）：贝叶斯统计——先验、后验，以及频率学派为何争论不休</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>22 min</strong></div><div class=row><span>字数</span><strong>5111</strong></div><div class=row><span>写于</span><strong>Aug 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

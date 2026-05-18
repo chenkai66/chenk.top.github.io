@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/time-series/>时间序列预测</a>
 · 第 7 篇</div><h1>时间序列模型（七）：N-BEATS——可解释的深度架构</h1><p class=deck>N-BEATS 把深度学习的表达力和经典分解的可解释性合二为一：基函数展开、双重残差堆叠、M4 竞赛分析，以及完整的 PyTorch 代码。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2024-11-30>November 30, 2024</time> · 28 分钟 · 6641 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E6%97%B6%E9%97%B4%E5%BA%8F%E5%88%97/ class=tag>#时间序列</a><a href=/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/ class=tag>#深度学习</a><a href=/zh/tags/n-beats/ class=tag>#N-BEATS</a></div><a class="pill pill-outline" href=/en/time-series/n-beats/>Read in English →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/07-N-BEATS%e6%b7%b1%e5%ba%a6%e6%9e%b6%e6%9e%84/illustration_1.png alt=章节概念图 loading=lazy decoding=async class=content-image></figure></p><p>2018 年 M4 预测竞赛提供了覆盖六种频率的 10 万条时间序列作为统一基准。排行榜一度被基于数十年统计预测经验手工调优的集成模型所主导，但最终胜出的却是一个<strong>纯神经网络</strong>——它无需任何统计预处理、特征工程或循环结构。这个模型正是 Oreshkin 等人提出的 <strong>N-BEATS</strong>：一个由全连接块堆叠而成、带有两条残差路径的架构。其可解释变体进一步将预测显式分解为多项式趋势与傅里叶季节性分量，使得经典统计学家梦寐以求的“可读分解”变得唾手可得。</p><p>本章将深入剖析为何如此简洁的架构能同时击败 LSTMs 和 ARIMA 风格的集成模型，并指导你如何在自己的数据上实现与调优。</p><hr><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>双重残差堆叠如何将普通 MLP 转化为层级分解器。</li><li>基函数展开：用多项式基建模趋势，傅里叶基捕捉季节性，学习基应对“通用”变体。</li><li>N-BEATS 为何能同时成为最准确且最可解释的模型。</li><li>M4 竞赛结果：N-BEATS 具体击败了哪些模型，优势有多大。</li><li>完整的 PyTorch 实现，以及可直接复用的零售销量与电力需求案例。</li></ul><p><strong>前置要求</strong>：熟悉前馈网络与 PyTorch；了解经典分解（趋势 / 季节性 / 残差）会有帮助，但非必需。</p><hr><h2 id=为什么全连接堆栈就够用了 class=heading-anchor>为什么全连接堆栈就够用了<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e5%85%a8%e8%bf%9e%e6%8e%a5%e5%a0%86%e6%a0%88%e5%b0%b1%e5%a4%9f%e7%94%a8%e4%ba%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>大多数深度时序模型都会引入结构先验：卷积假设平移等变性，RNN 假设顺序隐藏状态，注意力机制则假设成对相关性。N-BEATS 却反其道而行之——它直接将整个输入窗口喂给 MLP，让网络自行学习最有用的分解方式。关键不在于层的类型，而在于信息流动的路径。</p><p>具体而言，N-BEATS 做了三个明确的设计选择：</p><ol><li><strong>堆叠相同结构的模块</strong>，每个模块同时预测 <em>backcast</em>（对输入窗口的重构）和 <em>forecast</em>（对未来值的预测）。</li><li><strong>双重残差流</strong>：每个模块从当前输入残差中减去自身的 backcast，同时将其 forecast 加入累积预测。下一个模块仅看到前一个模块未能解释的部分。</li><li><strong>基函数输出头</strong>：模块不直接输出预测值，而是生成一个小系数向量 <span class=math-inline>$\theta$</span>
+<span class=meta-line><time datetime=2024-11-30>November 30, 2024</time> · 32 分钟 · 7517 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E6%97%B6%E9%97%B4%E5%BA%8F%E5%88%97/ class=tag>#时间序列</a><a href=/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/ class=tag>#深度学习</a><a href=/zh/tags/n-beats/ class=tag>#N-BEATS</a></div><a class="pill pill-outline" href=/en/time-series/n-beats/>Read in English →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/07-N-BEATS%e6%b7%b1%e5%ba%a6%e6%9e%b6%e6%9e%84/illustration_1.png alt=章节概念图 loading=lazy decoding=async class=content-image></figure></p><p>2018 年 M4 预测竞赛提供了覆盖六种频率的 10 万条时间序列作为统一基准。排行榜一度被基于数十年统计预测经验手工调优的集成模型所主导，但最终胜出的却是一个<strong>纯神经网络</strong>——它无需任何统计预处理、特征工程或循环结构。这个模型正是 Oreshkin 等人提出的 <strong>N-BEATS</strong>：一个由全连接块堆叠而成、带有两条残差路径的架构。其可解释变体进一步将预测显式分解为多项式趋势与傅里叶季节性分量，使得经典统计学家梦寐以求的“可读分解”变得唾手可得。</p><p>本章将深入剖析为何如此简洁的架构能同时击败 LSTMs 和 ARIMA 风格的集成模型，并指导你如何在自己的数据上实现与调优。</p><hr><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>双重残差堆叠如何将普通 MLP 转化为层级分解器。</li><li>基函数展开：用多项式基建模趋势，傅里叶基捕捉季节性，学习基应对“通用”变体。</li><li>N-BEATS 为何能同时成为最准确且最可解释的模型。</li><li>M4 竞赛结果：N-BEATS 具体击败了哪些模型，优势有多大。</li><li>完整的 PyTorch 实现，以及可直接复用的零售销量与电力需求案例。</li></ul><p><strong>前置要求</strong>：熟悉前馈网络与 PyTorch；了解经典分解（趋势 / 季节性 / 残差）会有帮助，但非必需。</p><hr><h2 id=为什么全连接堆栈就够用了 class=heading-anchor>为什么全连接堆栈就够用了<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e5%85%a8%e8%bf%9e%e6%8e%a5%e5%a0%86%e6%a0%88%e5%b0%b1%e5%a4%9f%e7%94%a8%e4%ba%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>大多数深度时序模型都会引入结构先验：卷积假设平移等变性，RNN 假设顺序隐藏状态，注意力机制则假设成对相关性。N-BEATS 却反其道而行之——它直接将整个输入窗口喂给 MLP，让网络自行学习最有用的分解方式。关键不在于层的类型，而在于信息流动的路径。</p><p>具体而言，N-BEATS 做了三个明确的设计选择：</p><ol><li><strong>堆叠相同结构的模块</strong>，每个模块同时预测 <em>backcast</em>（对输入窗口的重构）和 <em>forecast</em>（对未来值的预测）。</li><li><strong>双重残差流</strong>：每个模块从当前输入残差中减去自身的 backcast，同时将其 forecast 加入累积预测。下一个模块仅看到前一个模块未能解释的部分。</li><li><strong>基函数输出头</strong>：模块不直接输出预测值，而是生成一个小系数向量 <span class=math-inline>$\theta$</span>
 ，再将其与一个固定（可解释）或可学习（通用）的基矩阵相乘。</li></ol><p>这三点组合起来，足以让 N-BEATS 登顶 M4 排行榜。</p><hr><h2 id=架构双重残差流 class=heading-anchor>架构：双重残差流<a href=#%e6%9e%b6%e6%9e%84%e5%8f%8c%e9%87%8d%e6%ae%8b%e5%b7%ae%e6%b5%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>想象网络中有两条自上而下并行的管道。左侧是<strong>残差流</strong>：从输入窗口 <span class=math-inline>$x \in \mathbb{R}^{H}$</span>
 开始，每经过一个模块就减去其 backcast，逐渐缩小。右侧是<strong>预测累加器</strong>：从零开始，每经过一个模块就加上其 forecast，逐步增长。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/07-N-BEATS%e6%b7%b1%e5%ba%a6%e6%9e%b6%e6%9e%84/fig1_stacked_residual_blocks.png alt="N-BEATS 的双重残差堆叠" loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$r^{(b)} = r^{(b-1)} - \hat{x}^{(b)}, \qquad \hat{y} = \sum_{b=1}^{B} \hat{y}^{(b)},$$</span><p>其中 <span class=math-inline>$r^{(0)} = x$</span>
 。每个模块面对的残差越来越小，因此会专注于剩余未被解释的模式。宏观结构（如整体趋势、主季节周期）由早期模块捕获，精细修正则由后期模块完成。</p><p>这与梯度提升思想一致，但被嵌入到一个端到端可微的网络中。顺序至关重要：第一个模块任务最简单（信号完整），最后一个模块任务最难（只剩噪声与细微结构）。</p><hr><h2 id=块的内部 class=heading-anchor>块的内部<a href=#%e5%9d%97%e7%9a%84%e5%86%85%e9%83%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>每个 N-BEATS 块结构相同。给定残差输入 <span class=math-inline>$r \in \mathbb{R}^{H}$</span>
@@ -174,6 +174,280 @@ $$</span><p>其中 <span class=math-inline>$K = 1, 2, 3$</span>
 </span><span class=lnt>117
 </span><span class=lnt>118
 </span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span><span class=lnt>132
+</span><span class=lnt>133
+</span><span class=lnt>134
+</span><span class=lnt>135
+</span><span class=lnt>136
+</span><span class=lnt>137
+</span><span class=lnt>138
+</span><span class=lnt>139
+</span><span class=lnt>140
+</span><span class=lnt>141
+</span><span class=lnt>142
+</span><span class=lnt>143
+</span><span class=lnt>144
+</span><span class=lnt>145
+</span><span class=lnt>146
+</span><span class=lnt>147
+</span><span class=lnt>148
+</span><span class=lnt>149
+</span><span class=lnt>150
+</span><span class=lnt>151
+</span><span class=lnt>152
+</span><span class=lnt>153
+</span><span class=lnt>154
+</span><span class=lnt>155
+</span><span class=lnt>156
+</span><span class=lnt>157
+</span><span class=lnt>158
+</span><span class=lnt>159
+</span><span class=lnt>160
+</span><span class=lnt>161
+</span><span class=lnt>162
+</span><span class=lnt>163
+</span><span class=lnt>164
+</span><span class=lnt>165
+</span><span class=lnt>166
+</span><span class=lnt>167
+</span><span class=lnt>168
+</span><span class=lnt>169
+</span><span class=lnt>170
+</span><span class=lnt>171
+</span><span class=lnt>172
+</span><span class=lnt>173
+</span><span class=lnt>174
+</span><span class=lnt>175
+</span><span class=lnt>176
+</span><span class=lnt>177
+</span><span class=lnt>178
+</span><span class=lnt>179
+</span><span class=lnt>180
+</span><span class=lnt>181
+</span><span class=lnt>182
+</span><span class=lnt>183
+</span><span class=lnt>184
+</span><span class=lnt>185
+</span><span class=lnt>186
+</span><span class=lnt>187
+</span><span class=lnt>188
+</span><span class=lnt>189
+</span><span class=lnt>190
+</span><span class=lnt>191
+</span><span class=lnt>192
+</span><span class=lnt>193
+</span><span class=lnt>194
+</span><span class=lnt>195
+</span><span class=lnt>196
+</span><span class=lnt>197
+</span><span class=lnt>198
+</span><span class=lnt>199
+</span><span class=lnt>200
+</span><span class=lnt>201
+</span><span class=lnt>202
+</span><span class=lnt>203
+</span><span class=lnt>204
+</span><span class=lnt>205
+</span><span class=lnt>206
+</span><span class=lnt>207
+</span><span class=lnt>208
+</span><span class=lnt>209
+</span><span class=lnt>210
+</span><span class=lnt>211
+</span><span class=lnt>212
+</span><span class=lnt>213
+</span><span class=lnt>214
+</span><span class=lnt>215
+</span><span class=lnt>216
+</span><span class=lnt>217
+</span><span class=lnt>218
+</span><span class=lnt>219
+</span><span class=lnt>220
+</span><span class=lnt>221
+</span><span class=lnt>222
+</span><span class=lnt>223
+</span><span class=lnt>224
+</span><span class=lnt>225
+</span><span class=lnt>226
+</span><span class=lnt>227
+</span><span class=lnt>228
+</span><span class=lnt>229
+</span><span class=lnt>230
+</span><span class=lnt>231
+</span><span class=lnt>232
+</span><span class=lnt>233
+</span><span class=lnt>234
+</span><span class=lnt>235
+</span><span class=lnt>236
+</span><span class=lnt>237
+</span><span class=lnt>238
+</span><span class=lnt>239
+</span><span class=lnt>240
+</span><span class=lnt>241
+</span><span class=lnt>242
+</span><span class=lnt>243
+</span><span class=lnt>244
+</span><span class=lnt>245
+</span><span class=lnt>246
+</span><span class=lnt>247
+</span><span class=lnt>248
+</span><span class=lnt>249
+</span><span class=lnt>250
+</span><span class=lnt>251
+</span><span class=lnt>252
+</span><span class=lnt>253
+</span><span class=lnt>254
+</span><span class=lnt>255
+</span><span class=lnt>256
+</span><span class=lnt>257
+</span><span class=lnt>258
+</span><span class=lnt>259
+</span><span class=lnt>260
+</span><span class=lnt>261
+</span><span class=lnt>262
+</span><span class=lnt>263
+</span><span class=lnt>264
+</span><span class=lnt>265
+</span><span class=lnt>266
+</span><span class=lnt>267
+</span><span class=lnt>268
+</span><span class=lnt>269
+</span><span class=lnt>270
+</span><span class=lnt>271
+</span><span class=lnt>272
+</span><span class=lnt>273
+</span><span class=lnt>274
+</span><span class=lnt>275
+</span><span class=lnt>276
+</span><span class=lnt>277
+</span><span class=lnt>278
+</span><span class=lnt>279
+</span><span class=lnt>280
+</span><span class=lnt>281
+</span><span class=lnt>282
+</span><span class=lnt>283
+</span><span class=lnt>284
+</span><span class=lnt>285
+</span><span class=lnt>286
+</span><span class=lnt>287
+</span><span class=lnt>288
+</span><span class=lnt>289
+</span><span class=lnt>290
+</span><span class=lnt>291
+</span><span class=lnt>292
+</span><span class=lnt>293
+</span><span class=lnt>294
+</span><span class=lnt>295
+</span><span class=lnt>296
+</span><span class=lnt>297
+</span><span class=lnt>298
+</span><span class=lnt>299
+</span><span class=lnt>300
+</span><span class=lnt>301
+</span><span class=lnt>302
+</span><span class=lnt>303
+</span><span class=lnt>304
+</span><span class=lnt>305
+</span><span class=lnt>306
+</span><span class=lnt>307
+</span><span class=lnt>308
+</span><span class=lnt>309
+</span><span class=lnt>310
+</span><span class=lnt>311
+</span><span class=lnt>312
+</span><span class=lnt>313
+</span><span class=lnt>314
+</span><span class=lnt>315
+</span><span class=lnt>316
+</span><span class=lnt>317
+</span><span class=lnt>318
+</span><span class=lnt>319
+</span><span class=lnt>320
+</span><span class=lnt>321
+</span><span class=lnt>322
+</span><span class=lnt>323
+</span><span class=lnt>324
+</span><span class=lnt>325
+</span><span class=lnt>326
+</span><span class=lnt>327
+</span><span class=lnt>328
+</span><span class=lnt>329
+</span><span class=lnt>330
+</span><span class=lnt>331
+</span><span class=lnt>332
+</span><span class=lnt>333
+</span><span class=lnt>334
+</span><span class=lnt>335
+</span><span class=lnt>336
+</span><span class=lnt>337
+</span><span class=lnt>338
+</span><span class=lnt>339
+</span><span class=lnt>340
+</span><span class=lnt>341
+</span><span class=lnt>342
+</span><span class=lnt>343
+</span><span class=lnt>344
+</span><span class=lnt>345
+</span><span class=lnt>346
+</span><span class=lnt>347
+</span><span class=lnt>348
+</span><span class=lnt>349
+</span><span class=lnt>350
+</span><span class=lnt>351
+</span><span class=lnt>352
+</span><span class=lnt>353
+</span><span class=lnt>354
+</span><span class=lnt>355
+</span><span class=lnt>356
+</span><span class=lnt>357
+</span><span class=lnt>358
+</span><span class=lnt>359
+</span><span class=lnt>360
+</span><span class=lnt>361
+</span><span class=lnt>362
+</span><span class=lnt>363
+</span><span class=lnt>364
+</span><span class=lnt>365
+</span><span class=lnt>366
+</span><span class=lnt>367
+</span><span class=lnt>368
+</span><span class=lnt>369
+</span><span class=lnt>370
+</span><span class=lnt>371
+</span><span class=lnt>372
+</span><span class=lnt>373
+</span><span class=lnt>374
+</span><span class=lnt>375
+</span><span class=lnt>376
+</span><span class=lnt>377
+</span><span class=lnt>378
+</span><span class=lnt>379
+</span><span class=lnt>380
+</span><span class=lnt>381
+</span><span class=lnt>382
+</span><span class=lnt>383
+</span><span class=lnt>384
+</span><span class=lnt>385
+</span><span class=lnt>386
+</span><span class=lnt>387
+</span><span class=lnt>388
+</span><span class=lnt>389
+</span><span class=lnt>390
+</span><span class=lnt>391
+</span><span class=lnt>392
+</span><span class=lnt>393
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
@@ -293,43 +567,18 @@ $$</span><p>其中 <span class=math-inline>$K = 1, 2, 3$</span>
 </span></span><span class=line><span class=cl>        <span class=n>basis</span> <span class=o>=</span> <span class=n>GenericBasis</span><span class=p>(</span><span class=n>theta_size</span><span class=p>,</span> <span class=n>history</span><span class=p>,</span> <span class=n>horizon</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>        <span class=n>blocks</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>NBeatsBlock</span><span class=p>(</span><span class=n>basis</span><span class=p>,</span> <span class=n>history</span><span class=p>,</span> <span class=n>hidden</span><span class=p>,</span> <span class=n>layers</span><span class=p>))</span>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>NBeats</span><span class=p>(</span><span class=n>blocks</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>一个关键细节：在可解释变体中，<code>TrendBasis</code> 与 <code>SeasonalityBasis</code> 实例在<strong>同一栈内的所有块间共享</strong>。各块拥有独立 MLP 与系数头，但共用同一固定基矩阵，既维持归纳偏置，又节省参数。</p><hr><h2 id=训练方法 class=heading-anchor>训练方法<a href=#%e8%ae%ad%e7%bb%83%e6%96%b9%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Oreshkin 等人的训练方案极为简洁：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.optim</span> <span class=kn>import</span> <span class=n>Adam</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>一个关键细节</span><span class=err>：</span><span class=n>在可解释变体中</span><span class=err>，`</span><span class=n>TrendBasis</span><span class=err>`</span> <span class=n>与</span> <span class=err>`</span><span class=n>SeasonalityBasis</span><span class=err>`</span> <span class=n>实例在</span><span class=o>**</span><span class=n>同一栈内的所有块间共享</span><span class=o>**</span><span class=err>。</span><span class=n>各块拥有独立</span> <span class=n>MLP</span> <span class=n>与系数头</span><span class=err>，</span><span class=n>但共用同一固定基矩阵</span><span class=err>，</span><span class=n>既维持归纳偏置</span><span class=err>，</span><span class=n>又节省参数</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>---</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 训练方法</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>Oreshkin</span> <span class=n>等人的训练方案极为简洁</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.optim</span> <span class=kn>import</span> <span class=n>Adam</span>
 </span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.optim.lr_scheduler</span> <span class=kn>import</span> <span class=n>CosineAnnealingLR</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>train_nbeats</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>train_loader</span><span class=p>,</span> <span class=n>val_loader</span><span class=p>,</span> <span class=n>epochs</span><span class=o>=</span><span class=mi>100</span><span class=p>,</span>
@@ -365,53 +614,79 @@ $$</span><p>其中 <span class=math-inline>$K = 1, 2, 3$</span>
 </span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>save</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>state_dict</span><span class=p>(),</span> <span class=s2>&#34;nbeats.pt&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>ep</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>%</span> <span class=mi>10</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
 </span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;epoch </span><span class=si>{</span><span class=n>ep</span><span class=o>+</span><span class=mi>1</span><span class=si>}</span><span class=s2>: train </span><span class=si>{</span><span class=n>train_loss</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2> val </span><span class=si>{</span><span class=n>val_loss</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>几点实践建议：</p><ul><li><strong>损失函数</strong>：M4 使用 sMAPE；实际场景中 MAE（L1）通常比 MSE 更稳定，因其不对离群点过度惩罚。选择与评估指标匹配的损失。</li><li><strong>逐窗口标准化</strong>：对每个输入窗口，先减均值、除标准差，再送入网络，最后对预测结果做逆变换。此步远比损失选择重要——若不做，网络需额外学习每条序列的尺度，浪费容量。</li><li><strong>早停策略</strong>：N-BEATS 需较长训练，但在多数数据集上约 50 轮后验证损失趋于平稳。监控验证损失，停止改善时即可终止。</li></ul><hr><h2 id=n-beats-在-m4-竞赛中的表现 class=heading-anchor>N-BEATS 在 M4 竞赛中的表现<a href=#n-beats-%e5%9c%a8-m4-%e7%ab%9e%e8%b5%9b%e4%b8%ad%e7%9a%84%e8%a1%a8%e7%8e%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>M4 包含统计方法（ARIMA、ETS、Theta）、冠军 Smyl 的 ES-RNN 混合模型，以及亚军 FFORMA（基于特征元学习）。N-BEATS 无任何统计预处理，却在整体 sMAPE 及六个频率分组中的五个上全面胜出。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/n-beats/fig4_m4_results.png alt="N-BEATS 在 M4 竞赛中的表现" loading=lazy decoding=async class=content-image></figure></p><p>论文数据如下：</p><ul><li><strong>N-BEATS（可解释 + 通用集成）：sMAPE 11.135</strong></li><li>N-BEATS（仅通用）：sMAPE 11.168</li><li>Smyl 的 ES-RNN（M4 冠军）：sMAPE 11.374</li><li>FFORMA：sMAPE 11.720</li><li>最佳经典方法（Theta）：sMAPE 12.309</li></ul><p>绝对 sMAPE 差距虽小，但在年、季、月、周、日频段均稳定领先。唯独小时频段，Smyl 的 ES-RNN 以 0.4 sMAPE 微弱优势胜出。</p><p>更深层启示：一个表达力足够强且具备合适归纳偏置的深度模型，能从零复现统计学家数十年手工构建的知识。</p><hr><h2 id=集成隐藏在配方中的另一半 class=heading-anchor>集成：隐藏在配方中的另一半<a href=#%e9%9b%86%e6%88%90%e9%9a%90%e8%97%8f%e5%9c%a8%e9%85%8d%e6%96%b9%e4%b8%ad%e7%9a%84%e5%8f%a6%e4%b8%80%e5%8d%8a class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>细读 M4 论文会发现一个脚注：头条 N-BEATS 结果实为 <strong>180 个模型实例预测的中位数</strong>。各实例在回看长度（2H 至 7H）、训练损失（sMAPE/MASE/MAPE）或随机种子上有所不同。单模型性能明显弱于集成。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/n-beats/fig5_ensemble_strategy.png alt="为什么 N-BEATS 使用集成：原理与实证 sMAPE 提升" loading=lazy decoding=async class=content-image></figure></p><p>右侧实证曲线显示收益递减：大部分增益来自前约 30 个成员。生产中几乎无需训练 180 个模型——混合 10 至 30 个不同回看长度与种子的模型，即可捕获绝大部分提升。</p><p>一个简易集成辅助工具：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>EnsembleNBeats</span><span class=p>:</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>几点实践建议</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>损失函数</span><span class=o>**</span><span class=err>：</span><span class=n>M4</span> <span class=n>使用</span> <span class=n>sMAPE</span><span class=err>；</span><span class=n>实际场景中</span> <span class=n>MAE</span><span class=err>（</span><span class=n>L1</span><span class=err>）</span><span class=n>通常比</span> <span class=n>MSE</span> <span class=n>更稳定</span><span class=err>，</span><span class=n>因其不对离群点过度惩罚</span><span class=err>。</span><span class=n>选择与评估指标匹配的损失</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>逐窗口标准化</span><span class=o>**</span><span class=err>：</span><span class=n>对每个输入窗口</span><span class=err>，</span><span class=n>先减均值</span><span class=err>、</span><span class=n>除标准差</span><span class=err>，</span><span class=n>再送入网络</span><span class=err>，</span><span class=n>最后对预测结果做逆变换</span><span class=err>。</span><span class=n>此步远比损失选择重要</span><span class=err>——</span><span class=n>若不做</span><span class=err>，</span><span class=n>网络需额外学习每条序列的尺度</span><span class=err>，</span><span class=n>浪费容量</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>早停策略</span><span class=o>**</span><span class=err>：</span><span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>需较长训练</span><span class=err>，</span><span class=n>但在多数数据集上约</span> <span class=mi>50</span> <span class=n>轮后验证损失趋于平稳</span><span class=err>。</span><span class=n>监控验证损失</span><span class=err>，</span><span class=n>停止改善时即可终止</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>---</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## N-BEATS 在 M4 竞赛中的表现</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>M4</span> <span class=n>包含统计方法</span><span class=err>（</span><span class=n>ARIMA</span><span class=err>、</span><span class=n>ETS</span><span class=err>、</span><span class=n>Theta</span><span class=err>）、</span><span class=n>冠军</span> <span class=n>Smyl</span> <span class=n>的</span> <span class=n>ES</span><span class=o>-</span><span class=n>RNN</span> <span class=n>混合模型</span><span class=err>，</span><span class=n>以及亚军</span> <span class=n>FFORMA</span><span class=err>（</span><span class=n>基于特征元学习</span><span class=err>）。</span><span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>无任何统计预处理</span><span class=err>，</span><span class=n>却在整体</span> <span class=n>sMAPE</span> <span class=n>及六个频率分组中的五个上全面胜出</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>在</span> <span class=n>M4</span> <span class=n>竞赛中的表现</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>en</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=n>n</span><span class=o>-</span><span class=n>beats</span><span class=o>/</span><span class=n>fig4_m4_results</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>论文数据如下</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>N</span><span class=o>-</span><span class=n>BEATS</span><span class=err>（</span><span class=n>可解释</span> <span class=o>+</span> <span class=n>通用集成</span><span class=err>）：</span><span class=n>sMAPE</span> <span class=mf>11.135</span><span class=o>**</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>N</span><span class=o>-</span><span class=n>BEATS</span><span class=err>（</span><span class=n>仅通用</span><span class=err>）：</span><span class=n>sMAPE</span> <span class=mf>11.168</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Smyl</span> <span class=n>的</span> <span class=n>ES</span><span class=o>-</span><span class=n>RNN</span><span class=err>（</span><span class=n>M4</span> <span class=n>冠军</span><span class=err>）：</span><span class=n>sMAPE</span> <span class=mf>11.374</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>FFORMA</span><span class=err>：</span><span class=n>sMAPE</span> <span class=mf>11.720</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>最佳经典方法</span><span class=err>（</span><span class=n>Theta</span><span class=err>）：</span><span class=n>sMAPE</span> <span class=mf>12.309</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>绝对</span> <span class=n>sMAPE</span> <span class=n>差距虽小</span><span class=err>，</span><span class=n>但在年</span><span class=err>、</span><span class=n>季</span><span class=err>、</span><span class=n>月</span><span class=err>、</span><span class=n>周</span><span class=err>、</span><span class=n>日频段均稳定领先</span><span class=err>。</span><span class=n>唯独小时频段</span><span class=err>，</span><span class=n>Smyl</span> <span class=n>的</span> <span class=n>ES</span><span class=o>-</span><span class=n>RNN</span> <span class=n>以</span> <span class=mf>0.4</span> <span class=n>sMAPE</span> <span class=n>微弱优势胜出</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>更深层启示</span><span class=err>：</span><span class=n>一个表达力足够强且具备合适归纳偏置的深度模型</span><span class=err>，</span><span class=n>能从零复现统计学家数十年手工构建的知识</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>---</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 集成：隐藏在配方中的另一半</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>细读</span> <span class=n>M4</span> <span class=n>论文会发现一个脚注</span><span class=err>：</span><span class=n>头条</span> <span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>结果实为</span> <span class=o>**</span><span class=mi>180</span> <span class=n>个模型实例预测的中位数</span><span class=o>**</span><span class=err>。</span><span class=n>各实例在回看长度</span><span class=err>（</span><span class=mi>2</span><span class=n>H</span> <span class=n>至</span> <span class=mi>7</span><span class=n>H</span><span class=err>）、</span><span class=n>训练损失</span><span class=err>（</span><span class=n>sMAPE</span><span class=o>/</span><span class=n>MASE</span><span class=o>/</span><span class=n>MAPE</span><span class=err>）</span><span class=n>或随机种子上有所不同</span><span class=err>。</span><span class=n>单模型性能明显弱于集成</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>为什么</span> <span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>使用集成</span><span class=err>：</span><span class=n>原理与实证</span> <span class=n>sMAPE</span> <span class=n>提升</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>en</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=n>n</span><span class=o>-</span><span class=n>beats</span><span class=o>/</span><span class=n>fig5_ensemble_strategy</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>右侧实证曲线显示收益递减</span><span class=err>：</span><span class=n>大部分增益来自前约</span> <span class=mi>30</span> <span class=n>个成员</span><span class=err>。</span><span class=n>生产中几乎无需训练</span> <span class=mi>180</span> <span class=n>个模型</span><span class=err>——</span><span class=n>混合</span> <span class=mi>10</span> <span class=n>至</span> <span class=mi>30</span> <span class=n>个不同回看长度与种子的模型</span><span class=err>，</span><span class=n>即可捕获绝大部分提升</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>一个简易集成辅助工具</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>EnsembleNBeats</span><span class=p>:</span>
 </span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>models</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>NBeats</span><span class=p>]):</span>
 </span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>models</span> <span class=o>=</span> <span class=n>models</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>predict</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>,</span> <span class=n>aggregator</span><span class=o>=</span><span class=s2>&#34;median&#34;</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
 </span></span><span class=line><span class=cl>        <span class=n>outs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>stack</span><span class=p>([</span><span class=n>m</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> <span class=k>for</span> <span class=n>m</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>models</span><span class=p>],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>outs</span><span class=o>.</span><span class=n>median</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>values</span> <span class=k>if</span> <span class=n>aggregator</span> <span class=o>==</span> <span class=s2>&#34;median&#34;</span> <span class=k>else</span> <span class=n>outs</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>对 sMAPE 类损失，中位数聚合优于均值，因其对单窗口异常预测更具鲁棒性。</p><hr><h2 id=案例-1月度零售销量预测 class=heading-anchor>案例 1：月度零售销量预测<a href=#%e6%a1%88%e4%be%8b-1%e6%9c%88%e5%ba%a6%e9%9b%b6%e5%94%ae%e9%94%80%e9%87%8f%e9%a2%84%e6%b5%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>设定</strong>：基于过去 36 个月销量，预测某多门店零售连锁未来 12 个月销量。数据具强假日季节性（12 月高峰）、整体上升趋势及偶发促销，涵盖约 200 条产品-门店序列。</p><p><strong>架构选择</strong>：采用可解释变体。业务团队需明确区分“趋势贡献”“12 月季节性提升”与“残差”。<code>[3 个趋势块] + [3 个季节性块]</code> 的设计直接满足此需求。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>make_interpretable</span><span class=p>(</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>对</span> <span class=n>sMAPE</span> <span class=n>类损失</span><span class=err>，</span><span class=n>中位数聚合优于均值</span><span class=err>，</span><span class=n>因其对单窗口异常预测更具鲁棒性</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>---</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 案例 1：月度零售销量预测</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>设定</span><span class=o>**</span><span class=err>：</span><span class=n>基于过去</span> <span class=mi>36</span> <span class=n>个月销量</span><span class=err>，</span><span class=n>预测某多门店零售连锁未来</span> <span class=mi>12</span> <span class=n>个月销量</span><span class=err>。</span><span class=n>数据具强假日季节性</span><span class=err>（</span><span class=mi>12</span> <span class=n>月高峰</span><span class=err>）、</span><span class=n>整体上升趋势及偶发促销</span><span class=err>，</span><span class=n>涵盖约</span> <span class=mi>200</span> <span class=n>条产品</span><span class=o>-</span><span class=n>门店序列</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>架构选择</span><span class=o>**</span><span class=err>：</span><span class=n>采用可解释变体</span><span class=err>。</span><span class=n>业务团队需明确区分</span><span class=err>“</span><span class=n>趋势贡献</span><span class=err>”“</span><span class=mi>12</span> <span class=n>月季节性提升</span><span class=err>”</span><span class=n>与</span><span class=err>“</span><span class=n>残差</span><span class=err>”。`</span><span class=p>[</span><span class=mi>3</span> <span class=n>个趋势块</span><span class=p>]</span> <span class=o>+</span> <span class=p>[</span><span class=mi>3</span> <span class=n>个季节性块</span><span class=p>]</span><span class=err>`</span> <span class=n>的设计直接满足此需求</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>make_interpretable</span><span class=p>(</span>
 </span></span><span class=line><span class=cl>    <span class=n>history</span><span class=o>=</span><span class=mi>36</span><span class=p>,</span> <span class=n>horizon</span><span class=o>=</span><span class=mi>12</span><span class=p>,</span>
 </span></span><span class=line><span class=cl>    <span class=n>trend_blocks</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span> <span class=n>seasonal_blocks</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span>
 </span></span><span class=line><span class=cl>    <span class=n>trend_degree</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span>                     <span class=c1># 平滑的多年趋势</span>
 </span></span><span class=line><span class=cl>    <span class=n>hidden</span><span class=o>=</span><span class=mi>256</span><span class=p>,</span> <span class=n>layers</span><span class=o>=</span><span class=mi>4</span><span class=p>,</span>
 </span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>训练后可提取各栈贡献，观察其学习内容：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>stack_contributions</span><span class=p>(</span><span class=n>model</span><span class=p>:</span> <span class=n>NBeats</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>训练后可提取各栈贡献</span><span class=err>，</span><span class=n>观察其学习内容</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>stack_contributions</span><span class=p>(</span><span class=n>model</span><span class=p>:</span> <span class=n>NBeats</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
 </span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;针对单个窗口，按栈拆分预测贡献。&#34;&#34;&#34;</span>
 </span></span><span class=line><span class=cl>    <span class=n>residual</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span>
 </span></span><span class=line><span class=cl>    <span class=n>out</span> <span class=o>=</span> <span class=p>{}</span>
@@ -429,45 +704,148 @@ $$</span><p>其中 <span class=math-inline>$K = 1, 2, 3$</span>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>out</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=n>contribs</span> <span class=o>=</span> <span class=n>stack_contributions</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>x_val</span><span class=p>[:</span><span class=mi>1</span><span class=p>])</span>
-</span></span><span class=line><span class=cl><span class=c1># contribs[&#34;trend&#34;]        -&gt; 12 个月的趋势分量</span>
-</span></span><span class=line><span class=cl><span class=c1># contribs[&#34;seasonality&#34;]  -&gt; 12 个月的季节性分量</span>
-</span></span></code></pre></td></tr></table></div></div><p><strong>典型结果</strong>：在拥有 5 年历史的真实零售数据上，可解释 N-BEATS 在 12 月预测 horizon 上 MAPE 达 7%–12%，媲美最佳梯度提升+特征工程流水线，却省去繁重特征工程。真正的优势在于可解释性：一个允许业务方用已知促销事件覆盖 12 月季节性的模型，远比回测精度高 0.5% 的黑盒实用。</p><hr><h2 id=案例-2小时级电力需求预测 class=heading-anchor>案例 2：小时级电力需求预测<a href=#%e6%a1%88%e4%be%8b-2%e5%b0%8f%e6%97%b6%e7%ba%a7%e7%94%b5%e5%8a%9b%e9%9c%80%e6%b1%82%e9%a2%84%e6%b5%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>设定</strong>：基于过去 168 小时（一周）电网需求，预测未来 24 小时。数据具强日/周周期、天气敏感性，热浪期间出现尖峰。</p><p><strong>架构选择</strong>：选用通用（Generic）变体。模式复杂（多分辨率日/周周期 + 天气驱动），且业务方首要关注精度——每兆瓦预测误差均增加运营备用成本。故采用更深通用栈与更宽隐状态。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>make_generic</span><span class=p>(</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>典型结果</span><span class=o>**</span><span class=err>：</span><span class=n>在拥有</span> <span class=mi>5</span> <span class=n>年历史的真实零售数据上</span><span class=err>，</span><span class=n>可解释</span> <span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>在</span> <span class=mi>12</span> <span class=n>月预测</span> <span class=n>horizon</span> <span class=n>上</span> <span class=n>MAPE</span> <span class=n>达</span> <span class=mi>7</span><span class=o>%</span><span class=err>–</span><span class=mi>12</span><span class=o>%</span><span class=err>，</span><span class=n>媲美最佳梯度提升</span><span class=o>+</span><span class=n>特征工程流水线</span><span class=err>，</span><span class=n>却省去繁重特征工程</span><span class=err>。</span><span class=n>真正的优势在于可解释性</span><span class=err>：</span><span class=n>一个允许业务方用已知促销事件覆盖</span> <span class=mi>12</span> <span class=n>月季节性的模型</span><span class=err>，</span><span class=n>远比回测精度高</span> <span class=mf>0.5</span><span class=o>%</span> <span class=n>的黑盒实用</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>---</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 案例 2：小时级电力需求预测</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>设定</span><span class=o>**</span><span class=err>：</span><span class=n>基于过去</span> <span class=mi>168</span> <span class=n>小时</span><span class=err>（</span><span class=n>一周</span><span class=err>）</span><span class=n>电网需求</span><span class=err>，</span><span class=n>预测未来</span> <span class=mi>24</span> <span class=n>小时</span><span class=err>。</span><span class=n>数据具强日</span><span class=o>/</span><span class=n>周周期</span><span class=err>、</span><span class=n>天气敏感性</span><span class=err>，</span><span class=n>热浪期间出现尖峰</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>架构选择</span><span class=o>**</span><span class=err>：</span><span class=n>选用通用</span><span class=err>（</span><span class=n>Generic</span><span class=err>）</span><span class=n>变体</span><span class=err>。</span><span class=n>模式复杂</span><span class=err>（</span><span class=n>多分辨率日</span><span class=o>/</span><span class=n>周周期</span> <span class=o>+</span> <span class=n>天气驱动</span><span class=err>），</span><span class=n>且业务方首要关注精度</span><span class=err>——</span><span class=n>每兆瓦预测误差均增加运营备用成本</span><span class=err>。</span><span class=n>故采用更深通用栈与更宽隐状态</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>make_generic</span><span class=p>(</span>
 </span></span><span class=line><span class=cl>    <span class=n>history</span><span class=o>=</span><span class=mi>168</span><span class=p>,</span> <span class=n>horizon</span><span class=o>=</span><span class=mi>24</span><span class=p>,</span>
 </span></span><span class=line><span class=cl>    <span class=n>num_blocks</span><span class=o>=</span><span class=mi>30</span><span class=p>,</span> <span class=n>theta_size</span><span class=o>=</span><span class=mi>32</span><span class=p>,</span>
 </span></span><span class=line><span class=cl>    <span class=n>hidden</span><span class=o>=</span><span class=mi>512</span><span class=p>,</span> <span class=n>layers</span><span class=o>=</span><span class=mi>4</span><span class=p>,</span>
 </span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p><strong>逐窗口标准化在此尤为关键</strong>：需求水平随季节大幅波动；若不做标准化，模型会浪费容量学习“冬季高于夏季”这类常识。标准化后，网络只需专注形状学习。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span><span class=lnt>8
-</span><span class=lnt>9
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>normalise_window</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>tuple</span><span class=p>:</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>逐窗口标准化在此尤为关键</span><span class=o>**</span><span class=err>：</span><span class=n>需求水平随季节大幅波动</span><span class=err>；</span><span class=n>若不做标准化</span><span class=err>，</span><span class=n>模型会浪费容量学习</span><span class=err>“</span><span class=n>冬季高于夏季</span><span class=err>”</span><span class=n>这类常识</span><span class=err>。</span><span class=n>标准化后</span><span class=err>，</span><span class=n>网络只需专注形状学习</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>normalise_window</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>tuple</span><span class=p>:</span>
 </span></span><span class=line><span class=cl>    <span class=n>mu</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>,</span> <span class=n>keepdim</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>    <span class=n>sd</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>std</span><span class=p>(</span><span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>,</span> <span class=n>keepdim</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span> <span class=o>+</span> <span class=mf>1e-6</span>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>(</span><span class=n>x</span> <span class=o>-</span> <span class=n>mu</span><span class=p>)</span> <span class=o>/</span> <span class=n>sd</span><span class=p>,</span> <span class=n>mu</span><span class=p>,</span> <span class=n>sd</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 前向计算：</span>
 </span></span><span class=line><span class=cl><span class=n>x_norm</span><span class=p>,</span> <span class=n>mu</span><span class=p>,</span> <span class=n>sd</span> <span class=o>=</span> <span class=n>normalise_window</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>y_norm</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>x_norm</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>y_hat</span> <span class=o>=</span> <span class=n>y_norm</span> <span class=o>*</span> <span class=n>sd</span> <span class=o>+</span> <span class=n>mu</span>  <span class=c1># 广播到 (B, H)</span>
-</span></span></code></pre></td></tr></table></div></div><p><strong>典型结果</strong>：在公开 ETT（Electricity Transformer Temperature）小时级数据集上，10 个通用 N-BEATS 模型集成在 24 小时 horizon 上 MSE 约 0.31，显著优于 LSTM（~0.42），且实现成本远低于 Informer，精度却相当。</p><hr><h2 id=超参速查表 class=heading-anchor>超参速查表<a href=#%e8%b6%85%e5%8f%82%e9%80%9f%e6%9f%a5%e8%a1%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>新数据集的实用起点：</p><div class=table-wrap><table><thead><tr><th>超参数</th><th>默认（可解释）</th><th>默认（通用）</th><th>调参提示</th></tr></thead><tbody><tr><td>回看 <code>history</code></td><td>预测长度 × 4 到 7</td><td>预测长度 × 4 到 7</td><td>越大覆盖越多季节；按 2 倍步长调整</td></tr><tr><td>隐藏宽度</td><td>256</td><td>512</td><td>若验证损失高位停滞则增大</td></tr><tr><td>每块 MLP 层数</td><td>4</td><td>4</td><td>极少需改动</td></tr><tr><td>趋势阶数</td><td>2 或 3</td><td>—</td><td>趋势有曲率用 3，否则用 2</td></tr><tr><td>趋势块数</td><td>3</td><td>—</td><td>若趋势 RMSE 主导误差则增加</td></tr><tr><td>季节性块数</td><td>3</td><td>—</td><td>多分辨率季节性时增加</td></tr><tr><td>通用块数</td><td>—</td><td>20 到 30</td><td>增加通常仍有帮助，但收益递减</td></tr><tr><td>通用 <span class=math-inline>$\theta$</span>
-尺寸</td><td>—</td><td>32</td><td>16 易欠拟合，64+ 很少带来增益</td></tr><tr><td>损失函数</td><td>MAE / sMAPE</td><td>MAE / sMAPE</td><td>与评估指标一致</td></tr><tr><td>优化器</td><td>Adam, lr 1e-3</td><td>Adam, lr 1e-3</td><td>用余弦退火；无需 warmup</td></tr><tr><td>集成规模</td><td>10–30</td><td>10–30</td><td>用中位数聚合</td></tr></tbody></table></div><hr><h2 id=何时不该用-n-beats class=heading-anchor>何时不该用 N-BEATS<a href=#%e4%bd%95%e6%97%b6%e4%b8%8d%e8%af%a5%e7%94%a8-n-beats class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li><strong>超长预测 horizon（>1000 步）</strong>：输出投影 <span class=math-inline>$\theta \to \hat{y}$</span>
-成为参数瓶颈。改用 <strong>N-HiTS</strong>（N-BEATS 后继者）或 PatchTST，二者通过多速率下采样扩展能力。</li><li><strong>强交互多变量时序</strong>：N-BEATS 本质为单变量模型。可为每变量单独建模，或尝试 TFT / Informer / DeepAR。</li><li><strong>极短序列（~50 观测点）</strong>：MLP 主干含数万参数，在小数据上难敌 Theta 或 ETS。</li><li><strong>在线流式预测</strong>：N-BEATS 处理固定窗口，非流式隐藏状态。LSTM 或 TCN 更自然。</li><li><strong>预测需满足硬约束</strong>（非负、整数）：N-BEATS 输出无约束实数；可后处理或用带裁剪的分位损失，但原生支持分布输出的模型（如 DeepAR）可能更简单。</li></ul><hr><h2 id=常见问题 class=heading-anchor>常见问题<a href=#%e5%b8%b8%e8%a7%81%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=为何选多项式与傅里叶基 class=heading-anchor>为何选多项式与傅里叶基？<a href=#%e4%b8%ba%e4%bd%95%e9%80%89%e5%a4%9a%e9%a1%b9%e5%bc%8f%e4%b8%8e%e5%82%85%e9%87%8c%e5%8f%b6%e5%9f%ba class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>多项式在紧区间上稠密于连续函数（Stone-Weierstrass 定理），傅里叶基则稠密于周期函数。二者结合构成“平滑趋势 + 周期成分”的强先验，契合多数真实序列。</p><h3 id=阶多项式趋势块能否学习高阶行为 class=heading-anchor>阶多项式趋势块能否学习高阶行为？<a href=#%e9%98%b6%e5%a4%9a%e9%a1%b9%e5%bc%8f%e8%b6%8b%e5%8a%bf%e5%9d%97%e8%83%bd%e5%90%a6%e5%ad%a6%e4%b9%a0%e9%ab%98%e9%98%b6%e8%a1%8c%e4%b8%ba class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>局部可以，全局不行。每个块处理的是前块残差，故三层趋势块可组合三个三次函数，足以拟合合理预测范围内的任意趋势。</p><h3 id=为何用-adam-而非-sgd class=heading-anchor>为何用 Adam 而非 SGD？<a href=#%e4%b8%ba%e4%bd%95%e7%94%a8-adam-%e8%80%8c%e9%9d%9e-sgd class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>实验表明 N-BEATS 用 Adam 收敛快得多。论文指出 SGD 需精细调参才能匹配 Adam 默认效果。</p><h3 id=n-beats-需位置编码吗 class=heading-anchor>N-BEATS 需位置编码吗？<a href=#n-beats-%e9%9c%80%e4%bd%8d%e7%bd%ae%e7%bc%96%e7%a0%81%e5%90%97 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>不需要。MLP 将窗口视为固定向量，“位置”隐含于输入列索引，输出基矩阵已编码每步时间索引。</p><h3 id=如何扩展以支持外生变量天气节假日 class=heading-anchor>如何扩展以支持外生变量（天气、节假日）？<a href=#%e5%a6%82%e4%bd%95%e6%89%a9%e5%b1%95%e4%bb%a5%e6%94%af%e6%8c%81%e5%a4%96%e7%94%9f%e5%8f%98%e9%87%8f%e5%a4%a9%e6%b0%94%e8%8a%82%e5%81%87%e6%97%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>官方扩展 <strong>N-BEATS-X</strong>：将外生协变量拼接至输入窗口，并为每块添加辅助输入头。实践中，直接拼接外生序列并略增首层 MLP 宽度通常已足够。</p><h3 id=n-hits-是什么是否应直接使用 class=heading-anchor>N-HiTS 是什么？是否应直接使用？<a href=#n-hits-%e6%98%af%e4%bb%80%e4%b9%88%e6%98%af%e5%90%a6%e5%ba%94%e7%9b%b4%e6%8e%a5%e4%bd%bf%e7%94%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>N-HiTS（2023）出自同团队，通过输出端多速率下采样与插值，支持更长 horizon（720+ 步）且运行更快。但对短中期 horizon（&lt;100 步），原版 N-BEATS 仍具竞争力且更简单。</p><p><strong>为何必须集成？我的单模型效果很好。</strong></p><p>你可能在此数据集上运气不错。论文显示，在 10 万条 M4 序列上单模型方差很大——即使仅集成 5 个模型，也能降低 1–2 sMAPE 点。若只需单点估计且数据量小，可跳过集成；但若需报告结果，强烈建议集成。</p><hr><h2 id=总结 class=heading-anchor>总结<a href=#%e6%80%bb%e7%bb%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>N-BEATS 是个“架构平淡无奇”的模型，却靠将合适模块按正确顺序堆叠而取胜。双重残差流赋予其 boosting 式行为；基函数输出头提供强归纳偏置，并在可解释变体中实现免费分解；M4 排行榜验证了该组合对经典方法与循环深度模型的双重优势。</p><p>对大多数采样规则、趋势/季节结构清晰的单变量预测问题，N-BEATS 是最强开箱即用基线之一。建议从可解释变体入手以争取业务认可，若需榨取极限精度，可切换至（或集成）通用变体，并记得在回看长度与随机种子上做集成。</p><p>下一章我们将以 <strong>Informer</strong> 收尾，它解决的是另一难题：如何让 Transformer 在千步级 horizon 预测中，避开 <span class=math-inline>$\mathcal{O}(L^2)$</span>
-注意力计算成本的拖累。</p><hr><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>N-BEATS 给我们的核心 lesson 是：在时间序列领域，<strong>架构设计比模型容量更重要</strong>。它没有用 RNN、没有用 attention、参数也不算特别多，仅凭"双重残差堆叠 + 基函数展开"这一个结构性想法，就在 M4 上击败了几十年精心调过的统计集成。这件事也告诉你，盲目堆 Transformer 不一定是对的——很多时序任务，对的归纳偏置（inductive bias）比模型容量更值钱。</p><p>不过 N-BEATS 也有它的边界：它本质是 MLP，对<strong>特别长的输入序列</strong>会有点吃力（参数量跟着 lookback 长度线性涨）。如果你的任务是"基于过去 720 步预测未来 168 步"——能源、气象、长程 IoT 这一类——N-BEATS 就开始力不从心了，这时候你需要专门为长序列设计的架构。</p><p>下一篇 <a href=/zh/time-series/08-informer%e9%95%bf%e5%ba%8f%e5%88%97%e9%a2%84%e6%b5%8b>Informer</a>
-正是为这个场景设计的。它用三个独立的技巧联合发力：ProbSparse 注意力把 O(n²) 降到 O(n log n)、编码器蒸馏让序列每层减半、生成式解码器一次预测整个 horizon。综合下来比朴素 Transformer 快 6-10 倍、精度还更好。这是本系列的收尾篇，我会同时给一份"该选哪个模型"的总览决策表，帮你在新项目上从这八种架构里挑出最合适的那个。</p><h2 id=参考文献 class=heading-anchor>参考文献<a href=#%e5%8f%82%e8%80%83%e6%96%87%e7%8c%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>Oreshkin, B. N., Carpov, D., Chapados, N., & Bengio, Y. (2020). <em>N-BEATS: Neural Basis Expansion Analysis for Interpretable Time Series Forecasting.</em> ICLR.</li><li>Makridakis, S., Spiliotis, E., & Assimakopoulos, V. (2020). <em>The M4 Competition: 100,000 Time Series and 61 Forecasting Methods.</em> International Journal of Forecasting, 36(1).</li><li>Smyl, S. (2020). <em>A Hybrid Method of Exponential Smoothing and Recurrent Neural Networks for Time Series Forecasting.</em> International Journal of Forecasting, 36(1).</li><li>Challu, C. et al. (2023). <em>N-HiTS: Neural Hierarchical Interpolation for Time Series Forecasting.</em> AAAI.</li><li>Olivares, K. et al. (2023). <em>Neural Basis Expansion Analysis with Exogenous Variables: Forecasting Electricity Prices with N-BEATS-X.</em> International Journal of Forecasting.</li></ul><blockquote><p>本文是时间序列模型系列的<strong>第 7 篇</strong>，共 8 篇。</p><ul><li><a href=/zh/time-series/01-%e4%bc%a0%e7%bb%9f%e6%a8%a1%e5%9e%8b/>第 1 篇：传统统计模型</a></li><li><a href=/zh/time-series/02-lstm>第 2 篇：LSTM —— 门控机制与长期依赖</a></li><li><a href=/zh/time-series/03-gru>第 3 篇：GRU —— 轻量门控与效率权衡</a></li><li><a href=/zh/time-series/04-attention%e6%9c%ba%e5%88%b6>第 4 篇：Attention 机制 —— 直接的长程依赖</a></li><li><a href=/zh/time-series/05-transformer%e6%9e%b6%e6%9e%84>第 5 篇：时间序列的 Transformer 架构</a></li><li><a href=/zh/time-series/06-%e6%97%b6%e5%ba%8f%e5%8d%b7%e7%a7%af%e7%bd%91%e7%bb%9ctcn>第 6 篇：时序卷积网络 TCN</a></li><li><strong>第 7 篇： N-BEATS —— 可解释的深度架构</strong>（当前）</li><li><a href=/zh/time-series/08-informer%e9%95%bf%e5%ba%8f%e5%88%97%e9%a2%84%e6%b5%8b>第 8 篇：Informer —— 高效长序列预测</a></li></ul></blockquote></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>典型结果</span><span class=o>**</span><span class=err>：</span><span class=n>在公开</span> <span class=n>ETT</span><span class=err>（</span><span class=n>Electricity</span> <span class=n>Transformer</span> <span class=n>Temperature</span><span class=err>）</span><span class=n>小时级数据集上</span><span class=err>，</span><span class=mi>10</span> <span class=n>个通用</span> <span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>模型集成在</span> <span class=mi>24</span> <span class=n>小时</span> <span class=n>horizon</span> <span class=n>上</span> <span class=n>MSE</span> <span class=n>约</span> <span class=mf>0.31</span><span class=err>，</span><span class=n>显著优于</span> <span class=n>LSTM</span><span class=err>（</span><span class=o>~</span><span class=mf>0.42</span><span class=err>），</span><span class=n>且实现成本远低于</span> <span class=n>Informer</span><span class=err>，</span><span class=n>精度却相当</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>---</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 超参速查表</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>新数据集的实用起点</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>超参数</span> <span class=o>|</span> <span class=n>默认</span><span class=err>（</span><span class=n>可解释</span><span class=err>）</span> <span class=o>|</span> <span class=n>默认</span><span class=err>（</span><span class=n>通用</span><span class=err>）</span> <span class=o>|</span> <span class=n>调参提示</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|---|---|---|---|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>回看</span> <span class=err>`</span><span class=n>history</span><span class=err>`</span> <span class=o>|</span> <span class=n>预测长度</span> <span class=err>×</span> <span class=mi>4</span> <span class=n>到</span> <span class=mi>7</span> <span class=o>|</span> <span class=n>预测长度</span> <span class=err>×</span> <span class=mi>4</span> <span class=n>到</span> <span class=mi>7</span> <span class=o>|</span> <span class=n>越大覆盖越多季节</span><span class=err>；</span><span class=n>按</span> <span class=mi>2</span> <span class=n>倍步长调整</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>隐藏宽度</span> <span class=o>|</span> <span class=mi>256</span> <span class=o>|</span> <span class=mi>512</span> <span class=o>|</span> <span class=n>若验证损失高位停滞则增大</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>每块</span> <span class=n>MLP</span> <span class=n>层数</span> <span class=o>|</span> <span class=mi>4</span> <span class=o>|</span> <span class=mi>4</span> <span class=o>|</span> <span class=n>极少需改动</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>趋势阶数</span> <span class=o>|</span> <span class=mi>2</span> <span class=n>或</span> <span class=mi>3</span> <span class=o>|</span> <span class=err>—</span> <span class=o>|</span> <span class=n>趋势有曲率用</span> <span class=mi>3</span><span class=err>，</span><span class=n>否则用</span> <span class=mi>2</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>趋势块数</span> <span class=o>|</span> <span class=mi>3</span> <span class=o>|</span> <span class=err>—</span> <span class=o>|</span> <span class=n>若趋势</span> <span class=n>RMSE</span> <span class=n>主导误差则增加</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>季节性块数</span> <span class=o>|</span> <span class=mi>3</span> <span class=o>|</span> <span class=err>—</span> <span class=o>|</span> <span class=n>多分辨率季节性时增加</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>通用块数</span> <span class=o>|</span> <span class=err>—</span> <span class=o>|</span> <span class=mi>20</span> <span class=n>到</span> <span class=mi>30</span> <span class=o>|</span> <span class=n>增加通常仍有帮助</span><span class=err>，</span><span class=n>但收益递减</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>通用</span> <span class=err>$</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>尺寸</span> <span class=o>|</span> <span class=err>—</span> <span class=o>|</span> <span class=mi>32</span> <span class=o>|</span> <span class=mi>16</span> <span class=n>易欠拟合</span><span class=err>，</span><span class=mi>64</span><span class=o>+</span> <span class=n>很少带来增益</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>损失函数</span> <span class=o>|</span> <span class=n>MAE</span> <span class=o>/</span> <span class=n>sMAPE</span> <span class=o>|</span> <span class=n>MAE</span> <span class=o>/</span> <span class=n>sMAPE</span> <span class=o>|</span> <span class=n>与评估指标一致</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>优化器</span> <span class=o>|</span> <span class=n>Adam</span><span class=p>,</span> <span class=n>lr</span> <span class=mf>1e-3</span> <span class=o>|</span> <span class=n>Adam</span><span class=p>,</span> <span class=n>lr</span> <span class=mf>1e-3</span> <span class=o>|</span> <span class=n>用余弦退火</span><span class=err>；</span><span class=n>无需</span> <span class=n>warmup</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>集成规模</span> <span class=o>|</span> <span class=mi>10</span><span class=err>–</span><span class=mi>30</span> <span class=o>|</span> <span class=mi>10</span><span class=err>–</span><span class=mi>30</span> <span class=o>|</span> <span class=n>用中位数聚合</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>---</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 何时不该用 N-BEATS</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>超长预测</span> <span class=n>horizon</span><span class=err>（</span><span class=o>&gt;</span><span class=mi>1000</span> <span class=n>步</span><span class=err>）</span><span class=o>**</span><span class=err>：</span><span class=n>输出投影</span> <span class=err>$</span>\<span class=n>theta</span> \<span class=n>to</span> \<span class=n>hat</span><span class=p>{</span><span class=n>y</span><span class=p>}</span><span class=err>$</span> <span class=n>成为参数瓶颈</span><span class=err>。</span><span class=n>改用</span> <span class=o>**</span><span class=n>N</span><span class=o>-</span><span class=n>HiTS</span><span class=o>**</span><span class=err>（</span><span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>后继者</span><span class=err>）</span><span class=n>或</span> <span class=n>PatchTST</span><span class=err>，</span><span class=n>二者通过多速率下采样扩展能力</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>强交互多变量时序</span><span class=o>**</span><span class=err>：</span><span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>本质为单变量模型</span><span class=err>。</span><span class=n>可为每变量单独建模</span><span class=err>，</span><span class=n>或尝试</span> <span class=n>TFT</span> <span class=o>/</span> <span class=n>Informer</span> <span class=o>/</span> <span class=n>DeepAR</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>极短序列</span><span class=err>（</span><span class=o>~</span><span class=mi>50</span> <span class=n>观测点</span><span class=err>）</span><span class=o>**</span><span class=err>：</span><span class=n>MLP</span> <span class=n>主干含数万参数</span><span class=err>，</span><span class=n>在小数据上难敌</span> <span class=n>Theta</span> <span class=n>或</span> <span class=n>ETS</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>在线流式预测</span><span class=o>**</span><span class=err>：</span><span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>处理固定窗口</span><span class=err>，</span><span class=n>非流式隐藏状态</span><span class=err>。</span><span class=n>LSTM</span> <span class=n>或</span> <span class=n>TCN</span> <span class=n>更自然</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>预测需满足硬约束</span><span class=o>**</span><span class=err>（</span><span class=n>非负</span><span class=err>、</span><span class=n>整数</span><span class=err>）：</span><span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>输出无约束实数</span><span class=err>；</span><span class=n>可后处理或用带裁剪的分位损失</span><span class=err>，</span><span class=n>但原生支持分布输出的模型</span><span class=err>（</span><span class=n>如</span> <span class=n>DeepAR</span><span class=err>）</span><span class=n>可能更简单</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>---</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 常见问题</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 为何选多项式与傅里叶基？</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>多项式在紧区间上稠密于连续函数</span><span class=err>（</span><span class=n>Stone</span><span class=o>-</span><span class=n>Weierstrass</span> <span class=n>定理</span><span class=err>），</span><span class=n>傅里叶基则稠密于周期函数</span><span class=err>。</span><span class=n>二者结合构成</span><span class=err>“</span><span class=n>平滑趋势</span> <span class=o>+</span> <span class=n>周期成分</span><span class=err>”</span><span class=n>的强先验</span><span class=err>，</span><span class=n>契合多数真实序列</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 阶多项式趋势块能否学习高阶行为？</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>局部可以</span><span class=err>，</span><span class=n>全局不行</span><span class=err>。</span><span class=n>每个块处理的是前块残差</span><span class=err>，</span><span class=n>故三层趋势块可组合三个三次函数</span><span class=err>，</span><span class=n>足以拟合合理预测范围内的任意趋势</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 为何用 Adam 而非 SGD？</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>实验表明</span> <span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>用</span> <span class=n>Adam</span> <span class=n>收敛快得多</span><span class=err>。</span><span class=n>论文指出</span> <span class=n>SGD</span> <span class=n>需精细调参才能匹配</span> <span class=n>Adam</span> <span class=n>默认效果</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### N-BEATS 需位置编码吗？</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>不需要</span><span class=err>。</span><span class=n>MLP</span> <span class=n>将窗口视为固定向量</span><span class=err>，“</span><span class=n>位置</span><span class=err>”</span><span class=n>隐含于输入列索引</span><span class=err>，</span><span class=n>输出基矩阵已编码每步时间索引</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 如何扩展以支持外生变量（天气、节假日）？</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>官方扩展</span> <span class=o>**</span><span class=n>N</span><span class=o>-</span><span class=n>BEATS</span><span class=o>-</span><span class=n>X</span><span class=o>**</span><span class=err>：</span><span class=n>将外生协变量拼接至输入窗口</span><span class=err>，</span><span class=n>并为每块添加辅助输入头</span><span class=err>。</span><span class=n>实践中</span><span class=err>，</span><span class=n>直接拼接外生序列并略增首层</span> <span class=n>MLP</span> <span class=n>宽度通常已足够</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### N-HiTS 是什么？是否应直接使用？</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>N</span><span class=o>-</span><span class=n>HiTS</span><span class=err>（</span><span class=mi>2023</span><span class=err>）</span><span class=n>出自同团队</span><span class=err>，</span><span class=n>通过输出端多速率下采样与插值</span><span class=err>，</span><span class=n>支持更长</span> <span class=n>horizon</span><span class=err>（</span><span class=mi>720</span><span class=o>+</span> <span class=n>步</span><span class=err>）</span><span class=n>且运行更快</span><span class=err>。</span><span class=n>但对短中期</span> <span class=n>horizon</span><span class=err>（</span><span class=o>&lt;</span><span class=mi>100</span> <span class=n>步</span><span class=err>），</span><span class=n>原版</span> <span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>仍具竞争力且更简单</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>为何必须集成</span><span class=err>？</span><span class=n>我的单模型效果很好</span><span class=err>。</span><span class=o>**</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>你可能在此数据集上运气不错</span><span class=err>。</span><span class=n>论文显示</span><span class=err>，</span><span class=n>在</span> <span class=mi>10</span> <span class=n>万条</span> <span class=n>M4</span> <span class=n>序列上单模型方差很大</span><span class=err>——</span><span class=n>即使仅集成</span> <span class=mi>5</span> <span class=n>个模型</span><span class=err>，</span><span class=n>也能降低</span> <span class=mi>1</span><span class=err>–</span><span class=mi>2</span> <span class=n>sMAPE</span> <span class=n>点</span><span class=err>。</span><span class=n>若只需单点估计且数据量小</span><span class=err>，</span><span class=n>可跳过集成</span><span class=err>；</span><span class=n>但若需报告结果</span><span class=err>，</span><span class=n>强烈建议集成</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>---</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 总结</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>是个</span><span class=err>“</span><span class=n>架构平淡无奇</span><span class=err>”</span><span class=n>的模型</span><span class=err>，</span><span class=n>却靠将合适模块按正确顺序堆叠而取胜</span><span class=err>。</span><span class=n>双重残差流赋予其</span> <span class=n>boosting</span> <span class=n>式行为</span><span class=err>；</span><span class=n>基函数输出头提供强归纳偏置</span><span class=err>，</span><span class=n>并在可解释变体中实现免费分解</span><span class=err>；</span><span class=n>M4</span> <span class=n>排行榜验证了该组合对经典方法与循环深度模型的双重优势</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>对大多数采样规则</span><span class=err>、</span><span class=n>趋势</span><span class=o>/</span><span class=n>季节结构清晰的单变量预测问题</span><span class=err>，</span><span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>是最强开箱即用基线之一</span><span class=err>。</span><span class=n>建议从可解释变体入手以争取业务认可</span><span class=err>，</span><span class=n>若需榨取极限精度</span><span class=err>，</span><span class=n>可切换至</span><span class=err>（</span><span class=n>或集成</span><span class=err>）</span><span class=n>通用变体</span><span class=err>，</span><span class=n>并记得在回看长度与随机种子上做集成</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>下一章我们将以</span> <span class=o>**</span><span class=n>Informer</span><span class=o>**</span> <span class=n>收尾</span><span class=err>，</span><span class=n>它解决的是另一难题</span><span class=err>：</span><span class=n>如何让</span> <span class=n>Transformer</span> <span class=n>在千步级</span> <span class=n>horizon</span> <span class=n>预测中</span><span class=err>，</span><span class=n>避开</span> <span class=err>$</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>O</span><span class=p>}(</span><span class=n>L</span><span class=o>^</span><span class=mi>2</span><span class=p>)</span><span class=err>$</span> <span class=n>注意力计算成本的拖累</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>---</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 下一步</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>给我们的核心</span> <span class=n>lesson</span> <span class=n>是</span><span class=err>：</span><span class=n>在时间序列领域</span><span class=err>，</span><span class=o>**</span><span class=n>架构设计比模型容量更重要</span><span class=o>**</span><span class=err>。</span><span class=n>它没有用</span> <span class=n>RNN</span><span class=err>、</span><span class=n>没有用</span> <span class=n>attention</span><span class=err>、</span><span class=n>参数也不算特别多</span><span class=err>，</span><span class=n>仅凭</span><span class=s2>&#34;双重残差堆叠 + 基函数展开&#34;</span><span class=n>这一个结构性想法</span><span class=err>，</span><span class=n>就在</span> <span class=n>M4</span> <span class=n>上击败了几十年精心调过的统计集成</span><span class=err>。</span><span class=n>这件事也告诉你</span><span class=err>，</span><span class=n>盲目堆</span> <span class=n>Transformer</span> <span class=n>不一定是对的</span><span class=err>——</span><span class=n>很多时序任务</span><span class=err>，</span><span class=n>对的归纳偏置</span><span class=err>（</span><span class=n>inductive</span> <span class=n>bias</span><span class=err>）</span><span class=n>比模型容量更值钱</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>不过</span> <span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>也有它的边界</span><span class=err>：</span><span class=n>它本质是</span> <span class=n>MLP</span><span class=err>，</span><span class=n>对</span><span class=o>**</span><span class=n>特别长的输入序列</span><span class=o>**</span><span class=n>会有点吃力</span><span class=err>（</span><span class=n>参数量跟着</span> <span class=n>lookback</span> <span class=n>长度线性涨</span><span class=err>）。</span><span class=n>如果你的任务是</span><span class=s2>&#34;基于过去 720 步预测未来 168 步&#34;</span><span class=err>——</span><span class=n>能源</span><span class=err>、</span><span class=n>气象</span><span class=err>、</span><span class=n>长程</span> <span class=n>IoT</span> <span class=n>这一类</span><span class=err>——</span><span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=n>就开始力不从心了</span><span class=err>，</span><span class=n>这时候你需要专门为长序列设计的架构</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>下一篇</span> <span class=p>[</span><span class=n>Informer</span><span class=p>](</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=mi>08</span><span class=o>-</span><span class=n>informer长序列预测</span><span class=p>)</span> <span class=n>正是为这个场景设计的</span><span class=err>。</span><span class=n>它用三个独立的技巧联合发力</span><span class=err>：</span><span class=n>ProbSparse</span> <span class=n>注意力把</span> <span class=n>O</span><span class=p>(</span><span class=n>n²</span><span class=p>)</span> <span class=n>降到</span> <span class=n>O</span><span class=p>(</span><span class=n>n</span> <span class=n>log</span> <span class=n>n</span><span class=p>)</span><span class=err>、</span><span class=n>编码器蒸馏让序列每层减半</span><span class=err>、</span><span class=n>生成式解码器一次预测整个</span> <span class=n>horizon</span><span class=err>。</span><span class=n>综合下来比朴素</span> <span class=n>Transformer</span> <span class=n>快</span> <span class=mi>6</span><span class=o>-</span><span class=mi>10</span> <span class=n>倍</span><span class=err>、</span><span class=n>精度还更好</span><span class=err>。</span><span class=n>这是本系列的收尾篇</span><span class=err>，</span><span class=n>我会同时给一份</span><span class=s2>&#34;该选哪个模型&#34;</span><span class=n>的总览决策表</span><span class=err>，</span><span class=n>帮你在新项目上从这八种架构里挑出最合适的那个</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 参考文献</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Oreshkin</span><span class=p>,</span> <span class=n>B</span><span class=o>.</span> <span class=n>N</span><span class=o>.</span><span class=p>,</span> <span class=n>Carpov</span><span class=p>,</span> <span class=n>D</span><span class=o>.</span><span class=p>,</span> <span class=n>Chapados</span><span class=p>,</span> <span class=n>N</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Bengio</span><span class=p>,</span> <span class=n>Y</span><span class=o>.</span> <span class=p>(</span><span class=mi>2020</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>N</span><span class=o>-</span><span class=n>BEATS</span><span class=p>:</span> <span class=n>Neural</span> <span class=n>Basis</span> <span class=n>Expansion</span> <span class=n>Analysis</span> <span class=k>for</span> <span class=n>Interpretable</span> <span class=n>Time</span> <span class=n>Series</span> <span class=n>Forecasting</span><span class=o>.*</span> <span class=n>ICLR</span><span class=o>.</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Makridakis</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span><span class=p>,</span> <span class=n>Spiliotis</span><span class=p>,</span> <span class=n>E</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Assimakopoulos</span><span class=p>,</span> <span class=n>V</span><span class=o>.</span> <span class=p>(</span><span class=mi>2020</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>The</span> <span class=n>M4</span> <span class=n>Competition</span><span class=p>:</span> <span class=mi>100</span><span class=p>,</span><span class=mi>000</span> <span class=n>Time</span> <span class=n>Series</span> <span class=ow>and</span> <span class=mi>61</span> <span class=n>Forecasting</span> <span class=n>Methods</span><span class=o>.*</span> <span class=n>International</span> <span class=n>Journal</span> <span class=n>of</span> <span class=n>Forecasting</span><span class=p>,</span> <span class=mi>36</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Smyl</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span> <span class=p>(</span><span class=mi>2020</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>A</span> <span class=n>Hybrid</span> <span class=n>Method</span> <span class=n>of</span> <span class=n>Exponential</span> <span class=n>Smoothing</span> <span class=ow>and</span> <span class=n>Recurrent</span> <span class=n>Neural</span> <span class=n>Networks</span> <span class=k>for</span> <span class=n>Time</span> <span class=n>Series</span> <span class=n>Forecasting</span><span class=o>.*</span> <span class=n>International</span> <span class=n>Journal</span> <span class=n>of</span> <span class=n>Forecasting</span><span class=p>,</span> <span class=mi>36</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Challu</span><span class=p>,</span> <span class=n>C</span><span class=o>.</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span> <span class=p>(</span><span class=mi>2023</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>N</span><span class=o>-</span><span class=n>HiTS</span><span class=p>:</span> <span class=n>Neural</span> <span class=n>Hierarchical</span> <span class=n>Interpolation</span> <span class=k>for</span> <span class=n>Time</span> <span class=n>Series</span> <span class=n>Forecasting</span><span class=o>.*</span> <span class=n>AAAI</span><span class=o>.</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Olivares</span><span class=p>,</span> <span class=n>K</span><span class=o>.</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span> <span class=p>(</span><span class=mi>2023</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>Neural</span> <span class=n>Basis</span> <span class=n>Expansion</span> <span class=n>Analysis</span> <span class=k>with</span> <span class=n>Exogenous</span> <span class=n>Variables</span><span class=p>:</span> <span class=n>Forecasting</span> <span class=n>Electricity</span> <span class=n>Prices</span> <span class=k>with</span> <span class=n>N</span><span class=o>-</span><span class=n>BEATS</span><span class=o>-</span><span class=n>X</span><span class=o>.*</span> <span class=n>International</span> <span class=n>Journal</span> <span class=n>of</span> <span class=n>Forecasting</span><span class=o>.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=n>本文是时间序列模型系列的</span><span class=o>**</span><span class=n>第</span> <span class=mi>7</span> <span class=n>篇</span><span class=o>**</span><span class=err>，</span><span class=n>共</span> <span class=mi>8</span> <span class=n>篇</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>-</span> <span class=p>[</span><span class=n>第</span> <span class=mi>1</span> <span class=n>篇</span><span class=err>：</span><span class=n>传统统计模型</span><span class=p>](</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=mi>01</span><span class=o>-</span><span class=n>传统模型</span><span class=o>/</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>-</span> <span class=p>[</span><span class=n>第</span> <span class=mi>2</span> <span class=n>篇</span><span class=err>：</span><span class=n>LSTM</span> <span class=err>——</span> <span class=n>门控机制与长期依赖</span><span class=p>](</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=mi>02</span><span class=o>-</span><span class=n>lstm</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>-</span> <span class=p>[</span><span class=n>第</span> <span class=mi>3</span> <span class=n>篇</span><span class=err>：</span><span class=n>GRU</span> <span class=err>——</span> <span class=n>轻量门控与效率权衡</span><span class=p>](</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=mi>03</span><span class=o>-</span><span class=n>gru</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>-</span> <span class=p>[</span><span class=n>第</span> <span class=mi>4</span> <span class=n>篇</span><span class=err>：</span><span class=n>Attention</span> <span class=n>机制</span> <span class=err>——</span> <span class=n>直接的长程依赖</span><span class=p>](</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=mi>04</span><span class=o>-</span><span class=n>attention机制</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>-</span> <span class=p>[</span><span class=n>第</span> <span class=mi>5</span> <span class=n>篇</span><span class=err>：</span><span class=n>时间序列的</span> <span class=n>Transformer</span> <span class=n>架构</span><span class=p>](</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=mi>05</span><span class=o>-</span><span class=n>transformer架构</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>-</span> <span class=p>[</span><span class=n>第</span> <span class=mi>6</span> <span class=n>篇</span><span class=err>：</span><span class=n>时序卷积网络</span> <span class=n>TCN</span><span class=p>](</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=mi>06</span><span class=o>-</span><span class=n>时序卷积网络tcn</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>-</span> <span class=o>**</span><span class=n>第</span> <span class=mi>7</span> <span class=n>篇</span><span class=err>：</span> <span class=n>N</span><span class=o>-</span><span class=n>BEATS</span> <span class=err>——</span> <span class=n>可解释的深度架构</span><span class=o>**</span><span class=err>（</span><span class=n>当前</span><span class=err>）</span>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>-</span> <span class=p>[</span><span class=n>第</span> <span class=mi>8</span> <span class=n>篇</span><span class=err>：</span><span class=n>Informer</span> <span class=err>——</span> <span class=n>高效长序列预测</span><span class=p>](</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>time</span><span class=o>-</span><span class=n>series</span><span class=o>/</span><span class=mi>08</span><span class=o>-</span><span class=n>informer长序列预测</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E6%2597%25B6%25E9%2597%25B4%25E5%25BA%258F%25E5%2588%2597%25E6%25A8%25A1%25E5%259E%258B%25EF%25BC%2588%25E4%25B8%2583%25EF%25BC%2589%25EF%25BC%259AN-BEATS%25E2%2580%2594%25E2%2580%2594%25E5%258F%25AF%25E8%25A7%25A3%25E9%2587%258A%25E7%259A%2584%25E6%25B7%25B1%25E5%25BA%25A6%25E6%259E%25B6%25E6%259E%2584&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Ftime-series%252F07-n-beats%2525E6%2525B7%2525B1%2525E5%2525BA%2525A6%2525E6%25259E%2525B6%2525E6%25259E%252584%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Ftime-series%252F07-n-beats%2525E6%2525B7%2525B1%2525E5%2525BA%2525A6%2525E6%25259E%2525B6%2525E6%25259E%252584%252F&title=%25E6%2597%25B6%25E9%2597%25B4%25E5%25BA%258F%25E5%2588%2597%25E6%25A8%25A1%25E5%259E%258B%25EF%25BC%2588%25E4%25B8%2583%25EF%25BC%2589%25EF%25BC%259AN-BEATS%25E2%2580%2594%25E2%2580%2594%25E5%258F%25AF%25E8%25A7%25A3%25E9%2587%258A%25E7%259A%2584%25E6%25B7%25B1%25E5%25BA%25A6%25E6%259E%25B6%25E6%259E%2584" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/time-series/07-n-beats%E6%B7%B1%E5%BA%A6%E6%9E%B6%E6%9E%84/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2024-11-30>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#为什么全连接堆栈就够用了>为什么全连接堆栈就够用了</a></li><li><a href=#架构双重残差流>架构：双重残差流</a></li><li><a href=#块的内部>块的内部</a><ul><li><a href=#可解释趋势--季节性基>可解释：趋势 + 季节性基</a></li><li><a href=#generic学习到的基>Generic：学习到的基</a></li></ul></li><li><a href=#为什么基函数输出头很重要>为什么基函数输出头很重要</a></li><li><a href=#pytorch-实现>PyTorch 实现</a></li><li><a href=#训练方法>训练方法</a></li><li><a href=#n-beats-在-m4-竞赛中的表现>N-BEATS 在 M4 竞赛中的表现</a></li><li><a href=#集成隐藏在配方中的另一半>集成：隐藏在配方中的另一半</a></li><li><a href=#案例-1月度零售销量预测>案例 1：月度零售销量预测</a></li><li><a href=#案例-2小时级电力需求预测>案例 2：小时级电力需求预测</a></li><li><a href=#超参速查表>超参速查表</a></li><li><a href=#何时不该用-n-beats>何时不该用 N-BEATS</a></li><li><a href=#常见问题>常见问题</a><ul><li><a href=#为何选多项式与傅里叶基>为何选多项式与傅里叶基？</a></li><li><a href=#阶多项式趋势块能否学习高阶行为>阶多项式趋势块能否学习高阶行为？</a></li><li><a href=#为何用-adam-而非-sgd>为何用 Adam 而非 SGD？</a></li><li><a href=#n-beats-需位置编码吗>N-BEATS 需位置编码吗？</a></li><li><a href=#如何扩展以支持外生变量天气节假日>如何扩展以支持外生变量（天气、节假日）？</a></li><li><a href=#n-hits-是什么是否应直接使用>N-HiTS 是什么？是否应直接使用？</a></li></ul></li><li><a href=#总结>总结</a></li><li><a href=#下一步>下一步</a></li><li><a href=#参考文献>参考文献</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/time-series/ class=series-name>时间序列预测</a>
+<span class=sig-meta data-days-since=2024-11-30>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#为什么全连接堆栈就够用了>为什么全连接堆栈就够用了</a></li><li><a href=#架构双重残差流>架构：双重残差流</a></li><li><a href=#块的内部>块的内部</a><ul><li><a href=#可解释趋势--季节性基>可解释：趋势 + 季节性基</a></li><li><a href=#generic学习到的基>Generic：学习到的基</a></li></ul></li><li><a href=#为什么基函数输出头很重要>为什么基函数输出头很重要</a></li><li><a href=#pytorch-实现>PyTorch 实现</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/time-series/ class=series-name>时间序列预测</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/time-series/01-%E4%BC%A0%E7%BB%9F%E6%A8%A1%E5%9E%8B/><span class=chapter-num>01</span>
 <span class=chapter-title>时间序列模型（一）：传统统计模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/time-series/02-lstm/><span class=chapter-num>02</span>
 <span class=chapter-title>时间序列模型（二）：LSTM——门控机制与长期依赖</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/time-series/03-gru/><span class=chapter-num>03</span>
@@ -476,5 +854,5 @@ $$</span><p>其中 <span class=math-inline>$K = 1, 2, 3$</span>
 <span class=chapter-title>时间序列模型（五）：时间序列的 Transformer 架构</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9Ctcn/><span class=chapter-num>06</span>
 <span class=chapter-title>时间序列模型（六）：时序卷积网络 (TCN)</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
 <span class=chapter-title>时间序列模型（七）：N-BEATS——可解释的深度架构</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/time-series/08-informer%E9%95%BF%E5%BA%8F%E5%88%97%E9%A2%84%E6%B5%8B/><span class=chapter-num>08</span>
-<span class=chapter-title>时间序列模型（八）：Informer——高效长序列预测</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>28 min</strong></div><div class=row><span>字数</span><strong>6641</strong></div><div class=row><span>写于</span><strong>Nov 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>时间序列模型（八）：Informer——高效长序列预测</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>32 min</strong></div><div class=row><span>字数</span><strong>7517</strong></div><div class=row><span>写于</span><strong>Nov 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

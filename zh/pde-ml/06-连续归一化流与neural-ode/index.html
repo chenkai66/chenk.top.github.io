@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/pde-ml/>PDE × 机器学习</a>
 · 第 6 篇</div><h1>偏微分方程与机器学习（六）：连续归一化流与 Neural ODE</h1><p class=deck>如何把高斯变成数据分布？本文从 ODE/PDE 理论出发，系统推导 Neural ODE、伴随方法、连续归一化流（FFJORD）与 Flow Matching，并用 7 张图把核心机制画清楚。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2024-07-15>July 15, 2024</time> · 34 分钟 · 8300 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/pde/ class=tag>#PDE</a><a href=/zh/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/zh/tags/neural-ode/ class=tag>#Neural ODE</a><a href=/zh/tags/normalizing-flows/ class=tag>#Normalizing Flows</a><a href=/zh/tags/cnf/ class=tag>#CNF</a><a href=/zh/tags/optimal-transport/ class=tag>#Optimal Transport</a><a href=/zh/tags/flow-matching/ class=tag>#Flow Matching</a></div><a class="pill pill-outline" href=/en/pde-ml/06-continuous-normalizing-flows/>Read in English →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png alt="偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual" loading=lazy decoding=async class=content-image></figure></p><hr><p>怎么把一团各向同性的高斯噪声“吹”成一张猫的照片？</p><p>归一化流给的答案很直接：用一系列可逆变换，一步步把简单分布推到复杂分布。这一篇要讲的连续归一化流（CNF）把“一系列变换”推到极限——让步长趋于零，离散变换链就变成一个 ODE，可逆性自动满足，密度变化由瞬时换元公式控制。</p><p>这条 ODE 的右端是一个神经网络，于是整套东西叫 <strong>Neural ODE</strong>。它有几个让我觉得很优雅的性质：内存只跟输入大小有关而不跟 ODE 步数有关（伴随方法）、模型可以连续插值时间、和最优传输理论直接挂钩。</p><p>本文从 ODE/PDE 理论出发，系统推导 Neural ODE、伴随方法、连续归一化流（FFJORD），最后讲到 2023 年之后真正在大规模生成模型里取代它的方案——Flow Matching。配 7 张图把核心机制画清楚。</p><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>生成建模归根结底是一个几何问题：<strong>如何将简单分布（比如高斯分布）变换为复杂分布（如人脸、分子或运动轨迹）？</strong> 离散归一化流通过堆叠可逆模块实现这一目标，但每个模块都需要计算 Jacobian 行列式，其代价高达 <span class=math-inline>$O(d^3)$</span>
+<span class=meta-line><time datetime=2024-07-15>July 15, 2024</time> · 42 分钟 · 10391 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/pde/ class=tag>#PDE</a><a href=/zh/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/zh/tags/neural-ode/ class=tag>#Neural ODE</a><a href=/zh/tags/normalizing-flows/ class=tag>#Normalizing Flows</a><a href=/zh/tags/cnf/ class=tag>#CNF</a><a href=/zh/tags/optimal-transport/ class=tag>#Optimal Transport</a><a href=/zh/tags/flow-matching/ class=tag>#Flow Matching</a></div><a class="pill pill-outline" href=/en/pde-ml/06-continuous-normalizing-flows/>Read in English →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png alt="偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual" loading=lazy decoding=async class=content-image></figure></p><hr><p>怎么把一团各向同性的高斯噪声“吹”成一张猫的照片？</p><p>归一化流给的答案很直接：用一系列可逆变换，一步步把简单分布推到复杂分布。这一篇要讲的连续归一化流（CNF）把“一系列变换”推到极限——让步长趋于零，离散变换链就变成一个 ODE，可逆性自动满足，密度变化由瞬时换元公式控制。</p><p>这条 ODE 的右端是一个神经网络，于是整套东西叫 <strong>Neural ODE</strong>。它有几个让我觉得很优雅的性质：内存只跟输入大小有关而不跟 ODE 步数有关（伴随方法）、模型可以连续插值时间、和最优传输理论直接挂钩。</p><p>本文从 ODE/PDE 理论出发，系统推导 Neural ODE、伴随方法、连续归一化流（FFJORD），最后讲到 2023 年之后真正在大规模生成模型里取代它的方案——Flow Matching。配 7 张图把核心机制画清楚。</p><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>生成建模归根结底是一个几何问题：<strong>如何将简单分布（比如高斯分布）变换为复杂分布（如人脸、分子或运动轨迹）？</strong> 离散归一化流通过堆叠可逆模块实现这一目标，但每个模块都需要计算 Jacobian 行列式，其代价高达 <span class=math-inline>$O(d^3)$</span>
 。<strong>Neural ODE</strong> 用连续的常微分方程（ODE）取代离散的网络深度；<strong>连续归一化流（Continuous Normalizing Flows, CNF）</strong> 则借助 <em>瞬时</em> 变量替换公式，将密度计算的复杂度降至 <span class=math-inline>$O(d)$</span>
 ；而 <strong>Flow Matching</strong> 更进一步，直接省去了散度积分，将训练简化为对目标速度场的普通回归任务。</p><p>全文围绕三条主线交织展开：</p><ol><li><strong>PDE 视角</strong> —— 连续性方程 <span class=math-inline>$\partial_t\rho + \nabla\!\cdot(\rho v) = 0$</span>
 描述了速度场 <span class=math-inline>$v$</span>
@@ -61,57 +61,449 @@ $$</span><p>这一转变带来三大优势：</p><ul><li><strong>参数效率更
 ——深度增加带来的只是计算时间，而非显存压力。</li></ul><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eNeural-ODE/fig2_neural_ode_vs_resnet.png alt="ResNet（离散深度，固定步）vs Neural ODE（连续深度，自适应求解器）。" loading=lazy decoding=async class=content-image></figure><em>图 2：左侧是 ResNet，由一系列 <span class=math-inline>$h_{l+1} = h_l + f_l(h_l)$</span>
 的 Euler 步组成，每层参数独立，反向传播需存储所有中间激活；右侧是 Neural ODE，由单一 <span class=math-inline>$f_\theta$</span>
 驱动，自适应求解器动态选择评估点，伴随方法仅用 <span class=math-inline>$O(1)$</span>
-内存即可恢复梯度。</em></p><p><strong>实现：一个极简的神经微分方程（Neural ODE）</strong><br>核心思想是用常微分方程（ODE）求解器调用，替代 ResNet 的前向传播过程。以下是完整、可直接运行的实现：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span><span class=lnt>38
-</span><span class=lnt>39
-</span><span class=lnt>40
-</span><span class=lnt>41
-</span><span class=lnt>42
-</span><span class=lnt>43
-</span><span class=lnt>44
-</span><span class=lnt>45
-</span><span class=lnt>46
-</span><span class=lnt>47
-</span><span class=lnt>48
-</span><span class=lnt>49
-</span><span class=lnt>50
-</span><span class=lnt>51
+内存即可恢复梯度。</em></p><p><strong>实现：一个极简的神经微分方程（Neural ODE）</strong><br>核心思想是用常微分方程（ODE）求解器调用，替代 ResNet 的前向传播过程。以下是完整、可直接运行的实现：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span><span class=lnt>132
+</span><span class=lnt>133
+</span><span class=lnt>134
+</span><span class=lnt>135
+</span><span class=lnt>136
+</span><span class=lnt>137
+</span><span class=lnt>138
+</span><span class=lnt>139
+</span><span class=lnt>140
+</span><span class=lnt>141
+</span><span class=lnt>142
+</span><span class=lnt>143
+</span><span class=lnt>144
+</span><span class=lnt>145
+</span><span class=lnt>146
+</span><span class=lnt>147
+</span><span class=lnt>148
+</span><span class=lnt>149
+</span><span class=lnt>150
+</span><span class=lnt>151
+</span><span class=lnt>152
+</span><span class=lnt>153
+</span><span class=lnt>154
+</span><span class=lnt>155
+</span><span class=lnt>156
+</span><span class=lnt>157
+</span><span class=lnt>158
+</span><span class=lnt>159
+</span><span class=lnt>160
+</span><span class=lnt>161
+</span><span class=lnt>162
+</span><span class=lnt>163
+</span><span class=lnt>164
+</span><span class=lnt>165
+</span><span class=lnt>166
+</span><span class=lnt>167
+</span><span class=lnt>168
+</span><span class=lnt>169
+</span><span class=lnt>170
+</span><span class=lnt>171
+</span><span class=lnt>172
+</span><span class=lnt>173
+</span><span class=lnt>174
+</span><span class=lnt>175
+</span><span class=lnt>176
+</span><span class=lnt>177
+</span><span class=lnt>178
+</span><span class=lnt>179
+</span><span class=lnt>180
+</span><span class=lnt>181
+</span><span class=lnt>182
+</span><span class=lnt>183
+</span><span class=lnt>184
+</span><span class=lnt>185
+</span><span class=lnt>186
+</span><span class=lnt>187
+</span><span class=lnt>188
+</span><span class=lnt>189
+</span><span class=lnt>190
+</span><span class=lnt>191
+</span><span class=lnt>192
+</span><span class=lnt>193
+</span><span class=lnt>194
+</span><span class=lnt>195
+</span><span class=lnt>196
+</span><span class=lnt>197
+</span><span class=lnt>198
+</span><span class=lnt>199
+</span><span class=lnt>200
+</span><span class=lnt>201
+</span><span class=lnt>202
+</span><span class=lnt>203
+</span><span class=lnt>204
+</span><span class=lnt>205
+</span><span class=lnt>206
+</span><span class=lnt>207
+</span><span class=lnt>208
+</span><span class=lnt>209
+</span><span class=lnt>210
+</span><span class=lnt>211
+</span><span class=lnt>212
+</span><span class=lnt>213
+</span><span class=lnt>214
+</span><span class=lnt>215
+</span><span class=lnt>216
+</span><span class=lnt>217
+</span><span class=lnt>218
+</span><span class=lnt>219
+</span><span class=lnt>220
+</span><span class=lnt>221
+</span><span class=lnt>222
+</span><span class=lnt>223
+</span><span class=lnt>224
+</span><span class=lnt>225
+</span><span class=lnt>226
+</span><span class=lnt>227
+</span><span class=lnt>228
+</span><span class=lnt>229
+</span><span class=lnt>230
+</span><span class=lnt>231
+</span><span class=lnt>232
+</span><span class=lnt>233
+</span><span class=lnt>234
+</span><span class=lnt>235
+</span><span class=lnt>236
+</span><span class=lnt>237
+</span><span class=lnt>238
+</span><span class=lnt>239
+</span><span class=lnt>240
+</span><span class=lnt>241
+</span><span class=lnt>242
+</span><span class=lnt>243
+</span><span class=lnt>244
+</span><span class=lnt>245
+</span><span class=lnt>246
+</span><span class=lnt>247
+</span><span class=lnt>248
+</span><span class=lnt>249
+</span><span class=lnt>250
+</span><span class=lnt>251
+</span><span class=lnt>252
+</span><span class=lnt>253
+</span><span class=lnt>254
+</span><span class=lnt>255
+</span><span class=lnt>256
+</span><span class=lnt>257
+</span><span class=lnt>258
+</span><span class=lnt>259
+</span><span class=lnt>260
+</span><span class=lnt>261
+</span><span class=lnt>262
+</span><span class=lnt>263
+</span><span class=lnt>264
+</span><span class=lnt>265
+</span><span class=lnt>266
+</span><span class=lnt>267
+</span><span class=lnt>268
+</span><span class=lnt>269
+</span><span class=lnt>270
+</span><span class=lnt>271
+</span><span class=lnt>272
+</span><span class=lnt>273
+</span><span class=lnt>274
+</span><span class=lnt>275
+</span><span class=lnt>276
+</span><span class=lnt>277
+</span><span class=lnt>278
+</span><span class=lnt>279
+</span><span class=lnt>280
+</span><span class=lnt>281
+</span><span class=lnt>282
+</span><span class=lnt>283
+</span><span class=lnt>284
+</span><span class=lnt>285
+</span><span class=lnt>286
+</span><span class=lnt>287
+</span><span class=lnt>288
+</span><span class=lnt>289
+</span><span class=lnt>290
+</span><span class=lnt>291
+</span><span class=lnt>292
+</span><span class=lnt>293
+</span><span class=lnt>294
+</span><span class=lnt>295
+</span><span class=lnt>296
+</span><span class=lnt>297
+</span><span class=lnt>298
+</span><span class=lnt>299
+</span><span class=lnt>300
+</span><span class=lnt>301
+</span><span class=lnt>302
+</span><span class=lnt>303
+</span><span class=lnt>304
+</span><span class=lnt>305
+</span><span class=lnt>306
+</span><span class=lnt>307
+</span><span class=lnt>308
+</span><span class=lnt>309
+</span><span class=lnt>310
+</span><span class=lnt>311
+</span><span class=lnt>312
+</span><span class=lnt>313
+</span><span class=lnt>314
+</span><span class=lnt>315
+</span><span class=lnt>316
+</span><span class=lnt>317
+</span><span class=lnt>318
+</span><span class=lnt>319
+</span><span class=lnt>320
+</span><span class=lnt>321
+</span><span class=lnt>322
+</span><span class=lnt>323
+</span><span class=lnt>324
+</span><span class=lnt>325
+</span><span class=lnt>326
+</span><span class=lnt>327
+</span><span class=lnt>328
+</span><span class=lnt>329
+</span><span class=lnt>330
+</span><span class=lnt>331
+</span><span class=lnt>332
+</span><span class=lnt>333
+</span><span class=lnt>334
+</span><span class=lnt>335
+</span><span class=lnt>336
+</span><span class=lnt>337
+</span><span class=lnt>338
+</span><span class=lnt>339
+</span><span class=lnt>340
+</span><span class=lnt>341
+</span><span class=lnt>342
+</span><span class=lnt>343
+</span><span class=lnt>344
+</span><span class=lnt>345
+</span><span class=lnt>346
+</span><span class=lnt>347
+</span><span class=lnt>348
+</span><span class=lnt>349
+</span><span class=lnt>350
+</span><span class=lnt>351
+</span><span class=lnt>352
+</span><span class=lnt>353
+</span><span class=lnt>354
+</span><span class=lnt>355
+</span><span class=lnt>356
+</span><span class=lnt>357
+</span><span class=lnt>358
+</span><span class=lnt>359
+</span><span class=lnt>360
+</span><span class=lnt>361
+</span><span class=lnt>362
+</span><span class=lnt>363
+</span><span class=lnt>364
+</span><span class=lnt>365
+</span><span class=lnt>366
+</span><span class=lnt>367
+</span><span class=lnt>368
+</span><span class=lnt>369
+</span><span class=lnt>370
+</span><span class=lnt>371
+</span><span class=lnt>372
+</span><span class=lnt>373
+</span><span class=lnt>374
+</span><span class=lnt>375
+</span><span class=lnt>376
+</span><span class=lnt>377
+</span><span class=lnt>378
+</span><span class=lnt>379
+</span><span class=lnt>380
+</span><span class=lnt>381
+</span><span class=lnt>382
+</span><span class=lnt>383
+</span><span class=lnt>384
+</span><span class=lnt>385
+</span><span class=lnt>386
+</span><span class=lnt>387
+</span><span class=lnt>388
+</span><span class=lnt>389
+</span><span class=lnt>390
+</span><span class=lnt>391
+</span><span class=lnt>392
+</span><span class=lnt>393
+</span><span class=lnt>394
+</span><span class=lnt>395
+</span><span class=lnt>396
+</span><span class=lnt>397
+</span><span class=lnt>398
+</span><span class=lnt>399
+</span><span class=lnt>400
+</span><span class=lnt>401
+</span><span class=lnt>402
+</span><span class=lnt>403
+</span><span class=lnt>404
+</span><span class=lnt>405
+</span><span class=lnt>406
+</span><span class=lnt>407
+</span><span class=lnt>408
+</span><span class=lnt>409
+</span><span class=lnt>410
+</span><span class=lnt>411
+</span><span class=lnt>412
+</span><span class=lnt>413
+</span><span class=lnt>414
+</span><span class=lnt>415
+</span><span class=lnt>416
+</span><span class=lnt>417
+</span><span class=lnt>418
+</span><span class=lnt>419
+</span><span class=lnt>420
+</span><span class=lnt>421
+</span><span class=lnt>422
+</span><span class=lnt>423
+</span><span class=lnt>424
+</span><span class=lnt>425
+</span><span class=lnt>426
+</span><span class=lnt>427
+</span><span class=lnt>428
+</span><span class=lnt>429
+</span><span class=lnt>430
+</span><span class=lnt>431
+</span><span class=lnt>432
+</span><span class=lnt>433
+</span><span class=lnt>434
+</span><span class=lnt>435
+</span><span class=lnt>436
+</span><span class=lnt>437
+</span><span class=lnt>438
+</span><span class=lnt>439
+</span><span class=lnt>440
+</span><span class=lnt>441
+</span><span class=lnt>442
+</span><span class=lnt>443
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>scipy.integrate</span> <span class=kn>import</span> <span class=n>solve_ivp</span>
@@ -142,11 +534,9 @@ $$</span><p>这一转变带来三大优势：</p><ul><li><strong>参数效率更
 </span></span><span class=line><span class=cl>        <span class=n>t</span> <span class=o>+=</span> <span class=n>dt</span>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>h</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 示例：拟合一条阻尼螺旋轨迹</span>
 </span></span><span class=line><span class=cl><span class=n>func</span> <span class=o>=</span> <span class=n>ODEFunc</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>hidden</span><span class=o>=</span><span class=mi>64</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>func</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 目标轨迹：从点 (2, 0) 出发、逐渐衰减至原点附近的螺旋线</span>
 </span></span><span class=line><span class=cl><span class=n>t_true</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>50</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>theta</span> <span class=o>=</span> <span class=mi>4</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>pi</span> <span class=o>*</span> <span class=n>t_true</span>
 </span></span><span class=line><span class=cl><span class=n>r</span> <span class=o>=</span> <span class=mi>2</span> <span class=o>*</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>t_true</span><span class=p>)</span>
@@ -159,60 +549,37 @@ $$</span><p>这一转变带来三大优势：</p><ul><li><strong>参数效率更
 </span></span><span class=line><span class=cl>    <span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>();</span> <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>();</span> <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
 </span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>step</span> <span class=o>%</span> <span class=mi>500</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
 </span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Step </span><span class=si>{</span><span class=n>step</span><span class=si>}</span><span class=s2>: loss=</span><span class=si>{</span><span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span><span class=si>:</span><span class=s2>.5f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=c1># Step    0: loss=1.23456</span>
-</span></span><span class=line><span class=cl><span class=c1># Step  500: loss=0.01234</span>
-</span></span><span class=line><span class=cl><span class=c1># Step 1000: loss=0.00089</span>
-</span></span><span class=line><span class=cl><span class=c1># Step 1500: loss=0.00012</span>
-</span></span></code></pre></td></tr></table></div></div><p>该 Neural ODE 成功学习到了一个光滑的向量场，能将任意初始点沿螺旋路径连续演化。与 ResNet 不同，这里的积分深度（即欧拉步数）是一个<strong>超参数</strong>，而非固定的网络结构设计——它甚至可以进一步设为自适应的（例如根据局部误差动态调整步长）。</p><h3 id=伴随灵敏度方法 class=heading-anchor>伴随灵敏度方法<a href=#%e4%bc%b4%e9%9a%8f%e7%81%b5%e6%95%8f%e5%ba%a6%e6%96%b9%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>标准反向传播在 ODE 求解过程中需存储每一步的中间状态，内存开销为 <span class=math-inline>$O(L)$</span>
-——而自适应求解器可能执行上百步。伴随方法则完全避免了这一问题。</p><span class=math-block>$$
-\frac{d\mathbf{a}}{dt} = -\,\mathbf{a}(t)^\top \frac{\partial f_\theta}{\partial\mathbf{h}}, \tag{3}
-$$</span>
-<span class=math-block>$$
-\frac{d\mathcal{L}}{d\theta} = -\int_T^0 \mathbf{a}(t)^\top \frac{\partial f_\theta}{\partial\theta}\,dt. \tag{4}
-$$</span><p><strong>算法流程如下</strong>：</p><ol><li><em>前向传递</em>：求解 (2) 从 <span class=math-inline>$0 \to T$</span>
-，仅保存最终状态 <span class=math-inline>$\mathbf{h}(T)$</span>
-。</li><li><em>初始化</em>：设 <span class=math-inline>$\mathbf{a}(T) = \partial\mathcal{L}/\partial\mathbf{h}(T)$</span>
-。</li><li><em>反向传递</em>：将 <span class=math-inline>$\mathbf{h}$</span>
-与 <span class=math-inline>$\mathbf{a}$</span>
-联合从 <span class=math-inline>$T \to 0$</span>
-反向求解，并累积 (4) 中的梯度。</li></ol><p>该方法的内存开销为 <span class=math-inline>$O(1)$</span>
-，与求解步数无关。代价是反向过程需额外求解一次 ODE——计算量约为原来的两倍，却换来了近乎无限的内存节省。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eNeural-ODE/fig3_adjoint_method.png alt=伴随方法：在二维向量场上的正反两条轨迹，以及不同深度下的内存对比。 loading=lazy decoding=async class=content-image></figure><em>图 3：左图展示同一螺旋 ODE 先正向积分（蓝色）得到 <span class=math-inline>$h(T)$</span>
-，再与伴随状态（红色虚线）一同反向积分以恢复梯度；右图对比内存开销随求解步数 <span class=math-inline>$L$</span>
-的增长情况：标准反向传播为 <span class=math-inline>$O(L)$</span>
-，而伴随方法始终保持 <span class=math-inline>$O(1)$</span>
-——当 <span class=math-inline>$L=1000$</span>
-时，内存节省达千倍。</em></p><p><strong>实现：实际应用中的伴随敏感度方法</strong><br>伴随方法通过在反向传播过程中重新计算中间状态，避免了显式存储这些状态，从而大幅节省内存。以下是该核心思想的具体实现：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>该</span> <span class=n>Neural</span> <span class=n>ODE</span> <span class=n>成功学习到了一个光滑的向量场</span><span class=err>，</span><span class=n>能将任意初始点沿螺旋路径连续演化</span><span class=err>。</span><span class=n>与</span> <span class=n>ResNet</span> <span class=n>不同</span><span class=err>，</span><span class=n>这里的积分深度</span><span class=err>（</span><span class=n>即欧拉步数</span><span class=err>）</span><span class=n>是一个</span><span class=o>**</span><span class=n>超参数</span><span class=o>**</span><span class=err>，</span><span class=n>而非固定的网络结构设计</span><span class=err>——</span><span class=n>它甚至可以进一步设为自适应的</span><span class=err>（</span><span class=n>例如根据局部误差动态调整步长</span><span class=err>）。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 伴随灵敏度方法</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>标准反向传播在</span> <span class=n>ODE</span> <span class=n>求解过程中需存储每一步的中间状态</span><span class=err>，</span><span class=n>内存开销为</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>L</span><span class=p>)</span><span class=err>$——</span><span class=n>而自适应求解器可能执行上百步</span><span class=err>。</span><span class=n>伴随方法则完全避免了这一问题</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>定义</span><span class=o>**</span><span class=n>伴随状态</span><span class=o>**</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>a</span><span class=p>}(</span><span class=n>t</span><span class=p>)</span> <span class=o>=</span> \<span class=n>partial</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>L</span><span class=p>}</span><span class=o>/</span>\<span class=n>partial</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>h</span><span class=p>}(</span><span class=n>t</span><span class=p>)</span><span class=err>$，</span><span class=n>它满足</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl>\<span class=n>frac</span><span class=p>{</span><span class=n>d</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>a</span><span class=p>}}{</span><span class=n>dt</span><span class=p>}</span> <span class=o>=</span> <span class=o>-</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>a</span><span class=p>}(</span><span class=n>t</span><span class=p>)</span><span class=o>^</span>\<span class=n>top</span> \<span class=n>frac</span><span class=p>{</span>\<span class=n>partial</span> <span class=n>f_</span>\<span class=n>theta</span><span class=p>}{</span>\<span class=n>partial</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>h</span><span class=p>}},</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>3</span><span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>而参数梯度为</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl>\<span class=n>frac</span><span class=p>{</span><span class=n>d</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>L</span><span class=p>}}{</span><span class=n>d</span>\<span class=n>theta</span><span class=p>}</span> <span class=o>=</span> <span class=o>-</span>\<span class=n>int_T</span><span class=o>^</span><span class=mi>0</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>a</span><span class=p>}(</span><span class=n>t</span><span class=p>)</span><span class=o>^</span>\<span class=n>top</span> \<span class=n>frac</span><span class=p>{</span>\<span class=n>partial</span> <span class=n>f_</span>\<span class=n>theta</span><span class=p>}{</span>\<span class=n>partial</span>\<span class=n>theta</span><span class=p>}</span>\<span class=p>,</span><span class=n>dt</span><span class=o>.</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>4</span><span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>算法流程如下</span><span class=o>**</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=mf>1.</span> <span class=o>*</span><span class=n>前向传递</span><span class=o>*</span><span class=err>：</span><span class=n>求解</span> <span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=n>从</span> <span class=err>$</span><span class=mi>0</span> \<span class=n>to</span> <span class=n>T</span><span class=err>$，</span><span class=n>仅保存最终状态</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>h</span><span class=p>}(</span><span class=n>T</span><span class=p>)</span><span class=err>$。</span>
+</span></span><span class=line><span class=cl><span class=mf>2.</span> <span class=o>*</span><span class=n>初始化</span><span class=o>*</span><span class=err>：</span><span class=n>设</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>a</span><span class=p>}(</span><span class=n>T</span><span class=p>)</span> <span class=o>=</span> \<span class=n>partial</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>L</span><span class=p>}</span><span class=o>/</span>\<span class=n>partial</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>h</span><span class=p>}(</span><span class=n>T</span><span class=p>)</span><span class=err>$。</span>
+</span></span><span class=line><span class=cl><span class=mf>3.</span> <span class=o>*</span><span class=n>反向传递</span><span class=o>*</span><span class=err>：</span><span class=n>将</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>h</span><span class=p>}</span><span class=err>$</span> <span class=n>与</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>a</span><span class=p>}</span><span class=err>$</span> <span class=n>联合从</span> <span class=err>$</span><span class=n>T</span> \<span class=n>to</span> <span class=mi>0</span><span class=err>$</span> <span class=n>反向求解</span><span class=err>，</span><span class=n>并累积</span> <span class=p>(</span><span class=mi>4</span><span class=p>)</span> <span class=n>中的梯度</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>该方法的内存开销为</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=err>$，</span><span class=n>与求解步数无关</span><span class=err>。</span><span class=n>代价是反向过程需额外求解一次</span> <span class=n>ODE</span><span class=err>——</span><span class=n>计算量约为原来的两倍</span><span class=err>，</span><span class=n>却换来了近乎无限的内存节省</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>伴随方法</span><span class=err>：</span><span class=n>在二维向量场上的正反两条轨迹</span><span class=err>，</span><span class=n>以及不同深度下的内存对比</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>06</span><span class=o>-</span><span class=n>连续归一化流与Neural</span><span class=o>-</span><span class=n>ODE</span><span class=o>/</span><span class=n>fig3_adjoint_method</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>图</span> <span class=mi>3</span><span class=err>：</span><span class=n>左图展示同一螺旋</span> <span class=n>ODE</span> <span class=n>先正向积分</span><span class=err>（</span><span class=n>蓝色</span><span class=err>）</span><span class=n>得到</span> <span class=err>$</span><span class=n>h</span><span class=p>(</span><span class=n>T</span><span class=p>)</span><span class=err>$，</span><span class=n>再与伴随状态</span><span class=err>（</span><span class=n>红色虚线</span><span class=err>）</span><span class=n>一同反向积分以恢复梯度</span><span class=err>；</span><span class=n>右图对比内存开销随求解步数</span> <span class=err>$</span><span class=n>L</span><span class=err>$</span> <span class=n>的增长情况</span><span class=err>：</span><span class=n>标准反向传播为</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>L</span><span class=p>)</span><span class=err>$，</span><span class=n>而伴随方法始终保持</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=err>$——</span><span class=n>当</span> <span class=err>$</span><span class=n>L</span><span class=o>=</span><span class=mi>1000</span><span class=err>$</span> <span class=n>时</span><span class=err>，</span><span class=n>内存节省达千倍</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>实现</span><span class=err>：</span><span class=n>实际应用中的伴随敏感度方法</span><span class=o>**</span>  
+</span></span><span class=line><span class=cl><span class=n>伴随方法通过在反向传播过程中重新计算中间状态</span><span class=err>，</span><span class=n>避免了显式存储这些状态</span><span class=err>，</span><span class=n>从而大幅节省内存</span><span class=err>。</span><span class=n>以下是该核心思想的具体实现</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>adjoint_backward</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>h_T</span><span class=p>,</span> <span class=n>loss_grad</span><span class=p>,</span> <span class=n>theta</span><span class=p>,</span> <span class=n>T</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>steps</span><span class=o>=</span><span class=mi>100</span><span class=p>):</span>
@@ -239,88 +606,66 @@ $$</span><p><strong>算法流程如下</strong>：</p><ol><li><em>前向传递</
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>param_grad</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 内存开销对比</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;标准反向传播：O(L × d) 内存（需缓存全部中间隐状态 h）&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;伴随方法：    O(d) 内存（运行时按需重建 h，无需缓存）&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;计算开销：    约为正向计算的 2 倍（需额外求解一次 ODE）&#34;</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><div class=table-wrap><table><thead><tr><th>方法</th><th>内存复杂度</th><th>计算开销</th><th>梯度精度</th></tr></thead><tbody><tr><td>标准反向传播</td><td><span class=math-inline>$O(L \cdot d)$</span></td><td><span class=math-inline>$1\times$</span></td><td>精确</td></tr><tr><td>伴随法（固定步长）</td><td><span class=math-inline>$O(d)$</span></td><td><span class=math-inline>$2\times$</span></td><td>精确</td></tr><tr><td>伴随法（自适应步长）</td><td><span class=math-inline>$O(d)$</span></td><td><span class=math-inline>$2\text{--}3\times$</span></td><td>近似（精度取决于数值容差）</td></tr><tr><td>检查点法（Checkpointing）</td><td><span class=math-inline>$O(\sqrt{L} \cdot d)$</span></td><td><span class=math-inline>$1.5\times$</span></td><td>精确</td></tr></tbody></table></div><p>对于深层网络（<span class=math-inline>$L > 100$</span>
-）或高维隐状态（<span class=math-inline>$d > 1000$</span>
-）场景，伴随方法带来的内存优势往往是决定性的。实践中，<code>torchdiffeq</code> 库已自动集成了该机制。</p><h3 id=表达能力 class=heading-anchor>表达能力<a href=#%e8%a1%a8%e8%be%be%e8%83%bd%e5%8a%9b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Neural ODE 在 <span class=math-inline>$\mathbb{R}^d$</span>
-上的同胚映射空间中是稠密的（Zhang et al., 2020）。然而，它<strong>无法改变拓扑结构</strong>——例如，单个定义在 <span class=math-inline>$\mathbb{R}^d$</span>
-上的 Neural ODE 无法解开两个互锁的环。这催生了<strong>增广型 Neural ODE（Augmented Neural ODE）</strong>：通过将系统提升至 <span class=math-inline>$\mathbb{R}^{d+k}$</span>
-，额外维度为流提供了“解扣”的空间。</p><h2 id=连续归一化流cnf class=heading-anchor>连续归一化流（CNF）<a href=#%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81cnf class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=从离散流到连续流 class=heading-anchor>从离散流到连续流<a href=#%e4%bb%8e%e7%a6%bb%e6%95%a3%e6%b5%81%e5%88%b0%e8%bf%9e%e7%bb%ad%e6%b5%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
-\mathbf{z}_K = f_K \circ \cdots \circ f_1(\mathbf{z}_0), \qquad \log p_K = \log p_0 - \sum_{k=1}^K \log\!\bigl|\det \partial f_k / \partial\mathbf{z}_{k-1}\bigr|.
-$$</span><p>每个行列式计算的复杂度为 <span class=math-inline>$O(d^3)$</span>
-，除非采用特殊架构（如耦合层、自回归结构等）将其降至 <span class=math-inline>$O(d)$</span>
-——但这会限制模型的表达能力。</p><span class=math-block>$$
-\frac{d\mathbf{z}}{dt} = f_\theta(\mathbf{z}(t), t), \qquad \frac{d\log p}{dt} = -\nabla\!\cdot f_\theta(\mathbf{z}(t), t). \tag{5}
-$$</span><p><strong>无需对网络施加可逆性约束</strong>——ODE 本身可通过反向积分实现逆映射；<strong>无需计算行列式</strong>——只需计算迹（即散度）。</p><h3 id=ffjord通过-hutchinson-估计实现可扩展的迹计算 class=heading-anchor>FFJORD：通过 Hutchinson 估计实现可扩展的迹计算<a href=#ffjord%e9%80%9a%e8%bf%87-hutchinson-%e4%bc%b0%e8%ae%a1%e5%ae%9e%e7%8e%b0%e5%8f%af%e6%89%a9%e5%b1%95%e7%9a%84%e8%bf%b9%e8%ae%a1%e7%ae%97 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
-\nabla\!\cdot f = \mathbb{E}_{\boldsymbol\epsilon}\!\left[\boldsymbol\epsilon^\top\!\frac{\partial f}{\partial\mathbf{z}}\,\boldsymbol\epsilon\right], \qquad \boldsymbol\epsilon \sim \mathcal{N}(0, \mathbf{I}). \tag{6}
-$$</span><p>这就是著名的 <strong>Hutchinson 迹估计器</strong>，每次采样仅需一次 vector-Jacobian product，其计算成本与维度 <span class=math-inline>$d$</span>
-无关。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eNeural-ODE/fig4_ffjord_trace.png alt="Hutchinson 迹估计：方差以 1/sqrt(K) 收缩，单步代价从 O(d^2) 降为 O(d)。" loading=lazy decoding=async class=content-image></figure><em>图 4：左图展示在 <span class=math-inline>$d=64$</span>
-下，Hutchinson 估计器在 400 次试验中的方差随探针向量数 <span class=math-inline>$K$</span>
-的变化，虚线表示理论上的 <span class=math-inline>$1/\sqrt{K}$</span>
-收敛速率；右图对比不同维度下的单步散度计算成本：完整 Jacobian 需 <span class=math-inline>$O(d^2)$</span>
-次自动微分调用，而 <span class=math-inline>$K=4$</span>
-的 Hutchinson 方法仅需 <span class=math-inline>$O(Kd)$</span>
-——在 <span class=math-inline>$d=1024$</span>
-时快三个数量级。</em></p><h3 id=训练与采样 class=heading-anchor>训练与采样<a href=#%e8%ae%ad%e7%bb%83%e4%b8%8e%e9%87%87%e6%a0%b7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
-\log p_1(\mathbf{x}) = \log p_0(\mathbf{z}_0) + \int_0^1 \nabla\!\cdot f_\theta(\mathbf{z}(t), t)\,dt,
-$$</span><p>其中 <span class=math-inline>$\mathbf{z}_0$</span>
-通过从 <span class=math-inline>$\mathbf{x}$</span>
-反向积分 ODE (5) 得到。我们使用伴随方法最大化对数似然。<strong>采样时</strong>，只需从 <span class=math-inline>$p_0$</span>
-中采样 <span class=math-inline>$\mathbf{z}_0$</span>
-，然后正向积分即可。</p><p><strong>权衡取舍</strong>：CNF 提供精确的似然估计，但每次前向或反向传递都需要求解 ODE——通常涉及数十至数百次网络评估。训练过程也较为敏感：求解器容差、<span class=math-inline>$f_\theta$</span>
-的正则化强度以及 Hutchinson 估计的方差会相互影响。</p><p><strong>实现：FFJORD 密度估计</strong><br>将神经微分方程（Neural ODE）与 Hutchinson 迹估计法相结合，我们便得到了一个完整的概率密度估计器：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span><span class=lnt>38
-</span><span class=lnt>39
-</span><span class=lnt>40
-</span><span class=lnt>41
-</span><span class=lnt>42
-</span><span class=lnt>43
-</span><span class=lnt>44
-</span><span class=lnt>45
-</span><span class=lnt>46
-</span><span class=lnt>47
-</span><span class=lnt>48
-</span><span class=lnt>49
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>方法</span> <span class=o>|</span> <span class=n>内存复杂度</span> <span class=o>|</span> <span class=n>计算开销</span> <span class=o>|</span> <span class=n>梯度精度</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|------|------------|----------|----------|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>标准反向传播</span> <span class=o>|</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>L</span> \<span class=n>cdot</span> <span class=n>d</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span><span class=mi>1</span>\<span class=n>times</span><span class=err>$</span> <span class=o>|</span> <span class=n>精确</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>伴随法</span><span class=err>（</span><span class=n>固定步长</span><span class=err>）</span> <span class=o>|</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>d</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span><span class=mi>2</span>\<span class=n>times</span><span class=err>$</span> <span class=o>|</span> <span class=n>精确</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>伴随法</span><span class=err>（</span><span class=n>自适应步长</span><span class=err>）</span> <span class=o>|</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>d</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span><span class=mi>2</span>\<span class=n>text</span><span class=p>{</span><span class=o>--</span><span class=p>}</span><span class=mi>3</span>\<span class=n>times</span><span class=err>$</span> <span class=o>|</span> <span class=n>近似</span><span class=err>（</span><span class=n>精度取决于数值容差</span><span class=err>）</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>检查点法</span><span class=err>（</span><span class=n>Checkpointing</span><span class=err>）</span> <span class=o>|</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span>\<span class=n>sqrt</span><span class=p>{</span><span class=n>L</span><span class=p>}</span> \<span class=n>cdot</span> <span class=n>d</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span><span class=mf>1.5</span>\<span class=n>times</span><span class=err>$</span> <span class=o>|</span> <span class=n>精确</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>对于深层网络</span><span class=err>（$</span><span class=n>L</span> <span class=o>&gt;</span> <span class=mi>100</span><span class=err>$）</span><span class=n>或高维隐状态</span><span class=err>（$</span><span class=n>d</span> <span class=o>&gt;</span> <span class=mi>1000</span><span class=err>$）</span><span class=n>场景</span><span class=err>，</span><span class=n>伴随方法带来的内存优势往往是决定性的</span><span class=err>。</span><span class=n>实践中</span><span class=err>，`</span><span class=n>torchdiffeq</span><span class=err>`</span> <span class=n>库已自动集成了该机制</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 表达能力</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>Neural</span> <span class=n>ODE</span> <span class=n>在</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=n>d</span><span class=err>$</span> <span class=n>上的同胚映射空间中是稠密的</span><span class=err>（</span><span class=n>Zhang</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span><span class=p>,</span> <span class=mi>2020</span><span class=err>）。</span><span class=n>然而</span><span class=err>，</span><span class=n>它</span><span class=o>**</span><span class=n>无法改变拓扑结构</span><span class=o>**</span><span class=err>——</span><span class=n>例如</span><span class=err>，</span><span class=n>单个定义在</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=n>d</span><span class=err>$</span> <span class=n>上的</span> <span class=n>Neural</span> <span class=n>ODE</span> <span class=n>无法解开两个互锁的环</span><span class=err>。</span><span class=n>这催生了</span><span class=o>**</span><span class=n>增广型</span> <span class=n>Neural</span> <span class=n>ODE</span><span class=err>（</span><span class=n>Augmented</span> <span class=n>Neural</span> <span class=n>ODE</span><span class=err>）</span><span class=o>**</span><span class=err>：</span><span class=n>通过将系统提升至</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=n>d</span><span class=o>+</span><span class=n>k</span><span class=p>}</span><span class=err>$，</span><span class=n>额外维度为流提供了</span><span class=err>“</span><span class=n>解扣</span><span class=err>”</span><span class=n>的空间</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 连续归一化流（CNF）</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 从离散流到连续流</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>离散归一化流通过一系列可逆映射将初始样本</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span> \<span class=n>sim</span> <span class=n>p_0</span><span class=err>$</span> <span class=n>变换为目标分布</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_K</span> <span class=o>=</span> <span class=n>f_K</span> \<span class=n>circ</span> \<span class=n>cdots</span> \<span class=n>circ</span> <span class=n>f_1</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span><span class=p>),</span> \<span class=n>qquad</span> \<span class=n>log</span> <span class=n>p_K</span> <span class=o>=</span> \<span class=n>log</span> <span class=n>p_0</span> <span class=o>-</span> \<span class=n>sum_</span><span class=p>{</span><span class=n>k</span><span class=o>=</span><span class=mi>1</span><span class=p>}</span><span class=o>^</span><span class=n>K</span> \<span class=n>log</span>\<span class=err>!</span>\<span class=n>bigl</span><span class=o>|</span>\<span class=n>det</span> \<span class=n>partial</span> <span class=n>f_k</span> <span class=o>/</span> \<span class=n>partial</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_</span><span class=p>{</span><span class=n>k</span><span class=o>-</span><span class=mi>1</span><span class=p>}</span>\<span class=n>bigr</span><span class=o>|.</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>每个行列式计算的复杂度为</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>d</span><span class=o>^</span><span class=mi>3</span><span class=p>)</span><span class=err>$，</span><span class=n>除非采用特殊架构</span><span class=err>（</span><span class=n>如耦合层</span><span class=err>、</span><span class=n>自回归结构等</span><span class=err>）</span><span class=n>将其降至</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>d</span><span class=p>)</span><span class=err>$——</span><span class=n>但这会限制模型的表达能力</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>CNF</span> <span class=n>则用一个</span> <span class=n>ODE</span> <span class=n>替代整个堆叠结构</span><span class=err>，</span><span class=n>并利用瞬时公式</span> <span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl>\<span class=n>frac</span><span class=p>{</span><span class=n>d</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}}{</span><span class=n>dt</span><span class=p>}</span> <span class=o>=</span> <span class=n>f_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}(</span><span class=n>t</span><span class=p>),</span> <span class=n>t</span><span class=p>),</span> \<span class=n>qquad</span> \<span class=n>frac</span><span class=p>{</span><span class=n>d</span>\<span class=n>log</span> <span class=n>p</span><span class=p>}{</span><span class=n>dt</span><span class=p>}</span> <span class=o>=</span> <span class=o>-</span>\<span class=n>nabla</span>\<span class=err>!</span>\<span class=n>cdot</span> <span class=n>f_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}(</span><span class=n>t</span><span class=p>),</span> <span class=n>t</span><span class=p>)</span><span class=o>.</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>5</span><span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>无需对网络施加可逆性约束</span><span class=o>**</span><span class=err>——</span><span class=n>ODE</span> <span class=n>本身可通过反向积分实现逆映射</span><span class=err>；</span><span class=o>**</span><span class=n>无需计算行列式</span><span class=o>**</span><span class=err>——</span><span class=n>只需计算迹</span><span class=err>（</span><span class=n>即散度</span><span class=err>）。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### FFJORD：通过 Hutchinson 估计实现可扩展的迹计算</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>剩下的瓶颈是散度</span> <span class=err>$</span>\<span class=n>nabla</span>\<span class=err>!</span>\<span class=n>cdot</span> <span class=n>f</span> <span class=o>=</span> \<span class=n>mathrm</span><span class=p>{</span><span class=n>tr</span><span class=p>}(</span>\<span class=n>partial</span> <span class=n>f</span> <span class=o>/</span> \<span class=n>partial</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>})</span><span class=err>$。</span><span class=n>精确计算仍需</span> <span class=err>$</span><span class=n>d</span><span class=err>$</span> <span class=n>次</span> <span class=n>vector</span><span class=o>-</span><span class=n>Jacobian</span> <span class=n>product</span><span class=err>。</span><span class=o>**</span><span class=n>FFJORD</span><span class=o>**</span><span class=err>（</span><span class=n>Grathwohl</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span><span class=p>,</span> <span class=mi>2018</span><span class=err>）</span><span class=n>提出用无偏估计替代</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl>\<span class=n>nabla</span>\<span class=err>!</span>\<span class=n>cdot</span> <span class=n>f</span> <span class=o>=</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}</span><span class=n>_</span><span class=p>{</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon</span><span class=p>}</span>\<span class=err>!</span>\<span class=n>left</span><span class=p>[</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon</span><span class=o>^</span>\<span class=n>top</span>\<span class=err>!</span>\<span class=n>frac</span><span class=p>{</span>\<span class=n>partial</span> <span class=n>f</span><span class=p>}{</span>\<span class=n>partial</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}}</span>\<span class=p>,</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon</span>\<span class=n>right</span><span class=p>],</span> \<span class=n>qquad</span> \<span class=n>boldsymbol</span>\<span class=n>epsilon</span> \<span class=n>sim</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>N</span><span class=p>}(</span><span class=mi>0</span><span class=p>,</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>})</span><span class=o>.</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>6</span><span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>这就是著名的</span> <span class=o>**</span><span class=n>Hutchinson</span> <span class=n>迹估计器</span><span class=o>**</span><span class=err>，</span><span class=n>每次采样仅需一次</span> <span class=n>vector</span><span class=o>-</span><span class=n>Jacobian</span> <span class=n>product</span><span class=err>，</span><span class=n>其计算成本与维度</span> <span class=err>$</span><span class=n>d</span><span class=err>$</span> <span class=n>无关</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>Hutchinson</span> <span class=n>迹估计</span><span class=err>：</span><span class=n>方差以</span> <span class=mi>1</span><span class=o>/</span><span class=n>sqrt</span><span class=p>(</span><span class=n>K</span><span class=p>)</span> <span class=n>收缩</span><span class=err>，</span><span class=n>单步代价从</span> <span class=n>O</span><span class=p>(</span><span class=n>d</span><span class=o>^</span><span class=mi>2</span><span class=p>)</span> <span class=n>降为</span> <span class=n>O</span><span class=p>(</span><span class=n>d</span><span class=p>)</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>06</span><span class=o>-</span><span class=n>连续归一化流与Neural</span><span class=o>-</span><span class=n>ODE</span><span class=o>/</span><span class=n>fig4_ffjord_trace</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>图</span> <span class=mi>4</span><span class=err>：</span><span class=n>左图展示在</span> <span class=err>$</span><span class=n>d</span><span class=o>=</span><span class=mi>64</span><span class=err>$</span> <span class=n>下</span><span class=err>，</span><span class=n>Hutchinson</span> <span class=n>估计器在</span> <span class=mi>400</span> <span class=n>次试验中的方差随探针向量数</span> <span class=err>$</span><span class=n>K</span><span class=err>$</span> <span class=n>的变化</span><span class=err>，</span><span class=n>虚线表示理论上的</span> <span class=err>$</span><span class=mi>1</span><span class=o>/</span>\<span class=n>sqrt</span><span class=p>{</span><span class=n>K</span><span class=p>}</span><span class=err>$</span> <span class=n>收敛速率</span><span class=err>；</span><span class=n>右图对比不同维度下的单步散度计算成本</span><span class=err>：</span><span class=n>完整</span> <span class=n>Jacobian</span> <span class=n>需</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>d</span><span class=o>^</span><span class=mi>2</span><span class=p>)</span><span class=err>$</span> <span class=n>次自动微分调用</span><span class=err>，</span><span class=n>而</span> <span class=err>$</span><span class=n>K</span><span class=o>=</span><span class=mi>4</span><span class=err>$</span> <span class=n>的</span> <span class=n>Hutchinson</span> <span class=n>方法仅需</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>Kd</span><span class=p>)</span><span class=err>$——</span><span class=n>在</span> <span class=err>$</span><span class=n>d</span><span class=o>=</span><span class=mi>1024</span><span class=err>$</span> <span class=n>时快三个数量级</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 训练与采样</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>给定数据点</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=err>$，</span><span class=n>其对数似然为</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl>\<span class=n>log</span> <span class=n>p_1</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})</span> <span class=o>=</span> \<span class=n>log</span> <span class=n>p_0</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span><span class=p>)</span> <span class=o>+</span> \<span class=n>int_0</span><span class=o>^</span><span class=mi>1</span> \<span class=n>nabla</span>\<span class=err>!</span>\<span class=n>cdot</span> <span class=n>f_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}(</span><span class=n>t</span><span class=p>),</span> <span class=n>t</span><span class=p>)</span>\<span class=p>,</span><span class=n>dt</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span><span class=err>$</span> <span class=n>通过从</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=err>$</span> <span class=n>反向积分</span> <span class=n>ODE</span> <span class=p>(</span><span class=mi>5</span><span class=p>)</span> <span class=n>得到</span><span class=err>。</span><span class=n>我们使用伴随方法最大化对数似然</span><span class=err>。</span><span class=o>**</span><span class=n>采样时</span><span class=o>**</span><span class=err>，</span><span class=n>只需从</span> <span class=err>$</span><span class=n>p_0</span><span class=err>$</span> <span class=n>中采样</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span><span class=err>$，</span><span class=n>然后正向积分即可</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>权衡取舍</span><span class=o>**</span><span class=err>：</span><span class=n>CNF</span> <span class=n>提供精确的似然估计</span><span class=err>，</span><span class=n>但每次前向或反向传递都需要求解</span> <span class=n>ODE</span><span class=err>——</span><span class=n>通常涉及数十至数百次网络评估</span><span class=err>。</span><span class=n>训练过程也较为敏感</span><span class=err>：</span><span class=n>求解器容差</span><span class=err>、$</span><span class=n>f_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>的正则化强度以及</span> <span class=n>Hutchinson</span> <span class=n>估计的方差会相互影响</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>实现</span><span class=err>：</span><span class=n>FFJORD</span> <span class=n>密度估计</span><span class=o>**</span>  
+</span></span><span class=line><span class=cl><span class=n>将神经微分方程</span><span class=err>（</span><span class=n>Neural</span> <span class=n>ODE</span><span class=err>）</span><span class=n>与</span> <span class=n>Hutchinson</span> <span class=n>迹估计法相结合</span><span class=err>，</span><span class=n>我们便得到了一个完整的概率密度估计器</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>FFJORD</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
@@ -358,10 +703,8 @@ $$</span><p>其中 <span class=math-inline>$\mathbf{z}_0$</span>
 </span></span><span class=line><span class=cl>        <span class=n>log_p0</span> <span class=o>=</span> <span class=o>-</span><span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>z</span><span class=o>**</span><span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span> <span class=o>-</span> <span class=n>z</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>*</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>tensor</span><span class=p>(</span><span class=mi>2</span><span class=o>*</span><span class=n>torch</span><span class=o>.</span><span class=n>pi</span><span class=p>))</span>
 </span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>log_p0</span> <span class=o>+</span> <span class=n>log_det</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 训练循环示例</span>
 </span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>FFJORD</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=c1># x_data = ... （你的二维样本数据）</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>5000</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=n>log_px</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>log_prob</span><span class=p>(</span><span class=n>x_data</span><span class=p>)</span>
@@ -369,78 +712,57 @@ $$</span><p>其中 <span class=math-inline>$\mathbf{z}_0$</span>
 </span></span><span class=line><span class=cl>    <span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>();</span> <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>();</span> <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
 </span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>step</span> <span class=o>%</span> <span class=mi>1000</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
 </span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;训练步数 </span><span class=si>{</span><span class=n>step</span><span class=si>}</span><span class=s2>: NLL=</span><span class=si>{</span><span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p><code>log_prob</code> 方法在反向求解常微分方程的同时，借助 Hutchinson 估计器持续累积对数密度的变化量。最终结果由基础分布的对数概率 <span class=math-inline>$\log p_0(\mathbf{z}_0)$</span>
-与累积的散度积分共同构成——整个过程无需显式计算任何雅可比行列式。</p><h2 id=最优传输与-flow-matching class=heading-anchor>最优传输与 Flow Matching<a href=#%e6%9c%80%e4%bc%98%e4%bc%a0%e8%be%93%e4%b8%8e-flow-matching class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_2.png alt="偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual" loading=lazy decoding=async class=content-image></figure></p><h3 id=benamou-brenier-联系 class=heading-anchor>Benamou-Brenier 联系<a href=#benamou-brenier-%e8%81%94%e7%b3%bb class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
-\min_{v_t}\,\int_0^1\!\!\int \|v_t(\mathbf{z})\|^2\,\rho_t(\mathbf{z})\,d\mathbf{z}\,dt
-\quad\text{s.t.}\quad \partial_t\rho + \nabla\!\cdot(\rho v) = 0,\;\rho_0, \rho_1\text{ 给定}.
-$$</span><p>其最优解 <span class=math-inline>$v_t^\star$</span>
-恰好是 CNF 的速度场，且在欧氏最优传输情形下，其轨迹为直线。这为将 CNF 与最优传输结合提供了最清晰的几何动机。</p><h3 id=flow-matching class=heading-anchor>Flow Matching<a href=#flow-matching class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>Flow Matching</strong>（Lipman et al., 2022）是一种极具实用价值的简化方案。它既不通过 ODE 求解器优化负对数似然（NLL），也不求解复杂的最优传输问题，而是选定一条条件概率路径，并直接回归对应的速度场。</p><span class=math-block>$$
-u_t^\star(\mathbf{z}_t \mid \mathbf{z}_0, \mathbf{z}_1) = \mathbf{z}_1 - \mathbf{z}_0. \tag{7}
-$$</span>
-<span class=math-block>$$
-\mathcal{L}_{\text{FM}} = \mathbb{E}_{t,\,\mathbf{z}_0,\,\mathbf{z}_1}\Bigl[\,\|v_\theta(\mathbf{z}_t, t) - (\mathbf{z}_1 - \mathbf{z}_0)\|^2\,\Bigr]. \tag{8}
-$$</span><p><strong>关键定理（Lipman et al.）</strong>：边缘速度 <span class=math-inline>$\mathbb{E}[u_t^\star \mid \mathbf{z}_t]$</span>
-满足连续性方程，能将 <span class=math-inline>$p_0$</span>
-输运至 <span class=math-inline>$p_1$</span>
-。因此，只要 <span class=math-inline>$v_\theta$</span>
-足够灵活，最小化 (8) 即可恢复一个有效的 CNF——且训练过程中完全无需计算散度。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eNeural-ODE/fig5_flow_matching.png alt="Flow Matching：成对样本之间的线性条件路径；对比 CNF 的训练曲线。" loading=lazy decoding=async class=content-image></figure><em>图 5：左图展示随机样本对 <span class=math-inline>$(\mathbf{z}_0, \mathbf{z}_1)$</span>
-之间的线性条件路径，任意 <span class=math-inline>$\mathbf{z}_t$</span>
-处的目标速度就是 <span class=math-inline>$\mathbf{z}_1 - \mathbf{z}_0$</span>
-——训练时既无散度计算，也无需 ODE 求解；右图对比损失曲线：Flow Matching 收敛速度快近一个数量级，且达到更低的稳定平台。</em></p><h3 id=2024-年的实际选择 class=heading-anchor>2024 年的实际选择<a href=#2024-%e5%b9%b4%e7%9a%84%e5%ae%9e%e9%99%85%e9%80%89%e6%8b%a9 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>方法</th><th>训练成本</th><th>优点</th><th>缺点</th></tr></thead><tbody><tr><td>离散 NF（RealNVP/Glow）</td><td>低廉，无需 ODE</td><td>采样和似然计算快</td><td>架构受限</td></tr><tr><td>CNF / FFJORD</td><td>ODE + Hutchinson</td><td><span class=math-inline>$f_\theta$</span>
-形式自由，似然精确</td><td>训练慢，调参敏感</td></tr><tr><td>OT-Flow</td><td>OT 代价 + 匹配</td><td>路径笔直、最优</td><td>需平衡两个损失项</td></tr><tr><td><strong>Flow Matching</strong></td><td>纯回归</td><td>稳定、快速、易于扩展至图像等高维数据</td><td>需设计合适的条件路径</td></tr><tr><td>Rectified Flow / 一致性</td><td>迭代拉直</td><td>极少步数即可采样</td><td>需多阶段训练</td></tr></tbody></table></div><p>截至 2024 年，大多数生产级的连续流系统（用于图像、音频、分子生成）都采用了 Flow Matching 或 Rectified Flow 的某种变体。</p><p><strong>实现：流匹配（Flow Matching）—— 当代主流方法</strong><br>流匹配彻底摒弃了 FFJORD 的整套复杂机制，转而采用极其简洁的回归范式。其训练循环短小精悍，一目了然：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span><span class=lnt>38
-</span><span class=lnt>39
-</span><span class=lnt>40
-</span><span class=lnt>41
-</span><span class=lnt>42
-</span><span class=lnt>43
-</span><span class=lnt>44
-</span><span class=lnt>45
-</span><span class=lnt>46
-</span><span class=lnt>47
-</span><span class=lnt>48
-</span><span class=lnt>49
-</span><span class=lnt>50
-</span><span class=lnt>51
-</span><span class=lnt>52
-</span><span class=lnt>53
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>`</span><span class=n>log_prob</span><span class=err>`</span> <span class=n>方法在反向求解常微分方程的同时</span><span class=err>，</span><span class=n>借助</span> <span class=n>Hutchinson</span> <span class=n>估计器持续累积对数密度的变化量</span><span class=err>。</span><span class=n>最终结果由基础分布的对数概率</span> <span class=err>$</span>\<span class=n>log</span> <span class=n>p_0</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span><span class=p>)</span><span class=err>$</span> <span class=n>与累积的散度积分共同构成</span><span class=err>——</span><span class=n>整个过程无需显式计算任何雅可比行列式</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 最优传输与 Flow Matching</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>偏微分方程与机器学习</span><span class=err>（</span><span class=n>六</span><span class=err>）：</span><span class=n>连续归一化流与Neural</span> <span class=n>ODE</span> <span class=err>—</span> <span class=n>visual</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>06</span><span class=o>-</span><span class=n>Continuous</span><span class=o>-</span><span class=n>Normalizing</span><span class=o>-</span><span class=n>Flows</span><span class=o>/</span><span class=n>illustration_2</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### Benamou-Brenier 联系</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>二次代价的最优传输问题具有动态形式</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl>\<span class=n>min_</span><span class=p>{</span><span class=n>v_t</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>int_0</span><span class=o>^</span><span class=mi>1</span>\<span class=err>!</span>\<span class=err>!</span>\<span class=nb>int</span> \<span class=o>|</span><span class=n>v_t</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>})</span>\<span class=o>|^</span><span class=mi>2</span>\<span class=p>,</span>\<span class=n>rho_t</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>})</span>\<span class=p>,</span><span class=n>d</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span>\<span class=p>,</span><span class=n>dt</span>
+</span></span><span class=line><span class=cl>\<span class=n>quad</span>\<span class=n>text</span><span class=p>{</span><span class=n>s</span><span class=o>.</span><span class=n>t</span><span class=o>.</span><span class=p>}</span>\<span class=n>quad</span> \<span class=n>partial_t</span>\<span class=n>rho</span> <span class=o>+</span> \<span class=n>nabla</span>\<span class=err>!</span>\<span class=n>cdot</span><span class=p>(</span>\<span class=n>rho</span> <span class=n>v</span><span class=p>)</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span>\<span class=p>;</span>\<span class=n>rho_0</span><span class=p>,</span> \<span class=n>rho_1</span>\<span class=n>text</span><span class=p>{</span> <span class=n>给定</span><span class=p>}</span><span class=o>.</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>其最优解</span> <span class=err>$</span><span class=n>v_t</span><span class=o>^</span>\<span class=n>star</span><span class=err>$</span> <span class=n>恰好是</span> <span class=n>CNF</span> <span class=n>的速度场</span><span class=err>，</span><span class=n>且在欧氏最优传输情形下</span><span class=err>，</span><span class=n>其轨迹为直线</span><span class=err>。</span><span class=n>这为将</span> <span class=n>CNF</span> <span class=n>与最优传输结合提供了最清晰的几何动机</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### Flow Matching</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>Flow</span> <span class=n>Matching</span><span class=o>**</span><span class=err>（</span><span class=n>Lipman</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span><span class=p>,</span> <span class=mi>2022</span><span class=err>）</span><span class=n>是一种极具实用价值的简化方案</span><span class=err>。</span><span class=n>它既不通过</span> <span class=n>ODE</span> <span class=n>求解器优化负对数似然</span><span class=err>（</span><span class=n>NLL</span><span class=err>），</span><span class=n>也不求解复杂的最优传输问题</span><span class=err>，</span><span class=n>而是选定一条条件概率路径</span><span class=err>，</span><span class=n>并直接回归对应的速度场</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>最简单的选择是</span><span class=err>：</span><span class=n>将</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span> \<span class=n>sim</span> <span class=n>p_0</span><span class=err>$</span> <span class=n>与</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span> \<span class=n>sim</span> <span class=n>p_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>data</span><span class=p>}}</span><span class=err>$</span> <span class=n>配对</span><span class=err>，</span><span class=n>定义</span><span class=o>**</span><span class=n>条件路径</span><span class=o>**</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_t</span> <span class=o>=</span> <span class=p>(</span><span class=mi>1</span><span class=o>-</span><span class=n>t</span><span class=p>)</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span> <span class=o>+</span> <span class=n>t</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span><span class=err>$，</span><span class=n>此时条件目标速度为</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>u_t</span><span class=o>^</span>\<span class=n>star</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_t</span> \<span class=n>mid</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span><span class=p>,</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span><span class=p>)</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span> <span class=o>-</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span><span class=o>.</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>7</span><span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>训练目标为</span><span class=o>**</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl>\<span class=n>mathcal</span><span class=p>{</span><span class=n>L</span><span class=p>}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>FM</span><span class=p>}}</span> <span class=o>=</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}</span><span class=n>_</span><span class=p>{</span><span class=n>t</span><span class=p>,</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span><span class=p>,</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span><span class=p>}</span>\<span class=n>Bigl</span><span class=p>[</span>\<span class=p>,</span>\<span class=o>|</span><span class=n>v_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_t</span><span class=p>,</span> <span class=n>t</span><span class=p>)</span> <span class=o>-</span> <span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span> <span class=o>-</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span><span class=p>)</span>\<span class=o>|^</span><span class=mi>2</span>\<span class=p>,</span>\<span class=n>Bigr</span><span class=p>]</span><span class=o>.</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>8</span><span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>关键定理</span><span class=err>（</span><span class=n>Lipman</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span><span class=err>）</span><span class=o>**</span><span class=err>：</span><span class=n>边缘速度</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}[</span><span class=n>u_t</span><span class=o>^</span>\<span class=n>star</span> \<span class=n>mid</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_t</span><span class=p>]</span><span class=err>$</span> <span class=n>满足连续性方程</span><span class=err>，</span><span class=n>能将</span> <span class=err>$</span><span class=n>p_0</span><span class=err>$</span> <span class=n>输运至</span> <span class=err>$</span><span class=n>p_1</span><span class=err>$。</span><span class=n>因此</span><span class=err>，</span><span class=n>只要</span> <span class=err>$</span><span class=n>v_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>足够灵活</span><span class=err>，</span><span class=n>最小化</span> <span class=p>(</span><span class=mi>8</span><span class=p>)</span> <span class=n>即可恢复一个有效的</span> <span class=n>CNF</span><span class=err>——</span><span class=n>且训练过程中完全无需计算散度</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>Flow</span> <span class=n>Matching</span><span class=err>：</span><span class=n>成对样本之间的线性条件路径</span><span class=err>；</span><span class=n>对比</span> <span class=n>CNF</span> <span class=n>的训练曲线</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>06</span><span class=o>-</span><span class=n>连续归一化流与Neural</span><span class=o>-</span><span class=n>ODE</span><span class=o>/</span><span class=n>fig5_flow_matching</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>图</span> <span class=mi>5</span><span class=err>：</span><span class=n>左图展示随机样本对</span> <span class=err>$</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span><span class=p>,</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span><span class=p>)</span><span class=err>$</span> <span class=n>之间的线性条件路径</span><span class=err>，</span><span class=n>任意</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_t</span><span class=err>$</span> <span class=n>处的目标速度就是</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span> <span class=o>-</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span><span class=err>$——</span><span class=n>训练时既无散度计算</span><span class=err>，</span><span class=n>也无需</span> <span class=n>ODE</span> <span class=n>求解</span><span class=err>；</span><span class=n>右图对比损失曲线</span><span class=err>：</span><span class=n>Flow</span> <span class=n>Matching</span> <span class=n>收敛速度快近一个数量级</span><span class=err>，</span><span class=n>且达到更低的稳定平台</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 2024 年的实际选择</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>方法</span> <span class=o>|</span> <span class=n>训练成本</span> <span class=o>|</span> <span class=n>优点</span> <span class=o>|</span> <span class=n>缺点</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|------|---------|------|------|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>离散</span> <span class=n>NF</span><span class=err>（</span><span class=n>RealNVP</span><span class=o>/</span><span class=n>Glow</span><span class=err>）</span> <span class=o>|</span> <span class=n>低廉</span><span class=err>，</span><span class=n>无需</span> <span class=n>ODE</span> <span class=o>|</span> <span class=n>采样和似然计算快</span> <span class=o>|</span> <span class=n>架构受限</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>CNF</span> <span class=o>/</span> <span class=n>FFJORD</span> <span class=o>|</span> <span class=n>ODE</span> <span class=o>+</span> <span class=n>Hutchinson</span> <span class=o>|</span> <span class=err>$</span><span class=n>f_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>形式自由</span><span class=err>，</span><span class=n>似然精确</span> <span class=o>|</span> <span class=n>训练慢</span><span class=err>，</span><span class=n>调参敏感</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>OT</span><span class=o>-</span><span class=n>Flow</span> <span class=o>|</span> <span class=n>OT</span> <span class=n>代价</span> <span class=o>+</span> <span class=n>匹配</span> <span class=o>|</span> <span class=n>路径笔直</span><span class=err>、</span><span class=n>最优</span> <span class=o>|</span> <span class=n>需平衡两个损失项</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>Flow</span> <span class=n>Matching</span><span class=o>**</span> <span class=o>|</span> <span class=n>纯回归</span> <span class=o>|</span> <span class=n>稳定</span><span class=err>、</span><span class=n>快速</span><span class=err>、</span><span class=n>易于扩展至图像等高维数据</span> <span class=o>|</span> <span class=n>需设计合适的条件路径</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>Rectified</span> <span class=n>Flow</span> <span class=o>/</span> <span class=n>一致性</span> <span class=o>|</span> <span class=n>迭代拉直</span> <span class=o>|</span> <span class=n>极少步数即可采样</span> <span class=o>|</span> <span class=n>需多阶段训练</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>截至</span> <span class=mi>2024</span> <span class=n>年</span><span class=err>，</span><span class=n>大多数生产级的连续流系统</span><span class=err>（</span><span class=n>用于图像</span><span class=err>、</span><span class=n>音频</span><span class=err>、</span><span class=n>分子生成</span><span class=err>）</span><span class=n>都采用了</span> <span class=n>Flow</span> <span class=n>Matching</span> <span class=n>或</span> <span class=n>Rectified</span> <span class=n>Flow</span> <span class=n>的某种变体</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>实现</span><span class=err>：</span><span class=n>流匹配</span><span class=err>（</span><span class=n>Flow</span> <span class=n>Matching</span><span class=err>）——</span> <span class=n>当代主流方法</span><span class=o>**</span>  
+</span></span><span class=line><span class=cl><span class=n>流匹配彻底摒弃了</span> <span class=n>FFJORD</span> <span class=n>的整套复杂机制</span><span class=err>，</span><span class=n>转而采用极其简洁的回归范式</span><span class=err>。</span><span class=n>其训练循环短小精悍</span><span class=err>，</span><span class=n>一目了然</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>VelocityNet</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
@@ -493,27 +815,37 @@ $$</span><p><strong>关键定理（Lipman et al.）</strong>：边缘速度 <spa
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=n>samples</span> <span class=o>=</span> <span class=n>sample_flow_matching</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>n</span><span class=o>=</span><span class=mi>3000</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;共生成 </span><span class=si>{</span><span class=n>samples</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=s2> 个样本，均值 ≈ </span><span class=si>{</span><span class=n>samples</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>numpy</span><span class=p>()</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=mi>3</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>对比一下两者的简洁性：FFJORD 训练时必须嵌入常微分方程（ODE）求解器、依赖 Hutchinson 迹估计技巧，并需反复调试数值容差；而流匹配本质上就是<strong>一次标准回归任务</strong>——采样噪声、采样数据、线性插值、预测瞬时速度。ODE 求解器仅在推理阶段才被调用，且此时使用最朴素的欧拉法（50–100 步）就已足够稳健高效。</p><div class=table-wrap><table><thead><tr><th>维度</th><th>FFJORD（连续归一化流，CNF）</th><th>流匹配（Flow Matching）</th></tr></thead><tbody><tr><td>训练目标</td><td>通过 ODE 最大化似然</td><td>对速度场进行回归拟合</td></tr><tr><td>单步训练开销</td><td>ODE 求解 + Hutchinson 迹估计</td><td>一次前向传播</td></tr><tr><td>训练阶段是否需要 ODE 求解器？</td><td>是</td><td>否</td></tr><tr><td>推理阶段是否需要 ODE 求解器？</td><td>是</td><td>是（但要求更低，欧拉法即可）</td></tr><tr><td>收敛速度</td><td>较慢（通常需 8000+ 步）</td><td>较快（约 3000 步即可收敛）</td></tr><tr><td>数值稳定性</td><td>对容差设置高度敏感</td><td>鲁棒性强，不易发散</td></tr></tbody></table></div><h2 id=连续深度的直观图景 class=heading-anchor>“连续深度”的直观图景<a href=#%e8%bf%9e%e7%bb%ad%e6%b7%b1%e5%ba%a6%e7%9a%84%e7%9b%b4%e8%a7%82%e5%9b%be%e6%99%af class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>“连续深度”是贯穿本章的核心思想：Neural ODE 是深度网络的连续极限，而 CNF 则是归一化流的连续极限。两者背后的图像完全一致。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eNeural-ODE/fig6_continuous_depth.png alt="连续轨迹 h(t) 分别由固定深度的 ResNet 和自适应 ODE 求解器近似。" loading=lazy decoding=async class=content-image></figure><em>图 6：蓝色曲线是底层 Neural ODE 生成的真实连续轨迹 <span class=math-inline>$h(t)$</span>
-；红色虚线是固定深度 <span class=math-inline>$L=4$</span>
-的 ResNet，在 <span class=math-inline>$|\dot h|$</span>
-较大的区域明显欠拟合（红色误差区域）；橙色曲线（<span class=math-inline>$L=8$</span>
-）仍无法捕捉高频振荡；紫色菱形是自适应求解器的评估点——<strong>在动力学剧烈处密集采样，在平滑处稀疏采样</strong>，以更少的总评估次数达到相同精度，且无需手动调整“深度”。</em></p><p>这也解释了为何一个 ODE 函数 <span class=math-inline>$f_\theta$</span>
-能替代深 ResNet 中的数百层：<strong>时间变量</strong>取代了层索引的角色，而离散化策略则交由求解器自动决定。</p><h3 id=增广神经微分方程augmented-neural-odes class=heading-anchor>增广神经微分方程（Augmented Neural ODEs）<a href=#%e5%a2%9e%e5%b9%bf%e7%a5%9e%e7%bb%8f%e5%be%ae%e5%88%86%e6%96%b9%e7%a8%8baugmented-neural-odes class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>标准的定义在 <span class=math-inline>$\mathbb{R}^d$</span>
-上的神经微分方程（Neural ODE）无法改变数据的拓扑结构——连通区域始终保持连通，两个彼此分离的簇也无法被合并。其根本原因在于：ODE 生成的流是一个<strong>同胚映射</strong>（homeomorphism），即连续的双射。在实际建模中，这意味着一个二维 Neural ODE <strong>无法</strong>将单个高斯分布映射为两个彼此分离的簇——因为要实现这种分裂，不同初始点的轨迹必然发生交叉，从而违反解的唯一性定理。</p><p><strong>解决方案：增广（augmentation）。</strong><br>我们将状态空间从 <span class=math-inline>$\mathbb{R}^d$</span>
-提升至 <span class=math-inline>$\mathbb{R}^{d+k}$</span>
-，方法是向原始状态向量末尾追加 <span class=math-inline>$k$</span>
-个额外维度，并将其初始化为零：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>augmented_neural_ode</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>steps</span><span class=o>=</span><span class=mi>100</span><span class=p>):</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>对比一下两者的简洁性</span><span class=err>：</span><span class=n>FFJORD</span> <span class=n>训练时必须嵌入常微分方程</span><span class=err>（</span><span class=n>ODE</span><span class=err>）</span><span class=n>求解器</span><span class=err>、</span><span class=n>依赖</span> <span class=n>Hutchinson</span> <span class=n>迹估计技巧</span><span class=err>，</span><span class=n>并需反复调试数值容差</span><span class=err>；</span><span class=n>而流匹配本质上就是</span><span class=o>**</span><span class=n>一次标准回归任务</span><span class=o>**</span><span class=err>——</span><span class=n>采样噪声</span><span class=err>、</span><span class=n>采样数据</span><span class=err>、</span><span class=n>线性插值</span><span class=err>、</span><span class=n>预测瞬时速度</span><span class=err>。</span><span class=n>ODE</span> <span class=n>求解器仅在推理阶段才被调用</span><span class=err>，</span><span class=n>且此时使用最朴素的欧拉法</span><span class=err>（</span><span class=mi>50</span><span class=err>–</span><span class=mi>100</span> <span class=n>步</span><span class=err>）</span><span class=n>就已足够稳健高效</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>维度</span> <span class=o>|</span> <span class=n>FFJORD</span><span class=err>（</span><span class=n>连续归一化流</span><span class=err>，</span><span class=n>CNF</span><span class=err>）</span> <span class=o>|</span> <span class=n>流匹配</span><span class=err>（</span><span class=n>Flow</span> <span class=n>Matching</span><span class=err>）</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|------|-----------------------------|--------------------------|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>训练目标</span> <span class=o>|</span> <span class=n>通过</span> <span class=n>ODE</span> <span class=n>最大化似然</span> <span class=o>|</span> <span class=n>对速度场进行回归拟合</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>单步训练开销</span> <span class=o>|</span> <span class=n>ODE</span> <span class=n>求解</span> <span class=o>+</span> <span class=n>Hutchinson</span> <span class=n>迹估计</span> <span class=o>|</span> <span class=n>一次前向传播</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>训练阶段是否需要</span> <span class=n>ODE</span> <span class=n>求解器</span><span class=err>？</span> <span class=o>|</span> <span class=n>是</span> <span class=o>|</span> <span class=n>否</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>推理阶段是否需要</span> <span class=n>ODE</span> <span class=n>求解器</span><span class=err>？</span> <span class=o>|</span> <span class=n>是</span> <span class=o>|</span> <span class=n>是</span><span class=err>（</span><span class=n>但要求更低</span><span class=err>，</span><span class=n>欧拉法即可</span><span class=err>）</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>收敛速度</span> <span class=o>|</span> <span class=n>较慢</span><span class=err>（</span><span class=n>通常需</span> <span class=mi>8000</span><span class=o>+</span> <span class=n>步</span><span class=err>）</span> <span class=o>|</span> <span class=n>较快</span><span class=err>（</span><span class=n>约</span> <span class=mi>3000</span> <span class=n>步即可收敛</span><span class=err>）</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>数值稳定性</span> <span class=o>|</span> <span class=n>对容差设置高度敏感</span> <span class=o>|</span> <span class=n>鲁棒性强</span><span class=err>，</span><span class=n>不易发散</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## “连续深度”的直观图景</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>“</span><span class=n>连续深度</span><span class=err>”</span><span class=n>是贯穿本章的核心思想</span><span class=err>：</span><span class=n>Neural</span> <span class=n>ODE</span> <span class=n>是深度网络的连续极限</span><span class=err>，</span><span class=n>而</span> <span class=n>CNF</span> <span class=n>则是归一化流的连续极限</span><span class=err>。</span><span class=n>两者背后的图像完全一致</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>连续轨迹</span> <span class=n>h</span><span class=p>(</span><span class=n>t</span><span class=p>)</span> <span class=n>分别由固定深度的</span> <span class=n>ResNet</span> <span class=n>和自适应</span> <span class=n>ODE</span> <span class=n>求解器近似</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>06</span><span class=o>-</span><span class=n>连续归一化流与Neural</span><span class=o>-</span><span class=n>ODE</span><span class=o>/</span><span class=n>fig6_continuous_depth</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>图</span> <span class=mi>6</span><span class=err>：</span><span class=n>蓝色曲线是底层</span> <span class=n>Neural</span> <span class=n>ODE</span> <span class=n>生成的真实连续轨迹</span> <span class=err>$</span><span class=n>h</span><span class=p>(</span><span class=n>t</span><span class=p>)</span><span class=err>$；</span><span class=n>红色虚线是固定深度</span> <span class=err>$</span><span class=n>L</span><span class=o>=</span><span class=mi>4</span><span class=err>$</span> <span class=n>的</span> <span class=n>ResNet</span><span class=err>，</span><span class=n>在</span> <span class=err>$</span><span class=o>|</span>\<span class=n>dot</span> <span class=n>h</span><span class=o>|</span><span class=err>$</span> <span class=n>较大的区域明显欠拟合</span><span class=err>（</span><span class=n>红色误差区域</span><span class=err>）；</span><span class=n>橙色曲线</span><span class=err>（$</span><span class=n>L</span><span class=o>=</span><span class=mi>8</span><span class=err>$）</span><span class=n>仍无法捕捉高频振荡</span><span class=err>；</span><span class=n>紫色菱形是自适应求解器的评估点</span><span class=err>——</span><span class=o>**</span><span class=n>在动力学剧烈处密集采样</span><span class=err>，</span><span class=n>在平滑处稀疏采样</span><span class=o>**</span><span class=err>，</span><span class=n>以更少的总评估次数达到相同精度</span><span class=err>，</span><span class=n>且无需手动调整</span><span class=err>“</span><span class=n>深度</span><span class=err>”。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>这也解释了为何一个</span> <span class=n>ODE</span> <span class=n>函数</span> <span class=err>$</span><span class=n>f_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>能替代深</span> <span class=n>ResNet</span> <span class=n>中的数百层</span><span class=err>：</span><span class=o>**</span><span class=n>时间变量</span><span class=o>**</span><span class=n>取代了层索引的角色</span><span class=err>，</span><span class=n>而离散化策略则交由求解器自动决定</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 增广神经微分方程（Augmented Neural ODEs）</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>标准的定义在</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=n>d</span><span class=err>$</span> <span class=n>上的神经微分方程</span><span class=err>（</span><span class=n>Neural</span> <span class=n>ODE</span><span class=err>）</span><span class=n>无法改变数据的拓扑结构</span><span class=err>——</span><span class=n>连通区域始终保持连通</span><span class=err>，</span><span class=n>两个彼此分离的簇也无法被合并</span><span class=err>。</span><span class=n>其根本原因在于</span><span class=err>：</span><span class=n>ODE</span> <span class=n>生成的流是一个</span><span class=o>**</span><span class=n>同胚映射</span><span class=o>**</span><span class=err>（</span><span class=n>homeomorphism</span><span class=err>），</span><span class=n>即连续的双射</span><span class=err>。</span><span class=n>在实际建模中</span><span class=err>，</span><span class=n>这意味着一个二维</span> <span class=n>Neural</span> <span class=n>ODE</span> <span class=o>**</span><span class=n>无法</span><span class=o>**</span><span class=n>将单个高斯分布映射为两个彼此分离的簇</span><span class=err>——</span><span class=n>因为要实现这种分裂</span><span class=err>，</span><span class=n>不同初始点的轨迹必然发生交叉</span><span class=err>，</span><span class=n>从而违反解的唯一性定理</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>解决方案</span><span class=err>：</span><span class=n>增广</span><span class=err>（</span><span class=n>augmentation</span><span class=err>）。</span><span class=o>**</span>  
+</span></span><span class=line><span class=cl><span class=n>我们将状态空间从</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=n>d</span><span class=err>$</span> <span class=n>提升至</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=n>d</span><span class=o>+</span><span class=n>k</span><span class=p>}</span><span class=err>$，</span><span class=n>方法是向原始状态向量末尾追加</span> <span class=err>$</span><span class=n>k</span><span class=err>$</span> <span class=n>个额外维度</span><span class=err>，</span><span class=n>并将其初始化为零</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>augmented_neural_ode</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>steps</span><span class=o>=</span><span class=mi>100</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=c1># 增广：拼接 k 个零向量</span>
 </span></span><span class=line><span class=cl>    <span class=n>aug</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>k</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>    <span class=n>h</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>x</span><span class=p>,</span> <span class=n>aug</span><span class=p>],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>  <span class=c1># 形状为 (batch_size, d+k)</span>
@@ -524,55 +856,102 @@ $$</span><p><strong>关键定理（Lipman et al.）</strong>：边缘速度 <spa
 </span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=n>h</span> <span class=o>+</span> <span class=n>dt</span> <span class=o>*</span> <span class=n>func</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>tensor</span><span class=p>(</span><span class=n>t</span><span class=p>),</span> <span class=n>h</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>    <span class=c1># 投影回原始的 d 维空间</span>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>h</span><span class=p>[:,</span> <span class=p>:</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]]</span>
-</span></span></code></pre></td></tr></table></div></div><p>在更高维的 <span class=math-inline>$\mathbb{R}^{d+k}$</span>
-空间中，动力学系统拥有了“抬升”一个簇、使其越过另一个簇、再“放下”的自由度——这就像高速公路上的立交桥（overpass）。虽然该方法需额外消耗 <span class=math-inline>$k$</span>
-个维度，却能彻底解除拓扑限制。Dupont 等人（2019）指出：对大多数二维问题，仅需 <span class=math-inline>$k = 1$</span>
-即可满足需求；而对于一般的 <span class=math-inline>$d$</span>
-维数据，取 <span class=math-inline>$k = d$</span>
-可提供最大的建模灵活性。</p><h2 id=整合全流程二维密度估计 class=heading-anchor>整合全流程：二维密度估计<a href=#%e6%95%b4%e5%90%88%e5%85%a8%e6%b5%81%e7%a8%8b%e4%ba%8c%e7%bb%b4%e5%af%86%e5%ba%a6%e4%bc%b0%e8%ae%a1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>为使整个流程更具体，我们在经典的“双月牙”玩具数据集上展示端到端的密度估计过程。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eNeural-ODE/fig7_density_estimation.png alt="二维玩具数据上的密度估计：目标样本、经验 KDE、CNF 拟合密度、生成样本与 ODE 轨迹。" loading=lazy decoding=async class=content-image></figure><em>图 7：(a) 4000 个来自“双月牙”目标分布的样本；(b) 通过 KDE 得到的经验密度；(c) 连续流学到的密度——通过将高斯分布沿训练好的 <span class=math-inline>$v_\theta$</span>
-正向输运得到；(d) 紫色为生成样本，绿色为若干条 ODE 轨迹，展示基点如何从单位高斯分布（绿点）流向目标月牙。同一个网络 <span class=math-inline>$v_\theta$</span>
-同时用于密度评估（从 <span class=math-inline>$\mathbf{x}$</span>
-反向积分）和采样（从噪声正向积分）。</em></p><p>这种双重能力——既能进行<strong>精确似然的密度估计</strong>，又能高效<strong>采样</strong>——仅依赖一个网络 <span class=math-inline>$v_\theta$</span>
-和一个 ODE <span class=math-inline>$\dot{\mathbf{z}} = v_\theta(\mathbf{z}, t)$</span>
-，正是连续流在理论上极具吸引力的原因。</p><h2 id=实验 class=heading-anchor>实验<a href=#%e5%ae%9e%e9%aa%8c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eNeural-ODE/fig8_spiral_ode_fit.png alt="Neural ODE螺旋轨迹拟合与学习到的向量场" loading=lazy decoding=async class=content-image></figure></p><h3 id=螺旋-ode-拟合 class=heading-anchor>螺旋 ODE 拟合<a href=#%e8%9e%ba%e6%97%8b-ode-%e6%8b%9f%e5%90%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>使用一个 3 层 MLP（隐藏维 64，tanh 激活）参数化 <span class=math-inline>$f_\theta$</span>
-，通过伴随方法在二维阻尼螺旋目标上训练，求解器为 dopri5（rtol <span class=math-inline>$=10^{-5}$</span>
-）。经过 1000 步训练后，平均轨迹误差降至 <span class=math-inline>$&lt;10^{-3}$</span>
-，峰值 GPU 内存约为 40 MB，与内部约 80 步的求解过程无关。</p><h3 id=高斯--双月牙-cnf class=heading-anchor>高斯 → 双月牙 CNF<a href=#%e9%ab%98%e6%96%af--%e5%8f%8c%e6%9c%88%e7%89%99-cnf class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>采用 4 层 MLP（隐藏维 128，softplus 激活），按 FFJORD 方式训练，使用 Hutchinson 迹估计和 dopri5 求解器，共训练 5000 步。生成样本完整覆盖两个月牙，并准确捕捉其弯月状厚度；与目标分布的 KDE 对比显示，Wasserstein-2 距离约为 0.07。</p><h3 id=伴随方法-vs-标准反向传播数据源自-neural-ode-原文外推至-1024-维隐藏状态 class=heading-anchor>伴随方法 vs 标准反向传播（数据源自 Neural ODE 原文，外推至 1024 维隐藏状态）<a href=#%e4%bc%b4%e9%9a%8f%e6%96%b9%e6%b3%95-vs-%e6%a0%87%e5%87%86%e5%8f%8d%e5%90%91%e4%bc%a0%e6%92%ad%e6%95%b0%e6%8d%ae%e6%ba%90%e8%87%aa-neural-ode-%e5%8e%9f%e6%96%87%e5%a4%96%e6%8e%a8%e8%87%b3-1024-%e7%bb%b4%e9%9a%90%e8%97%8f%e7%8a%b6%e6%80%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>方法</th><th>内存 (MB)</th><th>时间 (s)</th><th>测试准确率</th></tr></thead><tbody><tr><td>标准反向传播，固定 <span class=math-inline>$L=100$</span></td><td>2450</td><td>2.3</td><td>85.2%</td></tr><tr><td>伴随方法，固定 <span class=math-inline>$L=100$</span></td><td>320</td><td>3.1</td><td>85.1%</td></tr><tr><td>伴随方法，自适应（dopri5）</td><td>310</td><td>2.8</td><td>85.3%</td></tr></tbody></table></div><p>内存开销降低约 87%，而实际运行时间仅增加 20–30%。</p><h3 id=flow-matching-vs-cnf双月牙数据 class=heading-anchor>Flow Matching vs CNF（双月牙数据）<a href=#flow-matching-vs-cnf%e5%8f%8c%e6%9c%88%e7%89%99%e6%95%b0%e6%8d%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>方法</th><th>样本质量（越低越好）</th><th>收敛所需迭代数</th><th>采样时间</th></tr></thead><tbody><tr><td>CNF (FFJORD)</td><td>12.3</td><td>8000</td><td>2.1 s / 1k 样本</td></tr><tr><td>Flow Matching</td><td>8.7</td><td>3000</td><td>1.8 s / 1k 样本</td></tr></tbody></table></div><p>Flow Matching 收敛速度约为 CNF 的 2.7 倍，且生成的月牙形状更清晰。在真实图像数据上，这一差距更为显著——训练时间和采样所需的函数评估次数（NFE）相差一到两个数量级。</p><h2 id=练习题 class=heading-anchor>练习题<a href=#%e7%bb%83%e4%b9%a0%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>习题 1.</strong> 从连续性方程直接推导瞬时变量替换公式 (1)。</p><blockquote><p><em>解</em>。连续性方程：<span class=math-inline>$\partial_t\rho + \nabla\!\cdot(\rho f) = 0$</span>
-，即 <span class=math-inline>$\partial_t\rho + f\!\cdot\!\nabla\rho + \rho\,\nabla\!\cdot f = 0$</span>
-。沿轨迹 <span class=math-inline>$\mathbf{z}(t)$</span>
-，有 <span class=math-inline>$\frac{d}{dt}\rho(\mathbf{z}(t), t) = \partial_t\rho + f\!\cdot\!\nabla\rho = -\rho\,\nabla\!\cdot f$</span>
-。两边同除以 <span class=math-inline>$\rho$</span>
-即得结果。</p></blockquote><p><strong>习题 2.</strong> 为何伴随方法的内存开销为 <span class=math-inline>$O(1)$</span>
-？</p><blockquote><p><em>解</em>。它仅需存储当前的 <span class=math-inline>$\mathbf{h}(t)$</span>
-、<span class=math-inline>$\mathbf{a}(t)$</span>
-以及参数梯度的累加器。当反向求解器需要历史状态 <span class=math-inline>$\mathbf{h}(s)$</span>
-时，会通过反向积分前向 ODE 重新生成，而非预先存储。这里的 <span class=math-inline>$O(1)$</span>
-指与深度无关，空间维度 <span class=math-inline>$d$</span>
-的开销依然存在。</p></blockquote><p><strong>习题 3.</strong> 证明 Hutchinson 估计器 (6) 是无偏的。</p><blockquote><p><em>解</em>。对任意矩阵 <span class=math-inline>$A$</span>
-和满足 <span class=math-inline>$\mathbb{E}[\boldsymbol\epsilon] = 0$</span>
-、<span class=math-inline>$\mathrm{Cov}[\boldsymbol\epsilon] = \mathbf{I}$</span>
-的随机向量 <span class=math-inline>$\boldsymbol\epsilon$</span>
-，有 <span class=math-inline>$\mathbb{E}[\boldsymbol\epsilon^\top A\,\boldsymbol\epsilon] = \sum_{i,j} A_{ij}\,\mathbb{E}[\epsilon_i\epsilon_j] = \sum_i A_{ii} = \mathrm{tr}\,A$</span>
-。</p></blockquote><p><strong>习题 4.</strong> 从高层面对比 Flow Matching 与 DDPM。</p><blockquote><p><em>解</em>。两者都实现从噪声到数据的变换。DDPM 在随机前向 SDE 加噪过程中通过 score matching 学习去噪器，采样时需求解反向 SDE 或其对应的概率流 ODE；Flow Matching 则在确定性 ODE 上学习速度场 <span class=math-inline>$v_\theta$</span>
-，匹配预设的条件路径，采样只需对该 ODE 积分。Flow Matching 的训练损失是纯回归，无需设计时变噪声调度。</p></blockquote><p><strong>习题 5.</strong> 证明对线性条件路径 <span class=math-inline>$\mathbf{z}_t = (1-t)\mathbf{z}_0 + t\mathbf{z}_1$</span>
-，边缘速度 <span class=math-inline>$\mathbb{E}[\mathbf{z}_1 - \mathbf{z}_0 \mid \mathbf{z}_t]$</span>
-通过连续性方程将 <span class=math-inline>$p_0$</span>
-推至 <span class=math-inline>$p_1$</span>
-。</p><blockquote><p><em>解（要点）</em>。写出 <span class=math-inline>$\rho_t(\mathbf{z}) = \int q(\mathbf{z}_0, \mathbf{z}_1)\,\delta(\mathbf{z} - (1-t)\mathbf{z}_0 - t\mathbf{z}_1)\,d\mathbf{z}_0\,d\mathbf{z}_1$</span>
-。对 <span class=math-inline>$t$</span>
-求导，并利用恒等式 <span class=math-inline>$\partial_t\delta = -\nabla\!\cdot[(\mathbf{z}_1 - \mathbf{z}_0)\delta]$</span>
-。在给定 <span class=math-inline>$\mathbf{z}_t$</span>
-的条件下对 <span class=math-inline>$\mathbf{z}_0, \mathbf{z}_1$</span>
-边缘化，可得 <span class=math-inline>$\partial_t\rho_t + \nabla\!\cdot(\rho_t\,\bar v_t) = 0$</span>
-，其中 <span class=math-inline>$\bar v_t(\mathbf{z}) = \mathbb{E}[\mathbf{z}_1 - \mathbf{z}_0 \mid \mathbf{z}_t = \mathbf{z}]$</span>
-。</p></blockquote><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>本章给的几个核心想法（PDE 残差作为损失、函数空间上的算子、Wasserstein 几何、辛结构、score、扩散）在后面的章节里会反复出现。如果某一段卡住了，建议先记下问题继续往下读——下一章往往会从另一个角度把它再讲一遍。</p><p>如果你想验证自己读懂了，最直接的练习是把本章的方程在一个最小例子上跑通：一维热方程、单摆、二维高斯混合。代码不长，但能让公式从“看着对”变成“在我电脑上确实是对的”。</p><h2 id=参考文献 class=heading-anchor>参考文献<a href=#%e5%8f%82%e8%80%83%e6%96%87%e7%8c%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>[1] Chen, R. T. Q., Rubanova, Y., Bettencourt, J., & Duvenaud, D. (2018). Neural ordinary differential equations. <em>NeurIPS</em>.</p><p>[2] Grathwohl, W., Chen, R. T. Q., Bettencourt, J., Sutskever, I., & Duvenaud, D. (2018). FFJORD: Free-form continuous dynamics for scalable reversible generative models. <em>ICLR</em>.</p><p>[3] Onken, D., Fung, S. W., Li, X., & Ruthotto, L. (2021). OT-Flow: Fast and accurate continuous normalizing flows via optimal transport. <em>AAAI</em>.</p><p>[4] Lipman, Y., Chen, R. T. Q., Ben-Hamu, H., Nickel, M., & Le, M. (2022). Flow matching for generative modeling. <em>ICLR</em>.</p><p>[5] Liu, X., Gong, C., & Liu, Q. (2022). Flow straight and fast: Learning to generate and transfer data with rectified flow. <em>ICLR</em>.</p><p>[6] Tzen, B., & Raginsky, M. (2019). Theoretical guarantees for sampling and inference in generative models with latent diffusions. <em>COLT</em>.</p><p>[7] Zhang, H., Gao, X., Unterman, J., & Arodz, T. (2020). Approximation capabilities of neural ODEs and invertible residual networks. <em>ICML</em>.</p><hr><p><em>本文是 <a href=/zh/pde-ml/>PDE 与机器学习</a>
-系列的第 6 篇。下一篇：<a href=/zh/pde-ml/07-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8escore-matching>第 7 篇 —— 扩散模型</a>
-。上一篇：<a href=/zh/pde-ml/05-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c>第 5 篇 —— 辛几何</a>
-。</em></p></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>在更高维的</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=n>d</span><span class=o>+</span><span class=n>k</span><span class=p>}</span><span class=err>$</span> <span class=n>空间中</span><span class=err>，</span><span class=n>动力学系统拥有了</span><span class=err>“</span><span class=n>抬升</span><span class=err>”</span><span class=n>一个簇</span><span class=err>、</span><span class=n>使其越过另一个簇</span><span class=err>、</span><span class=n>再</span><span class=err>“</span><span class=n>放下</span><span class=err>”</span><span class=n>的自由度</span><span class=err>——</span><span class=n>这就像高速公路上的立交桥</span><span class=err>（</span><span class=n>overpass</span><span class=err>）。</span><span class=n>虽然该方法需额外消耗</span> <span class=err>$</span><span class=n>k</span><span class=err>$</span> <span class=n>个维度</span><span class=err>，</span><span class=n>却能彻底解除拓扑限制</span><span class=err>。</span><span class=n>Dupont</span> <span class=n>等人</span><span class=err>（</span><span class=mi>2019</span><span class=err>）</span><span class=n>指出</span><span class=err>：</span><span class=n>对大多数二维问题</span><span class=err>，</span><span class=n>仅需</span> <span class=err>$</span><span class=n>k</span> <span class=o>=</span> <span class=mi>1</span><span class=err>$</span> <span class=n>即可满足需求</span><span class=err>；</span><span class=n>而对于一般的</span> <span class=err>$</span><span class=n>d</span><span class=err>$</span> <span class=n>维数据</span><span class=err>，</span><span class=n>取</span> <span class=err>$</span><span class=n>k</span> <span class=o>=</span> <span class=n>d</span><span class=err>$</span> <span class=n>可提供最大的建模灵活性</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 整合全流程：二维密度估计</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>为使整个流程更具体</span><span class=err>，</span><span class=n>我们在经典的</span><span class=err>“</span><span class=n>双月牙</span><span class=err>”</span><span class=n>玩具数据集上展示端到端的密度估计过程</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>二维玩具数据上的密度估计</span><span class=err>：</span><span class=n>目标样本</span><span class=err>、</span><span class=n>经验</span> <span class=n>KDE</span><span class=err>、</span><span class=n>CNF</span> <span class=n>拟合密度</span><span class=err>、</span><span class=n>生成样本与</span> <span class=n>ODE</span> <span class=n>轨迹</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>06</span><span class=o>-</span><span class=n>连续归一化流与Neural</span><span class=o>-</span><span class=n>ODE</span><span class=o>/</span><span class=n>fig7_density_estimation</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>图</span> <span class=mi>7</span><span class=err>：</span><span class=p>(</span><span class=n>a</span><span class=p>)</span> <span class=mi>4000</span> <span class=n>个来自</span><span class=err>“</span><span class=n>双月牙</span><span class=err>”</span><span class=n>目标分布的样本</span><span class=err>；</span><span class=p>(</span><span class=n>b</span><span class=p>)</span> <span class=n>通过</span> <span class=n>KDE</span> <span class=n>得到的经验密度</span><span class=err>；</span><span class=p>(</span><span class=n>c</span><span class=p>)</span> <span class=n>连续流学到的密度</span><span class=err>——</span><span class=n>通过将高斯分布沿训练好的</span> <span class=err>$</span><span class=n>v_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>正向输运得到</span><span class=err>；</span><span class=p>(</span><span class=n>d</span><span class=p>)</span> <span class=n>紫色为生成样本</span><span class=err>，</span><span class=n>绿色为若干条</span> <span class=n>ODE</span> <span class=n>轨迹</span><span class=err>，</span><span class=n>展示基点如何从单位高斯分布</span><span class=err>（</span><span class=n>绿点</span><span class=err>）</span><span class=n>流向目标月牙</span><span class=err>。</span><span class=n>同一个网络</span> <span class=err>$</span><span class=n>v_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>同时用于密度评估</span><span class=err>（</span><span class=n>从</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=err>$</span> <span class=n>反向积分</span><span class=err>）</span><span class=n>和采样</span><span class=err>（</span><span class=n>从噪声正向积分</span><span class=err>）。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>这种双重能力</span><span class=err>——</span><span class=n>既能进行</span><span class=o>**</span><span class=n>精确似然的密度估计</span><span class=o>**</span><span class=err>，</span><span class=n>又能高效</span><span class=o>**</span><span class=n>采样</span><span class=o>**</span><span class=err>——</span><span class=n>仅依赖一个网络</span> <span class=err>$</span><span class=n>v_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>和一个</span> <span class=n>ODE</span> <span class=err>$</span>\<span class=n>dot</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}}</span> <span class=o>=</span> <span class=n>v_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>},</span> <span class=n>t</span><span class=p>)</span><span class=err>$，</span><span class=n>正是连续流在理论上极具吸引力的原因</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 实验</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>Neural</span> <span class=n>ODE螺旋轨迹拟合与学习到的向量场</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>06</span><span class=o>-</span><span class=n>连续归一化流与Neural</span><span class=o>-</span><span class=n>ODE</span><span class=o>/</span><span class=n>fig8_spiral_ode_fit</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 螺旋 ODE 拟合</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>使用一个</span> <span class=mi>3</span> <span class=n>层</span> <span class=n>MLP</span><span class=err>（</span><span class=n>隐藏维</span> <span class=mi>64</span><span class=err>，</span><span class=n>tanh</span> <span class=n>激活</span><span class=err>）</span><span class=n>参数化</span> <span class=err>$</span><span class=n>f_</span>\<span class=n>theta</span><span class=err>$，</span><span class=n>通过伴随方法在二维阻尼螺旋目标上训练</span><span class=err>，</span><span class=n>求解器为</span> <span class=n>dopri5</span><span class=err>（</span><span class=n>rtol</span> <span class=err>$</span><span class=o>=</span><span class=mi>10</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>5</span><span class=p>}</span><span class=err>$）。</span><span class=n>经过</span> <span class=mi>1000</span> <span class=n>步训练后</span><span class=err>，</span><span class=n>平均轨迹误差降至</span> <span class=err>$</span><span class=o>&lt;</span><span class=mi>10</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>3</span><span class=p>}</span><span class=err>$，</span><span class=n>峰值</span> <span class=n>GPU</span> <span class=n>内存约为</span> <span class=mi>40</span> <span class=n>MB</span><span class=err>，</span><span class=n>与内部约</span> <span class=mi>80</span> <span class=n>步的求解过程无关</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 高斯 → 双月牙 CNF</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>采用</span> <span class=mi>4</span> <span class=n>层</span> <span class=n>MLP</span><span class=err>（</span><span class=n>隐藏维</span> <span class=mi>128</span><span class=err>，</span><span class=n>softplus</span> <span class=n>激活</span><span class=err>），</span><span class=n>按</span> <span class=n>FFJORD</span> <span class=n>方式训练</span><span class=err>，</span><span class=n>使用</span> <span class=n>Hutchinson</span> <span class=n>迹估计和</span> <span class=n>dopri5</span> <span class=n>求解器</span><span class=err>，</span><span class=n>共训练</span> <span class=mi>5000</span> <span class=n>步</span><span class=err>。</span><span class=n>生成样本完整覆盖两个月牙</span><span class=err>，</span><span class=n>并准确捕捉其弯月状厚度</span><span class=err>；</span><span class=n>与目标分布的</span> <span class=n>KDE</span> <span class=n>对比显示</span><span class=err>，</span><span class=n>Wasserstein</span><span class=o>-</span><span class=mi>2</span> <span class=n>距离约为</span> <span class=mf>0.07</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 伴随方法 vs 标准反向传播（数据源自 Neural ODE 原文，外推至 1024 维隐藏状态）</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>方法</span> <span class=o>|</span> <span class=n>内存</span> <span class=p>(</span><span class=n>MB</span><span class=p>)</span> <span class=o>|</span> <span class=n>时间</span> <span class=p>(</span><span class=n>s</span><span class=p>)</span> <span class=o>|</span> <span class=n>测试准确率</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|------|-----------|---------|-----------|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>标准反向传播</span><span class=err>，</span><span class=n>固定</span> <span class=err>$</span><span class=n>L</span><span class=o>=</span><span class=mi>100</span><span class=err>$</span> <span class=o>|</span> <span class=mi>2450</span> <span class=o>|</span> <span class=mf>2.3</span> <span class=o>|</span> <span class=mf>85.2</span><span class=o>%</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>伴随方法</span><span class=err>，</span><span class=n>固定</span> <span class=err>$</span><span class=n>L</span><span class=o>=</span><span class=mi>100</span><span class=err>$</span> <span class=o>|</span> <span class=mi>320</span> <span class=o>|</span> <span class=mf>3.1</span> <span class=o>|</span> <span class=mf>85.1</span><span class=o>%</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>伴随方法</span><span class=err>，</span><span class=n>自适应</span><span class=err>（</span><span class=n>dopri5</span><span class=err>）</span> <span class=o>|</span> <span class=mi>310</span> <span class=o>|</span> <span class=mf>2.8</span> <span class=o>|</span> <span class=mf>85.3</span><span class=o>%</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>内存开销降低约</span> <span class=mi>87</span><span class=o>%</span><span class=err>，</span><span class=n>而实际运行时间仅增加</span> <span class=mi>20</span><span class=err>–</span><span class=mi>30</span><span class=o>%</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### Flow Matching vs CNF（双月牙数据）</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>方法</span> <span class=o>|</span> <span class=n>样本质量</span><span class=err>（</span><span class=n>越低越好</span><span class=err>）</span> <span class=o>|</span> <span class=n>收敛所需迭代数</span> <span class=o>|</span> <span class=n>采样时间</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|------|--------------------|----------------|----------|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>CNF</span> <span class=p>(</span><span class=n>FFJORD</span><span class=p>)</span> <span class=o>|</span> <span class=mf>12.3</span> <span class=o>|</span> <span class=mi>8000</span> <span class=o>|</span> <span class=mf>2.1</span> <span class=n>s</span> <span class=o>/</span> <span class=mi>1</span><span class=n>k</span> <span class=n>样本</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>Flow</span> <span class=n>Matching</span> <span class=o>|</span> <span class=mf>8.7</span> <span class=o>|</span> <span class=mi>3000</span> <span class=o>|</span> <span class=mf>1.8</span> <span class=n>s</span> <span class=o>/</span> <span class=mi>1</span><span class=n>k</span> <span class=n>样本</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>Flow</span> <span class=n>Matching</span> <span class=n>收敛速度约为</span> <span class=n>CNF</span> <span class=n>的</span> <span class=mf>2.7</span> <span class=n>倍</span><span class=err>，</span><span class=n>且生成的月牙形状更清晰</span><span class=err>。</span><span class=n>在真实图像数据上</span><span class=err>，</span><span class=n>这一差距更为显著</span><span class=err>——</span><span class=n>训练时间和采样所需的函数评估次数</span><span class=err>（</span><span class=n>NFE</span><span class=err>）</span><span class=n>相差一到两个数量级</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 练习题</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>习题</span> <span class=mf>1.</span><span class=o>**</span> <span class=n>从连续性方程直接推导瞬时变量替换公式</span> <span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>*</span><span class=n>解</span><span class=o>*</span><span class=err>。</span><span class=n>连续性方程</span><span class=err>：$</span>\<span class=n>partial_t</span>\<span class=n>rho</span> <span class=o>+</span> \<span class=n>nabla</span>\<span class=err>!</span>\<span class=n>cdot</span><span class=p>(</span>\<span class=n>rho</span> <span class=n>f</span><span class=p>)</span> <span class=o>=</span> <span class=mi>0</span><span class=err>$，</span><span class=n>即</span> <span class=err>$</span>\<span class=n>partial_t</span>\<span class=n>rho</span> <span class=o>+</span> <span class=n>f</span>\<span class=err>!</span>\<span class=n>cdot</span>\<span class=err>!</span>\<span class=n>nabla</span>\<span class=n>rho</span> <span class=o>+</span> \<span class=n>rho</span>\<span class=p>,</span>\<span class=n>nabla</span>\<span class=err>!</span>\<span class=n>cdot</span> <span class=n>f</span> <span class=o>=</span> <span class=mi>0</span><span class=err>$。</span><span class=n>沿轨迹</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}(</span><span class=n>t</span><span class=p>)</span><span class=err>$，</span><span class=n>有</span> <span class=err>$</span>\<span class=n>frac</span><span class=p>{</span><span class=n>d</span><span class=p>}{</span><span class=n>dt</span><span class=p>}</span>\<span class=n>rho</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}(</span><span class=n>t</span><span class=p>),</span> <span class=n>t</span><span class=p>)</span> <span class=o>=</span> \<span class=n>partial_t</span>\<span class=n>rho</span> <span class=o>+</span> <span class=n>f</span>\<span class=err>!</span>\<span class=n>cdot</span>\<span class=err>!</span>\<span class=n>nabla</span>\<span class=n>rho</span> <span class=o>=</span> <span class=o>-</span>\<span class=n>rho</span>\<span class=p>,</span>\<span class=n>nabla</span>\<span class=err>!</span>\<span class=n>cdot</span> <span class=n>f</span><span class=err>$。</span><span class=n>两边同除以</span> <span class=err>$</span>\<span class=n>rho</span><span class=err>$</span> <span class=n>即得结果</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>习题</span> <span class=mf>2.</span><span class=o>**</span> <span class=n>为何伴随方法的内存开销为</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=err>$？</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>*</span><span class=n>解</span><span class=o>*</span><span class=err>。</span><span class=n>它仅需存储当前的</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>h</span><span class=p>}(</span><span class=n>t</span><span class=p>)</span><span class=err>$、$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>a</span><span class=p>}(</span><span class=n>t</span><span class=p>)</span><span class=err>$</span> <span class=n>以及参数梯度的累加器</span><span class=err>。</span><span class=n>当反向求解器需要历史状态</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>h</span><span class=p>}(</span><span class=n>s</span><span class=p>)</span><span class=err>$</span> <span class=n>时</span><span class=err>，</span><span class=n>会通过反向积分前向</span> <span class=n>ODE</span> <span class=n>重新生成</span><span class=err>，</span><span class=n>而非预先存储</span><span class=err>。</span><span class=n>这里的</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=err>$</span> <span class=n>指与深度无关</span><span class=err>，</span><span class=n>空间维度</span> <span class=err>$</span><span class=n>d</span><span class=err>$</span> <span class=n>的开销依然存在</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>习题</span> <span class=mf>3.</span><span class=o>**</span> <span class=n>证明</span> <span class=n>Hutchinson</span> <span class=n>估计器</span> <span class=p>(</span><span class=mi>6</span><span class=p>)</span> <span class=n>是无偏的</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>*</span><span class=n>解</span><span class=o>*</span><span class=err>。</span><span class=n>对任意矩阵</span> <span class=err>$</span><span class=n>A</span><span class=err>$</span> <span class=n>和满足</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}[</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon</span><span class=p>]</span> <span class=o>=</span> <span class=mi>0</span><span class=err>$、$</span>\<span class=n>mathrm</span><span class=p>{</span><span class=n>Cov</span><span class=p>}[</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon</span><span class=p>]</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>}</span><span class=err>$</span> <span class=n>的随机向量</span> <span class=err>$</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon</span><span class=err>$，</span><span class=n>有</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}[</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon</span><span class=o>^</span>\<span class=n>top</span> <span class=n>A</span>\<span class=p>,</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon</span><span class=p>]</span> <span class=o>=</span> \<span class=n>sum_</span><span class=p>{</span><span class=n>i</span><span class=p>,</span><span class=n>j</span><span class=p>}</span> <span class=n>A_</span><span class=p>{</span><span class=n>ij</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}[</span>\<span class=n>epsilon_i</span>\<span class=n>epsilon_j</span><span class=p>]</span> <span class=o>=</span> \<span class=n>sum_i</span> <span class=n>A_</span><span class=p>{</span><span class=n>ii</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathrm</span><span class=p>{</span><span class=n>tr</span><span class=p>}</span>\<span class=p>,</span><span class=n>A</span><span class=err>$。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>习题</span> <span class=mf>4.</span><span class=o>**</span> <span class=n>从高层面对比</span> <span class=n>Flow</span> <span class=n>Matching</span> <span class=n>与</span> <span class=n>DDPM</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>*</span><span class=n>解</span><span class=o>*</span><span class=err>。</span><span class=n>两者都实现从噪声到数据的变换</span><span class=err>。</span><span class=n>DDPM</span> <span class=n>在随机前向</span> <span class=n>SDE</span> <span class=n>加噪过程中通过</span> <span class=n>score</span> <span class=n>matching</span> <span class=n>学习去噪器</span><span class=err>，</span><span class=n>采样时需求解反向</span> <span class=n>SDE</span> <span class=n>或其对应的概率流</span> <span class=n>ODE</span><span class=err>；</span><span class=n>Flow</span> <span class=n>Matching</span> <span class=n>则在确定性</span> <span class=n>ODE</span> <span class=n>上学习速度场</span> <span class=err>$</span><span class=n>v_</span>\<span class=n>theta</span><span class=err>$，</span><span class=n>匹配预设的条件路径</span><span class=err>，</span><span class=n>采样只需对该</span> <span class=n>ODE</span> <span class=n>积分</span><span class=err>。</span><span class=n>Flow</span> <span class=n>Matching</span> <span class=n>的训练损失是纯回归</span><span class=err>，</span><span class=n>无需设计时变噪声调度</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>习题</span> <span class=mf>5.</span><span class=o>**</span> <span class=n>证明对线性条件路径</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_t</span> <span class=o>=</span> <span class=p>(</span><span class=mi>1</span><span class=o>-</span><span class=n>t</span><span class=p>)</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span> <span class=o>+</span> <span class=n>t</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span><span class=err>$，</span><span class=n>边缘速度</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}[</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span> <span class=o>-</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span> \<span class=n>mid</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_t</span><span class=p>]</span><span class=err>$</span> <span class=n>通过连续性方程将</span> <span class=err>$</span><span class=n>p_0</span><span class=err>$</span> <span class=n>推至</span> <span class=err>$</span><span class=n>p_1</span><span class=err>$。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>*</span><span class=n>解</span><span class=err>（</span><span class=n>要点</span><span class=err>）</span><span class=o>*</span><span class=err>。</span><span class=n>写出</span> <span class=err>$</span>\<span class=n>rho_t</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>})</span> <span class=o>=</span> \<span class=nb>int</span> <span class=n>q</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span><span class=p>,</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span><span class=p>)</span>\<span class=p>,</span>\<span class=n>delta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span> <span class=o>-</span> <span class=p>(</span><span class=mi>1</span><span class=o>-</span><span class=n>t</span><span class=p>)</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span> <span class=o>-</span> <span class=n>t</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span><span class=p>)</span>\<span class=p>,</span><span class=n>d</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span>\<span class=p>,</span><span class=n>d</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span><span class=err>$。</span><span class=n>对</span> <span class=err>$</span><span class=n>t</span><span class=err>$</span> <span class=n>求导</span><span class=err>，</span><span class=n>并利用恒等式</span> <span class=err>$</span>\<span class=n>partial_t</span>\<span class=n>delta</span> <span class=o>=</span> <span class=o>-</span>\<span class=n>nabla</span>\<span class=err>!</span>\<span class=n>cdot</span><span class=p>[(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span> <span class=o>-</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span><span class=p>)</span>\<span class=n>delta</span><span class=p>]</span><span class=err>$。</span><span class=n>在给定</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_t</span><span class=err>$</span> <span class=n>的条件下对</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span><span class=p>,</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span><span class=err>$</span> <span class=n>边缘化</span><span class=err>，</span><span class=n>可得</span> <span class=err>$</span>\<span class=n>partial_t</span>\<span class=n>rho_t</span> <span class=o>+</span> \<span class=n>nabla</span>\<span class=err>!</span>\<span class=n>cdot</span><span class=p>(</span>\<span class=n>rho_t</span>\<span class=p>,</span>\<span class=n>bar</span> <span class=n>v_t</span><span class=p>)</span> <span class=o>=</span> <span class=mi>0</span><span class=err>$，</span><span class=n>其中</span> <span class=err>$</span>\<span class=n>bar</span> <span class=n>v_t</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>})</span> <span class=o>=</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}[</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_1</span> <span class=o>-</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_0</span> \<span class=n>mid</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}</span><span class=n>_t</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}]</span><span class=err>$。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 下一步</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>本章给的几个核心想法</span><span class=err>（</span><span class=n>PDE</span> <span class=n>残差作为损失</span><span class=err>、</span><span class=n>函数空间上的算子</span><span class=err>、</span><span class=n>Wasserstein</span> <span class=n>几何</span><span class=err>、</span><span class=n>辛结构</span><span class=err>、</span><span class=n>score</span><span class=err>、</span><span class=n>扩散</span><span class=err>）</span><span class=n>在后面的章节里会反复出现</span><span class=err>。</span><span class=n>如果某一段卡住了</span><span class=err>，</span><span class=n>建议先记下问题继续往下读</span><span class=err>——</span><span class=n>下一章往往会从另一个角度把它再讲一遍</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>如果你想验证自己读懂了</span><span class=err>，</span><span class=n>最直接的练习是把本章的方程在一个最小例子上跑通</span><span class=err>：</span><span class=n>一维热方程</span><span class=err>、</span><span class=n>单摆</span><span class=err>、</span><span class=n>二维高斯混合</span><span class=err>。</span><span class=n>代码不长</span><span class=err>，</span><span class=n>但能让公式从</span><span class=err>“</span><span class=n>看着对</span><span class=err>”</span><span class=n>变成</span><span class=err>“</span><span class=n>在我电脑上确实是对的</span><span class=err>”。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 参考文献</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=n>Chen</span><span class=p>,</span> <span class=n>R</span><span class=o>.</span> <span class=n>T</span><span class=o>.</span> <span class=n>Q</span><span class=o>.</span><span class=p>,</span> <span class=n>Rubanova</span><span class=p>,</span> <span class=n>Y</span><span class=o>.</span><span class=p>,</span> <span class=n>Bettencourt</span><span class=p>,</span> <span class=n>J</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Duvenaud</span><span class=p>,</span> <span class=n>D</span><span class=o>.</span> <span class=p>(</span><span class=mi>2018</span><span class=p>)</span><span class=o>.</span> <span class=n>Neural</span> <span class=n>ordinary</span> <span class=n>differential</span> <span class=n>equations</span><span class=o>.</span> <span class=o>*</span><span class=n>NeurIPS</span><span class=o>*.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=n>Grathwohl</span><span class=p>,</span> <span class=n>W</span><span class=o>.</span><span class=p>,</span> <span class=n>Chen</span><span class=p>,</span> <span class=n>R</span><span class=o>.</span> <span class=n>T</span><span class=o>.</span> <span class=n>Q</span><span class=o>.</span><span class=p>,</span> <span class=n>Bettencourt</span><span class=p>,</span> <span class=n>J</span><span class=o>.</span><span class=p>,</span> <span class=n>Sutskever</span><span class=p>,</span> <span class=n>I</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Duvenaud</span><span class=p>,</span> <span class=n>D</span><span class=o>.</span> <span class=p>(</span><span class=mi>2018</span><span class=p>)</span><span class=o>.</span> <span class=n>FFJORD</span><span class=p>:</span> <span class=n>Free</span><span class=o>-</span><span class=n>form</span> <span class=n>continuous</span> <span class=n>dynamics</span> <span class=k>for</span> <span class=n>scalable</span> <span class=n>reversible</span> <span class=n>generative</span> <span class=n>models</span><span class=o>.</span> <span class=o>*</span><span class=n>ICLR</span><span class=o>*.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>3</span><span class=p>]</span> <span class=n>Onken</span><span class=p>,</span> <span class=n>D</span><span class=o>.</span><span class=p>,</span> <span class=n>Fung</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span> <span class=n>W</span><span class=o>.</span><span class=p>,</span> <span class=n>Li</span><span class=p>,</span> <span class=n>X</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Ruthotto</span><span class=p>,</span> <span class=n>L</span><span class=o>.</span> <span class=p>(</span><span class=mi>2021</span><span class=p>)</span><span class=o>.</span> <span class=n>OT</span><span class=o>-</span><span class=n>Flow</span><span class=p>:</span> <span class=n>Fast</span> <span class=ow>and</span> <span class=n>accurate</span> <span class=n>continuous</span> <span class=n>normalizing</span> <span class=n>flows</span> <span class=n>via</span> <span class=n>optimal</span> <span class=n>transport</span><span class=o>.</span> <span class=o>*</span><span class=n>AAAI</span><span class=o>*.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>4</span><span class=p>]</span> <span class=n>Lipman</span><span class=p>,</span> <span class=n>Y</span><span class=o>.</span><span class=p>,</span> <span class=n>Chen</span><span class=p>,</span> <span class=n>R</span><span class=o>.</span> <span class=n>T</span><span class=o>.</span> <span class=n>Q</span><span class=o>.</span><span class=p>,</span> <span class=n>Ben</span><span class=o>-</span><span class=n>Hamu</span><span class=p>,</span> <span class=n>H</span><span class=o>.</span><span class=p>,</span> <span class=n>Nickel</span><span class=p>,</span> <span class=n>M</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Le</span><span class=p>,</span> <span class=n>M</span><span class=o>.</span> <span class=p>(</span><span class=mi>2022</span><span class=p>)</span><span class=o>.</span> <span class=n>Flow</span> <span class=n>matching</span> <span class=k>for</span> <span class=n>generative</span> <span class=n>modeling</span><span class=o>.</span> <span class=o>*</span><span class=n>ICLR</span><span class=o>*.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>5</span><span class=p>]</span> <span class=n>Liu</span><span class=p>,</span> <span class=n>X</span><span class=o>.</span><span class=p>,</span> <span class=n>Gong</span><span class=p>,</span> <span class=n>C</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Liu</span><span class=p>,</span> <span class=n>Q</span><span class=o>.</span> <span class=p>(</span><span class=mi>2022</span><span class=p>)</span><span class=o>.</span> <span class=n>Flow</span> <span class=n>straight</span> <span class=ow>and</span> <span class=n>fast</span><span class=p>:</span> <span class=n>Learning</span> <span class=n>to</span> <span class=n>generate</span> <span class=ow>and</span> <span class=n>transfer</span> <span class=n>data</span> <span class=k>with</span> <span class=n>rectified</span> <span class=n>flow</span><span class=o>.</span> <span class=o>*</span><span class=n>ICLR</span><span class=o>*.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>6</span><span class=p>]</span> <span class=n>Tzen</span><span class=p>,</span> <span class=n>B</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Raginsky</span><span class=p>,</span> <span class=n>M</span><span class=o>.</span> <span class=p>(</span><span class=mi>2019</span><span class=p>)</span><span class=o>.</span> <span class=n>Theoretical</span> <span class=n>guarantees</span> <span class=k>for</span> <span class=n>sampling</span> <span class=ow>and</span> <span class=n>inference</span> <span class=ow>in</span> <span class=n>generative</span> <span class=n>models</span> <span class=k>with</span> <span class=n>latent</span> <span class=n>diffusions</span><span class=o>.</span> <span class=o>*</span><span class=n>COLT</span><span class=o>*.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>7</span><span class=p>]</span> <span class=n>Zhang</span><span class=p>,</span> <span class=n>H</span><span class=o>.</span><span class=p>,</span> <span class=n>Gao</span><span class=p>,</span> <span class=n>X</span><span class=o>.</span><span class=p>,</span> <span class=n>Unterman</span><span class=p>,</span> <span class=n>J</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Arodz</span><span class=p>,</span> <span class=n>T</span><span class=o>.</span> <span class=p>(</span><span class=mi>2020</span><span class=p>)</span><span class=o>.</span> <span class=n>Approximation</span> <span class=n>capabilities</span> <span class=n>of</span> <span class=n>neural</span> <span class=n>ODEs</span> <span class=ow>and</span> <span class=n>invertible</span> <span class=n>residual</span> <span class=n>networks</span><span class=o>.</span> <span class=o>*</span><span class=n>ICML</span><span class=o>*.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>---</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>本文是</span> <span class=p>[</span><span class=n>PDE</span> <span class=n>与机器学习</span><span class=p>](</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=p>)</span> <span class=n>系列的第</span> <span class=mi>6</span> <span class=n>篇</span><span class=err>。</span><span class=n>下一篇</span><span class=err>：</span><span class=p>[</span><span class=n>第</span> <span class=mi>7</span> <span class=n>篇</span> <span class=err>——</span> <span class=n>扩散模型</span><span class=p>](</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>07</span><span class=o>-</span><span class=n>扩散模型与score</span><span class=o>-</span><span class=n>matching</span><span class=p>)</span><span class=err>。</span><span class=n>上一篇</span><span class=err>：</span><span class=p>[</span><span class=n>第</span> <span class=mi>5</span> <span class=n>篇</span> <span class=err>——</span> <span class=n>辛几何</span><span class=p>](</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>05</span><span class=o>-</span><span class=n>辛几何与保结构网络</span><span class=p>)</span><span class=err>。</span><span class=o>*</span>
+</span></span></code></pre></td></tr></table></div></div></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E5%2581%258F%25E5%25BE%25AE%25E5%2588%2586%25E6%2596%25B9%25E7%25A8%258B%25E4%25B8%258E%25E6%259C%25BA%25E5%2599%25A8%25E5%25AD%25A6%25E4%25B9%25A0%25EF%25BC%2588%25E5%2585%25AD%25EF%25BC%2589%25EF%25BC%259A%25E8%25BF%259E%25E7%25BB%25AD%25E5%25BD%2592%25E4%25B8%2580%25E5%258C%2596%25E6%25B5%2581%25E4%25B8%258E%2bNeural%2bODE&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpde-ml%252F06-%2525E8%2525BF%25259E%2525E7%2525BB%2525AD%2525E5%2525BD%252592%2525E4%2525B8%252580%2525E5%25258C%252596%2525E6%2525B5%252581%2525E4%2525B8%25258Eneural-ode%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpde-ml%252F06-%2525E8%2525BF%25259E%2525E7%2525BB%2525AD%2525E5%2525BD%252592%2525E4%2525B8%252580%2525E5%25258C%252596%2525E6%2525B5%252581%2525E4%2525B8%25258Eneural-ode%252F&title=%25E5%2581%258F%25E5%25BE%25AE%25E5%2588%2586%25E6%2596%25B9%25E7%25A8%258B%25E4%25B8%258E%25E6%259C%25BA%25E5%2599%25A8%25E5%25AD%25A6%25E4%25B9%25A0%25EF%25BC%2588%25E5%2585%25AD%25EF%25BC%2589%25EF%25BC%259A%25E8%25BF%259E%25E7%25BB%25AD%25E5%25BD%2592%25E4%25B8%2580%25E5%258C%2596%25E6%25B5%2581%25E4%25B8%258E%2bNeural%2bODE" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2024-07-15>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#ode-基础存在唯一性与体积演化>ODE 基础：存在唯一性与体积演化</a><ul><li><a href=#picard-lindelöf解何时存在且唯一>Picard-Lindelöf：解何时存在且唯一？</a></li><li><a href=#liouville-定理流如何改变体积>Liouville 定理：流如何改变体积</a></li><li><a href=#瞬时变量替换公式>瞬时变量替换公式</a></li></ul></li><li><a href=#neural-ode从离散到连续深度>Neural ODE：从离散到连续深度</a><ul><li><a href=#残差网络即前向-euler-方法>残差网络即前向 Euler 方法</a></li><li><a href=#伴随灵敏度方法>伴随灵敏度方法</a></li><li><a href=#表达能力>表达能力</a></li></ul></li><li><a href=#连续归一化流cnf>连续归一化流（CNF）</a><ul><li><a href=#从离散流到连续流>从离散流到连续流</a></li><li><a href=#ffjord通过-hutchinson-估计实现可扩展的迹计算>FFJORD：通过 Hutchinson 估计实现可扩展的迹计算</a></li><li><a href=#训练与采样>训练与采样</a></li></ul></li><li><a href=#最优传输与-flow-matching>最优传输与 Flow Matching</a><ul><li><a href=#benamou-brenier-联系>Benamou-Brenier 联系</a></li><li><a href=#flow-matching>Flow Matching</a></li><li><a href=#2024-年的实际选择>2024 年的实际选择</a></li></ul></li><li><a href=#连续深度的直观图景>“连续深度”的直观图景</a><ul><li><a href=#增广神经微分方程augmented-neural-odes>增广神经微分方程（Augmented Neural ODEs）</a></li></ul></li><li><a href=#整合全流程二维密度估计>整合全流程：二维密度估计</a></li><li><a href=#实验>实验</a><ul><li><a href=#螺旋-ode-拟合>螺旋 ODE 拟合</a></li><li><a href=#高斯--双月牙-cnf>高斯 → 双月牙 CNF</a></li><li><a href=#伴随方法-vs-标准反向传播数据源自-neural-ode-原文外推至-1024-维隐藏状态>伴随方法 vs 标准反向传播（数据源自 Neural ODE 原文，外推至 1024 维隐藏状态）</a></li><li><a href=#flow-matching-vs-cnf双月牙数据>Flow Matching vs CNF（双月牙数据）</a></li></ul></li><li><a href=#练习题>练习题</a></li><li><a href=#下一步>下一步</a></li><li><a href=#参考文献>参考文献</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/pde-ml/ class=series-name>PDE × 机器学习</a>
+<span class=sig-meta data-days-since=2024-07-15>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#ode-基础存在唯一性与体积演化>ODE 基础：存在唯一性与体积演化</a><ul><li><a href=#picard-lindelöf解何时存在且唯一>Picard-Lindelöf：解何时存在且唯一？</a></li><li><a href=#liouville-定理流如何改变体积>Liouville 定理：流如何改变体积</a></li><li><a href=#瞬时变量替换公式>瞬时变量替换公式</a></li></ul></li><li><a href=#neural-ode从离散到连续深度>Neural ODE：从离散到连续深度</a><ul><li><a href=#残差网络即前向-euler-方法>残差网络即前向 Euler 方法</a></li></ul></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/pde-ml/ class=series-name>PDE × 机器学习</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/01-%E7%89%A9%E7%90%86%E4%BF%A1%E6%81%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/><span class=chapter-num>01</span>
 <span class=chapter-title>偏微分方程与机器学习（一）：物理信息神经网络</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/02-%E7%A5%9E%E7%BB%8F%E7%AE%97%E5%AD%90%E7%90%86%E8%AE%BA/><span class=chapter-num>02</span>
 <span class=chapter-title>偏微分方程与机器学习（二）：神经算子理论</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/><span class=chapter-num>03</span>
@@ -581,5 +960,5 @@ $$</span><p><strong>关键定理（Lipman et al.）</strong>：边缘速度 <spa
 <span class=chapter-title>偏微分方程与机器学习（五）：辛几何与保结构网络</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>06</span>
 <span class=chapter-title>偏微分方程与机器学习（六）：连续归一化流与 Neural ODE</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/07-%E6%89%A9%E6%95%A3%E6%A8%A1%E5%9E%8B%E4%B8%8Escore-matching/><span class=chapter-num>07</span>
 <span class=chapter-title>偏微分方程与机器学习（七）：扩散模型与 Score Matching</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/><span class=chapter-num>08</span>
-<span class=chapter-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>34 min</strong></div><div class=row><span>字数</span><strong>8300</strong></div><div class=row><span>写于</span><strong>Jul 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>42 min</strong></div><div class=row><span>字数</span><strong>10391</strong></div><div class=row><span>写于</span><strong>Jul 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

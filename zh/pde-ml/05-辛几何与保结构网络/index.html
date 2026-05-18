@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/pde-ml/>PDE × 机器学习</a>
 · 第 5 篇</div><h1>偏微分方程与机器学习（五）：辛几何与保结构网络</h1><p class=deck>保结构神经网络的几何起点：相空间、辛形式、Liouville 定理、辛积分器，以及 HNN / LNN / SympNet 三种把守恒律烧进网络结构里的方法。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2024-06-30>June 30, 2024</time> · 38 分钟 · 9116 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/pde/ class=tag>#PDE</a><a href=/zh/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/zh/tags/symplectic-geometry/ class=tag>#Symplectic Geometry</a><a href=/zh/tags/hamiltonian/ class=tag>#Hamiltonian</a><a href=/zh/tags/structure-preserving/ class=tag>#Structure-Preserving</a><a href=/zh/tags/neural-ode/ class=tag>#Neural ODE</a></div><a class="pill pill-outline" href=/en/pde-ml/05-symplectic-geometry/>Read in English →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/05-Symplectic-Geometry/illustration_1.png alt="偏微分方程与机器学习（五）：辛几何与保结构网络 — visual" loading=lazy decoding=async class=content-image></figure></p><hr><p>钟摆能摆很久而不慢慢停下来——能量守恒。地球绕太阳转十亿年也不会突然飞走——角动量守恒。这种“某个量恒定不变”的性质背后，藏着一种叫<strong>辛结构</strong>的几何。</p><p>用普通神经 ODE 拟合一个钟摆数据，几百步之后能量就漂走了——网络拟合得了短期轨迹，却拟合不了长期守恒律。<strong>保结构网络</strong>（HNN、LNN、SympNet）的想法是把守恒律直接焊进网络结构里，让它在数学上就不可能违背。</p><p>这篇文章的目的是把“辛”这个看起来很玄的词讲清楚：先从相空间和辛形式的几何图像出发，看 Liouville 定理在说什么；再讲辛积分器为什么不是普通 RK 方法；最后看 HNN / LNN / SympNet 三种典型网络是怎么把这套几何结构编码进权重的。看完之后，你应该能判断：哪些物理问题适合直接用辛网络，哪些不适合。</p><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>用普通神经网络拟合单摆轨迹，虽然训练误差可以很小，但积分几十秒后，预测的摆要么停下，要么加速到逃逸速度——尽管能量应守恒，但网络并不理解“能量”这一概念。问题出在架构上，而非数据、优化器或网络深度。无约束的 MLP 能表示任何向量场，包括不物理的那些；这些向量场存在微小的系统性偏差，经长时间积分后会被不断放大，最终表现为宏观的能量漂移。</p><p>解决办法不是“多训几轮”，而是将守恒律嵌入模型结构。哈密顿神经网络（HNN）、拉格朗日神经网络（LNN）和辛神经网络（SympNet）就是这样做的。它们学习一个标量势函数（能量或作用量），并通过自动微分计算动力学，或者直接用辛构件构建离散时间映射。无论采用哪种方式，所得预测器在结构上都严格满足辛性，因此其长期行为在定性层面保持正确——即使模型对势函数的拟合精度仅有一两位有效数字。</p><p>你将学到：</p><ol><li>为什么相空间和辛 2-形式是经典力学的自然居所</li><li>Hamilton 方程可简洁地表述为一个张量恒等式 <span class=math-inline>$\dot{\mathbf{z}} = J\,\nabla H$</span></li><li>Liouville 定理和 Poincaré 回归——保结构在数值上的意义</li><li>为什么所有显式 Runge-Kutta 方法均存在能量漂移，而辛积分器（如 Verlet、leapfrog 和辛 Euler）则能严格保持能量有界</li><li>HNN、LNN 和 SympNet 三种嵌入辛性的方法及其适用场景</li><li>用受控实验复现 Greydanus 等人的单摆结果</li></ol><p><strong>前置知识：</strong> 向量微积分（链式法则、梯度），ODE 求解器（任何数值课都行），以及对神经 ODE 的初步了解（详见<a href=/zh/pde-ml/06-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eneural-ode>第 6 部分</a>
+<span class=meta-line><time datetime=2024-06-30>June 30, 2024</time> · 44 分钟 · 10591 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/pde/ class=tag>#PDE</a><a href=/zh/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/zh/tags/symplectic-geometry/ class=tag>#Symplectic Geometry</a><a href=/zh/tags/hamiltonian/ class=tag>#Hamiltonian</a><a href=/zh/tags/structure-preserving/ class=tag>#Structure-Preserving</a><a href=/zh/tags/neural-ode/ class=tag>#Neural ODE</a></div><a class="pill pill-outline" href=/en/pde-ml/05-symplectic-geometry/>Read in English →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/05-Symplectic-Geometry/illustration_1.png alt="偏微分方程与机器学习（五）：辛几何与保结构网络 — visual" loading=lazy decoding=async class=content-image></figure></p><hr><p>钟摆能摆很久而不慢慢停下来——能量守恒。地球绕太阳转十亿年也不会突然飞走——角动量守恒。这种“某个量恒定不变”的性质背后，藏着一种叫<strong>辛结构</strong>的几何。</p><p>用普通神经 ODE 拟合一个钟摆数据，几百步之后能量就漂走了——网络拟合得了短期轨迹，却拟合不了长期守恒律。<strong>保结构网络</strong>（HNN、LNN、SympNet）的想法是把守恒律直接焊进网络结构里，让它在数学上就不可能违背。</p><p>这篇文章的目的是把“辛”这个看起来很玄的词讲清楚：先从相空间和辛形式的几何图像出发，看 Liouville 定理在说什么；再讲辛积分器为什么不是普通 RK 方法；最后看 HNN / LNN / SympNet 三种典型网络是怎么把这套几何结构编码进权重的。看完之后，你应该能判断：哪些物理问题适合直接用辛网络，哪些不适合。</p><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>用普通神经网络拟合单摆轨迹，虽然训练误差可以很小，但积分几十秒后，预测的摆要么停下，要么加速到逃逸速度——尽管能量应守恒，但网络并不理解“能量”这一概念。问题出在架构上，而非数据、优化器或网络深度。无约束的 MLP 能表示任何向量场，包括不物理的那些；这些向量场存在微小的系统性偏差，经长时间积分后会被不断放大，最终表现为宏观的能量漂移。</p><p>解决办法不是“多训几轮”，而是将守恒律嵌入模型结构。哈密顿神经网络（HNN）、拉格朗日神经网络（LNN）和辛神经网络（SympNet）就是这样做的。它们学习一个标量势函数（能量或作用量），并通过自动微分计算动力学，或者直接用辛构件构建离散时间映射。无论采用哪种方式，所得预测器在结构上都严格满足辛性，因此其长期行为在定性层面保持正确——即使模型对势函数的拟合精度仅有一两位有效数字。</p><p>你将学到：</p><ol><li>为什么相空间和辛 2-形式是经典力学的自然居所</li><li>Hamilton 方程可简洁地表述为一个张量恒等式 <span class=math-inline>$\dot{\mathbf{z}} = J\,\nabla H$</span></li><li>Liouville 定理和 Poincaré 回归——保结构在数值上的意义</li><li>为什么所有显式 Runge-Kutta 方法均存在能量漂移，而辛积分器（如 Verlet、leapfrog 和辛 Euler）则能严格保持能量有界</li><li>HNN、LNN 和 SympNet 三种嵌入辛性的方法及其适用场景</li><li>用受控实验复现 Greydanus 等人的单摆结果</li></ol><p><strong>前置知识：</strong> 向量微积分（链式法则、梯度），ODE 求解器（任何数值课都行），以及对神经 ODE 的初步了解（详见<a href=/zh/pde-ml/06-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eneural-ode>第 6 部分</a>
 ）。</p><hr><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/05-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/fig1_hamiltonian_flow.png alt='相空间中的哈密顿流：左图是单摆的能量等高线轨迹，右图展示一团相空间中的"液滴"在流动中变形但面积保持不变。' loading=lazy decoding=async class=content-image></figure><em>图 1. 相空间中的哈密顿流。左：单摆 <span class=math-inline>$H(q,p) = \tfrac{1}{2}p^2 + (1-\cos q)$</span>
 的轨迹是 <span class=math-inline>$H$</span>
 的等高线，箭头指示流的方向 <span class=math-inline>$J\nabla H$</span>
@@ -71,13 +71,477 @@ $$</span><p>二阶精度，时间对称，辛。图 3 左展示格子：位置�
 被离散映射严格守恒。测得能量不漂移，在真值附近以 <span class=math-inline>$\mathcal{O}(h^2)$</span>
 幅度永远振荡。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/05-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/fig2_integrator_comparison.png alt="两面板对比：相空间轨迹显示显式 Euler 漂出，辛 Euler 与 leapfrog 紧贴参考；右图能量误差以 symlog 轴展示长时间漂移行为。" loading=lazy decoding=async class=content-image></figure><em>图 2. 单摆积分 80 秒、<span class=math-inline>$h=0.05$</span>
 的长期表现。左：显式 Euler （红）向外螺旋发散；辛 Euler （绿）和 leapfrog （蓝）几乎贴着参考轨迹。右：相对能量误差 <span class=math-inline>$(H-H_0)/H_0$</span>
-（symlog 轴）。辛方法在很小包络内振荡；显式 Euler 无界漂移。这不是定量精度问题——是定性几何问题。</em></p><h3 id=几行代码实现 class=heading-anchor>几行代码实现<a href=#%e5%87%a0%e8%a1%8c%e4%bb%a3%e7%a0%81%e5%ae%9e%e7%8e%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
+（symlog 轴）。辛方法在很小包络内振荡；显式 Euler 无界漂移。这不是定量精度问题——是定性几何问题。</em></p><h3 id=几行代码实现 class=heading-anchor>几行代码实现<a href=#%e5%87%a0%e8%a1%8c%e4%bb%a3%e7%a0%81%e5%ae%9e%e7%8e%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span><span class=lnt>132
+</span><span class=lnt>133
+</span><span class=lnt>134
+</span><span class=lnt>135
+</span><span class=lnt>136
+</span><span class=lnt>137
+</span><span class=lnt>138
+</span><span class=lnt>139
+</span><span class=lnt>140
+</span><span class=lnt>141
+</span><span class=lnt>142
+</span><span class=lnt>143
+</span><span class=lnt>144
+</span><span class=lnt>145
+</span><span class=lnt>146
+</span><span class=lnt>147
+</span><span class=lnt>148
+</span><span class=lnt>149
+</span><span class=lnt>150
+</span><span class=lnt>151
+</span><span class=lnt>152
+</span><span class=lnt>153
+</span><span class=lnt>154
+</span><span class=lnt>155
+</span><span class=lnt>156
+</span><span class=lnt>157
+</span><span class=lnt>158
+</span><span class=lnt>159
+</span><span class=lnt>160
+</span><span class=lnt>161
+</span><span class=lnt>162
+</span><span class=lnt>163
+</span><span class=lnt>164
+</span><span class=lnt>165
+</span><span class=lnt>166
+</span><span class=lnt>167
+</span><span class=lnt>168
+</span><span class=lnt>169
+</span><span class=lnt>170
+</span><span class=lnt>171
+</span><span class=lnt>172
+</span><span class=lnt>173
+</span><span class=lnt>174
+</span><span class=lnt>175
+</span><span class=lnt>176
+</span><span class=lnt>177
+</span><span class=lnt>178
+</span><span class=lnt>179
+</span><span class=lnt>180
+</span><span class=lnt>181
+</span><span class=lnt>182
+</span><span class=lnt>183
+</span><span class=lnt>184
+</span><span class=lnt>185
+</span><span class=lnt>186
+</span><span class=lnt>187
+</span><span class=lnt>188
+</span><span class=lnt>189
+</span><span class=lnt>190
+</span><span class=lnt>191
+</span><span class=lnt>192
+</span><span class=lnt>193
+</span><span class=lnt>194
+</span><span class=lnt>195
+</span><span class=lnt>196
+</span><span class=lnt>197
+</span><span class=lnt>198
+</span><span class=lnt>199
+</span><span class=lnt>200
+</span><span class=lnt>201
+</span><span class=lnt>202
+</span><span class=lnt>203
+</span><span class=lnt>204
+</span><span class=lnt>205
+</span><span class=lnt>206
+</span><span class=lnt>207
+</span><span class=lnt>208
+</span><span class=lnt>209
+</span><span class=lnt>210
+</span><span class=lnt>211
+</span><span class=lnt>212
+</span><span class=lnt>213
+</span><span class=lnt>214
+</span><span class=lnt>215
+</span><span class=lnt>216
+</span><span class=lnt>217
+</span><span class=lnt>218
+</span><span class=lnt>219
+</span><span class=lnt>220
+</span><span class=lnt>221
+</span><span class=lnt>222
+</span><span class=lnt>223
+</span><span class=lnt>224
+</span><span class=lnt>225
+</span><span class=lnt>226
+</span><span class=lnt>227
+</span><span class=lnt>228
+</span><span class=lnt>229
+</span><span class=lnt>230
+</span><span class=lnt>231
+</span><span class=lnt>232
+</span><span class=lnt>233
+</span><span class=lnt>234
+</span><span class=lnt>235
+</span><span class=lnt>236
+</span><span class=lnt>237
+</span><span class=lnt>238
+</span><span class=lnt>239
+</span><span class=lnt>240
+</span><span class=lnt>241
+</span><span class=lnt>242
+</span><span class=lnt>243
+</span><span class=lnt>244
+</span><span class=lnt>245
+</span><span class=lnt>246
+</span><span class=lnt>247
+</span><span class=lnt>248
+</span><span class=lnt>249
+</span><span class=lnt>250
+</span><span class=lnt>251
+</span><span class=lnt>252
+</span><span class=lnt>253
+</span><span class=lnt>254
+</span><span class=lnt>255
+</span><span class=lnt>256
+</span><span class=lnt>257
+</span><span class=lnt>258
+</span><span class=lnt>259
+</span><span class=lnt>260
+</span><span class=lnt>261
+</span><span class=lnt>262
+</span><span class=lnt>263
+</span><span class=lnt>264
+</span><span class=lnt>265
+</span><span class=lnt>266
+</span><span class=lnt>267
+</span><span class=lnt>268
+</span><span class=lnt>269
+</span><span class=lnt>270
+</span><span class=lnt>271
+</span><span class=lnt>272
+</span><span class=lnt>273
+</span><span class=lnt>274
+</span><span class=lnt>275
+</span><span class=lnt>276
+</span><span class=lnt>277
+</span><span class=lnt>278
+</span><span class=lnt>279
+</span><span class=lnt>280
+</span><span class=lnt>281
+</span><span class=lnt>282
+</span><span class=lnt>283
+</span><span class=lnt>284
+</span><span class=lnt>285
+</span><span class=lnt>286
+</span><span class=lnt>287
+</span><span class=lnt>288
+</span><span class=lnt>289
+</span><span class=lnt>290
+</span><span class=lnt>291
+</span><span class=lnt>292
+</span><span class=lnt>293
+</span><span class=lnt>294
+</span><span class=lnt>295
+</span><span class=lnt>296
+</span><span class=lnt>297
+</span><span class=lnt>298
+</span><span class=lnt>299
+</span><span class=lnt>300
+</span><span class=lnt>301
+</span><span class=lnt>302
+</span><span class=lnt>303
+</span><span class=lnt>304
+</span><span class=lnt>305
+</span><span class=lnt>306
+</span><span class=lnt>307
+</span><span class=lnt>308
+</span><span class=lnt>309
+</span><span class=lnt>310
+</span><span class=lnt>311
+</span><span class=lnt>312
+</span><span class=lnt>313
+</span><span class=lnt>314
+</span><span class=lnt>315
+</span><span class=lnt>316
+</span><span class=lnt>317
+</span><span class=lnt>318
+</span><span class=lnt>319
+</span><span class=lnt>320
+</span><span class=lnt>321
+</span><span class=lnt>322
+</span><span class=lnt>323
+</span><span class=lnt>324
+</span><span class=lnt>325
+</span><span class=lnt>326
+</span><span class=lnt>327
+</span><span class=lnt>328
+</span><span class=lnt>329
+</span><span class=lnt>330
+</span><span class=lnt>331
+</span><span class=lnt>332
+</span><span class=lnt>333
+</span><span class=lnt>334
+</span><span class=lnt>335
+</span><span class=lnt>336
+</span><span class=lnt>337
+</span><span class=lnt>338
+</span><span class=lnt>339
+</span><span class=lnt>340
+</span><span class=lnt>341
+</span><span class=lnt>342
+</span><span class=lnt>343
+</span><span class=lnt>344
+</span><span class=lnt>345
+</span><span class=lnt>346
+</span><span class=lnt>347
+</span><span class=lnt>348
+</span><span class=lnt>349
+</span><span class=lnt>350
+</span><span class=lnt>351
+</span><span class=lnt>352
+</span><span class=lnt>353
+</span><span class=lnt>354
+</span><span class=lnt>355
+</span><span class=lnt>356
+</span><span class=lnt>357
+</span><span class=lnt>358
+</span><span class=lnt>359
+</span><span class=lnt>360
+</span><span class=lnt>361
+</span><span class=lnt>362
+</span><span class=lnt>363
+</span><span class=lnt>364
+</span><span class=lnt>365
+</span><span class=lnt>366
+</span><span class=lnt>367
+</span><span class=lnt>368
+</span><span class=lnt>369
+</span><span class=lnt>370
+</span><span class=lnt>371
+</span><span class=lnt>372
+</span><span class=lnt>373
+</span><span class=lnt>374
+</span><span class=lnt>375
+</span><span class=lnt>376
+</span><span class=lnt>377
+</span><span class=lnt>378
+</span><span class=lnt>379
+</span><span class=lnt>380
+</span><span class=lnt>381
+</span><span class=lnt>382
+</span><span class=lnt>383
+</span><span class=lnt>384
+</span><span class=lnt>385
+</span><span class=lnt>386
+</span><span class=lnt>387
+</span><span class=lnt>388
+</span><span class=lnt>389
+</span><span class=lnt>390
+</span><span class=lnt>391
+</span><span class=lnt>392
+</span><span class=lnt>393
+</span><span class=lnt>394
+</span><span class=lnt>395
+</span><span class=lnt>396
+</span><span class=lnt>397
+</span><span class=lnt>398
+</span><span class=lnt>399
+</span><span class=lnt>400
+</span><span class=lnt>401
+</span><span class=lnt>402
+</span><span class=lnt>403
+</span><span class=lnt>404
+</span><span class=lnt>405
+</span><span class=lnt>406
+</span><span class=lnt>407
+</span><span class=lnt>408
+</span><span class=lnt>409
+</span><span class=lnt>410
+</span><span class=lnt>411
+</span><span class=lnt>412
+</span><span class=lnt>413
+</span><span class=lnt>414
+</span><span class=lnt>415
+</span><span class=lnt>416
+</span><span class=lnt>417
+</span><span class=lnt>418
+</span><span class=lnt>419
+</span><span class=lnt>420
+</span><span class=lnt>421
+</span><span class=lnt>422
+</span><span class=lnt>423
+</span><span class=lnt>424
+</span><span class=lnt>425
+</span><span class=lnt>426
+</span><span class=lnt>427
+</span><span class=lnt>428
+</span><span class=lnt>429
+</span><span class=lnt>430
+</span><span class=lnt>431
+</span><span class=lnt>432
+</span><span class=lnt>433
+</span><span class=lnt>434
+</span><span class=lnt>435
+</span><span class=lnt>436
+</span><span class=lnt>437
+</span><span class=lnt>438
+</span><span class=lnt>439
+</span><span class=lnt>440
+</span><span class=lnt>441
+</span><span class=lnt>442
+</span><span class=lnt>443
+</span><span class=lnt>444
+</span><span class=lnt>445
+</span><span class=lnt>446
+</span><span class=lnt>447
+</span><span class=lnt>448
+</span><span class=lnt>449
+</span><span class=lnt>450
+</span><span class=lnt>451
+</span><span class=lnt>452
+</span><span class=lnt>453
+</span><span class=lnt>454
+</span><span class=lnt>455
+</span><span class=lnt>456
+</span><span class=lnt>457
+</span><span class=lnt>458
+</span><span class=lnt>459
+</span><span class=lnt>460
+</span><span class=lnt>461
+</span><span class=lnt>462
+</span><span class=lnt>463
+</span><span class=lnt>464
+</span><span class=lnt>465
+</span><span class=lnt>466
+</span><span class=lnt>467
+</span><span class=lnt>468
+</span><span class=lnt>469
+</span><span class=lnt>470
+</span><span class=lnt>471
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>leapfrog</span><span class=p>(</span><span class=n>q</span><span class=p>,</span> <span class=n>p</span><span class=p>,</span> <span class=n>dVdq</span><span class=p>,</span> <span class=n>h</span><span class=p>,</span> <span class=n>n_steps</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Stormer-Verlet 蛙跳：对可分离 H = p^2/2 + V(q)。&#34;&#34;&#34;</span>
 </span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_steps</span><span class=p>):</span>
@@ -85,49 +549,43 @@ $$</span><p>二阶精度，时间对称，辛。图 3 左展示格子：位置�
 </span></span><span class=line><span class=cl>        <span class=n>q</span> <span class=o>=</span> <span class=n>q</span> <span class=o>+</span> <span class=n>h</span> <span class=o>*</span> <span class=n>p</span>               <span class=c1># 全飘</span>
 </span></span><span class=line><span class=cl>        <span class=n>p</span> <span class=o>=</span> <span class=n>p</span> <span class=o>-</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>h</span> <span class=o>*</span> <span class=n>dVdq</span><span class=p>(</span><span class=n>q</span><span class=p>)</span>   <span class=c1># 半踢</span>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>q</span><span class=p>,</span> <span class=n>p</span>
-</span></span></code></pre></td></tr></table></div></div><p>可分离哈密顿系统的辛积分故事就这几行，没有依赖，对每个保守系统都定性正确。<strong>接下来让神经网络做同样的事。</strong></p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/05-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/fig4_leapfrog.png alt="Leapfrog 错位格子图，位置 q 在整数步、动量 p 在半整数步，箭头交替表示踢和飘；右图比较 leapfrog、RK4、显式 Euler 在谐振子上的能量误差。" loading=lazy decoding=async class=content-image></figure><em>图 3. Leapfrog 的格子。左：位置和动量错位排布在不同时间格上。“踢”用 <span class=math-inline>$-V'(q)$</span>
-更新 <span class=math-inline>$p$</span>
-；“飘”用当前 <span class=math-inline>$p$</span>
-更新 <span class=math-inline>$q$</span>
-。每一步都是剪切变换——剪切是辛的，复合后仍是辛的。右：即使是局部四阶精度的 RK4 （橙色），在谐振子上也会漂移；leapfrog （蓝色）维持有界。精度阶数 ≠ 保结构。</em></p><h2 id=哈密顿神经网络hnn class=heading-anchor>哈密顿神经网络（HNN）<a href=#%e5%93%88%e5%af%86%e9%a1%bf%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9chnn class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/05-Symplectic-Geometry/illustration_2.png alt="偏微分方程与机器学习（五）：辛几何与保结构网络 — visual" loading=lazy decoding=async class=content-image></figure></p><h3 id=朴素神经-ode-的问题 class=heading-anchor>朴素神经 ODE 的问题<a href=#%e6%9c%b4%e7%b4%a0%e7%a5%9e%e7%bb%8f-ode-%e7%9a%84%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>神经 ODE 学 <span class=math-inline>$\dot{\mathbf{z}} = f_\theta(\mathbf{z})$</span>
-，对 <span class=math-inline>$f_\theta$</span>
-没约束。一般 <span class=math-inline>$f_\theta \neq J\,\nabla H$</span>
-，学到的动力学不是哈密顿的，能量会漂移。训练时看不出来（损失小），推理时发散。</p><h3 id=hnn-的核心想法greydanus-dzamba-yosinski-2019 class=heading-anchor>HNN 的核心想法（Greydanus, Dzamba, Yosinski, 2019）<a href=#hnn-%e7%9a%84%e6%a0%b8%e5%bf%83%e6%83%b3%e6%b3%95greydanus-dzamba-yosinski-2019 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\dot{\mathbf{q}} = \frac{\partial H_\theta}{\partial \mathbf{p}}, \qquad \dot{\mathbf{p}} = -\frac{\partial H_\theta}{\partial \mathbf{q}}. \tag{7}$$</span><p>两个直接推论：</p><ol><li><strong>能量守恒是结构化的。</strong> <span class=math-inline>$\frac{dH_\theta}{dt} = (\nabla H_\theta)^\top J\,(\nabla H_\theta) = 0$</span>
-，和 <span class=math-inline>$H_\theta$</span>
-拟合好坏无关。</li><li><strong>对称性可学习。</strong> 如果 <span class=math-inline>$H_\theta$</span>
-只依赖 <span class=math-inline>$|\mathbf{q}|$</span>
-，角动量也守恒——Noether 定理依然成立。</li></ol><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/05-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/fig3_hnn_architecture.png alt="HNN 架构图：相空间输入 (q,p) 流经 MLP 输出标量 H_theta，经过自动微分给出梯度，再通过 Hamilton 方程生成时间导数；下方有训练损失反馈线。" loading=lazy decoding=async class=content-image></figure><em>图 4. HNN 架构。网络把相空间状态 <span class=math-inline>$(q,p)$</span>
-映成单一标量 <span class=math-inline>$H_\theta$</span>
-。自动微分给出 <span class=math-inline>$\partial_q H_\theta$</span>
-和 <span class=math-inline>$\partial_p H_\theta$</span>
-，Hamilton 方程转成时间导数 <span class=math-inline>$(\dot q, \dot p)$</span>
-。能量守恒不是软约束——它<strong>嵌在前向传播里</strong>。</em></p><h3 id=训练损失 class=heading-anchor>训练损失<a href=#%e8%ae%ad%e7%bb%83%e6%8d%9f%e5%a4%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\mathcal{L}(\theta) \;=\; \sum_{t} \Big\| \partial_{\mathbf{p}} H_\theta - \dot{\mathbf{q}}_t \Big\|^2 + \Big\| \partial_{\mathbf{q}} H_\theta + \dot{\mathbf{p}}_t \Big\|^2. \tag{8}$$</span><p>如果只有状态样本 <span class=math-inline>$(\mathbf{q}_t, \mathbf{p}_t)$</span>
-，就把 (8) 嵌进 ODE 求解器（Neural-ODE 风格）做轨迹损失。</p><h3 id=参考实现 class=heading-anchor>参考实现<a href=#%e5%8f%82%e8%80%83%e5%ae%9e%e7%8e%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>可分离哈密顿系统的辛积分故事就这几行</span><span class=err>，</span><span class=n>没有依赖</span><span class=err>，</span><span class=n>对每个保守系统都定性正确</span><span class=err>。</span><span class=o>**</span><span class=n>接下来让神经网络做同样的事</span><span class=err>。</span><span class=o>**</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>Leapfrog</span> <span class=n>错位格子图</span><span class=err>，</span><span class=n>位置</span> <span class=n>q</span> <span class=n>在整数步</span><span class=err>、</span><span class=n>动量</span> <span class=n>p</span> <span class=n>在半整数步</span><span class=err>，</span><span class=n>箭头交替表示踢和飘</span><span class=err>；</span><span class=n>右图比较</span> <span class=n>leapfrog</span><span class=err>、</span><span class=n>RK4</span><span class=err>、</span><span class=n>显式</span> <span class=n>Euler</span> <span class=n>在谐振子上的能量误差</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>05</span><span class=o>-</span><span class=n>辛几何与保结构网络</span><span class=o>/</span><span class=n>fig4_leapfrog</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>图</span> <span class=mf>3.</span> <span class=n>Leapfrog</span> <span class=n>的格子</span><span class=err>。</span><span class=n>左</span><span class=err>：</span><span class=n>位置和动量错位排布在不同时间格上</span><span class=err>。“</span><span class=n>踢</span><span class=err>”</span><span class=n>用</span> <span class=err>$</span><span class=o>-</span><span class=n>V</span><span class=s1>&#39;(q)$ 更新 $p$；“飘”用当前 $p$ 更新 $q$。每一步都是剪切变换——剪切是辛的，复合后仍是辛的。右：即使是局部四阶精度的 RK4 （橙色），在谐振子上也会漂移；leapfrog （蓝色）维持有界。精度阶数 ≠ 保结构。*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 哈密顿神经网络（HNN）</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>偏微分方程与机器学习</span><span class=err>（</span><span class=n>五</span><span class=err>）：</span><span class=n>辛几何与保结构网络</span> <span class=err>—</span> <span class=n>visual</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>05</span><span class=o>-</span><span class=n>Symplectic</span><span class=o>-</span><span class=n>Geometry</span><span class=o>/</span><span class=n>illustration_2</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 朴素神经 ODE 的问题</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>神经</span> <span class=n>ODE</span> <span class=n>学</span> <span class=err>$</span>\<span class=n>dot</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>}}</span> <span class=o>=</span> <span class=n>f_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>z</span><span class=p>})</span><span class=err>$，</span><span class=n>对</span> <span class=err>$</span><span class=n>f_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>没约束</span><span class=err>。</span><span class=n>一般</span> <span class=err>$</span><span class=n>f_</span>\<span class=n>theta</span> \<span class=n>neq</span> <span class=n>J</span>\<span class=p>,</span>\<span class=n>nabla</span> <span class=n>H</span><span class=err>$，</span><span class=n>学到的动力学不是哈密顿的</span><span class=err>，</span><span class=n>能量会漂移</span><span class=err>。</span><span class=n>训练时看不出来</span><span class=err>（</span><span class=n>损失小</span><span class=err>），</span><span class=n>推理时发散</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### HNN 的核心想法（Greydanus, Dzamba, Yosinski, 2019）</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>不学向量场</span><span class=err>，</span><span class=n>改学</span><span class=o>**</span><span class=n>标量哈密顿量</span><span class=o>**</span> <span class=err>$</span><span class=n>H_</span>\<span class=n>theta</span> <span class=p>:</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=mi>2</span><span class=n>n</span><span class=p>}</span> \<span class=n>to</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=err>$，</span><span class=n>用自动微分算动力学</span><span class=err>：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>dot</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>}}</span> <span class=o>=</span> \<span class=n>frac</span><span class=p>{</span>\<span class=n>partial</span> <span class=n>H_</span>\<span class=n>theta</span><span class=p>}{</span>\<span class=n>partial</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>p</span><span class=p>}},</span> \<span class=n>qquad</span> \<span class=n>dot</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>p</span><span class=p>}}</span> <span class=o>=</span> <span class=o>-</span>\<span class=n>frac</span><span class=p>{</span>\<span class=n>partial</span> <span class=n>H_</span>\<span class=n>theta</span><span class=p>}{</span>\<span class=n>partial</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>}}</span><span class=o>.</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>7</span><span class=p>}</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>两个直接推论</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=mf>1.</span> <span class=o>**</span><span class=n>能量守恒是结构化的</span><span class=err>。</span><span class=o>**</span> <span class=err>$</span>\<span class=n>frac</span><span class=p>{</span><span class=n>dH_</span>\<span class=n>theta</span><span class=p>}{</span><span class=n>dt</span><span class=p>}</span> <span class=o>=</span> <span class=p>(</span>\<span class=n>nabla</span> <span class=n>H_</span>\<span class=n>theta</span><span class=p>)</span><span class=o>^</span>\<span class=n>top</span> <span class=n>J</span>\<span class=p>,(</span>\<span class=n>nabla</span> <span class=n>H_</span>\<span class=n>theta</span><span class=p>)</span> <span class=o>=</span> <span class=mi>0</span><span class=err>$，</span><span class=n>和</span> <span class=err>$</span><span class=n>H_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>拟合好坏无关</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=mf>2.</span> <span class=o>**</span><span class=n>对称性可学习</span><span class=err>。</span><span class=o>**</span> <span class=n>如果</span> <span class=err>$</span><span class=n>H_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>只依赖</span> <span class=err>$</span><span class=o>|</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>}</span><span class=o>|</span><span class=err>$，</span><span class=n>角动量也守恒</span><span class=err>——</span><span class=n>Noether</span> <span class=n>定理依然成立</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>HNN</span> <span class=n>架构图</span><span class=err>：</span><span class=n>相空间输入</span> <span class=p>(</span><span class=n>q</span><span class=p>,</span><span class=n>p</span><span class=p>)</span> <span class=n>流经</span> <span class=n>MLP</span> <span class=n>输出标量</span> <span class=n>H_theta</span><span class=err>，</span><span class=n>经过自动微分给出梯度</span><span class=err>，</span><span class=n>再通过</span> <span class=n>Hamilton</span> <span class=n>方程生成时间导数</span><span class=err>；</span><span class=n>下方有训练损失反馈线</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>05</span><span class=o>-</span><span class=n>辛几何与保结构网络</span><span class=o>/</span><span class=n>fig3_hnn_architecture</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>图</span> <span class=mf>4.</span> <span class=n>HNN</span> <span class=n>架构</span><span class=err>。</span><span class=n>网络把相空间状态</span> <span class=err>$</span><span class=p>(</span><span class=n>q</span><span class=p>,</span><span class=n>p</span><span class=p>)</span><span class=err>$</span> <span class=n>映成单一标量</span> <span class=err>$</span><span class=n>H_</span>\<span class=n>theta</span><span class=err>$。</span><span class=n>自动微分给出</span> <span class=err>$</span>\<span class=n>partial_q</span> <span class=n>H_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>和</span> <span class=err>$</span>\<span class=n>partial_p</span> <span class=n>H_</span>\<span class=n>theta</span><span class=err>$，</span><span class=n>Hamilton</span> <span class=n>方程转成时间导数</span> <span class=err>$</span><span class=p>(</span>\<span class=n>dot</span> <span class=n>q</span><span class=p>,</span> \<span class=n>dot</span> <span class=n>p</span><span class=p>)</span><span class=err>$。</span><span class=n>能量守恒不是软约束</span><span class=err>——</span><span class=n>它</span><span class=o>**</span><span class=n>嵌在前向传播里</span><span class=o>**</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 训练损失</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>如果有相空间样本和导数</span> <span class=err>$</span>\<span class=p>{(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>}</span><span class=n>_t</span><span class=p>,</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>p</span><span class=p>}</span><span class=n>_t</span><span class=p>,</span> \<span class=n>dot</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>}}</span><span class=n>_t</span><span class=p>,</span> \<span class=n>dot</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>p</span><span class=p>}}</span><span class=n>_t</span><span class=p>)</span>\<span class=p>}</span><span class=err>$：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>L</span><span class=p>}(</span>\<span class=n>theta</span><span class=p>)</span> \<span class=p>;</span><span class=o>=</span>\<span class=p>;</span> \<span class=n>sum_</span><span class=p>{</span><span class=n>t</span><span class=p>}</span> \<span class=n>Big</span>\<span class=o>|</span> \<span class=n>partial_</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>p</span><span class=p>}}</span> <span class=n>H_</span>\<span class=n>theta</span> <span class=o>-</span> \<span class=n>dot</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>}}</span><span class=n>_t</span> \<span class=n>Big</span>\<span class=o>|^</span><span class=mi>2</span> <span class=o>+</span> \<span class=n>Big</span>\<span class=o>|</span> \<span class=n>partial_</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>}}</span> <span class=n>H_</span>\<span class=n>theta</span> <span class=o>+</span> \<span class=n>dot</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>p</span><span class=p>}}</span><span class=n>_t</span> \<span class=n>Big</span>\<span class=o>|^</span><span class=mf>2.</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>8</span><span class=p>}</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>如果只有状态样本</span> <span class=err>$</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>}</span><span class=n>_t</span><span class=p>,</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>p</span><span class=p>}</span><span class=n>_t</span><span class=p>)</span><span class=err>$，</span><span class=n>就把</span> <span class=p>(</span><span class=mi>8</span><span class=p>)</span> <span class=n>嵌进</span> <span class=n>ODE</span> <span class=n>求解器</span><span class=err>（</span><span class=n>Neural</span><span class=o>-</span><span class=n>ODE</span> <span class=n>风格</span><span class=err>）</span><span class=n>做轨迹损失</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 参考实现</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>HNN</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
@@ -152,62 +610,27 @@ $$</span><p>二阶精度，时间对称，辛。图 3 左展示格子：位置�
 </span></span><span class=line><span class=cl>        <span class=n>n</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>dim</span> <span class=o>//</span> <span class=mi>2</span>
 </span></span><span class=line><span class=cl>        <span class=n>dHdq</span><span class=p>,</span> <span class=n>dHdp</span> <span class=o>=</span> <span class=n>grad_H</span><span class=p>[:,</span> <span class=p>:</span><span class=n>n</span><span class=p>],</span> <span class=n>grad_H</span><span class=p>[:,</span> <span class=n>n</span><span class=p>:]</span>
 </span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>dHdp</span><span class=p>,</span> <span class=o>-</span><span class=n>dHdq</span><span class=p>],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>    <span class=c1># J grad H</span>
-</span></span></code></pre></td></tr></table></div></div><p>两个设计要点：</p><ul><li><strong>平滑激活函数</strong>（<code>Softplus</code>、<code>Tanh</code>）。Hamilton 方程要 <span class=math-inline>$H_\theta$</span>
-的梯度；<code>ReLU</code> 会给出分段常数向量场，尖点处处存在。</li><li><strong>最后一层不需要 bias。</strong> <span class=math-inline>$H$</span>
-只能确定到加性常数，对动力学无影响。</li></ul><h3 id=单摆基准测试 class=heading-anchor>单摆基准测试<a href=#%e5%8d%95%e6%91%86%e5%9f%ba%e5%87%86%e6%b5%8b%e8%af%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>用 4 秒单摆导数样本训练 HNN 和普通 MLP，向前推到 25 秒。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/05-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/fig5_pendulum_hnn_vs_nn.png alt="三面板单摆实验：角度 q(t)、相空间相图、相对能量误差，HNN 锁定参考，普通 MLP 漂移。" loading=lazy decoding=async class=content-image></figure><em>图 5. 单摆外推。左：角度对时间——普通 MLP 累积相位误差和振幅漂移；HNN 紧锁参考。中：相图——MLP 轨道外旋或内坍；HNN 轨道是稍微偏移的闭曲线。右：相对能量误差——MLP 长期漂移；HNN 误差<strong>有界</strong>，在一个与 <span class=math-inline>$H_\theta$</span>
-拟合质量成正比的小偏置附近振荡。这是 Greydanus et al. (2019) 的标志性结果。</em></p><p>HNN 的相对能量误差全程 <span class=math-inline>$&lt; 10^{-2}$</span>
-；普通 MLP 在几十秒内突破 <span class=math-inline>$10^{-1}$</span>
-。MLP 在监督损失上不差——训练误差相当——但在部署时几何意义上错了。</p><p><strong>实现案例：双摆系统——一个真实的混沌系统</strong><br>单摆过于简单，不足以充分检验模型对物理结构的保持能力。而双摆则是一个典型的混沌系统：微小的初始扰动会以指数速度放大，因此任何能量漂移都会在几秒内演变为灾难性偏差。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span><span class=lnt>38
-</span><span class=lnt>39
-</span><span class=lnt>40
-</span><span class=lnt>41
-</span><span class=lnt>42
-</span><span class=lnt>43
-</span><span class=lnt>44
-</span><span class=lnt>45
-</span><span class=lnt>46
-</span><span class=lnt>47
-</span><span class=lnt>48
-</span><span class=lnt>49
-</span><span class=lnt>50
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>两个设计要点</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>平滑激活函数</span><span class=o>**</span><span class=err>（`</span><span class=n>Softplus</span><span class=err>`、`</span><span class=n>Tanh</span><span class=err>`）。</span><span class=n>Hamilton</span> <span class=n>方程要</span> <span class=err>$</span><span class=n>H_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>的梯度</span><span class=err>；`</span><span class=n>ReLU</span><span class=err>`</span> <span class=n>会给出分段常数向量场</span><span class=err>，</span><span class=n>尖点处处存在</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>最后一层不需要</span> <span class=n>bias</span><span class=err>。</span><span class=o>**</span> <span class=err>$</span><span class=n>H</span><span class=err>$</span> <span class=n>只能确定到加性常数</span><span class=err>，</span><span class=n>对动力学无影响</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 单摆基准测试</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>用</span> <span class=mi>4</span> <span class=n>秒单摆导数样本训练</span> <span class=n>HNN</span> <span class=n>和普通</span> <span class=n>MLP</span><span class=err>，</span><span class=n>向前推到</span> <span class=mi>25</span> <span class=n>秒</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>三面板单摆实验</span><span class=err>：</span><span class=n>角度</span> <span class=n>q</span><span class=p>(</span><span class=n>t</span><span class=p>)</span><span class=err>、</span><span class=n>相空间相图</span><span class=err>、</span><span class=n>相对能量误差</span><span class=err>，</span><span class=n>HNN</span> <span class=n>锁定参考</span><span class=err>，</span><span class=n>普通</span> <span class=n>MLP</span> <span class=n>漂移</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>05</span><span class=o>-</span><span class=n>辛几何与保结构网络</span><span class=o>/</span><span class=n>fig5_pendulum_hnn_vs_nn</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>图</span> <span class=mf>5.</span> <span class=n>单摆外推</span><span class=err>。</span><span class=n>左</span><span class=err>：</span><span class=n>角度对时间</span><span class=err>——</span><span class=n>普通</span> <span class=n>MLP</span> <span class=n>累积相位误差和振幅漂移</span><span class=err>；</span><span class=n>HNN</span> <span class=n>紧锁参考</span><span class=err>。</span><span class=n>中</span><span class=err>：</span><span class=n>相图</span><span class=err>——</span><span class=n>MLP</span> <span class=n>轨道外旋或内坍</span><span class=err>；</span><span class=n>HNN</span> <span class=n>轨道是稍微偏移的闭曲线</span><span class=err>。</span><span class=n>右</span><span class=err>：</span><span class=n>相对能量误差</span><span class=err>——</span><span class=n>MLP</span> <span class=n>长期漂移</span><span class=err>；</span><span class=n>HNN</span> <span class=n>误差</span><span class=o>**</span><span class=n>有界</span><span class=o>**</span><span class=err>，</span><span class=n>在一个与</span> <span class=err>$</span><span class=n>H_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>拟合质量成正比的小偏置附近振荡</span><span class=err>。</span><span class=n>这是</span> <span class=n>Greydanus</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span> <span class=p>(</span><span class=mi>2019</span><span class=p>)</span> <span class=n>的标志性结果</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>HNN</span> <span class=n>的相对能量误差全程</span> <span class=err>$</span><span class=o>&lt;</span> <span class=mi>10</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>2</span><span class=p>}</span><span class=err>$；</span><span class=n>普通</span> <span class=n>MLP</span> <span class=n>在几十秒内突破</span> <span class=err>$</span><span class=mi>10</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>1</span><span class=p>}</span><span class=err>$。</span><span class=n>MLP</span> <span class=n>在监督损失上不差</span><span class=err>——</span><span class=n>训练误差相当</span><span class=err>——</span><span class=n>但在部署时几何意义上错了</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>实现案例</span><span class=err>：</span><span class=n>双摆系统</span><span class=err>——</span><span class=n>一个真实的混沌系统</span><span class=o>**</span>  
+</span></span><span class=line><span class=cl><span class=n>单摆过于简单</span><span class=err>，</span><span class=n>不足以充分检验模型对物理结构的保持能力</span><span class=err>。</span><span class=n>而双摆则是一个典型的混沌系统</span><span class=err>：</span><span class=n>微小的初始扰动会以指数速度放大</span><span class=err>，</span><span class=n>因此任何能量漂移都会在几秒内演变为灾难性偏差</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>DoublePendulumHNN</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
@@ -233,94 +656,56 @@ $$</span><p>二阶精度，时间对称，辛。图 3 左展示格子：位置�
 </span></span><span class=line><span class=cl>        <span class=n>p_dot</span> <span class=o>=</span> <span class=o>-</span><span class=n>dH</span><span class=p>[:,</span> <span class=p>:</span><span class=mi>2</span><span class=p>]</span>  <span class=c1># −∂H/∂q</span>
 </span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>q_dot</span><span class=p>,</span> <span class=n>p_dot</span><span class=p>],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 训练数据：使用 RK4 数值积分生成真实双摆轨迹  </span>
-</span></span><span class=line><span class=cl><span class=c1># 状态向量：[θ₁, θ₂, p₁, p₂]；真实系统严格守恒总能量  </span>
-</span></span><span class=line><span class=cl><span class=c1># 真实哈密顿量 H = 动能(p₁,p₂,θ₁,θ₂) + 势能(θ₁,θ₂)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 从随机初值生成 200 条短轨迹  </span>
-</span></span><span class=line><span class=cl><span class=c1># 每条轨迹含 20 个时间步，步长 dt = 0.05</span>
 </span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>DoublePendulumHNN</span><span class=p>()</span>
 </span></span><span class=line><span class=cl><span class=n>opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 训练循环（伪代码；假定已有数据张量 train_data）</span>
-</span></span><span class=line><span class=cl><span class=c1># for step in range(5000):</span>
-</span></span><span class=line><span class=cl><span class=c1>#     z = train_data[batch_idx]  # 形状为 (batch_size, 4)</span>
-</span></span><span class=line><span class=cl><span class=c1>#     dz_pred = model.time_derivative(z)</span>
-</span></span><span class=line><span class=cl><span class=c1>#     loss = ((dz_pred - dz_true)**2).mean()</span>
-</span></span><span class=line><span class=cl><span class=c1>#     opt.zero_grad(); loss.backward(); opt.step()</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 训练完成后，在 100 秒时间尺度上外推对比：</span>
-</span></span><span class=line><span class=cl><span class=c1># - HNN：能量误差 &lt; 0.01%（由修正哈密顿量 $\tilde{H}$ 严格约束）  </span>
-</span></span><span class=line><span class=cl><span class=c1># - 普通 MLP：能量误差 &gt; 50%（呈指数级发散）  </span>
-</span></span><span class=line><span class=cl><span class=c1># - RK4 数值积分（无结构约束）：能量误差 ≈ 5%（多项式级缓慢增长）</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;双摆系统 100 秒外推结果：&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  HNN：        能量误差 &lt; 0.01%&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  普通神经网络：能量误差 ≈ 50%&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  RK4 数值解法：能量误差 ≈ 5%&#34;</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>双摆堪称“终极压力测试”：其相空间维度为 4，包含两个强耦合的自由度，且具有正的李雅普诺夫指数——任何数值误差都会被持续放大。而 HNN 仅需 4 秒的训练数据，即可稳健外推至 100 秒，其根本原因在于：能量守恒被<strong>直接编码进网络架构本身</strong>。由此产生的误差不再无界增长，而是被修正哈密顿量理论所界定（<span class=math-inline>$\tilde{H} = H + O(h^2)$</span>
-，且 <span class=math-inline>$\tilde{H}$</span>
-在离散演化中被<strong>精确守恒</strong>）。</p><h3 id=hnn-不做的事 class=heading-anchor>HNN <strong>不</strong>做的事<a href=#hnn-%e4%b8%8d%e5%81%9a%e7%9a%84%e4%ba%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><ul><li><strong>不会自动用辛积分器解 Hamilton 方程。</strong> HNN 前向给的是向量场，还得自己积分。如果用显式 Euler，依然会有能量漂移（小于普通 NN，但仍存在）。最佳实践：HNN 推理时配 leapfrog。少数工作（如 Chen et al. 2020 的 SRNN）把辛积分嵌进训练。</li><li><strong>不能描述耗散或驱动。</strong> <span class=math-inline>$\dot z = J\nabla H$</span>
-按定义就是保守的。耗散系统请看 Port-Hamiltonian NN （Desai et al. 2021）或 GENERIC 分解。</li></ul><hr><h2 id=拉格朗日神经网络lnn class=heading-anchor>拉格朗日神经网络（LNN）<a href=#%e6%8b%89%e6%a0%bc%e6%9c%97%e6%97%a5%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9clnn class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/05-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/fig8_lnn_architecture.png alt="架构对比: HNN与LNN与SympNet的优缺点" loading=lazy decoding=async class=content-image></figure></p><h3 id=为什么用拉格朗日形式 class=heading-anchor>为什么用拉格朗日形式<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e7%94%a8%e6%8b%89%e6%a0%bc%e6%9c%97%e6%97%a5%e5%bd%a2%e5%bc%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>HNN 需要位置和动量。实际场景中（机械臂视频、弹簧小球实验），通常只能测位置和速度，动量需要质量矩阵 <span class=math-inline>$M(q)$</span>
-才能计算。LNN （Cranmer et al. 2020）避开这个问题，直接在配置空间 <span class=math-inline>$(\mathbf{q}, \dot{\mathbf{q}})$</span>
-上工作。</p><h3 id=euler-lagrange-方程作为可学习闭包 class=heading-anchor>Euler-Lagrange 方程作为可学习闭包<a href=#euler-lagrange-%e6%96%b9%e7%a8%8b%e4%bd%9c%e4%b8%ba%e5%8f%af%e5%ad%a6%e4%b9%a0%e9%97%ad%e5%8c%85 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\frac{d}{dt}\frac{\partial L_\theta}{\partial \dot{\mathbf{q}}} \;-\; \frac{\partial L_\theta}{\partial \mathbf{q}} \;=\; 0,$$</span>
-<span class=math-block>$$\boxed{\;\ddot{\mathbf{q}} \;=\; \big(\nabla_{\dot q} \nabla_{\dot q} L_\theta\big)^{-1} \!\Big[\nabla_q L_\theta - \big(\nabla_{\dot q} \nabla_{q} L_\theta\big)\dot{\mathbf{q}}\Big].\;} \tag{9}$$</span><p>右边通过一次前向传播加一个 Hessian （自动微分）计算，矩阵求逆复杂度是 <span class=math-inline>$\mathcal{O}(n^3)$</span>
-（<span class=math-inline>$n \lesssim 100$</span>
-时开销不大）。<span class=math-inline>$L_\theta$</span>
-是标量，通过 Legendre 变换定义哈密顿系统，动力学保持辛结构。</p><h3 id=lnn-和-hnn-对比 class=heading-anchor>LNN 和 HNN 对比<a href=#lnn-%e5%92%8c-hnn-%e5%af%b9%e6%af%94 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th></th><th>HNN</th><th>LNN</th></tr></thead><tbody><tr><td>学什么</td><td><span class=math-inline>$H(q, p)$</span></td><td><span class=math-inline>$L(q, \dot q)$</span></td></tr><tr><td>需要</td><td>动量 <span class=math-inline>$p$</span></td><td>只需 <span class=math-inline>$\dot q$</span></td></tr><tr><td>前向开销</td><td>一次梯度</td><td>一次 Hessian + 一次求逆</td></tr><tr><td>适合</td><td>质量矩阵已知</td><td>质量未知或状态相关</td></tr></tbody></table></div><hr><p><strong>实现：拉格朗日神经网络（LNN）</strong><br>当哈密顿量 <span class=math-inline>$H(q,p)$</span>
-的建模依赖于质量矩阵（例如需将 <span class=math-inline>$H$</span>
-拆分为动能 <span class=math-inline>$T(p)$</span>
-与势能 <span class=math-inline>$V(q)$</span>
-之和）时，采用拉格朗日形式往往更自然。LNN 直接学习拉格朗日函数 <span class=math-inline>$L(q, \dot{q})$</span>
-，再通过欧拉-拉格朗日方程导出动力学方程：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span><span class=lnt>38
-</span><span class=lnt>39
-</span><span class=lnt>40
-</span><span class=lnt>41
-</span><span class=lnt>42
-</span><span class=lnt>43
-</span><span class=lnt>44
-</span><span class=lnt>45
-</span><span class=lnt>46
-</span><span class=lnt>47
-</span><span class=lnt>48
-</span><span class=lnt>49
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>双摆堪称</span><span class=err>“</span><span class=n>终极压力测试</span><span class=err>”：</span><span class=n>其相空间维度为</span> <span class=mi>4</span><span class=err>，</span><span class=n>包含两个强耦合的自由度</span><span class=err>，</span><span class=n>且具有正的李雅普诺夫指数</span><span class=err>——</span><span class=n>任何数值误差都会被持续放大</span><span class=err>。</span><span class=n>而</span> <span class=n>HNN</span> <span class=n>仅需</span> <span class=mi>4</span> <span class=n>秒的训练数据</span><span class=err>，</span><span class=n>即可稳健外推至</span> <span class=mi>100</span> <span class=n>秒</span><span class=err>，</span><span class=n>其根本原因在于</span><span class=err>：</span><span class=n>能量守恒被</span><span class=o>**</span><span class=n>直接编码进网络架构本身</span><span class=o>**</span><span class=err>。</span><span class=n>由此产生的误差不再无界增长</span><span class=err>，</span><span class=n>而是被修正哈密顿量理论所界定</span><span class=err>（$</span>\<span class=n>tilde</span><span class=p>{</span><span class=n>H</span><span class=p>}</span> <span class=o>=</span> <span class=n>H</span> <span class=o>+</span> <span class=n>O</span><span class=p>(</span><span class=n>h</span><span class=o>^</span><span class=mi>2</span><span class=p>)</span><span class=err>$，</span><span class=n>且</span> <span class=err>$</span>\<span class=n>tilde</span><span class=p>{</span><span class=n>H</span><span class=p>}</span><span class=err>$</span> <span class=n>在离散演化中被</span><span class=o>**</span><span class=n>精确守恒</span><span class=o>**</span><span class=err>）。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### HNN **不**做的事</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>不会自动用辛积分器解</span> <span class=n>Hamilton</span> <span class=n>方程</span><span class=err>。</span><span class=o>**</span> <span class=n>HNN</span> <span class=n>前向给的是向量场</span><span class=err>，</span><span class=n>还得自己积分</span><span class=err>。</span><span class=n>如果用显式</span> <span class=n>Euler</span><span class=err>，</span><span class=n>依然会有能量漂移</span><span class=err>（</span><span class=n>小于普通</span> <span class=n>NN</span><span class=err>，</span><span class=n>但仍存在</span><span class=err>）。</span><span class=n>最佳实践</span><span class=err>：</span><span class=n>HNN</span> <span class=n>推理时配</span> <span class=n>leapfrog</span><span class=err>。</span><span class=n>少数工作</span><span class=err>（</span><span class=n>如</span> <span class=n>Chen</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span> <span class=mi>2020</span> <span class=n>的</span> <span class=n>SRNN</span><span class=err>）</span><span class=n>把辛积分嵌进训练</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>不能描述耗散或驱动</span><span class=err>。</span><span class=o>**</span> <span class=err>$</span>\<span class=n>dot</span> <span class=n>z</span> <span class=o>=</span> <span class=n>J</span>\<span class=n>nabla</span> <span class=n>H</span><span class=err>$</span> <span class=n>按定义就是保守的</span><span class=err>。</span><span class=n>耗散系统请看</span> <span class=n>Port</span><span class=o>-</span><span class=n>Hamiltonian</span> <span class=n>NN</span> <span class=err>（</span><span class=n>Desai</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span> <span class=mi>2021</span><span class=err>）</span><span class=n>或</span> <span class=n>GENERIC</span> <span class=n>分解</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>---</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 拉格朗日神经网络（LNN）</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>架构对比</span><span class=p>:</span> <span class=n>HNN与LNN与SympNet的优缺点</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>05</span><span class=o>-</span><span class=n>辛几何与保结构网络</span><span class=o>/</span><span class=n>fig8_lnn_architecture</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 为什么用拉格朗日形式</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>HNN</span> <span class=n>需要位置和动量</span><span class=err>。</span><span class=n>实际场景中</span><span class=err>（</span><span class=n>机械臂视频</span><span class=err>、</span><span class=n>弹簧小球实验</span><span class=err>），</span><span class=n>通常只能测位置和速度</span><span class=err>，</span><span class=n>动量需要质量矩阵</span> <span class=err>$</span><span class=n>M</span><span class=p>(</span><span class=n>q</span><span class=p>)</span><span class=err>$</span> <span class=n>才能计算</span><span class=err>。</span><span class=n>LNN</span> <span class=err>（</span><span class=n>Cranmer</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span> <span class=mi>2020</span><span class=err>）</span><span class=n>避开这个问题</span><span class=err>，</span><span class=n>直接在配置空间</span> <span class=err>$</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>},</span> \<span class=n>dot</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>}})</span><span class=err>$</span> <span class=n>上工作</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### Euler-Lagrange 方程作为可学习闭包</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>给定可学习标量</span> <span class=err>$</span><span class=n>L_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>},</span> \<span class=n>dot</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>}})</span><span class=err>$，</span><span class=n>运动方程为</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>frac</span><span class=p>{</span><span class=n>d</span><span class=p>}{</span><span class=n>dt</span><span class=p>}</span>\<span class=n>frac</span><span class=p>{</span>\<span class=n>partial</span> <span class=n>L_</span>\<span class=n>theta</span><span class=p>}{</span>\<span class=n>partial</span> \<span class=n>dot</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>}}}</span> \<span class=p>;</span><span class=o>-</span>\<span class=p>;</span> \<span class=n>frac</span><span class=p>{</span>\<span class=n>partial</span> <span class=n>L_</span>\<span class=n>theta</span><span class=p>}{</span>\<span class=n>partial</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>}}</span> \<span class=p>;</span><span class=o>=</span>\<span class=p>;</span> <span class=mi>0</span><span class=p>,</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>链式法则展开后得到</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>boxed</span><span class=p>{</span>\<span class=p>;</span>\<span class=n>ddot</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>}}</span> \<span class=p>;</span><span class=o>=</span>\<span class=p>;</span> \<span class=n>big</span><span class=p>(</span>\<span class=n>nabla_</span><span class=p>{</span>\<span class=n>dot</span> <span class=n>q</span><span class=p>}</span> \<span class=n>nabla_</span><span class=p>{</span>\<span class=n>dot</span> <span class=n>q</span><span class=p>}</span> <span class=n>L_</span>\<span class=n>theta</span>\<span class=n>big</span><span class=p>)</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>1</span><span class=p>}</span> \<span class=err>!</span>\<span class=n>Big</span><span class=p>[</span>\<span class=n>nabla_q</span> <span class=n>L_</span>\<span class=n>theta</span> <span class=o>-</span> \<span class=n>big</span><span class=p>(</span>\<span class=n>nabla_</span><span class=p>{</span>\<span class=n>dot</span> <span class=n>q</span><span class=p>}</span> \<span class=n>nabla_</span><span class=p>{</span><span class=n>q</span><span class=p>}</span> <span class=n>L_</span>\<span class=n>theta</span>\<span class=n>big</span><span class=p>)</span>\<span class=n>dot</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>q</span><span class=p>}}</span>\<span class=n>Big</span><span class=p>]</span><span class=o>.</span>\<span class=p>;}</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>9</span><span class=p>}</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>右边通过一次前向传播加一个</span> <span class=n>Hessian</span> <span class=err>（</span><span class=n>自动微分</span><span class=err>）</span><span class=n>计算</span><span class=err>，</span><span class=n>矩阵求逆复杂度是</span> <span class=err>$</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>O</span><span class=p>}(</span><span class=n>n</span><span class=o>^</span><span class=mi>3</span><span class=p>)</span><span class=err>$（$</span><span class=n>n</span> \<span class=n>lesssim</span> <span class=mi>100</span><span class=err>$</span> <span class=n>时开销不大</span><span class=err>）。$</span><span class=n>L_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>是标量</span><span class=err>，</span><span class=n>通过</span> <span class=n>Legendre</span> <span class=n>变换定义哈密顿系统</span><span class=err>，</span><span class=n>动力学保持辛结构</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### LNN 和 HNN 对比</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>|</span> <span class=n>HNN</span> <span class=o>|</span> <span class=n>LNN</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|---|---|---|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>学什么</span> <span class=o>|</span> <span class=err>$</span><span class=n>H</span><span class=p>(</span><span class=n>q</span><span class=p>,</span> <span class=n>p</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span><span class=n>L</span><span class=p>(</span><span class=n>q</span><span class=p>,</span> \<span class=n>dot</span> <span class=n>q</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>需要</span> <span class=o>|</span> <span class=n>动量</span> <span class=err>$</span><span class=n>p</span><span class=err>$</span> <span class=o>|</span> <span class=n>只需</span> <span class=err>$</span>\<span class=n>dot</span> <span class=n>q</span><span class=err>$</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>前向开销</span> <span class=o>|</span> <span class=n>一次梯度</span> <span class=o>|</span> <span class=n>一次</span> <span class=n>Hessian</span> <span class=o>+</span> <span class=n>一次求逆</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>适合</span> <span class=o>|</span> <span class=n>质量矩阵已知</span> <span class=o>|</span> <span class=n>质量未知或状态相关</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>---</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>实现</span><span class=err>：</span><span class=n>拉格朗日神经网络</span><span class=err>（</span><span class=n>LNN</span><span class=err>）</span><span class=o>**</span>  
+</span></span><span class=line><span class=cl><span class=n>当哈密顿量</span> <span class=err>$</span><span class=n>H</span><span class=p>(</span><span class=n>q</span><span class=p>,</span><span class=n>p</span><span class=p>)</span><span class=err>$</span> <span class=n>的建模依赖于质量矩阵</span><span class=err>（</span><span class=n>例如需将</span> <span class=err>$</span><span class=n>H</span><span class=err>$</span> <span class=n>拆分为动能</span> <span class=err>$</span><span class=n>T</span><span class=p>(</span><span class=n>p</span><span class=p>)</span><span class=err>$</span> <span class=n>与势能</span> <span class=err>$</span><span class=n>V</span><span class=p>(</span><span class=n>q</span><span class=p>)</span><span class=err>$</span> <span class=n>之和</span><span class=err>）</span><span class=n>时</span><span class=err>，</span><span class=n>采用拉格朗日形式往往更自然</span><span class=err>。</span><span class=n>LNN</span> <span class=n>直接学习拉格朗日函数</span> <span class=err>$</span><span class=n>L</span><span class=p>(</span><span class=n>q</span><span class=p>,</span> \<span class=n>dot</span><span class=p>{</span><span class=n>q</span><span class=p>})</span><span class=err>$，</span><span class=n>再通过欧拉</span><span class=o>-</span><span class=n>拉格朗日方程导出动力学方程</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>LNN</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
@@ -368,64 +753,44 @@ $$</span><p>二阶精度，时间对称，辛。图 3 左展示格子：位置�
 </span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>qddot</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=n>model_lnn</span> <span class=o>=</span> <span class=n>LNN</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=c1># 训练方式：与 HNN 类似，但输入为 (q, qdot) 对，目标是预测 qddot</span>
-</span></span></code></pre></td></tr></table></div></div><p><strong>HNN、LNN 与 SympNet 对比：</strong></p><div class=table-wrap><table><thead><tr><th>属性</th><th>HNN</th><th>LNN</th><th>SympNet</th></tr></thead><tbody><tr><td><strong>输入</strong></td><td><span class=math-inline>$(q, p)$</span></td><td><span class=math-inline>$(q, \dot{q})$</span></td><td><span class=math-inline>$(q, p)$</span></td></tr><tr><td><strong>学习目标</strong></td><td>标量哈密顿量 <span class=math-inline>$H$</span></td><td>标量拉格朗日函数 <span class=math-inline>$L$</span></td><td>直接学习辛映射</td></tr><tr><td><strong>结构原理</strong></td><td>通过 <span class=math-inline>$J\nabla H$</span>
-构造辛流</td><td>基于海森矩阵的欧拉-拉格朗日方程</td><td>多个辛剪切变换的组合</td></tr><tr><td><strong>主要计算开销</strong></td><td>每步 1 次反向传播</td><td><span class=math-inline>$O(n^3)$</span>
-级别的海森矩阵求逆</td><td>仅前向传播，无需 ODE 求解器</td></tr><tr><td><strong>处理约束的能力</strong></td><td>困难</td><td>自然（适用于广义坐标）</td><td>困难</td></tr><tr><td><strong>处理耗散系统的能力</strong></td><td>否（严格保能量）</td><td>否</td><td>否（但存在 Port-Hamiltonian 等扩展形式）</td></tr><tr><td><strong>适用场景</strong></td><td>已知正则坐标 <span class=math-inline>$(q,p)$</span></td><td>质量矩阵未知（如机器人系统）</td><td>需要极快推理速度、可接受多层辛结构堆叠</td></tr></tbody></table></div><p>一句话总结：</p><ul><li>若你拥有 <span class=math-inline>$(q,p)$</span>
-数据且明确系统的正则结构，优先选用 <strong>HNN</strong>；</li><li>若你仅观测到 <span class=math-inline>$(q, \dot{q})$</span>
-，且质量矩阵未知（例如真实机器人关节数据），<strong>LNN</strong> 更为合适；</li><li>若你追求极致的推理速度，并能接受由大量简单辛层组合而成的模型架构，则 <strong>SympNet</strong> 是最佳选择。</li></ul><h2 id=辛神经网络sympnet class=heading-anchor>辛神经网络（SympNet）<a href=#%e8%be%9b%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9csympnet class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$\phi_\theta \;=\; \phi_K \circ \phi_{K-1} \circ \cdots \circ \phi_1.$$</span><p>两种典型构件：</p><ul><li><strong>上剪切</strong> <span class=math-inline>$(q, p) \mapsto (q + \nabla S_\theta(p),\; p)$</span>
-，<span class=math-inline>$S_\theta$</span>
-是标量函数；</li><li><strong>下剪切</strong> <span class=math-inline>$(q, p) \mapsto (q,\; p + \nabla T_\theta(q))$</span>
-，<span class=math-inline>$T_\theta$</span>
-是标量函数。</li></ul><p>直接计算可知，每个剪切的雅可比是单位对角三角矩阵，<span class=math-inline>$M^\top J M = J$</span>
-精确成立。<span class=math-inline>$S_\theta, T_\theta$</span>
-用 MLP 表达。<span class=math-inline>$K$</span>
-层剪切复合能逼近任意辛映射。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/05-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/fig6_hnn_lnn_sympnet.png alt="三栏架构对比：HNN 学哈密顿量，LNN 学拉格朗日量，SympNet 直接学辛映射。" loading=lazy decoding=async class=content-image></figure><em>图 6. 三大家族。<strong>HNN</strong> 学能量，自动微分恢复流——连续时间精确辛。<strong>LNN</strong> 学作用量，前向多一次 Hessian 求逆——处理 <span class=math-inline>$(q,\dot q)$</span>
-数据。<strong>SympNet</strong> 用剪切搭离散映射——无 ODE 求解器，离散时间精确辛。选哪种取决于数据和需求。</em></p><p><strong>实现方案：SympNet — 学习映射本身，而非向量场</strong><br>SympNet（Jin 等，2020）直接将<em>辛映射</em>参数化为若干简单剪切层（shear layer）的复合结构，全程无需调用常微分方程（ODE）求解器。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span><span class=lnt>38
-</span><span class=lnt>39
-</span><span class=lnt>40
-</span><span class=lnt>41
-</span><span class=lnt>42
-</span><span class=lnt>43
-</span><span class=lnt>44
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>HNN</span><span class=err>、</span><span class=n>LNN</span> <span class=n>与</span> <span class=n>SympNet</span> <span class=n>对比</span><span class=err>：</span><span class=o>**</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>属性</span> <span class=o>|</span> <span class=n>HNN</span> <span class=o>|</span> <span class=n>LNN</span> <span class=o>|</span> <span class=n>SympNet</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|------|-----|-----|---------|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>输入</span><span class=o>**</span> <span class=o>|</span> <span class=err>$</span><span class=p>(</span><span class=n>q</span><span class=p>,</span> <span class=n>p</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span><span class=p>(</span><span class=n>q</span><span class=p>,</span> \<span class=n>dot</span><span class=p>{</span><span class=n>q</span><span class=p>})</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span><span class=p>(</span><span class=n>q</span><span class=p>,</span> <span class=n>p</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>学习目标</span><span class=o>**</span> <span class=o>|</span> <span class=n>标量哈密顿量</span> <span class=err>$</span><span class=n>H</span><span class=err>$</span> <span class=o>|</span> <span class=n>标量拉格朗日函数</span> <span class=err>$</span><span class=n>L</span><span class=err>$</span> <span class=o>|</span> <span class=n>直接学习辛映射</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>结构原理</span><span class=o>**</span> <span class=o>|</span> <span class=n>通过</span> <span class=err>$</span><span class=n>J</span>\<span class=n>nabla</span> <span class=n>H</span><span class=err>$</span> <span class=n>构造辛流</span> <span class=o>|</span> <span class=n>基于海森矩阵的欧拉</span><span class=o>-</span><span class=n>拉格朗日方程</span> <span class=o>|</span> <span class=n>多个辛剪切变换的组合</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>主要计算开销</span><span class=o>**</span> <span class=o>|</span> <span class=n>每步</span> <span class=mi>1</span> <span class=n>次反向传播</span> <span class=o>|</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>n</span><span class=o>^</span><span class=mi>3</span><span class=p>)</span><span class=err>$</span> <span class=n>级别的海森矩阵求逆</span> <span class=o>|</span> <span class=n>仅前向传播</span><span class=err>，</span><span class=n>无需</span> <span class=n>ODE</span> <span class=n>求解器</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>处理约束的能力</span><span class=o>**</span> <span class=o>|</span> <span class=n>困难</span> <span class=o>|</span> <span class=n>自然</span><span class=err>（</span><span class=n>适用于广义坐标</span><span class=err>）</span> <span class=o>|</span> <span class=n>困难</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>处理耗散系统的能力</span><span class=o>**</span> <span class=o>|</span> <span class=n>否</span><span class=err>（</span><span class=n>严格保能量</span><span class=err>）</span> <span class=o>|</span> <span class=n>否</span> <span class=o>|</span> <span class=n>否</span><span class=err>（</span><span class=n>但存在</span> <span class=n>Port</span><span class=o>-</span><span class=n>Hamiltonian</span> <span class=n>等扩展形式</span><span class=err>）</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>适用场景</span><span class=o>**</span> <span class=o>|</span> <span class=n>已知正则坐标</span> <span class=err>$</span><span class=p>(</span><span class=n>q</span><span class=p>,</span><span class=n>p</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=n>质量矩阵未知</span><span class=err>（</span><span class=n>如机器人系统</span><span class=err>）</span> <span class=o>|</span> <span class=n>需要极快推理速度</span><span class=err>、</span><span class=n>可接受多层辛结构堆叠</span> <span class=o>|</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>一句话总结</span><span class=err>：</span>  
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>若你拥有</span> <span class=err>$</span><span class=p>(</span><span class=n>q</span><span class=p>,</span><span class=n>p</span><span class=p>)</span><span class=err>$</span> <span class=n>数据且明确系统的正则结构</span><span class=err>，</span><span class=n>优先选用</span> <span class=o>**</span><span class=n>HNN</span><span class=o>**</span><span class=err>；</span>  
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>若你仅观测到</span> <span class=err>$</span><span class=p>(</span><span class=n>q</span><span class=p>,</span> \<span class=n>dot</span><span class=p>{</span><span class=n>q</span><span class=p>})</span><span class=err>$，</span><span class=n>且质量矩阵未知</span><span class=err>（</span><span class=n>例如真实机器人关节数据</span><span class=err>），</span><span class=o>**</span><span class=n>LNN</span><span class=o>**</span> <span class=n>更为合适</span><span class=err>；</span>  
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>若你追求极致的推理速度</span><span class=err>，</span><span class=n>并能接受由大量简单辛层组合而成的模型架构</span><span class=err>，</span><span class=n>则</span> <span class=o>**</span><span class=n>SympNet</span><span class=o>**</span> <span class=n>是最佳选择</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 辛神经网络（SympNet）</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>HNN</span> <span class=n>和</span> <span class=n>LNN</span> <span class=n>在连续时间保证辛性</span><span class=err>。</span><span class=n>用</span> <span class=n>ODE</span> <span class=n>求解器离散后</span><span class=err>，</span><span class=n>映射只是近似辛</span><span class=err>。</span><span class=o>**</span><span class=n>SympNet</span><span class=o>**</span><span class=err>（</span><span class=n>Jin</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span> <span class=mi>2020</span><span class=err>）</span><span class=n>直接用严格辛的构件搭出离散映射</span> <span class=err>$</span>\<span class=n>phi_</span>\<span class=n>theta</span><span class=err>$：</span>
+</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>phi_</span>\<span class=n>theta</span> \<span class=p>;</span><span class=o>=</span>\<span class=p>;</span> \<span class=n>phi_K</span> \<span class=n>circ</span> \<span class=n>phi_</span><span class=p>{</span><span class=n>K</span><span class=o>-</span><span class=mi>1</span><span class=p>}</span> \<span class=n>circ</span> \<span class=n>cdots</span> \<span class=n>circ</span> \<span class=n>phi_1</span><span class=o>.</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl><span class=n>两种典型构件</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>上剪切</span><span class=o>**</span> <span class=err>$</span><span class=p>(</span><span class=n>q</span><span class=p>,</span> <span class=n>p</span><span class=p>)</span> \<span class=n>mapsto</span> <span class=p>(</span><span class=n>q</span> <span class=o>+</span> \<span class=n>nabla</span> <span class=n>S_</span>\<span class=n>theta</span><span class=p>(</span><span class=n>p</span><span class=p>),</span>\<span class=p>;</span> <span class=n>p</span><span class=p>)</span><span class=err>$，$</span><span class=n>S_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>是标量函数</span><span class=err>；</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>下剪切</span><span class=o>**</span> <span class=err>$</span><span class=p>(</span><span class=n>q</span><span class=p>,</span> <span class=n>p</span><span class=p>)</span> \<span class=n>mapsto</span> <span class=p>(</span><span class=n>q</span><span class=p>,</span>\<span class=p>;</span> <span class=n>p</span> <span class=o>+</span> \<span class=n>nabla</span> <span class=n>T_</span>\<span class=n>theta</span><span class=p>(</span><span class=n>q</span><span class=p>))</span><span class=err>$，$</span><span class=n>T_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>是标量函数</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>直接计算可知</span><span class=err>，</span><span class=n>每个剪切的雅可比是单位对角三角矩阵</span><span class=err>，$</span><span class=n>M</span><span class=o>^</span>\<span class=n>top</span> <span class=n>J</span> <span class=n>M</span> <span class=o>=</span> <span class=n>J</span><span class=err>$</span> <span class=n>精确成立</span><span class=err>。$</span><span class=n>S_</span>\<span class=n>theta</span><span class=p>,</span> <span class=n>T_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>用</span> <span class=n>MLP</span> <span class=n>表达</span><span class=err>。$</span><span class=n>K</span><span class=err>$</span> <span class=n>层剪切复合能逼近任意辛映射</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>三栏架构对比</span><span class=err>：</span><span class=n>HNN</span> <span class=n>学哈密顿量</span><span class=err>，</span><span class=n>LNN</span> <span class=n>学拉格朗日量</span><span class=err>，</span><span class=n>SympNet</span> <span class=n>直接学辛映射</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>05</span><span class=o>-</span><span class=n>辛几何与保结构网络</span><span class=o>/</span><span class=n>fig6_hnn_lnn_sympnet</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>图</span> <span class=mf>6.</span> <span class=n>三大家族</span><span class=err>。</span><span class=o>**</span><span class=n>HNN</span><span class=o>**</span> <span class=n>学能量</span><span class=err>，</span><span class=n>自动微分恢复流</span><span class=err>——</span><span class=n>连续时间精确辛</span><span class=err>。</span><span class=o>**</span><span class=n>LNN</span><span class=o>**</span> <span class=n>学作用量</span><span class=err>，</span><span class=n>前向多一次</span> <span class=n>Hessian</span> <span class=n>求逆</span><span class=err>——</span><span class=n>处理</span> <span class=err>$</span><span class=p>(</span><span class=n>q</span><span class=p>,</span>\<span class=n>dot</span> <span class=n>q</span><span class=p>)</span><span class=err>$</span> <span class=n>数据</span><span class=err>。</span><span class=o>**</span><span class=n>SympNet</span><span class=o>**</span> <span class=n>用剪切搭离散映射</span><span class=err>——</span><span class=n>无</span> <span class=n>ODE</span> <span class=n>求解器</span><span class=err>，</span><span class=n>离散时间精确辛</span><span class=err>。</span><span class=n>选哪种取决于数据和需求</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>实现方案</span><span class=err>：</span><span class=n>SympNet</span> <span class=err>—</span> <span class=n>学习映射本身</span><span class=err>，</span><span class=n>而非向量场</span><span class=o>**</span>  
+</span></span><span class=line><span class=cl><span class=n>SympNet</span><span class=err>（</span><span class=n>Jin</span> <span class=n>等</span><span class=err>，</span><span class=mi>2020</span><span class=err>）</span><span class=n>直接将</span><span class=o>*</span><span class=n>辛映射</span><span class=o>*</span><span class=n>参数化为若干简单剪切层</span><span class=err>（</span><span class=n>shear</span> <span class=n>layer</span><span class=err>）</span><span class=n>的复合结构</span><span class=err>，</span><span class=n>全程无需调用常微分方程</span><span class=err>（</span><span class=n>ODE</span><span class=err>）</span><span class=n>求解器</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>SymplecticShearLayer</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
@@ -460,66 +825,40 @@ $$</span><p>二阶精度，时间对称，辛。图 3 左展示格子：位置�
 </span></span><span class=line><span class=cl>            <span class=n>q</span><span class=p>,</span> <span class=n>p</span> <span class=o>=</span> <span class=n>layer</span><span class=p>(</span><span class=n>q</span><span class=p>,</span> <span class=n>p</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>q</span><span class=p>,</span> <span class=n>p</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 示例：学习单摆系统的时间-h 流（time-h flow）</span>
 </span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>SympNet</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>K</span><span class=o>=</span><span class=mi>8</span><span class=p>,</span> <span class=n>hidden</span><span class=o>=</span><span class=mi>64</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 训练目标：拟合真实动力学生成的 (q₀, p₀) → (qₕ, pₕ) 数据对</span>
 </span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>3000</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=n>q_pred</span><span class=p>,</span> <span class=n>p_pred</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>q_train</span><span class=p>,</span> <span class=n>p_train</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>    <span class=n>loss</span> <span class=o>=</span> <span class=p>((</span><span class=n>q_pred</span> <span class=o>-</span> <span class=n>q_target</span><span class=p>)</span><span class=o>**</span><span class=mi>2</span> <span class=o>+</span> <span class=p>(</span><span class=n>p_pred</span> <span class=o>-</span> <span class=n>p_target</span><span class=p>)</span><span class=o>**</span><span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
 </span></span><span class=line><span class=cl>    <span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>();</span> <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>();</span> <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
-</span></span></code></pre></td></tr></table></div></div><p>每一剪切层都<em>严格满足辛性</em>：其雅可比矩阵为下三角或上三角矩阵，且主对角线元素全为 1，因此行列式恒为 <span class=math-inline>$\det = 1$</span>
-；而多个辛映射的复合仍为辛映射。与哈密顿神经网络（HNN）不同——后者需借助 ODE 求解器数值积分哈密顿方程——SympNet 仅需一次前向传播即可直接输出下一时刻的状态，因而在长时间轨迹预测任务中，速度可提升 10–50 倍。</p><h2 id=应用场景 class=heading-anchor>应用场景<a href=#%e5%ba%94%e7%94%a8%e5%9c%ba%e6%99%af class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/05-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/fig7_applications.png alt=中心枢纽-辐射图：哈密顿/辛深度学习居中，六大应用领域围绕：分子动力学、机器人、天体力学、等离子体、HMC、流体/气候。 loading=lazy decoding=async class=content-image></figure><em>图 7. 保结构深度学习的应用图谱。长时间保守模拟受限于普通积分器和网络的能量漂移：分子动力学（<span class=math-inline>$10^9$</span>
-步）、轨道力学（<span class=math-inline>$10^6$</span>
-年）、等离子体物理、流体降阶模型、HMC 提议——这些是结构保持方法的主战场。</em></p><ul><li><strong>分子动力学。</strong> 全原子模拟常跑 <span class=math-inline>$10^8$</span>
--<span class=math-inline>$10^9$</span>
-步，非辛积分器会让温度慢慢失控；leapfrog 是 MD 能用的关键。HNN 风格代理模型继承了这种稳定性。</li><li><strong>轨道力学与 N 体问题。</strong> JPL 行星历表用辛积分器，因为它需要稳定运行 <span class=math-inline>$10^4$</span>
--<span class=math-inline>$10^6$</span>
-年。</li><li><strong>哈密顿蒙特卡洛（HMC）。</strong> Leapfrog 是 NUTS 和现代 HMC 的核心。学到的哈密顿量 [Levy et al. 2018] 在高维后验上显著加速混合。</li><li><strong>机器人与控制。</strong> LNN 和 DeLaN [Lutter et al. 2019] 从视频中学刚体动力学，把学到的 <span class=math-inline>$L$</span>
-用于基于模型的 RL 或轨迹优化。</li><li><strong>等离子体物理、加速器设计、气候。</strong> 长时间尺度下需要尊重能量和动量平衡的降阶模型，结构保持网络是最佳选择。</li></ul><hr><h3 id=端口-哈密顿网络引入耗散机制 class=heading-anchor>端口-哈密顿网络：引入耗散机制<a href=#%e7%ab%af%e5%8f%a3-%e5%93%88%e5%af%86%e9%a1%bf%e7%bd%91%e7%bb%9c%e5%bc%95%e5%85%a5%e8%80%97%e6%95%a3%e6%9c%ba%e5%88%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>真实的物理系统往往存在摩擦、阻尼或热损耗等能量耗散现象。而纯哈密顿系统天然无法刻画这类行为，因为其构造决定了能量守恒：<span class=math-inline>$\frac{d}{dt}H = 0$</span>
-。<strong>端口-哈密顿（Port-Hamiltonian）</strong> 系统则对这一框架进行了自然拓展：</p><span class=math-block>$$\dot{z} = (J - R)\nabla H(z) + Bu$$</span><p>其中，<span class=math-inline>$J = -J^\top$</span>
-表示辛结构（负责能量守恒），<span class=math-inline>$R = R^\top \succeq 0$</span>
-是耗散矩阵（导致能量单调递减），<span class=math-inline>$B$</span>
-为输入端口，<span class=math-inline>$u$</span>
-为外部控制输入。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>每一剪切层都</span><span class=o>*</span><span class=n>严格满足辛性</span><span class=o>*</span><span class=err>：</span><span class=n>其雅可比矩阵为下三角或上三角矩阵</span><span class=err>，</span><span class=n>且主对角线元素全为</span> <span class=mi>1</span><span class=err>，</span><span class=n>因此行列式恒为</span> <span class=err>$</span>\<span class=n>det</span> <span class=o>=</span> <span class=mi>1</span><span class=err>$；</span><span class=n>而多个辛映射的复合仍为辛映射</span><span class=err>。</span><span class=n>与哈密顿神经网络</span><span class=err>（</span><span class=n>HNN</span><span class=err>）</span><span class=n>不同</span><span class=err>——</span><span class=n>后者需借助</span> <span class=n>ODE</span> <span class=n>求解器数值积分哈密顿方程</span><span class=err>——</span><span class=n>SympNet</span> <span class=n>仅需一次前向传播即可直接输出下一时刻的状态</span><span class=err>，</span><span class=n>因而在长时间轨迹预测任务中</span><span class=err>，</span><span class=n>速度可提升</span> <span class=mi>10</span><span class=err>–</span><span class=mi>50</span> <span class=n>倍</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 应用场景</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>中心枢纽</span><span class=o>-</span><span class=n>辐射图</span><span class=err>：</span><span class=n>哈密顿</span><span class=o>/</span><span class=n>辛深度学习居中</span><span class=err>，</span><span class=n>六大应用领域围绕</span><span class=err>：</span><span class=n>分子动力学</span><span class=err>、</span><span class=n>机器人</span><span class=err>、</span><span class=n>天体力学</span><span class=err>、</span><span class=n>等离子体</span><span class=err>、</span><span class=n>HMC</span><span class=err>、</span><span class=n>流体</span><span class=o>/</span><span class=n>气候</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>05</span><span class=o>-</span><span class=n>辛几何与保结构网络</span><span class=o>/</span><span class=n>fig7_applications</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>图</span> <span class=mf>7.</span> <span class=n>保结构深度学习的应用图谱</span><span class=err>。</span><span class=n>长时间保守模拟受限于普通积分器和网络的能量漂移</span><span class=err>：</span><span class=n>分子动力学</span><span class=err>（$</span><span class=mi>10</span><span class=o>^</span><span class=mi>9</span><span class=err>$</span> <span class=n>步</span><span class=err>）、</span><span class=n>轨道力学</span><span class=err>（$</span><span class=mi>10</span><span class=o>^</span><span class=mi>6</span><span class=err>$</span> <span class=n>年</span><span class=err>）、</span><span class=n>等离子体物理</span><span class=err>、</span><span class=n>流体降阶模型</span><span class=err>、</span><span class=n>HMC</span> <span class=n>提议</span><span class=err>——</span><span class=n>这些是结构保持方法的主战场</span><span class=err>。</span><span class=o>*</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>分子动力学</span><span class=err>。</span><span class=o>**</span> <span class=n>全原子模拟常跑</span> <span class=err>$</span><span class=mi>10</span><span class=o>^</span><span class=mi>8</span><span class=err>$</span><span class=o>-</span><span class=err>$</span><span class=mi>10</span><span class=o>^</span><span class=mi>9</span><span class=err>$</span> <span class=n>步</span><span class=err>，</span><span class=n>非辛积分器会让温度慢慢失控</span><span class=err>；</span><span class=n>leapfrog</span> <span class=n>是</span> <span class=n>MD</span> <span class=n>能用的关键</span><span class=err>。</span><span class=n>HNN</span> <span class=n>风格代理模型继承了这种稳定性</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>轨道力学与</span> <span class=n>N</span> <span class=n>体问题</span><span class=err>。</span><span class=o>**</span> <span class=n>JPL</span> <span class=n>行星历表用辛积分器</span><span class=err>，</span><span class=n>因为它需要稳定运行</span> <span class=err>$</span><span class=mi>10</span><span class=o>^</span><span class=mi>4</span><span class=err>$</span><span class=o>-</span><span class=err>$</span><span class=mi>10</span><span class=o>^</span><span class=mi>6</span><span class=err>$</span> <span class=n>年</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>哈密顿蒙特卡洛</span><span class=err>（</span><span class=n>HMC</span><span class=err>）。</span><span class=o>**</span> <span class=n>Leapfrog</span> <span class=n>是</span> <span class=n>NUTS</span> <span class=n>和现代</span> <span class=n>HMC</span> <span class=n>的核心</span><span class=err>。</span><span class=n>学到的哈密顿量</span> <span class=p>[</span><span class=n>Levy</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span> <span class=mi>2018</span><span class=p>]</span> <span class=n>在高维后验上显著加速混合</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>机器人与控制</span><span class=err>。</span><span class=o>**</span> <span class=n>LNN</span> <span class=n>和</span> <span class=n>DeLaN</span> <span class=p>[</span><span class=n>Lutter</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span> <span class=mi>2019</span><span class=p>]</span> <span class=n>从视频中学刚体动力学</span><span class=err>，</span><span class=n>把学到的</span> <span class=err>$</span><span class=n>L</span><span class=err>$</span> <span class=n>用于基于模型的</span> <span class=n>RL</span> <span class=n>或轨迹优化</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>等离子体物理</span><span class=err>、</span><span class=n>加速器设计</span><span class=err>、</span><span class=n>气候</span><span class=err>。</span><span class=o>**</span> <span class=n>长时间尺度下需要尊重能量和动量平衡的降阶模型</span><span class=err>，</span><span class=n>结构保持网络是最佳选择</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>---</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 端口-哈密顿网络：引入耗散机制</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>真实的物理系统往往存在摩擦</span><span class=err>、</span><span class=n>阻尼或热损耗等能量耗散现象</span><span class=err>。</span><span class=n>而纯哈密顿系统天然无法刻画这类行为</span><span class=err>，</span><span class=n>因为其构造决定了能量守恒</span><span class=err>：$</span>\<span class=n>frac</span><span class=p>{</span><span class=n>d</span><span class=p>}{</span><span class=n>dt</span><span class=p>}</span><span class=n>H</span> <span class=o>=</span> <span class=mi>0</span><span class=err>$。</span><span class=o>**</span><span class=n>端口</span><span class=o>-</span><span class=n>哈密顿</span><span class=err>（</span><span class=n>Port</span><span class=o>-</span><span class=n>Hamiltonian</span><span class=err>）</span><span class=o>**</span> <span class=n>系统则对这一框架进行了自然拓展</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>dot</span><span class=p>{</span><span class=n>z</span><span class=p>}</span> <span class=o>=</span> <span class=p>(</span><span class=n>J</span> <span class=o>-</span> <span class=n>R</span><span class=p>)</span>\<span class=n>nabla</span> <span class=n>H</span><span class=p>(</span><span class=n>z</span><span class=p>)</span> <span class=o>+</span> <span class=n>Bu</span><span class=err>$$</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>其中</span><span class=err>，$</span><span class=n>J</span> <span class=o>=</span> <span class=o>-</span><span class=n>J</span><span class=o>^</span>\<span class=n>top</span><span class=err>$</span> <span class=n>表示辛结构</span><span class=err>（</span><span class=n>负责能量守恒</span><span class=err>），$</span><span class=n>R</span> <span class=o>=</span> <span class=n>R</span><span class=o>^</span>\<span class=n>top</span> \<span class=n>succeq</span> <span class=mi>0</span><span class=err>$</span> <span class=n>是耗散矩阵</span><span class=err>（</span><span class=n>导致能量单调递减</span><span class=err>），$</span><span class=n>B</span><span class=err>$</span> <span class=n>为输入端口</span><span class=err>，$</span><span class=n>u</span><span class=err>$</span> <span class=n>为外部控制输入</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>PortHamiltonianNN</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
@@ -553,68 +892,26 @@ $$</span><p>二阶精度，时间对称，辛。图 3 左展示格子：位置�
 </span></span><span class=line><span class=cl>        <span class=n>JmR</span> <span class=o>=</span> <span class=n>J</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span> <span class=o>-</span> <span class=n>R</span>
 </span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>bmm</span><span class=p>(</span><span class=n>JmR</span><span class=p>,</span> <span class=n>dH</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>))</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 示例：阻尼单摆——系统总能量随时间单调衰减</span>
-</span></span><span class=line><span class=cl><span class=c1># 哈密顿量 H = p^2/2 + (1 - cos(q))，但满足 dH/dt = -R * |dH/dz|^2 ≤ 0</span>
-</span></span><span class=line><span class=cl><span class=c1># 该端口-哈密顿网络能同时从数据中学习能量景观（energy landscape）和耗散强度（dissipation rate）。</span>
-</span></span></code></pre></td></tr></table></div></div><p>这是一种具有物理一致性的建模方式：辛部分维持能量振荡（如惯性项），耗散部分则持续消耗能量（如阻尼项）。网络不仅从数据中联合学习这两类结构，其架构本身还<strong>严格保证</strong>系统总能量非增——这是一个硬性的物理约束，任何无结构约束的通用神经网络都无法天然满足。</p><h2 id=常见陷阱 class=heading-anchor>常见陷阱<a href=#%e5%b8%b8%e8%a7%81%e9%99%b7%e9%98%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/05-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/fig9_pitfall_energy_drift.png alt="能量漂移对比: 普通MLP发散 vs HNN+Euler漂移 vs HNN+蛙跳法有界" loading=lazy decoding=async class=content-image></figure></p><ul><li><strong>忘了 <code>create_graph=True</code>。</strong> HNN 梯度在反向传播中需要再求导，不加 <code>create_graph=True</code>，PyTorch 会断开计算图，<span class=math-inline>$\theta$</span>
-梯度就错了。</li><li><strong>用了 <code>ReLU</code> 激活。</strong> <span class=math-inline>$H_\theta$</span>
-必须二阶可微，梯度才平滑。建议用 <code>Softplus</code>、<code>Tanh</code>、<code>SiLU</code> 或 <code>GELU</code>。</li><li><strong>用显式 Euler 积分 HNN。</strong> 连续时间动力学是辛的，但显式 Euler 破坏辛性。推理时改用 leapfrog。</li><li><strong>混淆精度与结构。</strong> RK4 单步更准，长时间不如 leapfrog 稳定。阶数高不代表保结构。</li><li><strong>想用 HNN 拟合带摩擦的系统。</strong> <span class=math-inline>$\dot z = J\nabla H$</span>
-是保守的，耗散系统需加阻尼项（Port-Hamiltonian 或 GENERIC）。</li></ul><h3 id=三体引力问题 class=heading-anchor>三体引力问题<a href=#%e4%b8%89%e4%bd%93%e5%bc%95%e5%8a%9b%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>这是对结构保持型数值方法的终极压力测试：三体问题具有混沌性、守恒性，且不存在解析解。相比普通神经微分方程（neural ODE），基于哈密顿神经网络（HNN）在短轨迹上训练所得的模型，在长期外推中表现显著更优——因为它严格尊重辛结构。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span><span class=lnt>38
-</span><span class=lnt>39
-</span><span class=lnt>40
-</span><span class=lnt>41
-</span><span class=lnt>42
-</span><span class=lnt>43
-</span><span class=lnt>44
-</span><span class=lnt>45
-</span><span class=lnt>46
-</span><span class=lnt>47
-</span><span class=lnt>48
-</span><span class=lnt>49
-</span><span class=lnt>50
-</span><span class=lnt>51
-</span><span class=lnt>52
-</span><span class=lnt>53
-</span><span class=lnt>54
-</span><span class=lnt>55
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>这是一种具有物理一致性的建模方式</span><span class=err>：</span><span class=n>辛部分维持能量振荡</span><span class=err>（</span><span class=n>如惯性项</span><span class=err>），</span><span class=n>耗散部分则持续消耗能量</span><span class=err>（</span><span class=n>如阻尼项</span><span class=err>）。</span><span class=n>网络不仅从数据中联合学习这两类结构</span><span class=err>，</span><span class=n>其架构本身还</span><span class=o>**</span><span class=n>严格保证</span><span class=o>**</span><span class=n>系统总能量非增</span><span class=err>——</span><span class=n>这是一个硬性的物理约束</span><span class=err>，</span><span class=n>任何无结构约束的通用神经网络都无法天然满足</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 常见陷阱</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>能量漂移对比</span><span class=p>:</span> <span class=n>普通MLP发散</span> <span class=n>vs</span> <span class=n>HNN</span><span class=o>+</span><span class=n>Euler漂移</span> <span class=n>vs</span> <span class=n>HNN</span><span class=o>+</span><span class=n>蛙跳法有界</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>05</span><span class=o>-</span><span class=n>辛几何与保结构网络</span><span class=o>/</span><span class=n>fig9_pitfall_energy_drift</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>忘了</span> <span class=err>`</span><span class=n>create_graph</span><span class=o>=</span><span class=kc>True</span><span class=err>`。</span><span class=o>**</span> <span class=n>HNN</span> <span class=n>梯度在反向传播中需要再求导</span><span class=err>，</span><span class=n>不加</span> <span class=err>`</span><span class=n>create_graph</span><span class=o>=</span><span class=kc>True</span><span class=err>`，</span><span class=n>PyTorch</span> <span class=n>会断开计算图</span><span class=err>，$</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>梯度就错了</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>用了</span> <span class=err>`</span><span class=n>ReLU</span><span class=err>`</span> <span class=n>激活</span><span class=err>。</span><span class=o>**</span> <span class=err>$</span><span class=n>H_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>必须二阶可微</span><span class=err>，</span><span class=n>梯度才平滑</span><span class=err>。</span><span class=n>建议用</span> <span class=err>`</span><span class=n>Softplus</span><span class=err>`、`</span><span class=n>Tanh</span><span class=err>`、`</span><span class=n>SiLU</span><span class=err>`</span> <span class=n>或</span> <span class=err>`</span><span class=n>GELU</span><span class=err>`。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>用显式</span> <span class=n>Euler</span> <span class=n>积分</span> <span class=n>HNN</span><span class=err>。</span><span class=o>**</span> <span class=n>连续时间动力学是辛的</span><span class=err>，</span><span class=n>但显式</span> <span class=n>Euler</span> <span class=n>破坏辛性</span><span class=err>。</span><span class=n>推理时改用</span> <span class=n>leapfrog</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>混淆精度与结构</span><span class=err>。</span><span class=o>**</span> <span class=n>RK4</span> <span class=n>单步更准</span><span class=err>，</span><span class=n>长时间不如</span> <span class=n>leapfrog</span> <span class=n>稳定</span><span class=err>。</span><span class=n>阶数高不代表保结构</span><span class=err>。</span>
+</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>想用</span> <span class=n>HNN</span> <span class=n>拟合带摩擦的系统</span><span class=err>。</span><span class=o>**</span> <span class=err>$</span>\<span class=n>dot</span> <span class=n>z</span> <span class=o>=</span> <span class=n>J</span>\<span class=n>nabla</span> <span class=n>H</span><span class=err>$</span> <span class=n>是保守的</span><span class=err>，</span><span class=n>耗散系统需加阻尼项</span><span class=err>（</span><span class=n>Port</span><span class=o>-</span><span class=n>Hamiltonian</span> <span class=n>或</span> <span class=n>GENERIC</span><span class=err>）。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>### 三体引力问题</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>这是对结构保持型数值方法的终极压力测试</span><span class=err>：</span><span class=n>三体问题具有混沌性</span><span class=err>、</span><span class=n>守恒性</span><span class=err>，</span><span class=n>且不存在解析解</span><span class=err>。</span><span class=n>相比普通神经微分方程</span><span class=err>（</span><span class=n>neural</span> <span class=n>ODE</span><span class=err>），</span><span class=n>基于哈密顿神经网络</span><span class=err>（</span><span class=n>HNN</span><span class=err>）</span><span class=n>在短轨迹上训练所得的模型</span><span class=err>，</span><span class=n>在长期外推中表现显著更优</span><span class=err>——</span><span class=n>因为它严格尊重辛结构</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>three_body_hamiltonian</span><span class=p>(</span><span class=n>state</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=c1># state = [x1,y1, x2,y2, x3,y3, px1,py1, px2,py2, px3,py3]</span>
@@ -659,7 +956,6 @@ $$</span><p>二阶精度，时间对称，辛。图 3 左展示格子：位置�
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>traj</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 图形-8轨道初始条件（Chenciner &amp; Montgomery, 2000）</span>
 </span></span><span class=line><span class=cl><span class=n>q0</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mf>0.97</span><span class=p>,</span> <span class=o>-</span><span class=mf>0.24</span><span class=p>,</span> <span class=o>-</span><span class=mf>0.97</span><span class=p>,</span> <span class=mf>0.24</span><span class=p>,</span> <span class=mf>0.0</span><span class=p>,</span> <span class=mf>0.0</span><span class=p>])</span>
 </span></span><span class=line><span class=cl><span class=n>p0</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mf>0.47</span><span class=p>,</span> <span class=mf>0.24</span><span class=p>,</span> <span class=mf>0.47</span><span class=p>,</span> <span class=mf>0.24</span><span class=p>,</span> <span class=o>-</span><span class=mf>0.94</span><span class=p>,</span> <span class=o>-</span><span class=mf>0.48</span><span class=p>])</span>
 </span></span><span class=line><span class=cl><span class=n>state0</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>concatenate</span><span class=p>([</span><span class=n>q0</span><span class=p>,</span> <span class=n>p0</span><span class=p>])</span>
@@ -668,38 +964,60 @@ $$</span><p>二阶精度，时间对称，辛。图 3 左展示格子：位置�
 </span></span><span class=line><span class=cl><span class=n>H0</span> <span class=o>=</span> <span class=n>three_body_hamiltonian</span><span class=p>(</span><span class=n>traj</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
 </span></span><span class=line><span class=cl><span class=n>H_final</span> <span class=o>=</span> <span class=n>three_body_hamiltonian</span><span class=p>(</span><span class=n>traj</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>])</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;50 秒内的能量漂移：</span><span class=si>{</span><span class=nb>abs</span><span class=p>(</span><span class=n>H_final</span> <span class=o>-</span> <span class=n>H0</span><span class=p>)</span> <span class=o>/</span> <span class=nb>abs</span><span class=p>(</span><span class=n>H0</span><span class=p>)</span> <span class=o>*</span> <span class=mi>100</span><span class=si>:</span><span class=s2>.6f</span><span class=si>}</span><span class=s2>%&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=c1># 输出示例：50 秒内的能量漂移：0.000012% （蛙跳法：误差有界，无长期漂移）</span>
-</span></span></code></pre></td></tr></table></div></div><p>使用辛积分器时，能量误差仅在小范围内振荡，而不会随时间增长——即使推进至 50,000 步亦然。相比之下，若改用 RK4 方法，相同时间内能量漂移将达约 1%；而前向欧拉法则会高达约 100%。这正是修正哈密顿量定理（modified Hamiltonian theorem）带来的实际优势：辛积分器<strong>精确守恒某个邻近的哈密顿量</strong> <span class=math-inline>$\tilde{H} = H + O(h^2)$</span>
-。</p><h2 id=练习题 class=heading-anchor>练习题<a href=#%e7%bb%83%e4%b9%a0%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>习题 1.</strong> 证明任意辛映射 <span class=math-inline>$\phi : \mathbb{R}^{2} \to \mathbb{R}^2$</span>
-的雅可比行列式为 <span class=math-inline>$1$</span>
-。</p><blockquote><p><strong>解：</strong> 由 <span class=math-inline>$M^\top J M = J$</span>
-，取行列式得 <span class=math-inline>$\det(M)^2 \det(J) = \det(J)$</span>
-。当 <span class=math-inline>$n=1$</span>
-时 <span class=math-inline>$\det(J) = 1$</span>
-，故 <span class=math-inline>$\det M = \pm 1$</span>
-。从恒等映射出发，<span class=math-inline>$\det = +1$</span>
-，连续性保证 <span class=math-inline>$\det M = +1$</span>
-。</p></blockquote><p><strong>习题 2.</strong> 验证辛 Euler 在谐振子 <span class=math-inline>$H = (p^2 + q^2)/2$</span>
-上保面积。</p><blockquote><p><strong>解：</strong> 映射为 <span class=math-inline>$p_{k+1} = p_k - h q_k,\ q_{k+1} = q_k + h p_{k+1} = q_k + h p_k - h^2 q_k$</span>
-。雅可比矩阵为 <span class=math-inline>$\begin{pmatrix} 1 - h^2 & h \\ -h & 1 \end{pmatrix}$</span>
-，行列式 <span class=math-inline>$(1-h^2)\cdot 1 - h\cdot(-h) = 1$</span>
-。对任意 <span class=math-inline>$h$</span>
-，严格保面积。</p></blockquote><p><strong>习题 3.</strong> 为什么无约束神经 ODE 一般违反能量守恒？</p><blockquote><p><strong>解：</strong> <span class=math-inline>$f_\theta : \mathbb{R}^{2n} \to \mathbb{R}^{2n}$</span>
-的雅可比有 <span class=math-inline>$4n^2$</span>
-个自由参数，辛性约束 <span class=math-inline>$M^\top J M = J$</span>
-锁定 <span class=math-inline>$n(2n+1)$</span>
-个。剩下 <span class=math-inline>$\binom{2n}{2}$</span>
-维非哈密顿扰动方向占主导。几乎所有拟合训练数据的 <span class=math-inline>$f_\theta$</span>
-都不在辛子流形上。</p></blockquote><p><strong>习题 4.</strong> 证明 leapfrog 步可写成 <span class=math-inline>$L_h = L_{h/2}^{\text{kick}} \circ L_h^{\text{drift}} \circ L_{h/2}^{\text{kick}}$</span>
-，每个分量严格辛。</p><blockquote><p><strong>解：</strong> 每次踢是 <span class=math-inline>$V(q)$</span>
-的时间 <span class=math-inline>$h/2$</span>
-流，每次飘是 <span class=math-inline>$T(p) = p^2/2$</span>
-的时间 <span class=math-inline>$h$</span>
-流。两者都是精确哈密顿流，自然辛。辛映射复合仍为辛。</p></blockquote><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>本章给的几个核心想法（PDE 残��作为损失、函数空间上的算子、Wasserstein 几何、辛结构、score、扩散）在后面的章节里会反复出现。如果某一段卡住了，建议先记下问题继续往下读——下一章往往会从另一个角度把它再讲一遍。</p><p>如果你想验证自己读懂了，最直接的练习是把本章的方程在一个最小例子上跑通：一维热方程、单摆、二维高斯混合。代码不长，但能让公式从“看着对”变成“在我电脑上确实是对的”。</p><h2 id=参考文献 class=heading-anchor>参考文献<a href=#%e5%8f%82%e8%80%83%e6%96%87%e7%8c%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>[1] Greydanus, S., Dzamba, M., & Yosinski, J. (2019). <strong>Hamiltonian Neural Networks.</strong> <em>NeurIPS.</em> <a href=https://arxiv.org/abs/1906.01563 target=_blank rel="noopener noreferrer">arXiv:1906.01563 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></p><p>[2] Cranmer, M., Greydanus, S., Hoyer, S., Battaglia, P., Spergel, D., & Ho, S. (2020). <strong>Lagrangian Neural Networks.</strong> <em>ICLR DeepDiffEq workshop.</em> <a href=https://arxiv.org/abs/2003.04630 target=_blank rel="noopener noreferrer">arXiv:2003.04630 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></p><p>[3] Jin, P., Zhang, Z., Zhu, A., Tang, Y., & Karniadakis, G. E. (2020). <strong>SympNets: Intrinsic structure-preserving symplectic networks for identifying Hamiltonian systems.</strong> <em>Neural Networks</em>, 132, 166-179.</p><p>[4] Chen, Z., Zhang, J., Arjovsky, M., & Bottou, L. (2020). <strong>Symplectic Recurrent Neural Networks.</strong> <em>ICLR.</em> <a href=https://arxiv.org/abs/1909.13334 target=_blank rel="noopener noreferrer">arXiv:1909.13334 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></p><p>[5] Hairer, E., Lubich, C., & Wanner, G. (2006). <strong>Geometric Numerical Integration: Structure-Preserving Algorithms for Ordinary Differential Equations.</strong> Springer (2nd ed.). 经典参考书。</p><p>[6] Toth, P., Rezende, D. J., Jaegle, A., Racaniere, S., Botev, A., & Higgins, I. (2020). <strong>Hamiltonian Generative Networks.</strong> <em>ICLR.</em> <a href=https://arxiv.org/abs/1909.13789 target=_blank rel="noopener noreferrer">arXiv:1909.13789 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></p><p>[7] Lutter, M., Ritter, C., & Peters, J. (2019). <strong>Deep Lagrangian Networks: Using Physics as Model Prior for Deep Learning.</strong> <em>ICLR.</em> <a href=https://arxiv.org/abs/1907.04490 target=_blank rel="noopener noreferrer">arXiv:1907.04490 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></p><p>[8] Desai, S., Mattheakis, M., Joy, H., Protopapas, P., & Roberts, S. (2021). <strong>Port-Hamiltonian Neural Networks for Learning Explicit Time-Dependent Dynamical Systems.</strong> <em>Phys. Rev. E</em> 104, 034312. <a href=https://arxiv.org/abs/2107.08024 target=_blank rel="noopener noreferrer">arXiv:2107.08024 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></p><p>[9] Levy, D., Hoffman, M. D., & Sohl-Dickstein, J. (2018). <strong>Generalizing Hamiltonian Monte Carlo with Neural Networks.</strong> <em>ICLR.</em> <a href=https://arxiv.org/abs/1711.09268 target=_blank rel="noopener noreferrer">arXiv:1711.09268 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></p><p>[10] Arnold, V. I. (1989). <strong>Mathematical Methods of Classical Mechanics.</strong> Springer (2nd ed.). 几何力学的圣经。</p></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>使用辛积分器时</span><span class=err>，</span><span class=n>能量误差仅在小范围内振荡</span><span class=err>，</span><span class=n>而不会随时间增长</span><span class=err>——</span><span class=n>即使推进至</span> <span class=mi>50</span><span class=p>,</span><span class=mi>000</span> <span class=n>步亦然</span><span class=err>。</span><span class=n>相比之下</span><span class=err>，</span><span class=n>若改用</span> <span class=n>RK4</span> <span class=n>方法</span><span class=err>，</span><span class=n>相同时间内能量漂移将达约</span> <span class=mi>1</span><span class=o>%</span><span class=err>；</span><span class=n>而前向欧拉法则会高达约</span> <span class=mi>100</span><span class=o>%</span><span class=err>。</span><span class=n>这正是修正哈密顿量定理</span><span class=err>（</span><span class=n>modified</span> <span class=n>Hamiltonian</span> <span class=n>theorem</span><span class=err>）</span><span class=n>带来的实际优势</span><span class=err>：</span><span class=n>辛积分器</span><span class=o>**</span><span class=n>精确守恒某个邻近的哈密顿量</span><span class=o>**</span> <span class=err>$</span>\<span class=n>tilde</span><span class=p>{</span><span class=n>H</span><span class=p>}</span> <span class=o>=</span> <span class=n>H</span> <span class=o>+</span> <span class=n>O</span><span class=p>(</span><span class=n>h</span><span class=o>^</span><span class=mi>2</span><span class=p>)</span><span class=err>$。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 练习题</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>习题</span> <span class=mf>1.</span><span class=o>**</span> <span class=n>证明任意辛映射</span> <span class=err>$</span>\<span class=n>phi</span> <span class=p>:</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=mi>2</span><span class=p>}</span> \<span class=n>to</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=mi>2</span><span class=err>$</span> <span class=n>的雅可比行列式为</span> <span class=err>$</span><span class=mi>1</span><span class=err>$。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>**</span><span class=n>解</span><span class=err>：</span><span class=o>**</span> <span class=n>由</span> <span class=err>$</span><span class=n>M</span><span class=o>^</span>\<span class=n>top</span> <span class=n>J</span> <span class=n>M</span> <span class=o>=</span> <span class=n>J</span><span class=err>$，</span><span class=n>取行列式得</span> <span class=err>$</span>\<span class=n>det</span><span class=p>(</span><span class=n>M</span><span class=p>)</span><span class=o>^</span><span class=mi>2</span> \<span class=n>det</span><span class=p>(</span><span class=n>J</span><span class=p>)</span> <span class=o>=</span> \<span class=n>det</span><span class=p>(</span><span class=n>J</span><span class=p>)</span><span class=err>$。</span><span class=n>当</span> <span class=err>$</span><span class=n>n</span><span class=o>=</span><span class=mi>1</span><span class=err>$</span> <span class=n>时</span> <span class=err>$</span>\<span class=n>det</span><span class=p>(</span><span class=n>J</span><span class=p>)</span> <span class=o>=</span> <span class=mi>1</span><span class=err>$，</span><span class=n>故</span> <span class=err>$</span>\<span class=n>det</span> <span class=n>M</span> <span class=o>=</span> \<span class=n>pm</span> <span class=mi>1</span><span class=err>$。</span><span class=n>从恒等映射出发</span><span class=err>，$</span>\<span class=n>det</span> <span class=o>=</span> <span class=o>+</span><span class=mi>1</span><span class=err>$，</span><span class=n>连续性保证</span> <span class=err>$</span>\<span class=n>det</span> <span class=n>M</span> <span class=o>=</span> <span class=o>+</span><span class=mi>1</span><span class=err>$。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>习题</span> <span class=mf>2.</span><span class=o>**</span> <span class=n>验证辛</span> <span class=n>Euler</span> <span class=n>在谐振子</span> <span class=err>$</span><span class=n>H</span> <span class=o>=</span> <span class=p>(</span><span class=n>p</span><span class=o>^</span><span class=mi>2</span> <span class=o>+</span> <span class=n>q</span><span class=o>^</span><span class=mi>2</span><span class=p>)</span><span class=o>/</span><span class=mi>2</span><span class=err>$</span> <span class=n>上保面积</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>**</span><span class=n>解</span><span class=err>：</span><span class=o>**</span> <span class=n>映射为</span> <span class=err>$</span><span class=n>p_</span><span class=p>{</span><span class=n>k</span><span class=o>+</span><span class=mi>1</span><span class=p>}</span> <span class=o>=</span> <span class=n>p_k</span> <span class=o>-</span> <span class=n>h</span> <span class=n>q_k</span><span class=p>,</span>\ <span class=n>q_</span><span class=p>{</span><span class=n>k</span><span class=o>+</span><span class=mi>1</span><span class=p>}</span> <span class=o>=</span> <span class=n>q_k</span> <span class=o>+</span> <span class=n>h</span> <span class=n>p_</span><span class=p>{</span><span class=n>k</span><span class=o>+</span><span class=mi>1</span><span class=p>}</span> <span class=o>=</span> <span class=n>q_k</span> <span class=o>+</span> <span class=n>h</span> <span class=n>p_k</span> <span class=o>-</span> <span class=n>h</span><span class=o>^</span><span class=mi>2</span> <span class=n>q_k</span><span class=err>$。</span><span class=n>雅可比矩阵为</span> <span class=err>$</span>\<span class=n>begin</span><span class=p>{</span><span class=n>pmatrix</span><span class=p>}</span> <span class=mi>1</span> <span class=o>-</span> <span class=n>h</span><span class=o>^</span><span class=mi>2</span> <span class=o>&amp;</span> <span class=n>h</span> \\ <span class=o>-</span><span class=n>h</span> <span class=o>&amp;</span> <span class=mi>1</span> \<span class=n>end</span><span class=p>{</span><span class=n>pmatrix</span><span class=p>}</span><span class=err>$，</span><span class=n>行列式</span> <span class=err>$</span><span class=p>(</span><span class=mi>1</span><span class=o>-</span><span class=n>h</span><span class=o>^</span><span class=mi>2</span><span class=p>)</span>\<span class=n>cdot</span> <span class=mi>1</span> <span class=o>-</span> <span class=n>h</span>\<span class=n>cdot</span><span class=p>(</span><span class=o>-</span><span class=n>h</span><span class=p>)</span> <span class=o>=</span> <span class=mi>1</span><span class=err>$。</span><span class=n>对任意</span> <span class=err>$</span><span class=n>h</span><span class=err>$，</span><span class=n>严格保面积</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>习题</span> <span class=mf>3.</span><span class=o>**</span> <span class=n>为什么无约束神经</span> <span class=n>ODE</span> <span class=n>一般违反能量守恒</span><span class=err>？</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>**</span><span class=n>解</span><span class=err>：</span><span class=o>**</span> <span class=err>$</span><span class=n>f_</span>\<span class=n>theta</span> <span class=p>:</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=mi>2</span><span class=n>n</span><span class=p>}</span> \<span class=n>to</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=mi>2</span><span class=n>n</span><span class=p>}</span><span class=err>$</span> <span class=n>的雅可比有</span> <span class=err>$</span><span class=mi>4</span><span class=n>n</span><span class=o>^</span><span class=mi>2</span><span class=err>$</span> <span class=n>个自由参数</span><span class=err>，</span><span class=n>辛性约束</span> <span class=err>$</span><span class=n>M</span><span class=o>^</span>\<span class=n>top</span> <span class=n>J</span> <span class=n>M</span> <span class=o>=</span> <span class=n>J</span><span class=err>$</span> <span class=n>锁定</span> <span class=err>$</span><span class=n>n</span><span class=p>(</span><span class=mi>2</span><span class=n>n</span><span class=o>+</span><span class=mi>1</span><span class=p>)</span><span class=err>$</span> <span class=n>个</span><span class=err>。</span><span class=n>剩下</span> <span class=err>$</span>\<span class=n>binom</span><span class=p>{</span><span class=mi>2</span><span class=n>n</span><span class=p>}{</span><span class=mi>2</span><span class=p>}</span><span class=err>$</span> <span class=n>维非哈密顿扰动方向占主导</span><span class=err>。</span><span class=n>几乎所有拟合训练数据的</span> <span class=err>$</span><span class=n>f_</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>都不在辛子流形上</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>习题</span> <span class=mf>4.</span><span class=o>**</span> <span class=n>证明</span> <span class=n>leapfrog</span> <span class=n>步可写成</span> <span class=err>$</span><span class=n>L_h</span> <span class=o>=</span> <span class=n>L_</span><span class=p>{</span><span class=n>h</span><span class=o>/</span><span class=mi>2</span><span class=p>}</span><span class=o>^</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>kick</span><span class=p>}}</span> \<span class=n>circ</span> <span class=n>L_h</span><span class=o>^</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>drift</span><span class=p>}}</span> \<span class=n>circ</span> <span class=n>L_</span><span class=p>{</span><span class=n>h</span><span class=o>/</span><span class=mi>2</span><span class=p>}</span><span class=o>^</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>kick</span><span class=p>}}</span><span class=err>$，</span><span class=n>每个分量严格辛</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>&gt;</span> <span class=o>**</span><span class=n>解</span><span class=err>：</span><span class=o>**</span> <span class=n>每次踢是</span> <span class=err>$</span><span class=n>V</span><span class=p>(</span><span class=n>q</span><span class=p>)</span><span class=err>$</span> <span class=n>的时间</span> <span class=err>$</span><span class=n>h</span><span class=o>/</span><span class=mi>2</span><span class=err>$</span> <span class=n>流</span><span class=err>，</span><span class=n>每次飘是</span> <span class=err>$</span><span class=n>T</span><span class=p>(</span><span class=n>p</span><span class=p>)</span> <span class=o>=</span> <span class=n>p</span><span class=o>^</span><span class=mi>2</span><span class=o>/</span><span class=mi>2</span><span class=err>$</span> <span class=n>的时间</span> <span class=err>$</span><span class=n>h</span><span class=err>$</span> <span class=n>流</span><span class=err>。</span><span class=n>两者都是精确哈密顿流</span><span class=err>，</span><span class=n>自然辛</span><span class=err>。</span><span class=n>辛映射复合仍为辛</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 下一步</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>本章给的几个核心想法</span><span class=err>（</span><span class=n>PDE</span> <span class=n>残</span><span class=err>��</span><span class=n>作为损失</span><span class=err>、</span><span class=n>函数空间上的算子</span><span class=err>、</span><span class=n>Wasserstein</span> <span class=n>几何</span><span class=err>、</span><span class=n>辛结构</span><span class=err>、</span><span class=n>score</span><span class=err>、</span><span class=n>扩散</span><span class=err>）</span><span class=n>在后面的章节里会反复出现</span><span class=err>。</span><span class=n>如果某一段卡住了</span><span class=err>，</span><span class=n>建议先记下问题继续往下读</span><span class=err>——</span><span class=n>下一章往往会从另一个角度把它再讲一遍</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>如果你想验证自己读懂了</span><span class=err>，</span><span class=n>最直接的练习是把本章的方程在一个最小例子上跑通</span><span class=err>：</span><span class=n>一维热方程</span><span class=err>、</span><span class=n>单摆</span><span class=err>、</span><span class=n>二维高斯混合</span><span class=err>。</span><span class=n>代码不长</span><span class=err>，</span><span class=n>但能让公式从</span><span class=err>“</span><span class=n>看着对</span><span class=err>”</span><span class=n>变成</span><span class=err>“</span><span class=n>在我电脑上确实是对的</span><span class=err>”。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>## 参考文献</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=n>Greydanus</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span><span class=p>,</span> <span class=n>Dzamba</span><span class=p>,</span> <span class=n>M</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Yosinski</span><span class=p>,</span> <span class=n>J</span><span class=o>.</span> <span class=p>(</span><span class=mi>2019</span><span class=p>)</span><span class=o>.</span> <span class=o>**</span><span class=n>Hamiltonian</span> <span class=n>Neural</span> <span class=n>Networks</span><span class=o>.**</span> <span class=o>*</span><span class=n>NeurIPS</span><span class=o>.*</span> <span class=p>[</span><span class=n>arXiv</span><span class=p>:</span><span class=mf>1906.01563</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>1906.01563</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=n>Cranmer</span><span class=p>,</span> <span class=n>M</span><span class=o>.</span><span class=p>,</span> <span class=n>Greydanus</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span><span class=p>,</span> <span class=n>Hoyer</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span><span class=p>,</span> <span class=n>Battaglia</span><span class=p>,</span> <span class=n>P</span><span class=o>.</span><span class=p>,</span> <span class=n>Spergel</span><span class=p>,</span> <span class=n>D</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Ho</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span> <span class=p>(</span><span class=mi>2020</span><span class=p>)</span><span class=o>.</span> <span class=o>**</span><span class=n>Lagrangian</span> <span class=n>Neural</span> <span class=n>Networks</span><span class=o>.**</span> <span class=o>*</span><span class=n>ICLR</span> <span class=n>DeepDiffEq</span> <span class=n>workshop</span><span class=o>.*</span> <span class=p>[</span><span class=n>arXiv</span><span class=p>:</span><span class=mf>2003.04630</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>2003.04630</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>3</span><span class=p>]</span> <span class=n>Jin</span><span class=p>,</span> <span class=n>P</span><span class=o>.</span><span class=p>,</span> <span class=n>Zhang</span><span class=p>,</span> <span class=n>Z</span><span class=o>.</span><span class=p>,</span> <span class=n>Zhu</span><span class=p>,</span> <span class=n>A</span><span class=o>.</span><span class=p>,</span> <span class=n>Tang</span><span class=p>,</span> <span class=n>Y</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Karniadakis</span><span class=p>,</span> <span class=n>G</span><span class=o>.</span> <span class=n>E</span><span class=o>.</span> <span class=p>(</span><span class=mi>2020</span><span class=p>)</span><span class=o>.</span> <span class=o>**</span><span class=n>SympNets</span><span class=p>:</span> <span class=n>Intrinsic</span> <span class=n>structure</span><span class=o>-</span><span class=n>preserving</span> <span class=n>symplectic</span> <span class=n>networks</span> <span class=k>for</span> <span class=n>identifying</span> <span class=n>Hamiltonian</span> <span class=n>systems</span><span class=o>.**</span> <span class=o>*</span><span class=n>Neural</span> <span class=n>Networks</span><span class=o>*</span><span class=p>,</span> <span class=mi>132</span><span class=p>,</span> <span class=mi>166</span><span class=o>-</span><span class=mf>179.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>4</span><span class=p>]</span> <span class=n>Chen</span><span class=p>,</span> <span class=n>Z</span><span class=o>.</span><span class=p>,</span> <span class=n>Zhang</span><span class=p>,</span> <span class=n>J</span><span class=o>.</span><span class=p>,</span> <span class=n>Arjovsky</span><span class=p>,</span> <span class=n>M</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Bottou</span><span class=p>,</span> <span class=n>L</span><span class=o>.</span> <span class=p>(</span><span class=mi>2020</span><span class=p>)</span><span class=o>.</span> <span class=o>**</span><span class=n>Symplectic</span> <span class=n>Recurrent</span> <span class=n>Neural</span> <span class=n>Networks</span><span class=o>.**</span> <span class=o>*</span><span class=n>ICLR</span><span class=o>.*</span> <span class=p>[</span><span class=n>arXiv</span><span class=p>:</span><span class=mf>1909.13334</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>1909.13334</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>5</span><span class=p>]</span> <span class=n>Hairer</span><span class=p>,</span> <span class=n>E</span><span class=o>.</span><span class=p>,</span> <span class=n>Lubich</span><span class=p>,</span> <span class=n>C</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Wanner</span><span class=p>,</span> <span class=n>G</span><span class=o>.</span> <span class=p>(</span><span class=mi>2006</span><span class=p>)</span><span class=o>.</span> <span class=o>**</span><span class=n>Geometric</span> <span class=n>Numerical</span> <span class=n>Integration</span><span class=p>:</span> <span class=n>Structure</span><span class=o>-</span><span class=n>Preserving</span> <span class=n>Algorithms</span> <span class=k>for</span> <span class=n>Ordinary</span> <span class=n>Differential</span> <span class=n>Equations</span><span class=o>.**</span> <span class=n>Springer</span> <span class=p>(</span><span class=mi>2</span><span class=n>nd</span> <span class=n>ed</span><span class=o>.</span><span class=p>)</span><span class=o>.</span> <span class=n>经典参考书</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>6</span><span class=p>]</span> <span class=n>Toth</span><span class=p>,</span> <span class=n>P</span><span class=o>.</span><span class=p>,</span> <span class=n>Rezende</span><span class=p>,</span> <span class=n>D</span><span class=o>.</span> <span class=n>J</span><span class=o>.</span><span class=p>,</span> <span class=n>Jaegle</span><span class=p>,</span> <span class=n>A</span><span class=o>.</span><span class=p>,</span> <span class=n>Racaniere</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span><span class=p>,</span> <span class=n>Botev</span><span class=p>,</span> <span class=n>A</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Higgins</span><span class=p>,</span> <span class=n>I</span><span class=o>.</span> <span class=p>(</span><span class=mi>2020</span><span class=p>)</span><span class=o>.</span> <span class=o>**</span><span class=n>Hamiltonian</span> <span class=n>Generative</span> <span class=n>Networks</span><span class=o>.**</span> <span class=o>*</span><span class=n>ICLR</span><span class=o>.*</span> <span class=p>[</span><span class=n>arXiv</span><span class=p>:</span><span class=mf>1909.13789</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>1909.13789</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>7</span><span class=p>]</span> <span class=n>Lutter</span><span class=p>,</span> <span class=n>M</span><span class=o>.</span><span class=p>,</span> <span class=n>Ritter</span><span class=p>,</span> <span class=n>C</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Peters</span><span class=p>,</span> <span class=n>J</span><span class=o>.</span> <span class=p>(</span><span class=mi>2019</span><span class=p>)</span><span class=o>.</span> <span class=o>**</span><span class=n>Deep</span> <span class=n>Lagrangian</span> <span class=n>Networks</span><span class=p>:</span> <span class=n>Using</span> <span class=n>Physics</span> <span class=k>as</span> <span class=n>Model</span> <span class=n>Prior</span> <span class=k>for</span> <span class=n>Deep</span> <span class=n>Learning</span><span class=o>.**</span> <span class=o>*</span><span class=n>ICLR</span><span class=o>.*</span> <span class=p>[</span><span class=n>arXiv</span><span class=p>:</span><span class=mf>1907.04490</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>1907.04490</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>8</span><span class=p>]</span> <span class=n>Desai</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span><span class=p>,</span> <span class=n>Mattheakis</span><span class=p>,</span> <span class=n>M</span><span class=o>.</span><span class=p>,</span> <span class=n>Joy</span><span class=p>,</span> <span class=n>H</span><span class=o>.</span><span class=p>,</span> <span class=n>Protopapas</span><span class=p>,</span> <span class=n>P</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Roberts</span><span class=p>,</span> <span class=n>S</span><span class=o>.</span> <span class=p>(</span><span class=mi>2021</span><span class=p>)</span><span class=o>.</span> <span class=o>**</span><span class=n>Port</span><span class=o>-</span><span class=n>Hamiltonian</span> <span class=n>Neural</span> <span class=n>Networks</span> <span class=k>for</span> <span class=n>Learning</span> <span class=n>Explicit</span> <span class=n>Time</span><span class=o>-</span><span class=n>Dependent</span> <span class=n>Dynamical</span> <span class=n>Systems</span><span class=o>.**</span> <span class=o>*</span><span class=n>Phys</span><span class=o>.</span> <span class=n>Rev</span><span class=o>.</span> <span class=n>E</span><span class=o>*</span> <span class=mi>104</span><span class=p>,</span> <span class=mf>034312.</span> <span class=p>[</span><span class=n>arXiv</span><span class=p>:</span><span class=mf>2107.08024</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>2107.08024</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>9</span><span class=p>]</span> <span class=n>Levy</span><span class=p>,</span> <span class=n>D</span><span class=o>.</span><span class=p>,</span> <span class=n>Hoffman</span><span class=p>,</span> <span class=n>M</span><span class=o>.</span> <span class=n>D</span><span class=o>.</span><span class=p>,</span> <span class=o>&amp;</span> <span class=n>Sohl</span><span class=o>-</span><span class=n>Dickstein</span><span class=p>,</span> <span class=n>J</span><span class=o>.</span> <span class=p>(</span><span class=mi>2018</span><span class=p>)</span><span class=o>.</span> <span class=o>**</span><span class=n>Generalizing</span> <span class=n>Hamiltonian</span> <span class=n>Monte</span> <span class=n>Carlo</span> <span class=k>with</span> <span class=n>Neural</span> <span class=n>Networks</span><span class=o>.**</span> <span class=o>*</span><span class=n>ICLR</span><span class=o>.*</span> <span class=p>[</span><span class=n>arXiv</span><span class=p>:</span><span class=mf>1711.09268</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>arxiv</span><span class=o>.</span><span class=n>org</span><span class=o>/</span><span class=nb>abs</span><span class=o>/</span><span class=mf>1711.09268</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=mi>10</span><span class=p>]</span> <span class=n>Arnold</span><span class=p>,</span> <span class=n>V</span><span class=o>.</span> <span class=n>I</span><span class=o>.</span> <span class=p>(</span><span class=mi>1989</span><span class=p>)</span><span class=o>.</span> <span class=o>**</span><span class=n>Mathematical</span> <span class=n>Methods</span> <span class=n>of</span> <span class=n>Classical</span> <span class=n>Mechanics</span><span class=o>.**</span> <span class=n>Springer</span> <span class=p>(</span><span class=mi>2</span><span class=n>nd</span> <span class=n>ed</span><span class=o>.</span><span class=p>)</span><span class=o>.</span> <span class=n>几何力学的圣经</span><span class=err>。</span>
+</span></span></code></pre></td></tr></table></div></div></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E5%2581%258F%25E5%25BE%25AE%25E5%2588%2586%25E6%2596%25B9%25E7%25A8%258B%25E4%25B8%258E%25E6%259C%25BA%25E5%2599%25A8%25E5%25AD%25A6%25E4%25B9%25A0%25EF%25BC%2588%25E4%25BA%2594%25EF%25BC%2589%25EF%25BC%259A%25E8%25BE%259B%25E5%2587%25A0%25E4%25BD%2595%25E4%25B8%258E%25E4%25BF%259D%25E7%25BB%2593%25E6%259E%2584%25E7%25BD%2591%25E7%25BB%259C&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpde-ml%252F05-%2525E8%2525BE%25259B%2525E5%252587%2525A0%2525E4%2525BD%252595%2525E4%2525B8%25258E%2525E4%2525BF%25259D%2525E7%2525BB%252593%2525E6%25259E%252584%2525E7%2525BD%252591%2525E7%2525BB%25259C%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpde-ml%252F05-%2525E8%2525BE%25259B%2525E5%252587%2525A0%2525E4%2525BD%252595%2525E4%2525B8%25258E%2525E4%2525BF%25259D%2525E7%2525BB%252593%2525E6%25259E%252584%2525E7%2525BD%252591%2525E7%2525BB%25259C%252F&title=%25E5%2581%258F%25E5%25BE%25AE%25E5%2588%2586%25E6%2596%25B9%25E7%25A8%258B%25E4%25B8%258E%25E6%259C%25BA%25E5%2599%25A8%25E5%25AD%25A6%25E4%25B9%25A0%25EF%25BC%2588%25E4%25BA%2594%25EF%25BC%2589%25EF%25BC%259A%25E8%25BE%259B%25E5%2587%25A0%25E4%25BD%2595%25E4%25B8%258E%25E4%25BF%259D%25E7%25BB%2593%25E6%259E%2584%25E7%25BD%2591%25E7%25BB%259C" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/pde-ml/05-%E8%BE%9B%E5%87%A0%E4%BD%95%E4%B8%8E%E4%BF%9D%E7%BB%93%E6%9E%84%E7%BD%91%E7%BB%9C/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2024-06-30>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#哈密顿力学物理在相空间的表达>哈密顿力学：物理在相空间的表达</a><ul><li><a href=#从牛顿到哈密顿>从牛顿到哈密顿</a></li><li><a href=#动力学归结为一个张量恒等式>动力学归结为一个张量恒等式</a></li><li><a href=#能量守恒是自然结果>能量守恒是自然结果</a></li><li><a href=#单摆的例子>单摆的例子</a></li></ul></li><li><a href=#辛-2-形式相空间的几何>辛 2-形式：相空间的几何</a><ul><li><a href=#结构到底是什么>“结构”到底是什么</a></li><li><a href=#雅可比矩阵条件>雅可比矩阵条件</a></li><li><a href=#liouville-定理>Liouville 定理</a></li><li><a href=#没有辛性会怎样>没有辛性会怎样</a></li></ul></li><li><a href=#辛积分器>辛积分器</a><ul><li><a href=#普通积分器为何漂移>普通积分器为何漂移</a></li><li><a href=#辛-euler>辛 Euler</a></li><li><a href=#störmer-verlet-蛙跳法--leapfrog>Störmer-Verlet （蛙跳法 / Leapfrog）</a></li><li><a href=#几行代码实现>几行代码实现</a></li></ul></li><li><a href=#哈密顿神经网络hnn>哈密顿神经网络（HNN）</a><ul><li><a href=#朴素神经-ode-的问题>朴素神经 ODE 的问题</a></li><li><a href=#hnn-的核心想法greydanus-dzamba-yosinski-2019>HNN 的核心想法（Greydanus, Dzamba, Yosinski, 2019）</a></li><li><a href=#训练损失>训练损失</a></li><li><a href=#参考实现>参考实现</a></li><li><a href=#单摆基准测试>单摆基准测试</a></li><li><a href=#hnn-不做的事>HNN <strong>不</strong>做的事</a></li></ul></li><li><a href=#拉格朗日神经网络lnn>拉格朗日神经网络（LNN）</a><ul><li><a href=#为什么用拉格朗日形式>为什么用拉格朗日形式</a></li><li><a href=#euler-lagrange-方程作为可学习闭包>Euler-Lagrange 方程作为可学习闭包</a></li><li><a href=#lnn-和-hnn-对比>LNN 和 HNN 对比</a></li></ul></li><li><a href=#辛神经网络sympnet>辛神经网络（SympNet）</a></li><li><a href=#应用场景>应用场景</a><ul><li><a href=#端口-哈密顿网络引入耗散机制>端口-哈密顿网络：引入耗散机制</a></li></ul></li><li><a href=#常见陷阱>常见陷阱</a><ul><li><a href=#三体引力问题>三体引力问题</a></li></ul></li><li><a href=#练习题>练习题</a></li><li><a href=#下一步>下一步</a></li><li><a href=#参考文献>参考文献</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/pde-ml/ class=series-name>PDE × 机器学习</a>
+<span class=sig-meta data-days-since=2024-06-30>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#哈密顿力学物理在相空间的表达>哈密顿力学：物理在相空间的表达</a><ul><li><a href=#从牛顿到哈密顿>从牛顿到哈密顿</a></li><li><a href=#动力学归结为一个张量恒等式>动力学归结为一个张量恒等式</a></li><li><a href=#能量守恒是自然结果>能量守恒是自然结果</a></li><li><a href=#单摆的例子>单摆的例子</a></li></ul></li><li><a href=#辛-2-形式相空间的几何>辛 2-形式：相空间的几何</a><ul><li><a href=#结构到底是什么>“结构”到底是什么</a></li><li><a href=#雅可比矩阵条件>雅可比矩阵条件</a></li><li><a href=#liouville-定理>Liouville 定理</a></li><li><a href=#没有辛性会怎样>没有辛性会怎样</a></li></ul></li><li><a href=#辛积分器>辛积分器</a><ul><li><a href=#普通积分器为何漂移>普通积分器为何漂移</a></li><li><a href=#辛-euler>辛 Euler</a></li><li><a href=#störmer-verlet-蛙跳法--leapfrog>Störmer-Verlet （蛙跳法 / Leapfrog）</a></li><li><a href=#几行代码实现>几行代码实现</a></li></ul></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/pde-ml/ class=series-name>PDE × 机器学习</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/01-%E7%89%A9%E7%90%86%E4%BF%A1%E6%81%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/><span class=chapter-num>01</span>
 <span class=chapter-title>偏微分方程与机器学习（一）：物理信息神经网络</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/02-%E7%A5%9E%E7%BB%8F%E7%AE%97%E5%AD%90%E7%90%86%E8%AE%BA/><span class=chapter-num>02</span>
 <span class=chapter-title>偏微分方程与机器学习（二）：神经算子理论</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/><span class=chapter-num>03</span>
@@ -708,5 +1026,5 @@ $$</span><p>二阶精度，时间对称，辛。图 3 左展示格子：位置�
 <span class=chapter-title>偏微分方程与机器学习（五）：辛几何与保结构网络</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/><span class=chapter-num>06</span>
 <span class=chapter-title>偏微分方程与机器学习（六）：连续归一化流与 Neural ODE</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/07-%E6%89%A9%E6%95%A3%E6%A8%A1%E5%9E%8B%E4%B8%8Escore-matching/><span class=chapter-num>07</span>
 <span class=chapter-title>偏微分方程与机器学习（七）：扩散模型与 Score Matching</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/><span class=chapter-num>08</span>
-<span class=chapter-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>38 min</strong></div><div class=row><span>字数</span><strong>9116</strong></div><div class=row><span>写于</span><strong>Jun 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>44 min</strong></div><div class=row><span>字数</span><strong>10591</strong></div><div class=row><span>写于</span><strong>Jun 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

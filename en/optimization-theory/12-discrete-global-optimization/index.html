@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/optimization-theory/>Optimization Theory</a>
 · Chapter 12</div><h1>Optimization (12): Discrete and Global Optimization</h1><p class=deck>When variables are integer-valued or the problem is non-convex with multiple basins, classical convex methods stop working. This article surveys what does work: integer programming via branch-and-bound, LP relaxation gap analysis, the heuristic taxonomy (PSO, GA, SOA, simulated annealing), and a deep walk-through of the Spiral Optimization Algorithm applied to constrained mean-variance portfolio optimization.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-09-30>September 30, 2022</time> · 38 min read · 3987 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/optimization/ class=tag>#Optimization</a><a href=/en/tags/discrete-optimization/ class=tag>#Discrete Optimization</a><a href=/en/tags/portfolio-optimization/ class=tag>#Portfolio Optimization</a><a href=/en/tags/metaheuristics/ class=tag>#Metaheuristics</a></div><a class="pill pill-outline" href=/zh/optimization-theory/12-discrete-global-optimization/>阅读中文版 →</a></div></header><div class=prose><p>The first eleven articles in this series tackled <strong>continuous convex</strong> problems (or convex relaxations of non-convex ones). This final article addresses two harder regimes:</p><ul><li><strong>Discrete optimization</strong>: variables take integer or combinatorial values. The feasible set is a finite (but exponentially large) collection of points. Linear and convex tools no longer apply directly because there are no derivatives across the integer lattice.</li><li><strong>Global non-convex optimization</strong>: variables are continuous but the function has many local minima, and we want the <em>global</em> one. Methods like Newton and L-BFGS only find local minima.</li></ul><p>Both regimes share a key feature: <strong>provably optimal algorithms are exponential</strong> in the worst case. Practical solutions come from (a) exact algorithms with smart pruning (branch-and-bound) and (b) heuristics that find good (but not optimal) solutions in polynomial time.</p><p>This article:</p><ol><li>Reviews integer programming and the branch-and-bound algorithm with the LP relaxation as the bounding mechanism.</li><li>Surveys the heuristic landscape — particle swarm, genetic algorithms, simulated annealing, spiral optimization — and where each fits.</li><li>Walks through a substantial case study: applying the Spiral Optimization Algorithm to a constrained mean-variance portfolio problem (a mixed-integer nonlinear program, MINLP).</li></ol><hr><p>For eleven articles we&rsquo;ve assumed the variables are continuous and the objective is convex (or at least convex-relaxable). This article confronts two classes of problems where neither holds:</p><ul><li><strong>Discrete optimization</strong>: variables must take integer or combinatorial values. The feasible region is a finite (but exponentially large) set of points; derivatives lose meaning.</li><li><strong>Global non-convex optimization</strong>: continuous variables, but a landscape full of local minima — and we want the <em>global</em> minimum.</li></ul><p>Newton, L-BFGS, and friends are useless here — at best they find one local minimum.</p><p>I&rsquo;ll cover the discrete side first (branch-and-bound + LP relaxation, the textbook answer), then turn to heuristics for continuous non-convex problems (PSO, GA, simulated annealing, spiral optimization). We close on a concrete worked example — cardinality-constrained mean-variance portfolio optimization — where method, parameter tuning, and honest limitations all live in the same place.</p><p>This is the closing article of the series. By the end you should be able to look at a fresh optimization problem and tell, fairly quickly, which class it falls into and which tool to reach for.</p><h2 id=what-you-will-learn class=heading-anchor>What You Will Learn<a href=#what-you-will-learn class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>The integer programming formulation and how branch-and-bound prunes the search tree using LP relaxation bounds.</li><li>Cutting planes, Gomory cuts, and the modern branch-and-cut framework that powers commercial MIP solvers.</li><li>The heuristic taxonomy: trajectory-based (SA, tabu) vs population-based (GA, PSO, SOA), and a decision rubric for choosing among them.</li><li>How a quadratic program turns into a mixed-integer nonlinear program when you add cardinality and buy-in constraints.</li><li>The SOA update rule, why a rotation matrix plus geometric radius decay produces a useful exploration-exploitation schedule, and how it differs from PSO and GA.</li><li>How to handle integer + box constraints with quadratic penalties (and why the penalty weight <span class=math-inline>$\rho$</span>
+<span class=meta-line><time datetime=2022-09-30>September 30, 2022</time> · 44 min read · 4676 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/optimization/ class=tag>#Optimization</a><a href=/en/tags/discrete-optimization/ class=tag>#Discrete Optimization</a><a href=/en/tags/portfolio-optimization/ class=tag>#Portfolio Optimization</a><a href=/en/tags/metaheuristics/ class=tag>#Metaheuristics</a></div><a class="pill pill-outline" href=/zh/optimization-theory/12-discrete-global-optimization/>阅读中文版 →</a></div></header><div class=prose><p>The first eleven articles in this series tackled <strong>continuous convex</strong> problems (or convex relaxations of non-convex ones). This final article addresses two harder regimes:</p><ul><li><strong>Discrete optimization</strong>: variables take integer or combinatorial values. The feasible set is a finite (but exponentially large) collection of points. Linear and convex tools no longer apply directly because there are no derivatives across the integer lattice.</li><li><strong>Global non-convex optimization</strong>: variables are continuous but the function has many local minima, and we want the <em>global</em> one. Methods like Newton and L-BFGS only find local minima.</li></ul><p>Both regimes share a key feature: <strong>provably optimal algorithms are exponential</strong> in the worst case. Practical solutions come from (a) exact algorithms with smart pruning (branch-and-bound) and (b) heuristics that find good (but not optimal) solutions in polynomial time.</p><p>This article:</p><ol><li>Reviews integer programming and the branch-and-bound algorithm with the LP relaxation as the bounding mechanism.</li><li>Surveys the heuristic landscape — particle swarm, genetic algorithms, simulated annealing, spiral optimization — and where each fits.</li><li>Walks through a substantial case study: applying the Spiral Optimization Algorithm to a constrained mean-variance portfolio problem (a mixed-integer nonlinear program, MINLP).</li></ol><hr><p>For eleven articles we&rsquo;ve assumed the variables are continuous and the objective is convex (or at least convex-relaxable). This article confronts two classes of problems where neither holds:</p><ul><li><strong>Discrete optimization</strong>: variables must take integer or combinatorial values. The feasible region is a finite (but exponentially large) set of points; derivatives lose meaning.</li><li><strong>Global non-convex optimization</strong>: continuous variables, but a landscape full of local minima — and we want the <em>global</em> minimum.</li></ul><p>Newton, L-BFGS, and friends are useless here — at best they find one local minimum.</p><p>I&rsquo;ll cover the discrete side first (branch-and-bound + LP relaxation, the textbook answer), then turn to heuristics for continuous non-convex problems (PSO, GA, simulated annealing, spiral optimization). We close on a concrete worked example — cardinality-constrained mean-variance portfolio optimization — where method, parameter tuning, and honest limitations all live in the same place.</p><p>This is the closing article of the series. By the end you should be able to look at a fresh optimization problem and tell, fairly quickly, which class it falls into and which tool to reach for.</p><h2 id=what-you-will-learn class=heading-anchor>What You Will Learn<a href=#what-you-will-learn class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>The integer programming formulation and how branch-and-bound prunes the search tree using LP relaxation bounds.</li><li>Cutting planes, Gomory cuts, and the modern branch-and-cut framework that powers commercial MIP solvers.</li><li>The heuristic taxonomy: trajectory-based (SA, tabu) vs population-based (GA, PSO, SOA), and a decision rubric for choosing among them.</li><li>How a quadratic program turns into a mixed-integer nonlinear program when you add cardinality and buy-in constraints.</li><li>The SOA update rule, why a rotation matrix plus geometric radius decay produces a useful exploration-exploitation schedule, and how it differs from PSO and GA.</li><li>How to handle integer + box constraints with quadratic penalties (and why the penalty weight <span class=math-inline>$\rho$</span>
 is the most subtle hyperparameter).</li><li>Concrete numerical results from a published benchmark and an out-of-sample backtest, with commentary on what the evidence does and does not support.</li></ul><h2 id=prerequisites class=heading-anchor>Prerequisites<a href=#prerequisites class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><a href=../08-lagrangian-duality-kkt/>Articles 08</a>
 (Lagrangian duality), 09 (interior-point) for the LP/QP solver mentions. Otherwise self-contained.</p><hr><h2 id=integer-programming-and-branch-and-bound class=heading-anchor>Integer Programming and Branch-and-Bound<a href=#integer-programming-and-branch-and-bound class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=a1-the-integer-programming-problem class=heading-anchor>A.1 The integer programming problem<a href=#a1-the-integer-programming-problem class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 \begin{aligned}
@@ -37,18 +37,289 @@ values of <span class=math-inline>$z$</span>
 \min \, c^\top x + d^\top z \quad \text{s.t.} \quad A x + B z \leq b, \ x, z \geq 0.
 $$</span><p>This LP gives a <strong>lower bound</strong> on the MILP optimum (any MILP-feasible solution is also LP-feasible). Solving it in polynomial time (interior-point methods, article 09) is the building block of all serious MILP solvers.</p><p>If the LP relaxation happens to have integer-valued <span class=math-inline>$z^\star_{LP}$</span>
 , we are done. Otherwise, pick a fractional <span class=math-inline>$z^\star_{LP, j} \notin \mathbb{Z}$</span>
-and <strong>branch</strong>.</p><h3 id=a3-branch-and-bound class=heading-anchor>A.3 Branch-and-bound<a href=#a3-branch-and-bound class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
+and <strong>branch</strong>.</p><h3 id=a3-branch-and-bound class=heading-anchor>A.3 Branch-and-bound<a href=#a3-branch-and-bound class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span><span class=lnt>132
+</span><span class=lnt>133
+</span><span class=lnt>134
+</span><span class=lnt>135
+</span><span class=lnt>136
+</span><span class=lnt>137
+</span><span class=lnt>138
+</span><span class=lnt>139
+</span><span class=lnt>140
+</span><span class=lnt>141
+</span><span class=lnt>142
+</span><span class=lnt>143
+</span><span class=lnt>144
+</span><span class=lnt>145
+</span><span class=lnt>146
+</span><span class=lnt>147
+</span><span class=lnt>148
+</span><span class=lnt>149
+</span><span class=lnt>150
+</span><span class=lnt>151
+</span><span class=lnt>152
+</span><span class=lnt>153
+</span><span class=lnt>154
+</span><span class=lnt>155
+</span><span class=lnt>156
+</span><span class=lnt>157
+</span><span class=lnt>158
+</span><span class=lnt>159
+</span><span class=lnt>160
+</span><span class=lnt>161
+</span><span class=lnt>162
+</span><span class=lnt>163
+</span><span class=lnt>164
+</span><span class=lnt>165
+</span><span class=lnt>166
+</span><span class=lnt>167
+</span><span class=lnt>168
+</span><span class=lnt>169
+</span><span class=lnt>170
+</span><span class=lnt>171
+</span><span class=lnt>172
+</span><span class=lnt>173
+</span><span class=lnt>174
+</span><span class=lnt>175
+</span><span class=lnt>176
+</span><span class=lnt>177
+</span><span class=lnt>178
+</span><span class=lnt>179
+</span><span class=lnt>180
+</span><span class=lnt>181
+</span><span class=lnt>182
+</span><span class=lnt>183
+</span><span class=lnt>184
+</span><span class=lnt>185
+</span><span class=lnt>186
+</span><span class=lnt>187
+</span><span class=lnt>188
+</span><span class=lnt>189
+</span><span class=lnt>190
+</span><span class=lnt>191
+</span><span class=lnt>192
+</span><span class=lnt>193
+</span><span class=lnt>194
+</span><span class=lnt>195
+</span><span class=lnt>196
+</span><span class=lnt>197
+</span><span class=lnt>198
+</span><span class=lnt>199
+</span><span class=lnt>200
+</span><span class=lnt>201
+</span><span class=lnt>202
+</span><span class=lnt>203
+</span><span class=lnt>204
+</span><span class=lnt>205
+</span><span class=lnt>206
+</span><span class=lnt>207
+</span><span class=lnt>208
+</span><span class=lnt>209
+</span><span class=lnt>210
+</span><span class=lnt>211
+</span><span class=lnt>212
+</span><span class=lnt>213
+</span><span class=lnt>214
+</span><span class=lnt>215
+</span><span class=lnt>216
+</span><span class=lnt>217
+</span><span class=lnt>218
+</span><span class=lnt>219
+</span><span class=lnt>220
+</span><span class=lnt>221
+</span><span class=lnt>222
+</span><span class=lnt>223
+</span><span class=lnt>224
+</span><span class=lnt>225
+</span><span class=lnt>226
+</span><span class=lnt>227
+</span><span class=lnt>228
+</span><span class=lnt>229
+</span><span class=lnt>230
+</span><span class=lnt>231
+</span><span class=lnt>232
+</span><span class=lnt>233
+</span><span class=lnt>234
+</span><span class=lnt>235
+</span><span class=lnt>236
+</span><span class=lnt>237
+</span><span class=lnt>238
+</span><span class=lnt>239
+</span><span class=lnt>240
+</span><span class=lnt>241
+</span><span class=lnt>242
+</span><span class=lnt>243
+</span><span class=lnt>244
+</span><span class=lnt>245
+</span><span class=lnt>246
+</span><span class=lnt>247
+</span><span class=lnt>248
+</span><span class=lnt>249
+</span><span class=lnt>250
+</span><span class=lnt>251
+</span><span class=lnt>252
+</span><span class=lnt>253
+</span><span class=lnt>254
+</span><span class=lnt>255
+</span><span class=lnt>256
+</span><span class=lnt>257
+</span><span class=lnt>258
+</span><span class=lnt>259
+</span><span class=lnt>260
+</span><span class=lnt>261
+</span><span class=lnt>262
+</span><span class=lnt>263
+</span><span class=lnt>264
+</span><span class=lnt>265
+</span><span class=lnt>266
+</span><span class=lnt>267
+</span><span class=lnt>268
+</span><span class=lnt>269
+</span><span class=lnt>270
+</span><span class=lnt>271
+</span><span class=lnt>272
+</span><span class=lnt>273
+</span><span class=lnt>274
+</span><span class=lnt>275
+</span><span class=lnt>276
+</span><span class=lnt>277
+</span><span class=lnt>278
+</span><span class=lnt>279
+</span><span class=lnt>280
+</span><span class=lnt>281
+</span><span class=lnt>282
+</span><span class=lnt>283
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>Algorithm</span><span class=p>:</span><span class=w> </span><span class=l>Branch-and-Bound for MILP</span><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Initialize</span><span class=p>:</span><span class=w> </span><span class=l>incumbent UB = +∞, problem queue = {original LP relaxation}</span><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>while queue not empty</span><span class=p>:</span><span class=w>
@@ -61,133 +332,282 @@ and <strong>branch</strong>.</p><h3 id=a3-branch-and-bound class=heading-anchor>
 </span></span></span><span class=line><span class=cl><span class=w>        </span><span class=l>Pick fractional variable z_j with value z_j^*</span><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>Branch</span><span class=p>:</span><span class=w> </span><span class=l>queue += {P + (z_j ≤ ⌊z_j^*⌋), P + (z_j ≥ ⌈z_j^*⌉)}</span><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w></span><span class=l>return incumbent</span><span class=w>
-</span></span></span></code></pre></td></tr></table></div></div><p>Three key concepts:</p><ul><li><strong>Pruning by bound</strong>: if the LP relaxation of a sub-problem already exceeds the best known integer solution, that entire sub-tree is discarded.</li><li><strong>Pruning by infeasibility</strong>: if a sub-problem&rsquo;s LP is infeasible, the sub-tree is empty.</li><li><strong>Pruning by integrality</strong>: if the LP relaxation happens to be integer-feasible, that&rsquo;s a leaf.</li></ul><p>In the best case, branch-and-bound prunes most of the tree and finds the optimum after solving polynomially many LPs. In the worst case it still enumerates all <span class=math-inline>$2^p$</span>
-leaves — confirming that the algorithm is exponential in the worst case.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_bnb_tree.png alt="Branch-and-bound search tree with three pruning rules" loading=lazy decoding=async class=content-image></figure></p><p>The figure above traces a small B&amp;B run with two integer variables. The root LP gives a fractional solution <span class=math-inline>$(2.4, 1.7)$</span>
-and a lower bound of <span class=math-inline>$8.5$</span>
-. We branch on <span class=math-inline>$z_1$</span>
-, then on <span class=math-inline>$z_2$</span>
-inside each child. Node P4 is integer-feasible and becomes the incumbent with <span class=math-inline>$\text{UB} = 9.6$</span>
-; node P5 is also integer-feasible but its objective <span class=math-inline>$9.7$</span>
-is worse than the incumbent so it is pruned by bound; node P6 is LP-infeasible and pruned. Whole sub-trees never need to be solved — this is what makes B&amp;B fast in practice even though its worst case is still exponential.</p><h3 id=a4-cutting-planes class=heading-anchor>A.4 Cutting planes<a href=#a4-cutting-planes class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>A <strong>cutting plane</strong> is an inequality <span class=math-inline>$\alpha^\top z \leq \beta$</span>
-that is satisfied by every integer-feasible <span class=math-inline>$z$</span>
-but violated by the current LP relaxation optimum. Adding cuts tightens the LP relaxation, raising the lower bound and pruning more aggressively.</p><span class=math-block>$$
-\sum_k \mathrm{frac}(\bar a_{jk}) \cdot z_k \geq f_j
-$$</span><p>holds for every integer <span class=math-inline>$z$</span>
-but not for the fractional LP optimum. (Here <span class=math-inline>$\bar a_{jk}$</span>
-are the tableau entries and <span class=math-inline>$\mathrm{frac}(x) = x - \lfloor x \rfloor$</span>
-.)</p><p>Modern MILP solvers (Gurobi, CPLEX, SCIP) use 10+ kinds of cuts: Gomory, mixed-integer rounding, lift-and-project, clique cuts, flow cover cuts. The modern algorithm is <strong>branch-and-cut</strong>: at each node, try to add violated cuts before branching.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_lp_relaxation.png alt="LP relaxation polytope and the effect of a cutting plane" loading=lazy decoding=async class=content-image></figure></p><p>The left panel shows the geometric content of LP relaxation: the LP optimum (amber star) sits at a fractional vertex of the polytope, while the IP optimum (purple disk) is one of the green integer lattice points strictly inside the relaxation. The right panel adds one cutting plane <span class=math-inline>$z_1 + z_2 \le 4$</span>
-(orange line). The original fractional vertex is now infeasible (purple cross), every green integer point is preserved, and the new LP vertex happens to be integer — the LP relaxation alone now solves the IP. In real solvers cuts rarely close the gap in one shot, but each one tightens the bound and makes B&amp;B prune more aggressively.</p><h3 id=a5-what-you-can-solve-in-practice class=heading-anchor>A.5 What you can solve in practice<a href=#a5-what-you-can-solve-in-practice class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>Problem size</th><th>Realistic with modern solvers?</th></tr></thead><tbody><tr><td>0&ndash;1 IP, 100 vars</td><td>Yes, seconds to minutes.</td></tr><tr><td>0&ndash;1 IP, 1000 vars</td><td>Often yes, minutes to hours.</td></tr><tr><td>Mixed IP, 10K vars</td><td>Sometimes, depends on structure.</td></tr><tr><td>Mixed IP, <span class=math-inline>$\geq 100$</span>
-K</td><td>Usually requires decomposition (Benders, column generation).</td></tr></tbody></table></div><p>The frontier moves: problems considered intractable in 1990 are routine today, due to a <span class=math-inline>$10^{12}$</span>
-× speedup from algorithm improvements (cuts, presolve) and a <span class=math-inline>$10^6$</span>
-× speedup from hardware.</p><hr><h2 id=heuristics-for-hard-problems class=heading-anchor>Heuristics for Hard Problems<a href=#heuristics-for-hard-problems class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>When branch-and-bound is too slow or the problem is non-linear (MINLP), heuristics are the fallback. They sacrifice optimality guarantees for tractable runtime.</p><h3 id=b1-taxonomy class=heading-anchor>B.1 Taxonomy<a href=#b1-taxonomy class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>Family</th><th>Examples</th><th>Strengths</th></tr></thead><tbody><tr><td>Trajectory</td><td>Hill climbing, simulated annealing, tabu search</td><td>Simple, low-memory, good for combinatorial</td></tr><tr><td>Population</td><td>Genetic algorithms, PSO, SOA, differential evolution</td><td>Parallelizable, escapes local minima</td></tr><tr><td>Constructive</td><td>Greedy, ant colony, GRASP</td><td>Build solutions step by step</td></tr><tr><td>Hybrid</td><td>Memetic algorithms, large-neighborhood search</td><td>Combine local and global search</td></tr></tbody></table></div><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_heuristic_taxonomy.png alt="Heuristic taxonomy: trajectory, population, constructive, hybrid" loading=lazy decoding=async class=content-image></figure></p><p>The four families above are the standard cuts in the metaheuristic literature. Trajectory methods (single-state) are cheap and effective on combinatorial problems; population methods carry many candidates in parallel and are the natural fit for continuous multi-modal landscapes; constructive methods build a solution piece by piece and dominate problems with strong sequential structure; hybrid methods combine an outer global search with an inner local-search or exact solver.</p><p><strong>Simulated annealing (SA)</strong>: random walk on the solution space, accepting moves that improve and accepting worse moves with probability <span class=math-inline>$e^{-\Delta f / T}$</span>
-. The temperature <span class=math-inline>$T$</span>
-decays over time — high <span class=math-inline>$T$</span>
-explores, low <span class=math-inline>$T$</span>
-exploits. Theoretically converges to the global optimum if <span class=math-inline>$T$</span>
-decays slowly enough; practically requires careful cooling schedules.</p><p><strong>Genetic algorithm (GA)</strong>: maintain a population of solutions; combine pairs via crossover and mutation; keep the best. Handles binary and categorical decision variables naturally. Notoriously sensitive to operator design.</p><span class=math-block>$$
-v_i \leftarrow w v_i + c_1 r_1 (p_i^{\text{best}} - x_i) + c_2 r_2 (p^{\text{global best}} - x_i).
-$$</span><p>Strong on continuous problems with multiple basins.</p><p><strong>Spiral optimization (SOA)</strong>: similar to PSO but each particle follows a logarithmic spiral toward the current incumbent, with the spiral&rsquo;s radius shrinking geometrically. We treat this in detail in the case study below.</p><h3 id=b2-choosing-among-heuristics class=heading-anchor>B.2 Choosing among heuristics<a href=#b2-choosing-among-heuristics class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>If your problem is&mldr;</th><th>Try&mldr;</th></tr></thead><tbody><tr><td>Binary / combinatorial (TSP, scheduling)</td><td>SA, tabu, GA</td></tr><tr><td>Continuous with multiple basins</td><td>PSO, DE, CMA-ES, SOA</td></tr><tr><td>Mixed integer with continuous variables</td><td>Hybrid (GA outer + LP inner)</td></tr><tr><td>Convex but very large</td><td>Don&rsquo;t use heuristics; use IPM/SGD</td></tr><tr><td>Black-box (no gradient, expensive function evaluations)</td><td>Bayesian optimization, GA</td></tr></tbody></table></div><p>The dominant lesson from the literature: no heuristic uniformly dominates. Choosing the right one for a problem is craftsmanship. Worth tuning for a few weeks if the problem will be solved repeatedly; otherwise just use whatever is in your favorite library.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_heuristic_convergence.png alt="SA, GA, and PSO on a multi-modal 1-D landscape" loading=lazy decoding=async class=content-image></figure></p><p>A toy illustration on a 1-D multi-modal objective. The left panel shows the landscape and where each method ends up after a fixed budget: SA (blue) and GA (green population) reach the global basin near the amber star, while PSO (purple diamond) is trapped in a shallow local minimum on the left because all particles converged toward an early-found basin. The right panel plots best-so-far value over iterations: SA and GA approach the global optimum (dashed amber); PSO plateaus above it. The point is not that PSO is bad — with a different seed and inertia schedule it would also reach the global optimum — but that no method dominates universally and seed-to-seed variance is real. This is why production runs use 30+ independent restarts.</p><hr><h2 id=case-study--the-spiral-optimization-algorithm-on-a-mean-variance-portfolio class=heading-anchor>Case Study — The Spiral Optimization Algorithm on a Mean-Variance Portfolio<a href=#case-study--the-spiral-optimization-algorithm-on-a-mean-variance-portfolio class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>The remainder of this article is a deep walk-through of applying SOA to a real MINLP from finance. The running example is constrained mean-variance portfolio selection.</p><p>Markowitz&rsquo;s mean-variance model is elegant until you add real trading constraints: &ldquo;if you buy a stock at all, hold at least 5% of it&rdquo; and &ldquo;pick exactly 10 names from the S&amp;P 500.&rdquo; The closed-form quadratic program quietly mutates into a <em>mixed-integer nonlinear program</em> (MINLP), and the standard solver chain (Lagrange multipliers, KKT conditions, interior-point methods) stops working. The case study reviewed here applies the <strong>Spiral Optimization Algorithm</strong> (SOA), a population-based metaheuristic, to this problem and shows it can find competitive feasible solutions where gradient methods fail outright.</p><h2 id=from-quadratic-program-to-minlp class=heading-anchor>From Quadratic Program to MINLP<a href=#from-quadratic-program-to-minlp class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=the-classical-mean-variance-problem class=heading-anchor>The classical mean-variance problem<a href=#the-classical-mean-variance-problem class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
-\begin{aligned}
-\min_{\mathbf{y}} \quad & V(\mathbf{y}) = \mathbf{y}^\top Q \mathbf{y} \\
-\text{s.t.} \quad & \overline{\mathbf{r}}^\top \mathbf{y} = R_p, \\
-& \mathbf{e}^\top \mathbf{y} = 1, \\
-& y_i \geq 0, \quad i = 1, \dots, n,
-\end{aligned}
-$$</span><p>where <span class=math-inline>$\mathbf{e}$</span>
-is the all-ones vector. This is a convex quadratic program. Sweep <span class=math-inline>$R_p$</span>
-across an interval and you trace the <em>efficient frontier</em>: the locus of portfolios that minimise variance for each return level.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig1_efficient_frontier.png alt="Mean-variance frontier with cardinality constraint" loading=lazy decoding=async class=content-image></figure></p><p>The figure above shows the geometry on a five-asset universe. The cloud of dots is 5,000 random portfolios sampled uniformly from the simplex (coloured by Sharpe-like ratio). The purple curve is the unconstrained efficient frontier (shorting permitted), and the dashed blue curve is the <em>cardinality-constrained</em> frontier with <span class=math-inline>$K=3$</span>
-. Two observations are immediate: (i) the cardinality-constrained frontier sits to the right of the unconstrained one at every return level (less choice means less diversification, which means more risk), and (ii) the gap between the two is <em>not</em> uniform in <span class=math-inline>$R_p$</span>
-. At extreme returns the gap widens because only a few combinations can hit the target at all.</p><h3 id=adding-the-buy-in-threshold class=heading-anchor>Adding the buy-in threshold<a href=#adding-the-buy-in-threshold class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$l_i z_i \leq y_i \leq u_i z_i, \qquad 0 &lt; l_i &lt; u_i \leq 1, \qquad z_i \in \{0, 1\}.$$</span><p>When <span class=math-inline>$z_i = 0$</span>
-the entire row collapses to <span class=math-inline>$y_i = 0$</span>
-. When <span class=math-inline>$z_i = 1$</span>
-the weight is forced into <span class=math-inline>$[l_i, u_i]$</span>
-. This is the precise mathematical instant at which the problem becomes mixed-integer: the feasible set is now a finite union of polytopes (one per choice of <span class=math-inline>$\mathbf{z}$</span>
-), and convexity is gone.</p><h3 id=adding-the-cardinality-constraint class=heading-anchor>Adding the cardinality constraint<a href=#adding-the-cardinality-constraint class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\sum_{i=1}^{n} z_i = K.$$</span>
-<span class=math-block>$$
-\begin{aligned}
-\min_{\mathbf{y}, \mathbf{z}} \quad & V(\mathbf{y}) = \mathbf{y}^\top Q \mathbf{y} \\
-\text{s.t.} \quad & \overline{\mathbf{r}}^\top \mathbf{y} = R_p, \\
-& \mathbf{e}^\top \mathbf{y} = 1, \\
-& \sum_{i=1}^{n} z_i = K, \\
-& l_i z_i \leq y_i \leq u_i z_i, \\
-& z_i \in \{0, 1\}, \quad i = 1, \dots, n.
-\end{aligned}
-$$</span><p>This object has <span class=math-inline>$\binom{n}{K}$</span>
-combinatorial branches. Even at <span class=math-inline>$n = 100, K = 10$</span>
-that is <span class=math-inline>$1.7 \times 10^{13}$</span>
-subsets, well outside what brute-force enumeration can touch. Branch-and-bound MINLP solvers (BARON, SCIP, Bonmin) can attack it but their wall clock grows quickly; this is the scale at which metaheuristics become attractive.</p><h2 id=the-spiral-optimization-algorithm class=heading-anchor>The Spiral Optimization Algorithm<a href=#the-spiral-optimization-algorithm class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=update-rule class=heading-anchor>Update rule<a href=#update-rule class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\mathbf{x}_{k+1}^{(j)} \;=\; \mathbf{x}^* \;+\; r \cdot R(\theta) \, \big(\mathbf{x}_k^{(j)} - \mathbf{x}^*\big),$$</span><p>where <span class=math-inline>$R(\theta)$</span>
-is a <span class=math-inline>$d$</span>
--dimensional rotation matrix with angle <span class=math-inline>$\theta$</span>
-, and <span class=math-inline>$r \in (0, 1)$</span>
-is a contraction factor. The composition of rotation and contraction traces a logarithmic spiral inward.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig2_spiral_trajectory.png alt="SOA spiral trajectory and radius schedule" loading=lazy decoding=async class=content-image></figure></p><p>The left panel shows the trajectories of five candidates initialised in the four quadrants of a non-convex landscape. The amber star marks the current best (which happens to be the global minimum here). Each candidate spirals inward, sampling the loss along the way. The right panel makes the <em>exploration vs exploitation</em> trade-off explicit: the geometric envelope <span class=math-inline>$r^k$</span>
-governs how fast the spiral collapses. A slow shrink (<span class=math-inline>$r = 0.95$</span>
-) keeps candidates wandering far from <span class=math-inline>$\mathbf{x}^*$</span>
-for many iterations (more exploration), while a fast shrink (<span class=math-inline>$r = 0.85$</span>
-) collapses them quickly onto the incumbent (more exploitation).</p><h3 id=why-the-spiral-specifically class=heading-anchor>Why the spiral specifically?<a href=#why-the-spiral-specifically class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Compared to other metaheuristics:</p><ul><li><strong>Particle swarm optimization (PSO)</strong> updates each particle by a velocity that mixes its personal best and the global best, plus stochastic noise. The velocity has no built-in shrinkage; you typically need a separate inertia decay schedule and tuning of the cognitive / social weights.</li><li><strong>Genetic algorithms (GA)</strong> use crossover and mutation. They handle integer variables naturally but the schema theorem is weak in continuous spaces; convergence is often slow.</li><li><strong>Simulated annealing (SA)</strong> uses a single trajectory with temperature decay. No population means no parallelism in the search.</li></ul><p>SOA&rsquo;s selling point is that the rotation <span class=math-inline>$R(\theta)$</span>
-guarantees the candidate cycles around the incumbent (so it samples <em>different</em> directions deterministically), while the contraction <span class=math-inline>$r$</span>
-guarantees eventual convergence. The exploration-exploitation balance reduces to a single hyperparameter: the spectral radius of <span class=math-inline>$r R(\theta)$</span>
-.</p><h3 id=updating-the-incumbent class=heading-anchor>Updating the incumbent<a href=#updating-the-incumbent class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>After each candidate is moved, the population is re-evaluated and <span class=math-inline>$\mathbf{x}^*$</span>
-is updated to the best point seen so far. This is the only stochastic element in classical SOA: the initial sampling. Some variants (including the one in the paper) inject random perturbations on candidates that have stagnated, to escape the basin of the current incumbent.</p><h2 id=constraint-handling class=heading-anchor>Constraint Handling<a href=#constraint-handling class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=quadratic-penalty class=heading-anchor>Quadratic penalty<a href=#quadratic-penalty class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\min_{\mathbf{y}, \mathbf{z}} \; F(\mathbf{y}, \mathbf{z}) = V(\mathbf{y}) + \rho \cdot P(\mathbf{y}, \mathbf{z}),$$</span>
-<span class=math-block>$$
-P = \big(\overline{\mathbf{r}}^\top \mathbf{y} - R_p\big)^2
-\,+\, \big(\mathbf{e}^\top \mathbf{y} - 1\big)^2
-\,+\, \sum_{i=1}^{n} \max(0, l_i z_i - y_i)^2
-\,+\, \sum_{i=1}^{n} \max(0, y_i - u_i z_i)^2
-\,+\, \Big(\sum_i z_i - K\Big)^2.
-$$</span><p>The integer constraint <span class=math-inline>$z_i \in \{0,1\}$</span>
-is enforced by <em>rounding</em>: SOA searches over <span class=math-inline>$z_i \in [0,1]$</span>
-continuously and rounds to the nearest integer when evaluating <span class=math-inline>$P$</span>
-.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig3_constraint_handling.png alt="Penalty pulls the optimum into the feasible band, plus 2-D feasibility map" loading=lazy decoding=async class=content-image></figure></p><p>The left panel shows what the penalty does on a 1-D weight slice: the raw variance <span class=math-inline>$V(y)$</span>
-(grey dashed) has its minimum sitting in the infeasible region (purple dot, below the buy-in threshold). Adding <span class=math-inline>$\rho \cdot P(y)$</span>
-produces sharp parabolic walls outside the feasible band <span class=math-inline>$[l, u]$</span>
-; the resulting penalised objective (solid blue) has its optimum pulled into the green strip (amber diamond). The right panel shows a 2-D feasibility map for two assets with cardinality <span class=math-inline>$K=1$</span>
-: only the green region is feasible. Crosses are infeasible candidates, dots are feasible ones.</p><h3 id=the-penalty-weight-rho-is-subtle class=heading-anchor>The penalty weight <span class=math-inline>$\rho$</span>
-is subtle<a href=#the-penalty-weight-rho-is-subtle class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>This is the most-fiddled hyperparameter in metaheuristic-with-penalty literature, and it is genuinely tricky:</p><ul><li><strong>Too small</strong> and the algorithm finds beautifully low-variance portfolios that are infeasible (don&rsquo;t sum to 1, or hold sub-threshold positions). The penalty is a soft suggestion, not a barrier.</li><li><strong>Too large</strong> and <span class=math-inline>$V$</span>
-becomes a rounding error inside <span class=math-inline>$\rho P$</span>
-. Numerical precision suffers; the search effectively optimises feasibility alone, ignoring variance.</li><li><strong>Just right</strong> is problem-specific. The paper uses <span class=math-inline>$\rho = 10^4$</span>
-for the five-asset case, which works because <span class=math-inline>$V$</span>
-is <span class=math-inline>$O(1)$</span>
-and <span class=math-inline>$P$</span>
-is small but non-zero.</li></ul><p>A more robust alternative is the <em>augmented Lagrangian</em> approach, which adapts <span class=math-inline>$\rho$</span>
-over iterations based on observed violations. The paper does not use this, so re-tuning <span class=math-inline>$\rho$</span>
-is part of the cost when porting the method to a new universe.</p><h3 id=repair-operators class=heading-anchor>Repair operators<a href=#repair-operators class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>After each spiral update, candidates can drift outside the unit box. The paper applies a simple <em>repair</em>: clip <span class=math-inline>$y_i$</span>
-to <span class=math-inline>$[0, 1]$</span>
-and renormalise so <span class=math-inline>$\mathbf{e}^\top \mathbf{y} = 1$</span>
-. This is cheap and keeps every candidate trivially feasible with respect to the budget constraint, leaving only target return, buy-in, and cardinality to the penalty.</p><h2 id=numerical-results class=heading-anchor>Numerical Results<a href=#numerical-results class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=the-benchmark class=heading-anchor>The benchmark<a href=#the-benchmark class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\overline{\mathbf{r}} = (0.10, 0.13, 0.085, 0.155, 0.07)^\top$$</span><p>and a <span class=math-inline>$5 \times 5$</span>
-positive semidefinite covariance matrix (the precise values are in the paper). Target return <span class=math-inline>$R_p = 0.05$</span>
-, buy-in <span class=math-inline>$l_i = 0.05$</span>
-, cardinality <span class=math-inline>$K = 5$</span>
-(all assets active), penalty <span class=math-inline>$\rho = 10^4$</span>
-, 50 iterations.</p><h3 id=convergence-comparison class=heading-anchor>Convergence comparison<a href=#convergence-comparison class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig4_convergence.png alt="Convergence vs Quasi-Newton, DIRECT, and PSO" loading=lazy decoding=async class=content-image></figure></p><p>The figure compares best-so-far variance over iterations for SOA-MINLP, Quasi-Newton, DIRECT, and a PSO baseline I added for context. The shaded blue band is the 10-90 percentile of 30 independent SOA runs; the solid blue curve is the median.</p><p>Two things are worth noticing. First, the final values rank consistently with what the paper reports: SOA-MINLP at <span class=math-inline>$V = 0.6969$</span>
-, Quasi-Newton at <span class=math-inline>$0.7123$</span>
-, DIRECT at <span class=math-inline>$0.7458$</span>
-, with PSO landing in between at <span class=math-inline>$0.7250$</span>
-. Quasi-Newton converges fast in iteration count but to a worse local optimum because the penalty surface is non-smooth and gradient-based methods get stuck. DIRECT (a deterministic Lipschitz-based partition method) is more thorough but pays for it in iterations. Second, the SOA band is narrow by iteration 60 — the run-to-run variability is small in this regime, which is reassuring for a stochastic method.</p><p>The catch: this is a five-asset problem. Every claim about SOA&rsquo;s relative ranking should be re-checked at scale.</p><h3 id=an-out-of-sample-backtest class=heading-anchor>An out-of-sample backtest<a href=#an-out-of-sample-backtest class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>To pressure-test the <em>portfolio</em> (not just the <em>solver</em>), I simulated three years of daily returns from the multivariate Gaussian implied by <span class=math-inline>$\overline{\mathbf{r}}$</span>
-and <span class=math-inline>$Q$</span>
-and compared three rules: equal weight, unconstrained mean-variance at target return 11%, and an SOA-MINLP-style portfolio (long-only, <span class=math-inline>$K=3$</span>
-, buy-in <span class=math-inline>$0.10$</span>
-).</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig5_backtest.png alt="Out-of-sample backtest equity and drawdown" loading=lazy decoding=async class=content-image></figure></p><p>The unconstrained MV portfolio has the highest in-model Sharpe but it shorts assets and concentrates aggressively, which translates into a worse drawdown (bottom panel) than the SOA-MINLP portfolio. Equal weight is the most defensive but leaves return on the table. The SOA-MINLP rule hits a sweet spot: the cardinality and buy-in constraints regularise the portfolio, giving up a little expected return for materially better drawdown behaviour. This is the practical case for cardinality constraints: not theoretical optimality, but <em>risk diversification you can implement on a real desk</em>.</p><h2 id=when-to-use-soa-and-when-not-to class=heading-anchor>When to Use SOA (and When Not To)<a href=#when-to-use-soa-and-when-not-to class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>Use SOA when:</strong></p><ul><li>The problem is non-convex with discrete or combinatorial structure (cardinality, sector limits, integer lot sizes).</li><li>The asset universe is small to medium (<span class=math-inline>$n \lesssim 100$</span>
-).</li><li>You can afford 30+ independent runs to assess solution stability.</li><li>You don&rsquo;t need an optimality certificate, just a good feasible solution.</li></ul><p><strong>Skip SOA when:</strong></p><ul><li>The problem is convex or near-convex (use a QP solver: OSQP, CVXOPT, MOSEK).</li><li><span class=math-inline>$n > 1000$</span>
-(use commercial MINLP: Gurobi, CPLEX, BARON; or specialised methods like the lasso-style relaxations of Bertsimas et al.).</li><li>You need real-time rebalancing under tight latency budgets.</li><li>The constraints are simple bounds (just project; no fancy solver needed).</li></ul><h2 id=hyperparameter-tuning-in-practice class=heading-anchor>Hyperparameter Tuning, in Practice<a href=#hyperparameter-tuning-in-practice class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=table-wrap><table><thead><tr><th>Hyperparameter</th><th>Typical range</th><th>Effect</th></tr></thead><tbody><tr><td>Population size <span class=math-inline>$N$</span></td><td>30 - 100</td><td>Larger <span class=math-inline>$N$</span>
-: better exploration, linear cost per iteration</td></tr><tr><td>Max iterations</td><td>50 - 500</td><td>Read off from a convergence plot; stop when median plateau is flat</td></tr><tr><td>Spiral angle <span class=math-inline>$\theta$</span></td><td><span class=math-inline>$\pi / 6$</span>
-to <span class=math-inline>$\pi / 3$</span></td><td>Larger angle: more circumferential exploration</td></tr><tr><td>Contraction <span class=math-inline>$r$</span></td><td>0.85 - 0.95</td><td>Smaller <span class=math-inline>$r$</span>
-: faster convergence, higher local-optimum risk</td></tr><tr><td>Penalty weight <span class=math-inline>$\rho$</span></td><td><span class=math-inline>$10^2$</span>
-- <span class=math-inline>$10^6$</span></td><td>Tune until violations are zero on the median run</td></tr></tbody></table></div><p><strong>Rule of thumb to start with:</strong> <span class=math-inline>$N = 50$</span>
-, max_iter <span class=math-inline>$= 100$</span>
-, <span class=math-inline>$\theta = \pi / 4$</span>
-, <span class=math-inline>$r = 0.92$</span>
-, <span class=math-inline>$\rho = 10^4$</span>
-. Run 30 trials and inspect the convergence band. If the band stays wide at iteration 100, increase <span class=math-inline>$N$</span>
-. If violations persist, scale <span class=math-inline>$\rho$</span>
-up by an order of magnitude.</p><h2 id=limitations-and-honest-caveats class=heading-anchor>Limitations and Honest Caveats<a href=#limitations-and-honest-caveats class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li><strong>No optimality certificate.</strong> SOA is a metaheuristic. You can show it found a good feasible point; you cannot show it found <em>the</em> optimum. For regulated capital (Basel, Solvency II), this matters.</li><li><strong>Stochastic outputs.</strong> Two runs from different seeds give different portfolios. Operationally, you need a tie-breaking rule (lowest variance? closest to a benchmark? ensemble?).</li><li><strong>Non-stationarity.</strong> <span class=math-inline>$Q$</span>
-and <span class=math-inline>$\overline{\mathbf{r}}$</span>
-are estimated from finite history and are noisy. A solver that finds the variance-minimising portfolio under a <em>wrong</em> covariance matrix is not obviously better than one that finds an approximate solution. Robust optimization (worst-case over a covariance ambiguity set) is more important than solver perfection.</li><li><strong>Penalty <span class=math-inline>$\rho$</span>
-requires re-tuning.</strong> Every new universe means another sweep. Augmented Lagrangian variants help.</li><li><strong>Rotation matrix in high dimensions.</strong> Constructing a meaningful rotation in <span class=math-inline>$\mathbb{R}^{500}$</span>
-is non-trivial; the original SOA paper proposes Householder-based constructions, but the empirical performance degrades past a few hundred dimensions.</li></ul><h2 id=summary class=heading-anchor>Summary<a href=#summary class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>The paper makes a focused, defensible claim: a modified SOA with quadratic penalties handles cardinality and buy-in constraints competitively against Quasi-Newton and DIRECT on a small benchmark. The figure I would draw from this is more cautious. SOA is not a replacement for commercial MINLP solvers at scale, but it is a useful tool in the band where the universe is too small to warrant Gurobi licences and too constrained for vanilla quadratic programming. The cardinality and buy-in constraints, in turn, are not academic curiosities: they materially regularise out-of-sample risk, as the backtest above shows. The methodological lesson is that the <em>constraints</em> often matter more than the <em>solver</em>: a good portfolio with the right constraints, found by an okay solver, will usually beat a &ldquo;perfect&rdquo; portfolio with the wrong constraints.</p><h2 id=references class=heading-anchor>References<a href=#references class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ol><li>Markowitz, H. (1952). <em>Portfolio Selection</em>. Journal of Finance, 7(1), 77-91.</li><li>Tamura, K., & Yasuda, K. (2011). <em>Spiral Dynamics Inspired Optimization</em>. Journal of Advanced Computational Intelligence and Intelligent Informatics, 15(8), 1116-1122.</li><li>Kania, A., & Sidarto, K. A. (2016). <em>Solving Mixed Integer Nonlinear Programming Using Spiral Dynamics Optimization Algorithm</em>. AIP Conference Proceedings, 1716.</li><li>Bartholomew-Biggs, M., & Kane, S. J. (2009). <em>A Global Optimization Problem in Portfolio Selection</em>. Computational Management Science, 6(3), 329-345.</li><li>Bertsimas, D., & Cory-Wright, R. (2022). <em>A Scalable Algorithm for Sparse Portfolio Selection</em>. INFORMS Journal on Computing.</li></ol></div><div class=article-share aria-label="Share this article"><span class=share-label>Share</span>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>```sql</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Three key concepts</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=cp>**Pruning</span><span class=w> </span><span class=nt>by bound**</span><span class=p>:</span><span class=w> </span><span class=l>if the LP relaxation of a sub-problem already exceeds the best known integer solution, that entire sub-tree is discarded.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=cp>**Pruning</span><span class=w> </span><span class=nt>by infeasibility**</span><span class=p>:</span><span class=w> </span><span class=l>if a sub-problem&#39;s LP is infeasible, the sub-tree is empty.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=cp>**Pruning</span><span class=w> </span><span class=nt>by integrality**</span><span class=p>:</span><span class=w> </span><span class=l>if the LP relaxation happens to be integer-feasible, that&#39;s a leaf.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>In the best case, branch-and-bound prunes most of the tree and finds the optimum after solving polynomially many LPs. In the worst case it still enumerates all $2^p$ leaves — confirming that the algorithm is exponential in the worst case.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>!<span class=p>[</span><span class=l>Branch-and-bound search tree with three pruning rules](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_bnb_tree.png)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>The figure above traces a small B&amp;B run with two integer variables. The root LP gives a fractional solution $(2.4, 1.7)$ and a lower bound of $8.5$. We branch on $z_1$, then on $z_2$ inside each child. Node P4 is integer-feasible and becomes the incumbent with $\text{UB} = 9.6$; node P5 is also integer-feasible but its objective $9.7$ is worse than the incumbent so it is pruned by bound; node P6 is LP-infeasible and pruned. Whole sub-trees never need to be solved — this is what makes B&amp;B fast in practice even though its worst case is still exponential.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### A.4 Cutting planes</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>A **cutting plane** is an inequality $\alpha^\top z \leq \beta$ that is satisfied by every integer-feasible $z$ but violated by the current LP relaxation optimum. Adding cuts tightens the LP relaxation, raising the lower bound and pruning more aggressively.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=cp>**Gomory</span><span class=w> </span><span class=l>cut**. From the simplex tableau of the LP optimum, if a basic variable $z_j$ has value $\bar z_j = \lfloor \bar z_j \rfloor + f_j$ with $0 &lt; f_j &lt; 1$, then</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>\sum_k \mathrm{frac}(\bar a_{jk}) \cdot z_k \geq f_j</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>holds for every integer $z$ but not for the fractional LP optimum. (Here $\bar a_{jk}$ are the tableau entries and $\mathrm{frac}(x) = x - \lfloor x \rfloor$.)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Modern MILP solvers (Gurobi, CPLEX, SCIP) use 10+ kinds of cuts: Gomory, mixed-integer rounding, lift-and-project, clique cuts, flow cover cuts. The modern algorithm is **branch-and-cut**</span><span class=p>:</span><span class=w> </span><span class=l>at each node, try to add violated cuts before branching.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>!<span class=p>[</span><span class=l>LP relaxation polytope and the effect of a cutting plane](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_lp_relaxation.png)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>The left panel shows the geometric content of LP relaxation</span><span class=p>:</span><span class=w> </span><span class=l>the LP optimum (amber star) sits at a fractional vertex of the polytope, while the IP optimum (purple disk) is one of the green integer lattice points strictly inside the relaxation. The right panel adds one cutting plane $z_1 + z_2 \le 4$ (orange line). The original fractional vertex is now infeasible (purple cross), every green integer point is preserved, and the new LP vertex happens to be integer — the LP relaxation alone now solves the IP. In real solvers cuts rarely close the gap in one shot, but each one tightens the bound and makes B&amp;B prune more aggressively.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### A.5 What you can solve in practice</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Problem size            | Realistic with modern solvers? |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| ----------------------- | ------------------------------ |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| 0--1 IP, 100 vars       | Yes, seconds to minutes.       |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| 0--1 IP, 1000 vars      | Often yes, minutes to hours.   |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Mixed IP, 10K vars      | Sometimes, depends on structure. |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Mixed IP, $\geq 100$K   | Usually requires decomposition (Benders, column generation). |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>The frontier moves</span><span class=p>:</span><span class=w> </span><span class=l>problems considered intractable in 1990 are routine today, due to a $10^{12}$ × speedup from algorithm improvements (cuts, presolve) and a $10^6$ × speedup from hardware.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nn>---</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>## Heuristics for Hard Problems</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>When branch-and-bound is too slow or the problem is non-linear (MINLP), heuristics are the fallback. They sacrifice optimality guarantees for tractable runtime.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### B.1 Taxonomy</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Family          | Examples                          | Strengths                                  |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| --------------- | --------------------------------- | ------------------------------------------ |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Trajectory      | Hill climbing, simulated annealing, tabu search | Simple, low-memory, good for combinatorial |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Population      | Genetic algorithms, PSO, SOA, differential evolution | Parallelizable, escapes local minima       |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Constructive    | Greedy, ant colony, GRASP         | Build solutions step by step                |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Hybrid          | Memetic algorithms, large-neighborhood search | Combine local and global search             |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>![Heuristic taxonomy</span><span class=p>:</span><span class=w> </span><span class=l>trajectory, population, constructive, hybrid](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_heuristic_taxonomy.png)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>The four families above are the standard cuts in the metaheuristic literature. Trajectory methods (single-state) are cheap and effective on combinatorial problems; population methods carry many candidates in parallel and are the natural fit for continuous multi-modal landscapes; constructive methods build a solution piece by piece and dominate problems with strong sequential structure; hybrid methods combine an outer global search with an inner local-search or exact solver.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=cp>**Simulated</span><span class=w> </span><span class=nt>annealing (SA)**</span><span class=p>:</span><span class=w> </span><span class=l>random walk on the solution space, accepting moves that improve and accepting worse moves with probability $e^{-\Delta f / T}$. The temperature $T$ decays over time — high $T$ explores, low $T$ exploits. Theoretically converges to the global optimum if $T$ decays slowly enough; practically requires careful cooling schedules.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=cp>**Genetic</span><span class=w> </span><span class=nt>algorithm (GA)**</span><span class=p>:</span><span class=w> </span><span class=l>maintain a population of solutions; combine pairs via crossover and mutation; keep the best. Handles binary and categorical decision variables naturally. Notoriously sensitive to operator design.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=cp>**Particle</span><span class=w> </span><span class=nt>swarm (PSO)**</span><span class=p>:</span><span class=w> </span><span class=nt>$N$ particles each with position $x_i$ and velocity $v_i$ in continuous space; velocity updates pull each particle toward the swarm-best and its own best</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>v_i \leftarrow w v_i + c_1 r_1 (p_i^{\text{best}} - x_i) + c_2 r_2 (p^{\text{global best}} - x_i).</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>Strong on continuous problems with multiple basins.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=cp>**Spiral</span><span class=w> </span><span class=nt>optimization (SOA)**</span><span class=p>:</span><span class=w> </span><span class=l>similar to PSO but each particle follows a logarithmic spiral toward the current incumbent, with the spiral&#39;s radius shrinking geometrically. We treat this in detail in the case study below.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### B.2 Choosing among heuristics</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| If your problem is...                                   | Try...                          |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| ------------------------------------------------------- | ------------------------------- |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Binary / combinatorial (TSP, scheduling)                | SA, tabu, GA                    |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Continuous with multiple basins                         | PSO, DE, CMA-ES, SOA            |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Mixed integer with continuous variables                 | Hybrid (GA outer + LP inner)    |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Convex but very large                                   | Don&#39;t use heuristics; use IPM/SGD |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Black-box (no gradient, expensive function evaluations) | Bayesian optimization, GA       |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>The dominant lesson from the literature</span><span class=p>:</span><span class=w> </span><span class=kc>no</span><span class=w> </span><span class=l>heuristic uniformly dominates. Choosing the right one for a problem is craftsmanship. Worth tuning for a few weeks if the problem will be solved repeatedly; otherwise just use whatever is in your favorite library.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>!<span class=p>[</span><span class=l>SA, GA, and PSO on a multi-modal 1-D landscape](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_heuristic_convergence.png)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>A toy illustration on a 1-D multi-modal objective. The left panel shows the landscape and where each method ends up after a fixed budget: SA (blue) and GA (green population) reach the global basin near the amber star, while PSO (purple diamond) is trapped in a shallow local minimum on the left because all particles converged toward an early-found basin. The right panel plots best-so-far value over iterations</span><span class=p>:</span><span class=w> </span><span class=l>SA and GA approach the global optimum (dashed amber); PSO plateaus above it. The point is not that PSO is bad — with a different seed and inertia schedule it would also reach the global optimum — but that no method dominates universally and seed-to-seed variance is real. This is why production runs use 30+ independent restarts.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nn>---</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>## Case Study — The Spiral Optimization Algorithm on a Mean-Variance Portfolio</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>The remainder of this article is a deep walk-through of applying SOA to a real MINLP from finance. The running example is constrained mean-variance portfolio selection.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Markowitz&#39;s mean-variance model is elegant until you add real trading constraints</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;if you buy a stock at all, hold at least 5% of it&#34;</span><span class=w> </span><span class=l>and &#34;pick exactly 10 names from the S&amp;P 500.&#34; The closed-form quadratic program quietly mutates into a *mixed-integer nonlinear program* (MINLP), and the standard solver chain (Lagrange multipliers, KKT conditions, interior-point methods) stops working. The case study reviewed here applies the **Spiral Optimization Algorithm** (SOA), a population-based metaheuristic, to this problem and shows it can find competitive feasible solutions where gradient methods fail outright.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>## From Quadratic Program to MINLP</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### The classical mean-variance problem</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>Let $\mathbf{y} \in \mathbb{R}^n$ be the vector of capital fractions, $\overline{\mathbf{r}} \in \mathbb{R}^n$ the vector of expected asset returns, and $Q \in \mathbb{R}^{n \times n}$ the positive semidefinite covariance matrix of returns. For a target portfolio return $R_p$, the *long-only* mean-variance problem is</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>\begin{aligned}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>\min_{\mathbf{y}} \quad &amp; V(\mathbf{y}) = \mathbf{y}^\top Q \mathbf{y} \\</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>\text{s.t.} \quad &amp; \overline{\mathbf{r}}^\top \mathbf{y} = R_p, \\</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>&amp;<span class=w> </span><span class=l>\mathbf{e}^\top \mathbf{y} = 1, \\</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>&amp;<span class=w> </span><span class=l>y_i \geq 0, \quad i = 1, \dots, n,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>\end{aligned}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>where $\mathbf{e}$ is the all-ones vector. This is a convex quadratic program. Sweep $R_p$ across an interval and you trace the *efficient frontier*: the locus of portfolios that minimise variance for each return level.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>!<span class=p>[</span><span class=l>Mean-variance frontier with cardinality constraint](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig1_efficient_frontier.png)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>The figure above shows the geometry on a five-asset universe. The cloud of dots is 5,000 random portfolios sampled uniformly from the simplex (coloured by Sharpe-like ratio). The purple curve is the unconstrained efficient frontier (shorting permitted), and the dashed blue curve is the *cardinality-constrained* frontier with $K=3$. Two observations are immediate</span><span class=p>:</span><span class=w> </span><span class=l>(i) the cardinality-constrained frontier sits to the right of the unconstrained one at every return level (less choice means less diversification, which means more risk), and (ii) the gap between the two is *not* uniform in $R_p$. At extreme returns the gap widens because only a few combinations can hit the target at all.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### Adding the buy-in threshold</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Real desks rarely hold a 0.3% position in a stock. The buy-in threshold says</span><span class=p>:</span><span class=w> </span><span class=l>if you hold asset $i$ at all, hold at least $l_i$. Introduce a binary indicator $z_i \in \{0, 1\}$ for inclusion and link it to $y_i$ via box constraints:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>$$l_i z_i \leq y_i \leq u_i z_i, \qquad 0 &lt; l_i &lt; u_i \leq 1, \qquad z_i \in \{0, 1\}.$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>When $z_i = 0$ the entire row collapses to $y_i = 0$. When $z_i = 1$ the weight is forced into $[l_i, u_i]$. This is the precise mathematical instant at which the problem becomes mixed-integer</span><span class=p>:</span><span class=w> </span><span class=l>the feasible set is now a finite union of polytopes (one per choice of $\mathbf{z}$), and convexity is gone.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### Adding the cardinality constraint</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>The cardinality constraint pins the portfolio to exactly $K$ assets</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>$$\sum_{i=1}^{n} z_i = K.$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Combining everything yields the full MINLP studied in the paper</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>\begin{aligned}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>\min_{\mathbf{y}, \mathbf{z}} \quad &amp; V(\mathbf{y}) = \mathbf{y}^\top Q \mathbf{y} \\</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>\text{s.t.} \quad &amp; \overline{\mathbf{r}}^\top \mathbf{y} = R_p, \\</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>&amp;<span class=w> </span><span class=l>\mathbf{e}^\top \mathbf{y} = 1, \\</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>&amp;<span class=w> </span><span class=l>\sum_{i=1}^{n} z_i = K, \\</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>&amp;<span class=w> </span><span class=l>l_i z_i \leq y_i \leq u_i z_i, \\</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>&amp;<span class=w> </span><span class=l>z_i \in \{0, 1\}, \quad i = 1, \dots, n.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>\end{aligned}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>This object has $\binom{n}{K}$ combinatorial branches. Even at $n = 100, K = 10$ that is $1.7 \times 10^{13}$ subsets, well outside what brute-force enumeration can touch. Branch-and-bound MINLP solvers (BARON, SCIP, Bonmin) can attack it but their wall clock grows quickly; this is the scale at which metaheuristics become attractive.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>## The Spiral Optimization Algorithm</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### Update rule</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>SOA, introduced by Tamura and Yasuda (2011), is a population-based metaheuristic inspired by the logarithmic spirals seen in plant phyllotaxis and galactic arms. At iteration $k$, each candidate $\mathbf{x}_k^{(j)}$ is updated toward the current best $\mathbf{x}^*$ via</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>$$\mathbf{x}_{k+1}^{(j)} \;=\; \mathbf{x}^* \;+\; r \cdot R(\theta) \, \big(\mathbf{x}_k^{(j)} - \mathbf{x}^*\big),$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>where $R(\theta)$ is a $d$-dimensional rotation matrix with angle $\theta$, and $r \in (0, 1)$ is a contraction factor. The composition of rotation and contraction traces a logarithmic spiral inward.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>!<span class=p>[</span><span class=l>SOA spiral trajectory and radius schedule](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig2_spiral_trajectory.png)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>The left panel shows the trajectories of five candidates initialised in the four quadrants of a non-convex landscape. The amber star marks the current best (which happens to be the global minimum here). Each candidate spirals inward, sampling the loss along the way. The right panel makes the *exploration vs exploitation* trade-off explicit</span><span class=p>:</span><span class=w> </span><span class=l>the geometric envelope $r^k$ governs how fast the spiral collapses. A slow shrink ($r = 0.95$) keeps candidates wandering far from $\mathbf{x}^*$ for many iterations (more exploration), while a fast shrink ($r = 0.85$) collapses them quickly onto the incumbent (more exploitation).</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### Why the spiral specifically?</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Compared to other metaheuristics</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=cp>**Particle</span><span class=w> </span><span class=l>swarm optimization (PSO)** updates each particle by a velocity that mixes its personal best and the global best, plus stochastic noise. The velocity has no built-in shrinkage; you typically need a separate inertia decay schedule and tuning of the cognitive / social weights.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=cp>**Genetic</span><span class=w> </span><span class=l>algorithms (GA)** use crossover and mutation. They handle integer variables naturally but the schema theorem is weak in continuous spaces; convergence is often slow.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=cp>**Simulated</span><span class=w> </span><span class=l>annealing (SA)** uses a single trajectory with temperature decay. No population means no parallelism in the search.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>SOA&#39;s selling point is that the rotation $R(\theta)$ guarantees the candidate cycles around the incumbent (so it samples *different* directions deterministically), while the contraction $r$ guarantees eventual convergence. The exploration-exploitation balance reduces to a single hyperparameter</span><span class=p>:</span><span class=w> </span><span class=l>the spectral radius of $r R(\theta)$.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### Updating the incumbent</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>After each candidate is moved, the population is re-evaluated and $\mathbf{x}^*$ is updated to the best point seen so far. This is the only stochastic element in classical SOA: the initial sampling. Some variants (including the one in the paper) inject random perturbations on candidates that have stagnated, to escape the basin of the current incumbent.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>## Constraint Handling</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### Quadratic penalty</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>The paper handles all constraints with a quadratic penalty</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>$$\min_{\mathbf{y}, \mathbf{z}} \; F(\mathbf{y}, \mathbf{z}) = V(\mathbf{y}) + \rho \cdot P(\mathbf{y}, \mathbf{z}),$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>where $P$ measures total constraint violation</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>P = \big(\overline{\mathbf{r}}^\top \mathbf{y} - R_p\big)^2</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=l>\,+\, \big(\mathbf{e}^\top \mathbf{y} - 1\big)^2</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=l>\,+\, \sum_{i=1}^{n} \max(0, l_i z_i - y_i)^2</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=l>\,+\, \sum_{i=1}^{n} \max(0, y_i - u_i z_i)^2</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=l>\,+\, \Big(\sum_i z_i - K\Big)^2.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=l>$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>The integer constraint $z_i \in \{0,1\}$ is enforced by *rounding*: SOA searches over $z_i \in [0,1]$ continuously and rounds to the nearest integer when evaluating $P$.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>!<span class=p>[</span><span class=l>Penalty pulls the optimum into the feasible band, plus 2-D feasibility map](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig3_constraint_handling.png)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>The left panel shows what the penalty does on a 1-D weight slice: the raw variance $V(y)$ (grey dashed) has its minimum sitting in the infeasible region (purple dot, below the buy-in threshold). Adding $\rho \cdot P(y)$ produces sharp parabolic walls outside the feasible band $[l, u]$; the resulting penalised objective (solid blue) has its optimum pulled into the green strip (amber diamond). The right panel shows a 2-D feasibility map for two assets with cardinality $K=1$</span><span class=p>:</span><span class=w> </span><span class=l>only the green region is feasible. Crosses are infeasible candidates, dots are feasible ones.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### The penalty weight $\rho$ is subtle</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>This is the most-fiddled hyperparameter in metaheuristic-with-penalty literature, and it is genuinely tricky</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=cp>**Too</span><span class=w> </span><span class=l>small** and the algorithm finds beautifully low-variance portfolios that are infeasible (don&#39;t sum to 1, or hold sub-threshold positions). The penalty is a soft suggestion, not a barrier.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=cp>**Too</span><span class=w> </span><span class=l>large** and $V$ becomes a rounding error inside $\rho P$. Numerical precision suffers; the search effectively optimises feasibility alone, ignoring variance.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=cp>**Just</span><span class=w> </span><span class=l>right** is problem-specific. The paper uses $\rho = 10^4$ for the five-asset case, which works because $V$ is $O(1)$ and $P$ is small but non-zero.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>A more robust alternative is the *augmented Lagrangian* approach, which adapts $\rho$ over iterations based on observed violations. The paper does not use this, so re-tuning $\rho$ is part of the cost when porting the method to a new universe.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### Repair operators</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>After each spiral update, candidates can drift outside the unit box. The paper applies a simple *repair*</span><span class=p>:</span><span class=w> </span><span class=l>clip $y_i$ to $[0, 1]$ and renormalise so $\mathbf{e}^\top \mathbf{y} = 1$. This is cheap and keeps every candidate trivially feasible with respect to the budget constraint, leaving only target return, buy-in, and cardinality to the penalty.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>## Numerical Results</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### The benchmark</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>Following Bartholomew-Biggs and Kane (2009), the paper uses a five-asset universe with mean return vector</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>$$\overline{\mathbf{r}} = (0.10, 0.13, 0.085, 0.155, 0.07)^\top$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>and a $5 \times 5$ positive semidefinite covariance matrix (the precise values are in the paper). Target return $R_p = 0.05$, buy-in $l_i = 0.05$, cardinality $K = 5$ (all assets active), penalty $\rho = 10^4$, 50 iterations.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### Convergence comparison</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>!<span class=p>[</span><span class=l>Convergence vs Quasi-Newton, DIRECT, and PSO](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig4_convergence.png)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>The figure compares best-so-far variance over iterations for SOA-MINLP, Quasi-Newton, DIRECT, and a PSO baseline I added for context. The shaded blue band is the 10-90 percentile of 30 independent SOA runs; the solid blue curve is the median.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Two things are worth noticing. First, the final values rank consistently with what the paper reports</span><span class=p>:</span><span class=w> </span><span class=l>SOA-MINLP at $V = 0.6969$, Quasi-Newton at $0.7123$, DIRECT at $0.7458$, with PSO landing in between at $0.7250$. Quasi-Newton converges fast in iteration count but to a worse local optimum because the penalty surface is non-smooth and gradient-based methods get stuck. DIRECT (a deterministic Lipschitz-based partition method) is more thorough but pays for it in iterations. Second, the SOA band is narrow by iteration 60 — the run-to-run variability is small in this regime, which is reassuring for a stochastic method.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>The catch</span><span class=p>:</span><span class=w> </span><span class=l>this is a five-asset problem. Every claim about SOA&#39;s relative ranking should be re-checked at scale.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>### An out-of-sample backtest</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>To pressure-test the *portfolio* (not just the *solver*), I simulated three years of daily returns from the multivariate Gaussian implied by $\overline{\mathbf{r}}$ and $Q$ and compared three rules: equal weight, unconstrained mean-variance at target return 11%, and an SOA-MINLP-style portfolio (long-only, $K=3$, buy-in $0.10$).</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>!<span class=p>[</span><span class=l>Out-of-sample backtest equity and drawdown](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig5_backtest.png)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>The unconstrained MV portfolio has the highest in-model Sharpe but it shorts assets and concentrates aggressively, which translates into a worse drawdown (bottom panel) than the SOA-MINLP portfolio. Equal weight is the most defensive but leaves return on the table. The SOA-MINLP rule hits a sweet spot: the cardinality and buy-in constraints regularise the portfolio, giving up a little expected return for materially better drawdown behaviour. This is the practical case for cardinality constraints</span><span class=p>:</span><span class=w> </span><span class=l>not theoretical optimality, but *risk diversification you can implement on a real desk*.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>## When to Use SOA (and When Not To)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=cp>**Use</span><span class=w> </span><span class=l>SOA when:**</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=l>The problem is non-convex with discrete or combinatorial structure (cardinality, sector limits, integer lot sizes).</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=l>The asset universe is small to medium ($n \lesssim 100$).</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=l>You can afford 30+ independent runs to assess solution stability.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=l>You don&#39;t need an optimality certificate, just a good feasible solution.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=cp>**Skip</span><span class=w> </span><span class=l>SOA when:**</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=nt>The problem is convex or near-convex (use a QP solver</span><span class=p>:</span><span class=w> </span><span class=l>OSQP, CVXOPT, MOSEK).</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=nt>$n &gt; 1000$ (use commercial MINLP</span><span class=p>:</span><span class=w> </span><span class=l>Gurobi, CPLEX, BARON; or specialised methods like the lasso-style relaxations of Bertsimas et al.).</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=l>You need real-time rebalancing under tight latency budgets.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=l>The constraints are simple bounds (just project; no fancy solver needed).</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>## Hyperparameter Tuning, in Practice</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Hyperparameter | Typical range | Effect |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| -------------- | ------------- | ------ |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>| Population size $N$ | 30 - 100 | Larger $N$</span><span class=p>:</span><span class=w> </span><span class=l>better exploration, linear cost per iteration |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Max iterations | 50 - 500 | Read off from a convergence plot; stop when median plateau is flat |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>| Spiral angle $\theta$ | $\pi / 6$ to $\pi / 3$ | Larger angle</span><span class=p>:</span><span class=w> </span><span class=l>more circumferential exploration |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>| Contraction $r$ | 0.85 - 0.95 | Smaller $r$</span><span class=p>:</span><span class=w> </span><span class=l>faster convergence, higher local-optimum risk |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>| Penalty weight $\rho$ | $10^2$ - $10^6$ | Tune until violations are zero on the median run |</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=cp>**Rule</span><span class=w> </span><span class=l>of thumb to start with:** $N = 50$, max_iter $= 100$, $\theta = \pi / 4$, $r = 0.92$, $\rho = 10^4$. Run 30 trials and inspect the convergence band. If the band stays wide at iteration 100, increase $N$. If violations persist, scale $\rho$ up by an order of magnitude.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>## Limitations and Honest Caveats</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=cp>**No</span><span class=w> </span><span class=l>optimality certificate.** SOA is a metaheuristic. You can show it found a good feasible point; you cannot show it found *the* optimum. For regulated capital (Basel, Solvency II), this matters.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=cp>**Stochastic</span><span class=w> </span><span class=l>outputs.** Two runs from different seeds give different portfolios. Operationally, you need a tie-breaking rule (lowest variance? closest to a benchmark? ensemble?).</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=cp>**Non-stationarity.**</span><span class=w> </span><span class=l>$Q$ and $\overline{\mathbf{r}}$ are estimated from finite history and are noisy. A solver that finds the variance-minimising portfolio under a *wrong* covariance matrix is not obviously better than one that finds an approximate solution. Robust optimization (worst-case over a covariance ambiguity set) is more important than solver perfection.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=cp>**Penalty</span><span class=w> </span><span class=l>$\rho$ requires re-tuning.** Every new universe means another sweep. Augmented Lagrangian variants help.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>- <span class=cp>**Rotation</span><span class=w> </span><span class=l>matrix in high dimensions.** Constructing a meaningful rotation in $\mathbb{R}^{500}$ is non-trivial; the original SOA paper proposes Householder-based constructions, but the empirical performance degrades past a few hundred dimensions.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>## Summary</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>The paper makes a focused, defensible claim: a modified SOA with quadratic penalties handles cardinality and buy-in constraints competitively against Quasi-Newton and DIRECT on a small benchmark. The figure I would draw from this is more cautious. SOA is not a replacement for commercial MINLP solvers at scale, but it is a useful tool in the band where the universe is too small to warrant Gurobi licences and too constrained for vanilla quadratic programming. The cardinality and buy-in constraints, in turn, are not academic curiosities: they materially regularise out-of-sample risk, as the backtest above shows. The methodological lesson is that the *constraints* often matter more than the *solver*</span><span class=p>:</span><span class=w> </span><span class=l>a good portfolio with the right constraints, found by an okay solver, will usually beat a &#34;perfect&#34; portfolio with the wrong constraints.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c>## References</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=m>1</span><span class=l>. Markowitz, H. (1952). *Portfolio Selection*. Journal of Finance, 7(1), 77-91.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=m>2</span><span class=l>. Tamura, K., &amp; Yasuda, K. (2011). *Spiral Dynamics Inspired Optimization*. Journal of Advanced Computational Intelligence and Intelligent Informatics, 15(8), 1116-1122.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=m>3</span><span class=l>. Kania, A., &amp; Sidarto, K. A. (2016). *Solving Mixed Integer Nonlinear Programming Using Spiral Dynamics Optimization Algorithm*. AIP Conference Proceedings, 1716.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=m>4</span><span class=l>. Bartholomew-Biggs, M., &amp; Kane, S. J. (2009). *A Global Optimization Problem in Portfolio Selection*. Computational Management Science, 6(3), 329-345.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=m>5</span><span class=l>. Bertsimas, D., &amp; Cory-Wright, R. (2022). *A Scalable Algorithm for Sparse Portfolio Selection*. INFORMS Journal on Computing.</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div></div><div class=article-share aria-label="Share this article"><span class=share-label>Share</span>
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=Optimization%2b%252812%2529%253A%2bDiscrete%2band%2bGlobal%2bOptimization&url=https%253A%252F%252Fwww.chenk.top%252Fen%252Foptimization-theory%252F12-discrete-global-optimization%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fen%252Foptimization-theory%252F12-discrete-global-optimization%252F&title=Optimization%2b%252812%2529%253A%2bDiscrete%2band%2bGlobal%2bOptimization" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/en/optimization-theory/12-discrete-global-optimization/ aria-label="Copy article link" title="Copy link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2022-09-30>written <span class=days>…</span> days ago</span></div><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What You Will Learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#integer-programming-and-branch-and-bound>Integer Programming and Branch-and-Bound</a><ul><li><a href=#a1-the-integer-programming-problem>A.1 The integer programming problem</a></li><li><a href=#a2-lp-relaxation>A.2 LP relaxation</a></li><li><a href=#a3-branch-and-bound>A.3 Branch-and-bound</a></li><li><a href=#a4-cutting-planes>A.4 Cutting planes</a></li><li><a href=#a5-what-you-can-solve-in-practice>A.5 What you can solve in practice</a></li></ul></li><li><a href=#heuristics-for-hard-problems>Heuristics for Hard Problems</a><ul><li><a href=#b1-taxonomy>B.1 Taxonomy</a></li><li><a href=#b2-choosing-among-heuristics>B.2 Choosing among heuristics</a></li></ul></li><li><a href=#case-study--the-spiral-optimization-algorithm-on-a-mean-variance-portfolio>Case Study — The Spiral Optimization Algorithm on a Mean-Variance Portfolio</a></li><li><a href=#from-quadratic-program-to-minlp>From Quadratic Program to MINLP</a><ul><li><a href=#the-classical-mean-variance-problem>The classical mean-variance problem</a></li><li><a href=#adding-the-buy-in-threshold>Adding the buy-in threshold</a></li><li><a href=#adding-the-cardinality-constraint>Adding the cardinality constraint</a></li></ul></li><li><a href=#the-spiral-optimization-algorithm>The Spiral Optimization Algorithm</a><ul><li><a href=#update-rule>Update rule</a></li><li><a href=#why-the-spiral-specifically>Why the spiral specifically?</a></li><li><a href=#updating-the-incumbent>Updating the incumbent</a></li></ul></li><li><a href=#constraint-handling>Constraint Handling</a><ul><li><a href=#quadratic-penalty>Quadratic penalty</a></li><li><a href=#the-penalty-weight-rho-is-subtle>The penalty weight is subtle</a></li><li><a href=#repair-operators>Repair operators</a></li></ul></li><li><a href=#numerical-results>Numerical Results</a><ul><li><a href=#the-benchmark>The benchmark</a></li><li><a href=#convergence-comparison>Convergence comparison</a></li><li><a href=#an-out-of-sample-backtest>An out-of-sample backtest</a></li></ul></li><li><a href=#when-to-use-soa-and-when-not-to>When to Use SOA (and When Not To)</a></li><li><a href=#hyperparameter-tuning-in-practice>Hyperparameter Tuning, in Practice</a></li><li><a href=#limitations-and-honest-caveats>Limitations and Honest Caveats</a></li><li><a href=#summary>Summary</a></li><li><a href=#references>References</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/optimization-theory/ class=series-name>Optimization Theory</a>
+<span class=sig-meta data-days-since=2022-09-30>written <span class=days>…</span> days ago</span></div><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What You Will Learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#integer-programming-and-branch-and-bound>Integer Programming and Branch-and-Bound</a><ul><li><a href=#a1-the-integer-programming-problem>A.1 The integer programming problem</a></li><li><a href=#a2-lp-relaxation>A.2 LP relaxation</a></li><li><a href=#a3-branch-and-bound>A.3 Branch-and-bound</a></li></ul></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/optimization-theory/ class=series-name>Optimization Theory</a>
 <span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/01-convex-analysis-foundations/><span class=chapter-num>01</span>
 <span class=chapter-title>Optimization (1): Convex Analysis Foundations</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/02-smoothness-strong-convexity-nesterov/><span class=chapter-num>02</span>
 <span class=chapter-title>Optimization (2): Smoothness, Strong Convexity, and Nesterov Acceleration</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/03-gradient-descent-family/><span class=chapter-num>03</span>
@@ -200,5 +620,5 @@ is non-trivial; the original SOA paper proposes Householder-based constructions,
 <span class=chapter-title>Optimization (9): Interior-Point Methods and Self-Concordant Barriers</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/10-stochastic-variance-reduction/><span class=chapter-num>10</span>
 <span class=chapter-title>Optimization (10): Stochastic Optimization and Variance Reduction</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/11-nonconvex-saddle-escape/><span class=chapter-num>11</span>
 <span class=chapter-title>Optimization (11): Non-Convex Optimization and Saddle Escape</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>12</span>
-<span class=chapter-title>Optimization (12): Discrete and Global Optimization</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>38 min</strong></div><div class=row><span>Word count</span><strong>3987</strong></div><div class=row><span>Published</span><strong>Sep 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Optimization (12): Discrete and Global Optimization</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>44 min</strong></div><div class=row><span>Word count</span><strong>4676</strong></div><div class=row><span>Published</span><strong>Sep 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>
