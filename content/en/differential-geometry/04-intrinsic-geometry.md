@@ -19,397 +19,194 @@ series_total: 12
 
 The previous two chapters set up a clear dichotomy. Chapter 2 introduced the *first fundamental form* $\mathrm{I}$ — the intrinsic metric, what an ant on the surface can measure. Chapter 3 introduced the *second fundamental form* $\mathrm{II}$ and the shape operator — the extrinsic data, how the surface bends in $\mathbb{R}^3$. From $\mathrm{II}$ we computed Gaussian curvature $K = \det S$ and mean curvature $H = \mathrm{tr}\,S/2$. By all appearances, both $K$ and $H$ should depend on the embedding. Bend the surface (without stretching) and you would expect both to change.
 
-For $H$, that is correct: the cylinder has $H = -1/(2r)$, the plane has $H = 0$, even though they are isometric.
+For $H$, that is correct: the cylinder has $H = 1/(2r)$, the plane has $H = 0$, even though they are isometric (you can unroll the cylinder flat without stretching).
 
-For $K$, something miraculous happens: $K$ does not change. The cylinder has $K = 0$ and so does the plane. Both have constant zero Gaussian curvature even though only one of them actually looks flat. This is the *Theorema Egregium* — Latin for "remarkable theorem" — proved by Gauss in 1827, and it is the central result of classical differential geometry.
+For $K$, something miraculous happens: $K$ does not change. The cylinder has $K = 0$ and so does the plane. Both have zero Gaussian curvature even though only one of them looks flat from the outside. This is the *Theorema Egregium* — Latin for "remarkable theorem" — proved by Gauss in 1827, and it is the central result of classical differential geometry.
 
-Out of the Theorema Egregium come two enormous consequences. First, intrinsic geometry on surfaces is rich enough to do nearly all the geometry we want without ever mentioning the embedding into $\mathbb{R}^3$. We can measure distances, define "straight lines" (geodesics), and classify surfaces by curvature, all from inside. Second, the same intrinsic apparatus generalizes seamlessly to higher-dimensional manifolds — the spaces of general relativity and the modern theory of geometry.
-
-This article does the Theorema Egregium and the apparatus that surrounds it: Christoffel symbols, the geodesic equation, parallel transport, the intrinsic / extrinsic distinction made precise.
+Out of the Theorema Egregium come two enormous consequences. First, intrinsic geometry on surfaces is rich enough to define "straight lines" (geodesics), measure curvature, and classify surfaces — all without mentioning the embedding. Second, the same intrinsic apparatus generalizes seamlessly to higher-dimensional manifolds where no ambient space even exists. The path from the Theorema Egregium to general relativity is conceptually straight.
 
 ---
 
-## Christoffel Symbols: Bookkeeping for Curved Coordinates
+## Christoffel Symbols: How Coordinates Twist on a Curved Surface
 
-In $\mathbb{R}^n$ with the standard coordinates, the basis vectors $\mathbf{e}_1, \ldots, \mathbf{e}_n$ are constant. On a surface, the natural basis vectors at each tangent plane — $\mathbf{x}_u$ and $\mathbf{x}_v$ — *vary from point to point*. When we differentiate vector fields written in this basis, we cannot just differentiate the components; we have to account for the basis itself changing.
+In $\mathbb{R}^n$ with the standard coordinates, the basis vectors $\mathbf{e}_1, \ldots, \mathbf{e}_n$ are constant — they do not change from point to point. On a surface parametrized by $\mathbf{x}(u, v)$, the coordinate basis vectors $\mathbf{x}_u$ and $\mathbf{x}_v$ *do* change as we move along the surface. The tangent plane tilts, stretches, and rotates from point to point. When we differentiate a vector field expressed in this basis, we cannot just differentiate the components — we must also account for the basis itself varying. This bookkeeping is the role of Christoffel symbols.
 
-This is the role of Christoffel symbols.
-
-**Definition.** Given a chart $\mathbf{x}(u_1, u_2)$ on a surface (I will index $u_1, u_2$ instead of $u, v$ for cleaner notation), the second derivatives $\mathbf{x}_{ij} = \partial^2\mathbf{x}/\partial u_i\partial u_j$ are vectors in $\mathbb{R}^3$. Decompose them into tangential and normal components:
+Given a chart $\mathbf{x}(u_1, u_2)$ on a surface, consider the second derivatives $\mathbf{x}_{ij} = \partial^2\mathbf{x}/\partial u_i\partial u_j$. These are vectors in $\mathbb{R}^3$ that decompose into a part tangent to the surface and a part along the normal:
 $$\mathbf{x}_{ij} = \Gamma^1_{ij}\mathbf{x}_1 + \Gamma^2_{ij}\mathbf{x}_2 + L_{ij}\mathbf{n},$$
-where $L_{ij}$ are the second fundamental form coefficients (so $L_{11} = L$, $L_{12} = M$, $L_{22} = N$ in our previous notation), and the *Christoffel symbols* $\Gamma^k_{ij}$ are the tangential components.
-
-By symmetry of mixed partials, $\Gamma^k_{ij} = \Gamma^k_{ji}$.
+where $L_{ij}$ are the second fundamental form coefficients (extrinsic — measuring the normal component of the acceleration) and the *Christoffel symbols* $\Gamma^k_{ij}$ are the tangential components (intrinsic — measuring how the basis vectors twist within the surface).
 
 ![Christoffel symbols encoding how the basis frame turns](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/04-intrinsic-geometry/dg_v2_04_1_christoffel.png)
 
-**Why this matters.** Christoffel symbols are how the basis $\{\mathbf{x}_u, \mathbf{x}_v\}$ "twists" as you move on the surface. They will appear in the geodesic equation, in the formula for parallel transport, and crucially in the proof of the Theorema Egregium.
-
-A formula in terms of $\mathrm{I}$ alone:
+The fundamental formula, derived by taking the inner product of both sides with $\mathbf{x}_l$ and solving:
 $$\Gamma^k_{ij} = \frac{1}{2}\sum_l g^{kl}\bigl(\partial_i g_{jl} + \partial_j g_{il} - \partial_l g_{ij}\bigr),$$
-where $g_{ij}$ are the components of $\mathrm{I}$ (so $g_{11} = E$, $g_{12} = F$, $g_{22} = G$) and $g^{kl}$ are the components of $\mathrm{I}^{-1}$.
+where $g_{ij}$ are the metric components ($g_{11} = E$, $g_{12} = F$, $g_{22} = G$) and $g^{kl}$ are the entries of the inverse metric matrix.
 
-This formula is the punchline. It says: *the Christoffel symbols depend only on the first fundamental form*. Even though Christoffel symbols are defined using second derivatives of the embedding, they end up being computable from the metric alone.
+This is the punchline of the entire section: *Christoffel symbols depend only on the first fundamental form and its first derivatives*. Despite being defined via the second derivatives of the embedding $\mathbf{x}$, they are computable from the metric coefficients alone. The normal component $L_{ij}$ carries the extrinsic information; the tangential components $\Gamma^k_{ij}$ are purely intrinsic.
 
-**Derivation.** Starting from $\mathbf{x}_{ij} = \sum_k\Gamma^k_{ij}\mathbf{x}_k + L_{ij}\mathbf{n}$, take the inner product with $\mathbf{x}_l$:
-$$\mathbf{x}_{ij}\cdot\mathbf{x}_l = \sum_k\Gamma^k_{ij}g_{kl}.$$
+The derivation is instructive. Starting from $\mathbf{x}_{ij}\cdot\mathbf{x}_l = \sum_k \Gamma^k_{ij} g_{kl}$ (dot the decomposition with $\mathbf{x}_l$; the $L_{ij}\mathbf{n}$ term vanishes because $\mathbf{n}\perp\mathbf{x}_l$). Now use the product rule: $\partial_i g_{jl} = \partial_i(\mathbf{x}_j\cdot\mathbf{x}_l) = \mathbf{x}_{ij}\cdot\mathbf{x}_l + \mathbf{x}_j\cdot\mathbf{x}_{il}$. By cycling indices and combining three such identities, we isolate $\mathbf{x}_{ij}\cdot\mathbf{x}_l = \frac{1}{2}(\partial_i g_{jl} + \partial_j g_{il} - \partial_l g_{ij})$. Multiplying by $g^{lk}$ (the inverse metric) and summing gives the formula above. The second fundamental form never appeared in the final answer — it dropped out when we projected onto the tangent plane.
 
-Now use $\partial_i g_{jl} = \partial_i(\mathbf{x}_j\cdot\mathbf{x}_l) = \mathbf{x}_{ij}\cdot\mathbf{x}_l + \mathbf{x}_j\cdot\mathbf{x}_{il}$. Permute the indices and combine:
-$$\mathbf{x}_{ij}\cdot\mathbf{x}_l = \frac{1}{2}\bigl(\partial_i g_{jl} + \partial_j g_{il} - \partial_l g_{ij}\bigr).$$
+Physically, imagine walking on a curved surface while carrying a coordinate grid painted on the surface. As you move, the grid lines curve and spread. The Christoffel symbols quantify this grid distortion: $\Gamma^k_{ij}$ tells you how much the $k$-th basis vector changes when you move in the $i$-th direction, holding the $j$-th coordinate constant. On a flat surface in Cartesian coordinates, all $\Gamma^k_{ij} = 0$ — the grid does not distort. On a sphere in polar coordinates, $\Gamma$'s are nonzero because the meridians converge at the poles.
 
-Combine with the previous: $\sum_k\Gamma^k_{ij}g_{kl} = \frac{1}{2}(\partial_i g_{jl} + \partial_j g_{il} - \partial_l g_{ij})$. Multiplying by $g^{lm}$ (the inverse metric) and summing over $l$ gives the formula above.
+**Worked example: unit sphere in spherical coordinates.** Take $(\theta, \varphi)$ with $g_{11} = g_{\theta\theta} = \sin^2\varphi$, $g_{22} = g_{\varphi\varphi} = 1$, $g_{12} = 0$. The only nonzero metric derivative is $\partial_\varphi g_{\theta\theta} = 2\sin\varphi\cos\varphi = \sin 2\varphi$. Computing the Christoffel symbols:
+- $\Gamma^\theta_{\theta\varphi} = \frac{1}{2}g^{\theta\theta}(\partial_\varphi g_{\theta\theta}) = \frac{1}{2}\cdot\frac{1}{\sin^2\varphi}\cdot 2\sin\varphi\cos\varphi = \cot\varphi$.
+- $\Gamma^\varphi_{\theta\theta} = -\frac{1}{2}g^{\varphi\varphi}(\partial_\varphi g_{\theta\theta}) = -\frac{1}{2}\cdot 1 \cdot 2\sin\varphi\cos\varphi = -\sin\varphi\cos\varphi$.
+- All other $\Gamma$'s vanish (check by plugging in).
 
-This calculation will be repeated, in slightly different notation, for general Riemannian manifolds in chapter 10. The formula is the *Levi-Civita connection*.
-
----
-
-## Worked Example: Christoffel Symbols on the Sphere
-
-Use spherical coordinates $\mathbf{x}(\theta, \varphi)$ on the unit sphere, where $\mathrm{I} = \mathrm{diag}(\sin^2\varphi, 1)$. So $g_{11} = \sin^2\varphi$, $g_{22} = 1$, $g_{12} = 0$, $g^{11} = 1/\sin^2\varphi$, $g^{22} = 1$, $g^{12} = 0$.
-
-The non-zero partial derivatives of the metric:
-- $\partial_\varphi g_{\theta\theta} = \partial_\varphi(\sin^2\varphi) = 2\sin\varphi\cos\varphi = \sin 2\varphi$.
-
-All others vanish. Apply the formula:
-- $\Gamma^\theta_{\theta\varphi} = \Gamma^\theta_{\varphi\theta} = \frac{1}{2}g^{\theta\theta}\partial_\varphi g_{\theta\theta} = \frac{1}{2\sin^2\varphi}\cdot 2\sin\varphi\cos\varphi = \cos\varphi/\sin\varphi = \cot\varphi$.
-- $\Gamma^\varphi_{\theta\theta} = \frac{1}{2}g^{\varphi\varphi}(-\partial_\varphi g_{\theta\theta}) = -\frac{1}{2}\cdot 2\sin\varphi\cos\varphi = -\sin\varphi\cos\varphi$.
-
-Other components are zero. So:
-$$\Gamma^\theta_{\theta\varphi} = \Gamma^\theta_{\varphi\theta} = \cot\varphi,\qquad \Gamma^\varphi_{\theta\theta} = -\sin\varphi\cos\varphi.$$
-
-These Christoffel symbols encode all the "intrinsic curving" of spherical coordinates: as you move along a parallel ($\theta$ varying), the basis vector $\mathbf{x}_\theta$ rotates within the tangent plane, and that rotation is captured by $\Gamma^\varphi_{\theta\theta}$ and friends.
+The $\cot\varphi$ term diverges as $\varphi \to 0$ (the north pole), reflecting the coordinate singularity there — not a geometric singularity. The sphere is perfectly smooth at the pole; it is the spherical coordinate system that degenerates. A different chart (stereographic projection) would have bounded Christoffel symbols everywhere in its domain.
 
 ---
 
-## The Geodesic Equation
+## The Theorema Egregium: Curvature is Intrinsic
 
-A *geodesic* is a "straight line" on the surface — a curve that goes as straight as the surface allows.
+Armed with Christoffel symbols, we can state and understand the central theorem of classical differential geometry.
 
-**Definition (Variational).** A curve $\gamma$ on $S$ is a geodesic if it locally minimizes arc length: the distance between $\gamma(s_1)$ and $\gamma(s_2)$ measured along the surface equals the length of $\gamma$ between these parameters, for $s_1, s_2$ close enough.
+**Theorem (Gauss, 1827 — Theorema Egregium).** The Gaussian curvature $K$ is expressible entirely in terms of the metric coefficients $g_{ij}$ and their first and second partial derivatives. In particular, $K$ does not depend on the second fundamental form $\mathrm{II}$ or on any information about how the surface is embedded in $\mathbb{R}^3$.
 
-**Definition (Differential).** A curve $\gamma(t) = \mathbf{x}(u_1(t), u_2(t))$ on $S$, parametrized at constant speed, is a geodesic iff its acceleration is normal to $S$:
-$$\gamma''(t) \parallel \mathbf{n}(\gamma(t)).$$
+In orthogonal coordinates ($F = 0$), there is a relatively clean formula (Brioschi's formula):
+$$K = -\frac{1}{2\sqrt{EG}}\left[\frac{\partial}{\partial u}\left(\frac{1}{\sqrt{EG}}\frac{\partial G}{\partial u}\right) + \frac{\partial}{\partial v}\left(\frac{1}{\sqrt{EG}}\frac{\partial E}{\partial v}\right)\right].$$
 
-These are equivalent, and both lead to the *geodesic equation* in chart coordinates:
-$$\ddot{u_k} + \sum_{i,j}\Gamma^k_{ij}\dot{u_i}\dot{u_j} = 0\quad\text{for } k = 1, 2.$$
-
-This is a system of two coupled second-order ODEs in $u_1(t), u_2(t)$. Given initial conditions $(u_i(0), \dot{u_i}(0))$, there is a unique geodesic by ODE existence-uniqueness.
-
-![Geodesic equation in local coordinates](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/04-intrinsic-geometry/dg_v2_04_2_geodesic_eq.png)
-
-**Why this matters.** Geodesics are the "straight lines" of intrinsic geometry. They generalize Euclidean lines to curved spaces. A particle moving on a surface in the absence of forces (other than the constraint to stay on the surface) traces a geodesic — that is the physical content of the geodesic equation. In general relativity, geodesics on spacetime are the worldlines of inertial observers; bending of space replaces the Newtonian concept of gravitational force.
-
-The Christoffel symbols feed into the geodesic equation. Since they are intrinsic, geodesics are intrinsic: an ant on the surface can compute them.
-
-### Worked example: geodesics on the sphere
-
-Use $\mathbf{x}(\theta,\varphi)$ on the unit sphere. Geodesic equations:
-$$\ddot\theta + 2\cot\varphi\,\dot\theta\dot\varphi = 0,\qquad \ddot\varphi - \sin\varphi\cos\varphi\,\dot\theta^2 = 0.$$
-
-Look for a special class: a curve along a meridian, $\theta = $ const, has $\dot\theta = 0$. The first equation is automatically satisfied. The second becomes $\ddot\varphi = 0$, i.e. $\varphi$ is linear in $t$. So meridians (great circles through the poles), with $\varphi$ varying linearly in arc length, are geodesics.
-
-What about the equator? $\varphi = \pi/2$, $\dot\varphi = 0$. The second equation becomes $-\sin(\pi/2)\cos(\pi/2)\dot\theta^2 = 0$, automatically satisfied. The first becomes $\ddot\theta + 2\cot(\pi/2)\dot\theta\dot\varphi = \ddot\theta + 0 = 0$, so $\theta$ is linear in $t$. Equator with $\theta$ linear in arc length is a geodesic.
-
-By rotational symmetry of the sphere, *every* great circle is a geodesic. And in fact these are the only geodesics. **The geodesics on a sphere are exactly the great circles.** This recovers the classical fact familiar from spherical trigonometry.
-
-![Geodesics on the sphere are great circles](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/04-intrinsic-geometry/dg_v2_04_3_sphere_geodesic.png)
-
-What it does *not* recover: geodesics on a sphere are not unique (between antipodes there are infinitely many; otherwise two), do not minimize globally (going the "long way around" is a geodesic but not the shortest path), and in general the existence theorem is local.
-
-### Worked example: geodesics on the cylinder
-
-Cylinder $\mathbf{x}(u, v) = (\cos u, \sin u, v)$ has $\mathrm{I} = I_2$. All Christoffel symbols vanish (the metric is constant). Geodesic equations: $\ddot u = \ddot v = 0$. Solutions are $u(t) = a t + b$, $v(t) = c t + d$, which trace a *helix* on the cylinder (or a circle if $c = 0$, or a vertical line if $a = 0$).
-
-Helices, vertical lines, and horizontal circles. The straightest paths on the cylinder are these. And note: the cylinder is intrinsically flat (same as the plane), and on the plane the geodesics are straight lines $u = at+b$, $v = ct+d$. The mapping that rolls the plane onto the cylinder sends straight lines to helices (and the special cases — to circles and vertical lines). Isometry preserves geodesics.
-
-### Worked example: a torus
-
-The torus has variable Gaussian curvature, so geodesics can do strange things. The geodesic equation on a torus is non-integrable in general (it does not have closed-form solutions for arbitrary initial conditions), but two special families exist: meridians (small circles around the tube) and the curve "wrapping around the long way through the inner equator" (only on the inside of the torus).
-
-What is most interesting: most geodesics on a torus are dense in the torus. Pick a generic initial direction and the geodesic will, over time, cover an open set. By contrast, a periodic geodesic exists iff the initial slope is rational (in flat-torus coordinates).
-
-![Geodesics on a flat torus winding around at different rational and irrational slopes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/04-intrinsic-geometry/dg_v2_04_6_torus_geodesic.png)
-
-This dichotomy — closed orbits at rational slopes, dense orbits at irrational slopes — is the prototype of the modern theory of dynamical systems on tori.
-
----
-
-## Theorema Egregium
-
-Now the climax of classical surface theory.
-
-**Theorem (Gauss, 1827).** The Gaussian curvature $K$ of a surface is intrinsic: it can be computed from the first fundamental form alone, with no reference to the second fundamental form or the embedding.
-
-**What this means concretely.** If two surfaces are isometric — i.e. have the same first fundamental form — they have the same Gaussian curvature at corresponding points.
-
-![Theorema Egregium: K is intrinsic, computable from E, F, G alone](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/04-intrinsic-geometry/dg_v2_04_4_egregium.png)
-
-**Why this is remarkable.** $K$ was *defined* extrinsically: $K = \det(\text{shape operator}) = (LN - M^2)/(EG - F^2)$. The numerator $LN - M^2$ is built from the second fundamental form, which encodes how the surface bends in $\mathbb{R}^3$. There is no obvious reason this combination should be expressible without $\mathrm{II}$. And yet it is.
-
-**Sketch of proof.** Start with the *Gauss formula*: differentiate $\mathbf{x}_{ij}$ once more, using $\mathbf{x}_{ij} = \sum\Gamma^k_{ij}\mathbf{x}_k + L_{ij}\mathbf{n}$, and apply the symmetry $\mathbf{x}_{ijk} = \mathbf{x}_{ikj}$. The tangential parts give the *Gauss equations*, which after manipulation yield
-$$E\cdot K = (\Gamma^2_{12})_u - (\Gamma^2_{11})_v + \Gamma^1_{12}\Gamma^2_{11} - \Gamma^1_{11}\Gamma^2_{12} + \Gamma^2_{12}\Gamma^2_{12} - \Gamma^2_{11}\Gamma^2_{22},$$
-or in one of the many cleaner formulations (this is one of those formulas with a million presentations, none of them especially memorable),
-$$K = \frac{1}{\sqrt{EG-F^2}}\biggl[\partial_v\biggl(\frac{\sqrt{EG-F^2}}{E}\Gamma^2_{11}\biggr) - \partial_u\biggl(\frac{\sqrt{EG-F^2}}{E}\Gamma^2_{12}\biggr)\biggr].$$
-For an orthogonal chart ($F = 0$), Brioschi's formula simplifies to:
-$$K = -\frac{1}{2\sqrt{EG}}\biggl[\partial_v\biggl(\frac{E_v}{\sqrt{EG}}\biggr) + \partial_u\biggl(\frac{G_u}{\sqrt{EG}}\biggr)\biggr].$$
-For an isothermal chart ($E = G = \lambda$, $F = 0$):
+In isothermal (conformal) coordinates where $\mathrm{I} = \lambda(u,v)(du^2 + dv^2)$, the formula is particularly elegant:
 $$K = -\frac{1}{2\lambda}\Delta\log\lambda,$$
-where $\Delta = \partial_u^2 + \partial_v^2$ is the Euclidean Laplacian. *This* is the formula every working geometer remembers, because it is short and beautiful.
+where $\Delta = \partial_u^2 + \partial_v^2$ is the flat Laplacian. This makes the intrinsic nature visually obvious: $K$ is determined by $\lambda$ alone, which is the metric.
 
-The exact form of the formula matters less than the conclusion: $K$ depends only on $E, F, G$ and their derivatives. Hence on $\mathrm{I}$ alone. Hence is intrinsic. $\square$
+The proof of the Theorema Egregium proceeds by comparing two expressions for the quantity $\partial_i\Gamma^k_{jl} - \partial_j\Gamma^k_{il} + \text{quadratic terms in }\Gamma$'s. The equality of mixed third partials $\mathbf{x}_{ijk} = \mathbf{x}_{jik}$ (applied to the decomposition into tangential and normal parts) yields two sets of equations: the tangential part gives the *Gauss equation* (relating $K$ to Christoffel symbols), and the normal part gives the *Codazzi-Mainardi equations* (relating derivatives of $L, M, N$ to Christoffel symbols). The Gauss equation is the Theorema Egregium in formula form.
 
-**Consequence: cartography.** Sphere and plane have different Gaussian curvatures ($1/r^2$ vs $0$), so they are not locally isometric. There is no faithful flat map of even a small region of the sphere. Cartographers must compromise: preserve angles (Mercator, conformal but not isometric), preserve area (Gall-Peters, equal-area but not conformal), or some mix. They cannot preserve everything because $K$ would have to match.
+The key insight about *why* the theorem works: the combination $LN - M^2$ that defines $K$ (in the numerator of $K = (LN - M^2)/(EG - F^2)$) is precisely the combination that appears in the compatibility condition for the surface to exist. The compatibility condition is purely about the intrinsic metric (since it is about whether the embedding equations are consistent), so the combination it produces must also be intrinsic. This is not a coincidence — it is the geometry forcing the algebra.
 
-**Consequence: bending.** A surface can be bent (deformed isometrically) only in ways that preserve $K$. The Theorema Egregium puts a hard constraint on what deformations are possible.
+**Consequences that flow immediately:**
 
-![An isometry preserves Gaussian curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/04-intrinsic-geometry/dg_v2_04_5_isometry.png)
+1. *Isometries preserve $K$.* If two surfaces are isometric (same first fundamental form), they have the same Gaussian curvature at corresponding points. The cylinder and the plane both have $K = 0$ — consistent with being isometric. The sphere ($K = 1/r^2$) and the plane ($K = 0$) are not isometric — no distance-preserving map between them exists. This is the mathematical reason why every flat map of the Earth distorts.
 
----
+2. *Bending preserves $K$.* Bending a surface (deforming it without stretching) is an isometry. So bending cannot change $K$. Roll a flat piece of paper into a cylinder: $K$ stays at zero. Try to bend paper into a sphere: impossible without stretching, because the sphere has $K > 0$.
 
-## Worked Example: $K$ on the Sphere via the Intrinsic Formula
+3. *$H$ is genuinely extrinsic.* The plane has $H = 0$; the cylinder has $H = 1/(2r) \neq 0$. They are isometric, but $H$ differs. Mean curvature detects the embedding; Gaussian curvature does not.
 
-Spherical coordinates: $E = \sin^2\varphi$, $G = 1$, $F = 0$. Use Brioschi's orthogonal-chart formula:
-$$K = -\frac{1}{2\sqrt{EG}}\biggl[\partial_v\biggl(\frac{E_v}{\sqrt{EG}}\biggr) + \partial_u\biggl(\frac{G_u}{\sqrt{EG}}\biggr)\biggr].$$
-Here $u = \theta$, $v = \varphi$, so $E_v = E_\varphi = 2\sin\varphi\cos\varphi = \sin 2\varphi$, $G_u = 0$. Then
-$$K = -\frac{1}{2\sin\varphi}\cdot\partial_\varphi\biggl(\frac{\sin 2\varphi}{\sin\varphi}\biggr) = -\frac{1}{2\sin\varphi}\cdot\partial_\varphi(2\cos\varphi) = -\frac{1}{2\sin\varphi}\cdot(-2\sin\varphi) = 1.$$
+Gauss himself was reportedly surprised by this result. The *definition* of $K$ involves the Gauss map and the shape operator — manifestly extrinsic objects — yet the *value* depends only on the intrinsic metric. He called it "egregium" (remarkable), and the name stuck. It is a rare case in mathematics where the discoverer's excitement is preserved in the theorem's official name.
 
-Constant $K = 1$ on the unit sphere. We computed this before via the extrinsic shape operator; now we see it falls out of the intrinsic formula too. The point of the exercise is not the answer — we knew the answer — but that no extrinsic data was used.
+A historical note: Gauss proved this during his work surveying the Kingdom of Hanover (1821-1825). The practical question was: can you make an accurate flat map of a piece of the Earth's surface? The Theorema Egregium gives the definitive answer: no, because the Earth (approximately a sphere with $K > 0$) cannot be flattened (to a surface with $K = 0$) without distorting distances somewhere. Every cartographic projection — Mercator, Lambert, etc. — introduces distortion, and the Theorema Egregium explains why this is unavoidable.
 
-### Worked example: $K$ on the helicoid
+This has quantifiable implications for navigation and mapmaking. The Mercator projection preserves angles but distorts areas (Greenland appears as large as Africa on a Mercator map, though Africa is 14 times larger). The equal-area projections preserve areas but distort angles. No projection preserves both simultaneously — this follows directly from the Theorema Egregium, since preserving both angles and areas would be an isometry, and no isometry from the sphere to the plane exists. Gauss's surveying work (which produced the triangulation of Hanover) was the practical context that led him to these theoretical insights. The most profound theorem of classical differential geometry emerged from the mundane problem of making accurate maps.
 
-Helicoid $\mathbf{x}(u, v) = (v\cos u, v\sin u, c u)$ has $\mathrm{I} = \mathrm{diag}(v^2 + c^2, 1)$. Use Brioschi:
-$E = v^2 + c^2$, $G = 1$, $\sqrt{EG} = \sqrt{v^2+c^2}$, $E_v = 2v$.
-$$K = -\frac{1}{2\sqrt{v^2+c^2}}\partial_v\biggl(\frac{2v}{\sqrt{v^2+c^2}}\biggr).$$
-Compute the inner derivative: $\partial_v(2v/\sqrt{v^2+c^2}) = 2/\sqrt{v^2+c^2} - 2v^2/(v^2+c^2)^{3/2} = 2c^2/(v^2+c^2)^{3/2}$. So
-$$K = -\frac{1}{2\sqrt{v^2+c^2}}\cdot\frac{2c^2}{(v^2+c^2)^{3/2}} = -\frac{c^2}{(v^2+c^2)^2}.$$
+A related consequence for geodesy: the shape of the Earth is determined (locally) by the Gaussian curvature of its surface. If you measure $K$ at every point (by measuring angles of triangles, per the Gauss-Bonnet local theorem), you know the intrinsic geometry completely. Two planets with the same curvature distribution have the same intrinsic geometry — even if one is round and the other is wrinkled — because the Theorema Egregium makes the shape operator irrelevant for intrinsic questions.
 
-Negative. Decays as $|v|\to\infty$. The helicoid is hyperbolic everywhere, with curvature concentrated near the central axis.
-
-### Worked example: catenoid is isometric to helicoid
-
-The catenoid is the surface of revolution of $\rho(v) = c\cosh(v/c)$, $z(v) = v$. Its first fundamental form (after computation) is $\mathrm{I} = \cosh^2(v/c)\,\mathrm{diag}(c^2, 1)$ in some parametrization, which after a change of variables matches the helicoid's metric.
-
-Hence $K_{\text{catenoid}} = K_{\text{helicoid}} = -c^2/(v^2+c^2)^2$ at corresponding points. Two surfaces that look entirely different in $\mathbb{R}^3$ — one a screw shape, the other a soap film between two rings — are intrinsically the same. Bending takes one to the other.
-
-This is the most striking example of the Theorema Egregium in action: same $\mathrm{I}$, hence same $K$, hence the surfaces are "the same" intrinsically, even though their extrinsic geometry (and visual appearance) is wildly different.
+**Verification on the isothermal formula.** For the unit sphere with stereographic coordinates, $\lambda = 4/(1 + u^2 + v^2)^2$. Then $\log\lambda = \log 4 - 2\log(1 + r^2)$ where $r^2 = u^2 + v^2$. Computing $\Delta\log(1 + r^2)$: in polar form, $\Delta f(r) = f'' + f'/r$. With $f = \log(1+r^2)$: $f' = 2r/(1+r^2)$, $f'' = (2(1+r^2) - 4r^2)/(1+r^2)^2 = (2 - 2r^2)/(1+r^2)^2$. So $\Delta f = (2-2r^2)/(1+r^2)^2 + 2/(1+r^2) = 4/(1+r^2)^2$. Then $\Delta\log\lambda = -8/(1+r^2)^2 = -2\lambda$. By the isothermal formula: $K = -\frac{1}{2\lambda}(-2\lambda) = 1$. Constant unit curvature on the sphere, computed purely from the metric. No shape operator, no normal vector, no embedding information used.
 
 ---
 
-## Parallel Transport
+## Geodesics: The Straight Lines of Intrinsic Geometry
 
-Once we have Christoffel symbols, we can describe how to "transport" a tangent vector along a curve so that it remains "parallel" to itself.
+With Christoffel symbols in hand, we can define the curves that play the role of "straight lines" on a curved surface. In flat space, a straight line has zero acceleration. On a surface, the analog is a curve whose *tangential* acceleration vanishes — it does not steer within the surface, and any acceleration it has is purely normal (forced by the constraint of staying on the surface).
 
-**Definition.** Given a curve $\gamma(t)$ on $S$ and a vector field $\mathbf{V}(t)\in T_{\gamma(t)}S$ along $\gamma$, $\mathbf{V}$ is *parallel-transported* along $\gamma$ if
-$$\frac{D\mathbf{V}}{dt} := \mathbf{V}'(t)^{\text{tangential}} = 0,$$
-i.e. the derivative of $\mathbf{V}$ in $\mathbb{R}^3$ has no tangential component (only a normal component).
+A curve $\gamma(t) = \mathbf{x}(u_1(t), u_2(t))$ on a surface has an acceleration $\gamma''$ that decomposes into tangential and normal parts. The tangential part is the *covariant derivative* of $\gamma'$ along $\gamma$:
+$$\frac{D\gamma'}{dt} = \sum_k\left(\ddot u_k + \sum_{i,j}\Gamma^k_{ij}\dot u_i\dot u_j\right)\mathbf{x}_k.$$
 
-In coordinates $\mathbf{V} = V^1\mathbf{x}_1 + V^2\mathbf{x}_2$:
-$$\frac{D V^k}{dt} = \dot{V^k} + \sum_{i,j}\Gamma^k_{ij}\dot{u_i}V^j = 0.$$
+A *geodesic* is a curve for which this tangential acceleration is identically zero:
+$$\ddot u_k + \sum_{i,j}\Gamma^k_{ij}\dot u_i\dot u_j = 0, \qquad k = 1, 2.$$
 
-Linear ODE in $V^1, V^2$ given the curve. Existence-uniqueness gives a parallel transport map $P_\gamma: T_{\gamma(0)}S\to T_{\gamma(1)}S$ for each curve. It is a linear isomorphism preserving the metric (norm and angles are preserved during parallel transport — this is a consequence of the Christoffel symbol formula).
+This is a system of two second-order ODEs. By the Picard-Lindelof theorem, given any point $p \in S$ and any tangent vector $\mathbf{v} \in T_pS$, there exists a unique geodesic through $p$ with initial velocity $\mathbf{v}$ (at least for short time). Geodesics are determined by initial point and direction, just like straight lines in Euclidean space.
 
-**The geodesic, restated.** A geodesic is a curve along which the *tangent vector* is parallel-transported. So $\dot\gamma(t) = $ (tangent), and $D\dot\gamma/dt = 0$, which unwinds to the geodesic equation.
+Three equivalent characterizations, each with different intuitive content:
+1. **Zero tangential acceleration.** The curve does not "steer" within the surface. All its acceleration comes from the constraint of staying on the surface (normal acceleration). Imagine a ball bearing sliding on a frictionless surface with no gravity — it traces a geodesic.
+2. **Locally length-minimizing.** Among all nearby curves connecting two close points, the geodesic is the shortest. (Warning: this is only local — geodesics can fail to be globally shortest, like the "long way around" on a great circle.)
+3. **Zero geodesic curvature.** The geodesic curvature $\kappa_g$ — the in-plane turning rate — vanishes identically. The curve goes "straight" in the sense of not turning within the surface, even though it may curve when viewed from $\mathbb{R}^3$.
 
-**Holonomy.** If $\gamma$ is a closed loop, $P_\gamma: T_pS\to T_pS$ need not be the identity. The amount it differs from the identity (a rotation in $T_pS$) is the *holonomy* of the loop. On a flat surface, holonomy is trivial. On a curved surface, holonomy is non-trivial, and in fact: the holonomy around a small loop equals the integral of $K$ over the enclosed region. This is the simplest version of the connection between curvature and the failure of parallel transport to be path-independent. We will see it again in chapter 5 (Gauss-Bonnet) and chapter 11 (curvature on manifolds).
+On the unit sphere, geodesics are great circles — the curves of maximal radius. On a cylinder, geodesics are helices (including the special cases of straight lines along the axis and circles around the cylinder). On the Poincare disk model of the hyperbolic plane, geodesics are circular arcs perpendicular to the boundary circle (plus diameters).
 
----
+**Worked example: geodesic equations on the sphere.** With $\Gamma^\theta_{\theta\varphi} = \cot\varphi$ and $\Gamma^\varphi_{\theta\theta} = -\sin\varphi\cos\varphi$ (all others zero), the geodesic equations are:
+$$\ddot\theta + 2\cot\varphi\,\dot\theta\dot\varphi = 0, \qquad \ddot\varphi - \sin\varphi\cos\varphi\,\dot\theta^2 = 0.$$
 
-## Intrinsic vs Extrinsic, Made Precise
+The first equation can be written as $\frac{d}{dt}(\sin^2\varphi\,\dot\theta) = 0$, giving the conservation law $\sin^2\varphi\,\dot\theta = c$ (constant). This is *Clairaut's relation*: along a geodesic on a surface of revolution, $\rho\sin\psi = $ const, where $\rho$ is the distance from the axis of revolution and $\psi$ is the angle between the geodesic and the parallel (circle of latitude). It is a conservation of angular momentum, reflecting the rotational symmetry.
 
-Let me draw the line one more time, carefully.
+Clairaut's relation immediately tells us qualitative facts about geodesics on the sphere: a geodesic that starts heading "eastward" ($\psi$ near $\pi/2$) at a low latitude ($\rho$ large) will maintain the product $\rho\sin\psi$. As it moves toward the pole ($\rho \to 0$), it must have $\sin\psi \to \infty$... which is impossible, so instead the geodesic turns back before reaching the pole. The only geodesics that reach the pole are the meridians ($\psi = 0$, giving $c = 0$). Great circles indeed.
 
-**Intrinsic quantities** (computable from $\mathrm{I}$ alone):
-- Lengths, angles, areas (chapter 2).
-- Christoffel symbols.
-- Gaussian curvature $K$ (Theorema Egregium).
-- Geodesics.
-- Parallel transport.
-- Holonomy.
+**More worked examples.** On a cylinder of radius $r$ (with metric $ds^2 = r^2\,d\theta^2 + dz^2$), the Christoffel symbols all vanish (the metric coefficients are constant). The geodesic equations reduce to $\ddot\theta = 0$ and $\ddot z = 0$, so geodesics are curves with $\theta(t) = at + b$ and $z(t) = ct + d$ — helices, with pitch depending on the ratio $c/a$. Special cases: $a = 0$ gives vertical lines along the axis; $c = 0$ gives circles around the cylinder. If you unroll the cylinder flat, every helix becomes a straight line — a concrete demonstration that geodesics are "intrinsic straight lines" preserved under isometry.
 
-**Extrinsic quantities** (require $\mathrm{II}$ or the embedding):
-- The Gauss map $N: S\to S^2$.
-- The shape operator $S_p$.
-- Principal curvatures $k_1, k_2$.
-- Mean curvature $H$.
-- Normal curvature $\kappa_n$ in a direction.
-- Asymptotic and umbilic directions.
+On a cone with half-angle $\alpha$, parametrized by $\mathbf{x}(u, v) = (v\sin\alpha\cos u, v\sin\alpha\sin u, v\cos\alpha)$, the metric is $ds^2 = v^2\sin^2\alpha\,du^2 + dv^2$. Clairaut's relation gives $v\sin\alpha\sin\psi = $ const. The geodesics can be understood by unrolling the cone into a flat sector of angle $2\pi\sin\alpha$: geodesics on the cone correspond to straight lines in the sector. When you roll the sector back into a cone, the straight lines become curves that generally do not close up — they spiral around the cone, approaching the apex and then receding. Only specific initial conditions produce closed geodesics.
 
-The Theorema Egregium is the precise sense in which $K$ slipped from the right column to the left. $H$ stayed on the right.
-
-![Intrinsic vs extrinsic geometry separated](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/04-intrinsic-geometry/dg_v2_04_7_intrinsic_extrinsic.png)
-
-**Why this matters.** The intrinsic-only quantities are the ones that survive "abstraction" to manifolds without an embedding. We can talk about Christoffel symbols and Gaussian curvature on a Riemannian manifold without ever placing it in $\mathbb{R}^n$. This is the philosophical move that makes general relativity possible: spacetime is intrinsically curved, with no embedding into a flat higher-dimensional space.
+The variational perspective ties geodesics to physics. The geodesic equation is the Euler-Lagrange equation for the energy functional $E(\gamma) = \frac{1}{2}\int_0^1 |\gamma'|^2\,dt = \frac{1}{2}\int_0^1 \sum_{ij} g_{ij}\dot u_i\dot u_j\,dt$. Minimizing energy (with fixed endpoints) yields the same curves as minimizing length, but with the additional property that the parametrization is proportional to arc length. This variational formulation — geodesics as extremals of an action integral — is exactly the principle of least action in mechanics. A free particle on a curved surface moves along geodesics because it minimizes the kinetic energy integral. The connection between geometry (shortest paths) and physics (least action) is deep and recurs throughout modern mathematical physics.
 
 ---
 
-## Constant Curvature Surfaces
+## Parallel Transport and the Geometry of Holonomy
 
-A natural question: which surfaces have constant Gaussian curvature?
+Geodesics are intrinsic "straight lines." But there is a subtler intrinsic concept: carrying a vector along a curve without "rotating" it within the surface. This is *parallel transport*.
 
-**Three model surfaces** (up to similarity):
-- $K = 1$: unit sphere.
-- $K = 0$: plane (or cylinder, or any flat surface).
-- $K = -1$: hyperbolic plane (locally realized by the pseudosphere; not as a complete embedded surface in $\mathbb{R}^3$ by Hilbert's theorem).
+Given a curve $\gamma(t)$ on $S$ and an initial tangent vector $\mathbf{v}_0 \in T_{\gamma(0)}S$, we seek a vector field $V(t)$ along $\gamma$ that is "constant" in the intrinsic sense — its covariant derivative along $\gamma$ vanishes:
+$$\frac{DV}{dt} = \sum_k\left(\dot V^k + \sum_{i,j}\Gamma^k_{ij}\dot u_i V^j\right)\mathbf{x}_k = 0.$$
 
-**Theorem (Minding, 1839).** Two surfaces with the same constant Gaussian curvature are locally isometric.
+This is a linear first-order ODE system in $V^k(t)$, so it has a unique solution for any initial $\mathbf{v}_0$. Parallel transport from $\gamma(0)$ to $\gamma(1)$ is a linear isomorphism $P_\gamma: T_{\gamma(0)}S \to T_{\gamma(1)}S$ that preserves inner products (since the Christoffel symbols come from a metric-compatible connection).
 
-This is a wonderful theorem. It says that constant curvature is the *only* intrinsic invariant in the locally homogeneous case. Two pieces of unit sphere are locally isometric. Two pieces of pseudosphere are locally isometric. Two pieces of plane are locally isometric. But sphere is not isometric to plane is not isometric to pseudosphere.
+A geodesic is precisely a curve whose tangent vector is parallel-transported along itself: $D\gamma'/dt = 0$. A geodesic "goes straight" because it carries its own direction without rotating.
 
-The hyperbolic plane (constant $K = -1$, simply connected, complete) is the central object of non-Euclidean geometry. It is the model space where the parallel postulate fails: through a point not on a line, there are infinitely many lines (geodesics) that do not intersect the given line. This was the great discovery of Bolyai and Lobachevsky in the 1820s, predating Gauss's published work but anticipated by Gauss in unpublished correspondence.
+Now here is the phenomenon that makes curved geometry fundamentally different from flat geometry: *parallel transport around a closed loop does not return the vector to its starting direction*. On a flat surface, carrying a vector around any closed path brings it back unchanged. On a curved surface, the vector comes back rotated. The angle of rotation is the *holonomy* of the loop.
 
----
+The canonical demonstration: parallel-transport a tangent vector around the boundary of the right-angled spherical triangle (one-eighth of the unit sphere). Start at the north pole with a vector pointing along a meridian (say, toward $(1,0,0)$). Walk south along the meridian to the equator: parallel transport along a geodesic preserves the angle with the geodesic, so the vector stays pointing south. At the equator, turn east and walk a quarter of the equator: the vector maintains its angle with the equator (which is also a geodesic), so it stays pointing south. At the point $(0,1,0)$, walk north back to the pole: again parallel transport along a geodesic. The vector arrives at the pole... but now it points toward $(0,1,0)$, which is $90°$ rotated from the initial direction toward $(1,0,0)$.
 
-## Summary
+The vector has been rotated by $\pi/2$ after traversing a loop enclosing area $\pi/2$. On the unit sphere with $K = 1$, the holonomy equals $K \cdot \text{Area} = 1 \cdot \pi/2 = \pi/2$. This is not a coincidence. For any surface, for a small loop enclosing area $\Delta A$ in a region of approximately constant $K$, the holonomy angle is approximately $K \cdot \Delta A$. This is a precise intrinsic characterization of Gaussian curvature: *$K$ is the holonomy per unit area*.
 
-We have transitioned decisively from extrinsic to intrinsic surface geometry.
+Foucault's pendulum provides a physical realization. A pendulum swinging at latitude $\varphi$ on Earth has its plane of oscillation parallel-transported along the daily rotation path (a circle of latitude). The enclosed spherical cap has area $2\pi(1 - \cos\varphi)$, and with $K = 1/R^2$ for a sphere of radius $R$, the holonomy per day is $2\pi(1 - \cos\varphi) \cdot K \cdot R^2 = 2\pi(1 - \cos\varphi)$... actually, more precisely, the daily rotation of the pendulum plane is $2\pi\sin\varphi$ (as observed by Foucault), which is the solid angle subtended by the circle of latitude. The point is: the precession of the pendulum is a physical manifestation of holonomy, and holonomy is curvature integrated over area.
 
-- **Christoffel symbols** $\Gamma^k_{ij}$ are computable from $\mathrm{I}$ alone, encoding how the basis frame turns.
-- **Geodesic equation** $\ddot u_k + \sum_{ij}\Gamma^k_{ij}\dot u_i\dot u_j = 0$ describes the "straight lines" of intrinsic geometry. Solutions are uniquely determined by initial point and direction.
-- **Parallel transport** moves vectors along a curve preserving "tangentiality"; geodesics are the curves whose tangent is parallel-transported.
-- **Theorema Egregium** says $K$ is intrinsic, i.e. determined by $\mathrm{I}$. Same metric, same $K$, regardless of embedding.
-- **Cartography is impossible**: sphere and plane have different $K$, so no faithful flat map exists.
-- **Helicoid and catenoid are isometric**, illustrating the Theorema Egregium dramatically.
-- **Constant curvature surfaces** are the three model spaces: sphere, plane, hyperbolic plane.
+The holonomy phenomenon has deep consequences for physics beyond Foucault's pendulum. In quantum mechanics, Berry's geometric phase arises when a quantum state is parallel-transported around a loop in parameter space: the state acquires a phase factor determined by the "curvature" of the parameter-space connection. In gauge theory, the Wilson loop — the holonomy of a gauge connection around a closed path — is a fundamental observable that encodes the field strength. Both are direct generalizations of the surface-level phenomenon we just described: curvature manifests as holonomy, the failure of parallel transport to return to its starting value.
 
-The next chapter (Gauss-Bonnet) brings the global picture: integrating $K$ over a closed surface yields a topological invariant ($2\pi$ times the Euler characteristic). This is the bridge from local differential geometry to global topology, and it is one of the most beautiful theorems in mathematics.
+The connection to the Theorema Egregium is now complete. We have three equivalent characterizations of Gaussian curvature, all intrinsic:
+1. The formula $K = -\frac{1}{2\lambda}\Delta\log\lambda$ in isothermal coordinates (computed from the metric).
+2. The holonomy per unit area (measured by parallel transport around small loops).
+3. The angle excess per unit area of geodesic triangles (measured by geodesic triangles).
+
+All three give the same number $K$, all three are computable from $\mathrm{I}$ alone, and all three make the Theorema Egregium geometrically obvious once you accept that parallel transport and geodesics are intrinsic operations. The surprising thing is that this same $K$ also equals the *extrinsic* formula $\det(S) = (LN - M^2)/(EG - F^2)$ involving the shape operator. The Theorema Egregium says: these are the same number. The intrinsic characterizations and the extrinsic formula agree — always.
 
 ---
 
-## Appendix: More Geodesic Examples
+## Isometry, Constant Curvature, and the Three Model Geometries
 
-### Geodesics on a surface of revolution
+The Theorema Egregium opens a classification program: since isometries preserve $K$, surfaces with different $K$ are never isometric. What are the surfaces of constant curvature?
 
-For a surface of revolution with chart $\mathbf{x}(u, v) = (\rho(v)\cos u, \rho(v)\sin u, z(v))$ in arc-length parametrization of the profile (so $(\rho')^2 + (z')^2 = 1$), the metric is $\mathrm{I} = \mathrm{diag}(\rho^2, 1)$. Christoffel symbols (after computation):
-$$\Gamma^u_{uv} = \rho'/\rho,\qquad \Gamma^v_{uu} = -\rho\rho'.$$
+**Theorem (Minding, 1839).** Any two surfaces with the same constant Gaussian curvature are locally isometric. That is, small patches of one can be mapped isometrically onto small patches of the other.
 
-Geodesic equations:
-$$\ddot u + 2(\rho'/\rho)\dot u\dot v = 0,\qquad \ddot v - \rho\rho'\dot u^2 = 0.$$
+This means the local geometry of a surface of constant curvature is completely determined by the value of $K$. There are exactly three cases:
 
-The first equation can be written $d/dt(\rho^2\dot u) = 0$, so $\rho^2\dot u = L$ is a conserved quantity. This is *Clairaut's relation*: along a geodesic on a surface of revolution, the quantity $\rho\sin\psi = L/\sqrt{\rho^2(\dot u^2 + (\dot v/\rho)^2/\rho^{-2})\cdot\text{stuff}}$ — let me just state it cleanly:
+**$K > 0$ (spherical geometry).** The model space is the sphere of radius $1/\sqrt{K}$. Geodesics are great circles. Any two geodesics intersect (there are no "parallels"). The angle sum of a geodesic triangle exceeds $\pi$ by an amount equal to the area times $K$. The total area of the sphere is $4\pi/K$. Every point looks the same as every other (homogeneity).
 
-**Clairaut's theorem.** If $\gamma$ is a geodesic on a surface of revolution and $\psi$ is the angle between $\gamma'$ and the parallel direction, then $\rho\sin\psi$ is constant along $\gamma$.
+**$K = 0$ (Euclidean geometry).** The model space is the plane. Geodesics are straight lines. The parallel postulate holds. The angle sum of any triangle is exactly $\pi$. Flat, infinite, familiar.
 
-This is a classical conservation law (essentially angular momentum: rotational symmetry of the metric). It allows hand-computation of geodesics on cones, paraboloids, hyperboloids, and the like.
+**$K < 0$ (hyperbolic geometry).** The model space is the hyperbolic plane $\mathbb{H}^2$. Geodesics diverge exponentially. Through any point not on a given geodesic, infinitely many geodesics pass that never intersect the given one (violating Euclid's parallel postulate). The angle sum of a geodesic triangle is less than $\pi$ by an amount equal to the area times $|K|$. There is more area at a given "radius" than in Euclidean geometry — hyperbolic space is "roomier" than flat space.
 
-For example, on a cone $\rho(v) = v\sin\alpha$, $z(v) = v\cos\alpha$ (a cone of half-angle $\alpha$), the metric is $\mathrm{I} = \mathrm{diag}(v^2\sin^2\alpha, 1)$. Geodesics: cut the cone along a generator and unroll it; you get a sector of a flat disk, on which geodesics are straight lines. Pull back to the cone: the unrolled straight line corresponds to a curve that wraps around the cone, making constant angle with the generators (by Clairaut).
+The hyperbolic plane was the great geometric discovery of the 19th century. Bolyai and Lobachevsky (independently, around 1830) realized that negating the parallel postulate leads to a consistent geometry. The Theorema Egregium and Minding's theorem showed this was not just a logical curiosity but a genuine geometric space — the geometry of surfaces with constant negative curvature. The pseudosphere (tractrix of revolution) provides a concrete piece of this geometry embedded in $\mathbb{R}^3$, though Hilbert (1901) proved no complete smooth embedding exists.
 
-### Geodesics on the pseudosphere
+The Poincare disk model represents $\mathbb{H}^2$ as the unit disk with the metric $ds^2 = 4(du^2 + dv^2)/(1 - u^2 - v^2)^2$. The isothermal formula gives $K = -1$. Geodesics are circular arcs perpendicular to the boundary circle, and the boundary itself represents "infinity" (infinitely far away in the hyperbolic metric, though visually finite in the Euclidean picture). The stunning images of M.C. Escher's "Circle Limit" series are tilings of the Poincare disk by congruent hyperbolic polygons.
 
-The pseudosphere has constant $K = -1$, and its geodesics are the curves of *non-Euclidean geometry*. They can be described via the Klein model or the Poincaré disk model — but in a chart on the pseudosphere itself, they are tractrix-like curves. Computing them explicitly is an exercise in solving the geodesic ODEs with the pseudosphere's metric.
+A concrete pair illustrating the Theorema Egregium: the helicoid and catenoid. Both are minimal surfaces with negative Gaussian curvature, and there exists a one-parameter family of isometric deformations between them. You can physically bend one into the other (without stretching) by a continuous motion. Their $K$ functions are identical at corresponding points — as the Theorema Egregium guarantees — even though one is a helicoidal ramp and the other is a neck-shaped surface of revolution. They look completely different extrinsically but are intrinsically the same surface.
 
-The fascinating fact: the pseudosphere realizes (a piece of) the *upper half plane model* of hyperbolic geometry, in the metric $ds^2 = (du^2 + dv^2)/v^2$ for $v > 0$. Geodesics in this model are vertical lines and semicircles centered on the $u$-axis. Two geodesics through a common point can have arbitrarily small angle without ever meeting again, which is the violation of Euclid's parallel postulate.
+A subtler example: two non-isometric surfaces can have the same $K$ function without being isometric. What makes the helicoid-catenoid pair special is not just that they have the same $K$, but that there is a global isometry between them (an explicit map preserving $\mathrm{I}$). Having the same $K$ is necessary for isometry (by the Theorema Egregium) but not sufficient — the full first fundamental form must match, not just its derived quantity $K$.
 
----
-
-## Appendix: A Concrete Computation of $K$ via $\Delta\log\lambda$
-
-For the unit sphere with isothermal coordinates from stereographic projection: $\mathbf{x}(u, v)$ has metric $\mathrm{I} = \lambda(u, v)\,I_2$ with
-$$\lambda(u, v) = \frac{4}{(1 + u^2 + v^2)^2}.$$
-
-Then $\log\lambda = \log 4 - 2\log(1+u^2+v^2)$. The Laplacian:
-$$\Delta\log\lambda = -2\Delta\log(1+u^2+v^2).$$
-
-Compute $\Delta\log(1+u^2+v^2)$. Let $r^2 = u^2+v^2$. Then $\log(1+r^2)$, and using polar Laplacian $\Delta f(r) = f'' + f'/r$:
-$$f(r) = \log(1+r^2),\quad f'(r) = 2r/(1+r^2),\quad f''(r) = (2(1+r^2) - 2r\cdot 2r)/(1+r^2)^2 = (2 - 2r^2)/(1+r^2)^2.$$
-$$\Delta f = f'' + f'/r = (2-2r^2)/(1+r^2)^2 + 2/(1+r^2) = \bigl[(2-2r^2) + 2(1+r^2)\bigr]/(1+r^2)^2 = 4/(1+r^2)^2.$$
-
-So $\Delta\log\lambda = -8/(1+r^2)^2 = -2\lambda$. By the isothermal-chart formula:
-$$K = -\frac{1}{2\lambda}\Delta\log\lambda = -\frac{1}{2\lambda}\cdot(-2\lambda) = 1.$$
-
-Constant unit Gaussian curvature on the sphere. We have computed this three different ways now: from the shape operator, from Brioschi's formula, and from the isothermal-chart formula. All give the same answer, as the Theorema Egregium predicts.
+The three model spaces also admit beautiful explicit descriptions of their geodesics. On the sphere of radius $R$: every geodesic is a great circle of circumference $2\pi R$; any two geodesics intersect (there are no parallels); the geodesic distance between antipodal points is $\pi R$ (the farthest two points can be on a sphere). On the Euclidean plane: geodesics are infinite straight lines; two geodesics either intersect once or are parallel; there is no maximum distance. On the hyperbolic plane of curvature $-1$: geodesics are infinite and diverge exponentially from each other; through a point not on a given geodesic, infinitely many geodesics pass that never intersect the given one. The exponential divergence of geodesics is measured by the rate at which nearby geodesics separate: on a surface of constant curvature $K$, two initially parallel geodesics at distance $d$ apart diverge as $d(t) \sim d(0)\cosh(t\sqrt{|K|})$ when $K < 0$, remain constant when $K = 0$, and reconverge as $d(t) \sim d(0)\cos(t\sqrt{K})$ when $K > 0$. This is the *Jacobi equation* in action, and it explains why negative curvature makes spaces feel "bigger" (geodesics spread apart) while positive curvature makes them feel "smaller" (geodesics reconverge).
 
 ---
 
-## Appendix: The Failure of Triangle Sums
+## Geodesic Curvature and the Bridge to Gauss-Bonnet
 
-A classical probe of intrinsic curvature is the angle sum of a geodesic triangle. On a sphere, a "geodesic triangle" is a region bounded by three arcs of great circles. The angle sum $A + B + C$ is *not* $\pi$; it is $\pi + (\text{area})/r^2$. So the angle excess over $\pi$ equals area divided by $r^2 = $ area times $K$.
+One more intrinsic quantity completes the toolkit: *geodesic curvature*. For a unit-speed curve $\gamma$ on a surface, the acceleration $\gamma''$ in $\mathbb{R}^3$ splits into normal and tangential parts. The normal part is $\kappa_n\mathbf{n}$ (normal curvature, extrinsic). The tangential part defines the geodesic curvature:
+$$\kappa_g = (\gamma'')^{\mathrm{tan}} \cdot (\mathbf{n} \times \gamma'),$$
+measuring how fast the tangent vector $\gamma'$ rotates *within the tangent plane* as we move along $\gamma$.
 
-For a triangle with three right angles at the corners (one at the north pole, two at points on the equator), the angle sum is $3\pi/2$, the excess is $\pi/2$, and the area is exactly $\pi r^2/2$ — one-eighth of the sphere's surface. Numerically consistent.
+A geodesic has $\kappa_g \equiv 0$: its tangent does not rotate in-plane. A circle of latitude on a sphere (other than the equator, which is a geodesic) has nonzero $\kappa_g$ — it is constantly turning within the surface to maintain its latitude. The equator has $\kappa_g = 0$ because it is a great circle; other circles of latitude have $\kappa_g = \cot\varphi$ (where $\varphi$ is the colatitude), measuring their deviation from being geodesics.
 
-On the hyperbolic plane, the angle sum is *less* than $\pi$, and the deficit equals area times $|K|$. Triangles in negative curvature have "skinny" angles.
+The total curvature of $\gamma$ as a space curve satisfies $\kappa^2 = \kappa_n^2 + \kappa_g^2$, partitioning into extrinsic and intrinsic parts. Crucially, $\kappa_g$ is computable from $\mathrm{I}$ alone — it is intrinsic. This makes it available on abstract manifolds where there is no ambient space.
 
-This is, in retrospect, just the Gauss-Bonnet theorem applied to a triangle (which we will see formally next chapter). But it gives an experimental way for an ant on the surface to detect curvature: draw a triangle, measure the angles, sum them. If they sum to more than $\pi$, the surface has positive $K$ at that location. If less, negative. If exactly $\pi$, zero. The ant has just measured the curvature without leaving the surface — a direct demonstration of the Theorema Egregium's significance.
+Why emphasize $\kappa_g$? Because it is the boundary ingredient in the Gauss-Bonnet theorem (next chapter):
+$$\iint_T K\,dA + \int_{\partial T}\kappa_g\,ds + \sum_i\theta_i = 2\pi.$$
 
----
+This formula connects three things: the curvature of the region's interior ($K$), the turning of the smooth boundary ($\kappa_g$), and the angular jumps at corners ($\theta_i$). All three are intrinsic. They must conspire to give $2\pi$ — the angle of one full rotation. When $K = 0$ and there are no corners, the boundary must turn through exactly $2\pi$: this is the flat-space theorem that a simple closed curve has winding number $\pm 1$. Nonzero $K$ "uses up" some of this turning budget internally, so the boundary can turn less (on a positively curved surface) or must turn more (on a negatively curved surface) to compensate.
 
-## Appendix: Local vs Global Distinctions
+A worked example brings this to life. Take a geodesic disk of radius $r$ on the unit sphere (the set of all points within geodesic distance $r$ of the north pole — this is a spherical cap bounded by a circle of latitude). The boundary is a circle of latitude at colatitude $\varphi = r$. Its geodesic curvature is $\kappa_g = \cot r$ (pointing inward). The integrated geodesic curvature is $\int\kappa_g\,ds = \cot r \cdot 2\pi\sin r = 2\pi\cos r$. The area of the cap is $2\pi(1 - \cos r)$, so $\iint K\,dA = 2\pi(1-\cos r)$ (with $K = 1$). Check: $2\pi(1-\cos r) + 2\pi\cos r = 2\pi$. The local Gauss-Bonnet formula is satisfied. As $r \to 0$, the curvature term shrinks and the boundary turning approaches $2\pi$ (a small circle turns almost all the way around, as in flat space). As $r \to \pi/2$ (a hemisphere), the curvature term gives $2\pi(1 - 0) = 2\pi$ and the boundary turning is $2\pi\cos(\pi/2) = 0$ — the equator is a geodesic ($\kappa_g = 0$), and all the "turning" comes from the interior curvature. As $r \to \pi$ (the whole sphere minus a point), the curvature gives nearly $4\pi$ and the boundary shrinks to a point, contributing negligible turning.
 
-A few subtle points around the word "intrinsic" deserve disambiguation.
-
-**Local intrinsic.** Two surfaces are locally isometric near corresponding points if some neighborhoods can be matched up by an isometry. This is the kind of equivalence the Theorema Egregium discusses.
-
-**Global intrinsic.** Two surfaces are globally isometric if there is an isometry between them. This is a much stronger condition.
-
-A flat torus (in the abstract sense — quotient of $\mathbb{R}^2$ by a lattice) and a piece of the plane are *locally* isometric (both have $K = 0$ and are flat). But they are not *globally* isometric: the flat torus has finite area, the plane has infinite area; the flat torus has closed geodesics, the plane has none.
-
-A flat torus and the standard donut-shaped torus in $\mathbb{R}^3$ are not even *locally* isometric: the standard torus has variable $K$, the flat torus has $K \equiv 0$. The flat torus cannot be embedded in $\mathbb{R}^3$ as a smooth surface (it can be embedded as a $C^1$ surface, by the Nash-Kuiper theorem, but not smoothly).
-
-The cylinder and the plane are locally isometric but not globally isometric (the cylinder has closed geodesics, the plane does not; the cylinder is not simply connected, the plane is).
-
-These distinctions matter. Constant curvature is a local invariant; global structure (compactness, connectedness, fundamental group) is what distinguishes manifolds at the global level.
+This is the local form of the Gauss-Bonnet theorem, and it encapsulates the entire relationship between local curvature and global turning. The global form — integrating over a closed surface — will be the climax of the classical theory.
 
 ---
 
-## Appendix: Theorema Egregium in Modern Language
+## What's next
 
-In the modern Riemannian-manifold formulation, the Gaussian curvature appears as a special case of the *sectional curvature*, and the Theorema Egregium becomes the statement that sectional curvature is computable from the metric tensor $g$ via the Levi-Civita connection $\nabla$ and the Riemann tensor $R$:
-$$\mathrm{sec}(\mathbf{u}, \mathbf{v}) = \frac{\langle R(\mathbf{u},\mathbf{v})\mathbf{v}, \mathbf{u}\rangle}{|\mathbf{u}\wedge\mathbf{v}|^2}.$$
-
-For a surface, the sectional curvature has only one value at each point (since the tangent plane is two-dimensional, there is only one 2-plane to choose in it), and that value is the Gaussian curvature. The Theorema Egregium becomes the statement that $R$ depends only on $g$ — which is true by construction in the modern formulation: $\nabla$ is the unique torsion-free metric-compatible connection (the Levi-Civita connection), and $R$ is its curvature.
-
-In a sense, the modern formulation has "absorbed" the Theorema Egregium into the definition. The historical content of Gauss's theorem is that *it is even possible* to define an intrinsic notion of curvature — that there exists a meaningful quantity computable from the metric alone that captures the geometric idea of "how much the surface bends". Once you have the Levi-Civita connection in hand, the existence of curvature is automatic.
-
-This is a common pattern in mathematics: a theorem stated in classical language ("this extrinsic quantity is actually intrinsic") becomes a definition in modern language ("the curvature of the Levi-Civita connection"). Both formulations are correct; the modern one packages more cleanly. We will encounter this transition for the rest of the series.
-
----
-
-## Recap of the Big Picture
-
-Let me end by drawing the conceptual arc.
-
-Chapter 1: curves in $\mathbb{R}^3$. Two intrinsic-ish invariants ($\kappa$, $\tau$) determine a curve up to rigid motion. The intrinsic geometry of a curve is trivial; everything interesting is extrinsic.
-
-Chapter 2: surfaces, intrinsic story. The first fundamental form $\mathrm{I}$ encodes the metric. Distances, angles, areas all live here. Intrinsically, cylinder = plane.
-
-Chapter 3: surfaces, extrinsic story. The second fundamental form $\mathrm{II}$ and the shape operator encode the bending. Principal, mean, Gaussian curvatures all live here. Extrinsically, cylinder $\neq$ plane.
-
-Chapter 4 (this one): the Theorema Egregium. Christoffel symbols, geodesics, Gaussian curvature — all turn out to be intrinsic. The intrinsic story is much richer than chapter 2 suggested.
-
-The remainder of the series moves to the abstract (manifold) viewpoint, where there is no ambient $\mathbb{R}^3$ at all. The intrinsic apparatus we built in this chapter — Christoffel symbols, geodesics, parallel transport, intrinsic Gaussian curvature — generalizes immediately. The extrinsic apparatus (shape operator, Gauss map, principal curvatures) does not apply in the abstract setting because there is no embedding to compare to.
-
-So in some sense, the Theorema Egregium is the gateway to modern differential geometry. It tells us: *the intrinsic stuff is what matters*. The intrinsic apparatus is what scales up to general manifolds. Chapter 4 is the bridge from classical surface theory to the abstract framework.
-
-That bridge is what we will cross in chapters 6 and beyond. But first, in chapter 5, we will use the Theorema Egregium to prove its global counterpart: the Gauss-Bonnet theorem, connecting the integral of $K$ over a closed surface to its Euler characteristic. This is the most beautiful theorem in this corner of mathematics, and it is the natural climax of the classical theory.
-
----
-
-## Appendix: The Geodesic Curvature
-
-One more important quantity belongs in this chapter: *geodesic curvature*. For a curve $\gamma$ on a surface $S$, the acceleration $\gamma''$ in $\mathbb{R}^3$ decomposes into tangential (within $T_pS$) and normal (along $\mathbf{n}$) parts. We have already seen the normal part — it is the *normal curvature* $\kappa_n$. The tangential part has its own significance.
-
-**Definition.** The *geodesic curvature* $\kappa_g$ of a unit-speed curve $\gamma$ on a surface is
-$$\kappa_g = (\gamma''(s))^{\text{tangential}}\cdot(\mathbf{n}\times\gamma'(s)),$$
-i.e. the signed length of the projection of $\gamma''$ onto the tangent plane, with sign chosen using the normal $\mathbf{n}$.
-
-Geometrically: $\kappa_g$ is the rate at which the tangent vector $\gamma'$ rotates within the tangent plane as we walk along $\gamma$. It is the "in-plane" turning of the curve.
-
-**Geodesic = curve with $\kappa_g \equiv 0$.** This is the third equivalent definition of a geodesic (after "minimizes length locally" and "acceleration is normal to $S$"). The tangent vector does not rotate within the tangent plane — it only rotates because the tangent plane itself is rotating with the surface.
-
-Crucially, $\kappa_g$ is *intrinsic*: like Christoffel symbols, it can be computed from $\mathrm{I}$ alone. The full curvature $\kappa$ of $\gamma$ as a curve in $\mathbb{R}^3$ decomposes as
-$$\kappa^2 = \kappa_n^2 + \kappa_g^2,$$
-splitting into the extrinsic ($\kappa_n$) and intrinsic ($\kappa_g$) parts. This decomposition will be central to the Gauss-Bonnet theorem in the next chapter, where we integrate $\kappa_g$ along the boundary of a region and $K$ over the interior, and they combine into a topological invariant.
-
-For a quick example: a small circle of latitude $\varphi_0$ on the unit sphere has $\kappa = \cot\varphi_0$ as a curve in $\mathbb{R}^3$ (compute it from the parametrization). The normal curvature, since the principal curvatures of the sphere are both $1$, is $\kappa_n = 1$. Therefore $\kappa_g^2 = \kappa^2 - \kappa_n^2 = \cot^2\varphi_0 - 1$, giving $\kappa_g = \pm\sqrt{\cot^2\varphi_0 - 1}$ when $\varphi_0 < \pi/4$, zero at $\varphi_0 = \pi/4$ (interesting threshold), and imaginary for $\varphi_0 > \pi/4$ (which means I have made a computational slip somewhere — let me redo).
-
-Actually, the cleaner computation: a circle of latitude at $\varphi_0$ has radius $\sin\varphi_0$, so $\kappa = 1/\sin\varphi_0$ as a planar curve in 3D. The curve lies in the plane $z = \cos\varphi_0$, with the curve's principal normal pointing horizontally toward the $z$-axis (within that plane). The surface normal at the curve points radially outward from the sphere's center, with horizontal component $\sin\varphi_0$ (toward outside the axis) and vertical component $\cos\varphi_0$. The component of the curve's principal normal along the surface normal (i.e. the normal curvature contribution) is $-\sin\varphi_0/\sin\varphi_0 = -1$... ah, signs. Let me skip the detailed sign accounting and just state: for the equator ($\varphi_0 = \pi/2$), $\kappa_g = 0$ — equator is a geodesic. For circles of latitude away from the equator, $\kappa_g$ is non-zero. Specifically, $\kappa_g = \cot\varphi_0/\sin\varphi_0\cdot\sin\varphi_0 = \cot\varphi_0$, I think — but the precise number is less important than the conceptual point: a non-equatorial circle of latitude is *not* a geodesic, exactly because it has non-zero geodesic curvature.
-
-This concept will play a central role in the Gauss-Bonnet theorem, where we need to track both the curvature of regions ($K$) and the turning of boundary curves ($\kappa_g$). We will revisit it carefully in the next chapter.
-
-A final remark connecting everything. The geodesic equation $\ddot u_k + \sum\Gamma^k_{ij}\dot u_i\dot u_j = 0$ can be re-derived from the variational principle "minimize $\int|\gamma'|^2\,dt$ subject to fixed endpoints" by writing out the Euler-Lagrange equations of the energy functional. The Christoffel symbols emerge naturally from the chain rule. This variational interpretation will reappear in chapter 10 when we discuss Riemannian geometry on general manifolds. The classical theory of surfaces is, in retrospect, a beautifully concrete dress rehearsal for the abstract theory.
-
-A pedagogical aside on what to remember from this chapter. If everything else fades, you should retain three things. First: $K$ is intrinsic — bend the surface and $K$ does not change. Second: geodesics are the curves with $\kappa_g = 0$, computable from $\mathrm{I}$ alone, and they are the "straight lines" of intrinsic geometry. Third: the Christoffel symbols are bookkeeping for how the basis frame turns, computable from $\mathrm{I}$ and its first derivatives. With these three facts, you can navigate the rest of the series even if the formulas have grown blurry. The formulas can always be looked up; the conceptual structure is what we are trying to build.
-
-I will repeat this point because it is the central one: differential geometry is about distinguishing intrinsic from extrinsic. Chapters 1, 2, 3 introduced the apparatus separately; this chapter showed they are not equally robust under bending. Some quantities survive bending (the intrinsic ones), some do not (the extrinsic ones). The Theorema Egregium is the surprising statement that one classical extrinsic-looking quantity ($K$) actually survives. From that statement, the entire intrinsic theory of curved spaces — the theory we use for general relativity, for the topology of moduli spaces, for everything in geometry that is not in $\mathbb{R}^n$ — flows naturally. Chapter 4 is therefore the conceptual hinge of the series. Everything before it is preparation; everything after it is consequence. Onward to Gauss-Bonnet.
+The Gauss-Bonnet theorem takes the local formula above and applies it globally: integrating $K$ over an entire closed surface yields $2\pi\chi(S)$, where $\chi$ is the Euler characteristic — a topological invariant. It is the most beautiful theorem in classical differential geometry, connecting analysis to topology.
 
 ---
 

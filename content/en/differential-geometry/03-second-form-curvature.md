@@ -25,418 +25,169 @@ A spoiler for the next chapter: $K$ — the Gaussian curvature, defined extrinsi
 
 ---
 
-## The Gauss Map
+## The Gauss Map and the Shape Operator
 
-Given a regular oriented surface $S\subset\mathbb{R}^3$, every point $p$ has a well-defined unit normal $\mathbf{n}(p)\in S^2$ (where $S^2$ is the unit sphere). The assignment $p\mapsto \mathbf{n}(p)$ is the *Gauss map*:
+Given a regular oriented surface $S\subset\mathbb{R}^3$, every point $p$ has a well-defined unit normal $\mathbf{n}(p)\in S^2$ (the unit sphere of directions). The assignment $p\mapsto \mathbf{n}(p)$ is the *Gauss map*:
 $$N: S\to S^2,\qquad p\mapsto \mathbf{n}(p).$$
 
 ![Gauss map N: S to S^2 sending each point to its unit normal](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/03-second-form-curvature/dg_v2_03_1_gauss_map.png)
 
-In a chart $\mathbf{x}(u, v)$, $N$ has the explicit form
-$$N(\mathbf{x}(u,v)) = \frac{\mathbf{x}_u\times\mathbf{x}_v}{|\mathbf{x}_u\times\mathbf{x}_v|}.$$
+In a chart $\mathbf{x}(u, v)$, the Gauss map has the explicit form $N(\mathbf{x}(u,v)) = \frac{\mathbf{x}_u\times\mathbf{x}_v}{|\mathbf{x}_u\times\mathbf{x}_v|}$. Its image lies in $S^2$, and its behavior encodes everything about the surface's bending. Imagine placing your hand flat on a surface and watching which direction "up" points as you slide along. On a flat plane, "up" never changes — the Gauss map is constant, a single point on $S^2$. On a sphere of radius $r$, the normal at any point is $\mathbf{n}(p) = p/r$, so the Gauss map is essentially the identity: every point maps to a distinct direction, reflecting the fact that the sphere curves in every direction equally. On a cylinder of radius $r$ around the $z$-axis, the normal depends only on the angle $\theta$ around the axis, tracing a great circle on $S^2$ — a one-dimensional image, because the cylinder bends in one direction but is flat along its axis.
 
-The Gauss map is smooth (when $S$ is) and its image lies in $S^2$. Some examples:
+The saddle surface $z = x^2 - y^2$ gives a more subtle picture: the normal tilts one way along the $x$-direction and the opposite way along the $y$-direction, reflecting the "opposite-bend" character of a saddle point. The Gauss map's image spreads out in two dimensions but with a characteristic "pinch" at the saddle point where the two bending directions fight.
 
-- **Plane.** $N \equiv $ const (a single point on $S^2$). The plane has no bending — its normal never changes.
-- **Sphere of radius $r$.** $N(p) = p/r$. The Gauss map is essentially the identity (up to scaling). Every point on the sphere maps to a different point on $S^2$.
-- **Cylinder of radius $r$ around the $z$-axis.** $N$ depends only on the angle around the $z$-axis: it traces out a great circle on $S^2$ (specifically, the equator if the cylinder axis is vertical). The image is 1D.
-- **Saddle $z = u^2 - v^2$.** $N$ varies in two directions, but with a *flipping* character: as you move one way the normal tilts toward one pole, the other way it tilts toward the opposite pole.
+The key insight, and the one that makes the entire theory work: the *differential* $dN_p: T_pS\to T_{N(p)}S^2$ is a linear map between tangent planes. Since $T_{N(p)}S^2$ is the orthogonal complement of $\mathbf{n}(p)$ in $\mathbb{R}^3$ — which is precisely $T_pS$ — we can view $dN_p$ as a linear endomorphism of the tangent plane $T_pS$. Its eigenvalues will be the principal curvatures; its determinant will be the Gaussian curvature; its trace will be twice the mean curvature. Everything flows from this single linear map.
 
-The intuitive role of the Gauss map: it records how the unit normal varies as you move on $S$. A surface that bends sharply will have a Gauss map that moves quickly; a flat surface has a constant Gauss map.
+The *shape operator* (or Weingarten map) at $p$ is defined as $S_p = -dN_p: T_pS \to T_pS$. The minus sign is convention: with it, a surface curving "toward" the normal (like the inside of a bowl when the normal points up) has positive principal curvatures. The shape operator is self-adjoint with respect to the first fundamental form: for any $\mathbf{v}, \mathbf{w}\in T_pS$, $\langle S_p\mathbf{v}, \mathbf{w}\rangle = \langle\mathbf{v}, S_p\mathbf{w}\rangle$.
 
-**Why this matters.** The *differential* $dN_p: T_pS\to T_{N(p)}S^2$ — the linearization of the Gauss map — is the central object of extrinsic surface geometry. Its eigenvalues are the principal curvatures; its determinant is the Gaussian curvature; its trace is twice the mean curvature. From this single linear map, we will read off everything.
-
-A small but useful fact: $T_{N(p)}S^2$ is the orthogonal complement of $\mathbf{n}(p)$ in $\mathbb{R}^3$ — which is exactly $T_pS$. So we can identify $T_{N(p)}S^2 = T_pS$ and view $dN_p$ as an endomorphism of $T_pS$.
-
----
-
-## The Shape Operator
-
-**Definition.** The *shape operator* (or Weingarten map) at $p$ is
-$$S_p = -dN_p: T_pS \to T_pS.$$
-
-The minus sign is convention; with it, a surface curving "toward" the normal has positive principal curvatures.
-
-The shape operator is a self-adjoint linear map with respect to the first fundamental form: for any $\mathbf{v}, \mathbf{w}\in T_pS$,
-$$\langle S_p\mathbf{v}, \mathbf{w}\rangle = \langle\mathbf{v}, S_p\mathbf{w}\rangle.$$
-
-**Proof of self-adjointness.** Use a chart $\mathbf{x}(u, v)$ with basis $\{\mathbf{x}_u, \mathbf{x}_v\}$ for $T_pS$. The relation $\mathbf{n}\cdot\mathbf{x}_u = 0$ (normal is perpendicular to tangent) differentiates to $\mathbf{n}_u\cdot\mathbf{x}_u + \mathbf{n}\cdot\mathbf{x}_{uu} = 0$, so $\mathbf{n}_u\cdot\mathbf{x}_u = -\mathbf{n}\cdot\mathbf{x}_{uu}$. Similarly $\mathbf{n}_u\cdot\mathbf{x}_v = -\mathbf{n}\cdot\mathbf{x}_{uv}$ and $\mathbf{n}_v\cdot\mathbf{x}_u = -\mathbf{n}\cdot\mathbf{x}_{vu}$. Since mixed partials commute, $\mathbf{x}_{uv} = \mathbf{x}_{vu}$, so $\mathbf{n}_u\cdot\mathbf{x}_v = \mathbf{n}_v\cdot\mathbf{x}_u$. This is exactly the symmetry condition. $\square$
-
-Self-adjoint operators on a real inner product space are diagonalizable with real eigenvalues. The eigenvalues of $S_p$ are the *principal curvatures* $k_1(p), k_2(p)$, and the corresponding eigenvectors (orthogonal in $T_pS$) are the *principal directions*.
+The proof of self-adjointness is short and illuminating. Since $\mathbf{n}\cdot\mathbf{x}_u = 0$ identically (the normal is perpendicular to the surface), differentiating with respect to $v$ gives $\mathbf{n}_v\cdot\mathbf{x}_u + \mathbf{n}\cdot\mathbf{x}_{uv} = 0$. Similarly, differentiating $\mathbf{n}\cdot\mathbf{x}_v = 0$ with respect to $u$ gives $\mathbf{n}_u\cdot\mathbf{x}_v + \mathbf{n}\cdot\mathbf{x}_{vu} = 0$. Since $\mathbf{x}_{uv} = \mathbf{x}_{vu}$ (mixed partials commute), we get $\mathbf{n}_v\cdot\mathbf{x}_u = \mathbf{n}_u\cdot\mathbf{x}_v$. This is exactly the symmetry condition for $S_p = -dN_p$ to be self-adjoint. The proof reveals *why* the shape operator is symmetric: it is because the surface is twice-differentiable and partial derivatives commute. No deeper structure is needed.
 
 ![Shape operator and its eigenvectors as principal directions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/03-second-form-curvature/dg_v2_03_2_shape_operator.png)
 
----
+Self-adjoint operators on a real inner product space are diagonalizable with real eigenvalues. The eigenvalues of $S_p$ are the *principal curvatures* $k_1(p)$ and $k_2(p)$, and the corresponding eigenvectors (orthogonal in $T_pS$) are the *principal directions*. Imagine standing at a point on a surface and rotating through all tangent directions: the normal curvature — how much the surface bends in that direction — oscillates sinusoidally between $k_1$ and $k_2$. This is Euler's theorem (1760): if $\mathbf{w}$ makes angle $\alpha$ with the first principal direction, then $\kappa_n(\mathbf{w}) = k_1\cos^2\alpha + k_2\sin^2\alpha$.
 
-## The Second Fundamental Form
+The principal directions are the directions of maximum and minimum bending. Picture a potato chip (a hyperbolic paraboloid): there is one direction where it curves up and another where it curves down. Those are the principal directions. At a point where $k_1 = k_2$ (called an *umbilic* point), every direction is equally curved — think of a perfect sphere, where the surface looks the same in every direction from any point. The sphere is entirely umbilic. The famous Caratheodory conjecture asks whether every smooth convex surface has at least two umbilic points; it remains unresolved in full generality.
 
-Define three coefficients:
-$$L = -\mathbf{n}_u\cdot\mathbf{x}_u = \mathbf{n}\cdot\mathbf{x}_{uu},$$
-$$M = -\mathbf{n}_u\cdot\mathbf{x}_v = \mathbf{n}\cdot\mathbf{x}_{uv} = -\mathbf{n}_v\cdot\mathbf{x}_u,$$
-$$N = -\mathbf{n}_v\cdot\mathbf{x}_v = \mathbf{n}\cdot\mathbf{x}_{vv}.$$
-
-(I will write the second fundamental form coefficient as $N$ in italic and the Gauss map as $N$ in roman in this article, to match common conventions; in context the meaning is clear.)
-
-The matrix
-$$\mathrm{II} = \begin{pmatrix}L & M \\ M & N\end{pmatrix}$$
-is the *second fundamental form*. It is symmetric (we proved this above) but not necessarily positive-definite — it can be indefinite, semidefinite, or zero, depending on the surface.
-
-The shape operator in the basis $\{\mathbf{x}_u, \mathbf{x}_v\}$ has matrix
-$$[S_p] = \mathrm{I}^{-1}\mathrm{II},$$
-which is the standard relation between the matrix of a self-adjoint operator and the bilinear forms (one defining the inner product, one defining the operator).
-
-A useful explicit formula:
-$$[S_p] = \frac{1}{EG - F^2}\begin{pmatrix}G & -F \\ -F & E\end{pmatrix}\begin{pmatrix}L & M \\ M & N\end{pmatrix}.$$
-
-Determinant and trace:
-$$\det[S_p] = \frac{LN - M^2}{EG - F^2},\qquad \mathrm{tr}[S_p] = \frac{EN - 2FM + GL}{EG - F^2}.$$
-
-**Definitions.**
-- **Gaussian curvature.** $K(p) = \det[S_p] = (LN - M^2)/(EG - F^2)$.
-- **Mean curvature.** $H(p) = \frac{1}{2}\mathrm{tr}[S_p] = (EN - 2FM + GL)/(2(EG-F^2))$.
-- **Principal curvatures.** $k_1, k_2 = $ eigenvalues of $S_p$. They satisfy $K = k_1 k_2$ and $H = (k_1+k_2)/2$.
-
-Equivalently, $k_1$ and $k_2$ are the roots of the characteristic polynomial $\lambda^2 - 2H\lambda + K = 0$, which gives
-$$k_{1,2} = H\pm\sqrt{H^2 - K}.$$
-
-The discriminant $H^2 - K$ is non-negative (since the eigenvalues are real); equality $H^2 = K$ characterizes *umbilic points*, where the shape operator is a multiple of the identity and every direction is principal.
-
-![Principal curvatures k_1 and k_2 at a surface point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/03-second-form-curvature/dg_v2_03_3_principal_curvatures.png)
+Gauss introduced this map around 1825 during his work on geodesy and map projections. He was measuring the surface of the Kingdom of Hanover, and he needed to understand how curvature affects map-making. The Gauss map was his tool for quantifying "how bent" a surface is at each point, and it led directly to the Theorema Egregium — the realization that some curvature information is intrinsic to the surface and cannot be changed by bending.
 
 ---
 
-## Geometric Interpretation: Normal Curvature
+## The Second Fundamental Form and Its Coefficients
 
-Take a unit tangent vector $\mathbf{w}\in T_pS$. The plane through $p$ spanned by $\mathbf{w}$ and $\mathbf{n}(p)$ — the *normal section* — intersects $S$ in a curve. This curve has its own curvature in $\mathbb{R}^3$, and signed by the orientation of $\mathbf{n}$, this signed curvature is the *normal curvature in direction $\mathbf{w}$*:
-$$\kappa_n(\mathbf{w}) = \mathrm{II}(\mathbf{w}, \mathbf{w}) = \langle S_p\mathbf{w}, \mathbf{w}\rangle.$$
+The shape operator is a linear map; to compute with it, we need its matrix representation. In a chart $\mathbf{x}(u, v)$, define three coefficients:
+$$L = -\mathbf{n}_u\cdot\mathbf{x}_u = \mathbf{n}\cdot\mathbf{x}_{uu}, \quad M = -\mathbf{n}_u\cdot\mathbf{x}_v = \mathbf{n}\cdot\mathbf{x}_{uv}, \quad N = -\mathbf{n}_v\cdot\mathbf{x}_v = \mathbf{n}\cdot\mathbf{x}_{vv}.$$
 
-Equivalently, $\kappa_n(\mathbf{w}) = (L a^2 + 2 M a b + N b^2)/(E a^2 + 2 F a b + G b^2)$ if $\mathbf{w} = a\mathbf{x}_u + b\mathbf{x}_v$.
+The second equality in each line comes from differentiating $\mathbf{n}\cdot\mathbf{x}_u = 0$: since $\partial_u(\mathbf{n}\cdot\mathbf{x}_u) = \mathbf{n}_u\cdot\mathbf{x}_u + \mathbf{n}\cdot\mathbf{x}_{uu} = 0$, we get $\mathbf{n}\cdot\mathbf{x}_{uu} = -\mathbf{n}_u\cdot\mathbf{x}_u = L$. These three numbers form the *second fundamental form* $\mathrm{II} = \begin{pmatrix}L & M \\ M & N\end{pmatrix}$, a symmetric bilinear form on each tangent plane.
 
-**Euler's theorem (1760).** The principal curvatures $k_1, k_2$ are the maximum and minimum normal curvatures over all unit tangent directions. If $\theta$ is the angle between $\mathbf{w}$ and the principal direction for $k_1$, then
-$$\kappa_n(\mathbf{w}) = k_1\cos^2\theta + k_2\sin^2\theta.$$
+The geometric meaning: for a tangent vector $\mathbf{w} = a\,\mathbf{x}_u + b\,\mathbf{x}_v$, the *normal curvature* in the direction of $\mathbf{w}$ is $\kappa_n(\mathbf{w}) = \mathrm{II}(\mathbf{w}, \mathbf{w})/\mathrm{I}(\mathbf{w}, \mathbf{w}) = (La^2 + 2Mab + Nb^2)/(Ea^2 + 2Fab + Gb^2)$. This is the curvature of the normal section — the curve you get by slicing the surface with a plane containing $\mathbf{n}$ and $\mathbf{w}$. It measures how the surface bends away from its tangent plane in a specific direction.
 
-Beautiful and old. The normal curvature in any direction is a convex combination (sometimes literally, when both $k_i$ have the same sign; sometimes with sign-changing weights, when they differ) of the two extremes.
+The relationship between forms and the shape operator: $S_p = \mathrm{I}^{-1}\mathrm{II}$, viewing both as $2\times 2$ matrices. The eigenvalues of $S_p$ — the principal curvatures — satisfy $\det(\mathrm{II} - k\,\mathrm{I}) = 0$. They are the solutions of the characteristic equation $(L - kE)(N - kG) - (M - kF)^2 = 0$.
 
----
+Why have both $\mathrm{I}$ and $\mathrm{II}$ rather than just the shape operator? Because they play different geometric roles. The first fundamental form is the metric: it knows about distances and angles within the surface, blind to how the surface sits in space. The second fundamental form measures extrinsic bending: how fast the tangent plane tilts as you move. Together, they determine the surface up to rigid motion — this is the Fundamental Theorem of Surfaces (Bonnet, 1867): given smooth functions $E, F, G, L, M, N$ satisfying the Gauss equation and the Codazzi-Mainardi compatibility conditions, there exists a unique (up to rigid motion) surface realizing them.
 
-## Three Regimes of Gaussian Curvature
+A worked computation for the unit sphere with outward normal: parametrize $\mathbf{x}(\theta, \varphi) = (\sin\varphi\cos\theta, \sin\varphi\sin\theta, \cos\varphi)$. The outward normal is $\mathbf{n} = \mathbf{x}/|\mathbf{x}| = \mathbf{x}$ (unit sphere, so the position vector itself is the outward normal). Then $\mathbf{x}_{uu} = \partial_\varphi^2\mathbf{x}$ gives second derivatives whose dot product with $\mathbf{n} = \mathbf{x}$ yields $L = -1$ (with outward normal convention; effectively $\mathrm{II} = -\mathrm{I}$ on the unit sphere). The shape operator is $S = \mathrm{I}^{-1}\mathrm{II} = -I_2$, with both eigenvalues equal to $-1$ (or $+1$ with inward normal). Both principal curvatures are $1/r = 1$, every point is umbilic, and the Gaussian curvature is $K = 1$.
 
-Based on the sign of $K = k_1 k_2$, every (non-umbilic) point on a surface falls into one of three categories.
-
-![Three regimes of Gaussian curvature: positive, zero, negative](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/03-second-form-curvature/dg_v2_03_4_gauss_K_three.png)
-
-**Elliptic point ($K > 0$).** Both principal curvatures have the same sign. The surface curves to one side of the tangent plane in *every* direction. Locally, $S$ looks like a piece of an ellipsoid. Examples: every point on a sphere ($k_1 = k_2 = 1/r$), every point inside the rim of an egg, the convex parts of a torus.
-
-**Hyperbolic point ($K < 0$).** Principal curvatures have opposite signs. The surface curves up in some directions and down in others — saddle-like. Examples: every point on a saddle, every point on the inside of a torus's rim. There are *asymptotic directions* where $\kappa_n = 0$ (the surface is locally flat in those directions).
-
-**Parabolic point ($K = 0$, $H \neq 0$).** Exactly one principal curvature vanishes; the other is non-zero. The surface is flat in one direction and curved in the perpendicular one. Examples: every point on a cylinder, every point on a cone.
-
-**Planar point ($K = H = 0$).** Both principal curvatures vanish; locally to second order, $S$ is the plane. Either the surface really is flat (e.g. $S$ is a plane), or there is a higher-order tangency. Examples: the umbilic points of a sphere are not planar (they have $K \neq 0$ since $k_1 = k_2 \neq 0$); the saddle $z = u^4 - v^4$ has a planar point at the origin.
-
-The three pictures — elliptic, parabolic, hyperbolic — are worth memorizing. They give an immediate answer to "what does this surface look like near here?"
+For a cylinder of radius $r$ with axis along the $z$-direction, parametrize $\mathbf{x}(\theta, z) = (r\cos\theta, r\sin\theta, z)$. The inward normal is $\mathbf{n} = -(\cos\theta, \sin\theta, 0)$. Computing: $L = \mathbf{n}\cdot\mathbf{x}_{\theta\theta} = -(\cos\theta, \sin\theta, 0)\cdot(-r\cos\theta, -r\sin\theta, 0) = r$, $M = 0$, $N = 0$ (since $\mathbf{x}_{zz} = 0$ and $\mathbf{x}_{\theta z} = 0$). With $E = r^2$, $G = 1$, $F = 0$: the shape operator has eigenvalues $k_1 = L/E = 1/r$ and $k_2 = N/G = 0$. One principal curvature is $1/r$ (bending around the cylinder), the other is $0$ (no bending along the axis). Gaussian curvature $K = 0$, mean curvature $H = 1/(2r)$.
 
 ---
 
-## Worked Examples
+## Gaussian and Mean Curvature: Classification of Surface Points
 
-### Sphere of radius $r$
+From the principal curvatures $k_1, k_2$, we extract two scalar invariants:
+$$K = k_1 k_2 = \det S = \frac{LN - M^2}{EG - F^2}, \qquad H = \frac{k_1 + k_2}{2} = \frac{1}{2}\mathrm{tr}\,S = \frac{EN - 2FM + GL}{2(EG - F^2)}.$$
 
-Use spherical coordinates $\mathbf{x}(\theta,\varphi) = r(\sin\varphi\cos\theta, \sin\varphi\sin\theta, \cos\varphi)$. We computed earlier $\mathrm{I} = \begin{pmatrix}r^2\sin^2\varphi & 0 \\ 0 & r^2\end{pmatrix}$.
+The Gaussian curvature $K$ is the product of principal curvatures; the mean curvature $H$ is their average. Together they determine $k_1$ and $k_2$ via $k_{1,2} = H \pm \sqrt{H^2 - K}$, so no information is lost.
 
-Unit normal: $\mathbf{n} = \mathbf{x}/r$, the outward radial direction.
+The sign of $K$ provides a three-way classification of every point on a surface:
 
-Second fundamental form: $\mathbf{x}_{\theta\theta} = r(-\sin\varphi\cos\theta, -\sin\varphi\sin\theta, 0)$, $\mathbf{n}\cdot\mathbf{x}_{\theta\theta} = -r\sin^2\varphi$, so $L = -r\sin^2\varphi$. Similarly $M = 0$ (orthogonal coordinates) and $N = -r$. Wait — sign convention: with the outward normal, $L = \mathbf{n}\cdot\mathbf{x}_{\theta\theta} = -r\sin^2\varphi$ is *negative*. If we instead use the inward normal $\mathbf{n}_{\mathrm{in}} = -\mathbf{x}/r$, both $L$ and $N$ become positive. Different texts choose differently. I will stick with the outward normal; then a sphere has *negative* coefficients.
+**Elliptic points ($K > 0$).** Both principal curvatures have the same sign — the surface bends like a bowl. The second fundamental form is definite (either positive or negative definite), meaning the surface lies entirely on one side of its tangent plane (locally). Examples: every point on a sphere, the vertex of a paraboloid $z = x^2 + y^2$, the outer rim of a torus. Imagine holding a bowl: water poured on it rolls toward the center from every direction. That is positive curvature.
 
-$\mathrm{II} = \begin{pmatrix}-r\sin^2\varphi & 0 \\ 0 & -r\end{pmatrix}$. Determinant: $r^2\sin^2\varphi$. So
-$$K = \frac{LN - M^2}{EG - F^2} = \frac{r^2\sin^2\varphi}{r^4\sin^2\varphi} = \frac{1}{r^2}.$$
-Constant positive, as expected. The sphere has Gaussian curvature $1/r^2$ everywhere.
+**Hyperbolic points ($K < 0$).** The principal curvatures have opposite signs — the surface bends like a saddle. The second fundamental form is indefinite, and the surface crosses its tangent plane along two curves (the asymptotic directions). Examples: every point on a one-sheeted hyperboloid, the inner rim of a torus, the center of a saddle $z = x^2 - y^2$. Imagine sitting in a horse saddle: you curve downward in the left-right direction and upward in the front-back direction. That is negative curvature.
 
-Mean curvature: $H = \frac{EN + GL}{2(EG-F^2)} = \frac{r^2(-r) + r^2(-r\sin^2\varphi)/\sin^2\varphi}{2r^4\sin^2\varphi}\cdot\sin^2\varphi = -1/r$. Constant.
+**Parabolic points ($K = 0$, with at least one $k_i \neq 0$).** One principal curvature vanishes — the surface bends in one direction but is flat in the other. The second fundamental form is semi-definite. Examples: every point on a cylinder, every point on a cone (away from the apex). Imagine rolling a piece of paper into a tube: it bends around the tube but is perfectly straight along the tube's length. That is zero Gaussian curvature — the paper remains "intrinsically flat" even though it appears bent from outside.
 
-Principal curvatures: $k_1 = k_2 = -1/r$ (or $+1/r$ with the inward normal). Every point on the sphere is *umbilic*: every direction is principal, and there is no "preferred" curvature direction.
+There is also the *planar* or *flat* point where $k_1 = k_2 = 0$ (both curvatures vanish). The surface is locally approximated by its tangent plane to second order. These are typically isolated on generic surfaces.
 
-### Cylinder of radius $r$
+The torus beautifully exhibits all three regimes. Parametrize with major radius $R$ and minor radius $r$: the Gaussian curvature is $K = \cos v / (r(R + r\cos v))$. The outer half (where $\cos v > 0$) is elliptic — it curves like a sphere. The inner half (where $\cos v < 0$) is hyperbolic — it curves like a saddle. The top and bottom circles (where $\cos v = 0$) are parabolic — transition zones between the two regimes. And the total curvature $\int K\,dA = 0$, because the positive and negative contributions cancel exactly. This cancellation is forced by topology: the torus has Euler characteristic $\chi = 0$, and Gauss-Bonnet says $\int K\,dA = 2\pi\chi = 0$.
 
-$\mathbf{x}(u, v) = (r\cos u, r\sin u, v)$. We computed $\mathrm{I} = \mathrm{diag}(r^2, 1)$.
-
-Outward normal: $\mathbf{n} = (\cos u, \sin u, 0)$.
-
-Second derivatives: $\mathbf{x}_{uu} = (-r\cos u, -r\sin u, 0)$, $\mathbf{n}\cdot\mathbf{x}_{uu} = -r$. So $L = -r$. $\mathbf{x}_{uv} = \mathbf{x}_{vv} = 0$, so $M = N = 0$.
-
-$\mathrm{II} = \begin{pmatrix}-r & 0 \\ 0 & 0\end{pmatrix}$. Determinant zero, so $K = 0$. The cylinder has zero Gaussian curvature — it is intrinsically flat, just as we predicted from the equality of its first form with the plane's.
-
-Mean curvature: $H = (EN + GL)/(2(EG-F^2)) = (0 + r^2\cdot(-r))/(2 r^2) = -r/2$ (with the outward normal; sign flip with inward). Non-zero. So the cylinder is intrinsically flat ($K = 0$) but extrinsically bent ($H \neq 0$). That is the signature of a parabolic surface.
-
-Principal curvatures: eigenvalues of $\mathrm{I}^{-1}\mathrm{II} = \mathrm{diag}(1/r^2, 1)\mathrm{diag}(-r, 0) = \mathrm{diag}(-1/r, 0)$. So $k_1 = -1/r$ (in the angular direction) and $k_2 = 0$ (in the axial direction). The cylinder bends in one direction and not the other — exactly the picture of a parabolic surface.
-
-### Saddle $z = u^2 - v^2$
-
-Chart: $\mathbf{x}(u, v) = (u, v, u^2 - v^2)$.
-
-$\mathbf{x}_u = (1, 0, 2u)$, $\mathbf{x}_v = (0, 1, -2v)$. So $E = 1 + 4u^2$, $G = 1 + 4v^2$, $F = -4uv$.
-
-At the origin $(0, 0)$: $E = G = 1$, $F = 0$, so $\mathrm{I} = I_2$ at that point.
-
-Cross product: $\mathbf{x}_u\times\mathbf{x}_v = (-2u, 2v, 1)$. Magnitude: $\sqrt{1 + 4u^2 + 4v^2}$.
-
-At the origin, $\mathbf{n} = (0, 0, 1)$.
-
-Second derivatives at the origin: $\mathbf{x}_{uu} = (0, 0, 2)$, $\mathbf{x}_{vv} = (0, 0, -2)$, $\mathbf{x}_{uv} = 0$. So $L = 2$, $N = -2$, $M = 0$.
-
-$\mathrm{II} = \mathrm{diag}(2, -2)$ at the origin. $K = (2)(-2)/1 = -4 < 0$. The saddle has negative Gaussian curvature at the origin, as a saddle should.
-
-$H = (1\cdot(-2) + 1\cdot 2)/(2\cdot 1) = 0$. Mean curvature zero. The saddle is a *minimal surface* at this point (and turns out to be minimal everywhere if we use the standard saddle $z = uv$ with appropriate setup, but $z = u^2 - v^2$ is *not* minimal globally — the off-origin computation gives $H \neq 0$).
-
-Principal curvatures at the origin: eigenvalues of $\mathrm{II} = \mathrm{diag}(2, -2)$ — just $\pm 2$. So $k_1 = 2$, $k_2 = -2$, with principal directions along the $u$- and $v$-axes. The surface curves up by 2 in the $u$-direction and curves down by 2 in the $v$-direction.
-
-### Torus
-
-For the torus $\mathbf{x}(u, v) = ((R+r\cos v)\cos u, (R+r\cos v)\sin u, r\sin v)$:
-
-After computation (which I will not reproduce in detail), the Gaussian curvature comes out to
-$$K(u, v) = \frac{\cos v}{r(R + r\cos v)}.$$
-
-Sign analysis:
-- Outer rim ($v = 0$): $K = 1/(r(R+r)) > 0$. Elliptic.
-- Top and bottom ($v = \pm\pi/2$): $K = 0$. Parabolic.
-- Inner rim ($v = \pi$): $K = -1/(r(R-r)) < 0$. Hyperbolic.
-
-The torus has all three regimes! And the parabolic curves $v = \pm\pi/2$ separate the elliptic outer band from the hyperbolic inner band. This is a beautifully structured example.
-
-The total integral of $K$ over the torus:
-$$\int_S K\,dS = \int_0^{2\pi}\int_0^{2\pi}\frac{\cos v}{r(R+r\cos v)}\cdot r(R+r\cos v)\,du\,dv = \int_0^{2\pi}\int_0^{2\pi}\cos v\,du\,dv = 0.$$
-
-Total Gaussian curvature on a torus is zero. This is not an accident; it is the Gauss-Bonnet theorem at work, which we will see in chapter 5: $\int K\,dS = 2\pi\chi(S)$, where $\chi$ is the Euler characteristic, and $\chi(\text{torus}) = 0$.
+A physical thought experiment cements the intuition. Take a sheet of paper ($K = 0$ everywhere). You can roll it into a cylinder ($K = 0$), a cone ($K = 0$), or any other *developable surface* (ruled surface with $K = 0$). But you cannot shape it into a sphere ($K > 0$) or a saddle ($K < 0$) without crumpling or stretching. This is because bending without stretching preserves the first fundamental form, and the Theorema Egregium (next chapter) says $K$ depends only on the first form. So if you start with $K = 0$ and only bend (no stretching), you stay at $K = 0$. To reach positive or negative $K$, you must stretch or compress, which distorts distances. This is why cartographers cannot make a perfectly accurate flat map of the Earth: the sphere has $K > 0$ and paper has $K = 0$, and no isometry exists between them.
 
 ---
 
-## Mean Curvature and Minimal Surfaces
+## Worked Examples: From Spheres to Saddles
 
-Mean curvature has a different geometric flavour from Gaussian curvature. Where $K$ measures "how the surface fails to look flat in any direction", $H$ is more like "the average bending".
+Theory needs grounding. Here are four detailed computations that cover the main cases.
 
-![Mean curvature H = (k_1 + k_2)/2](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/03-second-form-curvature/dg_v2_03_5_mean_curvature.png)
+**The saddle surface $z = uv$ (hyperbolic paraboloid).** Chart $\mathbf{x}(u,v) = (u, v, uv)$. Compute: $\mathbf{x}_u = (1, 0, v)$, $\mathbf{x}_v = (0, 1, u)$. First form: $E = 1+v^2$, $F = uv$, $G = 1+u^2$, and $EG-F^2 = 1+u^2+v^2$. Cross product: $\mathbf{x}_u\times\mathbf{x}_v = (-v, -u, 1)$, with magnitude $\sqrt{1+u^2+v^2}$. Unit normal: $\mathbf{n} = (-v, -u, 1)/\sqrt{1+u^2+v^2}$. Second derivatives: $\mathbf{x}_{uu} = 0$, $\mathbf{x}_{uv} = (0,0,1)$, $\mathbf{x}_{vv} = 0$. So $L = \mathbf{n}\cdot\mathbf{x}_{uu} = 0$, $M = \mathbf{n}\cdot\mathbf{x}_{uv} = 1/\sqrt{1+u^2+v^2}$, $N = 0$.
 
-**Definition (Minimal surface).** A surface with $H \equiv 0$ is *minimal*.
+Gaussian curvature: $K = (LN - M^2)/(EG-F^2) = -M^2/(1+u^2+v^2) = -1/(1+u^2+v^2)^2$. Negative everywhere — the surface is entirely hyperbolic. At the origin, $K = -1$, and $K \to 0$ as we move away from the origin. The saddle is sharpest at its center.
 
-A foundational result: among all surfaces with a fixed boundary curve, the one minimizing area has $H \equiv 0$ in its interior. This is the variational characterization, and it explains the name "minimal". Soap films are minimal surfaces — they minimize surface tension energy, which is proportional to area.
+Mean curvature: $H = (EN - 2FM + GL)/(2(EG-F^2)) = -2uv \cdot M/(2(1+u^2+v^2)) = -uv/((1+u^2+v^2)^{3/2})$. At the origin, $H = 0$. The origin is a *minimal point* — not just a saddle point, but one where the mean curvature vanishes. This is physically meaningful: a soap film stretched over the saddle-shaped boundary would pass through the origin without any net "pressure" from curvature.
 
-**Examples of minimal surfaces.**
+**The paraboloid $z = u^2 + v^2$ (elliptic paraboloid).** Chart $\mathbf{x}(u,v) = (u, v, u^2+v^2)$. Set $w = 1 + 4u^2 + 4v^2$ for convenience. After computation: $E = 1+4u^2$, $F = 4uv$, $G = 1+4v^2$, $EG - F^2 = w$. Normal: $\mathbf{n} = (-2u, -2v, 1)/\sqrt{w}$. Second derivatives: $\mathbf{x}_{uu} = (0,0,2)$, $\mathbf{x}_{uv} = 0$, $\mathbf{x}_{vv} = (0,0,2)$. So $L = 2/\sqrt{w}$, $M = 0$, $N = 2/\sqrt{w}$.
 
-*Catenoid.* Surface of revolution with profile curve $\rho(v) = a\cosh(v/a)$. The catenoid is the only non-planar minimal surface of revolution.
+Gaussian curvature: $K = (LN - M^2)/(EG - F^2) = (4/w)/w = 4/w^2 = 4/(1+4u^2+4v^2)^2$. Positive everywhere — entirely elliptic. At the origin, $K = 4$; at distance $d$ from the origin (with $4d^2 \gg 1$), $K \approx 4/(4d^2)^2 = 1/(4d^4)$, decaying rapidly. The paraboloid is sharpest at its vertex and flattens toward its rim.
 
-*Helicoid.* $\mathbf{x}(u, v) = (v\cos u, v\sin u, c u)$. Mean curvature is zero everywhere. It is also ruled (a one-parameter family of straight lines), and in fact the helicoid and catenoid form a famous *isometric pair*: they are intrinsically the same surface, as seen from chapter 2. But they have different shape operators because the embedding is different.
+At the origin: $H = (E\cdot N + G\cdot L - 2FM)/(2w) = (2/\sqrt{1} + 2/\sqrt{1})/(2\cdot 1) = 2$. With $K = 4 = H^2$, we get $k_1 = k_2 = 2$ — the origin is umbilic. This makes sense from the rotational symmetry of $z = u^2 + v^2$ about the $z$-axis: at the symmetric center, all directions must have equal curvature.
 
-*Scherk's surfaces.* A two-parameter family of doubly periodic minimal surfaces, $z = \log(\cos u/\cos v)$. The first non-trivial minimal surface families discovered (1834).
+**The torus $(R + r\cos v)\cos u, (R + r\cos v)\sin u, r\sin v)$.** The computation gives $K = \cos v/(r(R + r\cos v))$, which transitions from positive (outer, $v$ near $0$) through zero (top/bottom, $v = \pm\pi/2$) to negative (inner, $v$ near $\pi$). At the outermost point ($v = 0$): $K = 1/(r(R+r))$. At the innermost point ($v = \pi$): $K = -1/(r(R-r))$. The inner rim has stronger negative curvature than the outer rim has positive curvature — but the inner rim has smaller area, and the total integral still vanishes.
 
-*Costa's surface.* A 1982 discovery by Celso Costa: a complete embedded minimal surface of finite topology (genus 1, three ends), refuting a long-standing conjecture that the catenoid, helicoid, and plane were the only such examples. A turning point in modern minimal surface theory.
-
-![A minimal surface where H vanishes everywhere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/03-second-form-curvature/dg_v2_03_7_minimal_surfaces.png)
-
-The variational and PDE-theoretic study of minimal surfaces is a vast subject in itself (Plateau's problem, Bernstein's theorem, the Weierstrass-Enneper representation, and so on). I am not going to do it justice here; the takeaway for this article is that $H = 0$ is a meaningful geometric and physical condition.
+**The pseudosphere (tractrix of revolution).** This is the surface of revolution of the tractrix curve, and its distinguishing property is $K = -1$ everywhere — constant negative Gaussian curvature. It is the analog of the sphere (constant positive curvature) but in the hyperbolic world. The pseudosphere realizes a piece of the hyperbolic plane in $\mathbb{R}^3$, and its geodesics exhibit the non-Euclidean behavior of Lobachevsky geometry: through a point not on a given geodesic, multiple "parallel" geodesics exist. Hilbert proved in 1901 that no *complete* surface in $\mathbb{R}^3$ can have $K = -1$ everywhere — the pseudosphere necessarily has a singular edge — but as a local model of hyperbolic geometry, it is invaluable.
 
 ---
 
-## Side-by-Side Comparison: Sphere, Cylinder, Saddle
+## Mean Curvature, Minimal Surfaces, and Physical Applications
 
-Let me put the three signature surfaces in a single table.
+Mean curvature has a variational characterization that gives it direct physical significance. Consider a compact surface patch $S$ with boundary $\partial S$ held fixed. Perturb the surface by $\mathbf{x} \mapsto \mathbf{x} + tf\mathbf{n}$ where $f$ vanishes on $\partial S$. The first variation of area is:
+$$\frac{d}{dt}\bigg|_{t=0}\mathrm{Area}(S_t) = -2\int_S fH\,dA.$$
 
-| Surface | $K$ | $H$ | $k_1$ | $k_2$ | Regime |
-|---|---|---|---|---|---|
-| Sphere (radius $r$) | $1/r^2$ | $-1/r$ | $-1/r$ | $-1/r$ | Elliptic, umbilic |
-| Cylinder (radius $r$) | $0$ | $-1/(2r)$ | $-1/r$ | $0$ | Parabolic |
-| Saddle (at origin) | $-4$ | $0$ | $2$ | $-2$ | Hyperbolic, minimal |
+This vanishes for all variations $f$ if and only if $H \equiv 0$. Surfaces with $H = 0$ everywhere are *minimal surfaces* — critical points of the area functional. They are not necessarily area-minimizing globally (saddle points of the functional are also critical), but they are locally stationary.
 
-(Signs depend on normal orientation; I am using outward / upward normals.)
+Soap films are physical minimal surfaces. Surface tension drives the film to minimize area subject to boundary constraints, which forces $H = 0$ at every interior point. The classical minimal surfaces are:
+- The plane (trivially $H = 0$, $K = 0$).
+- The catenoid: the surface of revolution of a catenary $y = a\cosh(x/a)$. It is the shape of a soap film spanning two parallel circular rings. Its Gaussian curvature is $K = -1/(a^2\cosh^4(x/a))$ — negative, as expected for a saddle-like minimal surface.
+- The helicoid: a helicoidal ramp $\mathbf{x}(u,v) = (v\cos u, v\sin u, au)$. This is the only ruled minimal surface (apart from the plane). It has $K < 0$ everywhere except along the axis.
+- Enneper's surface: a self-intersecting minimal surface with interesting topology, parametrized by $\mathbf{x}(u,v) = (u - u^3/3 + uv^2, v - v^3/3 + vu^2, u^2 - v^2)$.
 
-Three different geometric flavors in three lines. Every surface point you will ever encounter falls somewhere in this taxonomy (modulo umbilic and planar special cases).
+The catenoid and helicoid are related by a remarkable deformation: there is a one-parameter family of isometric minimal surfaces interpolating between them. You can physically demonstrate this by dipping an appropriate wire frame in soap solution and slowly twisting it. The intermediate surfaces maintain $H = 0$ throughout the deformation.
 
-![Sphere, cylinder, saddle: K and H side by side](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/03-second-form-curvature/dg_v2_03_6_curvature_compare.png)
+In biology, the Helfrich model (1973) describes cell membranes via the bending energy $\mathcal{E} = \int (H - H_0)^2\,dA + \int K\,dA$, where $H_0$ is a spontaneous curvature determined by the lipid composition. By Gauss-Bonnet, the $\int K\,dA$ term is topological (constant for a given topology), so the shape is controlled by minimizing $\int(H - H_0)^2\,dA$. Red blood cells have their characteristic biconcave discoid shape because it minimizes this energy for their specific $H_0$. The physics of cell shape is literally the differential geometry of mean curvature.
 
----
+In architecture, doubly curved surfaces (those with $K \neq 0$) are prized for structural efficiency. Felix Candela's hyperbolic paraboloid shells ($K < 0$) are remarkably stiff despite their thinness, because the saddle geometry distributes forces along both families of asymptotic lines. The Sydney Opera House shells have $K > 0$ (pieces of a sphere), chosen so that all shells have the same curvature — simplifying construction by using identical formwork.
 
-## Why This Matters: Physics, Engineering, Computer Graphics
+In general relativity, the mean curvature of spacelike hypersurfaces in a Lorentzian 4-manifold appears in the Hamiltonian constraint equations of the initial value formulation. Maximal slices ($H = 0$) are the gravitational analog of minimal surfaces, and they play a role in singularity theorems and numerical relativity.
 
-A few words on why anyone outside the math department should care.
+In computer graphics, mean and Gaussian curvature guide mesh processing algorithms. Curvature-based mesh simplification preserves high-curvature regions (which carry visual information) while decimating low-curvature regions (which are perceptually flat). Surface reconstruction algorithms use curvature to guide interpolation: the reconstructed surface should have curvature consistent with the measured data points. Discrete differential geometry — the study of curvature on triangulated meshes — has become a major field bridging pure mathematics and computer science.
 
-**General relativity.** The Einstein field equations relate the curvature of spacetime (a 4-dimensional Lorentzian manifold) to the energy-momentum tensor. The relevant curvature is the Riemann tensor, which generalizes Gaussian curvature to higher dimensions. Surface curvature is the entry-level model.
-
-**Computer graphics.** Mean and Gaussian curvature are used for shading, decimation (mesh simplification), and stylized rendering. A surface with high $|K|$ has visually distinctive features that should be preserved when the mesh is reduced.
-
-**Architecture and structural engineering.** The Sydney Opera House shells, Felix Candela's hyperbolic paraboloids, Frei Otto's tensile structures — all are designed using surface curvature. Doubly curved (hyperbolic / saddle) surfaces are particularly stiff, which is why they appear in shells and roofs.
-
-**Biology.** Cell membranes are described by Helfrich's bending energy, $\int (H - H_0)^2\,dS$, where $H_0$ is a "spontaneous curvature" depending on the lipid composition. Vesicle shapes, red blood cell biconcave morphology, and so on are predicted by minimizing this energy. The connection between $H$ and physical bending is direct.
-
-**Geodesy.** The Earth is roughly an oblate ellipsoid; for fine work, even more complicated geoidal shapes are used. The curvature of the Earth's surface enters into mapping, surveying, and GPS calculations.
+A deep connection to partial differential equations: the equation $H = 0$ (characterizing minimal surfaces) is a second-order quasilinear elliptic PDE in the graph case $z = f(x,y)$:
+$$\frac{(1 + f_y^2)f_{xx} - 2f_xf_yf_{xy} + (1 + f_x^2)f_{yy}}{(1 + f_x^2 + f_y^2)^{3/2}} = 0.$$
+This is the *minimal surface equation*. Its solutions include $f = 0$ (plane), Scherk's surface $f = \log(\cos x/\cos y)$, and many others. The theory of this PDE (existence, regularity, boundary behavior) is a major chapter of geometric analysis. The Plateau problem — finding a minimal surface spanning a given boundary curve — was solved by Douglas and Rado (independently, 1931), earning Douglas the first Fields Medal in 1936.
 
 ---
 
-## Limitations and What Comes Next
+## Normal Curvature, Asymptotic Lines, and Ruled Surfaces
 
-A few caveats.
+Beyond the principal curvatures, the variation of normal curvature $\kappa_n$ across directions in $T_pS$ reveals additional geometric structure.
 
-**Sign conventions.** The signs of $L, M, N, H$ depend on the choice of normal orientation. Different texts make different choices. Always check the convention before using a formula.
+Euler's theorem states: if $\mathbf{w}$ makes angle $\alpha$ with the first principal direction, then $\kappa_n(\mathbf{w}) = k_1\cos^2\alpha + k_2\sin^2\alpha$. The normal curvature varies sinusoidally between $k_1$ and $k_2$ as we rotate through the tangent plane. This gives a clean geometric picture: the two principal directions are where the surface bends the most and the least, and all other directions are intermediate.
 
-**Umbilic points.** Where $k_1 = k_2$, principal directions are not unique. For most surfaces, umbilics are isolated points (Hilbert-Cohn-Vossen for the sphere is the famous exception: every point of a sphere is umbilic, and a famous open problem — the Caratheodory conjecture — asks whether *every* closed convex surface has at least two umbilics; still unresolved in full generality).
+*Lines of curvature* are curves whose tangent at every point is a principal direction. On the sphere, every curve is a line of curvature (every direction is principal at an umbilic). On the cylinder, the two families are axial lines and circular cross-sections. On a generic surface, lines of curvature form an orthogonal net covering the surface, and in line-of-curvature coordinates we have $F = M = 0$ simultaneously — both forms are diagonal. This simplifies many computations dramatically.
 
-**Higher-order behavior.** $\mathrm{I}$ encodes second-order intrinsic data; $\mathrm{II}$ encodes second-order extrinsic data. Together they almost determine the surface up to rigid motion (the full statement involves the integrability conditions of the next chapter). Higher-order behavior — third derivatives and beyond — is rarely useful in classical surface theory but matters when studying singular surfaces, cusps, or limit behavior.
+*Asymptotic lines* are curves along which the normal curvature vanishes: $\mathrm{II}(\gamma', \gamma') = La'^2 + 2Ma'b' + Nb'^2 = 0$. They exist only where $K \leq 0$. At a hyperbolic point, the discriminant $M^2 - LN > 0$ (since $K = (LN-M^2)/(EG-F^2) < 0$), giving two real solutions for $a':b'$ — two asymptotic directions. At a parabolic point, exactly one asymptotic direction. At an elliptic point, none (the second form is definite).
 
-**The next chapter.** Will reveal that $K$ — although defined via $\mathrm{II}$ — depends only on $\mathrm{I}$. This is the *Theorema Egregium*. One immediate consequence: an isometry between two surfaces preserves $K$ (since it preserves $\mathrm{I}$). So even though we computed $K$ from extrinsic data, the answer was secretly intrinsic all along. Mean curvature, by contrast, is genuinely extrinsic and changes under bending. Watch for this in chapter 4.
+A beautiful geometric fact: on a *ruled surface* (one swept out by a one-parameter family of straight lines), the rulings are always asymptotic lines. A straight line in $\mathbb{R}^3$ has zero curvature, so its normal curvature on any surface it lies on must be zero. The hyperboloid of one sheet $x^2 + y^2 - z^2 = 1$ is doubly ruled — two families of lines cover it — and both families are asymptotic lines. The hyperbolic paraboloid $z = xy$ is also doubly ruled (lines $t \mapsto (t, c, ct)$ and $t \mapsto (c, t, ct)$). This is why these surfaces appear in architecture: they can be built from straight beams, and the ruled structure aligns with directions of zero normal curvature, providing structural efficiency.
 
-**Beyond surfaces.** The shape operator generalizes to embedded submanifolds in any ambient Riemannian manifold; you get the *second fundamental form* of the embedding, which is a tensor. The eigenvalues are still principal curvatures. The story scales up.
+Asymptotic lines also have a physical interpretation for thin shells. Along an asymptotic direction, the surface offers no bending resistance from normal curvature — it can "flex" freely in that direction. Engineers designing shells must know the asymptotic directions because these are potential failure modes under bending loads.
 
----
+For a more exotic example, consider the Mobius strip parametrized by $\mathbf{x}(u,v) = ((1 + v\cos(u/2))\cos u, (1 + v\cos(u/2))\sin u, v\sin(u/2))$ for $u \in [0, 2\pi)$ and $v$ small. This is a non-orientable surface — the normal vector flips sign after one circuit around the strip. The principal curvatures and lines of curvature on the Mobius strip exhibit interesting topology: following a line of curvature around the strip, you return to a different principal direction than the one you started with (because the orientation has reversed). The Mobius strip does not admit a continuous global choice of principal directions, reflecting its non-orientability.
 
-## Summary
-
-We now have, in addition to the first fundamental form, a second tensor:
-
-| Quantity | Symbol | Formula |
-|---|---|---|
-| Second fundamental form | $\mathrm{II}$ | $\begin{pmatrix}L & M\\M & N\end{pmatrix}$ with $L = \mathbf{n}\cdot\mathbf{x}_{uu}$, etc. |
-| Shape operator | $S$ | $\mathrm{I}^{-1}\mathrm{II}$ |
-| Gaussian curvature | $K$ | $\det S = (LN - M^2)/(EG - F^2)$ |
-| Mean curvature | $H$ | $\frac{1}{2}\mathrm{tr}\,S = (EN - 2FM + GL)/(2(EG-F^2))$ |
-| Principal curvatures | $k_1, k_2$ | eigenvalues of $S$ |
-
-These quantities classify surface points into elliptic, parabolic, hyperbolic, planar regimes. Together with the first fundamental form, they will eventually let us state the Fundamental Theorem of Surfaces: $\mathrm{I}$ and $\mathrm{II}$ (subject to compatibility conditions) determine a surface up to rigid motion.
-
-The next chapter takes us back inside the surface, to ask: which of all this data is actually intrinsic? The answer — that $K$ is — is one of the most important results of classical differential geometry. From it spring geodesics, the Theorema Egregium, the Gauss-Bonnet theorem, and ultimately the entire intrinsic apparatus of Riemannian geometry that powers general relativity. We are about to leave the safety of $\mathbb{R}^3$ behind.
+On surfaces of revolution, the lines of curvature are always the meridians and the parallels (circles of latitude). This follows from symmetry: the meridians are planes of reflection symmetry, and the principal curvatures must be along and perpendicular to the axis of symmetry. Working in these natural coordinates diagonalizes both $\mathrm{I}$ and $\mathrm{II}$ ($F = M = 0$), simplifying all curvature computations. This is why surfaces of revolution — spheres, cylinders, cones, tori, catenoids, pseudospheres — serve as the primary computational testing ground for surface theory.
 
 ---
 
-## Appendix: Three More Worked Computations
+## The Fundamental Theorem and the Road Ahead
 
-For practice, three more computations that drive the formulas home.
+We now have two symmetric bilinear forms on each tangent plane. The natural question: do they determine the surface?
 
-### Paraboloid $z = u^2 + v^2$
+**Theorem (Bonnet, 1867).** Given smooth functions $E, F, G, L, M, N$ on an open set $U \subset \mathbb{R}^2$ with $EG - F^2 > 0$, satisfying the *Gauss equation* and the *Codazzi-Mainardi equations*, there exists a surface $\mathbf{x}: U \to \mathbb{R}^3$ with these as its first and second fundamental form coefficients. This surface is unique up to rigid motion in $\mathbb{R}^3$.
 
-Chart $\mathbf{x}(u, v) = (u, v, u^2 + v^2)$.
+The compatibility conditions are non-trivial: the Gauss equation expresses $K$ in terms of the Christoffel symbols (derived from $\mathrm{I}$ alone), and the Codazzi-Mainardi equations relate derivatives of $L, M, N$ to Christoffel symbols. The Gauss equation *is* the Theorema Egregium in disguise: it forces $K$ to be computable from $\mathrm{I}$, regardless of the specific $\mathrm{II}$.
 
-$\mathbf{x}_u = (1, 0, 2u)$, $\mathbf{x}_v = (0, 1, 2v)$, so $E = 1 + 4u^2$, $F = 4uv$, $G = 1 + 4v^2$, $EG-F^2 = 1 + 4u^2 + 4v^2$.
+The operational vocabulary: two surfaces are *isometric* if a diffeomorphism preserves $\mathrm{I}$ (same distances). They are *congruent* if a rigid motion takes one to the other (same $\mathrm{I}$ *and* $\mathrm{II}$). Bending preserves $\mathrm{I}$ but not $\mathrm{II}$: cylinder and plane are isometric but not congruent. A surface is *rigid* if every isometry to another surface in $\mathbb{R}^3$ must be a rigid motion. Cohn-Vossen (1927) proved spheres are rigid — you cannot bend a closed sphere without stretching it. This explains why a ping-pong ball resists deformation: any visible bending must involve stretching, and stretching requires force.
 
-$\mathbf{x}_u\times\mathbf{x}_v = (-2u, -2v, 1)$, $|\cdot| = \sqrt{1+4u^2+4v^2}$, so $\mathbf{n} = (-2u, -2v, 1)/\sqrt{1+4u^2+4v^2}$.
+What bending preserves: $K$ (Theorema Egregium). What bending does not preserve: $H$, $k_1$, $k_2$, $\mathrm{II}$, lines of curvature, asymptotic lines. The cylinder has $K = 0$ and so does the plane — rolling paper into a tube does not change $K$. But $H$ changes from $0$ (plane) to $1/(2r)$ (cylinder). The Theorema Egregium is the surprising discovery that one extrinsic-looking quantity ($K$) is actually intrinsic.
 
-$\mathbf{x}_{uu} = (0, 0, 2)$, $\mathbf{x}_{uv} = 0$, $\mathbf{x}_{vv} = (0, 0, 2)$.
+A sign convention warning before we close this section. The signs of $L, M, N$ — and hence of $H$ — depend on the choice of normal direction. Flipping $\mathbf{n}$ to $-\mathbf{n}$ flips the sign of all three, hence flips $H$. But $K = (LN - M^2)/(EG - F^2)$ is invariant: two sign flips in the numerator cancel. Always check conventions before comparing formulas between different sources.
 
-$L = \mathbf{n}\cdot\mathbf{x}_{uu} = 2/\sqrt{1+4u^2+4v^2}$. Similarly $N = 2/\sqrt{1+4u^2+4v^2}$, $M = 0$.
+A further subtlety: the second fundamental form $\mathrm{II}(\mathbf{w}, \mathbf{w})$ can also be interpreted as the second-order deviation of the surface from its tangent plane. If you write the surface locally as a graph $z = f(x, y)$ over the tangent plane at $p$ (with $p$ at the origin and the tangent plane as $z = 0$), then $f(x,y) = \frac{1}{2}(Lx^2 + 2Mxy + Ny^2) + O(|(x,y)|^3)$. The second fundamental form is literally the Hessian of this graph function, evaluated in surface coordinates. This gives the most direct geometric picture: $\mathrm{II}$ measures how the surface "pulls away" from its tangent plane, quadratically, in each direction. Elliptic points have a definite Hessian (the surface lies locally on one side of the tangent plane); hyperbolic points have an indefinite Hessian (the surface crosses the tangent plane along two curves — the asymptotic directions); parabolic points have a degenerate Hessian.
 
-$\mathrm{II} = \frac{2}{\sqrt{1+4u^2+4v^2}}I_2$.
-
-Gaussian curvature: $K = (LN - M^2)/(EG-F^2) = \frac{4}{(1+4u^2+4v^2)^2}$.
-
-At the origin: $K = 4$. As $(u,v)\to\infty$: $K\to 0$. The paraboloid has positive Gaussian curvature everywhere (elliptic), peaking at the vertex and decaying as you move away. Reasonable; the paraboloid is "most curved" at its vertex and flattens out on its sides.
-
-Mean curvature: $H = \frac{(1+4u^2+4v^2)\cdot 2 + (1+4u^2+4v^2)\cdot 2 - 0}{2(1+4u^2+4v^2)\sqrt{1+4u^2+4v^2}} = \frac{2}{\sqrt{1+4u^2+4v^2}}$. Wait, that simplifies wrongly; let me redo. Use the formula $H = (EN - 2FM + GL)/(2(EG-F^2))$. With $L = N = 2/\sqrt{w}$, $M = 0$, $F = 4uv$, $E = 1+4u^2$, $G = 1+4v^2$, $EG-F^2 = w := 1+4u^2+4v^2$:
-$$H = \frac{(1+4u^2)(2/\sqrt{w}) + (1+4v^2)(2/\sqrt{w})}{2w} = \frac{2(2 + 4u^2 + 4v^2)/\sqrt{w}}{2w} = \frac{2+4u^2+4v^2}{w^{3/2}}.$$
-At the origin: $H = 2$. So $k_{1,2} = 2 \pm \sqrt{4 - 4} = 2$, both equal — the origin is umbilic (every direction is principal). Makes sense by rotational symmetry of $z = u^2+v^2$.
-
-### Hyperbolic paraboloid $z = uv$
-
-The "Pringles chip" surface. Chart $\mathbf{x}(u,v) = (u, v, uv)$.
-
-$\mathbf{x}_u = (1, 0, v)$, $\mathbf{x}_v = (0, 1, u)$, so $E = 1+v^2$, $F = uv$, $G = 1+u^2$, $EG-F^2 = 1+u^2+v^2$.
-
-$\mathbf{x}_u\times\mathbf{x}_v = (-v, -u, 1)$, $|\cdot| = \sqrt{1+u^2+v^2}$, so $\mathbf{n} = (-v, -u, 1)/\sqrt{1+u^2+v^2}$.
-
-$\mathbf{x}_{uu} = 0$, $\mathbf{x}_{vv} = 0$, $\mathbf{x}_{uv} = (0, 0, 1)$. So $L = N = 0$, $M = 1/\sqrt{1+u^2+v^2}$.
-
-$K = (0 - M^2)/(EG-F^2) = -1/(1+u^2+v^2)^2$. Always negative. Hyperbolic everywhere. At the origin $K = -1$.
-
-$H = (E\cdot 0 - 2F M + G\cdot 0)/(2(EG-F^2)) = -F M/(EG-F^2) = -uv/((1+u^2+v^2)^{3/2})$.
-
-At the origin: $H = 0$. Minimal there. But $H \neq 0$ off-center, so $z = uv$ is not a minimal surface globally.
-
-This pair of examples (paraboloid, hyperbolic paraboloid) illustrates the same name applied to opposite curvatures. The "elliptic paraboloid" $z = u^2+v^2$ is bowl-shaped and elliptic; the "hyperbolic paraboloid" $z = uv$ is saddle-shaped and hyperbolic.
-
-### Tractrix surface (pseudosphere)
-
-Revolve the tractrix $\rho(v) = \sin v$, $z(v) = \cos v + \log\tan(v/2)$ around the $z$-axis, for $v\in (0, \pi)$.
-
-Compute (after some work): $\rho'(v) = \cos v$, $z'(v) = -\sin v + \csc v = (1 - \sin^2 v)/\sin v = \cos^2 v/\sin v$. So $(\rho')^2 + (z')^2 = \cos^2 v + \cos^4 v/\sin^2 v = \cos^2 v(\sin^2 v + \cos^2 v)/\sin^2 v = \cos^2 v/\sin^2 v$. Then with the formulas for surfaces of revolution:
-$$E = \rho^2 = \sin^2 v,\quad G = (\rho')^2+(z')^2 = \cot^2 v,\quad F = 0.$$
-
-After computing $\mathrm{II}$ (which I will skip), one finds $K = -1$ identically. This is the *pseudosphere*, the classical surface of constant negative Gaussian curvature. Hilbert proved in 1901 that no complete surface in $\mathbb{R}^3$ has $K = -1$ everywhere; the pseudosphere is incomplete (it has a singular boundary at $v = \pi/2$).
-
-Why this matters: the pseudosphere realizes a piece of the *hyperbolic plane*, the model of non-Euclidean geometry. Two pseudosphere geodesics drawn through a point and not through another given line are the "Lobachevsky lines" of non-Euclidean geometry. We will revisit this in chapter 4 when discussing constant curvature surfaces.
+The Gauss map provides one more beautiful perspective before we close. The *area distortion* of the Gauss map at a point equals $|K|$. For a convex surface, $N$ maps the surface onto $S^2$ with degree 1, so $\int_S K\,dA = 4\pi$. For the torus, the degree is 0, giving $\int K\,dA = 0$. This is the Gauss-Bonnet theorem in preview: total curvature is a topological invariant. The proof comes in chapter 5, but the geometric picture — curvature as the "stretching factor" of the Gauss map, whose total integral counts how many times $S^2$ is covered — is already here.
 
 ---
 
-## Appendix: Symmetry, Isometry, Bending
+## What's next
 
-Time to fix some operational vocabulary.
-
-**Two surfaces are *isometric*** if there is a diffeomorphism between them preserving the first fundamental form. Equivalently (chapter 2): same $E, F, G$ in matching charts.
-
-**Two surfaces are *applicable to each other*** if one can be bent (without stretching) into the other. This is a slightly more permissive notion than "isometric", in that it asks for the bending to be realized by a continuous family of isometric embeddings.
-
-**A surface is *rigid*** if any isometry of it onto another surface in $\mathbb{R}^3$ is a rigid motion. The sphere is rigid (Cohn-Vossen, 1927): you cannot bend a closed sphere without stretching it. This is the rigorous reason a ping-pong ball is hard to deform without breaking.
-
-**Bending preserves $K$** (Theorema Egregium, next chapter). It does *not* preserve $H$, $k_1$, $k_2$, or the second fundamental form.
-
-A canonical example: helicoid and catenoid. Both have $K = -1/(c^2 + r^2)^2$ for the corresponding parameters; they are isometric. But their $H$ values are different (helicoid has $H = 0$, catenoid has $H = 0$ — they are *both* minimal, so this particular comparison is uninstructive). A better comparison: cylinder and plane. Both have $K = 0$, but cylinder has $H = -1/(2r) \neq 0$ and plane has $H = 0$. The cylinder is rolled paper; the plane is unrolled paper. Bending the paper changes $H$ but not $K$.
-
-This is the concrete content of "intrinsic vs extrinsic". $K$ survives bending; $H$ does not.
-
----
-
-## Appendix: Asymptotic Lines and Lines of Curvature
-
-Two natural families of curves on a surface deserve brief mention.
-
-**Lines of curvature.** A curve $\gamma(t)$ on $S$ is a *line of curvature* if at every point of $\gamma$, the tangent vector $\gamma'(t)$ is a principal direction. Equivalently, the Gauss map sends the tangent to the tangent: $dN(\gamma') \parallel \gamma'$.
-
-On the sphere, every great circle is a line of curvature (because every direction is principal). On the cylinder, axial lines (along the $v$-axis) and circular cross-sections are the two families of lines of curvature. On a generic surface, lines of curvature form an *orthogonal net* — two families crossing at right angles. They give the surface a natural coordinate system that diagonalizes both $\mathrm{I}$ and $\mathrm{II}$. Working in line-of-curvature coordinates can simplify computations dramatically.
-
-**Asymptotic lines.** A curve $\gamma(t)$ is *asymptotic* if at every point $\kappa_n(\gamma') = 0$ — the normal curvature vanishes in the tangent direction. Equivalently, $\mathrm{II}(\gamma', \gamma') = 0$.
-
-Asymptotic lines exist only at points where $K \leq 0$ (so that $\mathrm{II}$ is indefinite or semi-definite). On a hyperbolic point, exactly two asymptotic directions exist; they are the directions of the cone $\mathrm{II}(\mathbf{w}, \mathbf{w}) = 0$. On a parabolic point, exactly one asymptotic direction. On an elliptic point, none.
-
-A nice fact: a *ruled surface* (one made up of straight lines) has its rulings as asymptotic curves (since a straight line in $\mathbb{R}^3$ has zero curvature, so $\kappa_n = 0$). The hyperboloid of one sheet, the helicoid, the saddle: these all have explicit rulings, and those rulings are asymptotic lines.
-
----
-
-## Appendix: The Fundamental Theorem of Surfaces
-
-A natural question is the analogue of the Fundamental Theorem of Curves: given the data $\mathrm{I}$ and $\mathrm{II}$ as functions on $U\subset\mathbb{R}^2$, does there exist a surface realizing them? And if so, is it unique?
-
-The answer (Bonnet, 1867): *yes, locally and up to rigid motion*, provided $\mathrm{I}$ and $\mathrm{II}$ satisfy the *Gauss equation* and the *Codazzi-Mainardi equations*. These are integrability conditions, and they are non-trivial. The Gauss equation in particular gives a formula for $K$ in terms of $\mathrm{I}$ alone — which is the Theorema Egregium! We will derive it explicitly in chapter 4.
-
-The structure here is the classical instantiation of a more general theorem: a Riemannian metric and a "second fundamental form" on a $k$-manifold define an embedding into $\mathbb{R}^n$ ($k < n$) iff certain compatibility equations hold (Gauss, Codazzi, and Ricci equations in the general case).
-
-This theorem is the reason classical differential geometry feels closed: knowing $\mathrm{I}$ and $\mathrm{II}$ is knowing the surface (locally, up to rigid motion). Two surfaces with the same forms are the same surface. Two surfaces with different forms are different. The forms are the genuine invariants.
-
----
-
-## Recap
-
-We have now built the full first-order extrinsic apparatus.
-
-- Gauss map $N: S\to S^2$.
-- Shape operator $S_p = -dN_p$, a self-adjoint linear map on $T_pS$.
-- Second fundamental form $\mathrm{II}$, the bilinear form encoding $S_p$.
-- Principal curvatures $k_1, k_2$, the eigenvalues of $S_p$.
-- Gaussian curvature $K = k_1 k_2$ and mean curvature $H = (k_1+k_2)/2$.
-- Three regimes — elliptic, parabolic, hyperbolic — distinguished by sign of $K$.
-- Worked examples: sphere ($K = 1/r^2$, umbilic), cylinder ($K = 0$, parabolic), saddle ($K < 0$, hyperbolic, minimal at origin), torus (all three regimes), paraboloid, hyperbolic paraboloid, pseudosphere ($K = -1$).
-- Lines of curvature and asymptotic lines as natural curves on a surface.
-- Mean curvature ties to area minimization; minimal surfaces are $H \equiv 0$.
-- The Fundamental Theorem of Surfaces: $\mathrm{I}$ and $\mathrm{II}$ (with compatibility) determine $S$ up to rigid motion.
-
-The single most important open question is: which of the quantities computed above survive bending of the surface? The answer comes next chapter: $K$ does, $H$ does not, and the proof — Gauss's Theorema Egregium — is one of the milestones of mathematics.
-
-A pedagogical note before we close. I have spent a lot of this chapter pushing through computations on specific surfaces — sphere, cylinder, saddle, torus, paraboloid, helicoid, pseudosphere. The reason is that the formulas for $K$ and $H$ in arbitrary parametrization are unwieldy and easy to misuse. Working with concrete surfaces builds the intuition that the formulas are doing what they ought to: assigning positive $K$ to bowl-like points, negative $K$ to saddle-like points, zero $K$ to "rolled paper" points. Once you have the intuition, the formulas become a bookkeeping device rather than a hurdle. If you have not yet computed $K$ and $H$ for a surface other than the ones I have done here, do one as an exercise — perhaps the catenoid, or the cone, or a Möbius strip parametrization. The first time you do it, the algebra is mechanical but slow; the second time, much faster; the third time, you can read off the curvature from the parametrization on inspection. That is the level of fluency that opens the rest of the subject.
-
-A further note on conventions. The signs of $L, M, N$ — and hence of $H$, but not of $K$ — depend on the choice of unit normal. For closed orientable surfaces (sphere, torus, etc.), one usually takes the outward normal. For surfaces of revolution, "outward" usually means away from the axis. For graphs $z = f(u,v)$, one usually takes the upward normal. Different texts make different choices; what matters is consistency within a calculation. The Gaussian curvature $K = \det S = (LN - M^2)/(EG-F^2)$ is invariant under sign flip of $\mathbf{n}$ (because both $L$ and $N$ flip, and so does $M$ in the off-diagonal calculation). The mean curvature $H = \mathrm{tr}\,S/2$ flips sign under normal-flip. When in doubt, recompute, and check the sign on a test surface like the unit sphere where the answer is unambiguous.
-
-With those caveats noted, on to the most beautiful theorem in classical differential geometry.
-
-A final extended example: the Gauss map of an ellipsoid. Take the ellipsoid $x^2/a^2 + y^2/b^2 + z^2/c^2 = 1$ with $a > b > c > 0$. The Gauss map sends each point to its outward normal. Because the principal axes are different, the Gauss map is not a uniform scaling: it stretches and squishes parts of the ellipsoid differently as it maps to the sphere. The image of the ellipsoid under the Gauss map covers the entire sphere exactly once; the *Jacobian* of the Gauss map, by definition, is the Gaussian curvature $K$ (this is one common alternative definition of $K$, and it gives an immediate proof that the integral of $K$ over a closed convex surface equals $4\pi$, the area of $S^2$).
-
-For the sphere, $K = 1/r^2$ everywhere, and indeed $\int_S K\,dS = (1/r^2)\cdot 4\pi r^2 = 4\pi$. For an ellipsoid, $K$ varies — peaking at the "ends" of the long axis and reaching its minimum at the "ends" of the short axis — but the integral is still $4\pi$. This is the Gauss-Bonnet theorem in advance: total curvature is a topological invariant. We will spend chapter 5 on this.
-
-For an explicit ellipsoid computation: at the point $(a, 0, 0)$ on the long axis, the principal curvatures are $k_1 = a/c^2$ and $k_2 = a/b^2$, so $K = a^2/(b^2 c^2)$. At the point $(0, 0, c)$ on the short axis, $k_1 = c/a^2$ and $k_2 = c/b^2$, so $K = c^2/(a^2 b^2)$. For $a > b > c$, the "long-axis" curvature $a^2/(b^2 c^2)$ is larger than the "short-axis" curvature $c^2/(a^2 b^2)$. Geometrically: the ellipsoid is more sharply curved at its tips than at its waist. Numerically with $a = 3, b = 2, c = 1$: long-axis $K = 9/4 = 2.25$, short-axis $K = 1/36 \approx 0.028$. Two orders of magnitude. The ellipsoid is dramatically anisotropic.
-
-This concrete picture — Gauss map as a "curvature-weighted" mapping to the sphere — is one of the deepest intuitions in surface theory. It reframes Gaussian curvature as the area density of the Gauss map's image, and it makes the Gauss-Bonnet theorem nearly visible: integrate the Gauss map's Jacobian, get the area covered, get a topological invariant.
+The next chapter proves the Theorema Egregium and develops the intrinsic apparatus: Christoffel symbols, geodesics, and parallel transport. The central revelation is that $K$ depends only on $\mathrm{I}$, opening the door to intrinsic geometry — geometry without an ambient space.
 
 ---
 
