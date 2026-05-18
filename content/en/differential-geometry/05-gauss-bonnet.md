@@ -34,6 +34,9 @@ What makes this theorem psychologically surprising is the vast gap between its t
 
 ![Gauss-Bonnet theorem: curvature integrates to a topological invariant](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg05_gauss_bonnet.png)
 
+![Euler characteristic for various surfaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_euler_characteristic.png)
+
+
 The local version is about a region, not an entire surface. Set up: let $T \subset S$ be a region on an oriented surface, bounded by a simple closed piecewise-smooth curve $\partial T$. The boundary consists of smooth arcs (each with a well-defined geodesic curvature $\kappa_g$) meeting at corners $p_1, \ldots, p_n$ where the tangent direction jumps by exterior angles $\theta_i$ (positive means turning left, in the chosen orientation).
 
 **Theorem (Local Gauss-Bonnet).** Under these conditions,
@@ -72,6 +75,9 @@ The integral of curvature over a geodesic triangle equals the angle excess (or d
 
 To go from local to global, we need to tile the entire surface with triangles and sum. This requires the combinatorial machinery of *triangulations* and the *Euler characteristic*.
 
+![Local Gauss-Bonnet: angle sum in geodesic triangle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_local_gauss_bonnet.png)
+
+
 A *triangulation* of a closed surface $S$ is a decomposition into finitely many "curved triangles" (images of flat triangles under smooth maps) such that any two triangles either share nothing, share a single vertex, or share an entire edge. Every closed surface admits a triangulation (Rado, 1925). A given surface admits infinitely many triangulations.
 
 The *Euler characteristic* is the integer
@@ -92,6 +98,12 @@ The connection to Gauss-Bonnet: the theorem says $\iint_S K\,dA = 2\pi\chi(S)$. 
 
 **Theorem (Gauss-Bonnet).** For any closed oriented surface $S$ with a smooth Riemannian metric,
 $$\iint_S K\,dA = 2\pi\chi(S).$$
+
+![Animation: deforming surface while preserving Euler characteristic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_deformation.gif)
+
+
+![Total curvature integral equals topological invariant](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_curvature_integral.png)
+
 
 The proof by triangulation-and-telescoping is the most transparent. Choose a triangulation of $S$ with *geodesic* edges (on a smooth surface this is always possible — geodesics between sufficiently close points are unique and depend smoothly on their endpoints). Apply the local Gauss-Bonnet theorem to each triangle $T_j$ (which has geodesic sides, so $\kappa_g = 0$):
 $$\iint_{T_j} K\,dA = A_1^{(j)} + A_2^{(j)} + A_3^{(j)} - \pi,$$
@@ -130,6 +142,9 @@ For the torus, the constraint is equally rigid: the positive curvature of the ou
 
 The Gauss-Bonnet theorem has immediate and powerful consequences.
 
+![Angle defect on polyhedra](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_angle_defect.png)
+
+
 **No positive-curvature torus.** If a metric on the torus had $K > 0$ everywhere, then $\iint K\,dA > 0$. But Gauss-Bonnet says $\iint K\,dA = 0$ for the torus ($\chi = 0$). Contradiction. So every metric on the torus must have some region of zero or negative curvature. Similarly, no metric on the sphere can have $K \leq 0$ everywhere (since $\chi(S^2) = 2 > 0$, the total curvature must be positive).
 
 **The hairy ball theorem.** Every continuous tangent vector field on $S^2$ must vanish somewhere. The proof uses the Poincare-Hopf index theorem: the sum of indices of zeros of any tangent vector field equals $\chi(S)$. For $S^2$, $\chi = 2 \neq 0$, so zeros exist. On a torus ($\chi = 0$), you can have nowhere-vanishing vector fields — the "barber pole" field on a donut has no zeros.
@@ -155,6 +170,9 @@ Gauss-Bonnet forces the sign; the uniformization theorem (deep, proved by Koebe 
 
 For surfaces embedded in $\mathbb{R}^3$, there is an alternative perspective on Gauss-Bonnet using the Gauss map $N: S \to S^2$.
 
+![Geodesic curvature on a surface boundary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_geodesic_curvature.png)
+
+
 Recall from chapter 3: the Jacobian of the Gauss map at a point $p$ equals the Gaussian curvature $K(p)$. Specifically, $N$ distorts area by a factor of $|K|$ (with sign tracking orientation). Therefore:
 $$\iint_S K\,dA = \int_S (\text{signed Jacobian of }N)\,dA = \deg(N) \cdot \mathrm{Area}(S^2) = 4\pi\deg(N),$$
 where $\deg(N)$ is the *topological degree* of the Gauss map — the signed count of how many times $N$ covers $S^2$.
@@ -176,6 +194,9 @@ For a genus-$g$ surface, each "handle" contributes a region where the Gauss map 
 ## Beyond Dimension Two: The Chern-Gauss-Bonnet Theorem
 
 The 2-dimensional Gauss-Bonnet theorem is the first case of a profound generalization to even-dimensional manifolds.
+
+![Hairy ball theorem: no nonvanishing vector field on S^2](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_hairy_ball.png)
+
 
 **Theorem (Chern, 1944).** For any closed oriented Riemannian manifold $M$ of even dimension $2n$,
 $$\int_M \mathrm{Pf}\left(\frac{\Omega}{2\pi}\right) = \chi(M),$$

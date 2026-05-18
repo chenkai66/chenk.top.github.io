@@ -36,6 +36,9 @@ A second guiding picture. Think of the curvature tensor as the *infinitesimal ho
 
 ![Gaussian curvature on a torus: outer K>0 (red), inner K<0 (blue)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg11_torus_curvature.png)
 
+![Riemann curvature tensor: change in vector after parallel transport around loop](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_riemann_tensor.png)
+
+
 The **Riemann curvature tensor** $R$ is defined by
 $$R(X, Y)Z = \nabla_X \nabla_Y Z - \nabla_Y \nabla_X Z - \nabla_{[X, Y]}Z.$$
 Read this as: "the failure of $\nabla_X \nabla_Y$ to commute with $\nabla_Y \nabla_X$, corrected for the fact that $X$ and $Y$ themselves do not commute (their bracket is $[X, Y]$)." On flat space ($\mathbb{R}^n$), $\nabla$ is just the ordinary partial derivative and the second covariant derivatives commute, so $R \equiv 0$. Curvature is the obstruction to $\nabla$'s commuting.
@@ -60,6 +63,9 @@ The lowered Riemann tensor is $R_{\theta\phi\theta\phi} = g_{\theta\theta}R^\the
 
 The Riemann tensor with all indices lowered satisfies:
 
+![Sectional curvature: positive, zero, and negative](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_sectional_curvature.png)
+
+
 1. **Antisymmetry in first pair:** $R_{ijkl} = -R_{jikl}$.
 2. **Antisymmetry in second pair:** $R_{ijkl} = -R_{ijlk}$.
 3. **Pair-swap symmetry:** $R_{ijkl} = R_{klij}$.
@@ -75,6 +81,12 @@ These reduce the count of independent components from $n^4$ to $n^2(n^2-1)/12$. 
 ## 3. Sectional Curvature
 
 For any 2-plane $\Pi \subset T_p M$ spanned by $X, Y$, the **sectional curvature** is
+
+![Animation: geodesic deviation in positive vs negative curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_geodesic_deviation.gif)
+
+
+![Ricci curvature: volume growth of geodesic balls](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_ricci_curvature.png)
+
 
 $$K(\Pi) = \frac{R(X, Y, X, Y)}{g(X, X)g(Y, Y) - g(X, Y)^2}.$$
 
@@ -97,6 +109,9 @@ A consequence of the symmetries: knowing $K$ on every 2-plane determines $R$ ent
 ## 4. Ricci and Scalar Curvature
 
 The **Ricci tensor** is the trace of Riemann over the first and third indices:
+
+![Scalar curvature colored on a deformed sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_scalar_curvature.png)
+
 
 $$\mathrm{Ric}(Y, Z) = \mathrm{tr}(X \mapsto R(X, Y)Z), \qquad R_{jk} = R^i_{jik}.$$
 
@@ -137,6 +152,9 @@ where:
 - $\tilde{\mathrm{Ric}}$ is the **traceless Ricci** part: tensors built from $\mathrm{Ric} - \frac{R}{n}g$.
 - $R_{\mathrm{scalar}}$ is the part built from scalar curvature alone.
 
+![Curvature hierarchy: Riemann -> Ricci -> Scalar (successive traces)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_curvature_hierarchy.png)
+
+
 ![Riemann tensor decomposition into Weyl, traceless Ricci, and scalar parts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/11-curvature-on-manifolds/dg_v2_11_5_decomp.png)
 
 In dimensions 2 and 3, the Weyl tensor vanishes identically — there is "not enough room" for a non-trivial conformally-invariant piece. So:
@@ -159,6 +177,9 @@ In dimensions 2 and 3, the Weyl tensor vanishes identically — there is "not en
 ## 6. Constant-Curvature Spaces
 
 A Riemannian manifold has **constant sectional curvature** $\kappa$ if $K(\Pi) = \kappa$ for every 2-plane at every point. The simply connected complete examples — the **model spaces** — are:
+
+![Jacobi fields: geodesic deviation on sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_jacobi_fields.png)
+
 
 ![Three model spaces of constant sectional curvature: sphere, plane, hyperbolic plane](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/11-curvature-on-manifolds/dg_v2_11_6_constant_K.png)
 

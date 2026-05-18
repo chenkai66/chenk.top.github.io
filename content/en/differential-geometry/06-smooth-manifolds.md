@@ -30,6 +30,9 @@ Once you accept the abstract framework, everything from the previous chapters be
 
 ![Stereographic projection: covering the circle with two charts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg06_stereographic.png)
 
+![Charts and atlas: covering a manifold with coordinate patches](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_charts_atlas.png)
+
+
 The intuition behind a manifold: a space that, near any point, looks indistinguishable from a patch of $\mathbb{R}^n$. The surface of the Earth looks flat from ground level — this is the local-Euclidean property. But globally it wraps around, has no edges, and is compact. A manifold is the mathematical framework that captures this: locally Euclidean, globally possibly complicated.
 
 A *topological $n$-manifold* is a topological space $M$ satisfying three conditions: (1) *Hausdorff* — any two distinct points have disjoint neighborhoods; (2) *second-countable* — the topology has a countable basis; (3) *locally Euclidean of dimension $n$* — every point $p \in M$ has an open neighborhood $U$ homeomorphic to an open subset of $\mathbb{R}^n$. A pair $(U, \varphi)$ where $\varphi: U \to V \subseteq \mathbb{R}^n$ is a homeomorphism is called a *coordinate chart*. The map $\varphi$ assigns $n$ real coordinates to each point in $U$.
@@ -53,6 +56,9 @@ A concrete grounding: take $S^2$ with stereographic projection from the north po
 ## Examples That Ground the Abstraction
 
 **$\mathbb{R}^n$ and its open subsets.** The identity map gives a single global chart. Open subsets inherit the smooth structure. Example: $\mathrm{GL}(n, \mathbb{R}) = \{A \in M_n(\mathbb{R}) : \det A \neq 0\}$ is an open subset of $\mathbb{R}^{n^2}$ (since $\det$ is continuous and $\mathrm{GL}(n)$ is the preimage of $\mathbb{R} \setminus \{0\}$), hence a smooth manifold of dimension $n^2$. The space of invertible matrices is a manifold — this is the starting point for Lie group theory.
+
+![Tangent space at a point on a manifold](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_tangent_space.png)
+
 
 ![Two-chart atlas for the 2-sphere from stereographic projection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/06-smooth-manifolds/dg_v2_06_3_sphere_charts.png)
 
@@ -80,6 +86,12 @@ One more illuminating example: the *Klein bottle*. Take a square $[0,1]^2$ and i
 
 On a surface in $\mathbb{R}^3$, a tangent vector at $p$ is a velocity vector $\gamma'(0)$ of some curve through $p$ — it lives in the ambient $\mathbb{R}^3$ and happens to be tangent to the surface. For abstract manifolds with no ambient space, we need a purely intrinsic definition.
 
+![Animation: transitioning between chart coordinates](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_chart_transition.gif)
+
+
+![Transition maps between overlapping charts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_transition_maps.png)
+
+
 The insight: a tangent vector at $p$ is completely characterized by its action as a directional derivative. Given any smooth function $f: M \to \mathbb{R}$, a tangent vector $v$ at $p$ produces a number $v(f) \in \mathbb{R}$ — the rate of change of $f$ in the direction $v$. This number is linear in $f$ and satisfies the Leibniz (product) rule: $v(fg) = f(p)v(g) + g(p)v(f)$.
 
 We *define* a tangent vector at $p$ to be a linear map $v: C^\infty(M) \to \mathbb{R}$ satisfying the Leibniz rule. Such a map is called a *derivation at $p$*. The set of all derivations at $p$ forms a real vector space, the *tangent space* $T_pM$.
@@ -102,6 +114,9 @@ The beauty of this formalism is that it works identically for a 100-dimensional 
 
 If $F: M \to N$ is a smooth map between manifolds, the *differential* (or pushforward) of $F$ at $p$ is the linear map $dF_p: T_pM \to T_{F(p)}N$ defined by $(dF_p(v))(g) = v(g \circ F)$ for all $g \in C^\infty(N)$. In coordinates: $dF_p$ is represented by the Jacobian matrix $(\partial F^j/\partial x^i)$, exactly as in multivariable calculus.
 
+![Examples of smooth manifolds](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_manifold_examples.png)
+
+
 The differential captures how $F$ acts "infinitesimally": tangent vectors at $p$ (infinitesimal displacements) map linearly to tangent vectors at $F(p)$. It is the manifold analog of the total derivative. The chain rule holds: $d(G \circ F)_p = dG_{F(p)} \circ dF_p$. The differential of the identity is the identity on tangent spaces.
 
 Three important classes of smooth maps, defined by the rank of $dF_p$:
@@ -121,6 +136,9 @@ Sard's theorem adds: the set of critical values (where $dF$ fails to be surjecti
 ## The Tangent Bundle, Vector Fields, and Flows
 
 Assemble all tangent spaces into one object: the *tangent bundle* $TM = \bigsqcup_{p \in M} T_pM$. A point of $TM$ is a pair $(p, v)$ with $p \in M$ and $v \in T_pM$. The tangent bundle is itself a smooth manifold of dimension $2n$: in a chart $(U, \varphi = (x^1, \ldots, x^n))$ on $M$, coordinates on $TU$ are $(x^1, \ldots, x^n, v^1, \ldots, v^n)$ where $v = \sum v^i\partial/\partial x^i$.
+
+![Smooth maps between manifolds](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_smooth_map.png)
+
 
 The projection $\pi: TM \to M$, $\pi(p, v) = p$, makes $TM$ a *vector bundle* of rank $n$ — the fibers $\pi^{-1}(p) = T_pM$ are vector spaces varying smoothly with $p$.
 

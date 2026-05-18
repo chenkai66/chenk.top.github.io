@@ -34,6 +34,9 @@ A historical orientation, since the names accumulate quickly. Riemann introduced
 
 ![Parallel transport on a sphere: vector rotates 90 degrees around a spherical triangle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg10_parallel_transport.png)
 
+![Riemannian metric: unit balls in Euclidean vs hyperbolic geometry](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_riemannian_metric.png)
+
+
 A **Riemannian metric** on a smooth manifold $M$ is a smooth assignment
 $$g: M \to T^*M \otimes T^*M, \qquad p \mapsto g_p$$
 where each $g_p$ is a symmetric, positive-definite bilinear form on $T_pM$. In words: at every point you have an inner product on the tangent space, and the inner product varies smoothly.
@@ -79,6 +82,9 @@ A useful mental model: a smooth manifold is like a piece of fabric you can fold 
 
 A Riemannian metric gives a canonical identification between tangent and cotangent vectors at each point. Given $v \in T_pM$, define the covector $v^\flat \in T_p^*M$ by $v^\flat(w) = g_p(v, w)$. The map $\flat: T_pM \to T_p^*M$, $v \mapsto v^\flat$ ("flat") is a linear isomorphism (positive-definiteness ensures injectivity; finite dimension gives surjectivity). Its inverse $\sharp: T_p^*M \to T_pM$ ("sharp") raises an index.
 
+![Levi-Civita connection: the unique metric-compatible torsion-free connection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_levi_civita.png)
+
+
 In coordinates: if $v = v^i\partial_i$, then $v^\flat = g_{ij}v^j\,dx^i$. The matrix of $\flat$ is the metric matrix $g_{ij}$; the matrix of $\sharp$ is its inverse $g^{ij}$. These are the constructions that physicists call "raising and lowering indices."
 
 **Gradient.** The gradient of a smooth $f: M \to \mathbb{R}$ is the metric-dependent vector field $\nabla f = (df)^\sharp$. In coordinates $(\nabla f)^i = g^{ij}\partial_j f$. Without a metric, $df$ is a covector field; with a metric, you can convert it to a vector field that "points in the direction of steepest ascent" with magnitude equal to the rate of ascent. The gradient depends on the metric and is the right notion for variational and gradient-flow problems.
@@ -88,6 +94,12 @@ In coordinates: if $v = v^i\partial_i$, then $v^\flat = g_{ij}v^j\,dx^i$. The ma
 ## 3. Affine Connections
 
 To differentiate vector fields, we need extra data. An **affine connection** on $M$ is an $\mathbb{R}$-bilinear map $\nabla: \Gamma(TM) \times \Gamma(TM) \to \Gamma(TM)$, written $(X, Y) \mapsto \nabla_X Y$, such that
+
+![Animation: parallel transport along latitude on sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_parallel_transport.gif)
+
+
+![Parallel transport is path-dependent on curved spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_parallel_transport_paths.png)
+
 
 1. $\nabla_{fX} Y = f \nabla_X Y$ (linear in $X$ over smooth functions),
 2. $\nabla_X (fY) = X(f) Y + f \nabla_X Y$ (Leibniz rule in $Y$).
@@ -101,6 +113,9 @@ In a coordinate chart, $\nabla$ is determined by the **Christoffel symbols** $\G
 ## 4. The Levi-Civita Connection
 
 **Theorem (Fundamental theorem of Riemannian geometry).** On any Riemannian manifold $(M, g)$, there is a *unique* affine connection $\nabla$ that is both torsion-free and metric-compatible. This is the **Levi-Civita connection**.
+
+![Covariant derivative: parallel vs non-parallel transport](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_covariant_derivative.png)
+
 
 *Proof sketch.* Imposing torsion-freeness and metric compatibility produces the **Koszul formula**:
 
@@ -126,6 +141,9 @@ Every covariant derivative, geodesic equation, Riemann tensor calculation traces
 
 Given a curve $\gamma$ and a vector $v$ at $\gamma(0)$, the **parallel transport** of $v$ along $\gamma$ is the unique vector field $V$ along $\gamma$ with $V(0) = v$ and $\nabla_{\dot\gamma} V = 0$. In coordinates, this is a linear ODE $\dot V^k + \Gamma^k_{ij}\dot\gamma^i V^j = 0$. By Picard-Lindelof, parallel transport exists and is unique. The transport map $P_\gamma : T_{\gamma(0)} M \to T_{\gamma(1)} M$ is a linear isomorphism, and for the Levi-Civita connection an isometry — it preserves the metric.
 
+![Hopf-Rinow: complete vs incomplete manifolds](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_hopf_rinow.png)
+
+
 ![Parallel transport along a closed loop on the sphere returns a rotated vector](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/10-riemannian-geometry/dg_v2_10_3_parallel_transport.png)
 
 **The key point.** On Euclidean space, parallel transport is path-independent: walking from $p$ to $q$ along any path, you carry vectors the same way (just translate them). On a curved manifold, parallel transport is generally **path-dependent**: a vector carried from $p$ to $p$ around a closed loop returns rotated. This is the geometric heart of curvature.
@@ -149,6 +167,9 @@ So parallel transport around this geodesic triangle rotates tangent vectors by $
 A **geodesic** is a curve $\gamma$ that is its own parallel transport: $\nabla_{\dot\gamma}\dot\gamma = 0$. In coordinates,
 $$\ddot\gamma^k + \Gamma^k_{ij}\dot\gamma^i\dot\gamma^j = 0.$$
 This is a second-order ODE in the curve's coordinates, with initial data $(\gamma(0), \dot\gamma(0)) \in TM$. By Picard-Lindelof, geodesics exist and are locally unique; they may not extend for all time (the manifold could be incomplete).
+
+![Connection as horizontal subspace in the tangent bundle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_connection_bundle.png)
+
 
 Geodesics are **locally length-minimizing**: among nearby curves with the same endpoints, the geodesic has the shortest length. They are *not always* globally minimizing — on the sphere, the great-circle arc from the north pole to a point near the south pole going "the long way" is a geodesic but not the shortest path.
 

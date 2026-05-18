@@ -63,6 +63,12 @@ The $\cot\varphi$ term diverges as $\varphi \to 0$ (the north pole), reflecting 
 
 Armed with Christoffel symbols, we can state and understand the central theorem of classical differential geometry.
 
+![Animation: geodesic flow on a surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_geodesic_flow.gif)
+
+
+![Geodesics on various surfaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_geodesic_on_surfaces.png)
+
+
 **Theorem (Gauss, 1827 — Theorema Egregium).** The Gaussian curvature $K$ is expressible entirely in terms of the metric coefficients $g_{ij}$ and their first and second partial derivatives. In particular, $K$ does not depend on the second fundamental form $\mathrm{II}$ or on any information about how the surface is embedded in $\mathbb{R}^3$.
 
 In orthogonal coordinates ($F = 0$), there is a relatively clean formula (Brioschi's formula):
@@ -100,6 +106,9 @@ A related consequence for geodesy: the shape of the Earth is determined (locally
 
 With Christoffel symbols in hand, we can define the curves that play the role of "straight lines" on a curved surface. In flat space, a straight line has zero acceleration. On a surface, the analog is a curve whose *tangential* acceleration vanishes — it does not steer within the surface, and any acceleration it has is purely normal (forced by the constraint of staying on the surface).
 
+![Theorema Egregium: Gaussian curvature is intrinsic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_theorema_egregium.png)
+
+
 A curve $\gamma(t) = \mathbf{x}(u_1(t), u_2(t))$ on a surface has an acceleration $\gamma''$ that decomposes into tangential and normal parts. The tangential part is the *covariant derivative* of $\gamma'$ along $\gamma$:
 $$\frac{D\gamma'}{dt} = \sum_k\left(\ddot u_k + \sum_{i,j}\Gamma^k_{ij}\dot u_i\dot u_j\right)\mathbf{x}_k.$$
 
@@ -134,6 +143,9 @@ The variational perspective ties geodesics to physics. The geodesic equation is 
 
 Geodesics are intrinsic "straight lines." But there is a subtler intrinsic concept: carrying a vector along a curve without "rotating" it within the surface. This is *parallel transport*.
 
+![Christoffel symbols: how basis vectors change](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_christoffel.png)
+
+
 Given a curve $\gamma(t)$ on $S$ and an initial tangent vector $\mathbf{v}_0 \in T_{\gamma(0)}S$, we seek a vector field $V(t)$ along $\gamma$ that is "constant" in the intrinsic sense — its covariant derivative along $\gamma$ vanishes:
 $$\frac{DV}{dt} = \sum_k\left(\dot V^k + \sum_{i,j}\Gamma^k_{ij}\dot u_i V^j\right)\mathbf{x}_k = 0.$$
 
@@ -164,6 +176,9 @@ All three give the same number $K$, all three are computable from $\mathrm{I}$ a
 
 The Theorema Egregium opens a classification program: since isometries preserve $K$, surfaces with different $K$ are never isometric. What are the surfaces of constant curvature?
 
+![Parallel transport on the sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_parallel_transport_sphere.png)
+
+
 **Theorem (Minding, 1839).** Any two surfaces with the same constant Gaussian curvature are locally isometric. That is, small patches of one can be mapped isometrically onto small patches of the other.
 
 This means the local geometry of a surface of constant curvature is completely determined by the value of $K$. There are exactly three cases:
@@ -191,6 +206,9 @@ The three model spaces also admit beautiful explicit descriptions of their geode
 One more intrinsic quantity completes the toolkit: *geodesic curvature*. For a unit-speed curve $\gamma$ on a surface, the acceleration $\gamma''$ in $\mathbb{R}^3$ splits into normal and tangential parts. The normal part is $\kappa_n\mathbf{n}$ (normal curvature, extrinsic). The tangential part defines the geodesic curvature:
 $$\kappa_g = (\gamma'')^{\mathrm{tan}} \cdot (\mathbf{n} \times \gamma'),$$
 measuring how fast the tangent vector $\gamma'$ rotates *within the tangent plane* as we move along $\gamma$.
+
+![Exponential map: from tangent plane to surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_exponential_map.png)
+
 
 A geodesic has $\kappa_g \equiv 0$: its tangent does not rotate in-plane. A circle of latitude on a sphere (other than the equator, which is a geodesic) has nonzero $\kappa_g$ — it is constantly turning within the surface to maintain its latitude. The equator has $\kappa_g = 0$ because it is a great circle; other circles of latitude have $\kappa_g = \cot\varphi$ (where $\varphi$ is the colatitude), measuring their deviation from being geodesics.
 

@@ -32,6 +32,9 @@ translationKey: "differential-geometry-10"
 
 ![球面上的平行移动与和乐：向量沿三角形路径传输后旋转 90°](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/dg10_parallel_transport.png)
 
+![Riemannian 度量：Euclid 几何 vs 双曲几何中的单位球](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_riemannian_metric.png)
+
+
 **黎曼度量** 在光滑流形 $M$ 上是一个光滑的赋值
 $$g: M \to T^*M \otimes T^*M, \qquad p \mapsto g_p$$
 其中每个 $g_p$ 是 $T_pM$ 上的对称正定双线性形式。换句话说：在每一点上都有一个切空间上的内积，并且内积随点的变化而光滑变化。
@@ -77,6 +80,9 @@ $$g = \frac{dx^2 + dy^2}{y^2}.$$
 
 度量提供了 $TM$ 和 $T^*M$ 之间的同构 —— “音乐”同构。
 
+![Levi-Civita 联络：唯一的度量相容无挠联络](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_levi_civita.png)
+
+
 给定 $X \in TM$，定义 $X^\flat \in T^*M$ 为 $X^\flat(Y) = g(X, Y)$。在坐标下，$X^\flat_i = g_{ij} X^j$ —— “降低指标”。
 
 给定 $\omega \in T^*M$，定义 $\omega^\sharp \in TM$ 为 $g(\omega^\sharp, Y) = \omega(Y)$。在坐标下，$\omega^{\sharp i} = g^{ij}\omega_j$，其中 $g^{ij}$ 是逆矩阵。
@@ -100,6 +106,12 @@ $$\nabla f = -\sin\theta \cdot 1 \cdot \partial_\theta + 0 = -\sin\theta\,\parti
 ## 3. 联络：向量场的微分
 
 流形上的向量场 $X$ 没有明显的“变化率” —— 要比较 $X_p$ 在一点与 $X_q$ 在另一点，你需要一种方法来识别 $T_pM$ 与 $T_qM$。在欧几里得空间中这是自动的（$\mathbb{R}^n$ 中的平行平移），但在一般流形上需要额外的结构：联络是
+
+![动画：球面纬线上的平行移动](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_parallel_transport.gif)
+
+
+![弯曲空间上平行移动依赖路径](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_parallel_transport_paths.png)
+
 
 **联络** $\nabla$ 在 $TM$ 上（更准确地说，是 *仿射联络*）是一个 $\mathbb{R}$-线性算子
 $$\nabla: \mathfrak{X}(M) \times \mathfrak{X}(M) \to \mathfrak{X}(M), \qquad (X, Y) \mapsto \nabla_X Y$$
@@ -130,6 +142,9 @@ $$\nabla_X Y = \left(X^i \partial_i Y^k + \Gamma^k_{ij}X^i Y^j\right)\partial_k.
 ## 4. Levi-Civita 联络
 
 在黎曼流形上，存在唯一的既 **度量兼容**（$X g(Y, Z) = g(\nabla_X Y, Z) + g(Y, \nabla_X Z)$，“度量是平行的”）又 **无挠**（$\nabla_X Y - \nabla_Y X = [X, Y]$，“没有内置扭曲”）的联络。这就是 **Levi-Civita 联络**，黎曼几何的标准联络。
+
+![协变导数：平行与非平行传输](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_covariant_derivative.png)
+
 
 ![Levi-Civita 联络作为唯一的无挠度量联络](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/10-riemannian-geometry/dg_v2_10_2_levi_civita.png)
 
@@ -163,6 +178,9 @@ $$\ddot x - \frac{2}{y}\dot x \dot y = 0, \qquad \ddot y + \frac{1}{y}(\dot x^2 
 $$P_\gamma: T_{\gamma(a)}M \to T_{\gamma(b)}M, \qquad V(a) \mapsto V(b)$$
 是沿 $\gamma$ 的 平行移动是线性同构，并且（对于 Levi-Civita 联络）是一个等距映射 —— 它保持度量。
 
+![Hopf-Rinow：完备与不完备流形](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_hopf_rinow.png)
+
+
 ![沿球面上的闭合环路的平行移动返回一个旋转后的向量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/10-riemannian-geometry/dg_v2_10_3_parallel_transport.png)
 
 在欧几里得空间中，平行移动是路径无关的：沿着任意路径从 $p$ 到 $q$，你携带向量的方式相同（只需平移它们）。在弯曲流形上，平行移动通常是路径相关的：沿闭合环路从 $p$ 到 $p$ 携带的向量返回时会被旋转。这是曲率的几何核心。
@@ -184,6 +202,9 @@ $$P_\gamma: T_{\gamma(a)}M \to T_{\gamma(b)}M, \qquad V(a) \mapsto V(b)$$
 **测地线** 是一条曲线 $\gamma$，它是自身的平行移动：$\nabla_{\dot\gamma}\dot\gamma = 0$。在坐标下，
 $$\ddot\gamma^k + \Gamma^k_{ij}\dot\gamma^i\dot\gamma^j = 0.$$
 这是一个关于曲线坐标的二阶 ODE，初始数据为 $(\gamma(0), \dot\gamma(0)) \in TM$。根据 Picard-Lindelof 定理，测地线存在且局部唯一；它们可能不会延展到所有时间（流形可能是不完备的）。
+
+![联络作为切丛中的水平子空间](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_connection_bundle.png)
+
 
 测地线是 **局部长度最小化** 的：在具有相同端点的附近曲线中，测地线具有最短长度。它们并不总是全局最小化 —— 在球面上，从北极到南极附近“绕远路”的大圆弧是测地线，但不是最短路径。
 

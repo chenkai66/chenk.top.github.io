@@ -31,6 +31,9 @@ The plan: build $\Lambda^k V^*$ for a single vector space, glue across the manif
 
 Recall from earlier in the series that the **cotangent space** $T_p^* M$ is the dual vector space of $T_p M$ — the space of linear functionals $\alpha: T_p M \to \mathbb{R}$. A **1-form** $\omega$ on $M$ is a smooth assignment $p \mapsto \omega_p \in T_p^* M$. Equivalently, it is a smooth section of the cotangent bundle $T^*M \to M$.
 
+![1-form as parallel planes: counting piercings by vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/08_one_form.png)
+
+
 In a coordinate chart $(x^1, \dots, x^n)$, the differentials $dx^1, \dots, dx^n$ form a basis of $T_p^*M$ at each point, dual to the coordinate basis $\partial_1, \dots, \partial_n$ in the sense that $dx^i(\partial_j) = \delta^i_j$. Every 1-form can be written
 $$\omega = \omega_i(x)\, dx^i$$
 with smooth coefficients $\omega_i$. The space of 1-forms is denoted $\Omega^1(M)$.
@@ -64,6 +67,9 @@ Sanity check via directional derivative: $\nabla f(1,2) = (4, 1)$, vector $X = (
 ## 2. $k$-Forms and the Wedge Product
 
 A $k$-form on $M$ is a smooth section of $\Lambda^k T^*M$ — the bundle of **antisymmetric** multilinear maps $T_pM \times \dots \times T_pM \to \mathbb{R}$ (with $k$ inputs). At each point, $\omega_p$ is a function eating $k$ tangent vectors and spitting out a number, with the rule that swapping two inputs flips the sign. The space of $k$-forms is $\Omega^k(M)$.
+
+![2-form measures oriented area of parallelogram](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/08_two_form.png)
+
 
 For $k = 0$, $\Omega^0(M) = C^\infty(M)$. For $k = 1$, we recover 1-forms. For $k = n = \dim M$, $\Omega^n(M)$ is locally 1-dimensional — every $n$-form is a function times a chosen volume form. For $k > n$, $\Omega^k(M) = 0$ (you cannot have an antisymmetric $(n+1)$-form on an $n$-dimensional space — pigeonhole).
 
@@ -110,6 +116,9 @@ The **exterior derivative** is the unique $\mathbb{R}$-linear operator $d: \Omeg
 2. **Graded Leibniz rule:** $d(\alpha \wedge \beta) = (d\alpha) \wedge \beta + (-1)^k \alpha \wedge d\beta$ for $\alpha \in \Omega^k$.
 3. **Nilpotency:** $d \circ d = 0$.
 
+![Wedge product: dx wedge dy gives oriented area elements](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/08_wedge_product.png)
+
+
 That is the entire definition. From these axioms, $d$ is determined uniquely.
 
 ![Exterior derivative d turning a k-form into a (k+1)-form](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/08-differential-forms/dg_v2_08_4_exterior_d.png)
@@ -151,6 +160,12 @@ where the hat means "omit." For a 1-form $\omega$, this collapses to $d\omega(X,
 
 A form $\omega$ is **closed** if $d\omega = 0$. It is **exact** if $\omega = d\eta$ for some form $\eta$ of degree one less. The identity $d^2 = 0$ implies *every exact form is closed*. The converse — is every closed form exact? — is the question that gives birth to **de Rham cohomology**.
 
+![Animation: Stokes theorem — boundary integral equals interior integral](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/08_stokes_visual.gif)
+
+
+![Exterior derivative: the de Rham complex](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/08_exterior_derivative.png)
+
+
 **Why $d^2 = 0$.** In coordinates, $df = \partial_i f\,dx^i$ and $d^2 f = \partial_j \partial_i f\,dx^j \wedge dx^i$. Mixed partials are symmetric, $\partial_j\partial_i f = \partial_i\partial_j f$, while $dx^j \wedge dx^i = -dx^i \wedge dx^j$ is antisymmetric. The product of symmetric and antisymmetric vanishes. So $d^2 f = 0$. By the Leibniz rule and induction on degree, $d^2 \omega = 0$ for all $\omega$.
 
 **A closed but not exact form.** On $\mathbb{R}^2 \setminus \{0\}$, define
@@ -174,6 +189,9 @@ This single example contains the entire idea of de Rham cohomology: closedness i
 If $f: M \to N$ is a smooth map, vector fields cannot be pushed forward in any natural way (you would need $f$ to be a diffeomorphism, or at least an immersion with extra data). But **forms can always be pulled back**. Given $\omega \in \Omega^k(N)$, define $f^*\omega \in \Omega^k(M)$ by
 $$(f^*\omega)_p(X_1, \dots, X_k) = \omega_{f(p)}(df_p(X_1), \dots, df_p(X_k)).$$
 The form on $M$ "feels" the form on $N$ through the differential of $f$.
+
+![Pullback: forms travel backward under smooth maps](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/08_pullback.png)
+
 
 ![Pullback f^* omega of a form under a smooth map](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/08-differential-forms/dg_v2_08_5_pullback.png)
 
@@ -207,6 +225,9 @@ The factor of $r$ — the Jacobian of polar coordinates — falls out automatica
 Given a vector field $X$ and a $k$-form $\omega$, the **interior product** $\iota_X \omega$ is the $(k-1)$-form
 $$(\iota_X \omega)(Y_1, \dots, Y_{k-1}) = \omega(X, Y_1, \dots, Y_{k-1}).$$
 Plug $X$ into the first slot of $\omega$. For a 0-form (function), $\iota_X f = 0$.
+
+![Area 2-form on a torus](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/08_forms_surface.png)
+
 
 **Cartan's magic formula** relates the Lie derivative, exterior derivative, and interior product:
 $$\mathcal{L}_X = d \iota_X + \iota_X d.$$

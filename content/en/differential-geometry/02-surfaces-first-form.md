@@ -30,6 +30,9 @@ The intrinsic / extrinsic split is going to recur for the next ten chapters, so 
 
 ![Tangent plane on a saddle surface with tangent vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg02_tangent_plane.png)
 
+![Parametric surfaces: sphere, torus, and saddle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_parametric_surfaces.png)
+
+
 The naive definition — "a 2D thing in 3D space" — is fine for intuition but useless for proofs. A precise definition has to say what "smooth" means, how to give the surface coordinates, and how to handle places where coordinates fail.
 
 **Definition (Regular surface, classical).** A subset $S\subseteq\mathbb{R}^3$ is a *regular surface* if for every point $p\in S$ there is an open neighborhood $V\subseteq\mathbb{R}^3$ of $p$, an open set $U\subseteq\mathbb{R}^2$, and a smooth map $\mathbf{x}: U\to V\cap S$ satisfying:
@@ -59,6 +62,9 @@ The technical sufficiency of these parametrizations as proper "charts" is someth
 
 Given a chart $\mathbf{x}: U\to S$ around a point $p = \mathbf{x}(q)$, the partial derivatives $\mathbf{x}_u(q), \mathbf{x}_v(q)\in\mathbb{R}^3$ are linearly independent (by regularity) and span a 2D subspace of $\mathbb{R}^3$. This subspace is the *tangent plane* $T_pS$.
 
+![Coordinate curves on a torus](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_coordinate_curves.png)
+
+
 **Definition.** The *tangent plane* at $p\in S$ is
 $$T_pS = \mathrm{span}\{\mathbf{x}_u(q), \mathbf{x}_v(q)\} \subseteq \mathbb{R}^3.$$
 
@@ -86,6 +92,9 @@ At the equator $\varphi = \pi/2$, $\theta = 0$: $\mathbf{x} = (1, 0, 0)$, $\math
 
 Now we get to the heart of the matter. Given a chart $\mathbf{x}(u,v)$, define three functions on $U$:
 $$E = \mathbf{x}_u\cdot\mathbf{x}_u,\qquad F = \mathbf{x}_u\cdot\mathbf{x}_v,\qquad G = \mathbf{x}_v\cdot\mathbf{x}_v.$$
+
+![First fundamental form: measuring area on a surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_first_form_area.png)
+
 
 These are the *coefficients of the first fundamental form*. Equivalently, they assemble into a $2\times 2$ matrix:
 $$\mathrm{I} = \begin{pmatrix} E & F \\ F & G \end{pmatrix},$$
@@ -136,6 +145,9 @@ Once again, intrinsic: the surface ant computes areas using only $E, F, G$.
 ## Worked Examples: Computing $E, F, G$
 
 I will now grind through three standard surfaces and write down the first fundamental form. Doing this once carefully cements the apparatus.
+
+![Metric distortion under different parametrizations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_metric_distortion.png)
+
 
 ### The plane
 
@@ -198,6 +210,9 @@ Suppose I have two charts $\mathbf{x}: U\to S$ and $\tilde{\mathbf{x}}: \tilde U
 $$J = \begin{pmatrix}u_{u'} & u_{v'}\\ v_{u'} & v_{v'}\end{pmatrix}$$
 relates the two bases of $T_pS$.
 
+![Measuring curve length on a surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_length_on_surface.png)
+
+
 The first fundamental forms transform tensorially: $\tilde{\mathrm{I}} = J^T \mathrm{I} J$. Determinants: $\det\tilde{\mathrm{I}} = (\det J)^2 \det\mathrm{I}$, so $\sqrt{\tilde E\tilde G - \tilde F^2} = |\det J|\sqrt{EG - F^2}$, which is exactly the change-of-variables formula for the area integral. The two charts agree on lengths, angles, and areas.
 
 This transformation rule is the prototype for what later becomes "tensor transformation laws" in general relativity. The first fundamental form is a $(0,2)$-tensor; its components in any two charts are related by the Jacobian of the transition map.
@@ -210,6 +225,9 @@ This transformation rule is the prototype for what later becomes "tensor transfo
 
 **Definition.** A diffeomorphism $f: S_1 \to S_2$ between two surfaces is an *isometry* if it preserves the first fundamental form. Concretely: for every $p\in S_1$ and every $\mathbf{w}_1, \mathbf{w}_2\in T_pS_1$,
 $$\mathbf{w}_1\cdot\mathbf{w}_2 = (df_p\mathbf{w}_1)\cdot(df_p\mathbf{w}_2).$$
+
+![Isometric surfaces: same metric, different shape](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_isometry.png)
+
 
 Equivalently: in matching charts $\mathbf{x}_1$ on $S_1$ and $\mathbf{x}_2 = f\circ\mathbf{x}_1$ on $S_2$, $E_1 = E_2$, $F_1 = F_2$, $G_1 = G_2$.
 

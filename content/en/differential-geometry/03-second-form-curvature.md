@@ -30,6 +30,9 @@ A spoiler for the next chapter: $K$ — the Gaussian curvature, defined extrinsi
 
 ![Gaussian curvature classification: sphere K>0, cylinder K=0, saddle K<0](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg03_gaussian_curvature.png)
 
+![Gauss map: surface normals mapped to the unit sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_gauss_map.png)
+
+
 Given a regular oriented surface $S\subset\mathbb{R}^3$, every point $p$ has a well-defined unit normal $\mathbf{n}(p)\in S^2$ (the unit sphere of directions). The assignment $p\mapsto \mathbf{n}(p)$ is the *Gauss map*:
 $$N: S\to S^2,\qquad p\mapsto \mathbf{n}(p).$$
 
@@ -60,6 +63,9 @@ Gauss introduced this map around 1825 during his work on geodesy and map project
 The shape operator is a linear map; to compute with it, we need its matrix representation. In a chart $\mathbf{x}(u, v)$, define three coefficients:
 $$L = -\mathbf{n}_u\cdot\mathbf{x}_u = \mathbf{n}\cdot\mathbf{x}_{uu}, \quad M = -\mathbf{n}_u\cdot\mathbf{x}_v = \mathbf{n}\cdot\mathbf{x}_{uv}, \quad N = -\mathbf{n}_v\cdot\mathbf{x}_v = \mathbf{n}\cdot\mathbf{x}_{vv}.$$
 
+![Shape operator: how normals change along the surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_shape_operator.png)
+
+
 The second equality in each line comes from differentiating $\mathbf{n}\cdot\mathbf{x}_u = 0$: since $\partial_u(\mathbf{n}\cdot\mathbf{x}_u) = \mathbf{n}_u\cdot\mathbf{x}_u + \mathbf{n}\cdot\mathbf{x}_{uu} = 0$, we get $\mathbf{n}\cdot\mathbf{x}_{uu} = -\mathbf{n}_u\cdot\mathbf{x}_u = L$. These three numbers form the *second fundamental form* $\mathrm{II} = \begin{pmatrix}L & M \\ M & N\end{pmatrix}$, a symmetric bilinear form on each tangent plane.
 
 The geometric meaning: for a tangent vector $\mathbf{w} = a\,\mathbf{x}_u + b\,\mathbf{x}_v$, the *normal curvature* in the direction of $\mathbf{w}$ is $\kappa_n(\mathbf{w}) = \mathrm{II}(\mathbf{w}, \mathbf{w})/\mathrm{I}(\mathbf{w}, \mathbf{w}) = (La^2 + 2Mab + Nb^2)/(Ea^2 + 2Fab + Gb^2)$. This is the curvature of the normal section — the curve you get by slicing the surface with a plane containing $\mathbf{n}$ and $\mathbf{w}$. It measures how the surface bends away from its tangent plane in a specific direction.
@@ -78,6 +84,12 @@ For a cylinder of radius $r$ with axis along the $z$-direction, parametrize $\ma
 
 From the principal curvatures $k_1, k_2$, we extract two scalar invariants:
 $$K = k_1 k_2 = \det S = \frac{LN - M^2}{EG - F^2}, \qquad H = \frac{k_1 + k_2}{2} = \frac{1}{2}\mathrm{tr}\,S = \frac{EN - 2FM + GL}{2(EG - F^2)}.$$
+
+![Animation: normal curvature as direction rotates](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_normal_rotation.gif)
+
+
+![Principal curvatures: maximum and minimum normal curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_principal_curvatures.png)
+
 
 The Gaussian curvature $K$ is the product of principal curvatures; the mean curvature $H$ is their average. Together they determine $k_1$ and $k_2$ via $k_{1,2} = H \pm \sqrt{H^2 - K}$, so no information is lost.
 
@@ -101,6 +113,9 @@ A physical thought experiment cements the intuition. Take a sheet of paper ($K =
 
 Theory needs grounding. Here are four detailed computations that cover the main cases.
 
+![Normal curvature varies with direction](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_normal_curvature.png)
+
+
 **The saddle surface $z = uv$ (hyperbolic paraboloid).** Chart $\mathbf{x}(u,v) = (u, v, uv)$. Compute: $\mathbf{x}_u = (1, 0, v)$, $\mathbf{x}_v = (0, 1, u)$. First form: $E = 1+v^2$, $F = uv$, $G = 1+u^2$, and $EG-F^2 = 1+u^2+v^2$. Cross product: $\mathbf{x}_u\times\mathbf{x}_v = (-v, -u, 1)$, with magnitude $\sqrt{1+u^2+v^2}$. Unit normal: $\mathbf{n} = (-v, -u, 1)/\sqrt{1+u^2+v^2}$. Second derivatives: $\mathbf{x}_{uu} = 0$, $\mathbf{x}_{uv} = (0,0,1)$, $\mathbf{x}_{vv} = 0$. So $L = \mathbf{n}\cdot\mathbf{x}_{uu} = 0$, $M = \mathbf{n}\cdot\mathbf{x}_{uv} = 1/\sqrt{1+u^2+v^2}$, $N = 0$.
 
 Gaussian curvature: $K = (LN - M^2)/(EG-F^2) = -M^2/(1+u^2+v^2) = -1/(1+u^2+v^2)^2$. Negative everywhere — the surface is entirely hyperbolic. At the origin, $K = -1$, and $K \to 0$ as we move away from the origin. The saddle is sharpest at its center.
@@ -123,6 +138,9 @@ At the origin: $H = (E\cdot N + G\cdot L - 2FM)/(2w) = (2/\sqrt{1} + 2/\sqrt{1})
 
 Mean curvature has a variational characterization that gives it direct physical significance. Consider a compact surface patch $S$ with boundary $\partial S$ held fixed. Perturb the surface by $\mathbf{x} \mapsto \mathbf{x} + tf\mathbf{n}$ where $f$ vanishes on $\partial S$. The first variation of area is:
 $$\frac{d}{dt}\bigg|_{t=0}\mathrm{Area}(S_t) = -2\int_S fH\,dA.$$
+
+![Mean curvature and minimal surfaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_mean_curvature.png)
+
 
 This vanishes for all variations $f$ if and only if $H \equiv 0$. Surfaces with $H = 0$ everywhere are *minimal surfaces* — critical points of the area functional. They are not necessarily area-minimizing globally (saddle points of the functional are also critical), but they are locally stationary.
 
@@ -151,6 +169,9 @@ This is the *minimal surface equation*. Its solutions include $f = 0$ (plane), S
 ## Normal Curvature, Asymptotic Lines, and Ruled Surfaces
 
 Beyond the principal curvatures, the variation of normal curvature $\kappa_n$ across directions in $T_pS$ reveals additional geometric structure.
+
+![Gaussian curvature coloring on a torus](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_curvature_coloring.png)
+
 
 Euler's theorem states: if $\mathbf{w}$ makes angle $\alpha$ with the first principal direction, then $\kappa_n(\mathbf{w}) = k_1\cos^2\alpha + k_2\sin^2\alpha$. The normal curvature varies sinusoidally between $k_1$ and $k_2$ as we rotate through the tangent plane. This gives a clean geometric picture: the two principal directions are where the surface bends the most and the least, and all other directions are intermediate.
 

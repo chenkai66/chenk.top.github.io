@@ -29,6 +29,9 @@ translationKey: "differential-geometry-9"
 
 切空间 $T_pM$ 是一个 $n$ 维实向量空间，像任何这样的空间一样，它有两个有序基的等价类（由保持方向的线性映射和改变方向的线性映射相关）。选择其中一个类就是 $T_pM$ 的一个关于方向，如果可以在整个流形上平滑地做出这种选择，并且在重叠部分一致，则称流形 $M$ 是可定向的。当存在时，方向是一个全局拓扑选择——在连通的可定向流形上恰好有方向。
 
+![可定向 vs 不可定向：环面 vs Mobius 带](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_orientation.png)
+
+
 ![流形通过一致的有序基的方向](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_1_orientation.png)
 
 如果以下任一条件成立，则流形 $M$ 是可定向的：
@@ -58,6 +61,12 @@ translationKey: "differential-geometry-9"
 ## 2. 带边界的流形；诱导方向
 
 **带边界的流形**是局部模型为半空间 $\mathbb{H}^n = \{x \in \mathbb{R}^n : x^n \geq 0\}$ 的拓扑空间。坐标图有两种类型：内部坐标图（其图像不包含边界 $\{x^n = 0\}$）和边界坐标图（其图像触及 $\{x^n = 0\}$）。**边界** $\partial M$ 是在某个边界坐标图中位于 $\{x^n = 0\}$ 上的点集。它是一个 $(n-1)$ 维流形（无边界）。
+
+![动画：通过曲面的通量等于边界环量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_stokes_flux.gif)
+
+
+![Stokes 定理：边界上的积分等于外微分的积分](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_stokes_theorem.png)
+
 
 ![带诱导方向的带边界流形的边界](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_2_boundary.png)
 
@@ -90,6 +99,9 @@ $M = \bar B^3$ 具有 $dx\wedge dy\wedge dz$。边界是 $S^2$。球面上某一
 
 在流形上自然要积分的对象是最高阶形式：$n$ 维流形上的 $n$ 形式。为什么？因为正微分同胚拉回最高阶形式是良定义的，并且所得积分在坐标变换下不变。（低阶形式只在相应的子流形上积分。）
 
+![广义 Stokes 统一了 Green、Gauss 和经典 Stokes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_classical_theorems.png)
+
+
 在具有标准方向的 $\mathbb{R}^n$ 上，$n$ 形式 $\omega = f(x)\,dx^1\wedge\dots\wedge dx^n$ 的积分为
 $$\int_{\mathbb{R}^n} \omega = \int_{\mathbb{R}^n} f(x)\,dx^1\dots dx^n,$$
 其中右边是普通的 Lebesgue 积分。注意隐含的顺序：楔积的正号匹配迭代积分中变量的标准顺序。
@@ -120,6 +132,9 @@ $$\int_U \varphi^* \omega = \int_V \omega.$$
 下面这个结论是核心：设 $M$ 是一个定向的紧致 $n$ 维带边界流形 $\partial M$，配备诱导方向。设 $\omega$ 是 $M$ 上的光滑 $(n-1)$ 形式。则
 $$\int_M d\omega = \int_{\partial M} \omega.$$
 
+![de Rham 上同调：从微积分到拓扑](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_de_rham.png)
+
+
 这就是整个定理，它是微积分中最重要的公式。
 
 ![斯托克斯定理：$M$ 上 $d\omega$ 的积分等于边界上 $\omega$ 的积分](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_3_stokes.png)
@@ -149,6 +164,9 @@ $$d\omega = (\partial_x(x^2+y) + \partial_y(xy + z) + \partial_z(xz - y))\,dx\we
 ## 5. 经典定理的恢复
 
 所有三个经典“积分定理”都是斯托克斯定理的特例。
+
+![在三角剖分链上积分微分形式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_integration_chain.png)
+
 
 ![经典定理统一：梯度、斯托克斯、格林、散度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_4_classical_unify.png)
 
@@ -183,6 +201,9 @@ $$\oint_{|z - z_0| = R}\frac{f(z)}{z - z_0}dz = 2\pi i\,f(z_0).$$
 ## 6. de Rham 上同调与斯托克斯定理
 
 斯托克斯定理意味着一个基本事实：闭流形上闭形式的积分仅依赖于形式的上同调类。
+
+![链上的边界算子：边界的边界为零](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_boundary_operator.png)
+
 
 如果 $\omega_1, \omega_2$ 是 $M$（无边界）上的闭 $k$ 形式，且 $\omega_1 - \omega_2 = d\eta$ 是精确的，则对于任何闭 $k$ 循环 $C$，
 $$\int_C \omega_1 = \int_C \omega_2.$$

@@ -71,6 +71,12 @@ This formula is invariant under orientation-preserving reparametrization: if $\b
 $$\int_a^b |\beta'(s)|\,ds = \int_a^b |\alpha'(\phi(s))|\phi'(s)\,ds = \int_{\phi(a)}^{\phi(b)} |\alpha'(t)|\,dt.$$
 Length is therefore a property of the image, not the parametrization.
 
+![Animation: Frenet frame moving along a curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_frenet_moving.gif)
+
+
+![Curvature comparison: circle, helix, and general curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_curvature_gallery.png)
+
+
 Define the *arc-length function* with reference point $t_0$:
 $$s(t) = \int_{t_0}^{t} |\alpha'(\tau)|\, d\tau.$$
 Then $s'(t) = |\alpha'(t)| > 0$, so $s$ is a strictly increasing smooth function — invertible by the inverse function theorem. We can therefore reparametrize: write $t = t(s)$, and define
@@ -105,6 +111,9 @@ The moral: arc length is a beautiful theoretical parameter and a frustrating com
 Once we are in arc-length parametrization, $\mathbf{T}(s) = \alpha'(s)$ is a unit vector — the unit tangent. Differentiating the identity $\mathbf{T}\cdot\mathbf{T} = 1$ gives
 $$2\mathbf{T}\cdot \mathbf{T}' = 0,$$
 so $\mathbf{T}'(s)$ is orthogonal to $\mathbf{T}(s)$. The magnitude of $\mathbf{T}'$ measures how fast the unit tangent rotates as we walk along the curve.
+
+![Torsion measures how the curve twists out of its osculating plane](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_torsion.png)
+
 
 **Definition (Curvature).** $\kappa(s) = |\mathbf{T}'(s)| = |\alpha''(s)|$.
 
@@ -150,6 +159,9 @@ At $t = 0$ (the vertex), $\kappa = 2$. As $|t|\to\infty$, $\kappa\to 0$ — the 
 We have two orthogonal unit vectors at every point where $\kappa > 0$: $\mathbf{T}$ and $\mathbf{N}$. The third leg of the right-handed frame is the *binormal*:
 $$\mathbf{B}(s) = \mathbf{T}(s) \times \mathbf{N}(s).$$
 
+![Helix: constant curvature and torsion](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_helix.png)
+
+
 The plane spanned by $\mathbf{T}$ and $\mathbf{N}$ (the *osculating plane*) contains the curve to second order at the point of evaluation. Geometrically, it is the plane that "best fits" the curve at that point.
 
 ![Osculating plane to a curve at a point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/01-curves-in-space/dg_v2_01_5_osculating.png)
@@ -184,6 +196,9 @@ A right-handed helix (the standard one above with positive vertical drift) has $
 Putting the three derivatives together — $\mathbf{T}'$, $\mathbf{N}'$, $\mathbf{B}'$ — gives a tidy linear ODE for the moving frame. Since the frame is orthonormal at every point, the matrix governing its evolution must be skew-symmetric. Working out
 $$\mathbf{N}' = (\mathbf{B}\times\mathbf{T})' = \mathbf{B}'\times\mathbf{T} + \mathbf{B}\times\mathbf{T}' = -\tau\mathbf{N}\times\mathbf{T} + \kappa\mathbf{B}\times\mathbf{N} = -\kappa\mathbf{T} + \tau\mathbf{B},$$
 we land on:
+
+![Osculating circle at points of varying curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_osculating_circle.png)
+
 
 $$\frac{d}{ds}\begin{pmatrix}\mathbf{T}\\ \mathbf{N}\\ \mathbf{B}\end{pmatrix} = \begin{pmatrix}0 & \kappa & 0 \\ -\kappa & 0 & \tau \\ 0 & -\tau & 0\end{pmatrix}\begin{pmatrix}\mathbf{T}\\ \mathbf{N}\\ \mathbf{B}\end{pmatrix}.$$
 
@@ -224,6 +239,9 @@ In other words: the helix is, up to rigid motion, *the* curve with constant curv
 ## A Tour of Classical Curves
 
 Numerical examples solidify the apparatus. I will take the time to compute $\kappa$ and $\tau$ on a few standards.
+
+![Evolute: the locus of centers of curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_evolute.png)
+
 
 ![Classical curves: cardioid, lemniscate, logarithmic spiral](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/01-curves-in-space/dg_v2_01_7_classical_curves.png)
 

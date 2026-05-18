@@ -31,6 +31,9 @@ series_total: 12
 
 ![Gauss-Bonnet 定理：曲率积分等于拓扑不变量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/dg05_gauss_bonnet.png)
 
+![不同曲面的 Euler 示性数](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/05_euler_characteristic.png)
+
+
 局部版本关注的是一个区域，而不是整个曲面。设定如下：设 $T \subset S$ 是一个有向曲面上的一个区域，边界由一条简单的分段光滑闭合曲线 $\partial T$ 限定。边界由光滑弧组成（每条弧都有明确的测地曲率 $\kappa_g$），这些弧在角点 $p_1, \ldots, p_n$ 处相交，切线方向在外角 $\theta_i$ 处跳跃（正数表示左转，在选定的方向下）。
 
 核心结论是：在这些条件下，
@@ -67,6 +70,9 @@ $$\iint_T K\,dA = (A_1 + A_2 + A_3) - \pi.$$
 
 要从局部到整体，需要把整个曲面用三角形铺满并求和。这就需要用到*三角剖分*和*Euler 示性数*的组合工具。
 
+![局部 Gauss-Bonnet：测地三角形内角和](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/05_local_gauss_bonnet.png)
+
+
 一个闭曲面 $S$ 的*三角剖分*是将其分解成有限多个“弯曲的三角形”（平面上三角形在光滑映射下的像），使得任意两个三角形要么没有交集，要么共享一个顶点，要么共享一条完整的边。每个闭曲面都存在三角剖分（Rado, 1925）。给定曲面可以有无限多种三角剖分。
 
 *Euler 示性数*是一个整数
@@ -85,6 +91,12 @@ $$\chi(S) = V - E + F,$$
 
 核心结论是：对于任何闭合定向曲面 $S$ 且带有光滑的黎曼度量，
 $$\iint_S K\,dA = 2\pi\chi(S).$$
+
+![动画：曲面变形保持 Euler 示性数](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/05_deformation.gif)
+
+
+![总曲率积分等于拓扑不变量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/05_curvature_integral.png)
+
 
 通过三角剖分和逐项相消的方法来证明是最直观的。选择一个具有测地线边的 $S$ 的三角剖分（在光滑曲面上总是可能的——足够近的点之间的测地线是唯一的，并且平滑依赖于其端点）。对每个三角形 $T_j$ 应用局部 Gauss-Bonnet 定理（这些三角形有测地线边，所以 $\kappa_g = 0$）：
 $$\iint_{T_j} K\,dA = A_1^{(j)} + A_2^{(j)} + A_3^{(j)} - \pi,$$
@@ -121,6 +133,9 @@ $$\iint_S K\,dA = 2\pi V - \pi \cdot 2(V - \chi) = 2\pi V - 2\pi V + 2\pi\chi = 
 
 Gauss-Bonnet 定理有直接且强大的推论。
 
+![多面体上的角亏量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/05_angle_defect.png)
+
+
 没有正曲率的环面。如果环面上的度量处处 $K > 0$，那么 $\iint K\,dA > 0$。但 Gauss-Bonnet 定理说，对于环面（$\chi = 0$），$\iint K\,dA = 0$。矛盾。因此，环面上的任何度量必须有一些区域是零或负曲率。同样，球面上的任何度量也不能处处 $K \leq 0$（因为 $\chi(S^2) = 2 > 0$，总曲率必须为正）。
 
 毛球定理。$S^2$ 上的每个连续切向量场必须在某处消失。证明用到了 Poincare-Hopf 指数定理：任何切向量场的零点指数之和等于 $\chi(S)$。对于 $S^2$，$\chi = 2 \neq 0$，所以零点存在。在环面（$\chi = 0$）上，可以有不消失的向量场——甜甜圈上的“条纹”场就没有零点。
@@ -144,6 +159,9 @@ Gauss-Bonnet 决定了符号；一致化定理（深刻，由 Koebe 和 Poincare
 
 对于嵌入在 $\mathbb{R}^3$ 中的曲面，可以用Gauss映射 $N: S \to S^2$ 从另一个角度理解Gauss-Bonnet公式。
 
+![曲面边界上的测地曲率](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/05_geodesic_curvature.png)
+
+
 回想第三章的内容：Gauss映射在点 $p$ 处的雅可比行列式等于该点的高斯曲率 $K(p)$。具体来说，$N$ 会以 $|K|$ 的因子（带符号）扭曲面积。因此：
 $$\iint_S K\,dA = \int_S (\text{有符号的}N\text{的雅可比行列式})\,dA = \deg(N) \cdot \mathrm{Area}(S^2) = 4\pi\deg(N),$$
 其中 $\deg(N)$ 是Gauss映射的*拓扑度*——即 $N$ 覆盖 $S^2$ 次数的带符号计数。
@@ -163,6 +181,9 @@ $$\iint_S K\,dA = \int_S (\text{有符号的}N\text{的雅可比行列式})\,dA 
 ## 超越二维：陈-高斯-博内定理
 
 二维的高斯-博内定理是更广泛的一类深刻定理的特例，适用于所有偶数维流形。
+
+![毛球定理：S^2 上不存在处处非零向量场](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/05_hairy_ball.png)
+
 
 核心结论是：对于任何闭定向黎曼流形 $M$，其维度为偶数 $2n$，
 $$\int_M \mathrm{Pf}\left(\frac{\Omega}{2\pi}\right) = \chi(M),$$
