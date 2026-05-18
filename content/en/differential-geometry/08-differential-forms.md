@@ -27,7 +27,7 @@ The plan: build $\Lambda^k V^*$ for a single vector space, glue across the manif
 
 ---
 
-## 1. One-Forms: The Dual of Tangent Vectors
+## One-Forms: The Dual of Tangent Vectors
 
 Recall from earlier in the series that the **cotangent space** $T_p^* M$ is the dual vector space of $T_p M$ — the space of linear functionals $\alpha: T_p M \to \mathbb{R}$. A **1-form** $\omega$ on $M$ is a smooth assignment $p \mapsto \omega_p \in T_p^* M$. Equivalently, it is a smooth section of the cotangent bundle $T^*M \to M$.
 
@@ -63,7 +63,7 @@ Sanity check via directional derivative: $\nabla f(1,2) = (4, 1)$, vector $X = (
 
 ---
 
-## 2. $k$-Forms and the Wedge Product
+## $k$-Forms and the Wedge Product
 
 A $k$-form on $M$ is a smooth section of $\Lambda^k T^*M$ — the bundle of **antisymmetric** multilinear maps $T_pM \times \dots \times T_pM \to \mathbb{R}$ (with $k$ inputs). At each point, $\omega_p$ is a function eating $k$ tangent vectors and spitting out a number, with the rule that swapping two inputs flips the sign. The space of $k$-forms is $\Omega^k(M)$.
 
@@ -107,7 +107,7 @@ The terms with repeated factors vanish, leaving $dx\wedge dy\wedge dz + 0 + 0 + 
 
 ---
 
-## 3. The Exterior Derivative $d$
+## The Exterior Derivative $d$
 
 The **exterior derivative** is the unique $\mathbb{R}$-linear operator $d: \Omega^k(M) \to \Omega^{k+1}(M)$ satisfying:
 1. On functions ($k = 0$): $df$ is the differential, $df(X) = X(f)$.
@@ -153,7 +153,7 @@ where the hat means "omit." For a 1-form $\omega$, this collapses to $d\omega(X,
 
 ---
 
-## 4. Closed and Exact Forms; $d^2 = 0$
+## Closed and Exact Forms; $d^2 = 0$
 
 A form $\omega$ is **closed** if $d\omega = 0$. It is **exact** if $\omega = d\eta$ for some form $\eta$ of degree one less. The identity $d^2 = 0$ implies *every exact form is closed*. The converse — is every closed form exact? — is the question that gives birth to **de Rham cohomology**.
 
@@ -179,7 +179,7 @@ This single example contains the entire idea of de Rham cohomology: closedness i
 
 ---
 
-## 5. Pullback: Forms Behave Naturally Under Maps
+## Pullback: Forms Behave Naturally Under Maps
 
 If $f: M \to N$ is a smooth map, vector fields cannot be pushed forward in any natural way (you would need $f$ to be a diffeomorphism, or at least an immersion with extra data). But **forms can always be pulled back**. Given $\omega \in \Omega^k(N)$, define $f^*\omega \in \Omega^k(M)$ by
 $$(f^*\omega)_p(X_1, \dots, X_k) = \omega_{f(p)}(df_p(X_1), \dots, df_p(X_k)).$$
@@ -214,7 +214,7 @@ The factor of $r$ — the Jacobian of polar coordinates — falls out automatica
 
 ---
 
-## 6. Interior Product and Cartan's Magic Formula
+## Interior Product and Cartan's Magic Formula
 
 Given a vector field $X$ and a $k$-form $\omega$, the **interior product** $\iota_X \omega$ is the $(k-1)$-form
 $$(\iota_X \omega)(Y_1, \dots, Y_{k-1}) = \omega(X, Y_1, \dots, Y_{k-1}).$$
@@ -234,7 +234,7 @@ This formula is the bridge between the differential geometry of section 7 (vecto
 
 ---
 
-## 7. de Rham Cohomology
+## de Rham Cohomology
 
 Define the $k$-th **de Rham cohomology**
 $$H^k_{dR}(M) = \frac{\ker(d: \Omega^k \to \Omega^{k+1})}{\mathrm{im}(d: \Omega^{k-1} \to \Omega^k)} = \frac{\text{closed }k\text{-forms}}{\text{exact }k\text{-forms}}.$$
@@ -259,7 +259,7 @@ The denominator makes sense because exact forms are closed, so the image sits in
 
 ---
 
-## 8. Classical Differential Forms in Physics
+## Classical Differential Forms in Physics
 
 To consolidate, here are the natural physical interpretations of forms.
 

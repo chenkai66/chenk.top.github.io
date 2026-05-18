@@ -31,7 +31,7 @@ A second guiding picture. Think of the curvature tensor as the *infinitesimal ho
 
 ---
 
-## 1. The Riemann Curvature Tensor
+## The Riemann Curvature Tensor
 
 ![Gaussian curvature on a torus: outer K>0 (red), inner K<0 (blue)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_scalar_curvature.png)
 
@@ -57,7 +57,7 @@ The lowered Riemann tensor is $R_{\theta\phi\theta\phi} = g_{\theta\theta}R^\the
 
 ---
 
-## 2. Symmetries of the Riemann Tensor
+## Symmetries of the Riemann Tensor
 
 The Riemann tensor with all indices lowered satisfies:
 
@@ -75,7 +75,7 @@ These reduce the count of independent components from $n^4$ to $n^2(n^2-1)/12$. 
 
 ---
 
-## 3. Sectional Curvature
+## Sectional Curvature
 
 For any 2-plane $\Pi \subset T_p M$ spanned by $X, Y$, the **sectional curvature** is
 
@@ -101,7 +101,7 @@ A consequence of the symmetries: knowing $K$ on every 2-plane determines $R$ ent
 
 ---
 
-## 4. Ricci and Scalar Curvature
+## Ricci and Scalar Curvature
 
 The **Ricci tensor** is the trace of Riemann over the first and third indices:
 
@@ -137,7 +137,7 @@ The **scalar curvature** is the trace of Ricci: $R = g^{ij}R_{ij}$, a single fun
 
 ---
 
-## 5. Decomposition of the Riemann Tensor
+## Decomposition of the Riemann Tensor
 
 In dimension $\geq 4$, the Riemann tensor splits orthogonally (as a tensor at each point) into three pieces:
 $$R = W + \tilde{\mathrm{Ric}} + R_{\mathrm{scalar}},$$
@@ -167,7 +167,7 @@ In dimensions 2 and 3, the Weyl tensor vanishes identically — there is "not en
 
 ---
 
-## 6. Constant-Curvature Spaces
+## Constant-Curvature Spaces
 
 A Riemannian manifold has **constant sectional curvature** $\kappa$ if $K(\Pi) = \kappa$ for every 2-plane at every point. The simply connected complete examples — the **model spaces** — are:
 
@@ -201,7 +201,7 @@ A Riemannian manifold has **constant sectional curvature** $\kappa$ if $K(\Pi) =
 
 ---
 
-## 7. Einstein Manifolds
+## Einstein Manifolds
 
 A Riemannian manifold is **Einstein** if $\mathrm{Ric} = \lambda g$ for some constant $\lambda$. Trace gives $R = n\lambda$, so $\lambda = R/n$ and the condition is equivalent to $\mathrm{Ric} = (R/n)g$. In components: $R_{ij} = (R/n)g_{ij}$ — Ricci is proportional to the metric.
 
@@ -239,7 +239,7 @@ A final practical note. When reading textbooks, papers, or computer algebra outp
 
 ---
 
-## 8. Computing Curvature in Practice
+## Computing Curvature in Practice
 
 To consolidate, the practical steps to compute curvature for a given metric $g$:
 

@@ -25,7 +25,7 @@ The reason this article matters: Stokes' theorem is the *single* result of diffe
 
 ---
 
-## 1. Orientation
+## Orientation
 
 A **tangent space** $T_pM$ is an $n$-dimensional real vector space, and like any such space it admits two equivalence classes of ordered bases (related by orientation-preserving vs. orientation-reversing linear maps). A choice of one class is an **orientation** of $T_pM$. A manifold $M$ is **orientable** if such choices can be made smoothly across the manifold, agreeing on overlaps. An orientation, when it exists, is a global topological choice — there are exactly two orientations on a connected orientable manifold.
 
@@ -57,7 +57,7 @@ These are equivalent, and each is useful in different contexts. The form-theoret
 
 ---
 
-## 2. Manifolds with Boundary; Induced Orientation
+## Manifolds with Boundary; Induced Orientation
 
 A **manifold with boundary** is a topological space locally modeled on the upper half-space $\mathbb{H}^n = \{x \in \mathbb{R}^n : x^n \geq 0\}$. Charts come in two flavors: interior charts (whose images miss the boundary $\{x^n = 0\}$) and boundary charts (whose images touch $\{x^n = 0\}$). The **boundary** $\partial M$ is the set of points sitting on $\{x^n = 0\}$ in some boundary chart. It is an $(n-1)$-dimensional manifold (without boundary).
 
@@ -92,7 +92,7 @@ A **manifold with boundary** is a topological space locally modeled on the upper
 
 ---
 
-## 3. Integration of Top-Degree Forms
+## Integration of Top-Degree Forms
 
 The natural objects to integrate on a manifold are top-degree forms: $n$-forms on an $n$-dimensional manifold. Why? Because pullback of a top-degree form by a positive diffeomorphism is well-defined, and the resulting integral is invariant under change of coordinates. (Lower-degree forms are integrated only over corresponding submanifolds.)
 
@@ -123,7 +123,7 @@ The result is independent of the choice of charts and partition of unity. This i
 
 ---
 
-## 4. Stokes' Theorem
+## Stokes' Theorem
 
 **Theorem (Stokes).** Let $M$ be an oriented compact $n$-dimensional manifold with boundary $\partial M$, equipped with the induced orientation. Let $\omega$ be a smooth $(n-1)$-form on $M$. Then
 $$\int_M d\omega = \int_{\partial M} \omega.$$
@@ -156,7 +156,7 @@ By symmetry $\int_{\bar B^3} 4x\,dV = 0$ (odd function over a symmetric domain).
 
 ---
 
-## 5. Classical Theorems Recovered
+## Classical Theorems Recovered
 
 All three classical "integral theorems" of vector calculus are special cases of Stokes' theorem.
 
@@ -192,7 +192,7 @@ Cauchy's integral formula. From this, all of complex analysis (Liouville's theor
 
 ---
 
-## 6. de Rham Cohomology and Stokes
+## de Rham Cohomology and Stokes
 
 Stokes' theorem implies a fundamental fact: integration of closed forms over closed manifolds depends only on the cohomology class of the form.
 
@@ -223,7 +223,7 @@ is also a perfect pairing. So $H^k_{dR}(M) \cong H^{n-k}_{dR}(M)^*$. For $M$ clo
 
 ---
 
-## 7. Integration on Chains and Cycles
+## Integration on Chains and Cycles
 
 We have been integrating forms over manifolds with boundary. The right setting for full generality is integration over **chains**: formal $\mathbb{Z}$-linear combinations of smooth singular simplices.
 
@@ -249,7 +249,7 @@ This is again a winding-number-type integral, and integer-valuedness comes from 
 
 ---
 
-## 8. Examples on Sphere and Torus
+## Examples on Sphere and Torus
 
 To consolidate, two classical applications of Stokes.
 

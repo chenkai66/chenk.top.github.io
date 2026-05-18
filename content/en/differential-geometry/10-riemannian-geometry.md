@@ -29,7 +29,7 @@ A historical orientation, since the names accumulate quickly. Riemann introduced
 
 ---
 
-## 1. Riemannian Metrics
+## Riemannian Metrics
 
 ![Parallel transport on a sphere: vector rotates 90 degrees around a spherical triangle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_parallel_transport_paths.png)
 
@@ -76,7 +76,7 @@ A useful mental model: a smooth manifold is like a piece of fabric you can fold 
 
 ---
 
-## 2. Musical Isomorphisms
+## Musical Isomorphisms
 
 A Riemannian metric gives a canonical identification between tangent and cotangent vectors at each point. Given $v \in T_pM$, define the covector $v^\flat \in T_p^*M$ by $v^\flat(w) = g_p(v, w)$. The map $\flat: T_pM \to T_p^*M$, $v \mapsto v^\flat$ ("flat") is a linear isomorphism (positive-definiteness ensures injectivity; finite dimension gives surjectivity). Its inverse $\sharp: T_p^*M \to T_pM$ ("sharp") raises an index.
 
@@ -88,7 +88,7 @@ In coordinates: if $v = v^i\partial_i$, then $v^\flat = g_{ij}v^j\,dx^i$. The ma
 
 ---
 
-## 3. Affine Connections
+## Affine Connections
 
 To differentiate vector fields, we need extra data. An **affine connection** on $M$ is an $\mathbb{R}$-bilinear map $\nabla: \Gamma(TM) \times \Gamma(TM) \to \Gamma(TM)$, written $(X, Y) \mapsto \nabla_X Y$, such that
 
@@ -105,7 +105,7 @@ In a coordinate chart, $\nabla$ is determined by the **Christoffel symbols** $\G
 
 ---
 
-## 4. The Levi-Civita Connection
+## The Levi-Civita Connection
 
 **Theorem (Fundamental theorem of Riemannian geometry).** On any Riemannian manifold $(M, g)$, there is a *unique* affine connection $\nabla$ that is both torsion-free and metric-compatible. This is the **Levi-Civita connection**.
 
@@ -131,7 +131,7 @@ Every covariant derivative, geodesic equation, Riemann tensor calculation traces
 
 ---
 
-## 5. Parallel Transport
+## Parallel Transport
 
 Given a curve $\gamma$ and a vector $v$ at $\gamma(0)$, the **parallel transport** of $v$ along $\gamma$ is the unique vector field $V$ along $\gamma$ with $V(0) = v$ and $\nabla_{\dot\gamma} V = 0$. In coordinates, this is a linear ODE $\dot V^k + \Gamma^k_{ij}\dot\gamma^i V^j = 0$. By Picard-Lindelof, parallel transport exists and is unique. The transport map $P_\gamma : T_{\gamma(0)} M \to T_{\gamma(1)} M$ is a linear isomorphism, and for the Levi-Civita connection an isometry — it preserves the metric.
 
@@ -155,7 +155,7 @@ So parallel transport around this geodesic triangle rotates tangent vectors by $
 
 ---
 
-## 6. Geodesics and the Exponential Map
+## Geodesics and the Exponential Map
 
 A **geodesic** is a curve $\gamma$ that is its own parallel transport: $\nabla_{\dot\gamma}\dot\gamma = 0$. In coordinates,
 $$\ddot\gamma^k + \Gamma^k_{ij}\dot\gamma^i\dot\gamma^j = 0.$$
@@ -185,7 +185,7 @@ Geodesics are **locally length-minimizing**: among nearby curves with the same e
 
 ---
 
-## 7. Holonomy and Hopf-Rinow
+## Holonomy and Hopf-Rinow
 
 For a closed loop $\gamma$ at $p$, parallel transport defines a linear isometry $P_\gamma \in \mathrm{O}(T_pM, g_p)$. The set of all such isometries forms a subgroup, the **holonomy group** $\mathrm{Hol}(p)$.
 
@@ -228,7 +228,7 @@ This is the Riemannian analog of the Heine-Borel theorem (closed and bounded $\L
 
 ---
 
-## 8. Examples on Sphere, Hyperbolic Plane, and Torus
+## Examples on Sphere, Hyperbolic Plane, and Torus
 
 To consolidate, the three model 2-dimensional Riemannian manifolds.
 

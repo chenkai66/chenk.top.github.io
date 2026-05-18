@@ -25,7 +25,7 @@ The plan for this article: define vector fields three different ways (geometric,
 
 ---
 
-## 1. Vector Fields: Smooth Sections of the Tangent Bundle
+## Vector Fields: Smooth Sections of the Tangent Bundle
 
 ![Vector field with integral curves (spiral source)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/07_vector_fields_2d.png)
 
@@ -55,7 +55,7 @@ Apply $X$ to $g(x, y) = x$: we get $X(g) = -y$. To $h(x, y) = xy$: we get $X(h) 
 
 ---
 
-## 2. Integral Curves: Following the Field
+## Integral Curves: Following the Field
 
 An **integral curve** of $X$ through $p \in M$ is a smooth curve $\gamma: I \to M$ defined on an open interval $I \ni 0$ such that
 $$\gamma(0) = p, \qquad \dot\gamma(t) = X_{\gamma(t)} \text{ for all } t \in I.$$
@@ -85,7 +85,7 @@ This is exactly rotation by angle $t$ around the origin. The integral curves are
 
 ---
 
-## 3. Flows: One-Parameter Families of Diffeomorphisms
+## Flows: One-Parameter Families of Diffeomorphisms
 
 If $X$ is complete, we can stitch all integral curves together. Define
 $$\varphi_t: M \to M, \qquad \varphi_t(p) = \gamma_p(t),$$
@@ -117,7 +117,7 @@ which is exactly the rotation matrix $R_t$ acting on $\mathbb{R}^2$. The group l
 
 ---
 
-## 4. The Lie Bracket: Failure of Flows to Commute
+## The Lie Bracket: Failure of Flows to Commute
 
 Given two vector fields $X, Y$, what happens if we flow along $X$ for a small time $\epsilon$, then along $Y$, then back along $-X$, then back along $-Y$? Naively, we should return to where we started. We don't. The discrepancy is a vector at $p$, and to second order in $\epsilon$ it is exactly $\epsilon^2 [X, Y]_p$. The bracket is a quantitative measure of how non-commuting the flows are.
 
@@ -165,7 +165,7 @@ Extra terms appear because the bracket differentiates the coefficient functions.
 
 ---
 
-## 5. The Lie Derivative: Differentiating Anything Along a Flow
+## The Lie Derivative: Differentiating Anything Along a Flow
 
 The bracket only differentiates vector fields. But we want to differentiate functions, forms, tensors — anything — along a flow. The general operation is the **Lie derivative**. For a tensor field $T$ and a vector field $X$ with flow $\varphi_t$, define
 $$\mathcal{L}_X T = \lim_{t \to 0} \frac{\varphi_t^* T - T}{t} = \left.\frac{d}{dt}\right|_{t=0} \varphi_t^* T,$$
@@ -204,7 +204,7 @@ Confirmed: $\mathcal{L}_X g = 0$. The vector field $X$ is a **Killing vector fie
 
 ---
 
-## 6. Worked Examples: Rotation, Source, Sink
+## Worked Examples: Rotation, Source, Sink
 
 To consolidate, here are three classical fields on $\mathbb{R}^2$ that you should learn to recognize on sight. Each illustrates a different qualitative behavior, and each sits inside a larger family with physical significance.
 
@@ -230,7 +230,7 @@ This is a healthy sanity check: when geometric intuition says flows commute, the
 
 ---
 
-## 7. Phase Portraits: Geometry of ODEs
+## Phase Portraits: Geometry of ODEs
 
 A **phase portrait** is the picture of all integral curves of a vector field, drawn in the manifold (or its phase space). Phase portraits are the qualitative theory of ODEs in geometric form. Where 19th-century mathematicians struggled to write down explicit solutions, Poincare realized that for most vector fields you cannot — but you can still describe the *qualitative behavior* of trajectories, and that is often what physics actually wants to know.
 
@@ -254,7 +254,7 @@ on the cylinder $S^1 \times \mathbb{R}$. Fixed points at $(\theta, \omega) = (n\
 
 ---
 
-## 8. Frobenius Integrability: When Distributions Integrate
+## Frobenius Integrability: When Distributions Integrate
 
 A **distribution** $\mathcal{D}$ on $M$ is a smooth assignment $p \mapsto \mathcal{D}_p \subseteq T_p M$ of a $k$-dimensional subspace at each point. (Think of a distribution as a "field of $k$-planes," generalizing a "field of lines" which is a 1-dimensional distribution given by a non-vanishing vector field up to scale.) An **integral submanifold** is a $k$-dimensional submanifold $N \subseteq M$ with $T_q N = \mathcal{D}_q$ for all $q \in N$.
 

@@ -29,7 +29,7 @@ A historical anchor before we dive in. Yang and Mills wrote down their non-abeli
 
 ---
 
-## 1. Fiber Bundles
+## Fiber Bundles
 
 A **fiber bundle** is a smooth surjection $\pi: E \to B$ of manifolds satisfying a **local triviality** condition: every point $b \in B$ has a neighborhood $U$ such that $\pi^{-1}(U) \cong U \times F$ as smooth manifolds, with the projection corresponding to the first factor. Here $F$ is the **typical fiber**, $B$ is the **base**, $E$ is the **total space**.
 
@@ -58,7 +58,7 @@ Locally, a fiber bundle is just a product. Globally, it can twist: as you move a
 
 ---
 
-## 2. Principal Bundles
+## Principal Bundles
 
 A **principal $G$-bundle** $\pi: P \to B$ is a fiber bundle whose fiber is a Lie group $G$, equipped with a free right action $P \times G \to P$ that preserves fibers and acts transitively on each fiber. In other words: each fiber is a copy of $G$, and the group $G$ acts on the fibers by right multiplication.
 
@@ -92,7 +92,7 @@ A **principal $G$-bundle** $\pi: P \to B$ is a fiber bundle whose fiber is a Lie
 
 ---
 
-## 3. Connections on Principal Bundles
+## Connections on Principal Bundles
 
 A **connection** on a principal $G$-bundle $P \to B$ is a 1-form $A$ on $P$ valued in the Lie algebra $\mathfrak{g}$, satisfying:
 1. **Equivariance:** $R_g^* A = \mathrm{Ad}(g^{-1}) A$ for all $g \in G$, where $R_g$ is right translation.
@@ -118,7 +118,7 @@ Equivalently, a connection is a smooth distribution of horizontal subspaces $H_p
 
 ---
 
-## 4. Curvature 2-Form
+## Curvature 2-Form
 
 The **curvature** of a connection $A$ is the Lie-algebra-valued 2-form
 $$F = dA + A \wedge A$$
@@ -156,7 +156,7 @@ The first two terms are the Maxwell-like exterior derivative; the last is the no
 
 ---
 
-## 5. Chern-Weil Theory and Characteristic Classes
+## Chern-Weil Theory and Characteristic Classes
 
 Given a curvature 2-form $F$ on a principal $G$-bundle and a $G$-invariant polynomial $P$ on $\mathfrak{g}$, the form $P(F)$ is a closed differential form on the base $B$, and its de Rham class $[P(F)] \in H^*(B; \mathbb{R})$ is independent of the choice of connection. This is the **Chern-Weil construction**, and it produces topological invariants of bundles.
 
@@ -186,7 +186,7 @@ where $\mathrm{ch}$ is the Chern character of the principal symbol $\sigma$ and 
 
 ---
 
-## 6. Yang-Mills Theory
+## Yang-Mills Theory
 
 The **Yang-Mills functional** on a principal $G$-bundle $P \to M$ (with $M$ Riemannian or Lorentzian) is
 $$S_{YM}[A] = \frac{1}{2}\int_M \langle F \wedge *F\rangle,$$
@@ -218,7 +218,7 @@ This is a gauge-invariant observable. In lattice gauge theory, Wilson loops are 
 
 ---
 
-## 7. Gauge Theory Dictionary
+## Gauge Theory Dictionary
 
 The translation table between physics terminology and mathematics is one of the great unifications of 20th-century science.
 
@@ -253,7 +253,7 @@ The translation table between physics terminology and mathematics is one of the 
 
 ---
 
-## 8. Where to Go from Here
+## Where to Go from Here
 
 This series ends here, but differential geometry stretches far beyond. Some directions:
 
