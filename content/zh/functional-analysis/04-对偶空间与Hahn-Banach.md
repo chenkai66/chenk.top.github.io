@@ -55,7 +55,7 @@ $$\|\varphi\|_{X^*} = \sup_{\|x\| \leq 1} |\varphi(x)|.$$
 
 ## Hahn-Banach 定理（解析形式）
 
-**定理（Hahn-Banach，实版本）。** 设 $X$ 是实向量空间，$p: X \to \mathbb{R}$ 是次线性泛函（$p(x + y) \leq p(x) + p(y)$ 且 $p(\alpha x) = \alpha p(x)$ 对于 $\alpha \geq 0$），$\varphi_0: M \to \mathbb{R}$ 是子空间 $M \subseteq X$ 上的线性泛函，且 $\varphi_0(x) \leq p(x)$ 对所有 $x \in M$ 成立。则 $\varphi_0$ 可以延拓为 $X$ 上的线性泛函 $\varphi: X \to \mathbb{R}$，满足 $\varphi(x) \leq p(x)$ 对所有 $x \in X$ 成立。
+可以证明，设 $X$ 是实向量空间，$p: X \to \mathbb{R}$ 是次线性泛函（$p(x + y) \leq p(x) + p(y)$ 且 $p(\alpha x) = \alpha p(x)$ 对于 $\alpha \geq 0$），$\varphi_0: M \to \mathbb{R}$ 是子空间 $M \subseteq X$ 上的线性泛函，且 $\varphi_0(x) \leq p(x)$ 对所有 $x \in M$ 成立。则 $\varphi_0$ 可以延拓为 $X$ 上的线性泛函 $\varphi: X \to \mathbb{R}$，满足 $\varphi(x) \leq p(x)$ 对所有 $x \in X$ 成立。
 
 复版本：将次线性替换为半范数（即 $p(\alpha x) = |\alpha| p(x)$），要求 $|\varphi_0(x)| \leq p(x)$ 在 $M$ 上成立，且延拓满足 $|\varphi(x)| \leq p(x)$ 在 $X$ 上成立。
 
@@ -79,7 +79,7 @@ Hahn-Banach 让我做三件本来不可能的事情。（i）**延拓**线性泛
 
 “几何”或“分离”形式的 Hahn-Banach 在优化和概率中更有用。
 
-**定理（几何 Hahn-Banach）。** 设 $X$ 是实赋范空间，$A, B \subseteq X$ 是不相交的非空凸集。（i）如果 $A$ 是开集，则存在 $\varphi \in X^*$ 和 $\alpha \in \mathbb{R}$ 使得 $\varphi(a) < \alpha \leq \varphi(b)$ 对所有 $a \in A$，$b \in B$ 成立。（ii）如果 $A$ 是闭集且 $B$ 是紧集，则存在 $\varphi \in X^*$ 和 $\alpha < \beta$ 使得 $\varphi(a) \leq \alpha < \beta \leq \varphi(b)$ 对所有 $a \in A$，$b \in B$ 成立——*严格*分离。
+可以证明，设 $X$ 是实赋范空间，$A, B \subseteq X$ 是不相交的非空凸集。（i）如果 $A$ 是开集，则存在 $\varphi \in X^*$ 和 $\alpha \in \mathbb{R}$ 使得 $\varphi(a) < \alpha \leq \varphi(b)$ 对所有 $a \in A$，$b \in B$ 成立。（ii）如果 $A$ 是闭集且 $B$ 是紧集，则存在 $\varphi \in X^*$ 和 $\alpha < \beta$ 使得 $\varphi(a) \leq \alpha < \beta \leq \varphi(b)$ 对所有 $a \in A$，$b \in B$ 成立——*严格*分离。
 
 换句话说：任何两个不相交的凸集都可以被一个超平面分离，如果其中一个集合是闭集且另一个是紧集，则可以*严格*分离（具体来说，由一个板条分离）。
 
@@ -158,13 +158,13 @@ $$^\perp B = \{ x \in X : \varphi(x) = 0 \text{ 对所有 } \varphi \in B \}$$
 
 为了完整性，$1 \leq p < \infty$，$1/p + 1/q = 1$ 时的对偶 $(L^p)^* = L^q$ 值得仔细陈述。
 
-**定理。** 对于每个 $g \in L^q$，泛函 $\varphi_g(f) = \int f g$ 属于 $(L^p)^*$，且 $\|\varphi_g\|_{(L^p)^*} = \|g\|_{L^q}$。映射 $g \mapsto \varphi_g$ 是 $L^q \to (L^p)^*$ 的等距同构。
+可以证明，对于每个 $g \in L^q$，泛函 $\varphi_g(f) = \int f g$ 属于 $(L^p)^*$，且 $\|\varphi_g\|_{(L^p)^*} = \|g\|_{L^q}$。映射 $g \mapsto \varphi_g$ 是 $L^q \to (L^p)^*$ 的等距同构。
 
 Hölder 不等式给出 $\|\varphi_g\| \leq \|g\|_{L^q}$。反向不等式使用显式的 $f$ 选择：取 $f = |g|^{q-1} \mathrm{sgn}(g) / \|g\|_{L^q}^{q/p}$，标准化使得 $\|f\|_{L^p} = 1$。则 $\varphi_g(f) = \|g\|_{L^q}$，展示等式。
 
 ![$(l^p)* = l^q$ 对于共轭指数的对偶](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/04-dual-spaces-hahn-banach/fa_v2_04_6_lp_dual.png)
 
-对于满射性，给定 $\varphi \in (L^p)^*$，我们需要构造 $g \in L^q$ 来表示它。Radon-Nikodym 定理提供 $g$ 作为从 $\varphi$ 构建的绝对连续测度的密度。$p = 1$ 的情况需要测度的 $\sigma$-有限性；否则对偶可能失败。
+对于满射性，给定 $\varphi \in (L^p)^*$，需要构造 $g \in L^q$ 来表示它。Radon-Nikodym 定理提供 $g$ 作为从 $\varphi$ 构建的绝对连续测度的密度。$p = 1$ 的情况需要测度的 $\sigma$-有限性；否则对偶可能失败。
 
 $p = \infty$ 的情况打破了模式。$(L^\infty)^*$ *严格大于* $L^1$——它包含不是测度的有限可加集函数。这是 $L^\infty$ 的一个结构性麻烦，实际后果是 $L^\infty$ 不是自反的，许多紧性论证在那里失败。
 
@@ -198,7 +198,7 @@ Banach 极限*不是*唯一的（不同的 Hahn-Banach 延拓给出不同的 Ban
 
 直接的最小化序列方法在 $C[K]$ 中很微妙，因为单位球不是弱紧的（空间不是自反的）。但 Hahn-Banach 提供了一个优雅的替代方案——最佳逼近的*对偶*。
 
-**定理。** $d(f, M) = \sup\{ |\varphi(f)| : \varphi \in M^\perp, \|\varphi\| \leq 1 \}$，其中 $M^\perp \subseteq (C[K])^*$ 是消没子。
+可以证明，$d(f, M) = \sup\{ |\varphi(f)| : \varphi \in M^\perp, \|\varphi\| \leq 1 \}$，其中 $M^\perp \subseteq (C[K])^*$ 是消没子。
 
 右边是在对偶空间 $(M^\perp)$ 的闭单位球上的最大化，视作 $(C[K])^*$ 的子集。根据 Banach-Alaoglu（第 5 篇文章），$(C[K])^*$ 的闭单位球在弱-* 拓扑下是紧的，其闭子集 $M^\perp \cap \overline{B}(0, 1)$ 也是。紧集上的连续函数达到其上确界，因此上确界由某个泛函 $\varphi^* \in M^\perp$ 达到。对偶已将“找到最佳逼近”转换为“找到最优认证泛函”，这通常更容易。
 
