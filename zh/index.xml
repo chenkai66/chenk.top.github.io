@@ -278,120 +278,8 @@ $$&lt;/span>
  
 &lt;/figure>
 &lt;/p>
-&lt;p>在 2010 年代的大部分时间里，提到“深度学习用于时间序列”，默认就是 LSTM。这一局面在 2018 年被 Bai、Kolter 和 Koltun 发表的论文 &lt;em>An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling&lt;/em> 所改变。他们的结论出人意料地简洁：堆叠若干一维卷积，确保其因果性（不窥探未来）、让卷积核间隔呈指数扩张（dilation），再用残差连接包裹整个结构，直接训练即可。结果表明，这种 &lt;strong>时序卷积网络&lt;/strong>（Temporal Convolutional Network, TCN）在各类任务中表现与 LSTM/GRU 相当甚至更优——而且训练速度快数倍，因为前向传播中的每个时间步均可并行计算。&lt;/p></description></item><item><title>时间序列模型（五）：时间序列的 Transformer 架构</title><link>https://www.chenk.top/zh/time-series/05-transformer%E6%9E%B6%E6%9E%84/</link><pubDate>Thu, 31 Oct 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/05-transformer%E6%9E%B6%E6%9E%84/</guid><description>&lt;p>&lt;figure class="article-figure">
- &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.png" alt="章节概念图" loading="lazy" decoding="async" class="content-image">
- 
-&lt;/figure>
-&lt;/p>
-&lt;hr>
-&lt;h2 id="本文要点" class="heading-anchor">本文要点&lt;a href="#%e6%9c%ac%e6%96%87%e8%a6%81%e7%82%b9" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;ul>
-&lt;li>完整解析专为时间序列设计的 encoder-decoder Transformer 架构&lt;/li>
-&lt;li>为什么必须注入位置信息，以及正弦编码、可学习编码与时间感知编码的区别&lt;/li>
-&lt;li>多头注意力在时间序列上实际学到的内容&lt;/li>
-&lt;li>朴素 attention 的瓶颈（O(n²)）及四大改进方向：稀疏、线性、分块（patching）、仅解码器&lt;/li>
-&lt;li>提供一份清晰的 PyTorch 参考实现，并指导何时选用 Autoformer / FEDformer / Informer / PatchTST&lt;/li>
-&lt;/ul>
-&lt;h2 id="前置知识" class="heading-anchor">前置知识&lt;a href="#%e5%89%8d%e7%bd%ae%e7%9f%a5%e8%af%86" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;ul>
-&lt;li>自注意力与多头注意力（第 4 篇）&lt;/li>
-&lt;li>编码器-解码器架构与 teacher forcing&lt;/li>
-&lt;li>PyTorch 基础（&lt;code>nn.Module&lt;/code>、训练循环）&lt;/li>
-&lt;/ul>
-&lt;hr>
-&lt;h2 id="为什么时间序列要用-transformer" class="heading-anchor">为什么时间序列要用 Transformer&lt;a href="#%e4%b8%ba%e4%bb%80%e4%b9%88%e6%97%b6%e9%97%b4%e5%ba%8f%e5%88%97%e8%a6%81%e7%94%a8-transformer" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>LSTM 和 GRU 按时间步顺序处理序列，由此带来三个根本限制：&lt;/p></description></item><item><title>时间序列模型（四）：Attention 机制——直接的长程依赖</title><link>https://www.chenk.top/zh/time-series/04-attention%E6%9C%BA%E5%88%B6/</link><pubDate>Wed, 16 Oct 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/04-attention%E6%9C%BA%E5%88%B6/</guid><description>&lt;p>&lt;figure class="article-figure">
- &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/illustration_1.png" alt="章节概念图" loading="lazy" decoding="async" class="content-image">
- 
-&lt;/figure>
-&lt;/p>
-&lt;hr>
-&lt;h2 id="本文要点" class="heading-anchor">本文要点&lt;a href="#%e6%9c%ac%e6%96%87%e8%a6%81%e7%82%b9" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;ul>
-&lt;li>循环模型在处理长程依赖时为何遭遇瓶颈，而注意力机制又是如何彻底打破这一限制的。&lt;/li>
-&lt;li>Query / Key / Value 机制、缩放点积注意力（scaled dot-product attention）的原理，以及为何要除以 &lt;span class="math-inline">$\sqrt{d_k}$&lt;/span>
-。&lt;/li>
-&lt;li>两种经典打分函数：&lt;strong>Bahdanau&lt;/strong>（加性）与 &lt;strong>Luong&lt;/strong>（乘性）。&lt;/li>
-&lt;li>如何将 &lt;strong>注意力机制嵌入 LSTM 编码器/解码器&lt;/strong>，用于时间序列预测。&lt;/li>
-&lt;li>&lt;strong>多头注意力&lt;/strong>在时序任务中的专业化分工：不同注意力头分别聚焦于近期性、周期性或异常事件。&lt;/li>
-&lt;li>&lt;span class="math-inline">$O(n^2)$&lt;/span>
- 的显存墙问题，以及稀疏注意力、线性注意力等方法如何绕过它。&lt;/li>
-&lt;li>一个完整的 &lt;strong>股价预测案例&lt;/strong>，附带注意力权重热力图，直观揭示模型决策依据。&lt;/li>
-&lt;/ul>
-&lt;p>&lt;strong>前置知识&lt;/strong>：熟悉 RNN/LSTM/GRU 的基本原理（第 2–3 篇）、线性代数基础、PyTorch 基本操作。&lt;/p></description></item><item><title>时间序列模型（三）：GRU——轻量门控与效率权衡</title><link>https://www.chenk.top/zh/time-series/03-gru/</link><pubDate>Tue, 01 Oct 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/03-gru/</guid><description>&lt;hr>
-&lt;h2 id="本文要点" class="heading-anchor">本文要点&lt;a href="#%e6%9c%ac%e6%96%87%e8%a6%81%e7%82%b9" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>&lt;figure class="article-figure">
- &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/illustration_1.png" alt="GRU 章节概念图" loading="lazy" decoding="async" class="content-image">
- 
-&lt;/figure>
-&lt;/p>
-&lt;ul>
-&lt;li>GRU 的&lt;strong>更新门&lt;/strong> &lt;span class="math-inline">$z_t$&lt;/span>
- 和&lt;strong>重置门&lt;/strong> &lt;span class="math-inline">$r_t$&lt;/span>
- 如何仅凭两个门和一个状态，就实现与 LSTM 相当的记忆能力。&lt;/li>
-&lt;li>GRU 的参数量比 LSTM 少了整整 &lt;strong>25%&lt;/strong>，这在实际应用中能带来哪些切实好处。&lt;/li>
-&lt;li>如何通过观察 GRU 的&lt;strong>门激活值&lt;/strong>，理解模型关注的重点，辅助调试。&lt;/li>
-&lt;li>一份基于参数量、训练速度和预测质量实测数据的实用 &lt;strong>GRU 与 LSTM 选择决策表&lt;/strong>。&lt;/li>
-&lt;li>一份简洁的 PyTorch 参考实现，包含真正影响模型稳定性和性能的关键正则化技巧。&lt;/li>
-&lt;/ul>
-&lt;h2 id="前置知识" class="heading-anchor">前置知识&lt;a href="#%e5%89%8d%e7%bd%ae%e7%9f%a5%e8%af%86" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;ul>
-&lt;li>熟悉 &lt;a href="https://www.chenk.top/zh/time-series/02-lstm">第二篇 LSTM&lt;/a>
- 中的三门机制。&lt;/li>
-&lt;li>掌握 PyTorch 基础（&lt;code>nn.Module&lt;/code>、autograd、optimizer）。&lt;/li>
-&lt;li>了解 vanilla RNN 因梯度反复经过 tanh 非线性而导致梯度消失的原因。&lt;/li>
-&lt;/ul>
-&lt;hr>
-&lt;p>&lt;em>图 1. GRU 单元。两个门（&lt;code>r&lt;/code>、&lt;code>z&lt;/code>）和一个状态（&lt;code>h&lt;/code>），替代了 LSTM 的三个门和独立细胞状态。橙色的 &lt;code>(1 - z) ⊙ h_{t-1}&lt;/code> 跳跃路径是让长程依赖可学的线性梯度高速公路。&lt;/em>&lt;/p></description></item><item><title>时间序列模型（二）：LSTM——门控机制与长期依赖</title><link>https://www.chenk.top/zh/time-series/02-lstm/</link><pubDate>Mon, 16 Sep 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/02-lstm/</guid><description>&lt;hr>
-&lt;h2 id="本文要点" class="heading-anchor">本文要点&lt;a href="#%e6%9c%ac%e6%96%87%e8%a6%81%e7%82%b9" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>&lt;figure class="article-figure">
- &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/illustration_1.png" alt="时间序列与 LSTM 章节概念图" loading="lazy" decoding="async" class="content-image">
- 
-&lt;/figure>
-&lt;/p>
-&lt;ul>
-&lt;li>普通 RNN 为何难以处理长序列，以及 LSTM 如何解决梯度消失与爆炸问题&lt;/li>
-&lt;li>遗忘门、输入门和输出门的直观作用，以及细胞状态这条“高速公路”如何维持长期记忆&lt;/li>
-&lt;li>在单步与多步时间序列预测中，如何合理设计 LSTM 的输入输出结构&lt;/li>
-&lt;li>实用技巧：正则化策略、序列长度选择、双向 vs 堆叠 LSTM 的适用场景，以及何时应优先选用 LSTM 而非 GRU&lt;/li>
-&lt;/ul>
-&lt;h2 id="准备工作" class="heading-anchor">准备工作&lt;a href="#%e5%87%86%e5%a4%87%e5%b7%a5%e4%bd%9c" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;ul>
-&lt;li>掌握神经网络基础知识（前向传播、反向传播）&lt;/li>
-&lt;li>熟悉 PyTorch 核心组件（&lt;code>nn.Module&lt;/code>、张量、优化器）&lt;/li>
-&lt;li>建议阅读本系列第 1 篇（非必需）&lt;/li>
-&lt;/ul>
-&lt;hr>
-&lt;h2 id="lstm-要解决的问题" class="heading-anchor">LSTM 要解决的问题&lt;a href="#lstm-%e8%a6%81%e8%a7%a3%e5%86%b3%e7%9a%84%e9%97%ae%e9%a2%98" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;span class="math-block">$$h_t = \tanh(W_h h_{t-1} &amp;#43; W_x x_t &amp;#43; b).$$&lt;/span>
-&lt;span class="math-block">$$\frac{\partial h_T}{\partial h_k} = \prod_{t=k&amp;#43;1}^{T} \mathrm{diag}\!\left(1 - h_t^2\right) W_h.$$&lt;/span>
-&lt;p>
-这会导致两种极端情况：&lt;/p></description></item><item><title>Mixture-of-Subspaces in Low-Rank Adaptation (MoSLoRA)</title><link>https://www.chenk.top/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/</link><pubDate>Sun, 01 Sep 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/</guid><description>&lt;p>LoRA 将全量微调压缩为一个低秩更新，在工程上近乎零成本：参数量少、训练稳定、可合并回原权重，因此部署开销与原模型完全一致。然而，一旦微调数据具备一定异质性——例如混合了代码、数学、指令遵循和文本生成任务——单一低秩子空间便难以充分建模。直觉上的解法是把 &lt;span class="math-inline">$r$&lt;/span>
- 调大，可惜代价线性增长，而且本质上依然只有&lt;strong>一个&lt;/strong>子空间，只是更“胖”了。&lt;/p></description></item><item><title>时间序列模型（一）：传统统计模型</title><link>https://www.chenk.top/zh/time-series/01-%E4%BC%A0%E7%BB%9F%E6%A8%A1%E5%9E%8B/</link><pubDate>Sun, 01 Sep 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/01-%E4%BC%A0%E7%BB%9F%E6%A8%A1%E5%9E%8B/</guid><description>&lt;p>&lt;figure class="article-figure">
- &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/01-%e4%bc%a0%e7%bb%9f%e6%a8%a1%e5%9e%8b/illustration_1.png" alt="章节概念图" loading="lazy" decoding="async" class="content-image">
- 
-&lt;/figure>
-&lt;/p>
-&lt;hr>
-&lt;h2 id="本文要点" class="heading-anchor">本文要点&lt;a href="#%e6%9c%ac%e6%96%87%e8%a6%81%e7%82%b9" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;ul>
-&lt;li>&lt;strong>平稳性&lt;/strong>是 ARIMA 家族的入场券，而差分正是获取它的核心手段。&lt;/li>
-&lt;li>学会像 Box-Jenkins 专家一样解读 &lt;strong>ACF 和 PACF&lt;/strong> 图：通过“截尾”与“拖尾”的模式来判断 &lt;span class="math-inline">$p$&lt;/span>
- 和 &lt;span class="math-inline">$q$&lt;/span>
-。&lt;/li>
-&lt;li>掌握完整的 &lt;strong>ARIMA / SARIMA&lt;/strong> 框架，尤其是如何通过滞后-&lt;span class="math-inline">$s$&lt;/span>
- 算子将季节性融入模型。&lt;/li>
-&lt;li>将 &lt;strong>VAR、GARCH、指数平滑、Prophet 和卡尔曼滤波&lt;/strong> 放在同一张图谱上理解——它们分别聚焦于均值动态、方差动态和状态空间递推。&lt;/li>
-&lt;li>明确一个决策准则：何时传统模型已足够，何时应转向本系列后续介绍的深度学习模型。&lt;/li>
-&lt;/ul>
-&lt;h2 id="前置知识" class="heading-anchor">前置知识&lt;a href="#%e5%89%8d%e7%bd%ae%e7%9f%a5%e8%af%86" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;ul>
-&lt;li>掌握基本的概率统计概念，如均值、方差、协方差和相关系数。&lt;/li>
-&lt;li>熟悉 NumPy 和 &lt;code>pandas&lt;/code> 的时间索引操作。&lt;/li>
-&lt;li>VAR 与卡尔曼滤波部分涉及少量线性代数知识，主要是矩阵乘法和特征值。&lt;/li>
-&lt;/ul>
-&lt;h2 id="为什么传统模型依然重要" class="heading-anchor">为什么传统模型依然重要&lt;a href="#%e4%b8%ba%e4%bb%80%e4%b9%88%e4%bc%a0%e7%bb%9f%e6%a8%a1%e5%9e%8b%e4%be%9d%e7%84%b6%e9%87%8d%e8%a6%81" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>在深度学习时代来临之前，时间序列分析的工具箱其实已经相当完备：ARIMA 能有效捕捉线性自相关结构，SARIMA 引入了日历效应，VAR 将模型推广到多变量场景，GARCH 专门建模波动率，而卡尔曼滤波则通过状态空间框架将这些方法统一起来。这些传统模型具备三个深度模型难以免费提供的优势：&lt;/p></description></item><item><title>网球场景计算机视觉系统设计：从论文调研到工业实现</title><link>https://www.chenk.top/zh/standalone/%E7%BD%91%E7%90%83%E5%9C%BA%E6%99%AF%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E6%96%B9%E6%A1%88/</link><pubDate>Sat, 31 Aug 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/standalone/%E7%BD%91%E7%90%83%E5%9C%BA%E6%99%AF%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E6%96%B9%E6%A1%88/</guid><description>&lt;p>将一颗直径 6.7 cm、时速 200+ km/h 的网球，通过 8 路 4K 摄像头实时重建为毫米级三维轨迹，并同步识别球员动作——这涉及小物体检测、多视角几何、卡尔曼滤波、物理建模和姿态估计等多个技术环节。本文按工业落地顺序，逐一解析每个子问题：界定难点、论文调研选型、提供可运行代码、讨论性能预算与部署架构。&lt;/p></description></item><item><title>概率与统计（八）：贝叶斯统计——先验、后验，以及频率学派为何争论不休</title><link>https://www.chenk.top/zh/probability-statistics/08-bayesian-thinking/</link><pubDate>Fri, 30 Aug 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/probability-statistics/08-bayesian-thinking/</guid><description>&lt;p>两位统计学家走进一家酒吧。一人说：“明天下雨的概率是 30%。”另一人反驳道：“概率指的是长期频率；而明天只发生一次，这种说法毫无意义。”第一个人回应：“它量化的是我对这一独特事件的不确定性。”两人就此争论了一整晚。&lt;/p></description></item><item><title>概率与统计（七）：假设检验——p 值、置信区间及其全部陷阱</title><link>https://www.chenk.top/zh/probability-statistics/07-hypothesis-testing/</link><pubDate>Wed, 28 Aug 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/probability-statistics/07-hypothesis-testing/</guid><description>&lt;p>你已经估计了一个参数，也量化了偏差-方差的权衡。现在，一个驱动绝大多数应用统计学的核心问题浮出水面：“这个效应是真实的，还是仅仅是噪声？”&lt;/p>
+&lt;p>在 2010 年代的大部分时间里，提到“深度学习用于时间序列”，默认就是 LSTM。这一局面在 2018 年被 Bai、Kolter 和 Koltun 发表的论文 &lt;em>An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling&lt;/em> 所改变。他们的结论出人意料地简洁：堆叠若干一维卷积，确保其因果性（不窥探未来）、让卷积核间隔呈指数扩张（dilation），再用残差连接包裹整个结构，直接训练即可。结果表明，这种 &lt;strong>时序卷积网络&lt;/strong>（Temporal Convolutional Network, TCN）在各类任务中表现与 LSTM/GRU 相当甚至更优——而且训练速度快数倍，因为前向传播中的每个时间步均可并行计算。&lt;/p></description></item><item><title>时间序列模型（五）：时间序列的 Transformer 架构</title><link>https://www.chenk.top/zh/time-series/05-transformer%E6%9E%B6%E6%9E%84/</link><pubDate>Thu, 31 Oct 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/05-transformer%E6%9E%B6%E6%9E%84/</guid><description>&lt;p>2017 年那篇 &lt;em>Attention Is All You Need&lt;/em> 把上一章的注意力机制推到了极致：&lt;strong>根本不要 RNN 了&lt;/strong>。Transformer 完全用注意力堆叠出一个序列模型，没有一处递归、没有一个隐藏状态在时间上传播。最初它是为机器翻译设计的，但很快被搬到了所有序列任务上——包括时间序列预测。&lt;/p></description></item><item><title>时间序列模型（四）：Attention 机制——直接的长程依赖</title><link>https://www.chenk.top/zh/time-series/04-attention%E6%9C%BA%E5%88%B6/</link><pubDate>Wed, 16 Oct 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/04-attention%E6%9C%BA%E5%88%B6/</guid><description>&lt;p>RNN 和 LSTM 解决了&amp;quot;时间步太多&amp;quot;的问题，但留下了另一个更隐蔽的限制：信息必须&lt;strong>逐步传递&lt;/strong>。要让第 100 步看到第 1 步的内容，得让那个信号沿着隐藏状态一路传 99 次——每一步都有衰减，每一步都得经过非线性挤压。即使 LSTM 的细胞状态再&amp;quot;高速公路&amp;quot;，也终究是单条车道、单向通行。&lt;/p></description></item><item><title>时间序列模型（三）：GRU——轻量门控与效率权衡</title><link>https://www.chenk.top/zh/time-series/03-gru/</link><pubDate>Tue, 01 Oct 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/03-gru/</guid><description>&lt;p>跑完 LSTM 一段时间后，你会冒出一个朴素的疑问：三个门是不是有点多？遗忘门和输入门看起来在干非常相似的事情——一个决定丢什么，一个决定加什么——能不能合并成一个？再者，那个独立的细胞状态有必要吗，能不能直接复用隐藏状态？&lt;/p></description></item><item><title>时间序列模型（二）：LSTM——门控机制与长期依赖</title><link>https://www.chenk.top/zh/time-series/02-lstm/</link><pubDate>Mon, 16 Sep 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/02-lstm/</guid><description>&lt;p>我第一次训练 RNN 是 2017 年，做一个根据过去 50 天的销售额预测下一天的小项目。前向算梯度时一切都挺正常，跑起来 loss 也在降，但模型对 30 天前的数据基本&amp;quot;失忆&amp;quot;——明明历史里有清晰的月度周期，模型偏偏只学到了&amp;quot;最近三天的趋势&amp;quot;。当时我以为是数据不够，加了样本、加了层数，问题反而更糟：训练 loss 突然跳到 NaN，一切归零。&lt;/p></description></item><item><title>Mixture-of-Subspaces in Low-Rank Adaptation (MoSLoRA)</title><link>https://www.chenk.top/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/</link><pubDate>Sun, 01 Sep 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/</guid><description>&lt;p>LoRA 将全量微调压缩为一个低秩更新，在工程上近乎零成本：参数量少、训练稳定、可合并回原权重，因此部署开销与原模型完全一致。然而，一旦微调数据具备一定异质性——例如混合了代码、数学、指令遵循和文本生成任务——单一低秩子空间便难以充分建模。直觉上的解法是把 &lt;span class="math-inline">$r$&lt;/span>
+ 调大，可惜代价线性增长，而且本质上依然只有&lt;strong>一个&lt;/strong>子空间，只是更“胖”了。&lt;/p></description></item><item><title>时间序列模型（一）：传统统计模型</title><link>https://www.chenk.top/zh/time-series/01-%E4%BC%A0%E7%BB%9F%E6%A8%A1%E5%9E%8B/</link><pubDate>Sun, 01 Sep 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/01-%E4%BC%A0%E7%BB%9F%E6%A8%A1%E5%9E%8B/</guid><description>&lt;p>我第一次拿到一份&amp;quot;看起来像时间序列&amp;quot;的数据，是一份每小时的服务器 CPU 使用率。直觉告诉我应该可以用线性回归——把时间当作 x 轴，使用率当作 y 轴。我试了，效果一塌糊涂。问题不在于回归本身，而在于这种数据有自己的脾气：它有趋势、有周期、还有上一时刻对下一时刻挥之不去的影响。普通的回归把每个观测都当作独立样本，恰恰把&amp;quot;时间&amp;quot;这层信息扔掉了。&lt;/p></description></item><item><title>网球场景计算机视觉系统设计：从论文调研到工业实现</title><link>https://www.chenk.top/zh/standalone/%E7%BD%91%E7%90%83%E5%9C%BA%E6%99%AF%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E6%96%B9%E6%A1%88/</link><pubDate>Sat, 31 Aug 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/standalone/%E7%BD%91%E7%90%83%E5%9C%BA%E6%99%AF%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E6%96%B9%E6%A1%88/</guid><description>&lt;p>将一颗直径 6.7 cm、时速 200+ km/h 的网球，通过 8 路 4K 摄像头实时重建为毫米级三维轨迹，并同步识别球员动作——这涉及小物体检测、多视角几何、卡尔曼滤波、物理建模和姿态估计等多个技术环节。本文按工业落地顺序，逐一解析每个子问题：界定难点、论文调研选型、提供可运行代码、讨论性能预算与部署架构。&lt;/p></description></item><item><title>概率与统计（八）：贝叶斯统计——先验、后验，以及频率学派为何争论不休</title><link>https://www.chenk.top/zh/probability-statistics/08-bayesian-thinking/</link><pubDate>Fri, 30 Aug 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/probability-statistics/08-bayesian-thinking/</guid><description>&lt;p>两位统计学家走进一家酒吧。一人说：“明天下雨的概率是 30%。”另一人反驳道：“概率指的是长期频率；而明天只发生一次，这种说法毫无意义。”第一个人回应：“它量化的是我对这一独特事件的不确定性。”两人就此争论了一整晚。&lt;/p></description></item><item><title>概率与统计（七）：假设检验——p 值、置信区间及其全部陷阱</title><link>https://www.chenk.top/zh/probability-statistics/07-hypothesis-testing/</link><pubDate>Wed, 28 Aug 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/probability-statistics/07-hypothesis-testing/</guid><description>&lt;p>你已经估计了一个参数，也量化了偏差-方差的权衡。现在，一个驱动绝大多数应用统计学的核心问题浮出水面：“这个效应是真实的，还是仅仅是噪声？”&lt;/p>
 &lt;p>假设检验正是回答这一问题的形式化框架，但它同时也是统计学中最常被误解的部分。大量论文专门探讨研究者如何误读 p 值、显著性阈值为何是任意设定的，以及多重检验问题如何推高假阳性发现率。对理论原理与常见陷阱的双重理解，对任何从事数据分析工作的人来说都至关重要。&lt;/p></description></item><item><title>概率与统计（六）：参数估计——极大似然估计、最大后验估计与偏差-方差分解</title><link>https://www.chenk.top/zh/probability-statistics/06-estimation-theory/</link><pubDate>Mon, 26 Aug 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/probability-statistics/06-estimation-theory/</guid><description>&lt;p>我们此前构建的所有内容——分布、期望、极限定理——都假设参数已知。高斯分布有均值 &lt;span class="math-inline">$\mu$&lt;/span>
  和方差 &lt;span class="math-inline">$\sigma^2$&lt;/span>
 ；二项分布有 &lt;span class="math-inline">$n$&lt;/span>
@@ -404,68 +292,33 @@ $$&lt;/span>
 &lt;/figure>
 &lt;/p>
 &lt;hr>
-&lt;h2 id="你将学到什么" class="heading-anchor">你将学到什么&lt;a href="#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>在引文图上堆叠 32 层 GCN，准确率会从 81% 骤降至 20%，所有节点特征最终坍缩为同一向量——这就是 GNN 中的“热寂”现象，即&lt;strong>过度平滑&lt;/strong>（over-smoothing）。其根源可直接追溯至 PDE 理论：&lt;strong>单层 GCN 实质上是图上热方程的一个显式欧拉步&lt;/strong>，而热方程只有一个不动点——常数函数。早在 1952 年，Alan Turing 就提出了解法：若在扩散方程中加入一个&lt;strong>反应项&lt;/strong>，原本均匀的状态便能自发分裂出条纹、斑点或迷宫等复杂结构。同样的技巧——引入一个可学习的反应项——能让深层 GNN 免于坍缩，保持表达能力。&lt;/p></description></item><item><title>偏微分方程与机器学习（七）：扩散模型与 Score Matching</title><link>https://www.chenk.top/zh/pde-ml/07-%E6%89%A9%E6%95%A3%E6%A8%A1%E5%9E%8B%E4%B8%8Escore-matching/</link><pubDate>Tue, 30 Jul 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/pde-ml/07-%E6%89%A9%E6%95%A3%E6%A8%A1%E5%9E%8B%E4%B8%8Escore-matching/</guid><description>&lt;p>&lt;figure class="article-figure">
+&lt;p>深层 GNN 大家都见过它崩——堆到十几层之后所有节点的 embedding 几乎一样，模型“糊掉”了。这个现象有个名字叫 &lt;strong>over-smoothing&lt;/strong>，背后的数学原因其实非常干净：&lt;strong>GNN 的消息传递本质上就是图上的扩散方程&lt;/strong>，扩散到最后所有节点都收敛到同一个常数。&lt;/p></description></item><item><title>偏微分方程与机器学习（七）：扩散模型与 Score Matching</title><link>https://www.chenk.top/zh/pde-ml/07-%E6%89%A9%E6%95%A3%E6%A8%A1%E5%9E%8B%E4%B8%8Escore-matching/</link><pubDate>Tue, 30 Jul 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/pde-ml/07-%E6%89%A9%E6%95%A3%E6%A8%A1%E5%9E%8B%E4%B8%8Escore-matching/</guid><description>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-Diffusion-Models/illustration_1.png" alt="偏微分方程与机器学习（七）：扩散模型与Score Matching — visual" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
 &lt;/p>
 &lt;hr>
-&lt;h2 id="你将学到什么" class="heading-anchor">你将学到什么&lt;a href="#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>自 2020 年起，&lt;strong>扩散模型&lt;/strong>已成为生成式 AI 的主流范式。从 DALL·E 2 到 Stable Diffusion 再到 Sora，其生成质量与训练稳定性均超越了 GAN 和 VAE。这一成功背后是一套异常简洁的数学结构：&lt;strong>扩散模型本质上是偏微分方程（PDE）的数值求解器&lt;/strong>。&lt;/p></description></item><item><title>偏微分方程与机器学习（六）：连续归一化流与 Neural ODE</title><link>https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/</link><pubDate>Mon, 15 Jul 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/</guid><description>&lt;p>&lt;figure class="article-figure">
+&lt;p>扩散模型的输出端我们很熟悉：一张高质量图片。但训练目标乍看之下却很反直觉——&lt;strong>先把数据加噪声加到完全是高斯，再学怎么一步步去噪&lt;/strong>。为什么这个绕远路的策略反而比直接学数据分布有效？&lt;/p></description></item><item><title>偏微分方程与机器学习（六）：连续归一化流与 Neural ODE</title><link>https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/</link><pubDate>Mon, 15 Jul 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/</guid><description>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png" alt="偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
 &lt;/p>
 &lt;hr>
-&lt;h2 id="你将学到什么" class="heading-anchor">你将学到什么&lt;a href="#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>生成建模归根结底是一个几何问题：&lt;strong>如何将简单分布（比如高斯分布）变换为复杂分布（如人脸、分子或运动轨迹）？&lt;/strong> 离散归一化流通过堆叠可逆模块实现这一目标，但每个模块都需要计算 Jacobian 行列式，其代价高达 &lt;span class="math-inline">$O(d^3)$&lt;/span>
-。&lt;strong>Neural ODE&lt;/strong> 用连续的常微分方程（ODE）取代离散的网络深度；&lt;strong>连续归一化流（Continuous Normalizing Flows, CNF）&lt;/strong> 则借助 &lt;em>瞬时&lt;/em> 变量替换公式，将密度计算的复杂度降至 &lt;span class="math-inline">$O(d)$&lt;/span>
-；而 &lt;strong>Flow Matching&lt;/strong> 更进一步，直接省去了散度积分，将训练简化为对目标速度场的普通回归任务。&lt;/p></description></item><item><title>偏微分方程与机器学习（五）：辛几何与保结构网络</title><link>https://www.chenk.top/zh/pde-ml/05-%E8%BE%9B%E5%87%A0%E4%BD%95%E4%B8%8E%E4%BF%9D%E7%BB%93%E6%9E%84%E7%BD%91%E7%BB%9C/</link><pubDate>Sun, 30 Jun 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/pde-ml/05-%E8%BE%9B%E5%87%A0%E4%BD%95%E4%B8%8E%E4%BF%9D%E7%BB%93%E6%9E%84%E7%BD%91%E7%BB%9C/</guid><description>&lt;p>&lt;figure class="article-figure">
+&lt;p>怎么把一团各向同性的高斯噪声“吹”成一张猫的照片？&lt;/p>
+&lt;p>归一化流给的答案很直接：用一系列可逆变换，一步步把简单分布推到复杂分布。这一篇要讲的连续归一化流（CNF）把“一系列变换”推到极限——让步长趋于零，离散变换链就变成一个 ODE，可逆性自动满足，密度变化由瞬时换元公式控制。&lt;/p></description></item><item><title>偏微分方程与机器学习（五）：辛几何与保结构网络</title><link>https://www.chenk.top/zh/pde-ml/05-%E8%BE%9B%E5%87%A0%E4%BD%95%E4%B8%8E%E4%BF%9D%E7%BB%93%E6%9E%84%E7%BD%91%E7%BB%9C/</link><pubDate>Sun, 30 Jun 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/pde-ml/05-%E8%BE%9B%E5%87%A0%E4%BD%95%E4%B8%8E%E4%BF%9D%E7%BB%93%E6%9E%84%E7%BD%91%E7%BB%9C/</guid><description>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/05-Symplectic-Geometry/illustration_1.png" alt="偏微分方程与机器学习（五）：辛几何与保结构网络 — visual" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
 &lt;/p>
 &lt;hr>
-&lt;h2 id="你将学到什么" class="heading-anchor">你将学到什么&lt;a href="#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>用普通神经网络拟合单摆轨迹，虽然训练误差可以很小，但积分几十秒后，预测的摆要么停下，要么加速到逃逸速度——尽管能量应守恒，但网络并不理解“能量”这一概念。问题出在架构上，而非数据、优化器或网络深度。无约束的 MLP 能表示任何向量场，包括不物理的那些；这些向量场存在微小的系统性偏差，经长时间积分后会被不断放大，最终表现为宏观的能量漂移。&lt;/p></description></item><item><title>偏微分方程与机器学习（四）：变分推断与 Fokker-Planck 方程</title><link>https://www.chenk.top/zh/pde-ml/04-%E5%8F%98%E5%88%86%E6%8E%A8%E6%96%AD%E4%B8%8Efokker-planck%E6%96%B9%E7%A8%8B/</link><pubDate>Sat, 15 Jun 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/pde-ml/04-%E5%8F%98%E5%88%86%E6%8E%A8%E6%96%AD%E4%B8%8Efokker-planck%E6%96%B9%E7%A8%8B/</guid><description>&lt;p>&lt;figure class="article-figure">
+&lt;p>钟摆能摆很久而不慢慢停下来——能量守恒。地球绕太阳转十亿年也不会突然飞走——角动量守恒。这种“某个量恒定不变”的性质背后，藏着一种叫&lt;strong>辛结构&lt;/strong>的几何。&lt;/p></description></item><item><title>偏微分方程与机器学习（四）：变分推断与 Fokker-Planck 方程</title><link>https://www.chenk.top/zh/pde-ml/04-%E5%8F%98%E5%88%86%E6%8E%A8%E6%96%AD%E4%B8%8Efokker-planck%E6%96%B9%E7%A8%8B/</link><pubDate>Sat, 15 Jun 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/pde-ml/04-%E5%8F%98%E5%88%86%E6%8E%A8%E6%96%AD%E4%B8%8Efokker-planck%E6%96%B9%E7%A8%8B/</guid><description>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-Variational-Inference/illustration_1.png" alt="偏微分方程与机器学习（四）：变分推断与Fokker-Planck方程 — visual" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
 &lt;/p>
 &lt;hr>
-&lt;h2 id="本文的七个维度" class="heading-anchor">本文的七个维度&lt;a href="#%e6%9c%ac%e6%96%87%e7%9a%84%e4%b8%83%e4%b8%aa%e7%bb%b4%e5%ba%a6" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;ol>
-&lt;li>&lt;strong>动机&lt;/strong>：为什么 VI 和 MCMC 看似迥异，实则求解同一个 PDE。&lt;/li>
-&lt;li>&lt;strong>理论&lt;/strong>：从 SDE 推导出 Fokker-Planck 方程。&lt;/li>
-&lt;li>&lt;strong>几何&lt;/strong>：KL 散度作为 Wasserstein 梯度流。&lt;/li>
-&lt;li>&lt;strong>算法&lt;/strong>：Langevin Monte Carlo、平均场 VI 与 SVGD。&lt;/li>
-&lt;li>&lt;strong>收敛&lt;/strong>：对数 Sobolev 不等式与 KL 的指数衰减。&lt;/li>
-&lt;li>&lt;strong>数值实验&lt;/strong>：7 张可复现的图表，附完整代码。&lt;/li>
-&lt;li>&lt;strong>应用&lt;/strong>：通过后验采样实现贝叶斯神经网络。&lt;/li>
-&lt;/ol>
-&lt;h2 id="你将学到什么" class="heading-anchor">你将学到什么&lt;a href="#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;ul>
-&lt;li>任意 Itô SDE 所诱导的概率密度演化均受 Fokker-Planck 方程支配。&lt;/li>
-&lt;li>Langevin 动力学是一种实用的采样算法，但其离散化会引入误差。&lt;/li>
-&lt;li>在 Wasserstein 空间中最小化 &lt;span class="math-inline">$\mathrm{KL}(q \| p^\star)$&lt;/span>
-，本质上就是在求解 Fokker-Planck PDE。&lt;/li>
-&lt;li>在连续时间极限下，变分推断与 Langevin MCMC 具有深刻的等价性。&lt;/li>
-&lt;li>Stein 变分梯度下降（SVGD）：一种确定性的粒子方法，巧妙地融合了两种范式。&lt;/li>
-&lt;li>贝叶斯神经网络中的实际后验推断。&lt;/li>
-&lt;/ul>
-&lt;h2 id="前置知识" class="heading-anchor">前置知识&lt;a href="#%e5%89%8d%e7%bd%ae%e7%9f%a5%e8%af%86" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;ul>
-&lt;li>概率论基础（贝叶斯定理、KL 散度、期望）。&lt;/li>
-&lt;li>第三篇中介绍的 Wasserstein 梯度流。&lt;/li>
-&lt;li>对随机微积分的初步直觉（布朗运动、Itô 积分）。&lt;/li>
-&lt;li>实验部分需熟悉 Python / PyTorch。&lt;/li>
-&lt;/ul>
-&lt;hr>
-&lt;h2 id="推断问题" class="heading-anchor">推断问题&lt;a href="#%e6%8e%a8%e6%96%ad%e9%97%ae%e9%a2%98" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;span class="math-block">$$p(\theta \mid x) \;=\; \frac{p(x \mid \theta)\, p(\theta)}{\int p(x \mid \theta&amp;#39;)\, p(\theta&amp;#39;)\, d\theta&amp;#39;},$$&lt;/span>
-&lt;p>
-但分母中的边际似然在非平凡模型下通常不可积。为此，两大类近似算法应运而生：&lt;/p></description></item><item><title>偏微分方程与机器学习（三）：变分原理与优化</title><link>https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/</link><pubDate>Fri, 31 May 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/</guid><description>&lt;p>训练神经网络的本质是什么？当我们在高维参数空间中运行梯度下降时，背后是否存在某种更深刻的连续时间动力学？当网络宽度趋于无穷时，离散的参数更新是否会收敛到某个优雅的偏微分方程？这些问题的答案，正位于变分法、最优传输与 PDE 理论的交汇处。&lt;/p></description></item><item><title>偏微分方程与机器学习（二）：神经算子理论</title><link>https://www.chenk.top/zh/pde-ml/02-%E7%A5%9E%E7%BB%8F%E7%AE%97%E5%AD%90%E7%90%86%E8%AE%BA/</link><pubDate>Thu, 16 May 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/pde-ml/02-%E7%A5%9E%E7%BB%8F%E7%AE%97%E5%AD%90%E7%90%86%E8%AE%BA/</guid><description>&lt;p>经典 PDE 求解器，如有限差分、有限元、谱方法，本质上是函数——输入初始条件和参数，输出解；PINN 本质上也是面向单实例的函数：一旦初始条件改变（例如机翼来流速度变化或预报中传感器读数微小偏移），就需要重新训练。&lt;/p></description></item><item><title>HCGR —— Hyperbolic Contrastive Graph Representation Learning for Session-based Recommendation</title><link>https://www.chenk.top/zh/standalone/hcgr-hyperbolic-contrastive-graph-representation-learning-fo/</link><pubDate>Wed, 01 May 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/standalone/hcgr-hyperbolic-contrastive-graph-representation-learning-fo/</guid><description>&lt;p>会话推荐中的“兴趣结构”几乎天然是分层的：用户先点开一个大类（如“跑鞋”），再筛选品牌、尺码和价位，最终选定一个 SKU。这条交互轨迹天然构成一棵树——每次点击都会将候选集大致按固定倍数缩小。问题在于，在欧氏空间中嵌入这类树状结构需要大幅增加维度，以避免叶子节点在表示空间中过度靠近，因为欧氏空间的“体积”只随半径多项式增长；而双曲空间的体积随半径指数级增长，正好与树的分支增长是同一个量级，几维就能把整条长尾摊开。&lt;/p></description></item><item><title>偏微分方程与机器学习（一）：物理信息神经网络</title><link>https://www.chenk.top/zh/pde-ml/01-%E7%89%A9%E7%90%86%E4%BF%A1%E6%81%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/</link><pubDate>Wed, 01 May 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/pde-ml/01-%E7%89%A9%E7%90%86%E4%BF%A1%E6%81%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/</guid><description>&lt;p>&lt;strong>本系列第一章 · 阅读约 35 分钟。&lt;/strong> 这章是整个系列的地基。后面七章讲神经算子、变分原理和 Score Matching，其实都在探讨同一个问题：如何将物理或数学约束编码进神经网络的优化目标？搞定了 PINN，后续章节只是更换不同的约束。
+&lt;p>为什么变分推断（一个看起来纯优化的方法）和 Langevin MCMC（一个看起来纯采样的方法）最后会汇到同一个偏微分方程？&lt;/p>
+&lt;p>这一篇我想讲的就是这件事。它们在连续时间下其实是&lt;strong>同一个 Fokker-Planck PDE 的两面&lt;/strong>：一边是密度的演化，一边是 KL 散度沿 Wasserstein 几何的梯度流。看清这一点之后，许多看起来不相关的工具——SVGD 的粒子算法、对数 Sobolev 不等式给出的指数收敛、贝叶斯神经网络的训练——会突然落到同一张图上。&lt;/p></description></item><item><title>偏微分方程与机器学习（三）：变分原理与优化</title><link>https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/</link><pubDate>Fri, 31 May 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/</guid><description>&lt;p>训练神经网络的本质是什么？当我们在高维参数空间中运行梯度下降时，背后是否存在某种更深刻的连续时间动力学？当网络宽度趋于无穷时，离散的参数更新是否会收敛到某个优雅的偏微分方程？这些问题的答案，正位于变分法、最优传输与 PDE 理论的交汇处。&lt;/p></description></item><item><title>偏微分方程与机器学习（二）：神经算子理论</title><link>https://www.chenk.top/zh/pde-ml/02-%E7%A5%9E%E7%BB%8F%E7%AE%97%E5%AD%90%E7%90%86%E8%AE%BA/</link><pubDate>Thu, 16 May 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/pde-ml/02-%E7%A5%9E%E7%BB%8F%E7%AE%97%E5%AD%90%E7%90%86%E8%AE%BA/</guid><description>&lt;p>经典 PDE 求解器，如有限差分、有限元、谱方法，本质上是函数——输入初始条件和参数，输出解；PINN 本质上也是面向单实例的函数：一旦初始条件改变（例如机翼来流速度变化或预报中传感器读数微小偏移），就需要重新训练。&lt;/p></description></item><item><title>HCGR —— Hyperbolic Contrastive Graph Representation Learning for Session-based Recommendation</title><link>https://www.chenk.top/zh/standalone/hcgr-hyperbolic-contrastive-graph-representation-learning-fo/</link><pubDate>Wed, 01 May 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/standalone/hcgr-hyperbolic-contrastive-graph-representation-learning-fo/</guid><description>&lt;p>会话推荐中的“兴趣结构”几乎天然是分层的：用户先点开一个大类（如“跑鞋”），再筛选品牌、尺码和价位，最终选定一个 SKU。这条交互轨迹天然构成一棵树——每次点击都会将候选集大致按固定倍数缩小。问题在于，在欧氏空间中嵌入这类树状结构需要大幅增加维度，以避免叶子节点在表示空间中过度靠近，因为欧氏空间的“体积”只随半径多项式增长；而双曲空间的体积随半径指数级增长，正好与树的分支增长是同一个量级，几维就能把整条长尾摊开。&lt;/p></description></item><item><title>偏微分方程与机器学习（一）：物理信息神经网络</title><link>https://www.chenk.top/zh/pde-ml/01-%E7%89%A9%E7%90%86%E4%BF%A1%E6%81%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/</link><pubDate>Wed, 01 May 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/pde-ml/01-%E7%89%A9%E7%90%86%E4%BF%A1%E6%81%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/</guid><description>&lt;p>&lt;strong>本系列第一章 · 阅读约 35 分钟。&lt;/strong> 这章是整个系列的地基。后面七章讲神经算子、变分原理和 Score Matching，其实都在探讨同一个问题：如何将物理或数学约束编码进神经网络的优化目标？搞定了 PINN，后续章节只是更换不同的约束。
 &lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/01-Physics-Informed-Neural-Networks/illustration_1.png" alt="偏微分方程与机器学习（一）：物理信息神经网络 — visual" loading="lazy" decoding="async" class="content-image">
  
@@ -704,58 +557,32 @@ $$&lt;/span>
  
 &lt;/figure>
 &lt;/p>
-&lt;p>很多人觉得 Linux 难，但其实难点不在命令本身，而在于是否对整个系统有一个清晰的“全局观”——为什么它能在服务器领域占据主导地位？多用户设计和文件权限管理带来了哪些实际好处？从 Debian 系切换到 Red Hat 系时，底层逻辑有哪些变化？通过 SSH 登录到服务器后，最初的十分钟该做什么？这篇文章是整个 Linux 系列的&lt;strong>入门指南&lt;/strong>，旨在帮助你快速建立核心心智模型，涵盖设计理念、主要发行版的区别以及 FHS 目录结构的基础知识。接着，我们会带你熟悉那些几乎每小时都要用上十几次的常用命令：&lt;code>cd ls pwd&lt;/code>、&lt;code>cp mv rm mkdir&lt;/code>、&lt;code>cat less head tail&lt;/code>、&lt;code>find grep&lt;/code>，以及管道、重定向、 SSH 操作，还有权限管理和进程查看的基本方法。每个部分都力求简洁明了，深入内容则会留给后续的专题文章，如文件权限、磁盘管理、用户管理、服务管理、进程管理、包管理和高级文件操作等。&lt;/p></description></item><item><title>微分几何 (12)：纤维丛、特征类与物理学</title><link>https://www.chenk.top/zh/differential-geometry/12-%E7%BA%A4%E7%BB%B4%E4%B8%9B%E4%B8%8E%E7%89%A9%E7%90%86/</link><pubDate>Tue, 23 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/12-%E7%BA%A4%E7%BB%B4%E4%B8%9B%E4%B8%8E%E7%89%A9%E7%90%86/</guid><description>&lt;p>在这一系列文章中，我们从基础开始构建微分几何：流形、切空间、微分形式、积分、Riemann 度量、联络和曲率。一个反复出现的主题是&lt;strong>切丛&lt;/strong> &lt;span class="math-inline">$TM$&lt;/span>
- ——所有切空间粘合在一起形成的单一几何对象。Levi-Civita 联络是一种对 &lt;span class="math-inline">$TM$&lt;/span>
- 的截面（即向量场）进行微分的规则，而 Riemann 曲率张量则测量这种微分的非交换性。&lt;/p></description></item><item><title>微分几何（11）：黎曼几何中的曲率 —— 黎曼、里奇和标量</title><link>https://www.chenk.top/zh/differential-geometry/11-%E6%B5%81%E5%BD%A2%E4%B8%8A%E7%9A%84%E6%9B%B2%E7%8E%87/</link><pubDate>Sun, 21 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/11-%E6%B5%81%E5%BD%A2%E4%B8%8A%E7%9A%84%E6%9B%B2%E7%8E%87/</guid><description>&lt;p>曲率是黎曼几何的核心概念。直观上，它衡量空间偏离平坦的程度 —— 平行线如何收敛或发散，三角形的角度如何超出或不足，体积如何与欧几里得预期不同。在前一篇文章中，看到平行移动的路径依赖性表明了曲率的存在：一个向量在 &lt;span class="math-inline">$S^2$&lt;/span>
- 上绕闭合回路携带后会旋转，而在 &lt;span class="math-inline">$\mathbb{R}^n$&lt;/span>
- 上则不会。下一步是精确化这一点，提取出一个张量来准确捕捉这种旋转，并理解其各种收缩。&lt;/p></description></item><item><title>微分几何（10）：黎曼几何 — 度量、联络和平行移动</title><link>https://www.chenk.top/zh/differential-geometry/10-riemann%E5%87%A0%E4%BD%95/</link><pubDate>Fri, 19 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/10-riemann%E5%87%A0%E4%BD%95/</guid><description>&lt;p>到目前为止，已经研究了具有可微结构的光滑流形：坐标图、切向量、微分形式、外微积分、积分。这些都不需要距离的概念。可以对函数求导，积分最高阶形式，判断一个分布是否可积 —— 所有这些都不需要测量曲线的长度或两个切向量之间的夹角。光滑结构纯粹是拓扑加上导数。要做经典意义上的几何 —— 测量、比较、讨论曲率、恢复“长度”和“角度”的日常含义 —— 需要额外的结构。&lt;/p></description></item><item><title>微分几何（9）：流形上的积分与斯托克斯定理</title><link>https://www.chenk.top/zh/differential-geometry/09-%E6%B5%81%E5%BD%A2%E4%B8%8A%E7%9A%84%E7%A7%AF%E5%88%86%E4%B8%8Estokes%E5%AE%9A%E7%90%86/</link><pubDate>Wed, 17 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/09-%E6%B5%81%E5%BD%A2%E4%B8%8A%E7%9A%84%E7%A7%AF%E5%88%86%E4%B8%8Estokes%E5%AE%9A%E7%90%86/</guid><description>&lt;p>在单变量微积分中，基本定理说在一个区间上对导数进行积分等于边界差值：&lt;span class="math-inline">$\int_a^b f&amp;#39;(x)\,dx = f(b) - f(a)$&lt;/span>
-。&lt;span class="math-inline">$[a, b]$&lt;/span>
- 的“边界”是两点集 &lt;span class="math-inline">$\{a, b\}$&lt;/span>
-，其中 &lt;span class="math-inline">$b$&lt;/span>
- 计为正，&lt;span class="math-inline">$a$&lt;/span>
- 计为负。右边是对这个带符号边界的 &lt;span class="math-inline">$f$&lt;/span>
- 的积分。左边是对区间的导数的积分。这本质上是你遇到过的每一个“基本定理”——平面上的格林定理、三维空间中的散度定理、曲面上的经典斯托克斯定理。它们都是流形上的一个陈述的实例：&lt;strong>&lt;span class="math-inline">$M$&lt;/span>
- 上 &lt;span class="math-inline">$d\omega$&lt;/span>
- 的积分等于 &lt;span class="math-inline">$\partial M$&lt;/span>
- 上 &lt;span class="math-inline">$\omega$&lt;/span>
- 的积分&lt;/strong>。&lt;/p></description></item><item><title>微分形式：流形上积分的自然语言</title><link>https://www.chenk.top/zh/differential-geometry/08-%E5%BE%AE%E5%88%86%E5%BD%A2%E5%BC%8F/</link><pubDate>Mon, 15 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/08-%E5%BE%AE%E5%88%86%E5%BD%A2%E5%BC%8F/</guid><description>&lt;p>在 &lt;span class="math-inline">$\mathbb{R}^3$&lt;/span>
- 上的向量微积分中，有三种导数运算：梯度 (&lt;span class="math-inline">$\nabla f$&lt;/span>
-)、旋度 (&lt;span class="math-inline">$\nabla \times F$&lt;/span>
-) 和散度 (&lt;span class="math-inline">$\nabla \cdot F$&lt;/span>
-)。每种运算作用于不同类型的对象（标量场、向量场）。两个恒等式 — &lt;span class="math-inline">$\nabla \times (\nabla f) = 0$&lt;/span>
- 和 &lt;span class="math-inline">$\nabla \cdot (\nabla \times F) = 0$&lt;/span>
- — 看起来像是巧合。三个积分定理（线积分的基本定理、经典的 Stokes 定理、散度定理）看起来彼此无关且缺乏动机。&lt;/p></description></item><item><title>向量场、流和李括号</title><link>https://www.chenk.top/zh/differential-geometry/07-%E5%90%91%E9%87%8F%E5%9C%BA%E4%B8%8E%E6%B5%81/</link><pubDate>Sat, 13 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/07-%E5%90%91%E9%87%8F%E5%9C%BA%E4%B8%8E%E6%B5%81/</guid><description>&lt;p>一个切向量只存在于一点。它告诉你“这个方向，这个速度，就在这里，就在现在。”它是根本局部的——把它从流形上摘下来，它就不记得它的邻居了。相比之下，&lt;strong>向量场&lt;/strong>是当你让每一点上的一个切向量平滑地协同作用时得到的结果。它是整个流形上的速度规定：站在任何地方，场都会告诉你该去哪里。遵循这个规定，你就会画出一条积分曲线同时从每个起点开始遵循它，你就得到了一个流——一族单参数的微分同胚，像缓慢的河流一样拖动整个流形。&lt;/p></description></item><item><title>光滑流形：超越嵌入曲面的几何</title><link>https://www.chenk.top/zh/differential-geometry/06-%E5%85%89%E6%BB%91%E6%B5%81%E5%BD%A2/</link><pubDate>Thu, 11 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/06-%E5%85%89%E6%BB%91%E6%B5%81%E5%BD%A2/</guid><description>&lt;p>前五章的内容都限定在 &lt;span class="math-inline">$\mathbb{R}^3$&lt;/span>
- 里。我们讨论了曲线和曲面，用明确的参数化方式表达。所有的几何数据——第一基本形式、第二基本形式、主曲率、Christoffel 符号、Theorema Egregium、Gauss-Bonnet 定理——都是从可以写下来的坐标中构建起来的。Theorema Egregium 揭示了内在的故事可以不依赖于嵌入来讲述。但“不依赖于嵌入”仍然意味着“嵌入存在；我们只是选择不用它”。&lt;/p></description></item><item><title>微分几何（5）：高斯-博内定理 —— 几何与拓扑的交汇点</title><link>https://www.chenk.top/zh/differential-geometry/05-gauss-bonnet%E5%AE%9A%E7%90%86/</link><pubDate>Tue, 09 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/05-gauss-bonnet%E5%AE%9A%E7%90%86/</guid><description>&lt;p>上一章的绝妙定理表明，高斯曲率是内蕴的——弯曲一个表面而不拉伸，&lt;span class="math-inline">$K$&lt;/span>
- 不会改变。本章要讨论的 Gauss-Bonnet 定理则在另一个方向上揭示了同样惊人的事实：在一个闭合表面上积分 &lt;span class="math-inline">$K$&lt;/span>
-，结果是一个拓扑不变量。任何球面的总曲率是 &lt;span class="math-inline">$4\pi$&lt;/span>
-。任何环面的总曲率是 &lt;span class="math-inline">$0$&lt;/span>
-。双环面的总曲率是 &lt;span class="math-inline">$-4\pi$&lt;/span>
-。这些事实与具体的几何形状无关——无论怎么弯曲、扭转或挤压表面，总曲率都不会改变。&lt;/p></description></item><item><title>微分几何（4）：内蕴几何 —— 惊人定理与测地线</title><link>https://www.chenk.top/zh/differential-geometry/04-%E5%86%85%E8%95%B4%E5%87%A0%E4%BD%95/</link><pubDate>Sun, 07 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/04-%E5%86%85%E8%95%B4%E5%87%A0%E4%BD%95/</guid><description>&lt;p>前两章建立了一个清晰的二分法。第二章介绍了第一基本形式 &lt;span class="math-inline">$\mathrm{I}$&lt;/span>
- —— 内在度量，也就是表面上的蚂蚁可以测量的东西。第三章介绍了第二基本形式 &lt;span class="math-inline">$\mathrm{II}$&lt;/span>
- 和形状算子 —— 这些是外在数据，描述了曲面在 &lt;span class="math-inline">$\mathbb{R}^3$&lt;/span>
- 中如何弯曲。从 &lt;span class="math-inline">$\mathrm{II}$&lt;/span>
- 可以计算出高斯曲率 &lt;span class="math-inline">$K = \det S$&lt;/span>
- 和平均曲率 &lt;span class="math-inline">$H = \mathrm{tr}\,S/2$&lt;/span>
-。看起来，&lt;span class="math-inline">$K$&lt;/span>
- 和 &lt;span class="math-inline">$H$&lt;/span>
- 都应该依赖于嵌入方式。弯曲曲面（不拉伸）时，你可能会认为两者都会改变。&lt;/p></description></item><item><title>微分几何（3）：形状算子——曲面的曲率</title><link>https://www.chenk.top/zh/differential-geometry/03-%E6%9B%B2%E9%9D%A2%E7%9A%84%E6%9B%B2%E7%8E%87/</link><pubDate>Fri, 05 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/03-%E6%9B%B2%E9%9D%A2%E7%9A%84%E6%9B%B2%E7%8E%87/</guid><description>&lt;p>上一篇文章介绍了内在工具：第一基本形式 &lt;span class="math-inline">$\mathrm{I}$&lt;/span>
-，用对称矩阵 &lt;span class="math-inline">$\begin{pmatrix}E &amp;amp; F \\ F &amp;amp; G\end{pmatrix}$&lt;/span>
- 表示。有了它，表面上的蚂蚁可以测量长度、角度和面积，而无需离开表面。但是，仅凭 &lt;span class="math-inline">$\mathrm{I}$&lt;/span>
-，蚂蚁无法察觉圆柱面是弯曲的。圆柱面的第一基本形式与平面相同，但在 &lt;span class="math-inline">$\mathbb{R}^3$&lt;/span>
- 中的形态却大不相同。&lt;/p></description></item><item><title>曲面与第一基本形式：内在测量</title><link>https://www.chenk.top/zh/differential-geometry/02-%E6%9B%B2%E9%9D%A2%E4%B8%8E%E7%AC%AC%E4%B8%80%E5%9F%BA%E6%9C%AC%E5%BD%A2%E5%BC%8F/</link><pubDate>Wed, 03 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/02-%E6%9B%B2%E9%9D%A2%E4%B8%8E%E7%AC%AC%E4%B8%80%E5%9F%BA%E6%9C%AC%E5%BD%A2%E5%BC%8F/</guid><description>&lt;p>曲线是一维的热身。其几何由常微分方程（ODE）控制，一个移动框架就能捕捉所有有趣的东西。从现在开始，我们进入二维，难度在三个方向上同时增加。切向量被&lt;em>切平面&lt;/em>取代。单一的弧长参数分裂成两个坐标 &lt;span class="math-inline">$(u, v)$&lt;/span>
-，重新参数化变成 &lt;span class="math-inline">$2\times 2$&lt;/span>
- 的雅可比矩阵而不是标量。而且——真正的变化——我们获得了两种不同的几何：&lt;em>内在&lt;/em>（生活在曲面上的蚂蚁可以测量的）和&lt;em>外在&lt;/em>（曲面在周围 &lt;span class="math-inline">$\mathbb{R}^3$&lt;/span>
- 中如何弯曲）。本文讲述的是内在的故事。我们构建了&lt;em>第一基本形式&lt;/em>，这个 &lt;span class="math-inline">$2\times 2$&lt;/span>
- 矩阵值函数让蚂蚁无需离开曲面就能测量长度、角度和面积。&lt;/p></description></item><item><title>空间中的曲线：曲率、挠率和 Frenet 标架</title><link>https://www.chenk.top/zh/differential-geometry/01-%E7%A9%BA%E9%97%B4%E6%9B%B2%E7%BA%BF/</link><pubDate>Mon, 01 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/01-%E7%A9%BA%E9%97%B4%E6%9B%B2%E7%BA%BF/</guid><description>&lt;p>我将从每个诚实的微分几何课程开始的方式开始这个系列：一个在 &lt;span class="math-inline">$\mathbb{R}^3$&lt;/span>
- 中移动的点。不是流形，不是纤维丛，甚至不是曲面——只是一个追踪路径的点。之后的一切——Gauss 映射、第二基本形式、联络、Riemann 曲率张量——某种意义上都是为了更高维对象做我们即将对一维对象所做的彻底研究。所以请耐心看下去。本文结束时，将拥有一个完整的局部理论：两个标量函数（&lt;span class="math-inline">$\kappa$&lt;/span>
-, &lt;span class="math-inline">$\tau$&lt;/span>
-）和一个正交标架（&lt;span class="math-inline">$\mathbf{T}, \mathbf{N}, \mathbf{B}$&lt;/span>
-），它们共同确定了一条曲线，直到刚体运动。口号是“曲线 = 每个点两个数”，这个口号值得证明。&lt;/p></description></item><item><title>泛函分析 (12)：泛函分析在行动 —— 偏微分方程和量子力学</title><link>https://www.chenk.top/zh/functional-analysis/12-%E5%BA%94%E7%94%A8/</link><pubDate>Sat, 23 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/12-%E5%BA%94%E7%94%A8/</guid><description>&lt;p>&lt;figure class="article-figure">
+&lt;p>很多人觉得 Linux 难，但其实难点不在命令本身，而在于是否对整个系统有一个清晰的“全局观”——为什么它能在服务器领域占据主导地位？多用户设计和文件权限管理带来了哪些实际好处？从 Debian 系切换到 Red Hat 系时，底层逻辑有哪些变化？通过 SSH 登录到服务器后，最初的十分钟该做什么？这篇文章是整个 Linux 系列的&lt;strong>入门指南&lt;/strong>，旨在帮助你快速建立核心心智模型，涵盖设计理念、主要发行版的区别以及 FHS 目录结构的基础知识。接着，我们会带你熟悉那些几乎每小时都要用上十几次的常用命令：&lt;code>cd ls pwd&lt;/code>、&lt;code>cp mv rm mkdir&lt;/code>、&lt;code>cat less head tail&lt;/code>、&lt;code>find grep&lt;/code>，以及管道、重定向、 SSH 操作，还有权限管理和进程查看的基本方法。每个部分都力求简洁明了，深入内容则会留给后续的专题文章，如文件权限、磁盘管理、用户管理、服务管理、进程管理、包管理和高级文件操作等。&lt;/p></description></item><item><title>微分几何 (12)：纤维丛、特征类与物理学</title><link>https://www.chenk.top/zh/differential-geometry/12-%E7%BA%A4%E7%BB%B4%E4%B8%9B%E4%B8%8E%E7%89%A9%E7%90%86/</link><pubDate>Tue, 23 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/12-%E7%BA%A4%E7%BB%B4%E4%B8%9B%E4%B8%8E%E7%89%A9%E7%90%86/</guid><description>&lt;p>高中物理课讲电磁学时，老师写过一个让人记忆深刻的公式：&lt;span class="math-inline">$\vec{E} = -\nabla\phi - \partial_t\vec{A}$&lt;/span>
+，&lt;span class="math-inline">$\vec{B} = \nabla\times\vec{A}$&lt;/span>
+。电磁场由一个标量势 &lt;span class="math-inline">$\phi$&lt;/span>
+ 和一个向量势 &lt;span class="math-inline">$\vec{A}$&lt;/span>
+ 决定。但同一个老师当时说了一句奇怪的话：&amp;quot;&lt;span class="math-inline">$\phi$&lt;/span>
+ 和 &lt;span class="math-inline">$\vec{A}$&lt;/span>
+ 不是唯一的——你可以做&lt;em>规范变换&lt;/em> &lt;span class="math-inline">$\phi \to \phi - \partial_t\lambda$&lt;/span>
+, &lt;span class="math-inline">$\vec{A} \to \vec{A} &amp;#43; \nabla\lambda$&lt;/span>
+，电磁场不变。这种自由叫&amp;rsquo;规范不变性&amp;rsquo;。&amp;quot;&lt;/p></description></item><item><title>微分几何（11）：黎曼几何中的曲率 —— 黎曼、里奇和标量</title><link>https://www.chenk.top/zh/differential-geometry/11-%E6%B5%81%E5%BD%A2%E4%B8%8A%E7%9A%84%E6%9B%B2%E7%8E%87/</link><pubDate>Sun, 21 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/11-%E6%B5%81%E5%BD%A2%E4%B8%8A%E7%9A%84%E6%9B%B2%E7%8E%87/</guid><description>&lt;p>上一章在球面上做了一个简单的实验：从北极点出发，把一个切向量沿着一条闭合的三角形回路平行移动一圈，结果回到北极时，向量&lt;em>转了一个角度&lt;/em>。在 &lt;span class="math-inline">$\mathbb{R}^n$&lt;/span>
+ 上做同样的实验，向量回来还是原来的方向，没转过任何角度。&lt;/p></description></item><item><title>微分几何（10）：黎曼几何 — 度量、联络和平行移动</title><link>https://www.chenk.top/zh/differential-geometry/10-riemann%E5%87%A0%E4%BD%95/</link><pubDate>Fri, 19 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/10-riemann%E5%87%A0%E4%BD%95/</guid><description>&lt;p>前面四章把流形当一个纯粹的&amp;quot;光滑壳子&amp;quot;在用。可以谈连续、谈光滑、谈切空间、谈微分形式、谈积分——但有一件最朴素的事，到现在为止还做不了：&lt;/p></description></item><item><title>微分几何（9）：流形上的积分与斯托克斯定理</title><link>https://www.chenk.top/zh/differential-geometry/09-%E6%B5%81%E5%BD%A2%E4%B8%8A%E7%9A%84%E7%A7%AF%E5%88%86%E4%B8%8Estokes%E5%AE%9A%E7%90%86/</link><pubDate>Wed, 17 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/09-%E6%B5%81%E5%BD%A2%E4%B8%8A%E7%9A%84%E7%A7%AF%E5%88%86%E4%B8%8Estokes%E5%AE%9A%E7%90%86/</guid><description>&lt;p>大学一年级数学课的最后一次作业里有这么一道题：证明一维微积分基本定理 &lt;span class="math-inline">$\int_a^b f&amp;#39;(x)\,dx = f(b) - f(a)$&lt;/span>
+。当时我觉得这个公式平淡无奇——左边是导数的积分，右边是函数在端点的差，证明也不过是对 &lt;span class="math-inline">$f$&lt;/span>
+ 用一次中值定理。&lt;/p></description></item><item><title>微分形式：流形上积分的自然语言</title><link>https://www.chenk.top/zh/differential-geometry/08-%E5%BE%AE%E5%88%86%E5%BD%A2%E5%BC%8F/</link><pubDate>Mon, 15 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/08-%E5%BE%AE%E5%88%86%E5%BD%A2%E5%BC%8F/</guid><description>&lt;p>本科电磁学课上有三个让我背得很熟但一直觉得很奇怪的恒等式：&lt;span class="math-inline">$\nabla\times\nabla f = 0$&lt;/span>
+，&lt;span class="math-inline">$\nabla\cdot(\nabla\times F) = 0$&lt;/span>
+，&lt;span class="math-inline">$\oint_C F\cdot dr = \iint_S (\nabla\times F)\cdot dS$&lt;/span>
+（经典 Stokes 定理）。还有散度定理、Green 定理，每一个都是分别证明的，要记一长串公式。当时一个朴素的疑问是：这些恒等式凭什么都长得这么&amp;quot;恰好&amp;quot;？三个不同的&amp;quot;基本定理&amp;quot;凭什么都把&amp;quot;边界上的积分&amp;quot;和&amp;quot;内部的导数&amp;quot;连起来？&lt;/p></description></item><item><title>向量场、流和李括号</title><link>https://www.chenk.top/zh/differential-geometry/07-%E5%90%91%E9%87%8F%E5%9C%BA%E4%B8%8E%E6%B5%81/</link><pubDate>Sat, 13 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/07-%E5%90%91%E9%87%8F%E5%9C%BA%E4%B8%8E%E6%B5%81/</guid><description>&lt;p>看看天气预报地图上的风场图——每个城市上面画一个小箭头，箭头方向是风向，长度是风速。这是一张典型的&lt;em>向量场&lt;/em>图。它告诉你：地球表面上每一点都有一个切向量（风速向量）；这些向量在空间上连续地变化。&lt;/p></description></item><item><title>光滑流形：超越嵌入曲面的几何</title><link>https://www.chenk.top/zh/differential-geometry/06-%E5%85%89%E6%BB%91%E6%B5%81%E5%BD%A2/</link><pubDate>Thu, 11 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/06-%E5%85%89%E6%BB%91%E6%B5%81%E5%BD%A2/</guid><description>&lt;p>广义相对论说，宇宙是一个四维时空，物质的存在让时空弯曲，物体的运动其实是沿着弯曲时空的&amp;quot;直线&amp;quot;——测地线。这个图像很美，但我第一次听说时有一个简单的问题没人回答：&lt;/p></description></item><item><title>微分几何（5）：高斯-博内定理 —— 几何与拓扑的交汇点</title><link>https://www.chenk.top/zh/differential-geometry/05-gauss-bonnet%E5%AE%9A%E7%90%86/</link><pubDate>Tue, 09 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/05-gauss-bonnet%E5%AE%9A%E7%90%86/</guid><description>&lt;p>小学数学课上每个人都学过：三角形内角和等于 180 度。这是欧几里得几何里的金科玉律。但如果你在地球仪上画一个三角形，比如顶点放在北极、赤道经度 0°、赤道经度 90°，三条边都沿着大圆——这是球面上的&amp;quot;直线&amp;quot;，叫测地线。三个角分别是多少？北极那个是 90°（两条经线在那里垂直相交），赤道两个角也都是 90°（经线和赤道垂直）。三个角加起来是 270°，比 180° 多了 90°。&lt;/p></description></item><item><title>微分几何（4）：内蕴几何 —— 惊人定理与测地线</title><link>https://www.chenk.top/zh/differential-geometry/04-%E5%86%85%E8%95%B4%E5%87%A0%E4%BD%95/</link><pubDate>Sun, 07 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/04-%E5%86%85%E8%95%B4%E5%87%A0%E4%BD%95/</guid><description>&lt;p>前一章结束的时候我留下了一个剧透：高斯曲率 &lt;span class="math-inline">$K$&lt;/span>
+ 虽然是用外在的形状算子定义的，但&lt;em>只依赖于第一基本形式&lt;/em>——也就是说，曲面上的蚂蚁，仅凭它能感受到的距离和角度信息，就能算出 &lt;span class="math-inline">$K$&lt;/span>
+。这是 Gauss 在 1827 年证明的 &lt;em>Theorema Egregium&lt;/em>（拉丁语&amp;quot;绝妙定理&amp;quot;），是经典曲面理论的核心结果。这一章就是来把这个剧透变成证明的。&lt;/p></description></item><item><title>微分几何（3）：形状算子——曲面的曲率</title><link>https://www.chenk.top/zh/differential-geometry/03-%E6%9B%B2%E9%9D%A2%E7%9A%84%E6%9B%B2%E7%8E%87/</link><pubDate>Fri, 05 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/03-%E6%9B%B2%E9%9D%A2%E7%9A%84%E6%9B%B2%E7%8E%87/</guid><description>&lt;p>把一张 A4 纸放在桌上，铺平。它是平的。卷起来变成一个圆筒，它&lt;em>看起来&lt;/em>弯了——但纸面上的距离、角度都没变，蚂蚁趴在纸上感觉不到任何区别。再换一种做法：把纸团成一团，纸面上确实出现褶皱、撕扯。前一种动作是&amp;quot;弯而不拉&amp;quot;，后一种是&amp;quot;必须拉伸&amp;quot;。&lt;/p></description></item><item><title>曲面与第一基本形式：内在测量</title><link>https://www.chenk.top/zh/differential-geometry/02-%E6%9B%B2%E9%9D%A2%E4%B8%8E%E7%AC%AC%E4%B8%80%E5%9F%BA%E6%9C%AC%E5%BD%A2%E5%BC%8F/</link><pubDate>Wed, 03 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/02-%E6%9B%B2%E9%9D%A2%E4%B8%8E%E7%AC%AC%E4%B8%80%E5%9F%BA%E6%9C%AC%E5%BD%A2%E5%BC%8F/</guid><description>&lt;p>我小时候第一次看世界地图，被一个细节困扰了很久：格陵兰岛在地图上和非洲大陆差不多大，但地球仪上的格陵兰只是非洲的一个小角落。这是为什么？后来知道答案是&amp;quot;墨卡托投影把高纬度的面积放大了&amp;quot;——但这个解释只是把问题换了个名字，没有解释&lt;em>为什么没法画出一张完美的平面地图&lt;/em>。&lt;/p></description></item><item><title>空间中的曲线：曲率、挠率和 Frenet 标架</title><link>https://www.chenk.top/zh/differential-geometry/01-%E7%A9%BA%E9%97%B4%E6%9B%B2%E7%BA%BF/</link><pubDate>Mon, 01 Nov 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/differential-geometry/01-%E7%A9%BA%E9%97%B4%E6%9B%B2%E7%BA%BF/</guid><description>&lt;p>我第一次在课本里看到&amp;quot;曲率&amp;quot;这个词，配的图是一条蜷成圈的螺旋线，旁边写着 &lt;span class="math-inline">$\kappa = $&lt;/span>
+ 这个 &lt;span class="math-inline">$\tau = $&lt;/span>
+ 那个，公式带一堆叉积。我当时的反应是：&amp;ldquo;为什么不是直接说这条线弯得有多厉害？&amp;ldquo;用尺子量行不行？为什么要这么多记号？&lt;/p></description></item><item><title>泛函分析 (12)：泛函分析在行动 —— 偏微分方程和量子力学</title><link>https://www.chenk.top/zh/functional-analysis/12-%E5%BA%94%E7%94%A8/</link><pubDate>Sat, 23 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/12-%E5%BA%94%E7%94%A8/</guid><description>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fig12_quantum_operators.png" alt="量子力学算子：位置、动量、能量" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
 &lt;/p>
-&lt;p>十一篇文章的时间很长，都在构建基础设施。赋范空间、Banach 和 Hilbert 结构、对偶空间、弱拓扑、有界和无界算子、谱定理、半群、分布、Sobolev 空间 —— 每一章都以一个干净的抽象结果为回报，但读者可能会疑惑这些抽象何时能派上用场。这篇文章将兑现系列文章隐含的承诺：我们建立的每一个定理都是因为某些具体问题的需求而建立的，把这些线索整合起来就得到了现代偏微分方程和量子力学的工具箱。&lt;/p></description></item><item><title>泛函分析 (11)：分布与Sobolev空间 — 广义解</title><link>https://www.chenk.top/zh/functional-analysis/11-%E5%88%86%E5%B8%83%E4%B8%8Esobolev%E7%A9%BA%E9%97%B4/</link><pubDate>Thu, 21 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/11-%E5%88%86%E5%B8%83%E4%B8%8Esobolev%E7%A9%BA%E9%97%B4/</guid><description>&lt;p>我想从一个坦白开始。多年来，我像一个本科生物理学家那样对待Dirac delta：它在原点以外处处为零，在原点处无穷大，并且其积分等于一。这种描述当然是数学上的无稽之谈。没有可测函数具有这些性质。然而，每本量子力学教科书都在第一页使用&lt;span class="math-inline">$\delta$&lt;/span>
+&lt;h1 id="泛函分析在行动--pde-与量子力学" class="heading-anchor">泛函分析在行动 —— PDE 与量子力学&lt;a href="#%e6%b3%9b%e5%87%bd%e5%88%86%e6%9e%90%e5%9c%a8%e8%a1%8c%e5%8a%a8--pde-%e4%b8%8e%e9%87%8f%e5%ad%90%e5%8a%9b%e5%ad%a6" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h1>&lt;h2 id="工具箱兑现" class="heading-anchor">工具箱兑现&lt;a href="#%e5%b7%a5%e5%85%b7%e7%ae%b1%e5%85%91%e7%8e%b0" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h2>&lt;p>我开始写这个系列时给自己定了一条规矩：每一篇的抽象都必须最终回到一个具体的应用问题。十一篇下来这条线一直绷着——度量空间是为了讨论函数空间的距离，赋范空间为了引入算子范数，Hilbert 空间为了恢复几何，对偶为了 Hahn-Banach，弱拓扑为了变分紧性，三大定理为了刚性结果，紧算子为了谱分解，谱定理为了量子可观测量，半群为了演化方程，分布与 Sobolev 空间为了弱解。每一步都是因为某个具体问题需要它才被引入。这一篇就是兑现的时候。&lt;/p></description></item><item><title>泛函分析 (11)：分布与Sobolev空间 — 广义解</title><link>https://www.chenk.top/zh/functional-analysis/11-%E5%88%86%E5%B8%83%E4%B8%8Esobolev%E7%A9%BA%E9%97%B4/</link><pubDate>Thu, 21 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/11-%E5%88%86%E5%B8%83%E4%B8%8Esobolev%E7%A9%BA%E9%97%B4/</guid><description>&lt;p>我想从一个坦白开始。多年来，我像一个本科生物理学家那样对待Dirac delta：它在原点以外处处为零，在原点处无穷大，并且其积分等于一。这种描述当然是数学上的无稽之谈。没有可测函数具有这些性质。然而，每本量子力学教科书都在第一页使用&lt;span class="math-inline">$\delta$&lt;/span>
 ，每个信号处理课程都用&lt;span class="math-inline">$\delta(t)$&lt;/span>
 表示脉冲，每本PDE书都调用满足&lt;span class="math-inline">$\Delta E = \delta$&lt;/span>
 的Green函数&lt;span class="math-inline">$E$&lt;/span>
@@ -764,27 +591,37 @@ $$&lt;/span>
  
 &lt;/figure>
 &lt;/p>
-&lt;p>最简单的有趣的微分方程是 &lt;span class="math-inline">$u&amp;#39; = a u$&lt;/span>
-，其中 &lt;span class="math-inline">$a \in \mathbb{R}$&lt;/span>
-。解 &lt;span class="math-inline">$u(t) = e^{at} u_0$&lt;/span>
- 是如此熟悉，以至于很容易忘记它是一个结构：映射 &lt;span class="math-inline">$T(t) = e^{at}$&lt;/span>
- 是 &lt;span class="math-inline">$\mathbb{R}$&lt;/span>
- 上的一参数算子族，满足 &lt;span class="math-inline">$T(0) = I$&lt;/span>
-，&lt;span class="math-inline">$T(t &amp;#43; s) = T(t) T(s)$&lt;/span>
- 和在 &lt;span class="math-inline">$t$&lt;/span>
- 处的连续性。将 &lt;span class="math-inline">$a$&lt;/span>
- 替换为自伴随矩阵 &lt;span class="math-inline">$A$&lt;/span>
-，你就有 &lt;span class="math-inline">$T(t) = e^{tA}$&lt;/span>
-，即矩阵指数，它解决了系统 &lt;span class="math-inline">$u&amp;#39; = Au$&lt;/span>
-。将 &lt;span class="math-inline">$A$&lt;/span>
- 替换为 Hilbert 空间上的无界算子 —— Laplacian、Schrödinger Hamiltonian 或 Fokker-Planck 算子 —— 你希望做同样的事情。但矩阵指数幂级数可能不收敛，算子可能不在整个 &lt;span class="math-inline">$H$&lt;/span>
- 上定义，普通微积分也不再适用。&lt;/p></description></item><item><title>无界算子：当有界性失效时</title><link>https://www.chenk.top/zh/functional-analysis/09-%E6%97%A0%E7%95%8C%E7%AE%97%E5%AD%90/</link><pubDate>Sun, 17 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/09-%E6%97%A0%E7%95%8C%E7%AE%97%E5%AD%90/</guid><description>&lt;h2 id="无界算子的挑战" class="heading-anchor">无界算子的挑战&lt;a href="#%e6%97%a0%e7%95%8c%e7%ae%97%e5%ad%90%e7%9a%84%e6%8c%91%e6%88%98" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>前两篇文章中，我谈到了谱理论是量子力学的线性代数基础。问题在于，物理学家真正关心的几乎所有算子——位置算子、动量算子、拉普拉斯算子、薛定谔哈密顿算子——都是&lt;em>无界的&lt;/em>。它们没有定义在整个希尔伯特空间上。它们只在某些稠密子集上定义，这些子集依赖于输入函数的正则性和衰减性质。之前的谱分析工具无法直接应用。我们需要扩展这些工具。&lt;/p></description></item><item><title>泛函分析 (8)：谱理论 —— 分解算子</title><link>https://www.chenk.top/zh/functional-analysis/08-%E8%B0%B1%E8%AE%BA/</link><pubDate>Fri, 15 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/08-%E8%B0%B1%E8%AE%BA/</guid><description>&lt;p>&lt;figure class="article-figure">
+&lt;h1 id="算子半群无限维空间中的演化方程" class="heading-anchor">算子半群——无限维空间中的演化方程&lt;a href="#%e7%ae%97%e5%ad%90%e5%8d%8a%e7%be%a4%e6%97%a0%e9%99%90%e7%bb%b4%e7%a9%ba%e9%97%b4%e4%b8%ad%e7%9a%84%e6%bc%94%e5%8c%96%e6%96%b9%e7%a8%8b" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h1>&lt;h2 id="把-u--au-搬到无穷维" class="heading-anchor">把 &lt;span class="math-inline">$u&amp;#39; = Au$&lt;/span>
+ 搬到无穷维&lt;a href="#%e6%8a%8a-u--au-%e6%90%ac%e5%88%b0%e6%97%a0%e7%a9%b7%e7%bb%b4" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h2>&lt;p>我第一次试图把热方程 &lt;span class="math-inline">$\partial_t u = \Delta u$&lt;/span>
+ 写成“无穷维 ODE”时被一个具体障碍卡住：标量 ODE &lt;span class="math-inline">$u&amp;#39; = au$&lt;/span>
+ 的解 &lt;span class="math-inline">$u(t) = e^{at}u_0$&lt;/span>
+ 我从大学一年级就会写，矩阵 ODE &lt;span class="math-inline">$u&amp;#39; = Au$&lt;/span>
+ 用矩阵指数 &lt;span class="math-inline">$e^{tA} = \sum_n (tA)^n/n!$&lt;/span>
+ 也不难——那为什么 &lt;span class="math-inline">$u&amp;#39; = \Delta u$&lt;/span>
+ 的解不能直接写成 &lt;span class="math-inline">$e^{t\Delta}u_0$&lt;/span>
+？尝试展开 &lt;span class="math-inline">$\sum_n (t\Delta)^n / n!$&lt;/span>
+，每一项都是更高阶的微分算子，作用在初始条件上得到无穷阶导数——级数对一般 &lt;span class="math-inline">$L^2$&lt;/span>
+ 函数完全发散。矩阵指数那一招在无穷维直接失效。&lt;/p></description></item><item><title>无界算子：当有界性失效时</title><link>https://www.chenk.top/zh/functional-analysis/09-%E6%97%A0%E7%95%8C%E7%AE%97%E5%AD%90/</link><pubDate>Sun, 17 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/09-%E6%97%A0%E7%95%8C%E7%AE%97%E5%AD%90/</guid><description>&lt;h2 id="当算子拒绝在整个空间上定义" class="heading-anchor">当算子拒绝在整个空间上定义&lt;a href="#%e5%bd%93%e7%ae%97%e5%ad%90%e6%8b%92%e7%bb%9d%e5%9c%a8%e6%95%b4%e4%b8%aa%e7%a9%ba%e9%97%b4%e4%b8%8a%e5%ae%9a%e4%b9%89" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h2>&lt;p>我第一次写下“位置算子 &lt;span class="math-inline">$X$&lt;/span>
+ 在 &lt;span class="math-inline">$L^2(\mathbb{R})$&lt;/span>
+ 上”这句话时没多想——直到我试图把它平方。&lt;span class="math-inline">$(Xf)(x) = xf(x)$&lt;/span>
+ 看起来人畜无害，但 &lt;span class="math-inline">$f(x) = 1/(1&amp;#43;|x|)$&lt;/span>
+ 满足 &lt;span class="math-inline">$f \in L^2(\mathbb{R})$&lt;/span>
+，而 &lt;span class="math-inline">$Xf(x) = x/(1&amp;#43;|x|)$&lt;/span>
+ 在无穷远处不衰减为零，根本不在 &lt;span class="math-inline">$L^2$&lt;/span>
+ 中。也就是说，&lt;span class="math-inline">$X$&lt;/span>
+ 把 &lt;span class="math-inline">$L^2$&lt;/span>
+ 中的某些元素送出 &lt;span class="math-inline">$L^2$&lt;/span>
+ 之外。它甚至不是“有界但范数大”——它是“在某些点根本没定义”。整个之前关于有界算子的理论在这里失效。&lt;/p></description></item><item><title>泛函分析 (8)：谱理论 —— 分解算子</title><link>https://www.chenk.top/zh/functional-analysis/08-%E8%B0%B1%E8%AE%BA/</link><pubDate>Fri, 15 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/08-%E8%B0%B1%E8%AE%BA/</guid><description>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fig08_functional_calculus.png" alt="函数演算：对算子施加函数" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
 &lt;/p>
-&lt;p>当我第一次看到“谱”这个词用于算子时，我以为它只是“特征值集合”的一个花哨同义词。对于矩阵和紧算子来说，这是正确的直觉，也是初等线性代数中想要的。问题在于，一旦算子不是紧的，这个直觉就错了。&lt;span class="math-inline">$L^2[0, 1]$&lt;/span>
+&lt;h1 id="谱论--分解算子" class="heading-anchor">谱论 —— 分解算子&lt;a href="#%e8%b0%b1%e8%ae%ba--%e5%88%86%e8%a7%a3%e7%ae%97%e5%ad%90" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h1>&lt;h2 id="当特征值不再是答案" class="heading-anchor">当“特征值”不再是答案&lt;a href="#%e5%bd%93%e7%89%b9%e5%be%81%e5%80%bc%e4%b8%8d%e5%86%8d%e6%98%af%e7%ad%94%e6%a1%88" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h2>&lt;p>当我第一次看到“谱”这个词用于算子时，我以为它只是“特征值集合”的一个花哨同义词。对于矩阵和紧算子来说，这是正确的直觉，也是初等线性代数中想要的。问题在于，一旦算子不是紧的，这个直觉就错了。&lt;span class="math-inline">$L^2[0, 1]$&lt;/span>
  上的位置算子 &lt;span class="math-inline">$(Mf)(x) = x f(x)$&lt;/span>
  没有特征值：任何特征函数都必须满足 &lt;span class="math-inline">$x f(x) = \lambda f(x)$&lt;/span>
  几乎处处成立，这迫使 &lt;span class="math-inline">$f$&lt;/span>
@@ -794,8 +631,8 @@ $$&lt;/span>
  是乘以 &lt;span class="math-inline">$x - \lambda$&lt;/span>
  的运算，当 &lt;span class="math-inline">$\lambda \in [0, 1]$&lt;/span>
  时，它不能有界可逆。&lt;/p></description></item><item><title>泛函分析（7）：紧算子——通往有限维的桥梁</title><link>https://www.chenk.top/zh/functional-analysis/07-%E7%B4%A7%E7%AE%97%E5%AD%90/</link><pubDate>Wed, 13 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/07-%E7%B4%A7%E7%AE%97%E5%AD%90/</guid><description>&lt;p>我对紧算子的喜爱源于一次小小的尴尬。作为本科生时，我曾以为无限维线性代数处处都充满异国情调。其实不然。在算子理论中有一个广阔且研究透彻的领域，在那里，关于对称矩阵的一切知识——特征值、正交特征向量、谱分解——几乎原封不动地重现，只是特征值逐渐趋近于零，而不是一个有限列表。这个领域就是紧算子的世界，进入这个世界的唯一条件是：算子必须将单位球挤压成相对紧集。&lt;/p></description></item><item><title>泛函分析（6）：有界线性算子和三大定理</title><link>https://www.chenk.top/zh/functional-analysis/06-%E6%9C%89%E7%95%8C%E7%AE%97%E5%AD%90%E4%B8%8E%E4%B8%89%E5%A4%A7%E5%AE%9A%E7%90%86/</link><pubDate>Mon, 11 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/06-%E6%9C%89%E7%95%8C%E7%AE%97%E5%AD%90%E4%B8%8E%E4%B8%89%E5%A4%A7%E5%AE%9A%E7%90%86/</guid><description>&lt;h1 id="有界线性算子和三大定理" class="heading-anchor">有界线性算子和三大定理&lt;a href="#%e6%9c%89%e7%95%8c%e7%ba%bf%e6%80%a7%e7%ae%97%e5%ad%90%e5%92%8c%e4%b8%89%e5%a4%a7%e5%ae%9a%e7%90%86" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h1>&lt;h2 id="为什么这篇文章是理论的转折点" class="heading-anchor">为什么这篇文章是理论的转折点&lt;a href="#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%bf%99%e7%af%87%e6%96%87%e7%ab%a0%e6%98%af%e7%90%86%e8%ae%ba%e7%9a%84%e8%bd%ac%e6%8a%98%e7%82%b9" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>在前五篇文章中，我一直在搭建脚手架：度量空间和赋范空间、Hilbert 空间、对偶空间、弱拓扑。单独来看，这些内容并不特别令人印象深刻——毕竟我只是在稍微更一般的环境中做拓扑和线性代数。泛函分析真正发挥作用的地方就在这里，在Banach空间算子理论的三大定理：&lt;strong>一致有界原理&lt;/strong>、&lt;strong>开映射定理&lt;/strong> 和 闭图像定理指出，每一个定理都从“逐点”或“集合论”的数据——逐点有界性、满射性、图的闭性——得出一个全局结构性质——一致有界性、开性、连续性——这些性质在有限维情况下自动成立。&lt;/p></description></item><item><title>泛函分析 (5)：弱拓扑和弱*拓扑 —— 当范数收敛太强时</title><link>https://www.chenk.top/zh/functional-analysis/05-%E5%BC%B1%E6%8B%93%E6%89%91/</link><pubDate>Sat, 09 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/05-%E5%BC%B1%E6%8B%93%E6%89%91/</guid><description>&lt;h2 id="弱拓扑和弱--拓扑当范数收敛太强时" class="heading-anchor">弱拓扑和弱-* 拓扑——当范数收敛太强时&lt;a href="#%e5%bc%b1%e6%8b%93%e6%89%91%e5%92%8c%e5%bc%b1--%e6%8b%93%e6%89%91%e5%bd%93%e8%8c%83%e6%95%b0%e6%94%b6%e6%95%9b%e5%a4%aa%e5%bc%ba%e6%97%b6" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h1>&lt;h2 id="一个共同的引擎三个不同的出口" class="heading-anchor">一个共同的引擎，三个不同的出口&lt;a href="#%e4%b8%80%e4%b8%aa%e5%85%b1%e5%90%8c%e7%9a%84%e5%bc%95%e6%93%8e%e4%b8%89%e4%b8%aa%e4%b8%8d%e5%90%8c%e7%9a%84%e5%87%ba%e5%8f%a3" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h2>&lt;p>我第一次同时读 Banach-Steinhaus、开映射定理、闭图像定理时被同一种感觉击中：三条定理证明几乎相同。它们都把空间写成可数个闭集的并集、都引用 Baire 范畴定理、都从“某个闭集有非空内部”这一步把局部估计抬到全局估计。区别只在最后一步如何兑现——一致有界、开映射、闭图像——其余的脚手架是同一套。&lt;/p></description></item><item><title>泛函分析 (5)：弱拓扑和弱*拓扑 —— 当范数收敛太强时</title><link>https://www.chenk.top/zh/functional-analysis/05-%E5%BC%B1%E6%8B%93%E6%89%91/</link><pubDate>Sat, 09 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/05-%E5%BC%B1%E6%8B%93%E6%89%91/</guid><description>&lt;h2 id="弱拓扑和弱--拓扑当范数收敛太强时" class="heading-anchor">弱拓扑和弱-* 拓扑——当范数收敛太强时&lt;a href="#%e5%bc%b1%e6%8b%93%e6%89%91%e5%92%8c%e5%bc%b1--%e6%8b%93%e6%89%91%e5%bd%93%e8%8c%83%e6%95%b0%e6%94%b6%e6%95%9b%e5%a4%aa%e5%bc%ba%e6%97%b6" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
 &lt;/h2>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fa05_weak_convergence.png" alt="强收敛与弱收敛的对比" loading="lazy" decoding="async" class="content-image">
  
@@ -811,11 +648,14 @@ $$&lt;/span>
  
 &lt;/figure>
 &lt;/p>
-&lt;p>有时候，范数收敛的要求过于严格。在某些情况下，我们需要更宽松的收敛概念。这就引出了弱拓扑和弱-* 拓扑的概念。这两种拓扑在泛函分析中非常重要，特别是在处理无穷维空间时。&lt;/p></description></item><item><title>泛函分析 (4)：对偶空间与 Hahn-Banach 定理 —— 线性泛函的驯服</title><link>https://www.chenk.top/zh/functional-analysis/04-%E5%AF%B9%E5%81%B6%E7%A9%BA%E9%97%B4%E4%B8%8Ehahn-banach/</link><pubDate>Thu, 07 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/04-%E5%AF%B9%E5%81%B6%E7%A9%BA%E9%97%B4%E4%B8%8Ehahn-banach/</guid><description>&lt;h1 id="对偶空间与-hahn-banach-定理--线性泛函的驯服" class="heading-anchor">对偶空间与 Hahn-Banach 定理 —— 线性泛函的驯服&lt;a href="#%e5%af%b9%e5%81%b6%e7%a9%ba%e9%97%b4%e4%b8%8e-hahn-banach-%e5%ae%9a%e7%90%86--%e7%ba%bf%e6%80%a7%e6%b3%9b%e5%87%bd%e7%9a%84%e9%a9%af%e6%9c%8d" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h1>&lt;h2 id="为什么你不能跳过这篇文章" class="heading-anchor">为什么你不能跳过这篇文章&lt;a href="#%e4%b8%ba%e4%bb%80%e4%b9%88%e4%bd%a0%e4%b8%8d%e8%83%bd%e8%b7%b3%e8%bf%87%e8%bf%99%e7%af%87%e6%96%87%e7%ab%a0" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>到目前为止，理论主要讨论的是空间及其元素。本文改变了视角：它询问通过一组测试泛函来“测量”向量 &lt;span class="math-inline">$x$&lt;/span>
- 时，你能对 &lt;span class="math-inline">$x$&lt;/span>
- 说些什么。从“向量”到“向量加上泛函”的转变使 Banach 空间成为有限维线性代数的有效类比。在有限维中，每个线性泛函都是连续的，对偶空间与原空间维度相同——因此无需证明。在无限维中，连续性是一个真正的约束，而存在足够的连续泛函来区分点或扩展部分数据并不明显。Hahn-Banach 定理正是保证这一点的结果，它使得泛函分析成为可能。&lt;/p></description></item><item><title>泛函分析 (3)：Hilbert 空间 —— 无限维空间中的几何</title><link>https://www.chenk.top/zh/functional-analysis/03-hilbert%E7%A9%BA%E9%97%B4/</link><pubDate>Tue, 05 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/03-hilbert%E7%A9%BA%E9%97%B4/</guid><description>&lt;h2 id="hilbert-空间无限维空间中的几何" class="heading-anchor">Hilbert 空间——无限维空间中的几何&lt;a href="#hilbert-%e7%a9%ba%e9%97%b4%e6%97%a0%e9%99%90%e7%bb%b4%e7%a9%ba%e9%97%b4%e4%b8%ad%e7%9a%84%e5%87%a0%e4%bd%95" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;h2 id="一道无解的最小化题让我意识到了什么" class="heading-anchor">一道无解的最小化题让我意识到了什么&lt;a href="#%e4%b8%80%e9%81%93%e6%97%a0%e8%a7%a3%e7%9a%84%e6%9c%80%e5%b0%8f%e5%8c%96%e9%a2%98%e8%ae%a9%e6%88%91%e6%84%8f%e8%af%86%e5%88%b0%e4%ba%86%e4%bb%80%e4%b9%88" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h2>&lt;p>我第一次试图证明“在 &lt;span class="math-inline">$L^2$&lt;/span>
+ 上某个能量泛函有极小值点”时，自然地照搬了有限维做法：取一个最小化序列，从有界集里抽一个收敛子列，让它的极限作为答案。前两步走到一半就卡住了——&lt;span class="math-inline">$L^2$&lt;/span>
+ 闭单位球不紧，有界序列里抽不出范数收敛的子列。一个看似最朴素的存在性问题，因为“紧”消失而失败。&lt;/p></description></item><item><title>泛函分析 (4)：对偶空间与 Hahn-Banach 定理 —— 线性泛函的驯服</title><link>https://www.chenk.top/zh/functional-analysis/04-%E5%AF%B9%E5%81%B6%E7%A9%BA%E9%97%B4%E4%B8%8Ehahn-banach/</link><pubDate>Thu, 07 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/04-%E5%AF%B9%E5%81%B6%E7%A9%BA%E9%97%B4%E4%B8%8Ehahn-banach/</guid><description>&lt;h1 id="对偶空间与-hahn-banach-定理--线性泛函的驯服" class="heading-anchor">对偶空间与 Hahn-Banach 定理 —— 线性泛函的驯服&lt;a href="#%e5%af%b9%e5%81%b6%e7%a9%ba%e9%97%b4%e4%b8%8e-hahn-banach-%e5%ae%9a%e7%90%86--%e7%ba%bf%e6%80%a7%e6%b3%9b%e5%87%bd%e7%9a%84%e9%a9%af%e6%9c%8d" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h1>&lt;h2 id="为什么要换一种方式看向量" class="heading-anchor">为什么要换一种方式看向量&lt;a href="#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%a6%81%e6%8d%a2%e4%b8%80%e7%a7%8d%e6%96%b9%e5%bc%8f%e7%9c%8b%e5%90%91%e9%87%8f" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h2>&lt;p>我刚开始学线性代数时，总是从“向量是什么”这一面去想问题：把它写成坐标列、把它画成箭头、把它扔进矩阵里乘一下。直到读到 Riesz 关于积分方程的论文，我才意识到还有另一面——通过“怎样测它”来理解一个向量。给一个向量 &lt;span class="math-inline">$x$&lt;/span>
+，我可以问“在某个方向上的投影是多少”“在某个测试函数上的积分是多少”“某个评价泛函给它的值是多少”，每一个回答都是一个标量。如果有足够多的方向、测试函数、评价泛函可以问，那么 &lt;span class="math-inline">$x$&lt;/span>
+ 本身就被这些回答完全决定了。&lt;/p></description></item><item><title>泛函分析 (3)：Hilbert 空间 —— 无限维空间中的几何</title><link>https://www.chenk.top/zh/functional-analysis/03-hilbert%E7%A9%BA%E9%97%B4/</link><pubDate>Tue, 05 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/03-hilbert%E7%A9%BA%E9%97%B4/</guid><description>&lt;h2 id="hilbert-空间无限维空间中的几何" class="heading-anchor">Hilbert 空间——无限维空间中的几何&lt;a href="#hilbert-%e7%a9%ba%e9%97%b4%e6%97%a0%e9%99%90%e7%bb%b4%e7%a9%ba%e9%97%b4%e4%b8%ad%e7%9a%84%e5%87%a0%e4%bd%95" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
 &lt;/h2>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fa03_projection.png" alt="Hilbert 空间中的正交投影" loading="lazy" decoding="async" class="content-image">
  
@@ -826,41 +666,39 @@ $$&lt;/span>
  
 &lt;/figure>
 &lt;/p>
-&lt;p>Hilbert 空间是数学中一个非常重要的概念。它是一种特殊的向量空间，其中每个向量都有长度，并且可以计算两个向量之间的夹角。这使得 Hilbert 空间在处理无限维问题时特别有用。&lt;/p></description></item><item><title>赋范空间与Banach空间</title><link>https://www.chenk.top/zh/functional-analysis/02-%E8%B5%8B%E8%8C%83%E7%A9%BA%E9%97%B4%E4%B8%8Ebanach%E7%A9%BA%E9%97%B4/</link><pubDate>Sun, 03 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/02-%E8%B5%8B%E8%8C%83%E7%A9%BA%E9%97%B4%E4%B8%8Ebanach%E7%A9%BA%E9%97%B4/</guid><description>&lt;h1 id="赋范空间与banach空间" class="heading-anchor">赋范空间与Banach空间&lt;a href="#%e8%b5%8b%e8%8c%83%e7%a9%ba%e9%97%b4%e4%b8%8ebanach%e7%a9%ba%e9%97%b4" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h1>&lt;h2 id="为什么范数不仅仅是戴着帽子的度量" class="heading-anchor">为什么范数不仅仅是戴着帽子的度量&lt;a href="#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%8c%83%e6%95%b0%e4%b8%8d%e4%bb%85%e4%bb%85%e6%98%af%e6%88%b4%e7%9d%80%e5%b8%bd%e5%ad%90%e7%9a%84%e5%ba%a6%e9%87%8f" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>&lt;figure class="article-figure">
- &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fa02_lp_balls.png" alt="不同 Lp 范数下的单位球" loading="lazy" decoding="async" class="content-image">
- 
-&lt;/figure>
-&lt;/p>
-&lt;p>&lt;figure class="article-figure">
- &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/02_lp_morph.gif" alt="动画：l^p 单位球随 p 变化" loading="lazy" decoding="async" class="content-image">
- 
-&lt;/figure>
-&lt;/p>
-&lt;p>&lt;figure class="article-figure">
- &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/02_lp_unit_balls.png" alt="不同 p 值下 l^p 空间的单位球" loading="lazy" decoding="async" class="content-image">
- 
-&lt;/figure>
-&lt;/p>
-&lt;p>在第一篇文章中，度量是一个集合上的独立函数，没有代数结构。这种一般性带来了拓扑和完备性，但对代数没有任何回馈。一旦我愿意假设底层集合是向量空间，一个更刚性的对象就变得可用：&lt;strong>范数&lt;/strong>，一个定义在空间上的非负函数，其诱导的度量 &lt;span class="math-inline">$d(x,y) = \|x - y\|$&lt;/span>
- 是&lt;em>平移不变的&lt;/em>和&lt;em>正齐次的&lt;/em>。&lt;/p></description></item><item><title>度量空间：距离、收敛与完备性</title><link>https://www.chenk.top/zh/functional-analysis/01-%E5%BA%A6%E9%87%8F%E7%A9%BA%E9%97%B4/</link><pubDate>Fri, 01 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/01-%E5%BA%A6%E9%87%8F%E7%A9%BA%E9%97%B4/</guid><description>&lt;h1 id="度量空间距离收敛与完备性" class="heading-anchor">度量空间：距离、收敛与完备性&lt;a href="#%e5%ba%a6%e9%87%8f%e7%a9%ba%e9%97%b4%e8%b7%9d%e7%a6%bb%e6%94%b6%e6%95%9b%e4%b8%8e%e5%ae%8c%e5%a4%87%e6%80%a7" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;h2 id="当角度消失之后" class="heading-anchor">当“角度”消失之后&lt;a href="#%e5%bd%93%e8%a7%92%e5%ba%a6%e6%b6%88%e5%a4%b1%e4%b9%8b%e5%90%8e" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h2>&lt;p>上一篇 Banach 空间给了我一种长度感——每个向量有范数，每个序列可以谈收敛，每个连续函数族可以做绝对收敛级数。但有一件最直观的事 Banach 空间还做不到：判断两个向量是否“互相垂直”。在 &lt;span class="math-inline">$\mathbb{R}^3$&lt;/span>
+ 里我闭着眼都知道 &lt;span class="math-inline">$(1,0,0)$&lt;/span>
+ 和 &lt;span class="math-inline">$(0,1,0)$&lt;/span>
+ 正交、&lt;span class="math-inline">$(1,1,0)$&lt;/span>
+ 和 &lt;span class="math-inline">$(1,1,0)$&lt;/span>
+ 平行——这种判断默认依赖内积 &lt;span class="math-inline">$\langle x, y \rangle = \sum x_i y_i$&lt;/span>
+。一旦只剩范数，不再有内积，正交、夹角、投影这一整套语言都失效了。&lt;/p></description></item><item><title>赋范空间与Banach空间</title><link>https://www.chenk.top/zh/functional-analysis/02-%E8%B5%8B%E8%8C%83%E7%A9%BA%E9%97%B4%E4%B8%8Ebanach%E7%A9%BA%E9%97%B4/</link><pubDate>Sun, 03 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/02-%E8%B5%8B%E8%8C%83%E7%A9%BA%E9%97%B4%E4%B8%8Ebanach%E7%A9%BA%E9%97%B4/</guid><description>&lt;h1 id="赋范空间与banach空间" class="heading-anchor">赋范空间与Banach空间&lt;a href="#%e8%b5%8b%e8%8c%83%e7%a9%ba%e9%97%b4%e4%b8%8ebanach%e7%a9%ba%e9%97%b4" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h1>&lt;h2 id="度量不够用的那一刻" class="heading-anchor">度量不够用的那一刻&lt;a href="#%e5%ba%a6%e9%87%8f%e4%b8%8d%e5%a4%9f%e7%94%a8%e7%9a%84%e9%82%a3%e4%b8%80%e5%88%bb" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h2>&lt;p>我第一次写下“两个函数之间的距离”时，就把度量空间当成 &lt;span class="math-inline">$\mathbb{R}^n$&lt;/span>
+ 的脱壳版本来用——直到我想做最朴素的事：把两个向量加起来，再问加完之后离原点有多远。度量公理里没有“加法”这件事；它只回答“两点相距多少”。我可以在度量空间里收敛，却不能在度量空间里把收敛的两个序列相加再统一估计范数。这个小小的失能让我意识到，度量并不知道自己活在向量空间上。&lt;/p></description></item><item><title>度量空间：距离、收敛与完备性</title><link>https://www.chenk.top/zh/functional-analysis/01-%E5%BA%A6%E9%87%8F%E7%A9%BA%E9%97%B4/</link><pubDate>Fri, 01 Oct 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/functional-analysis/01-%E5%BA%A6%E9%87%8F%E7%A9%BA%E9%97%B4/</guid><description>&lt;h1 id="度量空间距离收敛与完备性" class="heading-anchor">度量空间：距离、收敛与完备性&lt;a href="#%e5%ba%a6%e9%87%8f%e7%a9%ba%e9%97%b4%e8%b7%9d%e7%a6%bb%e6%94%b6%e6%95%9b%e4%b8%8e%e5%ae%8c%e5%a4%87%e6%80%a7" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
 &lt;/h1>&lt;h2 id="为什么我必须停止信任有限维直觉" class="heading-anchor">为什么我必须停止信任有限维直觉&lt;a href="#%e4%b8%ba%e4%bb%80%e4%b9%88%e6%88%91%e5%bf%85%e9%a1%bb%e5%81%9c%e6%ad%a2%e4%bf%a1%e4%bb%bb%e6%9c%89%e9%99%90%e7%bb%b4%e7%9b%b4%e8%a7%89" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>研究生分析学首先让我失去的是直观图像。在此之前，“距离”总是从原点到一个点的箭头长度——勾股定理，三个坐标，搞定。然后有人问我两个函数之间的距离是多少，箭头消失了。&lt;/p></description></item><item><title>抽象代数 (12)：代数在实际应用中的威力 —— 从密码学到编码理论及其他</title><link>https://www.chenk.top/zh/abstract-algebra/12-%E5%BA%94%E7%94%A8/</link><pubDate>Thu, 23 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/12-%E5%BA%94%E7%94%A8/</guid><description>&lt;p>在前十一篇文章中，我们从基础开始构建了代数：群、环、域、Galois 理论、模、表示、范畴。有时，这些内容可能感觉像是纯粹的抽象——或许很美，但与“现实世界”脱节。最后这篇文章纠正了这种印象。我们研究的结构不仅数学上优雅；它们还是塑造现代生活的技术和理论的支柱。读完这篇文章后，“抽象代数有用吗？”这个问题应该会像“微积分有用吗？”一样显得多余——答案是如此明确的肯定，以至于问题本身听起来都有些过时。&lt;/p></description></item><item><title>抽象代数 (11)：范畴论 — 数学结构的语言</title><link>https://www.chenk.top/zh/abstract-algebra/11-%E8%8C%83%E7%95%B4%E8%AE%BA/</link><pubDate>Tue, 21 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/11-%E8%8C%83%E7%95%B4%E8%AE%BA/</guid><description>&lt;h2 id="结构的重复模式" class="heading-anchor">结构的重复模式&lt;a href="#%e7%bb%93%e6%9e%84%e7%9a%84%e9%87%8d%e5%a4%8d%e6%a8%a1%e5%bc%8f" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h2>&lt;p>研究生分析学首先让我失去的是直观图像。在此之前，“距离”总是从原点到一个点的箭头长度——勾股定理，三个坐标，搞定。然后有人问我两个函数之间的距离是多少，箭头消失了。&lt;/p></description></item><item><title>抽象代数 (12)：代数在实际应用中的威力 —— 从密码学到编码理论及其他</title><link>https://www.chenk.top/zh/abstract-algebra/12-%E5%BA%94%E7%94%A8/</link><pubDate>Thu, 23 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/12-%E5%BA%94%E7%94%A8/</guid><description>&lt;p>我坐在书桌前，左手边是一个打乱的三阶魔方，右手边是一张印着黑白方块的餐厅点餐二维码。过去十一个月里，我把自己埋在群、环、域、模、表示和范畴的符号堆里。有时候我会突然停笔，盯着满纸的 &lt;span class="math-inline">$\sigma, \tau, \ker, \operatorname{im}$&lt;/span>
+ 发呆：这些东西真的只是数学家自娱自乐的智力游戏吗？它们和我每天刷的手机、存的银行密码、甚至头顶的星空，到底有什么关系？&lt;/p></description></item><item><title>抽象代数 (11)：范畴论 — 数学结构的语言</title><link>https://www.chenk.top/zh/abstract-algebra/11-%E8%8C%83%E7%95%B4%E8%AE%BA/</link><pubDate>Tue, 21 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/11-%E8%8C%83%E7%95%B4%E8%AE%BA/</guid><description>&lt;h2 id="结构的重复模式" class="heading-anchor">结构的重复模式&lt;a href="#%e7%bb%93%e6%9e%84%e7%9a%84%e9%87%8d%e5%a4%8d%e6%a8%a1%e5%bc%8f" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
 &lt;/h2>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/11_category_diagram.png" alt="范畴：对象与态射" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
 &lt;/p>
-&lt;p>在这个系列中，我注意到一个反复出现的模式：定义一种代数结构，定义这种结构之间的“正确”映射（同态），然后研究对象和映射之间的相互作用。群有群同态，环有环同态，模有模同态，向量空间有线性映射。在每种情况下，我都证明了同构定理，构造了积和商，并识别了“自由”对象。这些证明在结构上是相同的，只是具体保留的公理不同。第一次注意到这一点时，觉得有点意思；第十次注意到时，就开始觉得应该有一个统一的框架。&lt;/p></description></item><item><title>抽象代数 (10)：表示论 — 群在向量空间上的作用</title><link>https://www.chenk.top/zh/abstract-algebra/10-%E8%A1%A8%E7%A4%BA%E8%AE%BA/</link><pubDate>Sun, 19 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/10-%E8%A1%A8%E7%A4%BA%E8%AE%BA/</guid><description>&lt;p>抽象群是一个带有满足特定公理的二元运算的集合。这很优雅，但有时难以操作——如何计算由生成元和关系定义的群中的元素，或者从乘法表中提取数值不变量？解决方法可以追溯到 Frobenius 和 Burnside 一个多世纪以前，就是将群元素表示为矩阵。矩阵是具体的：你可以相乘，取迹，计算行列式，分解成特征空间。表示论系统地研究这个想法，并已成为现代代数、数论和数学物理中最强大的工具之一。&lt;/p></description></item><item><title>抽象代数 (9)：模——向量空间的推广</title><link>https://www.chenk.top/zh/abstract-algebra/09-%E6%A8%A1/</link><pubDate>Fri, 17 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/09-%E6%A8%A1/</guid><description>&lt;p>&lt;figure class="article-figure">
+&lt;p>我至今还记得自己第一次整理抽象代数笔记时的错觉。那天晚上，我把群同态基本定理、环同态基本定理、模同态基本定理并排写在一张大白纸上。写着写着，我停下了笔。这三条定理的陈述几乎一模一样：先找一个结构保持映射（同态），再看它的核（kernel），然后把原结构除以核，最后得到一个同构于像的商结构。证明步骤也像是同一个模子刻出来的：验证良定性、验证单射、验证满射、验证运算保持。唯一的区别只是我把“群乘法”换成了“环加法与乘法”，或者把“模的标量乘法”换了进去。&lt;/p></description></item><item><title>抽象代数 (10)：表示论 — 群在向量空间上的作用</title><link>https://www.chenk.top/zh/abstract-algebra/10-%E8%A1%A8%E7%A4%BA%E8%AE%BA/</link><pubDate>Sun, 19 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/10-%E8%A1%A8%E7%A4%BA%E8%AE%BA/</guid><description>&lt;p>我第一次盯着一张群乘法表发呆时，脑子里只有一个念头：这玩意儿到底怎么算？抽象群（abstract group）的定义确实漂亮，几个公理就把对称性打包得严严实实。可一旦你真正想动手，比如算一个由生成元和关系定义的群元素，或者想从那张密密麻麻的乘法表里抠出一点数值不变量，抽象定义就像一堵光滑的墙，连个抓手都没有。我试过硬推，结果只是在符号迷宫里打转。&lt;/p></description></item><item><title>抽象代数 (9)：模——向量空间的推广</title><link>https://www.chenk.top/zh/abstract-algebra/09-%E6%A8%A1/</link><pubDate>Fri, 17 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/09-%E6%A8%A1/</guid><description>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/09_module_vs_vector.png" alt="模 vs 向量空间：标量来自环" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
 &lt;/p>
-&lt;p>在每门线性代数课程中，你都会学习在一个域上工作：实数、复数或可能是有限域。由此产生的理论非常简洁——每个子空间都有补空间，每个有限生成的向量空间都有基，所有基的基数相同。但如果把域换成环会怎么样呢？&lt;/p></description></item><item><title>抽象代数 (8)：Galois 理论 —— 域与群之间的桥梁</title><link>https://www.chenk.top/zh/abstract-algebra/08-galois%E7%90%86%E8%AE%BA/</link><pubDate>Wed, 15 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/08-galois%E7%90%86%E8%AE%BA/</guid><description>&lt;p>1832 年，一位名叫 Évariste Galois 的 20 岁数学家在决斗前夕写下他的数学思想的最终版本，并寄给了一位朋友。这些思想——将多项式的根的对称性与群的结构联系起来——花了十多年时间才被理解并发表，但它们永远改变了代数。现在称之为 Galois 理论，它在域扩张的中间域和对称群的子群之间建立了一个精确的字典。它在一个优雅的框架中解释了为什么二次公式存在，为什么五次没有类似的公式，以及“可解性”到底意味着什么。&lt;/p></description></item><item><title>抽象代数 (7)：域扩张 — 构建更大的数系</title><link>https://www.chenk.top/zh/abstract-algebra/07-%E5%9F%9F%E6%89%A9%E5%BC%A0/</link><pubDate>Mon, 13 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/07-%E5%9F%9F%E6%89%A9%E5%BC%A0/</guid><description>&lt;p>每个数学家在某个时刻都会遇到一个无法在当前数系中求解的多项式。古希腊人发现 &lt;span class="math-inline">$\sqrt{2}$&lt;/span>
- 是无理数 —— 也就是说，&lt;span class="math-inline">$x^2 - 2$&lt;/span>
- 在 &lt;span class="math-inline">$\mathbb{Q}$&lt;/span>
- 中没有解。解决办法不是放弃这个多项式，而是扩大域。域扩张形式化了这种扩大，并为我们提供了构建Galois理论的结构框架。&lt;/p></description></item><item><title>抽象代数 (6)：多项式环 —— 因子分解与唯一分解</title><link>https://www.chenk.top/zh/abstract-algebra/06-%E5%A4%9A%E9%A1%B9%E5%BC%8F%E7%8E%AF/</link><pubDate>Sat, 11 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/06-%E5%A4%9A%E9%A1%B9%E5%BC%8F%E7%8E%AF/</guid><description>&lt;p>多项式是代数的实验室。几乎每一个环论概念——理想、商、因子分解、不可约性——都是通过多项式例子首先被理解的，然后才被抽象化。这不是巧合：多项式环足够丰富，可以展示所有有趣的现象，同时结构又足够明确，允许显式计算。&lt;/p></description></item><item><title>抽象代数 (5)：环与理想 —— 当乘法进入画面</title><link>https://www.chenk.top/zh/abstract-algebra/05-%E7%8E%AF%E4%B8%8E%E7%90%86%E6%83%B3/</link><pubDate>Thu, 09 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/05-%E7%8E%AF%E4%B8%8E%E7%90%86%E6%83%B3/</guid><description>&lt;p>&lt;figure class="article-figure">
+&lt;p>我第一次接触线性代数时，总觉得它干净得有点“不真实”。每个子空间都能找到补空间，每个有限维向量空间都乖乖地拥有一组基，而且不管你怎么挑基，基向量的个数永远一样。那时候我以为代数就该这么顺滑，直到我试着把标量从实数换成整数。结果呢？整个理论瞬间“卡壳”了。你不能随便除以 2，方程 &lt;span class="math-inline">$2x = a$&lt;/span>
+ 在整数里经常无解，基的概念直接崩塌。我当时盯着草稿纸发愣：难道离开域（field），线性结构就彻底散架了吗？&lt;/p></description></item><item><title>抽象代数 (8)：Galois 理论 —— 域与群之间的桥梁</title><link>https://www.chenk.top/zh/abstract-algebra/08-galois%E7%90%86%E8%AE%BA/</link><pubDate>Wed, 15 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/08-galois%E7%90%86%E8%AE%BA/</guid><description>&lt;p>1832 年 5 月 29 日的深夜，巴黎的一间阁楼里，20 岁的 Évariste Galois 知道自己活不过明天。决斗的约定已经写下，对手是当时法国枪法最好的军官之一。在蜡烛快要燃尽的时候，他没有写遗书，而是抓起一叠草稿纸，疯狂地把自己脑子里关于多项式根的所有想法往外倒。他在页边匆匆写下“我没有时间了”，然后把这叠纸寄给了朋友。这些手稿在抽屉里躺了十几年才被数学界真正读懂，但它们彻底改写了代数的走向。&lt;/p></description></item><item><title>抽象代数 (7)：域扩张 — 构建更大的数系</title><link>https://www.chenk.top/zh/abstract-algebra/07-%E5%9F%9F%E6%89%A9%E5%BC%A0/</link><pubDate>Mon, 13 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/07-%E5%9F%9F%E6%89%A9%E5%BC%A0/</guid><description>&lt;p>我高中第一次碰到 &lt;span class="math-inline">$x^2 &amp;#43; 1 = 0$&lt;/span>
+ 时，老师在黑板上画了个大大的叉，说“实数范围内无解”。过了两周，同一个老师又走上讲台，轻描淡写地引入一个符号 &lt;span class="math-inline">$i$&lt;/span>
+，宣布 &lt;span class="math-inline">$i^2 = -1$&lt;/span>
+，然后所有方程突然就都有解了。我当时坐在底下心里直犯嘀咕：这算不算作弊？缺什么就硬造什么，数学难道可以这样凭空变魔术？&lt;/p></description></item><item><title>抽象代数 (6)：多项式环 —— 因子分解与唯一分解</title><link>https://www.chenk.top/zh/abstract-algebra/06-%E5%A4%9A%E9%A1%B9%E5%BC%8F%E7%8E%AF/</link><pubDate>Sat, 11 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/06-%E5%A4%9A%E9%A1%B9%E5%BC%8F%E7%8E%AF/</guid><description>&lt;p>我记得刚上大学那会儿，盯着黑板上的 &lt;span class="math-inline">$x^2 &amp;#43; 1$&lt;/span>
+ 发呆。高中老师信誓旦旦地说这玩意儿“不能再分了”，可眼前的教授随手写下 &lt;span class="math-inline">$(x&amp;#43;i)(x-i)$&lt;/span>
+，转头又补了一句：“如果在模 &lt;span class="math-inline">$5$&lt;/span>
+ 的整数里，它等于 &lt;span class="math-inline">$(x&amp;#43;2)(x&amp;#43;3)$&lt;/span>
+。”我当时的脑子直接打结：同一个多项式，怎么换个地盘就换了一副面孔？它到底是个固定的对象，还是随环境变形的变色龙？&lt;/p></description></item><item><title>抽象代数 (5)：环与理想 —— 当乘法进入画面</title><link>https://www.chenk.top/zh/abstract-algebra/05-%E7%8E%AF%E4%B8%8E%E7%90%86%E6%83%B3/</link><pubDate>Thu, 09 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/05-%E7%8E%AF%E4%B8%8E%E7%90%86%E6%83%B3/</guid><description>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/05_ideal_structure.png" alt="理想吸收乘法" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
@@ -870,17 +708,21 @@ $$&lt;/span>
  
 &lt;/figure>
 &lt;/p>
-&lt;p>群通过单一运算捕捉对称性。但大多数我们实际计算的数系——整数、多项式、矩阵——都携带两个相互作用的运算：加法和乘法。一旦你想讨论可除性、因式分解或解方程，一个运算是不够的。你需要一个&lt;em>环&lt;/em>。&lt;/p></description></item><item><title>Sylow 定理：剖析有限群</title><link>https://www.chenk.top/zh/abstract-algebra/04-sylow%E5%AE%9A%E7%90%86/</link><pubDate>Tue, 07 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/04-sylow%E5%AE%9A%E7%90%86/</guid><description>&lt;p>Lagrange 定理告诉你，任何子群的阶必须整除 &lt;span class="math-inline">$|G|$&lt;/span>
-。这是个必要条件，但并不充分——交错群 &lt;span class="math-inline">$A_4$&lt;/span>
- 的阶是 &lt;span class="math-inline">$12$&lt;/span>
-，却没有 &lt;span class="math-inline">$6$&lt;/span>
- 阶的子群。所以一旦你开始问“给定 &lt;span class="math-inline">$|G| = n$&lt;/span>
-，&lt;span class="math-inline">$G$&lt;/span>
- 到底长什么样”，Lagrange 就帮不上忙了。&lt;/p></description></item><item><title>商群与同态：结构压缩的艺术</title><link>https://www.chenk.top/zh/abstract-algebra/03-%E5%95%86%E7%BE%A4%E4%B8%8E%E5%90%8C%E6%80%81/</link><pubDate>Sun, 05 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/03-%E5%95%86%E7%BE%A4%E4%B8%8E%E5%90%8C%E6%80%81/</guid><description>&lt;p>一个群可以非常庞大——数百万个元素，复杂的乘法表，描述对称性需要几页纸。然而，在每个群内部都存在自然的压缩点，你可以将整个块压缩成单个元素，生成一个更小的群，仍然保留原始群的一些本质特征。本文介绍了实现这一目标的工具：正规子群、商群、同态以及将所有内容联系在一起的同构定理。&lt;/p></description></item><item><title>群的作用：群如何移动事物</title><link>https://www.chenk.top/zh/abstract-algebra/02-%E7%BE%A4%E4%BD%9C%E7%94%A8%E4%B8%8E%E5%AF%B9%E7%A7%B0/</link><pubDate>Fri, 03 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/02-%E7%BE%A4%E4%BD%9C%E7%94%A8%E4%B8%8E%E5%AF%B9%E7%A7%B0/</guid><description>&lt;h2 id="从抽象群到具体作用" class="heading-anchor">从抽象群到具体作用&lt;a href="#%e4%bb%8e%e6%8a%bd%e8%b1%a1%e7%be%a4%e5%88%b0%e5%85%b7%e4%bd%93%e4%bd%9c%e7%94%a8" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>在任何定义之前的心理图像：一个群作用于一个集合是一系列动作，而这个集合是这些动作排列的游乐场。拿起一个对象，执行群中的一个动作，然后放下它。对象的轨道是你可以把它带到的所有地方。稳定子是所有将它放回原处的动作。&lt;/p></description></item><item><title>群：你与代数结构的初次相遇</title><link>https://www.chenk.top/zh/abstract-algebra/01-%E7%BE%A4%E7%9A%84%E5%88%9D%E9%81%87/</link><pubDate>Wed, 01 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/01-%E7%BE%A4%E7%9A%84%E5%88%9D%E9%81%87/</guid><description>&lt;h2 id="为什么代数结构很重要" class="heading-anchor">为什么代数结构很重要&lt;a href="#%e4%b8%ba%e4%bb%80%e4%b9%88%e4%bb%a3%e6%95%b0%e7%bb%93%e6%9e%84%e5%be%88%e9%87%8d%e8%a6%81" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;p>我第一次真正卡壳，是在盯着整数集合 &lt;span class="math-inline">$\mathbb{Z}$&lt;/span>
+ 发呆的时候。那时候我刚学完群论，满脑子都是对称、旋转和置换。我试着把 &lt;span class="math-inline">$\mathbb{Z}$&lt;/span>
+ 当成一个加法群（additive group）来看：&lt;span class="math-inline">$(\mathbb{Z}, &amp;#43;)$&lt;/span>
+ 确实漂亮，它是一个无限循环群，生成元是 &lt;span class="math-inline">$1$&lt;/span>
+ 或 &lt;span class="math-inline">$-1$&lt;/span>
+，结构干净得像一块玻璃。可是，当我想聊点“数论”的东西，比如素数、最大公约数、或者为什么 &lt;span class="math-inline">$6$&lt;/span>
+ 只能拆成 &lt;span class="math-inline">$2 \times 3$&lt;/span>
+ 时，加法群 suddenly 哑火了。加法只能告诉我 &lt;span class="math-inline">$2&amp;#43;2&amp;#43;2=6$&lt;/span>
+，它根本看不见“乘法”这回事。我忽然意识到，单靠一个运算，就像只用一把螺丝刀去修整台发动机：你能拧开外壳，但碰不到核心的齿轮咬合。&lt;/p></description></item><item><title>Sylow 定理：剖析有限群</title><link>https://www.chenk.top/zh/abstract-algebra/04-sylow%E5%AE%9A%E7%90%86/</link><pubDate>Tue, 07 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/04-sylow%E5%AE%9A%E7%90%86/</guid><description>&lt;p>我记得第一次翻开抽象代数教材时，盯着 Lagrange 定理发愣了好半天。书上写着“子群的阶必须整除群的阶”，我心想这多直观啊，就像切蛋糕，12 寸的蛋糕当然只能切成 1、2、3、4、6 或 12 块。可当我试着反过来问：“既然 6 整除 12，那 12 阶的群一定有个 6 阶子群吧？”教材冷冷地甩出一个反例：交错群 &lt;span class="math-inline">$A_4$&lt;/span>
+ 的阶是 12，但它根本没有 6 阶子群。那一刻我突然意识到，Lagrange 定理只是一道单向的门禁，它告诉你哪些尺寸“不可能”，却对哪些尺寸“一定存在”闭口不谈。&lt;/p></description></item><item><title>商群与同态：结构压缩的艺术</title><link>https://www.chenk.top/zh/abstract-algebra/03-%E5%95%86%E7%BE%A4%E4%B8%8E%E5%90%8C%E6%80%81/</link><pubDate>Sun, 05 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/03-%E5%95%86%E7%BE%A4%E4%B8%8E%E5%90%8C%E6%80%81/</guid><description>&lt;p>我盯着那张画满箭头的凯莱图（Cayley graph），脑子里只有一个念头：这也太乱了。一个只有几十个元素的群，乘法表就已经像一团解不开的毛线；要是元素多达几百万，对称性描述得写满十几页纸，我该怎么抓住它的核心？后来我才明白，数学家面对庞然大物时，从不硬刚。他们有一套极其优雅的“压缩术”：把群内部结构相似的整块元素捏成一个点，生成一个更小的群。这个新群虽然丢了细节，却死死咬住了原群的骨架。这篇笔记就是我摸索这套压缩术的记录，核心工具是正规子群（normal subgroup）、商群（quotient group）、群同态（group homomorphism），以及把它们缝在一起的三大同构定理（isomorphism theorems）。&lt;/p></description></item><item><title>群的作用：群如何移动事物</title><link>https://www.chenk.top/zh/abstract-algebra/02-%E7%BE%A4%E4%BD%9C%E7%94%A8%E4%B8%8E%E5%AF%B9%E7%A7%B0/</link><pubDate>Fri, 03 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/02-%E7%BE%A4%E4%BD%9C%E7%94%A8%E4%B8%8E%E5%AF%B9%E7%A7%B0/</guid><description>&lt;h2 id="从抽象群到具体作用" class="heading-anchor">从抽象群到具体作用&lt;a href="#%e4%bb%8e%e6%8a%bd%e8%b1%a1%e7%be%a4%e5%88%b0%e5%85%b7%e4%bd%93%e4%bd%9c%e7%94%a8" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
+&lt;/h2>&lt;p>我第一次碰到“群作用”这个词的时候，脑子里全是乱码。书上冷冰冰地写着 &lt;span class="math-inline">$G \times X \to X$&lt;/span>
+，满足两条公理，然后直接跳到轨道和稳定子。我盯着那几行字看了半小时，心里只有一个问题：这到底在干什么？群不是已经定义好了吗，为什么还要让它去“作用”在别的集合上？&lt;/p></description></item><item><title>群：你与代数结构的初次相遇</title><link>https://www.chenk.top/zh/abstract-algebra/01-%E7%BE%A4%E7%9A%84%E5%88%9D%E9%81%87/</link><pubDate>Wed, 01 Sep 2021 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/abstract-algebra/01-%E7%BE%A4%E7%9A%84%E5%88%9D%E9%81%87/</guid><description>&lt;h2 id="为什么代数结构很重要" class="heading-anchor">为什么代数结构很重要&lt;a href="#%e4%b8%ba%e4%bb%80%e4%b9%88%e4%bb%a3%e6%95%b0%e7%bb%93%e6%9e%84%e5%be%88%e9%87%8d%e8%a6%81" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
 &lt;/h2>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/aa01_dihedral_d4.png" alt="二面体群 D4：正方形的 8 个对称变换" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
 &lt;/p>
-&lt;p>在给出任何定义之前，请记住这个概念：群是一个集合，在其中你可以将任意两个元素组合成第三个元素，可以撤销生成的任何元素，并且可以重新排列括号而不会产生影响。这就是整个想法的简化版。本文其余部分是对这句话的详细展开。&lt;/p></description></item></channel></rss>
+&lt;p>我第一次接触抽象代数时，盯着一本教材的目录发呆了整整一个下午。目录上写着“群、环、域”，旁边配着一堆我完全看不懂的符号。我当时心里只有一个念头：这些字母和箭头到底在算什么？实数我会算，矩阵我会乘，函数我会求导，可“群”到底是个什么东西？它连个具体的数字都没有，凭什么能成为一门课的核心？&lt;/p></description></item></channel></rss>

@@ -20,590 +20,587 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/abstract-algebra/>抽象代数</a>
 · 第 6 篇</div><h1>抽象代数 (6)：多项式环 —— 因子分解与唯一分解</h1><p class=deck>除法算法、不可约性测试，以及从 $\mathbb{Z}$ 到 $\mathbb{Z}[x]$ 再到 $\mathbb{Q}[x]$ 的过程——理解何时及为何唯一因子分解成立。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2021-09-11>September 11, 2021</time> · 40 分钟 · 9708 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/abstract-algebra/ class=tag>#abstract-algebra</a><a href=/zh/tags/ring-theory/ class=tag>#ring-theory</a><a href=/zh/tags/polynomials/ class=tag>#polynomials</a><a href=/zh/tags/mathematics/ class=tag>#mathematics</a></div><a class="pill pill-outline" href=/en/abstract-algebra/06-polynomial-rings/>Read in English →</a></div></header><div class=prose><p>多项式是代数的实验室。几乎每一个环论概念——理想、商、因子分解、不可约性——都是通过多项式例子首先被理解的，然后才被抽象化。这不是巧合：多项式环足够丰富，可以展示所有有趣的现象，同时结构又足够明确，允许显式计算。</p><p>在这篇文章中，我们研究环 <span class=math-inline>$R[x]$</span>
-上的多项式。我们发展了除法算法，建立了不可约性标准（Eisenstein 准则、模 <span class=math-inline>$p$</span>
-还原、有理根测试），定义了唯一因子分解整环，并证明了 Gauss 引理——这是从 <span class=math-inline>$\mathbb{Z}$</span>
-到 <span class=math-inline>$\mathbb{Q}$</span>
-因子分解的桥梁。最终，将清楚地了解何时及为何唯一因子分解成立，以及当它失败时发生了什么。</p><h2 id=为什么多项式在代数中处于核心地位 class=heading-anchor>为什么多项式在代数中处于核心地位<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e5%a4%9a%e9%a1%b9%e5%bc%8f%e5%9c%a8%e4%bb%a3%e6%95%b0%e4%b8%ad%e5%a4%84%e4%ba%8e%e6%a0%b8%e5%bf%83%e5%9c%b0%e4%bd%8d class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>心理图像：一个多项式 <span class=math-inline>$f(x) \in R[x]$</span>
-是系数在 <span class=math-inline>$R$</span>
-中的“形式表达式”，但它也是一个函数（当在点上求值时）、理想的生成元，以及代数关系的见证。每个视角揭示了同一对象的不同方面。</p><p>多项式值得专门研究的三个原因：</p><ol><li><p>多项式生成所有代数扩张：如果 <span class=math-inline>$\alpha$</span>
-是某个有理系数多项式的根，则 <span class=math-inline>$\mathbb{Q}(\alpha) \cong \mathbb{Q}[x]/(p(x))$</span>
-，其中 <span class=math-inline>$p$</span>
-是 <span class=math-inline>$\alpha$</span>
-的最小多项式。多项式因子分解控制域扩张。</p></li><li><p>多项式是一个通用的测试场：<span class=math-inline>$\mathbb{Z}[x]$</span>
-是 UFD 但不是 PID，因此可以研究这两个概念之间的差距。根据 Hilbert 基定理，Noether 环上的多项式环也是 Noether 环。</p></li><li><p>多项式连接代数和几何：多项式的零点形成代数簇——这是代数几何的起点。环论性质（理想、商）对应于几何性质（子簇、交集）。</p></li></ol><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/06-polynomial-rings/aa_v2_06_2_factor_tree.png alt="x^4 - 1 在 Q 上的因子分解树" loading=lazy decoding=async class=content-image></figure></p><h2 id=rx定义次数和除法算法 class=heading-anchor><span class=math-inline>$R[x]$</span>
-：定义、次数和除法算法<a href=#rx%e5%ae%9a%e4%b9%89%e6%ac%a1%e6%95%b0%e5%92%8c%e9%99%a4%e6%b3%95%e7%ae%97%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>想象一下：加法是逐系数进行的；乘法则是系数序列的“卷积”。次数在乘法幺半群中表现得像一个加性赋值。</p><p>定义。设 <span class=math-inline>$R$</span>
-是一个交换幺环。<em>多项式环</em> <span class=math-inline>$R[x]$</span>
-由形式表达式组成</p><span class=math-block>$$f(x) = a_n x^n + \cdots + a_1 x + a_0$$</span><p>其中 <span class=math-inline>$a_i \in R$</span>
-。运算包括逐点加法和卷积乘法。</p><p>卷积乘法：<span class=math-inline>$(f \cdot g)_k = \sum_{i + j = k} f_i g_j$</span>
-。例如 <span class=math-inline>$(2x + 3)(x^2 + x + 1) = 2x^3 + 2x^2 + 2x + 3x^2 + 3x + 3 = 2x^3 + 5x^2 + 5x + 3$</span>
-。这种卷积结构使得多项式乘法成为一个结合的、分配的运算，类似于形式幂级数的乘法。</p><p><em>次数</em> <span class=math-inline>$\deg f$</span>
-是最大的 <span class=math-inline>$n$</span>
-使得 <span class=math-inline>$a_n \neq 0$</span>
-。<em>首项系数</em> 是 <span class=math-inline>$a_n$</span>
-；如果 <span class=math-inline>$a_n = 1$</span>
-，则 <span class=math-inline>$f$</span>
-是<em>首一</em>的。</p><p>次数和乘法。如果 <span class=math-inline>$R$</span>
-是整环，那么 <span class=math-inline>$\deg(fg) = \deg f + \deg g$</span>
-。（对于有零因子的环不成立：例如在 <span class=math-inline>$(\mathbb{Z}/4)[x]$</span>
-中 <span class=math-inline>$(2x)(2x) = 0$</span>
-。）</p><p>推论。<span class=math-inline>$R$</span>
-是整环 <span class=math-inline>$\Rightarrow$</span>
+<span class=meta-line><time datetime=2021-09-11>September 11, 2021</time> · 46 分钟 · 11139 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/abstract-algebra/ class=tag>#abstract-algebra</a><a href=/zh/tags/ring-theory/ class=tag>#ring-theory</a><a href=/zh/tags/polynomials/ class=tag>#polynomials</a><a href=/zh/tags/mathematics/ class=tag>#mathematics</a></div><a class="pill pill-outline" href=/en/abstract-algebra/06-polynomial-rings/>Read in English →</a></div></header><div class=prose><p>我记得刚上大学那会儿，盯着黑板上的 <span class=math-inline>$x^2 + 1$</span>
+发呆。高中老师信誓旦旦地说这玩意儿“不能再分了”，可眼前的教授随手写下 <span class=math-inline>$(x+i)(x-i)$</span>
+，转头又补了一句：“如果在模 <span class=math-inline>$5$</span>
+的整数里，它等于 <span class=math-inline>$(x+2)(x+3)$</span>
+。”我当时的脑子直接打结：同一个多项式，怎么换个地盘就换了一副面孔？它到底是个固定的对象，还是随环境变形的变色龙？</p><p>后来我才慢慢回过味来。多项式根本不是死板的算式，它是代数的实验室。几乎每一个环论概念——理想（ideal）、商环（quotient ring）、因子分解（factorization）、不可约性（irreducibility）——都是先在多项式身上做实验，摸清脾气后才被抽象成一般理论的。这绝不是巧合：多项式环（polynomial ring）足够丰富，能上演所有有趣的代数戏剧；同时它的骨架又足够清晰，允许我们亲手把每一步算得明明白白。</p><p>在这篇文章里，我会带你彻底摸透 <span class=math-inline>$R[x]$</span>
+的脾气。我会先抛开冷冰冰的定义，问清楚“为什么需要除法算法”、“为什么不可约性要看基环的脸色”。我们会一起手算辗转相除法，拆解 Eisenstein 判别法（Eisenstein&rsquo;s criterion）的底层逻辑，看清唯一分解整环（Unique Factorization Domain, UFD）为什么在 <span class=math-inline>$\mathbb{Z}[\sqrt{-5}]$</span>
+里崩塌，最后用 Gauss 引理（Gauss&rsquo;s Lemma）搭起从整数到有理数的桥梁。你会看到，多项式不是高中代数的残影，而是通向域扩张和伽罗瓦理论（Galois theory）的活地图。</p><h2 id=为什么多项式在代数中处于核心地位 class=heading-anchor>为什么多项式在代数中处于核心地位<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e5%a4%9a%e9%a1%b9%e5%bc%8f%e5%9c%a8%e4%bb%a3%e6%95%b0%e4%b8%ad%e5%a4%84%e4%ba%8e%e6%a0%b8%e5%bf%83%e5%9c%b0%e4%bd%8d class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>我最初学抽象代数时，总忍不住问：环论已经够抽象了，为什么还要专门开一章讲多项式？直接研究一般环不行吗？后来我意识到，多项式就像代数世界的乐高积木。你手里只有几块基础砖（系数环 <span class=math-inline>$R$</span>
+），但通过拼接 <span class=math-inline>$x$</span>
+的幂次，你能搭出任意复杂的结构。更重要的是，多项式同时戴着三顶帽子，每一顶都指向代数的一个核心方向。</p><p>第一顶帽子：多项式生成所有代数扩张（algebraic extension）。假设你找到一个数 <span class=math-inline>$\alpha$</span>
+，它是某个有理系数多项式的根。那么把 <span class=math-inline>$\alpha$</span>
+塞进有理数域 <span class=math-inline>$\mathbb{Q}$</span>
+后得到的新域 <span class=math-inline>$\mathbb{Q}(\alpha)$</span>
+，在结构上完全同构于商环 <span class=math-inline>$\mathbb{Q}[x]/(p(x))$</span>
+。公式写出来是 <span class=math-inline>$\mathbb{Q}(\alpha) \cong \mathbb{Q}[x]/(p(x))$</span>
+。这句话的意思是：把多项式环按最小多项式 <span class=math-inline>$p(x)$</span>
+折叠起来，就自动长出了包含根 <span class=math-inline>$\alpha$</span>
+的新域。多项式怎么分解，直接决定了域扩张的骨架。反例也很直观：像 <span class=math-inline>$\pi$</span>
+或 <span class=math-inline>$e$</span>
+这样的超越数，根本不是任何有理系数多项式的根，所以 <span class=math-inline>$\mathbb{Q}(\pi)$</span>
+无法用这种商环构造，它属于完全不同的超越扩张世界。</p><p>第二顶帽子：多项式是概念的通用测试场。整数环 <span class=math-inline>$\mathbb{Z}$</span>
+是主理想整环（Principal Ideal Domain, PID），但 <span class=math-inline>$\mathbb{Z}[x]$</span>
+就不是了。公式表现为理想 <span class=math-inline>$(2, x) \subsetneq \mathbb{Z}[x]$</span>
+。这句话的意思是：由常数 <span class=math-inline>$2$</span>
+和变量 <span class=math-inline>$x$</span>
+共同生成的理想，找不到单个多项式能同时整除它们俩，所以它不是主理想。<span class=math-inline>$\mathbb{Z}[x]$</span>
+保留了唯一分解性质，却丢掉了主理想性质，这让我们能精准观察 PID 和 UFD 之间的缝隙。反例对比：<span class=math-inline>$\mathbb{Q}[x]$</span>
+既是 UFD 又是 PID，因为系数域 <span class=math-inline>$\mathbb{Q}$</span>
+里每个非零数都能做除法，理想结构瞬间变简单。</p><p>第三顶帽子：多项式把代数和几何焊在一起。多项式的零点集合就是代数簇（algebraic variety）。公式写为 <span class=math-inline>$V(f) = \{ \alpha \in k^n \mid f(\alpha) = 0 \}$</span>
+。这句话的意思是：把多项式等于零的所有解画在坐标系里，就得到一条曲线或一个曲面。环里的理想对应几何里的子簇，商环对应限制在子簇上的函数。反例提醒：<span class=math-inline>$x^2 + y^2 + 1 = 0$</span>
+在实数平面 <span class=math-inline>$\mathbb{R}^2$</span>
+上没有零点，几何上是空集，但代数上它生成的理想依然良态。这说明代数性质比几何直观更稳健，也催生了现代代数几何的概形语言。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/06-polynomial-rings/aa_v2_06_2_factor_tree.png alt="x^4 - 1 在 Q 上的因子分解树" loading=lazy decoding=async class=content-image></figure></p><p>这三条理由加起来，就是多项式不可替代的原因。它不是附属品，它是代数结构的原型机。</p><h2 id=rx定义次数和除法算法 class=heading-anchor><span class=math-inline>$R[x]$</span>
+：定义、次数和除法算法<a href=#rx%e5%ae%9a%e4%b9%89%e6%ac%a1%e6%95%b0%e5%92%8c%e9%99%a4%e6%b3%95%e7%ae%97%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>我刚开始接触形式多项式时，总把它和“函数”混为一谈。后来被 <span class=math-inline>$\mathbb{F}_2$</span>
+上的例子狠狠教育了一次，才彻底分清：多项式首先是系数排成的队列，<span class=math-inline>$x$</span>
+只是个占位符，求值只是它的一种用法。</p><span class=math-block>$$f(x) = a_n x^n + \cdots + a_1 x + a_0$$</span><p>这句话的意思是：多项式就是一串系数 <span class=math-inline>$(a_0, a_1, \ldots, a_n)$</span>
+按幂次对齐的有限序列，<span class=math-inline>$x$</span>
+本身没有数值意义，只负责标记位置。</p><span class=math-block>$$(f \cdot g)_k = \sum_{i + j = k} f_i g_j$$</span><p>这句话的意思是：乘积多项式第 <span class=math-inline>$k$</span>
+次项的系数，等于所有“指数加起来等于 <span class=math-inline>$k$</span>
+”的系数配对相乘后再求和。比如算 <span class=math-inline>$(2x + 3)(x^2 + x + 1)$</span>
+，<span class=math-inline>$x^2$</span>
+项的系数来自 <span class=math-inline>$2x \cdot x$</span>
+和 <span class=math-inline>$3 \cdot x^2$</span>
+，也就是 <span class=math-inline>$2\cdot 1 + 3\cdot 1 = 5$</span>
+。完整展开是 <span class=math-inline>$2x^3 + 5x^2 + 5x + 3$</span>
+。这种滑动配对的结构，让多项式乘法天然满足结合律和分配律，和信号处理里的卷积滤波完全是同一套数学骨架。</p><span class=math-block>$$\deg(fg) = \deg f + \deg g$$</span><p>这句话的意思是：只要系数环里没有零因子，两个多项式相乘时最高次项绝不会互相抵消，次数直接相加。反例立刻现身：在 <span class=math-inline>$(\mathbb{Z}/4\mathbb{Z})[x]$</span>
+里，<span class=math-inline>$(2x)(2x) = 4x^2 = 0$</span>
+。左边次数是 <span class=math-inline>$1+1=2$</span>
+，右边是零多项式（次数通常定义为 <span class=math-inline>$-\infty$</span>
+），等式直接崩溃。这也顺带推出一个推论：<span class=math-inline>$R$</span>
+是整环（integral domain） <span class=math-inline>$\Rightarrow$</span>
 <span class=math-inline>$R[x]$</span>
-是整环。</p><p>多变量情况。<span class=math-inline>$R[x_1, \ldots, x_n] := R[x_1, \ldots, x_{n-1}][x_n]$</span>
-，递归定义。这在代数几何中非常重要。</p><p><span class=math-inline>$R[x_1, \ldots, x_n]$</span>
-中的一个单项式是 <span class=math-inline>$x_1^{e_1} \cdots x_n^{e_n}$</span>
-，其中 <span class=math-inline>$e_i \in \mathbb{Z}_{\geq 0}$</span>
-。单项式的集合与 <span class=math-inline>$\mathbb{Z}_{\geq 0}^n$</span>
-双射，而 <span class=math-inline>$R[x_1, \ldots, x_n]$</span>
-是这个集合上的自由 <span class=math-inline>$R$</span>
--模。因此，元素是单项式的有限 <span class=math-inline>$R$</span>
--线性组合。单项式的总次数是 <span class=math-inline>$e_1 + \cdots + e_n$</span>
-。多元多项式是 Gröbner 基（理想的算法基础）和结式（消去方程组中的变量）等构造的家园。</p><p>求值同态。对于 <span class=math-inline>$\alpha \in S \supseteq R$</span>
-，映射 <span class=math-inline>$\text{ev}_\alpha: R[x] \to S, f \mapsto f(\alpha)$</span>
-是一个环同态。这将形式多项式与函数联系起来。两个多项式可能定义相同的函数但作为多项式不相等：在 <span class=math-inline>$\mathbb{F}_2[x]$</span>
-中，<span class=math-inline>$x$</span>
-和 <span class=math-inline>$x^2$</span>
-都定义了函数 <span class=math-inline>$0 \mapsto 0, 1 \mapsto 1$</span>
-，但 <span class=math-inline>$x \neq x^2$</span>
-。</p><p><span class=math-inline>$\text{ev}_\alpha$</span>
-的核是消失于 <span class=math-inline>$\alpha$</span>
-的多项式的理想。如果 <span class=math-inline>$S$</span>
+也是整环。这句话的意思是：系数环里没有零因子，多项式环里也绝对长不出零因子。</p><p>多变量情况只是递归套娃：<span class=math-inline>$R[x_1, \ldots, x_n] := R[x_1, \ldots, x_{n-1}][x_n]$</span>
+。这句话的意思是：先把前 <span class=math-inline>$n-1$</span>
+个变量当成系数环，再对第 <span class=math-inline>$n$</span>
+个变量建多项式环，一层层叠上去。单项式 <span class=math-inline>$x_1^{e_1} \cdots x_n^{e_n}$</span>
+的指数向量 <span class=math-inline>$(e_1, \ldots, e_n)$</span>
+和 <span class=math-inline>$\mathbb{Z}_{\geq 0}^n$</span>
+一一对应。多元多项式是 Gröbner 基（Gröbner basis）和结式（resultant）的老家，这些工具专门用来暴力消元和求解方程组。</p><span class=math-block>$$\text{ev}_\alpha: R[x] \to S, \quad f \mapsto f(\alpha)$$</span><p>这句话的意思是：把占位符 <span class=math-inline>$x$</span>
+替换成环 <span class=math-inline>$S$</span>
+里的具体元素 <span class=math-inline>$\alpha$</span>
+，多项式瞬间变成可计算的函数值。这个映射是环同态，保加法也保乘法。但形式多项式和函数不是一回事。反例在 <span class=math-inline>$\mathbb{F}_2[x]$</span>
+里：<span class=math-inline>$f(x)=x$</span>
+和 <span class=math-inline>$g(x)=x^2$</span>
+作为多项式显然不等，但代入 <span class=math-inline>$0$</span>
+都得 <span class=math-inline>$0$</span>
+，代入 <span class=math-inline>$1$</span>
+都得 <span class=math-inline>$1$</span>
+，它们定义了完全相同的函数。这句话的意思是：有限域上不同的多项式可能给出相同的函数映射，形式表达式比函数携带更多信息。</p><p><span class=math-inline>$\text{ev}_\alpha$</span>
+的核（kernel）是所有在 <span class=math-inline>$\alpha$</span>
+处消失的多项式构成的理想。如果 <span class=math-inline>$S$</span>
 是整环且 <span class=math-inline>$\alpha$</span>
-是 <span class=math-inline>$R[x]$</span>
-中某个非零多项式的根，则核由 <em>最小多项式</em> 生成（即以 <span class=math-inline>$\alpha$</span>
-为根的最小次数的首一多项式）。例如，<span class=math-inline>$\sqrt 2$</span>
+是某个非零多项式的根，这个核由最小多项式（minimal polynomial）生成。例如 <span class=math-inline>$\sqrt{2}$</span>
 在 <span class=math-inline>$\mathbb{Q}$</span>
 上的最小多项式是 <span class=math-inline>$x^2 - 2$</span>
-，所以 <span class=math-inline>$\ker(\text{ev}_{\sqrt 2}) = (x^2 - 2)$</span>
-在 <span class=math-inline>$\mathbb{Q}[x]$</span>
-中。商 <span class=math-inline>$\mathbb{Q}[x]/(x^2 - 2) \cong \mathbb{Q}(\sqrt 2)$</span>
-由第一同构定理得出。这是下一篇文章关于域扩张的代数基础。</p><h3 id=除法算法 class=heading-anchor>除法算法<a href=#%e9%99%a4%e6%b3%95%e7%ae%97%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>核心结论是：设 <span class=math-inline>$F$</span>
-是一个域，<span class=math-inline>$f, g \in F[x]$</span>
-，<span class=math-inline>$g \neq 0$</span>
-。存在唯一的 <span class=math-inline>$q, r \in F[x]$</span>
-使得</p><span class=math-block>$$f = qg + r, \quad \deg r &lt; \deg g.$$</span><p>证明（存在性）。对 <span class=math-inline>$\deg f$</span>
-进行归纳。如果 <span class=math-inline>$\deg f &lt; \deg g$</span>
-，取 <span class=math-inline>$q = 0, r = f$</span>
-。否则：设 <span class=math-inline>$f$</span>
-和 <span class=math-inline>$g$</span>
-的最高次项分别为 <span class=math-inline>$a_n x^n$</span>
-和 <span class=math-inline>$b_m x^m$</span>
+，所以 <span class=math-inline>$\ker(\text{ev}_{\sqrt{2}}) = (x^2 - 2)$</span>
+。这句话的意思是：所有以 <span class=math-inline>$\sqrt{2}$</span>
+为根的有理系数多项式，全都是 <span class=math-inline>$x^2-2$</span>
+的倍数。由第一同构定理直接得到 <span class=math-inline>$\mathbb{Q}[x]/(x^2 - 2) \cong \mathbb{Q}(\sqrt{2})$</span>
+。这句话的意思是：把多项式环按 <span class=math-inline>$x^2-2$</span>
+折叠，等价于直接把 <span class=math-inline>$\sqrt{2}$</span>
+加进有理数域。</p><h3 id=除法算法 class=heading-anchor>除法算法<a href=#%e9%99%a4%e6%b3%95%e7%ae%97%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$f = qg + r, \quad \deg r &lt; \deg g$$</span><p>这句话的意思是：任何多项式 <span class=math-inline>$f$</span>
+都能被 <span class=math-inline>$g$</span>
+除，得到一个商式 <span class=math-inline>$q$</span>
+和一个次数严格低于 <span class=math-inline>$g$</span>
+的余式 <span class=math-inline>$r$</span>
+，而且这种拆法只有一种。</p><p>证明的存在性部分完全模仿长除法。对 <span class=math-inline>$\deg f$</span>
+归纳。如果 <span class=math-inline>$\deg f &lt; \deg g$</span>
+，直接取 <span class=math-inline>$q=0, r=f$</span>
+。否则，设 <span class=math-inline>$f$</span>
+首项为 <span class=math-inline>$a_n x^n$</span>
+，<span class=math-inline>$g$</span>
+首项为 <span class=math-inline>$b_m x^m$</span>
 且 <span class=math-inline>$n \geq m$</span>
-。设 <span class=math-inline>$f_1 = f - (a_n/b_m) x^{n-m} g$</span>
-。那么 <span class=math-inline>$\deg f_1 &lt; n$</span>
-，应用归纳假设。（唯一性：如果有两个分解，减去并利用次数。）<span class=math-inline>$\square$</span></p><p>除法算法需要除以最高次项系数，这就是为什么 <span class=math-inline>$F$</span>
-必须是域的原因。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/06-polynomial-rings/aa_v2_06_1_division.png alt="Polynomial long division step by step" loading=lazy decoding=async class=content-image></figure></p><p>为什么这很重要。除法算法使 <span class=math-inline>$F[x]$</span>
-成为 Euclidean 整环（Euclidean 函数：次数）。这是算术基本定理的多项式类比，并是所有多项式 UFD 理论的技术基础。</p><p>算法结果：Euclidean 算法可以在最大次数线性时间内计算两个多项式的 GCD（假设算术运算是常数大小的）。这是计算机代数系统中多项式 GCD 计算的基础，并支持许多进一步的算法：部分分式分解、Sturm 序列用于实根计数、Berlekamp 在有限域上的因子分解算法。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/06_gcd_algorithm.png alt="F[x] 中的辗转相除法" loading=lazy decoding=async class=content-image></figure></p><p>推论。<span class=math-inline>$F[x]$</span>
-是 Euclidean 整环 <span class=math-inline>$\Rightarrow$</span>
+。构造 <span class=math-inline>$f_1 = f - (a_n/b_m) x^{n-m} g$</span>
+。这句话的意思是：用 <span class=math-inline>$f$</span>
+的首项除以 <span class=math-inline>$g$</span>
+的首项，凑出一个单项式去消掉 <span class=math-inline>$f$</span>
+的最高次项，新多项式 <span class=math-inline>$f_1$</span>
+的次数严格下降，继续递归即可。唯一性更简单：假设有两组 <span class=math-inline>$(q,r)$</span>
+和 <span class=math-inline>$(q',r')$</span>
+，相减得 <span class=math-inline>$(q-q')g = r'-r$</span>
+。左边次数 <span class=math-inline>$\geq \deg g$</span>
+（除非 <span class=math-inline>$q=q'$</span>
+），右边次数 <span class=math-inline>$&lt; \deg g$</span>
+，矛盾只能推出 <span class=math-inline>$q=q', r=r$</span>
+。</p><p>注意定理前提：<span class=math-inline>$F$</span>
+必须是域。这句话的意思是：除法算法每一步都要拿首项系数做除法，只有域里每个非零元都有乘法逆元，算法才跑得通。反例在 <span class=math-inline>$\mathbb{Z}[x]$</span>
+里：你想用 <span class=math-inline>$x^2$</span>
+除以 <span class=math-inline>$2x$</span>
+，首项系数 <span class=math-inline>$1/2$</span>
+不在 <span class=math-inline>$\mathbb{Z}$</span>
+里，长除法直接卡死。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/06-polynomial-rings/aa_v2_06_1_division.png alt="Polynomial long division step by step" loading=lazy decoding=async class=content-image></figure></p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/06_division_algorithm.gif alt=动画演示：多项式除法算法的逐步消元过程 loading=lazy decoding=async class=content-image></figure></p><p>为什么这玩意儿重要到要单独拎出来？因为除法算法直接让 <span class=math-inline>$F[x]$</span>
+升级为欧几里得整环（Euclidean domain），欧几里得函数就是次数 <span class=math-inline>$\deg$</span>
+。这句话的意思是：有了带余除法，就能跑辗转相除法，就能求最大公因式，整个整数算术的骨架完美平移到多项式世界。计算机代数系统算多项式 GCD、做部分分式分解、甚至用 Berlekamp 算法在有限域上分解多项式，底层全靠这个除法循环。</p><p>推论顺理成章：<span class=math-inline>$F[x]$</span>
+是欧几里得整环 <span class=math-inline>$\Rightarrow$</span>
 PID <span class=math-inline>$\Rightarrow$</span>
-UFD。<span class=math-inline>$F[x]$</span>
-中的每个理想都是主理想，由唯一的首一多项式生成。</p><p>因子定理。<span class=math-inline>$\alpha \in F$</span>
+UFD。这句话的意思是：域上的一元多项式环里，每个理想都是主理想，每个多项式都能唯一分解成不可约因子的乘积。<span class=math-inline>$F[x]$</span>
+中的每个理想都由唯一的首一多项式生成。</p><p>因子定理（Factor Theorem）是除法算法的直接赠品：<span class=math-inline>$\alpha \in F$</span>
 是 <span class=math-inline>$f$</span>
 的根当且仅当 <span class=math-inline>$(x - \alpha) \mid f$</span>
-。（通过将 <span class=math-inline>$f$</span>
-除以 <span class=math-inline>$x - \alpha$</span>
-并在 <span class=math-inline>$\alpha$</span>
-处评估余项。）</p><p>推论。一个次数为 <span class=math-inline>$n$</span>
+。这句话的意思是：多项式在 <span class=math-inline>$\alpha$</span>
+处为零，等价于它能被一次式 <span class=math-inline>$x-\alpha$</span>
+整除。证明只需把 <span class=math-inline>$f$</span>
+除以 <span class=math-inline>$x-\alpha$</span>
+得 <span class=math-inline>$f = q(x)(x-\alpha) + r$</span>
+，代入 <span class=math-inline>$x=\alpha$</span>
+立刻得到 <span class=math-inline>$r = f(\alpha)$</span>
+。推论：次数为 <span class=math-inline>$n$</span>
 的多项式在域上最多有 <span class=math-inline>$n$</span>
-个根。在 <span class=math-inline>$\mathbb{Z}/8$</span>
-上不成立：<span class=math-inline>$x^2 - 1$</span>
-有根 <span class=math-inline>$1, 3, 5, 7$</span>
-。</p><p>例题 1。在 <span class=math-inline>$\mathbb{Q}[x]$</span>
+个根。这句话的意思是：每找到一个根就抽走一个一次因子，次数减一，抽 <span class=math-inline>$n$</span>
+次就只剩常数了。反例再次提醒：在 <span class=math-inline>$\mathbb{Z}/8\mathbb{Z}$</span>
+上，<span class=math-inline>$x^2 - 1$</span>
+有 <span class=math-inline>$1, 3, 5, 7$</span>
+四个根。这句话的意思是：有零因子的环里，乘积为零不代表因子为零，根的个数可以爆炸。</p><p><strong>例题 1（完整手算）</strong>：在 <span class=math-inline>$\mathbb{Q}[x]$</span>
 中，将 <span class=math-inline>$f = x^4 + 2x^3 - x + 3$</span>
 除以 <span class=math-inline>$g = x^2 + x - 1$</span>
-。</p><p>步骤 1：<span class=math-inline>$x^4/x^2 = x^2$</span>
-。<span class=math-inline>$f - x^2 g = x^3 + x^2 - x + 3$</span>
-。</p><p>步骤 2：<span class=math-inline>$x^3/x^2 = x$</span>
-。余项：<span class=math-inline>$3$</span>
-。</p><p>结果：<span class=math-inline>$q = x^2 + x, r = 3$</span>
-。验证：<span class=math-inline>$(x^2 + x)(x^2 + x - 1) + 3 = x^4 + 2x^3 - x + 3$</span>
-。<span class=math-inline>$\checkmark$</span></p><p>例题 1b。在 <span class=math-inline>$\mathbb{Q}[x]$</span>
+。
+第一步：首项相除 <span class=math-inline>$x^4 / x^2 = x^2$</span>
+。用 <span class=math-inline>$f$</span>
+减去 <span class=math-inline>$x^2 g$</span>
+：<span class=math-inline>$(x^4 + 2x^3 - x + 3) - (x^4 + x^3 - x^2) = x^3 + x^2 - x + 3$</span>
+。
+第二步：新首项相除 <span class=math-inline>$x^3 / x^2 = x$</span>
+。用余项减去 <span class=math-inline>$x g$</span>
+：<span class=math-inline>$(x^3 + x^2 - x + 3) - (x^3 + x^2 - x) = 3$</span>
+。
+第三步：余项次数 <span class=math-inline>$0$</span>
+小于 <span class=math-inline>$g$</span>
+的次数 <span class=math-inline>$2$</span>
+，停止。
+结果：<span class=math-inline>$q = x^2 + x$</span>
+，<span class=math-inline>$r = 3$</span>
+。验证公式：<span class=math-inline>$(x^2 + x)(x^2 + x - 1) + 3 = x^4 + 2x^3 - x + 3$</span>
+。这句话的意思是：商乘除数加余数，完美还原被除数，计算无误。</p><p><strong>例题 1b（完整手算）</strong>：在 <span class=math-inline>$\mathbb{Q}[x]$</span>
 中，将 <span class=math-inline>$f = x^3 + 1$</span>
 除以 <span class=math-inline>$g = x + 1$</span>
-。</p><p>步骤 1：<span class=math-inline>$x^3/x = x^2$</span>
-，<span class=math-inline>$f - x^2 g = -x^2 + 1$</span>
-。</p><p>步骤 2：<span class=math-inline>$-x^2/x = -x$</span>
-，余项 <span class=math-inline>$x + 1$</span>
-。</p><p>步骤 3：<span class=math-inline>$(x+1)/x = 1$</span>
-等待，这给出一个非多项式。重新做一次。</p><p>步骤 2：<span class=math-inline>$-x^2 - (-x)(x+1) = -x^2 + x^2 + x = x$</span>
-。目前为止的余项：<span class=math-inline>$x + 1$</span>
-。</p><p>步骤 3：<span class=math-inline>$x/x = 1$</span>
-，<span class=math-inline>$(x + 1) - 1 \cdot (x + 1) = 0$</span>
-。所以 <span class=math-inline>$q = x^2 - x + 1, r = 0$</span>
-，确认 <span class=math-inline>$x^3 + 1 = (x + 1)(x^2 - x + 1)$</span>
-。</p><p>数值例子：通过 Euclidean 算法求 GCD。在 <span class=math-inline>$\mathbb{Q}[x]$</span>
-中，找到 <span class=math-inline>$\gcd(x^4 - 1, x^3 - 1)$</span>
-。除法：<span class=math-inline>$x^4 - 1 = x \cdot (x^3 - 1) + (x - 1)$</span>
-。然后 <span class=math-inline>$\gcd(x^3 - 1, x - 1)$</span>
-：<span class=math-inline>$x^3 - 1 = (x^2 + x + 1)(x - 1) + 0$</span>
-。所以 <span class=math-inline>$\gcd = x - 1$</span>
-。确认 <span class=math-inline>$x^4 - 1 = (x-1)(x+1)(x^2+1)$</span>
-和 <span class=math-inline>$x^3 - 1 = (x-1)(x^2+x+1)$</span>
-共享因子 <span class=math-inline>$x-1$</span>
-。</p><p>例题：Bezout 在 <span class=math-inline>$\mathbb{Q}[x]$</span>
-中。从上面的 Euclidean 算法中，<span class=math-inline>$x - 1 = (x^4 - 1) - x \cdot (x^3 - 1)$</span>
-。所以 <span class=math-inline>$1 \cdot (x^4 - 1) + (-x)(x^3 - 1) = x - 1$</span>
-，表示 GCD 为线性组合。这是多项式环中的 Bezout 恒等式，是部分分式分解和许多微积分及组合技巧背后的引擎。</p><p>数值例子：<span class=math-inline>$\mathbb{Q}[x]$</span>
-的理想和可除性。<span class=math-inline>$(f) \subseteq (g)$</span>
+。
+第一步：<span class=math-inline>$x^3 / x = x^2$</span>
+。<span class=math-inline>$f - x^2(x+1) = x^3+1 - (x^3+x^2) = -x^2 + 1$</span>
+。
+第二步：<span class=math-inline>$-x^2 / x = -x$</span>
+。<span class=math-inline>$(-x^2+1) - (-x)(x+1) = -x^2+1 - (-x^2-x) = x + 1$</span>
+。
+第三步：<span class=math-inline>$(x+1) / x = 1$</span>
+。<span class=math-inline>$(x+1) - 1\cdot(x+1) = 0$</span>
+。
+结果：<span class=math-inline>$q = x^2 - x + 1$</span>
+，<span class=math-inline>$r = 0$</span>
+。这句话的意思是：余数为零说明整除，<span class=math-inline>$x^3+1$</span>
+确实等于 <span class=math-inline>$(x+1)(x^2-x+1)$</span>
+，立方和公式现形。</p><p><strong>数值例子（辗转相除法求 GCD）</strong>：在 <span class=math-inline>$\mathbb{Q}[x]$</span>
+中求 <span class=math-inline>$\gcd(x^4 - 1, x^3 - 1)$</span>
+。
+第一轮：<span class=math-inline>$x^4 - 1 = x \cdot (x^3 - 1) + (x - 1)$</span>
+。余式 <span class=math-inline>$r_1 = x-1$</span>
+。
+第二轮：<span class=math-inline>$x^3 - 1 = (x^2 + x + 1)(x - 1) + 0$</span>
+。余式 <span class=math-inline>$r_2 = 0$</span>
+。
+最后一个非零余式是 <span class=math-inline>$x-1$</span>
+，所以 <span class=math-inline>$\gcd = x-1$</span>
+。这句话的意思是：两个多项式的公共因子全被挤进了最后的余式里。验证分解：<span class=math-inline>$x^4-1=(x-1)(x+1)(x^2+1)$</span>
+，<span class=math-inline>$x^3-1=(x-1)(x^2+x+1)$</span>
+，共享因子确实是 <span class=math-inline>$x-1$</span>
+。</p><p><strong>Bezout 恒等式例子</strong>：从上面的步骤回代，<span class=math-inline>$x - 1 = (x^4 - 1) - x \cdot (x^3 - 1)$</span>
+。这句话的意思是：最大公因式可以写成原多项式的线性组合，系数 <span class=math-inline>$1$</span>
+和 <span class=math-inline>$-x$</span>
+都在 <span class=math-inline>$\mathbb{Q}[x]$</span>
+里。这是部分分式分解的代数引擎，也是组合数学里生成函数操作的底层逻辑。</p><p><strong>理想与整除的对偶例子</strong>：在 <span class=math-inline>$\mathbb{Q}[x]$</span>
+中，<span class=math-inline>$(f) \subseteq (g)$</span>
 当且仅当 <span class=math-inline>$g \mid f$</span>
-。所以 <span class=math-inline>$\mathbb{Q}[x]$</span>
-的理想格是多项式的可除性格的对偶。给定两个多项式，它们的 GCD 生成 <span class=math-inline>$(f) + (g)$</span>
-，它们的 LCM 生成 <span class=math-inline>$(f) \cap (g)$</span>
-。这是整数关系 <span class=math-inline>$\gcd(m, n)\mathbb{Z} = m\mathbb{Z} + n\mathbb{Z}$</span>
-和 <span class=math-inline>$\text{lcm}(m, n)\mathbb{Z} = m\mathbb{Z} \cap n\mathbb{Z}$</span>
-的多项式类比。</p><h2 id=不可约性判别准则 class=heading-anchor>不可约性判别准则<a href=#%e4%b8%8d%e5%8f%af%e7%ba%a6%e6%80%a7%e5%88%a4%e5%88%ab%e5%87%86%e5%88%99 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>想象一下，不可约多项式就像是素数的多项式版本。一个多项式是否不可约很大程度上取决于基环：<span class=math-inline>$x^2 + 1$</span>
-在 <span class=math-inline>$\mathbb{R}$</span>
-上是不可约的，在 <span class=math-inline>$\mathbb{C}$</span>
-上可以分解为 <span class=math-inline>$(x+i)(x-i)$</span>
-，在 <span class=math-inline>$\mathbb{F}_5$</span>
-上可以分解为 <span class=math-inline>$(x+2)(x+3)$</span>
-。</p><p>定义是这样的：如果 <span class=math-inline>$f \in R[x]$</span>
-的次数大于零，并且 <span class=math-inline>$f = gh$</span>
+。这句话的意思是：包含关系和整除关系方向相反，大理想对应小因子。给定 <span class=math-inline>$f, g$</span>
+，它们的 GCD 生成和理想 <span class=math-inline>$(f)+(g)$</span>
+，它们的 LCM 生成交理想 <span class=math-inline>$(f)\cap(g)$</span>
+。这句话的意思是：多项式的最大公因式和最小公倍式，完美对应理想的加法和交运算，和整数环 <span class=math-inline>$\mathbb{Z}$</span>
+的规律一字不差。</p><h2 id=不可约性判别准则 class=heading-anchor>不可约性判别准则<a href=#%e4%b8%8d%e5%8f%af%e7%ba%a6%e6%80%a7%e5%88%a4%e5%88%ab%e5%87%86%e5%88%99 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>我最初学不可约多项式时，总把它当成“多项式版的素数”。这个直觉对了一半，但漏掉了最关键的一点：素不素，得看你在哪个环里混。<span class=math-inline>$x^2 + 1$</span>
+在 <span class=math-inline>$\mathbb{R}[x]$</span>
+里铁板一块不可约，扔到 <span class=math-inline>$\mathbb{C}[x]$</span>
+里立刻碎成 <span class=math-inline>$(x+i)(x-i)$</span>
+，丢进 <span class=math-inline>$\mathbb{F}_5[x]$</span>
+又变成 <span class=math-inline>$(x+2)(x+3)$</span>
+。不可约性不是多项式的固有属性，而是它和基环（base ring）互动的结果。</p><p>正式定义很干脆：设 <span class=math-inline>$f \in R[x]$</span>
+次数大于零。如果 <span class=math-inline>$f = gh$</span>
 在 <span class=math-inline>$R[x]$</span>
 中成立时，<span class=math-inline>$g$</span>
 或 <span class=math-inline>$h$</span>
-必须是单位元，那么 <span class=math-inline>$f$</span>
+必须是单位元（unit），那么 <span class=math-inline>$f$</span>
 就是 <span class=math-inline>$R$</span>
-上的不可约多项式。</p><p>在一个域 <span class=math-inline>$F$</span>
+上的不可约多项式（irreducible polynomial）。这句话的意思是：只要一个多项式不能拆成两个次数更低的非平凡多项式相乘，它就是不可约的。在域 <span class=math-inline>$F$</span>
 上，<span class=math-inline>$F[x]$</span>
-的单位元是非零常数，因此不可约性意味着：<span class=math-inline>$f$</span>
-不能分解成两个次数严格小于 <span class=math-inline>$f$</span>
-的多项式的乘积。</p><p>依赖于基环并不是麻烦事，而是关键所在。“在哪些域上 <span class=math-inline>$f$</span>
-可以分解？”这个问题是 Galois 理论的起点。多项式在不同素数模下的分解模式通过 Chebotarev 密度定理与它的 Galois 群联系起来。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/06-polynomial-rings/aa_v2_06_3_irreducible_test.png alt=有理数域上的不可约性测试决策树 loading=lazy decoding=async class=content-image></figure></p><h3 id=有理根测试 class=heading-anchor>有理根测试<a href=#%e6%9c%89%e7%90%86%e6%a0%b9%e6%b5%8b%e8%af%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>定理是这样的：如果 <span class=math-inline>$f = a_n x^n + \cdots + a_0 \in \mathbb{Z}[x]$</span>
-有一个有理根 <span class=math-inline>$p/q$</span>
-（最简形式），那么 <span class=math-inline>$p \mid a_0$</span>
-且 <span class=math-inline>$q \mid a_n$</span>
-。</p><p>证明方法是：将 <span class=math-inline>$f(p/q) = 0$</span>
-两边乘以 <span class=math-inline>$q^n$</span>
-，利用 <span class=math-inline>$p, q$</span>
-互质。</p><p>举个例子：<span class=math-inline>$f(x) = x^3 - 3x + 1$</span>
-是否在 <span class=math-inline>$\mathbb{Q}$</span>
-上不可约？可能的有理根是 <span class=math-inline>$\pm 1$</span>
-。计算 <span class=math-inline>$f(1) = -1$</span>
-，<span class=math-inline>$f(-1) = 3$</span>
-。没有有理根。因为 <span class=math-inline>$f$</span>
-的次数是 3，若可约则必有一个一次因子，从而有一个有理根。但不存在这样的有理根。所以 <span class=math-inline>$f$</span>
-是不可约的。</p><p>数值例子：<span class=math-inline>$f(x) = 2x^3 + x^2 - 7x - 6$</span>
-。可能的有理根是 <span class=math-inline>$\pm 1, \pm 2, \pm 3, \pm 6, \pm 1/2, \pm 3/2$</span>
-。检查发现 <span class=math-inline>$f(2) = 16 + 4 - 14 - 6 = 0$</span>
-。所以 <span class=math-inline>$(x - 2)$</span>
-是一个因子。进行除法：<span class=math-inline>$f = (x - 2)(2x^2 + 5x + 3) = (x-2)(2x+3)(x+1)$</span>
-。三个一次因子在 <span class=math-inline>$\mathbb{Z}$</span>
-上。</p><p>另一个数值例子：<span class=math-inline>$f = 6x^3 - 7x^2 + 1$</span>
-。可能的有理根是 <span class=math-inline>$\pm 1, \pm 1/2, \pm 1/3, \pm 1/6$</span>
-。计算 <span class=math-inline>$f(1) = 0$</span>
-。所以 <span class=math-inline>$(x - 1)$</span>
-是一个因子。进行除法：<span class=math-inline>$f = (x - 1)(6x^2 - x - 1)$</span>
-。二次项可以分解为 <span class=math-inline>$(3x + 1)(2x - 1)$</span>
-。所以 <span class=math-inline>$f = (x-1)(3x+1)(2x-1)$</span>
-。</p><p>为什么这很重要？这是最便宜、最快的测试方法。对于 <span class=math-inline>$\mathbb{Q}[x]$</span>
-中的三次多项式，有理根测试足以确定其可约性（因为可约性要求存在一次因子）。对于更高次的多项式，它排除了一次因子的可能性，但仍有可能存在更高次的不可约因子。</p><p>还有一个重要教训：有理根受到整系数的限制。具有整系数的多项式生活在一个离散的世界中，其有理根必须位于由系数决定的一个有限列表中。这种有限性使得测试变得可行。</p><h3 id=eisenstein-判别法 class=heading-anchor>Eisenstein 判别法<a href=#eisenstein-%e5%88%a4%e5%88%ab%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>定理是这样的：设 <span class=math-inline>$f = a_n x^n + \cdots + a_0 \in \mathbb{Z}[x]$</span>
+的单位元就是非零常数，所以不可约等价于“无法分解为两个低次多项式的乘积”。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/06-polynomial-rings/aa_v2_06_3_irreducible_test.png alt="不可约性测试决策树：从有理根到模 p 还原" loading=lazy decoding=async class=content-image></figure></p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/06_irreducibility.png alt="不可约性测试示意：Eisenstein 判别法的系数筛选过程" loading=lazy decoding=async class=content-image></figure></p><p>这种对基环的依赖不是麻烦，而是宝藏。“<span class=math-inline>$f$</span>
+在哪些域上能分解？”这个问题直接长出了伽罗瓦理论。多项式模不同素数的分解模式，通过 Chebotarev 密度定理（Chebotarev density theorem）和它的伽罗瓦群（Galois group）紧密挂钩。我们接下来要掌握的三个判别法，就是拆解这个问题的瑞士军刀。</p><h3 id=有理根测试 class=heading-anchor>有理根测试<a href=#%e6%9c%89%e7%90%86%e6%a0%b9%e6%b5%8b%e8%af%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$p \mid a_0 \quad \text{且} \quad q \mid a_n$$</span><p>这句话的意思是：有理根的分子必须整除常数项，分母必须整除最高次项系数，无限搜索瞬间收缩成有限列表。证明只需把 <span class=math-inline>$f(p/q)=0$</span>
+两边乘 <span class=math-inline>$q^n$</span>
+，整理得 <span class=math-inline>$a_n p^n + a_{n-1} p^{n-1} q + \cdots + a_0 q^n = 0$</span>
+。这句话的意思是：除了首项外每项都含因子 <span class=math-inline>$q$</span>
+，所以 <span class=math-inline>$q \mid a_n p^n$</span>
+，由互质得 <span class=math-inline>$q \mid a_n$</span>
+；同理可证 <span class=math-inline>$p \mid a_0$</span>
+。</p><p><strong>例子 1</strong>：判断 <span class=math-inline>$f(x) = x^3 - 3x + 1$</span>
+在 <span class=math-inline>$\mathbb{Q}$</span>
+上是否不可约。候选有理根只有 <span class=math-inline>$\pm 1$</span>
+。手算 <span class=math-inline>$f(1) = 1 - 3 + 1 = -1$</span>
+，<span class=math-inline>$f(-1) = -1 + 3 + 1 = 3$</span>
+。这句话的意思是：两个候选值都不是根，有理根列表清空。因为 <span class=math-inline>$f$</span>
+是三次多项式，如果可约必含一次因子，从而必有有理根。既然没有，<span class=math-inline>$f$</span>
+在 <span class=math-inline>$\mathbb{Q}$</span>
+上不可约。</p><p><strong>例子 2（完整分解）</strong>：<span class=math-inline>$f(x) = 2x^3 + x^2 - 7x - 6$</span>
+。候选根：<span class=math-inline>$\pm 1, \pm 2, \pm 3, \pm 6, \pm 1/2, \pm 3/2$</span>
+。试算 <span class=math-inline>$f(2) = 16 + 4 - 14 - 6 = 0$</span>
+。这句话的意思是：<span class=math-inline>$x=2$</span>
+是根，<span class=math-inline>$(x-2)$</span>
+必为因子。做长除法：<span class=math-inline>$(2x^3 + x^2 - 7x - 6) \div (x-2) = 2x^2 + 5x + 3$</span>
+。二次项继续分解：<span class=math-inline>$2x^2 + 5x + 3 = (2x+3)(x+1)$</span>
+。最终 <span class=math-inline>$f = (x-2)(2x+3)(x+1)$</span>
+。这句话的意思是：有理根测试配合除法，直接把三次多项式拆成三个一次因子。</p><p><strong>反例（测试的局限）</strong>：<span class=math-inline>$f(x) = x^4 + 4$</span>
+。候选根 <span class=math-inline>$\pm 1, \pm 2, \pm 4$</span>
+全都不是根。这句话的意思是：有理根测试通过，但多项式依然可约。利用 Sophie Germain 恒等式：<span class=math-inline>$x^4 + 4 = (x^2+2)^2 - (2x)^2 = (x^2+2x+2)(x^2-2x+2)$</span>
+。这句话的意思是：没有一次因子不代表没有二次因子，有理根测试只能排除一次因子，高次分解需要更强工具。</p><h3 id=eisenstein-判别法 class=heading-anchor>Eisenstein 判别法<a href=#eisenstein-%e5%88%a4%e5%88%ab%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>当有理根测试不够用时，Eisenstein 判别法（Eisenstein&rsquo;s criterion）提供了一键判定。定理条件非常对称：设 <span class=math-inline>$f = a_n x^n + \cdots + a_0 \in \mathbb{Z}[x]$</span>
 （<span class=math-inline>$n \geq 1$</span>
-）。如果一个素数 <span class=math-inline>$p$</span>
+）。如果存在素数 <span class=math-inline>$p$</span>
 满足：</p><ol><li><span class=math-inline>$p \nmid a_n$</span>
 ，</li><li><span class=math-inline>$p \mid a_i$</span>
 对所有 <span class=math-inline>$i &lt; n$</span>
 成立，</li><li><span class=math-inline>$p^2 \nmid a_0$</span>
-，</li></ol><p>那么 <span class=math-inline>$f$</span>
+，
+那么 <span class=math-inline>$f$</span>
 在 <span class=math-inline>$\mathbb{Q}$</span>
-上是不可约的。</p><p>证明方法是：如果 <span class=math-inline>$f = gh$</span>
+上不可约。这句话的意思是：找一个素数 <span class=math-inline>$p$</span>
+，让它整除除了首项外的所有系数，但 <span class=math-inline>$p^2$</span>
+不整除常数项，满足这三条就能直接锁定不可约。</li></ol><p>证明思路极其漂亮。假设 <span class=math-inline>$f = gh$</span>
 在 <span class=math-inline>$\mathbb{Z}[x]$</span>
-中成立（Gauss 引理），则对 <span class=math-inline>$p$</span>
-取模：<span class=math-inline>$\bar f = \bar a_n x^n$</span>
-。根据 <span class=math-inline>$\mathbb{F}_p[x]$</span>
-中的唯一分解性，<span class=math-inline>$\bar g$</span>
+中成立（Gauss 引理保证有理分解可拉回整数分解）。模 <span class=math-inline>$p$</span>
+还原：<span class=math-inline>$\bar f = \bar a_n x^n$</span>
+在 <span class=math-inline>$\mathbb{F}_p[x]$</span>
+里。这句话的意思是：除了首项，其他系数全被 <span class=math-inline>$p$</span>
+吃掉了，多项式退化成单项式。由 <span class=math-inline>$\mathbb{F}_p[x]$</span>
+的唯一分解性，<span class=math-inline>$\bar g$</span>
 和 <span class=math-inline>$\bar h$</span>
-必须是 <span class=math-inline>$x$</span>
-的幂次。因此 <span class=math-inline>$p \mid g(0), h(0)$</span>
-，从而 <span class=math-inline>$p^2 \mid a_0 = g(0)h(0)$</span>
-，与条件 (3) 矛盾。证毕。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/06-polynomial-rings/aa_v2_06_4_eisenstein.png alt="Eisenstein 判别法应用于一个具体的多项式" loading=lazy decoding=async class=content-image></figure></p><p>为什么这很重要？Eisenstein 判别法提供了一个快速的充分（但不必要）测试。当它适用时，不可约性立即得到；当它不适用时，可以尝试代换如 <span class=math-inline>$x \to x + 1$</span>
-或者使用模 <span class=math-inline>$p$</span>
-还原。</p><p>Eisenstein 判别法的伪装形式：多项式 <span class=math-inline>$f(x)$</span>
-不可约当且仅当 <span class=math-inline>$f(x + a)$</span>
-不可约，其中 <span class=math-inline>$a$</span>
-是任意常数。所以如果 Eisenstein 判别法在 <span class=math-inline>$f(x)$</span>
-上失败，可以尝试 <span class=math-inline>$f(x + 1), f(x - 1), f(x + 2), \ldots$</span>
-。有时适当的平移会揭示出隐藏的 Eisenstein 结构。</p><p>例如：分圆多项式 <span class=math-inline>$\Phi_p(x) = x^{p-1} + \cdots + 1$</span>
+只能是 <span class=math-inline>$x$</span>
+的幂次。所以 <span class=math-inline>$p \mid g(0)$</span>
+且 <span class=math-inline>$p \mid h(0)$</span>
+，推出 <span class=math-inline>$p^2 \mid g(0)h(0) = a_0$</span>
+。这句话的意思是：常数项必须被 <span class=math-inline>$p^2$</span>
+整除，直接和条件 3 矛盾，假设崩塌，<span class=math-inline>$f$</span>
+不可约。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/06-polynomial-rings/aa_v2_06_4_eisenstein.png alt="Eisenstein 判别法应用于一个具体的多项式" loading=lazy decoding=async class=content-image></figure></p><p><strong>例子 1</strong>：<span class=math-inline>$f = x^5 + 6x^4 + 9x^3 + 12x + 3$</span>
+。取 <span class=math-inline>$p=3$</span>
+。首项系数 <span class=math-inline>$1$</span>
+不被 <span class=math-inline>$3$</span>
+整除；<span class=math-inline>$6,9,0,12,3$</span>
+全被 <span class=math-inline>$3$</span>
+整除；常数项 <span class=math-inline>$3$</span>
+不被 <span class=math-inline>$9$</span>
+整除。这句话的意思是：三条 Eisenstein 条件完美命中，<span class=math-inline>$f$</span>
 在 <span class=math-inline>$\mathbb{Q}$</span>
-上是不可约的。代换 <span class=math-inline>$x \to x + 1$</span>
-：</p><span class=math-block>$$\Phi_p(x + 1) = \frac{(x+1)^p - 1}{x} = x^{p-1} + \binom{p}{1} x^{p-2} + \cdots + \binom{p}{p-1}.$$</span><p>Eisenstein 判别法适用于素数 <span class=math-inline>$p$</span>
-：<span class=math-inline>$\binom{p}{k}$</span>
-被 <span class=math-inline>$p$</span>
-整除，对于 <span class=math-inline>$1 \leq k \leq p-1$</span>
-，最高次项系数为 1，常数项为 <span class=math-inline>$p$</span>
-（不是 <span class=math-inline>$p^2$</span>
-）。</p><h3 id=模-p-还原 class=heading-anchor>模 <span class=math-inline>$p$</span>
-还原<a href=#%e6%a8%a1-p-%e8%bf%98%e5%8e%9f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>定理是这样的：设 <span class=math-inline>$f \in \mathbb{Z}[x]$</span>
-是首一多项式，次数为 <span class=math-inline>$n$</span>
-。如果 <span class=math-inline>$\bar f \in \mathbb{F}_p[x]$</span>
-在某个素数 <span class=math-inline>$p$</span>
-下是不可约的，那么 <span class=math-inline>$f$</span>
-在 <span class=math-inline>$\mathbb{Q}$</span>
-上也是不可约的。</p><p>证明方法是：如果 <span class=math-inline>$f = gh$</span>
-在 <span class=math-inline>$\mathbb{Z}[x]$</span>
-中成立，且 <span class=math-inline>$\deg g, \deg h \geq 1$</span>
-（并且首一，因为 <span class=math-inline>$f$</span>
-是首一的），那么 <span class=math-inline>$\bar f = \bar g \bar h$</span>
-且次数相同。这与 <span class=math-inline>$\bar f$</span>
-的不可约性矛盾。</p><p>逆命题不成立：<span class=math-inline>$x^4 + 1$</span>
-在 <span class=math-inline>$\mathbb{Q}$</span>
-上是不可约的，但在模每个素数都是可约的。</p><p>为什么这很重要？模 <span class=math-inline>$p$</span>
-还原是数论中最强大的技术之一：它将无限的、困难的问题（在 <span class=math-inline>$\mathbb{Z}$</span>
-上的分解）转化为有限的、机械的问题（在 <span class=math-inline>$\mathbb{F}_p$</span>
-上的分解）。当它适用时，可以快速证明不可约性。这个策略也是现代算术几何的原型：通过模每个素数 <span class=math-inline>$p$</span>
-来研究全局问题，并组装局部数据。</p><p>不可约性的策略如下：</p><ol><li>有理根测试（完全处理次数 <span class=math-inline>$\leq 3$</span>
-的情况）。</li><li>Eisenstein 判别法（尝试小素数；如果需要，代换 <span class=math-inline>$x \to x + a$</span>
-）。</li><li>模小素数还原。</li><li>直接比较系数。</li></ol><p>对于高次多项式，有时这些方法都不够。在这种情况下，多项式的结构可能会给出线索：分圆多项式、形如 <span class=math-inline>$f(x) g(x) + 1$</span>
-的多项式，或与线性递推相关的多项式。专门的技术（如 Newton 多边形、<span class=math-inline>$p$</span>
--adic 分析）可以处理更难的情况。计算机代数系统如 Pari/GP、SageMath 和 Magma 可以算法地分解大次数多项式在许多环上的因子；对于“这个多项式是否不可约”的研究问题，这些工具是不可或缺的。</p><p>举个例子：<span class=math-inline>$f = x^4 + x + 1$</span>
-是否在 <span class=math-inline>$\mathbb{Q}$</span>
-上不可约？</p><p>模 2：<span class=math-inline>$\bar f = x^4 + x + 1$</span>
+上不可约，无需任何进一步计算。</p><p><strong>例子 2（平移伪装）</strong>：<span class=math-inline>$f = x^4 + 1$</span>
+直接看没有素数满足条件。但做代换 <span class=math-inline>$x \to x+1$</span>
+：<span class=math-inline>$(x+1)^4 + 1 = x^4 + 4x^3 + 6x^2 + 4x + 2$</span>
+。取 <span class=math-inline>$p=2$</span>
+。首项 <span class=math-inline>$1$</span>
+不被 <span class=math-inline>$2$</span>
+整除；<span class=math-inline>$4,6,4,2$</span>
+全被 <span class=math-inline>$2$</span>
+整除；常数项 <span class=math-inline>$2$</span>
+不被 <span class=math-inline>$4$</span>
+整除。这句话的意思是：平移后的多项式满足 Eisenstein 条件，而平移是环自同构不改变可约性，所以原多项式 <span class=math-inline>$x^4+1$</span>
+也不可约。</p><p><strong>反例（条件 3 失败）</strong>：<span class=math-inline>$f = x^2 + 4x + 4$</span>
+。取 <span class=math-inline>$p=2$</span>
+，条件 1、2 满足，但 <span class=math-inline>$p^2 = 4$</span>
+整除常数项 <span class=math-inline>$4$</span>
+。这句话的意思是：Eisenstein 判别法失效，而 <span class=math-inline>$f$</span>
+确实可约为 <span class=math-inline>$(x+2)^2$</span>
+。条件 3 是防止常数项“藏得太深”的关键保险。</p><h3 id=模-p-还原 class=heading-anchor>模 <span class=math-inline>$p$</span>
+还原<a href=#%e6%a8%a1-p-%e8%bf%98%e5%8e%9f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$f \text{ 在 } \mathbb{Q} \text{ 上也不可约}$$</span><p>这句话的意思是：系数模 <span class=math-inline>$p$</span>
+后在有限域里都拆不开，在整数域里更不可能拆开。证明用反证法：若 <span class=math-inline>$f=gh$</span>
+且 <span class=math-inline>$\deg g, \deg h \geq 1$</span>
+，模 <span class=math-inline>$p$</span>
+得 <span class=math-inline>$\bar f = \bar g \bar h$</span>
+且次数不变（首一保证首项不消失）。这句话的意思是：整数域的分解会原封不动投影到有限域，和 <span class=math-inline>$\bar f$</span>
+不可约矛盾。</p><p><strong>例子</strong>：<span class=math-inline>$f = x^4 + x + 1$</span>
+。模 <span class=math-inline>$2$</span>
+得 <span class=math-inline>$\bar f = x^4 + x + 1 \in \mathbb{F}_2[x]$</span>
+。试根 <span class=math-inline>$\bar f(0)=1, \bar f(1)=1$</span>
+，无一次因子。若可约必为两个二次不可约多项式相乘。<span class=math-inline>$\mathbb{F}_2[x]$</span>
+里唯一的不可约二次式是 <span class=math-inline>$x^2+x+1$</span>
+。计算 <span class=math-inline>$(x^2+x+1)^2 = x^4+x^2+1 \neq \bar f$</span>
+。这句话的意思是：模 <span class=math-inline>$2$</span>
+后既无根也拆不成二次式，<span class=math-inline>$\bar f$</span>
 在 <span class=math-inline>$\mathbb{F}_2$</span>
-中没有根（<span class=math-inline>$\bar f(0) = 1, \bar f(1) = 1$</span>
-）。如果它可约，必须是两个二次多项式的乘积。<span class=math-inline>$\mathbb{F}_2[x]$</span>
-中唯一的不可约二次多项式是 <span class=math-inline>$x^2 + x + 1$</span>
-。因此需要 <span class=math-inline>$\bar f = (x^2 + x + 1)^2 = x^4 + x^2 + 1 \neq x^4 + x + 1$</span>
-。矛盾。所以 <span class=math-inline>$\bar f$</span>
-在 <span class=math-inline>$\mathbb{F}_2$</span>
-上不可约，从而 <span class=math-inline>$f$</span>
+上不可约，原多项式在 <span class=math-inline>$\mathbb{Q}$</span>
+上也不可约。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/06_roots_field.png alt=根在扩域中的分裂过程示意 loading=lazy decoding=async class=content-image></figure></p><p><strong>反例（逆命题不成立）</strong>：<span class=math-inline>$x^4 + 1$</span>
 在 <span class=math-inline>$\mathbb{Q}$</span>
-上也不可约。</p><h2 id=唯一分解整环 class=heading-anchor>唯一分解整环<a href=#%e5%94%af%e4%b8%80%e5%88%86%e8%a7%a3%e6%95%b4%e7%8e%af class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>心理图像：UFD 是一个整环，其中每个元素都有“素因子分解”，唯一性只考虑相伴和顺序。UFD 的算术本质上与 <span class=math-inline>$\mathbb{Z}$</span>
-一样良好。</p><p>整环 <span class=math-inline>$R$</span>
-是 UFD，如果每个非零非单位元素都可以分解成不可约元素，唯一性只考虑相伴和顺序。</p><p>举个例子。<span class=math-inline>$\mathbb{Z}$</span>
-, <span class=math-inline>$F[x]$</span>
-对于 <span class=math-inline>$F$</span>
-是一个域, <span class=math-inline>$\mathbb{Z}[i]$</span>
-, <span class=math-inline>$\mathbb{Z}[x]$</span>
-。</p><p>对于多项式环：<span class=math-inline>$\mathbb{Q}[x], \mathbb{R}[x], \mathbb{C}[x], \mathbb{F}_p[x]$</span>
-都是 UFD（并且是 PID，因为基是域）。<span class=math-inline>$\mathbb{Z}[x]$</span>
-是 UFD 但不是 PID。<span class=math-inline>$\mathbb{Q}[x, y]$</span>
-是 UFD 但不是 PID。一旦超过一个变量，“好”环的层次就会无限细分。</p><p>可以证明，每个 PID 都是 UFD。</p><p>证明分为两部分：存在性（每个非零非单位元素都可以分解）使用升链条件（没有无穷的真因子链）。唯一性使用 PID 中不可约元素是素元素的事实（<span class=math-inline>$p \mid ab \Rightarrow p \mid a$</span>
+上不可约，但模任意素数 <span class=math-inline>$p$</span>
+都可约。这句话的意思是：模 <span class=math-inline>$p$</span>
+不可约是充分条件不是必要条件，有限域里的分解可能比有理数域更碎。遇到这种情况，换一个小素数或者退回 Eisenstein 平移法即可。</p><p><strong>实战策略总结</strong>：先跑有理根测试（秒杀 <span class=math-inline>$\leq 3$</span>
+次）；再试小素数 Eisenstein（必要时平移 <span class=math-inline>$x \to x+a$</span>
+）；接着模 <span class=math-inline>$2,3,5$</span>
+还原；最后才上系数硬比。这句话的意思是：按计算成本从低到高排兵布阵，绝大多数教科书问题会在前三步投降。</p><h2 id=唯一分解整环 class=heading-anchor>唯一分解整环<a href=#%e5%94%af%e4%b8%80%e5%88%86%e8%a7%a3%e6%95%b4%e7%8e%af class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>我学环论时，一度以为“分解唯一”是理所当然的。直到看到 <span class=math-inline>$\mathbb{Z}[\sqrt{-5}]$</span>
+的例子，我才意识到唯一分解不是天赋，而是特权。唯一分解整环（Unique Factorization Domain, UFD）就是享有这种特权的环。</p><p>正式定义：整环 <span class=math-inline>$R$</span>
+是 UFD，如果每个非零非单位元素都可以写成不可约元素的乘积，且这种写法在相伴（associate）和重排意义下唯一。这句话的意思是：环里的元素都能拆成“素因子”，拆法只有一种，顶多因子顺序换换或者乘个可逆常数。</p><p><strong>例子 1</strong>：<span class=math-inline>$\mathbb{Z}$</span>
+是 UFD，算术基本定理保证 <span class=math-inline>$12 = 2^2 \cdot 3$</span>
+唯一。<span class=math-inline>$F[x]$</span>
+（<span class=math-inline>$F$</span>
+为域）是 UFD，多项式分解唯一。<span class=math-inline>$\mathbb{Z}[i]$</span>
+（高斯整数）也是 UFD，<span class=math-inline>$5 = (2+i)(2-i)$</span>
+唯一。这句话的意思是：我们熟悉的数系和域上多项式环，全都在 UFD 的安全区里。</p><p><strong>例子 2</strong>：<span class=math-inline>$\mathbb{Z}[x]$</span>
+是 UFD 但不是 PID。这句话的意思是：整系数多项式依然能唯一分解，但理想结构变复杂了，<span class=math-inline>$(2,x)$</span>
+这种理想找不到单个生成元。<span class=math-inline>$\mathbb{Q}[x,y]$</span>
+也是 UFD 非 PID。变量一多，好环的层次就开始无限细分。</p><p>定理：每个 PID 都是 UFD。这句话的意思是：只要每个理想都是主理想，唯一分解自动成立。证明分两块。存在性用升链条件（ascending chain condition）：假设 <span class=math-inline>$a$</span>
+不能分解，则 <span class=math-inline>$a=a_1 b_1$</span>
+且 <span class=math-inline>$a_1$</span>
+也不能分解，迭代得 <span class=math-inline>$(a) \subsetneq (a_1) \subsetneq (a_2) \subsetneq \cdots$</span>
+。这句话的意思是：真因子链无限上升，但 PID 是 Noether 环，理想升链必须终止，矛盾推出分解必存在。唯一性靠“不可约 <span class=math-inline>$\Rightarrow$</span>
+素”：在 PID 中，不可约元 <span class=math-inline>$p$</span>
+生成的理想 <span class=math-inline>$(p)$</span>
+是极大理想，极大理想必是素理想。这句话的意思是：<span class=math-inline>$p \mid ab$</span>
+必推出 <span class=math-inline>$p \mid a$</span>
 或 <span class=math-inline>$p \mid b$</span>
-）。</p><p>假设 <span class=math-inline>$a$</span>
-没有分解。则 <span class=math-inline>$a = a_1 b_1$</span>
-且 <span class=math-inline>$a_1, b_1$</span>
-都是非单位，且（不失一般性）<span class=math-inline>$a_1$</span>
-没有分解。迭代得到 <span class=math-inline>$a, a_1, a_2, \ldots$</span>
-且 <span class=math-inline>$(a) \subsetneq (a_1) \subsetneq (a_2) \subsetneq \cdots$</span>
-，这是一个升链。PID 是 Noetherian，矛盾。</p><p><em>唯一性的草图。</em> 在 PID 中，给定一个不可约元素 <span class=math-inline>$p$</span>
-，理想 <span class=math-inline>$(p)$</span>
-是极大理想（任何更大的主理想 <span class=math-inline>$(a)$</span>
-包含 <span class=math-inline>$p$</span>
-有 <span class=math-inline>$p = ax$</span>
-，因此由不可约性 <span class=math-inline>$a$</span>
-或 <span class=math-inline>$x$</span>
-是单位，给出 <span class=math-inline>$(a) = (p)$</span>
-或 <span class=math-inline>$(a) = R$</span>
-）。极大理想 <span class=math-inline>$\Rightarrow$</span>
-素理想。因此在 PID 中，不可约 <span class=math-inline>$\Rightarrow$</span>
-素，这给出了通过标准论证的唯一因子分解：如果 <span class=math-inline>$p_1 \cdots p_k = q_1 \cdots q_m$</span>
-，则 <span class=math-inline>$p_1 \mid q_1 \cdots q_m$</span>
-，因此由素性 <span class=math-inline>$p_1 \mid q_j$</span>
-对于某个 <span class=math-inline>$j$</span>
-，即 <span class=math-inline>$p_1$</span>
-与 <span class=math-inline>$q_j$</span>
-相伴。消去并归纳。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/06-polynomial-rings/aa_v2_06_5_ufd_chain.png alt="UFD 中的唯一因子分解为有限链" loading=lazy decoding=async class=content-image></figure></p><p>UFD 结构使“初等数论”推广到其他环：gcd、lcm、素因子分解都适用。UFD 的失败（如在 <span class=math-inline>$\mathbb{Z}[\sqrt{-5}]$</span>
-中）表明更深的算术复杂性，由 Dedekind 的理想理论解决。</p><p>实际后果：在 UFD <span class=math-inline>$R$</span>
-中，有理函数域 <span class=math-inline>$\text{Frac}(R)$</span>
-有干净的部分分式分解。<span class=math-inline>$\text{Frac}(R)$</span>
-中的每个元素都可以写成形式为 <span class=math-inline>$u/p^k$</span>
-的项之和，其中 <span class=math-inline>$p$</span>
-是素元素。这是微积分中所有部分分式技巧的代数根源，推广到任意 UFD。</p><h3 id=失败mathbbzsqrt-5 class=heading-anchor>失败：<span class=math-inline>$\mathbb{Z}[\sqrt{-5}]$</span>
-<a href=#%e5%a4%b1%e8%b4%a5mathbbzsqrt-5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><span class=math-inline>$6 = 2 \cdot 3 = (1 + \sqrt{-5})(1 - \sqrt{-5})$</span>
-。</p><p>所有四个因子都是不可约的。</p><p><em>对于 <span class=math-inline>$2$</span>
-:</em> 如果 <span class=math-inline>$2 = \alpha\beta$</span>
-，则 <span class=math-inline>$N(\alpha)N(\beta) = N(2) = 4$</span>
-。如果都不是单位，则 <span class=math-inline>$N(\alpha) = N(\beta) = 2$</span>
-。但 <span class=math-inline>$a^2 + 5b^2 = 2$</span>
-没有整数解。因此 <span class=math-inline>$2$</span>
-是不可约的。类似地，其他因子也是如此。</p><p>四个因子两两不相伴（不同的范数或范数不相关）。因此 <span class=math-inline>$6$</span>
-有两个本质不同的不可约因子分解。UFD 失败。</p><p>为什么？在 <span class=math-inline>$\mathbb{Z}[\sqrt{-5}]$</span>
-中，不可约 <span class=math-inline>$\not\Rightarrow$</span>
+，素性保证因子可以逐个消去，归纳得唯一性。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/06-polynomial-rings/aa_v2_06_5_ufd_chain.png alt="UFD 中的唯一因子分解为有限链" loading=lazy decoding=async class=content-image></figure></p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/06_factorization.png alt=多项式环中的唯一分解结构示意 loading=lazy decoding=async class=content-image></figure></p><p>UFD 的结构让初等数论无缝推广。最大公因式、最小公倍式、素因子分解全部可用。在 UFD <span class=math-inline>$R$</span>
+上，分式域 <span class=math-inline>$\text{Frac}(R)$</span>
+有干净的部分分式分解。这句话的意思是：任何有理函数都能拆成 <span class=math-inline>$u/p^k$</span>
+的和，微积分里的积分技巧在任意 UFD 上都有代数根源。</p><h3 id=失败mathbbzsqrt-5 class=heading-anchor>失败：<span class=math-inline>$\mathbb{Z}[\sqrt{-5}]$</span>
+<a href=#%e5%a4%b1%e8%b4%a5mathbbzsqrt-5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>经典反例登场：<span class=math-inline>$6 = 2 \cdot 3 = (1 + \sqrt{-5})(1 - \sqrt{-5})$</span>
+。这句话的意思是：同一个数 <span class=math-inline>$6$</span>
+出现了两套完全不同的因子组合。我们验证四个因子全不可约。用范数（norm）<span class=math-inline>$N(a+b\sqrt{-5}) = a^2 + 5b^2$</span>
+。<span class=math-inline>$N(2)=4$</span>
+。若 <span class=math-inline>$2=\alpha\beta$</span>
+且非单位，则 <span class=math-inline>$N(\alpha)N(\beta)=4$</span>
+，只能 <span class=math-inline>$N(\alpha)=N(\beta)=2$</span>
+。但方程 <span class=math-inline>$a^2+5b^2=2$</span>
+无整数解。这句话的意思是：<span class=math-inline>$2$</span>
+拆不出非平凡因子，它是不可约的。同理可证 <span class=math-inline>$3, 1\pm\sqrt{-5}$</span>
+全不可约。四个因子范数不同，互不相伴。UFD 在这里彻底崩塌。</p><p>为什么崩？因为在 <span class=math-inline>$\mathbb{Z}[\sqrt{-5}]$</span>
+里，不可约 <span class=math-inline>$\not\Rightarrow$</span>
 素。<span class=math-inline>$2$</span>
-是不可约的，但 <span class=math-inline>$2 \mid (1+\sqrt{-5})(1-\sqrt{-5}) = 6$</span>
-而 <span class=math-inline>$2 \nmid (1 \pm \sqrt{-5})$</span>
-在 <span class=math-inline>$\mathbb{Z}[\sqrt{-5}]$</span>
-中。不可约与素之间的差距正是 UFD 失败的地方。</p><p>类群衡量一个数环距离 PID 有多远。类数为 1 意味着 PID；对于 <span class=math-inline>$\mathbb{Z}[\sqrt{-5}]$</span>
-类数为 2。</p><p>Dedekind 的洞察：尽管元素可能有多个不可约因子分解，<em>理想</em> 在任何“Dedekind 整环”（包含 <span class=math-inline>$\mathbb{Z}[\sqrt{-5}]$</span>
-和大多数代数整数环）中唯一地分解为素理想的乘积。对于 <span class=math-inline>$\mathbb{Z}[\sqrt{-5}]$</span>
-：</p><span class=math-block>$$(2) = \mathfrak{p}^2, \quad (3) = \mathfrak{q}_1 \mathfrak{q}_2, \quad (1 + \sqrt{-5}) = \mathfrak{p}\mathfrak{q}_1, \quad (1 - \sqrt{-5}) = \mathfrak{p}\mathfrak{q}_2,$$</span><p>其中 <span class=math-inline>$\mathfrak{p} = (2, 1 + \sqrt{-5}), \mathfrak{q}_1 = (3, 1 + \sqrt{-5}), \mathfrak{q}_2 = (3, 1 - \sqrt{-5})$</span>
-。因此 <span class=math-inline>$(6) = \mathfrak{p}^2 \mathfrak{q}_1 \mathfrak{q}_2$</span>
-，无论从哪个元素级因子分解开始，理想的因子分解都是相同的。歧义在于如何将素理想分组为元素，而不是素结构本身。</p><h2 id=从-mathbbz-到-mathbbzx-再到-mathbbqxgauss-引理 class=heading-anchor>从 <span class=math-inline>$\mathbb{Z}$</span>
+不可约，但 <span class=math-inline>$2 \mid (1+\sqrt{-5})(1-\sqrt{-5}) = 6$</span>
+，而 <span class=math-inline>$2$</span>
+不整除 <span class=math-inline>$1+\sqrt{-5}$</span>
+也不整除 <span class=math-inline>$1-\sqrt{-5}$</span>
+。这句话的意思是：不可约元失去了“素性”，乘积被整除推不出因子被整除，唯一分解的归纳链条直接断裂。</p><span class=math-block>$$(2) = \mathfrak{p}^2, \quad (3) = \mathfrak{q}_1 \mathfrak{q}_2, \quad (1 + \sqrt{-5}) = \mathfrak{p}\mathfrak{q}_1, \quad (1 - \sqrt{-5}) = \mathfrak{p}\mathfrak{q}_2$$</span><p>其中 <span class=math-inline>$\mathfrak{p} = (2, 1 + \sqrt{-5}), \mathfrak{q}_1 = (3, 1 + \sqrt{-5}), \mathfrak{q}_2 = (3, 1 - \sqrt{-5})$</span>
+。这句话的意思是：把元素升级成理想后，<span class=math-inline>$(6) = \mathfrak{p}^2 \mathfrak{q}_1 \mathfrak{q}_2$</span>
+的分解唯一确定，歧义只在于如何把素理想打包回元素。理想理论把破碎的算术重新缝合。</p><h2 id=从-mathbbz-到-mathbbzx-再到-mathbbqxgauss-引理 class=heading-anchor>从 <span class=math-inline>$\mathbb{Z}$</span>
 到 <span class=math-inline>$\mathbb{Z}[x]$</span>
 再到 <span class=math-inline>$\mathbb{Q}[x]$</span>
-：Gauss 引理<a href=#%e4%bb%8e-mathbbz-%e5%88%b0-mathbbzx-%e5%86%8d%e5%88%b0-mathbbqxgauss-%e5%bc%95%e7%90%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>定义 <span class=math-inline>$f \in \mathbb{Z}[x]$</span>
-的内容为 <span class=math-inline>$c(f) = \gcd$</span>
-系数。<span class=math-inline>$f$</span>
-是<em>本原的</em>如果 <span class=math-inline>$c(f) = 1$</span>
-。</p><p>对于 UFD <span class=math-inline>$R$</span>
-上的多项式，内容定义为系数的 gcd（在单位意义下是良定义的）。内容扩展为一个乘法函数：<span class=math-inline>$c(fg) = c(f) c(g)$</span>
-（这是 Gauss 引理的内容版本）。每个非零 <span class=math-inline>$f \in R[x]$</span>
-唯一地（在单位意义下）分解为 <span class=math-inline>$f = c(f) \cdot f^*$</span>
+：Gauss 引理<a href=#%e4%bb%8e-mathbbz-%e5%88%b0-mathbbzx-%e5%86%8d%e5%88%b0-mathbbqxgauss-%e5%bc%95%e7%90%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>整系数多项式和有理系数多项式之间，隔着一道分母的墙。Gauss 引理（Gauss&rsquo;s Lemma）就是拆墙的炸药。</p><p>先定义内容（content）：<span class=math-inline>$f \in \mathbb{Z}[x]$</span>
+的内容 <span class=math-inline>$c(f)$</span>
+是所有系数的最大公因数。如果 <span class=math-inline>$c(f) = 1$</span>
+，<span class=math-inline>$f$</span>
+称为本原多项式（primitive polynomial）。这句话的意思是：把系数的公共因子全抽干，剩下的部分就叫本原的。任何非零 <span class=math-inline>$f$</span>
+可唯一写成 <span class=math-inline>$f = c(f) \cdot f^*$</span>
 ，其中 <span class=math-inline>$f^*$</span>
-是本原的。</p><p>Gauss 引理指出，本原多项式的乘积是本原的。</p><p><em>证明。</em> 如果 <span class=math-inline>$fg$</span>
-的所有系数都能被素数 <span class=math-inline>$p$</span>
-整除，模 <span class=math-inline>$p$</span>
-：<span class=math-inline>$\bar f \bar g = 0$</span>
+本原。</p><span class=math-block>$$c(fg) = c(f) c(g)$$</span><p>这句话的意思是：两个抽干公因子的多项式乘起来，系数绝不会凭空冒出新的公共因子。证明用反证法：假设 <span class=math-inline>$fg$</span>
+的所有系数都被素数 <span class=math-inline>$p$</span>
+整除。模 <span class=math-inline>$p$</span>
+得 <span class=math-inline>$\bar f \bar g = 0$</span>
 在 <span class=math-inline>$\mathbb{F}_p[x]$</span>
-中。整环 <span class=math-inline>$\Rightarrow$</span>
-<span class=math-inline>$\bar f = 0$</span>
-或 <span class=math-inline>$\bar g = 0$</span>
-，与本原性矛盾。<span class=math-inline>$\square$</span></p><p>进一步可得：<span class=math-inline>$f \in \mathbb{Z}[x]$</span>
-本原，<span class=math-inline>$f = gh$</span>
+中。这句话的意思是：有限域上的多项式环是整环，乘积为零必有一个因子为零，即 <span class=math-inline>$\bar f=0$</span>
+或 <span class=math-inline>$\bar g=0$</span>
+，说明 <span class=math-inline>$f$</span>
+或 <span class=math-inline>$g$</span>
+的系数全被 <span class=math-inline>$p$</span>
+整除，和本原性矛盾。</p><p>推论极其实用：设 <span class=math-inline>$f \in \mathbb{Z}[x]$</span>
+本原。如果 <span class=math-inline>$f = gh$</span>
 在 <span class=math-inline>$\mathbb{Q}[x]$</span>
-中 <span class=math-inline>$\Rightarrow$</span>
-存在 <span class=math-inline>$g^*, h^* \in \mathbb{Z}[x]$</span>
+中成立，那么存在 <span class=math-inline>$g^*, h^* \in \mathbb{Z}[x]$</span>
 使得 <span class=math-inline>$f = g^* h^*$</span>
-，次数相同。</p><p>可以证明：<span class=math-inline>$\mathbb{Z}[x]$</span>
+且次数对应相同。这句话的意思是：有理数域上的分解，分母会被自动清除，拉回整数环后依然成立。这就是为什么首一整系数多项式的有理根必为整数。</p><p>定理：<span class=math-inline>$\mathbb{Z}[x]$</span>
 是 UFD。更一般地，<span class=math-inline>$R$</span>
 是 UFD <span class=math-inline>$\Rightarrow$</span>
 <span class=math-inline>$R[x]$</span>
-是 UFD。通过归纳 <span class=math-inline>$R[x_1, \ldots, x_n]$</span>
-是 UFD。</p><p><em>证明 <span class=math-inline>$\mathbb{Z}[x]$</span>
-的草图。</em> 使用 <span class=math-inline>$\mathbb{Z}$</span>
-是 UFD 和 <span class=math-inline>$\mathbb{Q}[x]$</span>
-是 UFD。对于非零 <span class=math-inline>$f \in \mathbb{Z}[x]$</span>
-，写 <span class=math-inline>$f = c(f) \cdot f^*$</span>
-其中 <span class=math-inline>$f^*$</span>
-是本原的。通过 <span class=math-inline>$\mathbb{Z}$</span>
--UFD 分解 <span class=math-inline>$c(f)$</span>
-，通过 <span class=math-inline>$\mathbb{Q}[x]$</span>
--UFD 分解 <span class=math-inline>$f^*$</span>
-。根据 Gauss 的推论，<span class=math-inline>$f^*$</span>
-的因子可以在 <span class=math-inline>$\mathbb{Z}[x]$</span>
-中选取且是本原的。唯一性：结合 <span class=math-inline>$\mathbb{Z}$</span>
--唯一性、<span class=math-inline>$\mathbb{Q}[x]$</span>
--唯一性和 Gauss 引理。</p><p>同样的论证适用于任何 UFD <span class=math-inline>$R$</span>
-代替 <span class=math-inline>$\mathbb{Z}$</span>
-，使用 <span class=math-inline>$\text{Frac}(R)$</span>
-代替 <span class=math-inline>$\mathbb{Q}$</span>
-。</p><p>Gauss 引理是整系数和有理系数因子分解之间的桥梁。没有它，回答“这个 <span class=math-inline>$\mathbb{Z}[x]$</span>
--多项式是否不可约？”的问题会更难使用 <span class=math-inline>$\mathbb{Q}[x]$</span>
-工具。</p><p>第二个后果：它告诉我们“因子清除分母。”如果 <span class=math-inline>$f \in \mathbb{Z}[x]$</span>
-是首一的并在 <span class=math-inline>$\mathbb{Q}$</span>
-上分解为首一因子，那么这些因子自动在 <span class=math-inline>$\mathbb{Z}[x]$</span>
-中。这就是为什么有理根测试产生整数根而不是仅仅有理根。</p><h3 id=层次回顾 class=heading-anchor>层次回顾<a href=#%e5%b1%82%e6%ac%a1%e5%9b%9e%e9%a1%be class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>层次</th><th>示例</th><th>为什么这一层</th></tr></thead><tbody><tr><td>域</td><td><span class=math-inline>$\mathbb{Q}, \mathbb{F}_p$</span></td><td>每个非零元素可逆</td></tr><tr><td>Euclidean，非域</td><td><span class=math-inline>$\mathbb{Z}, F[x]$</span></td><td>除法算法存在</td></tr><tr><td>PID，非 Euclidean</td><td><span class=math-inline>$\mathbb{Z}[(1+\sqrt{-19})/2]$</span></td><td>每个理想为主理想，无 Euclidean 函数</td></tr><tr><td>UFD，非 PID</td><td><span class=math-inline>$\mathbb{Z}[x]$</span></td><td>唯一分解成立，<span class=math-inline>$(2, x)$</span>
-不为主理想</td></tr><tr><td>整环，非 UFD</td><td><span class=math-inline>$\mathbb{Z}[\sqrt{-5}]$</span></td><td><span class=math-inline>$6 = 2 \cdot 3 = (1+\sqrt{-5})(1-\sqrt{-5})$</span></td></tr></tbody></table></div><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/06-polynomial-rings/aa_v2_06_6_poly_grid.png alt="Z[x] 中单项式的网格结构" loading=lazy decoding=async class=content-image></figure></p><h2 id=实际中的因式分解 class=heading-anchor>实际中的因式分解<a href=#%e5%ae%9e%e9%99%85%e4%b8%ad%e7%9a%84%e5%9b%a0%e5%bc%8f%e5%88%86%e8%a7%a3 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>例4.</strong> 在 <span class=math-inline>$\mathbb{Q}$</span>
-上分解 <span class=math-inline>$f = 2x^4 + 3x^3 - 4x^2 - 3x + 2$</span>
-。</p><p>有理根测试：候选根为 <span class=math-inline>$\pm 1, \pm 2, \pm 1/2$</span>
-。计算得 <span class=math-inline>$f(1) = 0$</span>
-，<span class=math-inline>$f(-2) = 0$</span>
-。除以 <span class=math-inline>$(x-1)(x+2) = x^2 + x - 2$</span>
-：</p><span class=math-block>$$f = (x^2 + x - 2)(2x^2 + x - 1) = (x-1)(x+2)(2x-1)(x+1)$$</span><p>验证一下：展开 <span class=math-inline>$(x-1)(x+2)(2x-1)(x+1) = (x^2+x-2)(2x^2+x-1)$</span>
-。乘起来：<span class=math-inline>$2x^4 + x^3 - x^2 + 2x^3 + x^2 - x - 4x^2 - 2x + 2 = 2x^4 + 3x^3 - 4x^2 - 3x + 2$</span>
-。正确。</p><p><strong>例5.</strong> <span class=math-inline>$f = x^4 - 10x^2 + 1$</span>
-在 <span class=math-inline>$\mathbb{Q}$</span>
-上是否不可约？</p><p>有理根测试：<span class=math-inline>$\pm 1$</span>
-都不行。</p><p>尝试二次因子：<span class=math-inline>$(x^2 + ax + b)(x^2 + cx + d)$</span>
-。比较系数得 <span class=math-inline>$a + c = 0$</span>
-，所以 <span class=math-inline>$c = -a$</span>
-。<span class=math-inline>$bd = 1$</span>
-。<span class=math-inline>$a(d - b) = 0$</span>
-，因此 <span class=math-inline>$a = 0$</span>
-或 <span class=math-inline>$d = b$</span>
-。</p><p>如果 <span class=math-inline>$a = 0$</span>
-：<span class=math-inline>$b + d = -10, bd = 1$</span>
-。方程 <span class=math-inline>$t^2 + 10t + 1$</span>
-的根是 <span class=math-inline>$-5 \pm 2\sqrt 6$</span>
-，无理数。</p><p>如果 <span class=math-inline>$d = b$</span>
-：<span class=math-inline>$b^2 = 1$</span>
-，所以 <span class=math-inline>$b = \pm 1$</span>
-。<span class=math-inline>$a^2 = 12$</span>
-或 <span class=math-inline>$a^2 = 8$</span>
-，都是无理数。</p><p>因此 <span class=math-inline>$f$</span>
-不可约。（这是 <span class=math-inline>$\sqrt 2 + \sqrt 3$</span>
-的最小多项式。）</p><p><strong>例5b.</strong> 验证 <span class=math-inline>$\sqrt 2 + \sqrt 3$</span>
-是 <span class=math-inline>$x^4 - 10x^2 + 1$</span>
-的根。设 <span class=math-inline>$\alpha = \sqrt 2 + \sqrt 3$</span>
-。<span class=math-inline>$\alpha^2 = 2 + 2\sqrt 6 + 3 = 5 + 2\sqrt 6$</span>
-。<span class=math-inline>$\alpha^2 - 5 = 2\sqrt 6$</span>
-。<span class=math-inline>$(\alpha^2 - 5)^2 = 24$</span>
-。所以 <span class=math-inline>$\alpha^4 - 10\alpha^2 + 25 = 24$</span>
-，即 <span class=math-inline>$\alpha^4 - 10\alpha^2 + 1 = 0$</span>
-。正确。</p><p>因为 <span class=math-inline>$\mathbb{Q}(\sqrt 2, \sqrt 3)$</span>
-在 <span class=math-inline>$\mathbb{Q}$</span>
-上的次数是 <span class=math-inline>$4$</span>
-（四个基元素 <span class=math-inline>$1, \sqrt 2, \sqrt 3, \sqrt 6$</span>
-线性无关），<span class=math-inline>$\alpha$</span>
-的最小多项式的次数整除 <span class=math-inline>$4$</span>
-。由于 <span class=math-inline>$\alpha \notin \mathbb{Q}$</span>
-和 <span class=math-inline>$\alpha^2 \notin \mathbb{Q}$</span>
-，最小多项式的次数大于 <span class=math-inline>$2$</span>
-。结合 <span class=math-inline>$f(\alpha) = 0$</span>
-和 <span class=math-inline>$\deg f = 4$</span>
-，<span class=math-inline>$f$</span>
-就是最小多项式。</p><p><strong>例6.</strong> <span class=math-inline>$f = x^5 + 6x^4 + 9x^3 + 12x + 3$</span>
-。用 Eisenstein 判别法，取 <span class=math-inline>$p = 3$</span>
-：最高次项系数 <span class=math-inline>$1$</span>
-（<span class=math-inline>$3 \nmid 1$</span>
-）；<span class=math-inline>$6, 9, 0, 12, 3$</span>
-都能被 <span class=math-inline>$3$</span>
-整除；常数项 <span class=math-inline>$3$</span>
-不能被 <span class=math-inline>$9$</span>
-整除。Eisenstein 判别法适用，所以 <span class=math-inline>$f$</span>
-不可约。</p><p><strong>例：当 Eisenstein 直接失效时。</strong> <span class=math-inline>$f = x^4 + 1$</span>
-。没有素数 <span class=math-inline>$p$</span>
-能直接应用 Eisenstein 判别法。但代换 <span class=math-inline>$x \to x + 1$</span>
-：<span class=math-inline>$(x+1)^4 + 1 = x^4 + 4x^3 + 6x^2 + 4x + 2$</span>
-。用 Eisenstein 判别法，取 <span class=math-inline>$p = 2$</span>
-：最高次项系数 <span class=math-inline>$1$</span>
-，其他项 <span class=math-inline>$4, 6, 4, 2$</span>
-都能被 <span class=math-inline>$2$</span>
-整除，常数项 <span class=math-inline>$2$</span>
-不能被 <span class=math-inline>$4$</span>
-整除。所以 <span class=math-inline>$(x+1)^4 + 1$</span>
-不可约，从而 <span class=math-inline>$x^4 + 1$</span>
-也不可约。（代换保持不可约性，因为 <span class=math-inline>$x \to x + 1$</span>
-是 <span class=math-inline>$\mathbb{Q}[x]$</span>
-的环自同构。）</p><p><strong>例：<span class=math-inline>$\Phi_5(x) = x^4 + x^3 + x^2 + x + 1$</span>
-。</strong> 用代换后的 Eisenstein 判别法：<span class=math-inline>$\Phi_5(x+1) = ((x+1)^5 - 1)/x$</span>
-。直接展开：<span class=math-inline>$(x+1)^5 - 1 = x^5 + 5x^4 + 10x^3 + 10x^2 + 5x$</span>
-。除以 <span class=math-inline>$x$</span>
-：<span class=math-inline>$x^4 + 5x^3 + 10x^2 + 10x + 5$</span>
-。用 Eisenstein 判别法，取 <span class=math-inline>$p = 5$</span>
-：所有条件都满足。所以 <span class=math-inline>$\Phi_5$</span>
-不可约。这是关于分圆多项式的普遍事实的一个特例，<span class=math-inline>$p = 5$</span>
-。</p><p><strong>例7.</strong> 在 <span class=math-inline>$\mathbb{Q}$</span>
-上分解 <span class=math-inline>$x^6 - 1$</span>
-。根是六次单位根。分解为：</p><span class=math-block>$$x^6 - 1 = (x^3 - 1)(x^3 + 1) = (x - 1)(x^2 + x + 1)(x + 1)(x^2 - x + 1)$$</span><p>四个不可约因子。每个分圆多项式 <span class=math-inline>$\Phi_d$</span>
-对于 <span class=math-inline>$d \mid 6$</span>
-贡献一次：<span class=math-inline>$\Phi_1 = x - 1, \Phi_2 = x + 1, \Phi_3 = x^2 + x + 1, \Phi_6 = x^2 - x + 1$</span>
-。</p><p>一般公式：<span class=math-inline>$x^n - 1 = \prod_{d \mid n} \Phi_d(x)$</span>
-。对于 <span class=math-inline>$n = 12$</span>
-：<span class=math-inline>$x^{12} - 1 = \Phi_1 \Phi_2 \Phi_3 \Phi_4 \Phi_6 \Phi_{12}$</span>
-。次数总和：<span class=math-inline>$1 + 1 + 2 + 2 + 2 + 4 = 12$</span>
-。正确。</p><p>这种分解反映了 <span class=math-inline>$n$</span>
-次单位根按其阶 <span class=math-inline>$d \mid n$</span>
-划分的几何事实。每个 <span class=math-inline>$\Phi_d$</span>
-收集了原始的 <span class=math-inline>$d$</span>
-次单位根。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/06-polynomial-rings/aa_v2_06_7_root_complex.png alt=三次单位根在复平面上的分布 loading=lazy decoding=async class=content-image></figure></p><p><strong>例8.</strong> <span class=math-inline>$x^3 - 2$</span>
-在 <span class=math-inline>$\mathbb{C}$</span>
-上的根：<span class=math-inline>$\sqrt[3]{2}, \sqrt[3]{2}\omega, \sqrt[3]{2}\omega^2$</span>
-，其中 <span class=math-inline>$\omega = e^{2\pi i/3}$</span>
-。这三个点在复平面上形成一个等边三角形，位于半径为 <span class=math-inline>$\sqrt[3]{2}$</span>
-的圆上。在 <span class=math-inline>$\mathbb{Q}$</span>
-上，<span class=math-inline>$x^3 - 2$</span>
-不可约（用 Eisenstein 判别法，取 <span class=math-inline>$p = 2$</span>
-）。分裂域是 <span class=math-inline>$\mathbb{Q}(\sqrt[3]{2}, \omega)$</span>
-，是 <span class=math-inline>$\mathbb{Q}$</span>
-的六次扩张，Galois 群是 <span class=math-inline>$S_3$</span>
-。</p><p><strong>例9.</strong> 在 <span class=math-inline>$\mathbb{Q}$</span>
-和 <span class=math-inline>$\mathbb{R}$</span>
-上分解 <span class=math-inline>$x^4 - 4$</span>
-。在 <span class=math-inline>$\mathbb{Q}$</span>
-上：<span class=math-inline>$x^4 - 4 = (x^2 - 2)(x^2 + 2)$</span>
-。两个因子在 <span class=math-inline>$\mathbb{Q}$</span>
-上都不可约（判别式 <span class=math-inline>$\pm 8$</span>
-）。在 <span class=math-inline>$\mathbb{R}$</span>
-上：<span class=math-inline>$x^2 - 2 = (x - \sqrt 2)(x + \sqrt 2)$</span>
-，但 <span class=math-inline>$x^2 + 2$</span>
-仍然不可约（没有实根）。在 <span class=math-inline>$\mathbb{C}$</span>
-上：完全分解为线性因子 <span class=math-inline>$(x - \sqrt 2)(x + \sqrt 2)(x - i\sqrt 2)(x + i\sqrt 2)$</span>
-。随着域的扩大，分解越来越细。</p><p><strong>例10.</strong> 在 <span class=math-inline>$\mathbb{Z}$</span>
-上分解 <span class=math-inline>$x^4 + 4$</span>
-。尝试 Sophie Germain 方法：<span class=math-inline>$x^4 + 4 = x^4 + 4x^2 + 4 - 4x^2 = (x^2 + 2)^2 - (2x)^2 = (x^2 + 2x + 2)(x^2 - 2x + 2)$</span>
-。两个二次因子。每个在 <span class=math-inline>$\mathbb{Z}$</span>
-上都不可约（判别式 <span class=math-inline>$4 - 8 = -4$</span>
-，没有实根）。所以 <span class=math-inline>$x^4 + 4$</span>
+是 UFD。这句话的意思是：基环能唯一分解，多项式环也能唯一分解，变量随便加都不怕。证明骨架：对 <span class=math-inline>$f \in \mathbb{Z}[x]$</span>
+写 <span class=math-inline>$f = c(f) f^*$</span>
+。<span class=math-inline>$c(f)$</span>
 在 <span class=math-inline>$\mathbb{Z}$</span>
-上可约，尽管 <span class=math-inline>$x^4 + 1$</span>
-不可约。这种分解不明显；这是不可约性问题中的经典陷阱之一。</p><p><strong>例11.</strong> 在 <span class=math-inline>$\mathbb{Z}[x, y]$</span>
-中分解 <span class=math-inline>$f(x, y) = x^2 - y^2$</span>
-。利用平方差公式：<span class=math-inline>$x^2 - y^2 = (x - y)(x + y)$</span>
-。两个因子都不可约（一次多项式，内容为 <span class=math-inline>$1$</span>
-）。所以 <span class=math-inline>$f$</span>
-有两个不可约因子。相比之下，<span class=math-inline>$x^2 + y^2$</span>
-在 <span class=math-inline>$\mathbb{Z}[x, y]$</span>
-中不可约（因为它在 <span class=math-inline>$\mathbb{R}[x, y]$</span>
-中不可约，所以在 <span class=math-inline>$\mathbb{Q}[x, y]$</span>
-中也不可约，再由 Gauss 引理，在 <span class=math-inline>$\mathbb{Z}[x, y]$</span>
-中也不可约）。</p><p><strong>例12.</strong> 在 <span class=math-inline>$\mathbb{Q}$</span>
-上分解 <span class=math-inline>$f(x, y, z) = x^2 + y^2 + z^2 - xy - yz - xz$</span>
-。这是一个对称二次型。尝试 <span class=math-inline>$f(x, x, x) = 3x^2 - 3x^2 = 0$</span>
-，所以 <span class=math-inline>$f$</span>
-在对角线上消失。这提示 <span class=math-inline>$(x - y)$</span>
-可能是 <span class=math-inline>$f$</span>
-的因子（将 <span class=math-inline>$f$</span>
-视为 <span class=math-inline>$x$</span>
-的多项式）。计算：<span class=math-inline>$f$</span>
-作为 <span class=math-inline>$x$</span>
-的多项式是 <span class=math-inline>$x^2 - (y + z) x + (y^2 + z^2 - yz)$</span>
-。判别式：<span class=math-inline>$(y + z)^2 - 4(y^2 + z^2 - yz) = y^2 + 2yz + z^2 - 4y^2 - 4z^2 + 4yz = -3y^2 + 6yz - 3z^2 = -3(y - z)^2$</span>
-。所以根是 <span class=math-inline>$x = ((y + z) \pm (y - z)\sqrt{-3})/2$</span>
-。不在 <span class=math-inline>$\mathbb{Q}$</span>
-中。所以 <span class=math-inline>$f$</span>
+里唯一分解，<span class=math-inline>$f^*$</span>
+在 <span class=math-inline>$\mathbb{Q}[x]$</span>
+里唯一分解。由 Gauss 推论，<span class=math-inline>$f^*$</span>
+的因子可取在 <span class=math-inline>$\mathbb{Z}[x]$</span>
+且本原。这句话的意思是：整数部分的唯一性和有理多项式部分的唯一性，被 Gauss 引理无缝焊接，整体唯一性得证。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/06-polynomial-rings/aa_v2_06_6_poly_grid.png alt="Z[x] 中单项式的网格结构" loading=lazy decoding=async class=content-image></figure></p><h3 id=层次回顾 class=heading-anchor>层次回顾<a href=#%e5%b1%82%e6%ac%a1%e5%9b%9e%e9%a1%be class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>环的优良性质是一层层叠加的。我整理了一张对照表，帮你一眼看清位置：</p><div class=table-wrap><table><thead><tr><th>层次</th><th>示例</th><th>为什么卡在这一层</th></tr></thead><tbody><tr><td>域（Field）</td><td><span class=math-inline>$\mathbb{Q}, \mathbb{F}_p$</span></td><td>每个非零元可逆，除法畅通无阻</td></tr><tr><td>欧几里得整环（Euclidean domain）</td><td><span class=math-inline>$\mathbb{Z}, F[x]$</span></td><td>有带余除法，能跑辗转相除</td></tr><tr><td>主理想整环（PID）</td><td><span class=math-inline>$\mathbb{Z}[(1+\sqrt{-19})/2]$</span></td><td>理想全是主理想，但找不到欧几里得函数</td></tr><tr><td>唯一分解整环（UFD）</td><td><span class=math-inline>$\mathbb{Z}[x]$</span></td><td>分解唯一，但 <span class=math-inline>$(2,x)$</span>
+不是主理想</td></tr><tr><td>整环（Integral domain）</td><td><span class=math-inline>$\mathbb{Z}[\sqrt{-5}]$</span></td><td>无零因子，但 <span class=math-inline>$6$</span>
+有两套分解，UFD 失败</td></tr></tbody></table></div><p>这句话的意思是：从域到整环，每往下掉一层，就丢失一种算术便利，但换来更广的适用范围。多项式环 <span class=math-inline>$R[x]$</span>
+的性质完全由基环 <span class=math-inline>$R$</span>
+的层级决定。</p><h2 id=实际中的因式分解 class=heading-anchor>实际中的因式分解<a href=#%e5%ae%9e%e9%99%85%e4%b8%ad%e7%9a%84%e5%9b%a0%e5%bc%8f%e5%88%86%e8%a7%a3 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>理论装进工具箱后，必须上手拧螺丝。下面我挑出一组典型例子，把判别法、除法算法和 Gauss 引理串起来算透。每个例子我都会把步骤摊开，让你看到决策树是怎么实时生长的。</p><p><strong>例 4（有理根+除法）</strong>：在 <span class=math-inline>$\mathbb{Q}$</span>
+上分解 <span class=math-inline>$f = 2x^4 + 3x^3 - 4x^2 - 3x + 2$</span>
+。
+候选根 <span class=math-inline>$\pm 1, \pm 2, \pm 1/2$</span>
+。试算 <span class=math-inline>$f(1) = 2+3-4-3+2=0$</span>
+，<span class=math-inline>$f(-2) = 32-24-16+6+2=0$</span>
+。这句话的意思是：<span class=math-inline>$1$</span>
+和 <span class=math-inline>$-2$</span>
+都是根，<span class=math-inline>$(x-1)(x+2)=x^2+x-2$</span>
+是因子。做除法：<span class=math-inline>$(2x^4 + 3x^3 - 4x^2 - 3x + 2) \div (x^2+x-2) = 2x^2 + x - 1$</span>
+。二次项分解：<span class=math-inline>$2x^2+x-1 = (2x-1)(x+1)$</span>
+。最终 <span class=math-inline>$f = (x-1)(x+2)(2x-1)(x+1)$</span>
+。展开验证：<span class=math-inline>$(x^2+x-2)(2x^2+x-1) = 2x^4 + x^3 - x^2 + 2x^3 + x^2 - x - 4x^2 - 2x + 2 = 2x^4 + 3x^3 - 4x^2 - 3x + 2$</span>
+。这句话的意思是：四项一次因子相乘完美还原原式，分解闭合。</p><p><strong>例 5（系数硬比）</strong>：<span class=math-inline>$f = x^4 - 10x^2 + 1$</span>
 在 <span class=math-inline>$\mathbb{Q}$</span>
+上是否不可约？
+有理根 <span class=math-inline>$\pm 1$</span>
+均非根。假设分解为两个二次式 <span class=math-inline>$(x^2+ax+b)(x^2+cx+d)$</span>
+。展开比对系数：<span class=math-inline>$a+c=0 \Rightarrow c=-a$</span>
+；<span class=math-inline>$bd=1$</span>
+；<span class=math-inline>$a(d-b)=0$</span>
+。这句话的意思是：交叉项系数为零迫使 <span class=math-inline>$a=0$</span>
+或 <span class=math-inline>$d=b$</span>
+。
+情形 <span class=math-inline>$a=0$</span>
+：<span class=math-inline>$b+d=-10, bd=1$</span>
+。<span class=math-inline>$t^2+10t+1=0$</span>
+的根是 <span class=math-inline>$-5\pm 2\sqrt{6}$</span>
+，非有理数。
+情形 <span class=math-inline>$d=b$</span>
+：<span class=math-inline>$b^2=1 \Rightarrow b=\pm 1$</span>
+。代入得 <span class=math-inline>$-a^2+2b=-10$</span>
+，即 <span class=math-inline>$a^2=12$</span>
+或 <span class=math-inline>$a^2=8$</span>
+，均非有理平方。
+这句话的意思是：所有可能的有理系数二次分解路径全被堵死，<span class=math-inline>$f$</span>
+在 <span class=math-inline>$\mathbb{Q}$</span>
+上不可约。顺便一提，这正是 <span class=math-inline>$\sqrt{2}+\sqrt{3}$</span>
+的最小多项式。</p><p><strong>例 5b（根验证与扩域次数）</strong>：验证 <span class=math-inline>$\alpha = \sqrt{2}+\sqrt{3}$</span>
+是 <span class=math-inline>$x^4-10x^2+1$</span>
+的根。
+<span class=math-inline>$\alpha^2 = 2 + 2\sqrt{6} + 3 = 5 + 2\sqrt{6}$</span>
+。移项 <span class=math-inline>$\alpha^2 - 5 = 2\sqrt{6}$</span>
+。两边平方 <span class=math-inline>$(\alpha^2-5)^2 = 24$</span>
+。展开 <span class=math-inline>$\alpha^4 - 10\alpha^2 + 25 = 24$</span>
+，即 <span class=math-inline>$\alpha^4 - 10\alpha^2 + 1 = 0$</span>
+。这句话的意思是：代数操作消去根号后，<span class=math-inline>$\alpha$</span>
+精确满足该四次方程。因为 <span class=math-inline>$\mathbb{Q}(\sqrt{2},\sqrt{3})$</span>
+在 <span class=math-inline>$\mathbb{Q}$</span>
+上的扩张次数是 <span class=math-inline>$4$</span>
+（基 <span class=math-inline>$1,\sqrt{2},\sqrt{3},\sqrt{6}$</span>
+线性无关），<span class=math-inline>$\alpha$</span>
+的最小多项式次数必整除 <span class=math-inline>$4$</span>
+。又 <span class=math-inline>$\alpha \notin \mathbb{Q}, \alpha^2 \notin \mathbb{Q}$</span>
+，次数大于 <span class=math-inline>$2$</span>
+。结合 <span class=math-inline>$f(\alpha)=0$</span>
+且 <span class=math-inline>$\deg f=4$</span>
+，<span class=math-inline>$f$</span>
+就是最小多项式。这句话的意思是：次数匹配加根验证，直接锁定不可约性。</p><p><strong>例 6（Eisenstein 直杀）</strong>：<span class=math-inline>$f = x^5 + 6x^4 + 9x^3 + 12x + 3$</span>
+。取 <span class=math-inline>$p=3$</span>
+。<span class=math-inline>$3 \nmid 1$</span>
+；<span class=math-inline>$3 \mid 6,9,0,12,3$</span>
+；<span class=math-inline>$9 \nmid 3$</span>
+。这句话的意思是：Eisenstein 三条件全中，<span class=math-inline>$f$</span>
+在 <span class=math-inline>$\mathbb{Q}$</span>
+上不可约，计算结束。</p><p><strong>例 7（分圆多项式分解）</strong>：在 <span class=math-inline>$\mathbb{Q}$</span>
+上分解 <span class=math-inline>$x^6 - 1$</span>
+。
+利用平方差和立方差：<span class=math-inline>$x^6-1 = (x^3-1)(x^3+1) = (x-1)(x^2+x+1)(x+1)(x^2-x+1)$</span>
+。这句话的意思是：六次单位根按阶数分组，每个分圆多项式 <span class=math-inline>$\Phi_d$</span>
+贡献一个不可约因子。一般公式 <span class=math-inline>$x^n - 1 = \prod_{d \mid n} \Phi_d(x)$</span>
+。对 <span class=math-inline>$n=12$</span>
+：<span class=math-inline>$x^{12}-1 = \Phi_1 \Phi_2 \Phi_3 \Phi_4 \Phi_6 \Phi_{12}$</span>
+。次数和 <span class=math-inline>$1+1+2+2+2+4=12$</span>
+。这句话的意思是：分圆分解把单位根的几何对称性翻译成了代数因子的乘积。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/06_cyclotomic.png alt=分圆多项式在复平面上的根分布 loading=lazy decoding=async class=content-image></figure></p><p><strong>例 8（复根与伽罗瓦群预览）</strong>：<span class=math-inline>$x^3 - 2$</span>
+在 <span class=math-inline>$\mathbb{C}$</span>
+上的根是 <span class=math-inline>$\sqrt[3]{2}, \sqrt[3]{2}\omega, \sqrt[3]{2}\omega^2$</span>
+，其中 <span class=math-inline>$\omega = e^{2\pi i/3}$</span>
+。这句话的意思是：三个根在复平面上构成等边三角形，半径 <span class=math-inline>$\sqrt[3]{2}$</span>
+。在 <span class=math-inline>$\mathbb{Q}$</span>
+上，<span class=math-inline>$x^3-2$</span>
+用 Eisenstein (<span class=math-inline>$p=2$</span>
+) 判定不可约。分裂域是 <span class=math-inline>$K = \mathbb{Q}(\sqrt[3]{2}, \omega)$</span>
+，扩张次数 <span class=math-inline>$[K:\mathbb{Q}] = 6$</span>
+。伽罗瓦群 <span class=math-inline>$\text{Gal}(K/\mathbb{Q})$</span>
+同构于 <span class=math-inline>$S_3$</span>
+。具体计算：自同构由根的重排决定。<span class=math-inline>$\sigma$</span>
+可把 <span class=math-inline>$\sqrt[3]{2}$</span>
+映到三个根之一，把 <span class=math-inline>$\omega$</span>
+映到 <span class=math-inline>$\omega$</span>
+或 <span class=math-inline>$\omega^2$</span>
+。组合起来正好 <span class=math-inline>$3 \times 2 = 6$</span>
+个自同构。例如 <span class=math-inline>$\tau(\sqrt[3]{2}) = \sqrt[3]{2}\omega, \tau(\omega)=\omega$</span>
+是 <span class=math-inline>$3$</span>
+-循环；<span class=math-inline>$\rho(\sqrt[3]{2})=\sqrt[3]{2}, \rho(\omega)=\omega^2$</span>
+是对换。这句话的意思是：根的置换对称性完全决定了域扩张的自同构群，多项式分解和群论在这里第一次正面握手。</p><p><strong>例 9（基域扩张的细化）</strong>：分解 <span class=math-inline>$x^4 - 4$</span>
+。
+在 <span class=math-inline>$\mathbb{Q}$</span>
+上：<span class=math-inline>$x^4-4 = (x^2-2)(x^2+2)$</span>
+。两个二次式判别式 <span class=math-inline>$\pm 8$</span>
+非平方，均不可约。
+在 <span class=math-inline>$\mathbb{R}$</span>
+上：<span class=math-inline>$x^2-2 = (x-\sqrt{2})(x+\sqrt{2})$</span>
+，但 <span class=math-inline>$x^2+2$</span>
+仍不可约。
+在 <span class=math-inline>$\mathbb{C}$</span>
+上：<span class=math-inline>$x^2+2 = (x-i\sqrt{2})(x+i\sqrt{2})$</span>
+。完全分解为 <span class=math-inline>$(x-\sqrt{2})(x+\sqrt{2})(x-i\sqrt{2})(x+i\sqrt{2})$</span>
+。这句话的意思是：域越大，能用的常数越多，因子就拆得越碎，直到全变成一次式。</p><p><strong>例 10（Sophie Germain 陷阱）</strong>：在 <span class=math-inline>$\mathbb{Z}$</span>
+上分解 <span class=math-inline>$x^4 + 4$</span>
+。
+配方：<span class=math-inline>$x^4 + 4 = x^4 + 4x^2 + 4 - 4x^2 = (x^2+2)^2 - (2x)^2 = (x^2+2x+2)(x^2-2x+2)$</span>
+。这句话的意思是：看似不可约的四次式，补项造平方差后裂成两个二次式。判别式 <span class=math-inline>$4-8=-4$</span>
+，无实根，在 <span class=math-inline>$\mathbb{Z}$</span>
+上已不可约。这是不可约性问题的经典反直觉案例。</p><p><strong>例 11（多元分解）</strong>：在 <span class=math-inline>$\mathbb{Z}[x,y]$</span>
+中分解 <span class=math-inline>$x^2 - y^2$</span>
+。
+平方差：<span class=math-inline>$x^2-y^2 = (x-y)(x+y)$</span>
+。两个一次式内容均为 <span class=math-inline>$1$</span>
+，不可约。对比 <span class=math-inline>$x^2+y^2$</span>
+：在 <span class=math-inline>$\mathbb{R}[x,y]$</span>
+中不可约，由 Gauss 引理推知在 <span class=math-inline>$\mathbb{Z}[x,y]$</span>
+中也不可约。这句话的意思是：多元多项式的不可约性可以降维到系数域判断，符号差一个正负号，分解命运截然不同。</p><p><strong>例 12（对称二次型）</strong>：分解 <span class=math-inline>$f = x^2 + y^2 + z^2 - xy - yz - xz$</span>
+。
+视作 <span class=math-inline>$x$</span>
+的多项式：<span class=math-inline>$x^2 - (y+z)x + (y^2+z^2-yz)$</span>
+。判别式 <span class=math-inline>$\Delta = (y+z)^2 - 4(y^2+z^2-yz) = -3(y-z)^2$</span>
+。根为 <span class=math-inline>$x = \frac{y+z \pm (y-z)\sqrt{-3}}{2}$</span>
+。这句话的意思是：根含 <span class=math-inline>$\sqrt{-3}$</span>
+，不在 <span class=math-inline>$\mathbb{Q}$</span>
+中，所以 <span class=math-inline>$f$</span>
+在 <span class=math-inline>$\mathbb{Q}[x,y,z]$</span>
 上不可约。在 <span class=math-inline>$\mathbb{Q}(\sqrt{-3})$</span>
-上，它分解为两个 <span class=math-inline>$x$</span>
-的线性因子（系数在 <span class=math-inline>$\mathbb{Q}(\sqrt{-3})[y, z]$</span>
-中）。</p><p><strong>例13.</strong> <span class=math-inline>$f(x) = x^p - x \in \mathbb{F}_p[x]$</span>
-，其中 <span class=math-inline>$p$</span>
-是素数。在 <span class=math-inline>$\mathbb{F}_p$</span>
-上，<span class=math-inline>$\mathbb{F}_p$</span>
-的每个元素都是根（由 Fermat 小定理：<span class=math-inline>$a^p = a$</span>
-对于 <span class=math-inline>$a \in \mathbb{F}_p$</span>
-成立）。所以 <span class=math-inline>$f(x) = \prod_{a \in \mathbb{F}_p}(x - a)$</span>
-，是一个 <span class=math-inline>$p$</span>
-个线性因子的乘积。多项式 <span class=math-inline>$x^p - x$</span>
-有 <span class=math-inline>$\mathbb{F}_p$</span>
-中的所有元素作为根，这很不寻常：一个 <span class=math-inline>$p$</span>
+上可裂为两个 <span class=math-inline>$x$</span>
+的一次因子。系数域的微小扩张直接改变分解状态。</p><span class=math-block>$$x^p - x = \prod_{a \in \mathbb{F}_p} (x - a)$$</span><p>这句话的意思是：<span class=math-inline>$p$</span>
 次多项式在 <span class=math-inline>$p$</span>
-元素的域中有 <span class=math-inline>$p$</span>
-个根。</p><p><strong>例14.</strong> 在 <span class=math-inline>$\mathbb{F}_2$</span>
-上分解 <span class=math-inline>$x^4 + x^3 + x^2 + x + 1$</span>
-。这是 <span class=math-inline>$\Phi_5(x)$</span>
-，第五分圆多项式。在 <span class=math-inline>$\mathbb{F}_2$</span>
-上，看 <span class=math-inline>$2$</span>
-在模 <span class=math-inline>$5$</span>
-下的阶：<span class=math-inline>$2, 4, 3, 1$</span>
-（<span class=math-inline>$2$</span>
-的幂模 <span class=math-inline>$5$</span>
-），所以阶是 <span class=math-inline>$4$</span>
-。根据有限域上的分圆多项式理论，<span class=math-inline>$\Phi_5(x)$</span>
+元域里恰好有 <span class=math-inline>$p$</span>
+个根，完全分裂成一次因子，有限域的算术结构在这里展现得淋漓尽致。</p><p><strong>例 14（有限域上的分圆）</strong>：在 <span class=math-inline>$\mathbb{F}_2$</span>
+上分解 <span class=math-inline>$\Phi_5(x) = x^4+x^3+x^2+x+1$</span>
+。
+试根 <span class=math-inline>$f(0)=1, f(1)=1$</span>
+，无一次因子。若可约必为两个二次式。<span class=math-inline>$\mathbb{F}_2$</span>
+上唯一不可约二次式是 <span class=math-inline>$x^2+x+1$</span>
+，但 <span class=math-inline>$(x^2+x+1)^2 = x^4+x^2+1 \neq \Phi_5$</span>
+。这句话的意思是：模 <span class=math-inline>$2$</span>
+后既无根也拼不成二次式，<span class=math-inline>$\Phi_5$</span>
 在 <span class=math-inline>$\mathbb{F}_2$</span>
-上不可约当且仅当 <span class=math-inline>$\text{ord}_5(2) = 4 = \deg \Phi_5$</span>
-。确实如此。所以 <span class=math-inline>$\Phi_5(x)$</span>
-在 <span class=math-inline>$\mathbb{F}_2$</span>
-上不可约。直接验证：它在 <span class=math-inline>$\mathbb{F}_2$</span>
-中没有根（<span class=math-inline>$f(0) = 1, f(1) = 5 = 1$</span>
-）；如果它分解为两个二次多项式，唯一的不可约二次多项式是 <span class=math-inline>$x^2 + x + 1$</span>
-，而 <span class=math-inline>$(x^2 + x + 1)^2 = x^4 + x^2 + 1$</span>
-，不等于 <span class=math-inline>$\Phi_5$</span>
-。所以不可约。</p><p><strong>例15.</strong> 在 <span class=math-inline>$\mathbb{F}_3$</span>
+上不可约。理论解释：<span class=math-inline>$2$</span>
+模 <span class=math-inline>$5$</span>
+的阶是 <span class=math-inline>$4$</span>
+，等于 <span class=math-inline>$\deg \Phi_5$</span>
+，有限域理论保证不可约。</p><p><strong>例 15（Frobenius 轨道）</strong>：在 <span class=math-inline>$\mathbb{F}_3$</span>
 上分解 <span class=math-inline>$x^9 - x$</span>
-。在 <span class=math-inline>$\mathbb{F}_9$</span>
-上，<span class=math-inline>$x^9 - x$</span>
-有 <span class=math-inline>$\mathbb{F}_9$</span>
-中所有 <span class=math-inline>$9$</span>
-个元素作为根，所以 <span class=math-inline>$x^9 - x = \prod_{\alpha \in \mathbb{F}_9}(x - \alpha)$</span>
+。
 在 <span class=math-inline>$\mathbb{F}_9$</span>
-上成立。在 <span class=math-inline>$\mathbb{F}_3$</span>
-上，按 Frobenius 映射 <span class=math-inline>$\alpha \mapsto \alpha^3$</span>
+上，<span class=math-inline>$x^9-x$</span>
+以所有 <span class=math-inline>$9$</span>
+个元素为根。在 <span class=math-inline>$\mathbb{F}_3$</span>
+上按 Frobenius 映射 <span class=math-inline>$\alpha \mapsto \alpha^3$</span>
 的轨道分组。不动点是 <span class=math-inline>$\mathbb{F}_3$</span>
-（三个元素，贡献三个线性因子）。剩下的 <span class=math-inline>$6$</span>
+的 <span class=math-inline>$3$</span>
+个元素，贡献 <span class=math-inline>$3$</span>
+个一次因子。剩余 <span class=math-inline>$6$</span>
 个元素分成 <span class=math-inline>$3$</span>
 个大小为 <span class=math-inline>$2$</span>
-的轨道（因为它们的最小多项式次数为 <span class=math-inline>$2$</span>
-）。所以分解为 <span class=math-inline>$3$</span>
-个线性因子 <span class=math-inline>$\times$</span>
-<span class=math-inline>$3$</span>
-个不可约二次因子。总次数：<span class=math-inline>$3 \cdot 1 + 3 \cdot 2 = 9$</span>
-。正确。</p><h2 id=接下来的内容 class=heading-anchor>接下来的内容<a href=#%e6%8e%a5%e4%b8%8b%e6%9d%a5%e7%9a%84%e5%86%85%e5%ae%b9 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>我们已经介绍了初等环论的两大支柱：一般环、理想和商（第五篇文章），以及多项式环和因子分解（这篇文章）。这个层次结构</p><span class=math-block>$$\text{域} \subset \text{欧几里得整环} \subset \text{主理想整环} \subset \text{唯一因子分解整环} \subset \text{整环}$$</span><p>已经完全建立，包含关系严格，且因子分解保证逐步增加。</p><p>下一篇文章将探讨<em>域论和扩张</em>：如何从较小的域构建更大的域？答案涉及多项式环的商 <span class=math-inline>$F[x]/(f(x))$</span>
-，这引出了代数扩张、分裂域和Galois理论。</p><p>值得记住的总结：多项式环把代数变成了一种计算游戏。除法算法是引擎，因子分解是目标，不可约性测试是工具箱。当一切顺利时，我们得到唯一因子分解整环；当不顺利时，我们就进入了更深的代数数论领域。</p><p><em>预览一下这将导向何处</em>。<span class=math-inline>$x^2 + 1 \in \mathbb{R}[x]$</span>
-是不可约的，所以 <span class=math-inline>$\mathbb{R}[x]/(x^2 + 1) \cong \mathbb{C}$</span>
-是一个域。<span class=math-inline>$x^2 + 1 \in \mathbb{Q}[x]$</span>
-也是不可约的，所以 <span class=math-inline>$\mathbb{Q}[x]/(x^2 + 1) \cong \mathbb{Q}(i)$</span>
-是 <span class=math-inline>$\mathbb{Q}$</span>
-的一个二次扩域。在这两种情况下，哪些多项式是不可约的决定了哪些域扩张存在。Galois理论研究这些扩张的对称群，多项式因子分解与群论之间的桥梁是经典代数中最深刻的概念之一。这就是我们要去的方向。</p><p><em>阅读推荐</em>。Dummit和Foote的第9-10章涵盖了多项式环和域扩张。Hungerford的《代数》内容更密集但非常优秀。对于计算角度，Cox-Little-O&rsquo;Shea的《理想、簇和算法》介绍了Gröbner基和多元多项式环的算法方面。关于不可约性测试，Lang的《代数》第4章是一个经典之作，包含许多实例。</p><p><em>最后一点反思</em>。多项式因子分解是这样一个主题，每本教科书都列出相同的定理，但实际操作需要亲自动手熟悉。要内化不可约性测试，不是靠记忆而是通过在一百个例子上应用它们。做了五十个之后，你开始识别结构：分圆形状、Eisenstein候选者经过替换后的情况、模 <span class=math-inline>$2$</span>
-可以分解但模 <span class=math-inline>$3$</span>
-不行的多项式。模式识别才是真正的技能，而定理只是它的脚手架。</p><p>第二个反思：多项式环理论是现代代数锻造的工坊。Galois在20岁时就草拟了多项式Galois理论；Dedekind发明了理想来处理数环中的因子分解；Hilbert的基定理开启了交换代数；Noether围绕商环和模重新组织了所有这些内容，这是现代学科的语言。你在经典代数中遇到的每一个名字背后，都有一个多项式环作为核心故事的一部分。</p><p>最后一条具体建议：当遇到多项式不可约性问题时，按顺序尝试有理根测试、几个小素数的模约简、几个素数上的Eisenstein判别法（必要时进行替换），以及直接系数比较。如果仍然卡住，寻找特殊结构：分圆因子、二项式的乘积、形式为 <span class=math-inline>$f(x^k)$</span>
-的多项式。大多数教科书中的问题可以通过这些方法解决。</p><hr><p><em>这是<a href=/zh/series/abstract-algebra/>抽象代数</a>
-系列（共12篇）的第六部分。</em></p></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+的轨道，每个轨道生成一个不可约二次式。这句话的意思是：<span class=math-inline>$x^9-x = (x)(x-1)(x-2) \cdot q_1(x) q_2(x) q_3(x)$</span>
+，次数 <span class=math-inline>$3\times 1 + 3\times 2 = 9$</span>
+完美匹配。有限域的自同构直接指挥因子分组。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/06-polynomial-rings/aa_v2_06_7_root_complex.png alt="Roots of x^3 - 2 displayed in the complex plane" loading=lazy decoding=async class=content-image></figure></p><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>走到这里，你已经亲手跑通了多项式环的除法引擎，摸清了不可约性的三把钥匙，也看清了唯一分解在哪些环里坚如磐石、在哪些环里碎成一地。多项式不是终点，它是跳板。下一篇文章，我们要把多项式环 <span class=math-inline>$F[x]$</span>
+按一个不可约多项式 <span class=math-inline>$f(x)$</span>
+折叠起来，构造商环 <span class=math-inline>$F[x]/(f(x))$</span>
+。你会亲眼看到，这个商环自动变成一个域，而 <span class=math-inline>$x$</span>
+在商环里的像，就是 <span class=math-inline>$f(x)$</span>
+的一个根。换句话说，我们不再“寻找”根，而是用代数结构“制造”根。</p><p>这会直接引出代数扩张（algebraic extension）、分裂域（splitting field）和伽罗瓦理论（Galois theory）的核心舞台。你会遇到这些问题：把一个根加进域里，扩张次数怎么算？多个根一起加，域的对称群长什么样？为什么五次以上的一般多项式没有根式解？伽罗瓦对应（Galois correspondence）如何把子群和中间域一一配对？我们会用 <span class=math-inline>$\mathbb{Q}(\sqrt{2}, \sqrt{3})$</span>
+和 <span class=math-inline>$x^3-2$</span>
+做完整计算，把抽象的群作用（group action）变成具体的根置换游戏。</p><p>带着这两个问题进入下一篇：如果 <span class=math-inline>$f(x)$</span>
+可约，商环 <span class=math-inline>$F[x]/(f(x))$</span>
+会变成什么结构？域的自同构群究竟如何“读取”多项式的分解模式？多项式的因子分解只是序幕，对称性的舞蹈才刚刚开始。</p></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E6%258A%25BD%25E8%25B1%25A1%25E4%25BB%25A3%25E6%2595%25B0%2b%25286%2529%25EF%25BC%259A%25E5%25A4%259A%25E9%25A1%25B9%25E5%25BC%258F%25E7%258E%25AF%2b%25E2%2580%2594%25E2%2580%2594%2b%25E5%259B%25A0%25E5%25AD%2590%25E5%2588%2586%25E8%25A7%25A3%25E4%25B8%258E%25E5%2594%25AF%25E4%25B8%2580%25E5%2588%2586%25E8%25A7%25A3&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fabstract-algebra%252F06-%2525E5%2525A4%25259A%2525E9%2525A1%2525B9%2525E5%2525BC%25258F%2525E7%25258E%2525AF%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fabstract-algebra%252F06-%2525E5%2525A4%25259A%2525E9%2525A1%2525B9%2525E5%2525BC%25258F%2525E7%25258E%2525AF%252F&title=%25E6%258A%25BD%25E8%25B1%25A1%25E4%25BB%25A3%25E6%2595%25B0%2b%25286%2529%25EF%25BC%259A%25E5%25A4%259A%25E9%25A1%25B9%25E5%25BC%258F%25E7%258E%25AF%2b%25E2%2580%2594%25E2%2580%2594%2b%25E5%259B%25A0%25E5%25AD%2590%25E5%2588%2586%25E8%25A7%25A3%25E4%25B8%258E%25E5%2594%25AF%25E4%25B8%2580%25E5%2588%2586%25E8%25A7%25A3" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/abstract-algebra/06-%E5%A4%9A%E9%A1%B9%E5%BC%8F%E7%8E%AF/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2021-09-11>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#为什么多项式在代数中处于核心地位>为什么多项式在代数中处于核心地位</a></li><li><a href=#rx定义次数和除法算法>：定义、次数和除法算法</a><ul><li><a href=#除法算法>除法算法</a></li></ul></li><li><a href=#不可约性判别准则>不可约性判别准则</a><ul><li><a href=#有理根测试>有理根测试</a></li><li><a href=#eisenstein-判别法>Eisenstein 判别法</a></li><li><a href=#模-p-还原>模 还原</a></li></ul></li><li><a href=#唯一分解整环>唯一分解整环</a><ul><li><a href=#失败mathbbzsqrt-5>失败：</a></li></ul></li><li><a href=#从-mathbbz-到-mathbbzx-再到-mathbbqxgauss-引理>从 到 再到 ：Gauss 引理</a><ul><li><a href=#层次回顾>层次回顾</a></li></ul></li><li><a href=#实际中的因式分解>实际中的因式分解</a></li><li><a href=#接下来的内容>接下来的内容</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/abstract-algebra/ class=series-name>抽象代数</a>
+<span class=sig-meta data-days-since=2021-09-11>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#为什么多项式在代数中处于核心地位>为什么多项式在代数中处于核心地位</a></li><li><a href=#rx定义次数和除法算法>：定义、次数和除法算法</a><ul><li><a href=#除法算法>除法算法</a></li></ul></li><li><a href=#不可约性判别准则>不可约性判别准则</a><ul><li><a href=#有理根测试>有理根测试</a></li><li><a href=#eisenstein-判别法>Eisenstein 判别法</a></li><li><a href=#模-p-还原>模 还原</a></li></ul></li><li><a href=#唯一分解整环>唯一分解整环</a><ul><li><a href=#失败mathbbzsqrt-5>失败：</a></li></ul></li><li><a href=#从-mathbbz-到-mathbbzx-再到-mathbbqxgauss-引理>从 到 再到 ：Gauss 引理</a><ul><li><a href=#层次回顾>层次回顾</a></li></ul></li><li><a href=#实际中的因式分解>实际中的因式分解</a></li><li><a href=#下一步>下一步</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/abstract-algebra/ class=series-name>抽象代数</a>
 <span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/abstract-algebra/01-%E7%BE%A4%E7%9A%84%E5%88%9D%E9%81%87/><span class=chapter-num>01</span>
 <span class=chapter-title>群：你与代数结构的初次相遇</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/abstract-algebra/02-%E7%BE%A4%E4%BD%9C%E7%94%A8%E4%B8%8E%E5%AF%B9%E7%A7%B0/><span class=chapter-num>02</span>
 <span class=chapter-title>群的作用：群如何移动事物</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/abstract-algebra/03-%E5%95%86%E7%BE%A4%E4%B8%8E%E5%90%8C%E6%80%81/><span class=chapter-num>03</span>
@@ -616,5 +613,5 @@ UFD。<span class=math-inline>$F[x]$</span>
 <span class=chapter-title>抽象代数 (9)：模——向量空间的推广</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/abstract-algebra/10-%E8%A1%A8%E7%A4%BA%E8%AE%BA/><span class=chapter-num>10</span>
 <span class=chapter-title>抽象代数 (10)：表示论 — 群在向量空间上的作用</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/abstract-algebra/11-%E8%8C%83%E7%95%B4%E8%AE%BA/><span class=chapter-num>11</span>
 <span class=chapter-title>抽象代数 (11)：范畴论 — 数学结构的语言</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/abstract-algebra/12-%E5%BA%94%E7%94%A8/><span class=chapter-num>12</span>
-<span class=chapter-title>抽象代数 (12)：代数在实际应用中的威力 —— 从密码学到编码理论及其他</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>40 min</strong></div><div class=row><span>字数</span><strong>9708</strong></div><div class=row><span>写于</span><strong>Sep 2021</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>抽象代数 (12)：代数在实际应用中的威力 —— 从密码学到编码理论及其他</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>46 min</strong></div><div class=row><span>字数</span><strong>11139</strong></div><div class=row><span>写于</span><strong>Sep 2021</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>
