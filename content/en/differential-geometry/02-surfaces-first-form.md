@@ -28,7 +28,7 @@ The intrinsic / extrinsic split is going to recur for the next ten chapters, so 
 ## What is a Surface?
 
 
-![Tangent plane on a saddle surface with tangent vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg02_parametric_surfaces.png)
+![Tangent plane on a saddle surface with tangent vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_parametric_surfaces.png)
 
 ![Parametric surfaces: sphere, torus, and saddle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_parametric_surfaces.png)
 

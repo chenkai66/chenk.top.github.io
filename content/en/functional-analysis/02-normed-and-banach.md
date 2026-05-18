@@ -24,6 +24,12 @@ description: "Norm axioms, classical examples, equivalence of norms in finite di
 
 ![Unit balls in different Lp norms](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa02_lp_balls.png)
 
+![Animation: l^p unit ball morphing as p changes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_lp_morph.gif)
+
+
+![Unit balls in l^p spaces for various p](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_lp_unit_balls.png)
+
+
 In Article 1, the metric was a free-standing function on a set with no algebraic structure. That generality bought us topology and completeness, but it gave nothing back to the algebra. The moment I am willing to assume the underlying set is a vector space, a more rigid object becomes available: a **norm**, a single nonnegative function on the space whose induced metric $d(x,y) = \|x - y\|$ is *translation-invariant* and *positively homogeneous*.
 
 Translation invariance — $d(x + z, y + z) = d(x, y)$ — sounds like a clerical detail, but it is what makes the metric blind to where the origin lives, and that blindness is what lets me compose linear maps with metric arguments. Positive homogeneity — $\|\alpha x\| = |\alpha| \|x\|$ — gives me a quantitative scaling rule that pure metrics lack. Together, these turn a metric vector space into the natural home for *bounded linear operators*, the protagonists of every subsequent article.
@@ -33,6 +39,9 @@ The strange thing about working in a normed space rather than a generic metric s
 ## The Norm Axioms
 
 Let $V$ be a vector space over $\mathbb{R}$ or $\mathbb{C}$. A **norm** on $V$ is a function $\|\cdot\|: V \to [0, \infty)$ satisfying for all $x, y \in V$ and scalars $\alpha$:
+
+![Norm equivalence in finite dimensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_norm_equivalence.png)
+
 
 1. $\|x\| = 0 \iff x = 0$ (positive definiteness).
 2. $\|\alpha x\| = |\alpha|\, \|x\|$ (positive homogeneity).
@@ -66,6 +75,9 @@ Two norms $\|\cdot\|_a$ and $\|\cdot\|_b$ on the same vector space $V$ are **equ
 $$C_1 \|x\|_a \leq \|x\|_b \leq C_2 \|x\|_a \quad \text{for all } x \in V.$$
 Equivalence of norms is precisely equivalence of induced topologies: a sequence converges in one iff it converges in the other.
 
+![Banach (complete) vs incomplete normed space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_banach_vs_incomplete.png)
+
+
 **Theorem.** Any two norms on a finite-dimensional vector space are equivalent.
 
 *Sketch of proof.* Let $V$ be $n$-dimensional with basis $e_1, \ldots, e_n$, and define $\|x\|_2 = \big(\sum |x_i|^2\big)^{1/2}$ in coordinates. Let $\|\cdot\|$ be any other norm. Writing $x = \sum x_i e_i$ and using the triangle inequality and homogeneity gives $\|x\| \leq \sum |x_i| \|e_i\| \leq C_2 \|x\|_2$ for $C_2 = (\sum \|e_i\|^2)^{1/2}$ (Cauchy-Schwarz). For the lower bound, $\|\cdot\|: (V, \|\cdot\|_2) \to \mathbb{R}$ is continuous (by the upper bound) and the unit sphere $S = \{ x : \|x\|_2 = 1 \}$ is compact in $\|\cdot\|_2$ (closed and bounded in finite dimensions). So $\|\cdot\|$ attains a minimum $C_1 > 0$ on $S$, and homogeneity gives $\|x\| \geq C_1 \|x\|_2$ on all of $V$. $\square$
@@ -84,6 +96,9 @@ A second consequence: every linear map between finite-dimensional normed spaces 
 
 For sequence spaces, the inclusion chain $\ell^1 \subset \ell^2 \subset \cdots \subset \ell^\infty$ holds (with strict inclusions). The reasoning is short: if $\sum |x_n|^p$ converges, then $|x_n| \to 0$, so $|x_n| \leq 1$ eventually, so $|x_n|^q \leq |x_n|^p$ for $q \geq p$, and the tail of $\sum |x_n|^q$ is dominated by $\sum |x_n|^p$. The constant prefactor needed makes the inclusion continuous: $\|x\|_q \leq \|x\|_p$ for $q \geq p$ when $x \in \ell^p$.
 
+![Schauder basis approximation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_schauder_basis.png)
+
+
 For Lebesgue function spaces on a *finite measure space* (such as $L^p[0,1]$), the inclusion goes the opposite direction: $L^q[0,1] \subset L^p[0,1]$ when $q \geq p$, by Hölder's inequality applied to $|f|^p \cdot 1$. On a non-finite measure space (like $\mathbb{R}$), neither inclusion holds — the function $1/(1 + |t|)$ is in $L^p(\mathbb{R})$ for $p > 1$ but not for $p = 1$, while a function blowing up like $|t|^{-1/p}$ near $0$ belongs to no $L^q$ for $q > p$. So $L^p$ inclusions are subtle and depend on the measure. For sequence spaces, where the counting measure is infinite but every singleton has measure $1$, only the "decay at infinity" direction matters, hence the simple chain.
 
 ![Inclusion chain l^1 ⊂ l^2 ⊂ ... ⊂ l^infinity for sequence spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/02-normed-and-banach/fa_v2_02_3_lp_chain.png)
@@ -97,6 +112,9 @@ The worked inclusions are essentially the only "free" structure on the $\ell^p$ 
 ## Banach Spaces: When Completeness Lands
 
 A normed space is a **Banach space** if it is complete in the metric induced by its norm. The completeness is a matter of *fact about a specific norm*, not just about the underlying vector space. Adding a norm structure to a Banach space and a non-Banach space sometimes produces the same vector space — for instance, $\ell^p$ as a vector space is a subspace of $\ell^\infty$, and they are very different objects when topologized.
+
+![Hierarchy of function spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_function_spaces.png)
+
 
 ![Banach space: a normed space that is complete with respect to its norm](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/02-normed-and-banach/fa_v2_02_4_banach_complete.png)
 
@@ -122,6 +140,9 @@ There is a slick test: a normed space $V$ is a Banach space iff every absolutely
 ## Schauder Bases
 
 In a finite-dimensional normed space, every basis (in the algebraic sense) is also a "topological" basis: every vector is a finite linear combination of basis elements. In an infinite-dimensional Banach space, an algebraic (Hamel) basis is enormous — by the Baire theorem, an infinite-dimensional Banach space cannot have a countable Hamel basis — and useless for analysis.
+
+![Absolute vs conditional convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_series_convergence.png)
+
 
 The right notion for separable Banach spaces is a **Schauder basis**: a sequence $(e_n) \subset V$ such that every $x \in V$ has a unique representation $x = \sum_{n=1}^\infty c_n e_n$ as a *convergent series* (in the norm of $V$). The convergence is a topological condition, not an algebraic one, and it is what distinguishes Schauder bases from Hamel bases.
 

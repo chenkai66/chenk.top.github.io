@@ -24,6 +24,9 @@ translationKey: "functional-analysis-3"
 
 ![Orthogonal projection in Hilbert space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa03_projection.png)
 
+![Inner product geometry: angle and projection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_inner_product.png)
+
+
 If a Banach space is a normed space that has agreed to be complete, a Hilbert space is a Banach space that has further agreed to admit angles. That extra agreement — an inner product — is what restores almost all of finite-dimensional geometry to the infinite-dimensional setting. Orthogonality, projection, the Pythagorean theorem, the notion of "closest point in a subspace" — all come back unchanged. The price of admission is a single axiom; the reward, geometric and computational, is enormous.
 
 Let $\mathcal{H}$ be a vector space over $\mathbb{C}$. An **inner product** is a function $\langle \cdot, \cdot \rangle : \mathcal{H} \times \mathcal{H} \to \mathbb{C}$ satisfying for all $x, y, z \in \mathcal{H}$ and $\alpha \in \mathbb{C}$:
@@ -55,6 +58,9 @@ Why does this matter for applications? Linear regression minimizes $\|y - X\beta
 
 Two vectors $x, y \in \mathcal{H}$ are **orthogonal**, written $x \perp y$, if $\langle x, y \rangle = 0$. The Pythagorean theorem carries over unchanged: if $x \perp y$, then $\|x + y\|^2 = \|x\|^2 + \|y\|^2$. For $n$ pairwise orthogonal vectors, $\|\sum_{k=1}^n x_k\|^2 = \sum_{k=1}^n \|x_k\|^2$. This extends to convergent infinite sums: if $(x_k)$ are pairwise orthogonal and $\sum \|x_k\|^2 < \infty$, the series $\sum x_k$ converges and its norm-squared equals the sum of the individual norm-squares. Infinite-dimensional Pythagoras is not a generalization one has to prove carefully from scratch — it follows from the finite case by continuity of the norm and completeness.
 
+![Projection theorem: closest point in subspace](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_orthogonal_projection.png)
+
+
 The geometric heart of Hilbert space theory is the **projection theorem**: for any closed subspace $M \subseteq \mathcal{H}$ and any $x \in \mathcal{H}$, there exists a unique $m_0 \in M$ minimizing $\|x - m\|$ over $m \in M$, and the minimizer is characterized by the orthogonality condition $(x - m_0) \perp M$. The space decomposes as $\mathcal{H} = M \oplus M^\perp$ where $M^\perp = \{y \in \mathcal{H} : \langle y, m \rangle = 0 \text{ for all } m \in M\}$.
 
 *Why the closest-point property works — and why it needs completeness.* Take a minimizing sequence $(m_n)$ with $d_n = \|x - m_n\| \to d = \inf_{m \in M}\|x - m\|$. Apply the parallelogram law to $u = x - m_n$ and $v = x - m_k$: we get $\|u + v\|^2 + \|u - v\|^2 = 2\|u\|^2 + 2\|v\|^2$. Since $(m_n + m_k)/2 \in M$ (convexity), $\|u + v\|/2 = \|x - (m_n+m_k)/2\| \geq d$. Substituting: $\|m_n - m_k\|^2 = 2d_n^2 + 2d_k^2 - 4\|x - (m_n+m_k)/2\|^2 \leq 2d_n^2 + 2d_k^2 - 4d^2 \to 0$. So $(m_n)$ is Cauchy, hence converges in $M$ (completeness). Without the parallelogram law — in a Banach space that is not Hilbert — this argument collapses, and indeed closest points in closed subspaces may fail to be unique.
@@ -71,6 +77,12 @@ The projection theorem fails in Banach spaces that are not Hilbert. In $C[0,1]$ 
 ## Orthonormal Bases, Parseval, and the Classification Theorem
 
 An **orthonormal system** in $\mathcal{H}$ is a collection $\{e_\alpha\}_{\alpha \in A}$ with $\langle e_\alpha, e_\beta \rangle = \delta_{\alpha\beta}$. It is a **basis** (complete orthonormal system) if its closed linear span equals $\mathcal{H}$, equivalently if $\langle x, e_\alpha \rangle = 0$ for all $\alpha$ forces $x = 0$. The cardinality of a maximal orthonormal system is an invariant called the **Hilbert dimension** of the space.
+
+![Animation: Fourier series building up](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_fourier_approx.gif)
+
+
+![Fourier series in L^2: orthonormal basis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_fourier_basis.png)
+
 
 For **separable** Hilbert spaces — those with a countable dense subset — the Hilbert dimension is countable, and we index the basis as $(e_n)_{n=1}^\infty$. The foundational classification theorem says: every separable infinite-dimensional Hilbert space is isometrically isomorphic to $\ell^2$. There is essentially one separable Hilbert space, and every calculation in $L^2$, in Sobolev spaces, in Hardy spaces, is secretly a calculation in $\ell^2$ once a basis is chosen. The space is rigid; all the interesting mathematics lives in the operators acting on it.
 
@@ -93,6 +105,9 @@ A non-trivial consequence of separability: $L^2[0,1]$ and $\ell^2$ are isometric
 
 The most structurally important theorem about Hilbert spaces is the **Riesz representation theorem** (Riesz-Frechet): every continuous linear functional $\varphi : \mathcal{H} \to \mathbb{C}$ has the form $\varphi(x) = \langle x, y_\varphi \rangle$ for a unique $y_\varphi \in \mathcal{H}$, with $\|\varphi\| = \|y_\varphi\|$.
 
+![Riesz representation theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_riesz_representation.png)
+
+
 *Proof.* If $\varphi = 0$, take $y_\varphi = 0$. Otherwise, $M = \ker(\varphi)$ is a closed hyperplane (codimension 1). Its orthogonal complement $M^\perp$ is one-dimensional; pick $z \in M^\perp$ with $\varphi(z) = 1$ (normalizing). For any $x \in \mathcal{H}$, write $x = (x - \varphi(x) z) + \varphi(x) z$. The first term is in $M$ (check: $\varphi(x - \varphi(x)z) = \varphi(x) - \varphi(x) = 0$). So $\langle x, z \rangle = \langle \varphi(x) z, z \rangle = \varphi(x)\|z\|^2$, giving $\varphi(x) = \langle x, z/\|z\|^2 \rangle$. Set $y_\varphi = z/\|z\|^2$. Uniqueness: if $\langle x, y_1 \rangle = \langle x, y_2 \rangle$ for all $x$, then $\langle x, y_1 - y_2 \rangle = 0$ for all $x$, so $y_1 = y_2$ (take $x = y_1 - y_2$). $\square$
 
 The theorem establishes a conjugate-linear isometric isomorphism $\mathcal{H}^* \cong \mathcal{H}$. Hilbert spaces are **self-dual**: the dual space is (conjugate-linearly) the space itself. This is a dramatic simplification compared to general Banach spaces, where duals can be unrecognizable: $(\ell^1)^* = \ell^\infty$, $(c_0)^* = \ell^1$, $(L^1)^* = L^\infty$. In Hilbert space, there is no conceptual gap between vectors and linear functionals — the inner product identifies them.
@@ -109,6 +124,9 @@ Self-duality immediately gives **reflexivity**: the canonical embedding $J: \mat
 ## Adjoint Operators and the Algebra $B(\mathcal{H})$
 
 For a bounded operator $T: \mathcal{H} \to \mathcal{H}$, the **adjoint** $T^*$ is defined by $\langle Tx, y \rangle = \langle x, T^*y \rangle$ for all $x, y$. Existence: for fixed $y$, the functional $x \mapsto \langle Tx, y \rangle$ is bounded (by $\|T\|\|y\|$), so by Riesz it equals $\langle x, z \rangle$ for unique $z$; define $T^*y = z$. The assignment $y \mapsto T^*y$ is linear, and $\|T^*\| = \|T\|$.
+
+![Orthogonal decomposition H = M + M^perp](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_orthogonal_complement.png)
+
 
 The fundamental structural identity is the **$C^*$-identity**: $\|T^*T\| = \|T\|^2$. This makes the algebra $B(\mathcal{H})$ of bounded operators a $C^*$-algebra — the starting point for the abstract spectral theory of Article 8 and the Gelfand-Naimark theorem.
 
@@ -132,6 +150,9 @@ The **polar decomposition** $T = U|T|$ with $|T| = (T^*T)^{1/2}$ and $U$ a parti
 ## Weak Convergence, Tensor Products, and Direct Sums
 
 A sequence $(x_n) \subset \mathcal{H}$ **converges weakly** to $x$, written $x_n \rightharpoonup x$, if $\langle x_n, y \rangle \to \langle x, y \rangle$ for every $y \in \mathcal{H}$. By Riesz, this is the same as convergence against all bounded functionals. Weak convergence is strictly weaker than norm convergence: the standard basis $(e_n) \subset \ell^2$ satisfies $e_n \rightharpoonup 0$ (since $\langle e_n, y \rangle = y_n \to 0$ for any $y \in \ell^2$, as $\sum|y_n|^2 < \infty$ forces $y_n \to 0$) but $\|e_n\| = 1 \not\to 0$.
+
+![Bessel inequality and Parseval identity](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_bessel_parseval.png)
+
 
 The **Banach-Alaoglu theorem** in the Hilbert setting: every bounded sequence has a weakly convergent subsequence. This is the infinite-dimensional substitute for the Bolzano-Weierstrass theorem. The unit ball, which is not norm-compact, is weakly compact — and this weak compactness is the engine that drives variational methods. To find minimizers of energy functionals, one extracts a weakly convergent subsequence from a minimizing sequence and shows the functional is lower semicontinuous in the weak topology.
 

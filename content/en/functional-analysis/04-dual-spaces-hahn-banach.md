@@ -23,6 +23,9 @@ translationKey: "functional-analysis-4"
 
 Up to now, the theory has been about spaces and the elements that live in them. This article changes the perspective: it asks what you can say about a vector $x$ by *measuring* $x$ against a family of test functionals. The shift from "vectors" to "vectors plus functionals" is what turns Banach spaces into a serviceable analogue of finite-dimensional linear algebra. In finite dimensions, every linear functional is continuous and the dual space is the same dimension as the original — so there is nothing to prove. In infinite dimensions, continuity is a real constraint, and the existence of enough continuous functionals to separate points or extend partial data is *not* obvious. The Hahn-Banach theorem is what guarantees this, and it is the result that makes functional analysis possible.
 
+![Dual space: functionals as hyperplanes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_dual_space.png)
+
+
 A working analyst uses Hahn-Banach the way a working algebraist uses Zorn's lemma: invisibly, dozens of times a day, never proving it from scratch. The point of this article is to produce the theorem cleanly and inspect a few of its standard consequences — the geometric form, the existence of supporting hyperplanes, the canonical embedding into the bidual. Article 5 will then put the dual to work in the form of weak topologies.
 
 ## The Dual Space
@@ -30,6 +33,12 @@ A working analyst uses Hahn-Banach the way a working algebraist uses Zorn's lemm
 Let $X$ be a normed space over $\mathbb{R}$ or $\mathbb{C}$. The **dual space** $X^*$ is the space of bounded (equivalently, continuous) linear functionals $\varphi: X \to \mathbb{C}$, equipped with the **dual norm**
 $$\|\varphi\|_{X^*} = \sup_{\|x\| \leq 1} |\varphi(x)|.$$
 Under this norm, $X^*$ is a Banach space — even when $X$ itself is not (a Cauchy sequence of functionals is pointwise Cauchy, the limit defines a linear functional, and the boundedness passes to the limit by uniform Cauchy-ness).
+
+![Animation: finding separating hyperplane](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_separation.gif)
+
+
+![Hahn-Banach separation theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_hahn_banach_separation.png)
+
 
 So the dual is automatically a Banach space, regardless of the original space's completeness. This is one of the structural niceties that makes dual constructions so popular: forming the dual *upgrades* incomplete normed spaces to complete ones.
 
@@ -57,6 +66,9 @@ In $\ell^2$, take $y = (1, 1/2, 1/3, \ldots, 1/n, 0, 0, \ldots)$ for $n = 4$, so
 
 **Theorem (Hahn-Banach, real version).** Let $X$ be a real vector space, $p: X \to \mathbb{R}$ a sublinear functional ($p(x + y) \leq p(x) + p(y)$ and $p(\alpha x) = \alpha p(x)$ for $\alpha \geq 0$), and $\varphi_0: M \to \mathbb{R}$ a linear functional on a subspace $M \subseteq X$ with $\varphi_0(x) \leq p(x)$ for all $x \in M$. Then $\varphi_0$ extends to a linear functional $\varphi: X \to \mathbb{R}$ with $\varphi(x) \leq p(x)$ for all $x \in X$.
 
+![Hahn-Banach extension](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_hahn_banach_extension.png)
+
+
 The complex version: replace sublinear by *seminorm* (so $p(\alpha x) = |\alpha| p(x)$), require $|\varphi_0(x)| \leq p(x)$ on $M$, and the extension satisfies $|\varphi(x)| \leq p(x)$ on $X$.
 
 The version most often quoted: any bounded linear functional on a subspace of a normed space extends to a bounded linear functional on the whole space without enlarging its norm. This is just the seminorm case with $p(x) = \|\varphi_0\|_M \cdot \|x\|$.
@@ -79,6 +91,9 @@ Hahn-Banach lets me do three things that would otherwise be impossible. (i) **Ex
 
 The "geometric" or "separation" form of Hahn-Banach is more useful in optimization and probability.
 
+![Reflexive spaces: X = X**](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_reflexive.png)
+
+
 **Theorem (Geometric Hahn-Banach).** Let $X$ be a real normed space, $A, B \subseteq X$ disjoint, non-empty, convex sets. (i) If $A$ is open, there exist $\varphi \in X^*$ and $\alpha \in \mathbb{R}$ with $\varphi(a) < \alpha \leq \varphi(b)$ for all $a \in A$, $b \in B$. (ii) If $A$ is closed and $B$ is compact, there exists $\varphi \in X^*$ and $\alpha < \beta$ with $\varphi(a) \leq \alpha < \beta \leq \varphi(b)$ for all $a \in A$, $b \in B$ — *strict* separation.
 
 In words: any two disjoint convex sets can be separated by a hyperplane, with strict separation if one of the sets is closed and the other is compact (specifically separated by a slab).
@@ -97,6 +112,9 @@ The geometric form is the basis of every duality argument in optimization. Conve
 
 A particular case of geometric Hahn-Banach: a closed convex set $C$ in a Banach space $X$ has a supporting hyperplane at every boundary point. That is, for every $x_0 \in \partial C$, there exists $\varphi \in X^*$ with $\varphi(x_0) = \sup_{c \in C} \varphi(c)$.
 
+![Dual space identifications](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_dual_lp.png)
+
+
 ![Supporting hyperplane to a convex set at a boundary point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/04-dual-spaces-hahn-banach/fa_v2_04_7_supporting.png)
 
 In the language of convex analysis, $\varphi$ belongs to the **subdifferential** of the indicator function of $C$ at $x_0$. The subdifferential is the dual object that records all "supporting directions" at the point.
@@ -112,6 +130,9 @@ This non-uniqueness is exactly the geometric reason $\ell^1$ minimization can ha
 ## The Bidual and Reflexivity
 
 The dual space $X^*$ is itself a Banach space, so it has its own dual $X^{**} = (X^*)^*$, called the **bidual**. There is a canonical embedding $J: X \to X^{**}$ defined by $(Jx)(\varphi) = \varphi(x)$ for $\varphi \in X^*$. This embedding is well-defined (the linear map $\varphi \mapsto \varphi(x)$ is bounded with norm $\leq \|x\|$), linear, and isometric — the latter using Hahn-Banach to find a $\varphi$ with $|\varphi(x)| = \|x\|$ and $\|\varphi\| = 1$.
+
+![Annihilator of a subspace](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_annihilator.png)
+
 
 A Banach space is **reflexive** if $J$ is surjective, i.e., $X = X^{**}$ canonically. Reflexivity is a strong property; it is preserved under taking closed subspaces, quotients, and finite products, and it implies many compactness and regularity results.
 

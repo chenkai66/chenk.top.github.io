@@ -28,7 +28,7 @@ A spoiler for the next chapter: $K$ — the Gaussian curvature, defined extrinsi
 ## The Gauss Map and the Shape Operator
 
 
-![Gaussian curvature classification: sphere K>0, cylinder K=0, saddle K<0](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg03_curvature_classification.png)
+![Gaussian curvature classification: sphere K>0, cylinder K=0, saddle K<0](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_curvature_classification.png)
 
 ![Gauss map: surface normals mapped to the unit sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_gauss_map.png)
 

@@ -23,6 +23,9 @@ translationKey: "functional-analysis-4"
 
 到目前为止，理论主要讨论的是空间及其元素。本文改变了视角：它询问通过一组测试泛函来“测量”向量 $x$ 时，你能对 $x$ 说些什么。从“向量”到“向量加上泛函”的转变使 Banach 空间成为有限维线性代数的有效类比。在有限维中，每个线性泛函都是连续的，对偶空间与原空间维度相同——因此无需证明。在无限维中，连续性是一个真正的约束，而存在足够的连续泛函来区分点或扩展部分数据并不明显。Hahn-Banach 定理正是保证这一点的结果，它使得泛函分析成为可能。
 
+![对偶空间：泛函作为超平面](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/04_dual_space.png)
+
+
 一个实际工作的分析师使用 Hahn-Banach 的方式就像一个实际工作的代数学家使用 Zorn 引理一样：无形地，每天几十次，从未从头开始证明。本文的目的是清晰地产生这个定理，并检查其一些标准结果——几何形式、支撑超平面的存在性、典范嵌入到二次对偶。第 5 篇文章将利用弱拓扑来让对偶发挥作用。
 
 ## 对偶空间
@@ -30,6 +33,12 @@ translationKey: "functional-analysis-4"
 设 $X$ 是 $\mathbb{R}$ 或 $\mathbb{C}$ 上的赋范空间。**对偶空间** $X^*$ 是有界（等价于连续）线性泛函 $\varphi: X \to \mathbb{C}$ 的空间，配备**对偶范数**
 $$\|\varphi\|_{X^*} = \sup_{\|x\| \leq 1} |\varphi(x)|.$$
 在这个范数下，$X^*$ 是 Banach 空间——即使 $X$ 本身不是（泛函的 Cauchy 序列逐点 Cauchy，极限定义了一个线性泛函，且有界性通过一致 Cauchy 性传递给极限）。
+
+![动画：寻找分离超平面](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/04_separation.gif)
+
+
+![Hahn-Banach 分离定理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/04_hahn_banach_separation.png)
+
 
 因此，对偶空间自动是 Banach 空间，无论原始空间是否完备。这是对偶构造如此受欢迎的一个结构上的优点：形成对偶会将不完备的赋范空间升级为完备的空间。
 
@@ -57,6 +66,9 @@ $$\|\varphi\|_{X^*} = \sup_{\|x\| \leq 1} |\varphi(x)|.$$
 
 可以证明，设 $X$ 是实向量空间，$p: X \to \mathbb{R}$ 是次线性泛函（$p(x + y) \leq p(x) + p(y)$ 且 $p(\alpha x) = \alpha p(x)$ 对于 $\alpha \geq 0$），$\varphi_0: M \to \mathbb{R}$ 是子空间 $M \subseteq X$ 上的线性泛函，且 $\varphi_0(x) \leq p(x)$ 对所有 $x \in M$ 成立。则 $\varphi_0$ 可以延拓为 $X$ 上的线性泛函 $\varphi: X \to \mathbb{R}$，满足 $\varphi(x) \leq p(x)$ 对所有 $x \in X$ 成立。
 
+![Hahn-Banach 延拓](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/04_hahn_banach_extension.png)
+
+
 复版本：将次线性替换为半范数（即 $p(\alpha x) = |\alpha| p(x)$），要求 $|\varphi_0(x)| \leq p(x)$ 在 $M$ 上成立，且延拓满足 $|\varphi(x)| \leq p(x)$ 在 $X$ 上成立。
 
 最常引用的版本：赋范空间的子空间上的任何有界线性泛函可以延拓到整个空间而不增加其范数。这只是半范数情况下的 $p(x) = \|\varphi_0\|_M \cdot \|x\|$。
@@ -79,6 +91,9 @@ Hahn-Banach 让我做三件本来不可能的事情。（i）**延拓**线性泛
 
 “几何”或“分离”形式的 Hahn-Banach 在优化和概率中更有用。
 
+![自反空间：X = X**](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/04_reflexive.png)
+
+
 可以证明，设 $X$ 是实赋范空间，$A, B \subseteq X$ 是不相交的非空凸集。（i）如果 $A$ 是开集，则存在 $\varphi \in X^*$ 和 $\alpha \in \mathbb{R}$ 使得 $\varphi(a) < \alpha \leq \varphi(b)$ 对所有 $a \in A$，$b \in B$ 成立。（ii）如果 $A$ 是闭集且 $B$ 是紧集，则存在 $\varphi \in X^*$ 和 $\alpha < \beta$ 使得 $\varphi(a) \leq \alpha < \beta \leq \varphi(b)$ 对所有 $a \in A$，$b \in B$ 成立——*严格*分离。
 
 换句话说：任何两个不相交的凸集都可以被一个超平面分离，如果其中一个集合是闭集且另一个是紧集，则可以*严格*分离（具体来说，由一个板条分离）。
@@ -97,6 +112,9 @@ Hahn-Banach 让我做三件本来不可能的事情。（i）**延拓**线性泛
 
 几何 Hahn-Banach 的一个特殊情况：Banach 空间 $X$ 中的闭凸集 $C$ 在每个边界点都有一个支撑超平面。也就是说，对于每个 $x_0 \in \partial C$，存在 $\varphi \in X^*$ 使得 $\varphi(x_0) = \sup_{c \in C} \varphi(c)$。
 
+![对偶空间辨认](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/04_dual_lp.png)
+
+
 ![凸集在边界点处的支撑超平面](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/04-dual-spaces-hahn-banach/fa_v2_04_7_supporting.png)
 
 在凸分析的语言中，$\varphi$ 属于 $C$ 在 $x_0$ 处的指示函数的次微分是记录该点所有“支撑方向”的对偶对象。
@@ -112,6 +130,9 @@ Hahn-Banach 让我做三件本来不可能的事情。（i）**延拓**线性泛
 ## 二次对偶与自反性
 
 对偶空间 $X^*$ 本身是 Banach 空间，因此它有自己的对偶 $X^{**} = (X^*)^*$，称为二次对偶有一个典范嵌入 $J: X \to X^{**}$ 定义为 $(Jx)(\varphi) = \varphi(x)$ 对于 $\varphi \in X^*$。这个嵌入是良定义的（线性映射 $\varphi \mapsto \varphi(x)$ 有界且范数 $\leq \|x\|$），线性的，且等距——后者使用 Hahn-Banach 找到一个 $\varphi$ 使得 $|\varphi(x)| = \|x\|$ 且 $\|\varphi\| = 1$。
+
+![子空间的零化子](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/04_annihilator.png)
+
 
 Banach 空间是**自反的**，如果 $J$ 是满射，即 $X = X^{**}$ 典范地。自反性是一个强性质；它在取闭子空间、商空间和有限积时保持，并且它蕴含许多紧性和正则性结果。
 

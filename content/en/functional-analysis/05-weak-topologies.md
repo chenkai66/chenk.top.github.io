@@ -24,6 +24,12 @@ translationKey: "functional-analysis-5"
 
 ![Strong convergence vs weak convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa05_weak_convergence.png)
 
+![Animation: weak convergence of sin(nx)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/05_weak_conv.gif)
+
+
+![Weak vs strong convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/05_weak_vs_strong.png)
+
+
 Article 1 ended with a depressing fact: in any infinite-dimensional normed space, the closed unit ball is not compact. No bounded sequence is guaranteed to have a norm-convergent subsequence. If you are trying to find a minimizer of an energy functional — say, the lowest-energy configuration of a vibrating membrane — you take a minimizing sequence, and you need a limit. In finite dimensions, Bolzano-Weierstrass delivers that limit. In infinite dimensions, it does not. The direct method of the calculus of variations appears dead on arrival.
 
 The rescue comes from weakening the topology. A "weaker" topology has fewer open sets and fewer continuous functions, which makes it strictly easier for a set to be compact: with fewer open covers to defeat, more sets pass the compactness test. The trade-off is real — convergence in a weaker topology is less informative. A weakly convergent sequence may not converge pointwise or in norm. It only commits to converging against all continuous linear functionals. But this weaker convergence is enough for variational arguments, provided the energy functional is lower semicontinuous in the weak topology.
@@ -42,6 +48,9 @@ The pattern is completely general. Replace $\int|u'|^2$ with any convex coercive
 ## The Weak Topology: Definition, Examples, and Key Properties
 
 Let $X$ be a Banach space with dual $X^*$. The **weak topology** $\sigma(X, X^*)$ is the coarsest topology making every $\varphi \in X^*$ continuous. A sub-base consists of sets $\{x : |\varphi(x - x_0)| < \varepsilon\}$ for $\varphi \in X^*$, $x_0 \in X$, $\varepsilon > 0$. A net $(x_\alpha)$ converges weakly to $x$, written $x_\alpha \rightharpoonup x$, if and only if $\varphi(x_\alpha) \to \varphi(x)$ for every $\varphi \in X^*$.
+
+![Banach-Alaoglu theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/05_banach_alaoglu.png)
+
 
 Since every $\varphi \in X^*$ is norm-continuous, the weak topology is coarser than the norm topology: every weakly open set is norm-open, but not conversely. Norm convergence implies weak convergence; the converse fails in infinite dimensions.
 
@@ -74,6 +83,9 @@ Why does reflexivity fail for $L^1$? The sequence $f_n = n\mathbf{1}_{[0,1/n]}$ 
 
 The dual space $X^*$ carries a second natural topology beyond its norm. The **weak-* topology** $\sigma(X^*, X)$ is the coarsest topology making every evaluation map $\hat{x}: \varphi \mapsto \varphi(x)$ continuous for $x \in X$. A net $\varphi_\alpha \xrightarrow{w^*} \varphi$ iff $\varphi_\alpha(x) \to \varphi(x)$ for every $x \in X$.
 
+![Weak-* topology neighborhoods](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/05_weak_star_topology.png)
+
+
 The distinction: weak-* on $X^*$ uses only elements of $X$ as test objects, while the weak topology $\sigma(X^*, X^{**})$ uses all of $X^{**}$. If $X$ is reflexive ($X = X^{**}$), the two coincide. Otherwise, weak-* is strictly coarser — fewer test functionals means fewer open sets means more compact sets.
 
 The payoff is the most important compactness theorem in the subject:
@@ -103,6 +115,9 @@ The Banach-Alaoglu theorem also has a useful converse flavor: if a linear functi
 
 A functional $F: X \to \mathbb{R} \cup \{+\infty\}$ is **weakly lower semicontinuous** (weakly l.s.c.) if $F(x) \leq \liminf_n F(x_n)$ whenever $x_n \rightharpoonup x$. The sublevel sets $\{x : F(x) \leq c\}$ are weakly closed.
 
+![Eberlein-Smulian theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/05_eberlein_smulian.png)
+
+
 The key structural theorem: a convex functional is weakly l.s.c. iff it is norm-l.s.c. (equivalently, for convex functionals defined on the whole space, iff it is norm-continuous). This follows from Mazur: norm-closed convex sets are weakly closed, so sublevel sets $\{F \leq c\}$ that are norm-closed (from norm-l.s.c.) and convex (from convexity of $F$) are automatically weakly closed. Consequence: every convex continuous functional on a reflexive Banach space is weakly l.s.c. This single fact covers most applications — the functional $u \mapsto \int |\nabla u|^p$ is convex and continuous on $W^{1,p}$, hence weakly l.s.c. More generally, $u \mapsto \int F(\nabla u)$ is weakly l.s.c. on $W^{1,p}$ whenever $F$ is convex and has appropriate growth — this is Tonelli's theorem in the calculus of variations, and it covers essentially all "well-behaved" energy functionals in elasticity and PDE.
 
 For non-convex functionals, weak l.s.c. fails generically (as we will see in the failure modes section). The theory of **quasiconvexity** (Morrey, 1952) identifies the exact condition on the integrand $F$ that ensures weak l.s.c. of $\int F(\nabla u)$ for vector-valued $u$ — it is strictly weaker than convexity but strictly stronger than rank-one convexity, and it remains one of the deepest and most difficult conditions in the calculus of variations.
@@ -130,6 +145,9 @@ This pattern extends far beyond quantum mechanics. Minimal surfaces minimize are
 
 Understanding when the direct method fails clarifies why each hypothesis is needed. Three instructive breakdowns:
 
+![Mazur theorem: weak closure = strong closure for convex sets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/05_mazur.png)
+
+
 **Failure of reflexivity.** Minimize $\|u'\|_{L^1}$ over $W^{1,1}[0,1]$ with $u(0) = 0$, $u(1) = 1$. Infimum is 1 (Newton-Leibniz). Minimizing sequences approximate step functions, but $W^{1,1}$ is not reflexive — no weakly convergent subsequence exists in $W^{1,1}$. The "limit" lives in $BV$ (functions of bounded variation), not in the original space. The minimizer — a step function jumping from 0 to 1 — exists in $BV$ but not in $W^{1,1}$. Resolution: enlarge the space to $BV$ and work with weak-* compactness of measures rather than weak compactness of $L^1$ derivatives.
 
 **Failure of weak l.s.c. (non-convexity).** Minimize $E(u) = \int_0^1 (|u'|^2 - 1)^2\,dt$ over $H^1_0(0,1)$. Infimum is 0, achieved by zigzag functions $u_n$ with $n$ oscillations and slopes $\pm 1$ (so $|u_n'| = 1$ a.e., giving $E(u_n) = 0$). But $u_n \rightharpoonup 0$ in $H^1$ and $E(0) = 1 \neq 0$. The functional is not convex (the integrand $W \mapsto (W^2 - 1)^2$ is not convex), so it is not weakly l.s.c. The weak limit fails to be a minimizer because the functional "sees" oscillations that the weak topology forgets.
@@ -144,6 +162,9 @@ These three failures are not pathologies -- they arise in physics and engineerin
 ## Operator Topologies and Compactness in PDE Applications
 
 The space $B(X, Y)$ of bounded operators carries three topologies that illuminate weak convergence from a different angle:
+
+![Goldstine theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/05_goldstine.png)
+
 
 - **Norm topology:** $T_n \to T$ if $\|T_n - T\| \to 0$. Strongest.
 - **Strong operator topology (SOT):** $T_n \to T$ if $T_n x \to Tx$ in $Y$-norm for every $x$.

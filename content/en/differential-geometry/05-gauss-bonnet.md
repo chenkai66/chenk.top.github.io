@@ -32,7 +32,7 @@ What makes this theorem psychologically surprising is the vast gap between its t
 ## The Local Gauss-Bonnet Theorem
 
 
-![Gauss-Bonnet theorem: curvature integrates to a topological invariant](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg05_local_gauss_bonnet.png)
+![Gauss-Bonnet theorem: curvature integrates to a topological invariant](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_local_gauss_bonnet.png)
 
 ![Euler characteristic for various surfaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_euler_characteristic.png)
 

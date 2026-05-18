@@ -23,12 +23,21 @@ translationKey: "functional-analysis-6"
 
 For five articles I have been building scaffolding: metric and normed spaces, Hilbert spaces, dual spaces, weak topologies. None of those individually felt very impressive — I am, after all, just doing topology and linear algebra in slightly more general settings than usual. The point at which functional analysis genuinely *delivers* is right here, in the three great theorems of Banach space operator theory: the **Uniform Boundedness Principle**, the **Open Mapping Theorem**, and the **Closed Graph Theorem**. Each of these takes a piece of "pointwise" or "set-theoretic" data — pointwise boundedness, surjectivity, closedness of the graph — and concludes a global structural property — uniform boundedness, openness, continuity — that has no analog in finite dimensions because finite-dimensional linear algebra makes them all true automatically.
 
+![Operator norm: image of unit ball](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_operator_norm.png)
+
+
 The proofs all share a common engine: the Baire category theorem applied to the Banach space, exploiting completeness in the same way each time. Once you have one of the three theorems, the other two follow with relatively short additional arguments. So this whole article is really about one idea, refracted through three corollaries.
 
 ## Bounded Linear Operators: A Recap
 
 A linear map $T: X \to Y$ between normed spaces is **bounded** (equivalently, continuous) if there exists $C \geq 0$ with $\|T x\|_Y \leq C \|x\|_X$ for all $x \in X$. The smallest such $C$ is the operator norm
 $$\|T\| = \sup_{\|x\|_X \leq 1} \|T x\|_Y = \sup_{x \neq 0} \|T x\|_Y / \|x\|_X.$$
+
+![Animation: open mapping theorem demonstration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_open_mapping.gif)
+
+
+![Open mapping theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_open_mapping.png)
+
 
 ![Operator norm as the supremum of ||Tx|| over the unit ball](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/06-bounded-operators/fa_v2_06_1_op_norm.png)
 
@@ -51,6 +60,9 @@ A few examples I will refer to throughout the article:
 
 Let me state all three before proving any. They come as a package.
 
+![Closed graph theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_closed_graph.png)
+
+
 **(UBP) Uniform Boundedness Principle.** Let $X$ be a Banach space, $Y$ any normed space, and $\mathcal{F} \subseteq B(X, Y)$ a family of bounded operators. If $\sup_{T \in \mathcal{F}} \|T x\| < \infty$ for every $x \in X$ (pointwise boundedness), then $\sup_{T \in \mathcal{F}} \|T\| < \infty$ (uniform boundedness).
 
 **(OMT) Open Mapping Theorem.** Let $X, Y$ be Banach spaces and $T: X \to Y$ a bounded linear *surjection*. Then $T$ is an *open map*: $T(U)$ is open in $Y$ for every open $U \subseteq X$.
@@ -64,6 +76,9 @@ The three are intimately related; once we have UBP, OMT and CGT will fall out wi
 ## Proving the Uniform Boundedness Principle
 
 The proof is so clean it should be done in detail.
+
+![Uniform boundedness principle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_uniform_boundedness.png)
+
 
 *Proof of UBP.* For each $n \in \mathbb{N}$, define $F_n = \{ x \in X : \|T x\| \leq n \text{ for all } T \in \mathcal{F} \}$. Each $F_n$ is closed: it is the intersection over $T \in \mathcal{F}$ of the closed sets $\{ x : \|T x\| \leq n \}$, and an arbitrary intersection of closed sets is closed.
 
@@ -84,6 +99,9 @@ UBP is what lets me make pointwise arguments and conclude global facts. Pointwis
 ## Proving the Open Mapping Theorem
 
 A bit more elaborate, but built on the same Baire argument.
+
+![Three pillars of functional analysis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_three_theorems.png)
+
 
 *Sketch of proof of OMT.* By translation, it suffices to show $T(U)$ contains a ball around $0$ whenever $U$ is an open ball around $0$.
 
@@ -118,6 +136,9 @@ OMT and the bounded inverse theorem are how one extracts continuity from algebra
 ## Proving the Closed Graph Theorem
 
 CGT is essentially a reformulation of OMT.
+
+![B(X,Y): space of bounded operators](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_bxy.png)
+
 
 *Proof of CGT.* The graph $G = \{(x, Tx) : x \in X\}$ is by hypothesis a closed subspace of $X \times Y$, where $X \times Y$ is a Banach space with norm $\|(x, y)\| = \|x\| + \|y\|$. So $G$ is itself a Banach space. The projection $\pi_X : G \to X$, $(x, Tx) \mapsto x$, is bounded (its norm is $\leq 1$) and bijective. By the bounded inverse theorem, $\pi_X^{-1}: X \to G$ is bounded, i.e., $\|x\| + \|T x\| \leq C \|x\|$ for some constant $C$. Therefore $\|T x\| \leq (C-1) \|x\|$, and $T$ is bounded. $\square$
 

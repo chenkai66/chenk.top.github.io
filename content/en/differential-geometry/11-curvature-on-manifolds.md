@@ -34,7 +34,7 @@ A second guiding picture. Think of the curvature tensor as the *infinitesimal ho
 ## 1. The Riemann Curvature Tensor
 
 
-![Gaussian curvature on a torus: outer K>0 (red), inner K<0 (blue)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg11_scalar_curvature.png)
+![Gaussian curvature on a torus: outer K>0 (red), inner K<0 (blue)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_scalar_curvature.png)
 
 ![Riemann curvature tensor: change in vector after parallel transport around loop](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_riemann_tensor.png)
 
