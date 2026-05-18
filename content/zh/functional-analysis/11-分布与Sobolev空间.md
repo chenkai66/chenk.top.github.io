@@ -184,7 +184,7 @@ $$
 其中$\partial^\alpha u$表示弱（等价地，分布）导数。范数是
 
 $$
-\|u\|_{W^{k,p}} = \left(\sum_{|\alpha| \le k} \|\partial^\alpha u\|_{L^p}^p\right)^{1/p} \quad (1 \le p < \infty),
+$\|u\|_{W^{k,p}} = \left(\sum_{|\alpha| \le k} \|\partial^\alpha u\|_{L^p}^p\right)^{1/p} \quad (1 \le p < \infty)$
 $$
 
 对于$p = \infty$的情况做相应修改。
@@ -200,7 +200,7 @@ $W_0^{k,p}(\Omega)$是$C_c^\infty(\Omega)$在$W^{k,p}(\Omega)$中的闭包。直
 *证明概要。* 设$(u_j)$是$W^{k,p}$中的Cauchy序列。对于每个$|\alpha| \le k$，序列$(\partial^\alpha u_j)$是$L^p(\Omega)$中的Cauchy序列。由$L^p$的完备性，存在$u_\alpha \in L^p$使得$\partial^\alpha u_j \to u_\alpha$在$L^p$中。设$u = u_0$。我们声称$\partial^\alpha u = u_\alpha$在分布意义下成立：
 
 $$
-\langle \partial^\alpha u, \varphi \rangle = (-1)^{|\alpha|}\langle u, \partial^\alpha\varphi \rangle = (-1)^{|\alpha|}\lim_j \langle u_j, \partial^\alpha\varphi \rangle = \lim_j \langle \partial^\alpha u_j, \varphi \rangle = \langle u_\alpha, \varphi \rangle.
+$\langle \partial^\alpha u, \varphi \rangle = (-1)^{|\alpha|}\langle u, \partial^\alpha\varphi \rangle = (-1)^{|\alpha|}\lim_j \langle u_j, \partial^\alpha\varphi \rangle = \lim_j \langle \partial^\alpha u_j, \varphi \rangle = \langle u_\alpha, \varphi \rangle$。
 $$
 
 因此$u \in W^{k,p}$且$u_j \to u$。$\square$
@@ -210,7 +210,7 @@ $$
 取$u(x) = |x|^\alpha$在单位球$B \subset \mathbb{R}^n$上。何时$u \in W^{1,p}(B)$？弱梯度是$\nabla u = \alpha|x|^{\alpha-2}x$（扩展经典公式），并且
 
 $$
-\int_B |\nabla u|^p\,dx = |\alpha|^p \int_B |x|^{p(\alpha-1)}\,dx = |\alpha|^p \omega_{n-1}\int_0^1 r^{p(\alpha-1)+n-1}\,dr.
+$\int_B |\nabla u|^p\,dx = |\alpha|^p \int_B |x|^{p(\alpha-1)}\,dx = |\alpha|^p \omega_{n-1}\int_0^1 r^{p(\alpha-1)+n-1}\,dr$
 $$
 
 这个积分收敛当且仅当$p(\alpha-1) + n - 1 > -1$，即$\alpha > 1 - n/p$。因此$|x|^\alpha \in W^{1,p}(B)$恰好当$\alpha > 1 - n/p$。在$n = 3$，$p = 2$的情况下，这给出$\alpha > -1/2$，所以$|x|^{-1/2}$勉强*不在*$H^1$中，但$|x|^{-1/4}$在。这种明确的阈值指导了奇异PDE解的预期正则性。
