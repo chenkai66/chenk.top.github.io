@@ -256,9 +256,23 @@ $$\{e\} = G_0 \trianglelefteq G_1 \trianglelefteq \cdots \trianglelefteq G_n = G
 
 - 所有 Abel 群（长度为 1 的链）。
 - 所有阶小于 60 的群。
-- $S_n$ 对于 $n \leq 4$（$S_3$ 有 $\{e\}
-<!-- 本节内容因生成长度限制截断；完整推导请参阅本系列对应英文版本。 -->
+- $S_n$ 对于 $n \leq 4$（$S_3$ 有 $\{e\} \trianglelefteq A_3 \trianglelefteq S_3$，商分别是 $\mathbb{Z}/3$ 和 $\mathbb{Z}/2$；$S_4$ 有 $\{e\} \trianglelefteq V_4 \trianglelefteq A_4 \trianglelefteq S_4$，商分别是 $V_4$、$\mathbb{Z}/3$、$\mathbb{Z}/2$，都是 Abel 群）。
+- 所有 $p$-群——这是上一节"$p$-群有非平凡中心"的直接后果，归纳即可。
 
-![A_5 is simple and non-abelian — the obstruction to solving the quintic（图）](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/08-galois-theory/aa_v2_08_5_quintic.png)
+而 $S_n$ 对 $n \geq 5$ *不* 可解。瓶颈是交错群 $A_n$：当 $n \geq 5$ 时，$A_n$ 是单群（除 $\{e\}$ 和自身外没有正规子群），且非 Abel。它没法被进一步剖开成 Abel 商，所以 $\{e\} \trianglelefteq A_n \trianglelefteq S_n$ 这条链已经走到头了，第一段商 $A_n / \{e\} = A_n$ 不是 Abel 群。可解性的链彻底断在这里。
+
+把这两件事——根式可解需要可解 Galois 群、$S_n$ 对 $n \geq 5$ 不可解——拼起来，就是 Galois 真正的定理：
+
+$$f \in \mathbb{Q}[x] \text{ 根式可解} \iff \mathrm{Gal}(f/\mathbb{Q}) \text{ 是可解群}.$$
+
+构造一个 Galois 群恰好是 $S_5$ 的具体五次多项式并不困难，例如 $f(x) = x^5 - 4x + 2$（用 Eisenstein 准则证明不可约，再用模 $p$ 因子分解 + 判别式非平方证明 Galois 群既包含 $5$ 阶元也包含一个对换，两者在 $S_5$ 中已经生成全部 $S_5$）。这一具体例子告诉你"五次方程没有求根公式"不是抽象的不存在性陈述，而是写在纸上的某一个具体方程不可解。Abel 在 1824 年证明的不可解性，被 Galois 在 1832 年（去世前一夜）重写成了一个关于群的陈述——这是数学史上最早的"把分析问题翻译成结构问题"的范例之一。
+
+下面这张图把这一切的几何意义画了出来：$A_5$ 是单且非 Abel 的，正是它阻挡了五次方程的根式公式。
+
+---
+
+## 下一步
+
+Galois 理论把"多项式有没有根式解"换成了"它的 Galois 群是不是可解"，把"求出所有中间域"换成了"列出 Galois 子群的子群"，把"三等分角、化圆为方"换成了"扩张次数能否做到 $2^k$"。但这只是它影响的开端。下一篇要走出域，进入 *模*：把"向量空间"中"系数取自域"换成"系数取自环"。这个看似温和的推广会同时把 Abel 群、$\mathbb{Z}$-模、有限维线性算子的 Jordan 标准形、表示论统统装进同一个壳里。Galois 理论里我们看到群作用在域上；模理论里我们会看到环作用在 Abel 群上。"作用"这条线索从第二篇一直延伸到下一篇，是抽象代数最主要的那根纵贯线。
 
 ---
