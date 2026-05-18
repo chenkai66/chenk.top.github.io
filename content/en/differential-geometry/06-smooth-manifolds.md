@@ -27,11 +27,9 @@ Once you accept the abstract framework, everything from the previous chapters be
 
 ## Charts, Atlases, and the Definition of a Smooth Manifold
 
-
 ![Stereographic projection: covering the circle with two charts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg06_stereographic.png)
 
 ![Charts and atlas: covering a manifold with coordinate patches](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_charts_atlas.png)
-
 
 The intuition behind a manifold: a space that, near any point, looks indistinguishable from a patch of $\mathbb{R}^n$. The surface of the Earth looks flat from ground level — this is the local-Euclidean property. But globally it wraps around, has no edges, and is compact. A manifold is the mathematical framework that captures this: locally Euclidean, globally possibly complicated.
 
@@ -58,7 +56,6 @@ A concrete grounding: take $S^2$ with stereographic projection from the north po
 **$\mathbb{R}^n$ and its open subsets.** The identity map gives a single global chart. Open subsets inherit the smooth structure. Example: $\mathrm{GL}(n, \mathbb{R}) = \{A \in M_n(\mathbb{R}) : \det A \neq 0\}$ is an open subset of $\mathbb{R}^{n^2}$ (since $\det$ is continuous and $\mathrm{GL}(n)$ is the preimage of $\mathbb{R} \setminus \{0\}$), hence a smooth manifold of dimension $n^2$. The space of invertible matrices is a manifold — this is the starting point for Lie group theory.
 
 ![Tangent space at a point on a manifold](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_tangent_space.png)
-
 
 ![Two-chart atlas for the 2-sphere from stereographic projection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/06-smooth-manifolds/dg_v2_06_3_sphere_charts.png)
 
@@ -88,9 +85,7 @@ On a surface in $\mathbb{R}^3$, a tangent vector at $p$ is a velocity vector $\g
 
 ![Animation: transitioning between chart coordinates](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_chart_transition.gif)
 
-
 ![Transition maps between overlapping charts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_transition_maps.png)
-
 
 The insight: a tangent vector at $p$ is completely characterized by its action as a directional derivative. Given any smooth function $f: M \to \mathbb{R}$, a tangent vector $v$ at $p$ produces a number $v(f) \in \mathbb{R}$ — the rate of change of $f$ in the direction $v$. This number is linear in $f$ and satisfies the Leibniz (product) rule: $v(fg) = f(p)v(g) + g(p)v(f)$.
 
@@ -116,7 +111,6 @@ If $F: M \to N$ is a smooth map between manifolds, the *differential* (or pushfo
 
 ![Examples of smooth manifolds](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_manifold_examples.png)
 
-
 The differential captures how $F$ acts "infinitesimally": tangent vectors at $p$ (infinitesimal displacements) map linearly to tangent vectors at $F(p)$. It is the manifold analog of the total derivative. The chain rule holds: $d(G \circ F)_p = dG_{F(p)} \circ dF_p$. The differential of the identity is the identity on tangent spaces.
 
 Three important classes of smooth maps, defined by the rank of $dF_p$:
@@ -138,7 +132,6 @@ Sard's theorem adds: the set of critical values (where $dF$ fails to be surjecti
 Assemble all tangent spaces into one object: the *tangent bundle* $TM = \bigsqcup_{p \in M} T_pM$. A point of $TM$ is a pair $(p, v)$ with $p \in M$ and $v \in T_pM$. The tangent bundle is itself a smooth manifold of dimension $2n$: in a chart $(U, \varphi = (x^1, \ldots, x^n))$ on $M$, coordinates on $TU$ are $(x^1, \ldots, x^n, v^1, \ldots, v^n)$ where $v = \sum v^i\partial/\partial x^i$.
 
 ![Smooth maps between manifolds](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_smooth_map.png)
-
 
 The projection $\pi: TM \to M$, $\pi(p, v) = p$, makes $TM$ a *vector bundle* of rank $n$ — the fibers $\pi^{-1}(p) = T_pM$ are vector spaces varying smoothly with $p$.
 
@@ -210,9 +203,3 @@ This connects the smooth manifold framework back to the Gauss-Bonnet theorem of 
 The next chapter introduces *vector fields and flows* — the dynamical side of manifold theory. Vector fields generate one-parameter groups of diffeomorphisms, and their algebraic structure (the Lie bracket) encodes infinitesimal symmetries. After that: differential forms, integration and Stokes' theorem, Riemannian metrics (recovering geodesics and curvature in the abstract setting), and connections on bundles.
 
 ---
-
-*This is Part 6 of the [Differential Geometry](/en/series/differential-geometry/) series (12 articles).*
-
-*Previous: [Part 5 — The Gauss-Bonnet Theorem](/en/differential-geometry/05-gauss-bonnet/)*
-
-*Next: [Part 7 — Vector Fields and Flows](/en/differential-geometry/07-vector-fields-flows/)*

@@ -21,14 +21,11 @@ translationKey: "functional-analysis-5"
 
 ## Why Weaker Topologies Exist and Why They Matter
 
-
 ![Strong convergence vs weak convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa05_weak_convergence.png)
 
 ![Animation: weak convergence of sin(nx)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/05_weak_conv.gif)
 
-
 ![Weak vs strong convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/05_weak_vs_strong.png)
-
 
 Article 1 ended with a depressing fact: in any infinite-dimensional normed space, the closed unit ball is not compact. No bounded sequence is guaranteed to have a norm-convergent subsequence. If you are trying to find a minimizer of an energy functional — say, the lowest-energy configuration of a vibrating membrane — you take a minimizing sequence, and you need a limit. In finite dimensions, Bolzano-Weierstrass delivers that limit. In infinite dimensions, it does not. The direct method of the calculus of variations appears dead on arrival.
 
@@ -44,13 +41,11 @@ Let me make this concrete. Consider minimizing $E(u) = \frac{1}{2}\int_0^1 |u'(t
 
 The pattern is completely general. Replace $\int|u'|^2$ with any convex coercive functional, replace $[0,1]$ with any bounded domain in $\mathbb{R}^n$, replace the eigenvalue constraint with any weakly closed constraint set. The abstract machine produces minimizers as long as the three ingredients — coercivity, compactness (via reflexivity), and weak l.s.c. (via convexity) — are present. This is why the direct method is "direct": it avoids solving the Euler-Lagrange equation and instead constructs minimizers by an abstract compactness argument. The Euler-Lagrange equation is then derived as a consequence — the minimizer satisfies the equation because it is a critical point of the functional.
 
-
 ## The Weak Topology: Definition, Examples, and Key Properties
 
 Let $X$ be a Banach space with dual $X^*$. The **weak topology** $\sigma(X, X^*)$ is the coarsest topology making every $\varphi \in X^*$ continuous. A sub-base consists of sets $\{x : |\varphi(x - x_0)| < \varepsilon\}$ for $\varphi \in X^*$, $x_0 \in X$, $\varepsilon > 0$. A net $(x_\alpha)$ converges weakly to $x$, written $x_\alpha \rightharpoonup x$, if and only if $\varphi(x_\alpha) \to \varphi(x)$ for every $\varphi \in X^*$.
 
 ![Banach-Alaoglu theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/05_banach_alaoglu.png)
-
 
 Since every $\varphi \in X^*$ is norm-continuous, the weak topology is coarser than the norm topology: every weakly open set is norm-open, but not conversely. Norm convergence implies weak convergence; the converse fails in infinite dimensions.
 
@@ -78,13 +73,11 @@ A space $X$ is **reflexive** iff $B_X$ is weakly compact (Kakutani). Equivalentl
 
 Why does reflexivity fail for $L^1$? The sequence $f_n = n\mathbf{1}_{[0,1/n]}$ has $\|f_n\|_1 = 1$ but no weakly convergent subsequence — the "limit" wants to be $\delta_0$, a measure not in $L^1$. The Dunford-Pettis theorem characterizes weak compactness in $L^1$: a bounded set is relatively weakly compact iff it is uniformly integrable. The concentrating sequence $f_n$ violates uniform integrability, so it has no weak limit in $L^1$. This is why variational problems in $BV$ (bounded variation) require working in the larger space of measures with weak-* topology rather than in $L^1$ with weak topology.
 
-
 ## The Weak-* Topology and the Banach-Alaoglu Theorem
 
 The dual space $X^*$ carries a second natural topology beyond its norm. The **weak-* topology** $\sigma(X^*, X)$ is the coarsest topology making every evaluation map $\hat{x}: \varphi \mapsto \varphi(x)$ continuous for $x \in X$. A net $\varphi_\alpha \xrightarrow{w^*} \varphi$ iff $\varphi_\alpha(x) \to \varphi(x)$ for every $x \in X$.
 
 ![Weak-* topology neighborhoods](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/05_weak_star_topology.png)
-
 
 The distinction: weak-* on $X^*$ uses only elements of $X$ as test objects, while the weak topology $\sigma(X^*, X^{**})$ uses all of $X^{**}$. If $X$ is reflexive ($X = X^{**}$), the two coincide. Otherwise, weak-* is strictly coarser — fewer test functionals means fewer open sets means more compact sets.
 
@@ -110,13 +103,11 @@ A note on the Axiom of Choice: the general Banach-Alaoglu uses Tychonoff, which 
 
 The Banach-Alaoglu theorem also has a useful converse flavor: if a linear functional $\Lambda: X \to \mathbb{C}$ is in the weak-* closure of $B_{X^*}$ but not in $B_{X^*}$ itself, then $\Lambda$ is not norm-bounded by 1. More precisely, the weak-* closure of a convex set in $X^*$ equals its norm closure (by a separation argument using Goldstine). This means that for convex subsets of $X^*$, weak-* closed and norm-closed are the same -- a dual version of Mazur's theorem. This fact is heavily used in optimization (duality theory, where one wants to know that dual feasibility constraints are preserved under weak-* limits).
 
-
 ## Weak Lower Semicontinuity and the Direct Method in Full
 
 A functional $F: X \to \mathbb{R} \cup \{+\infty\}$ is **weakly lower semicontinuous** (weakly l.s.c.) if $F(x) \leq \liminf_n F(x_n)$ whenever $x_n \rightharpoonup x$. The sublevel sets $\{x : F(x) \leq c\}$ are weakly closed.
 
 ![Eberlein-Smulian theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/05_eberlein_smulian.png)
-
 
 The key structural theorem: a convex functional is weakly l.s.c. iff it is norm-l.s.c. (equivalently, for convex functionals defined on the whole space, iff it is norm-continuous). This follows from Mazur: norm-closed convex sets are weakly closed, so sublevel sets $\{F \leq c\}$ that are norm-closed (from norm-l.s.c.) and convex (from convexity of $F$) are automatically weakly closed. Consequence: every convex continuous functional on a reflexive Banach space is weakly l.s.c. This single fact covers most applications — the functional $u \mapsto \int |\nabla u|^p$ is convex and continuous on $W^{1,p}$, hence weakly l.s.c. More generally, $u \mapsto \int F(\nabla u)$ is weakly l.s.c. on $W^{1,p}$ whenever $F$ is convex and has appropriate growth — this is Tonelli's theorem in the calculus of variations, and it covers essentially all "well-behaved" energy functionals in elasticity and PDE.
 
@@ -140,13 +131,11 @@ The minimizer $u^*$ satisfies the Euler-Lagrange equation $-\frac{1}{2}\Delta u^
 
 This pattern extends far beyond quantum mechanics. Minimal surfaces minimize area subject to boundary constraints. Optimal transport minimizes a cost functional over probability measures (weak-* compactness via Prokhorov). Optimal control minimizes cost over ODE trajectories (weak compactness of bounded measurable controls). In each case, the four-step structure persists with the same logical skeleton.
 
-
 ## Failure Modes and Their Resolutions
 
 Understanding when the direct method fails clarifies why each hypothesis is needed. Three instructive breakdowns:
 
 ![Mazur theorem: weak closure = strong closure for convex sets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/05_mazur.png)
-
 
 **Failure of reflexivity.** Minimize $\|u'\|_{L^1}$ over $W^{1,1}[0,1]$ with $u(0) = 0$, $u(1) = 1$. Infimum is 1 (Newton-Leibniz). Minimizing sequences approximate step functions, but $W^{1,1}$ is not reflexive — no weakly convergent subsequence exists in $W^{1,1}$. The "limit" lives in $BV$ (functions of bounded variation), not in the original space. The minimizer — a step function jumping from 0 to 1 — exists in $BV$ but not in $W^{1,1}$. Resolution: enlarge the space to $BV$ and work with weak-* compactness of measures rather than weak compactness of $L^1$ derivatives.
 
@@ -158,13 +147,11 @@ This failure is central to materials science: the energy models a material prefe
 
 These three failures are not pathologies -- they arise in physics and engineering. The $BV$ relaxation appears in image processing (total-variation denoising). The non-convex microstructure appears in shape-memory alloys. The concentration-compactness failure appears in quantum chemistry (molecules dissociating). Each failure spawned its own rich theory, and each resolution is a modified compactness argument tailored to the specific breakdown of the four-step scheme.
 
-
 ## Operator Topologies and Compactness in PDE Applications
 
 The space $B(X, Y)$ of bounded operators carries three topologies that illuminate weak convergence from a different angle:
 
 ![Goldstine theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/05_goldstine.png)
-
 
 - **Norm topology:** $T_n \to T$ if $\|T_n - T\| \to 0$. Strongest.
 - **Strong operator topology (SOT):** $T_n \to T$ if $T_n x \to Tx$ in $Y$-norm for every $x$.
@@ -183,7 +170,6 @@ For evolution PDE, the **Aubin-Lions lemma** provides the time-dependent analogu
 The pattern extends to nonlinear problems. For the incompressible Navier-Stokes equations $u_t + (u \cdot \nabla)u - \nu\Delta u + \nabla p = f$ with $\text{div}\,u = 0$, the Galerkin approximations satisfy the same type of bounds (energy estimate gives $L^2(0,T; H^1)$ boundedness; the equation gives $\partial_t u_N$ bounded in $L^{4/3}(0,T; V^*)$ in 3D). Aubin-Lions extracts a subsequence converging strongly in $L^2$, which is enough to pass to the limit in the nonlinear term $(u \cdot \nabla)u$ (bilinear in $u$, so strong convergence of one factor suffices). This is Leray's 1934 argument for existence of weak solutions to Navier-Stokes — one of the landmark applications of weak-topology methods in PDE.
 
 The limitation: Aubin-Lions gives strong convergence in an intermediate space, but not in the strong space itself. For Navier-Stokes, we get $u_{N_k} \to u$ in $L^2$ but not in $H^1$. This is enough for existence but not for uniqueness (which would require control of the full $H^1$ norm). The celebrated open problem of Navier-Stokes regularity is, from this perspective, a question about whether the strong convergence that Aubin-Lions cannot provide actually holds. The weak-topology machinery gets us existence; going beyond it is where the millennium prize lives.
-
 
 ## Probability and Weak-* Convergence: Prokhorov's Theorem
 
@@ -205,15 +191,8 @@ A more sophisticated approximation-to-the-identity example: the Fejer kernel $F_
 
 The Glivenko-Cantelli theorem (empirical distributions converge to the true distribution) is weak-* convergence of random measures. The central limit theorem is weak convergence of rescaled convolution powers to a Gaussian. Large deviations theory studies the exponential rate. In each case, Banach-Alaoglu and tightness provide the structural skeleton, and the probabilistic content fills in the quantitative estimates. The fact that "convergence in distribution" in probability is the same as weak-* convergence in $C_b^*$ means that all the machinery of functional analysis — compact sets, continuous functionals, lower semicontinuity — applies directly to probabilistic limit theorems. Functional analysis does not merely provide techniques for probability; it provides the correct language.
 
-
 ## What's Next
 
 We now have the compactness tools (Banach-Alaoglu, Eberlein-Smulian, Rellich-Kondrachov) and the duality theory (Hahn-Banach) needed for existence arguments. The next article turns to the operators themselves and the three great structural theorems -- Uniform Boundedness, Open Mapping, Closed Graph -- that constrain how bounded operators between Banach spaces can behave. All three exploit completeness via the Baire Category Theorem, and together they give the "rigidity theorems" of Banach-space theory: operators between complete spaces cannot be too pathological.
 
 ---
-
-*This is Part 5 of the [Functional Analysis](/en/series/functional-analysis/) series (12 articles).*
-
-*Previous: [Part 4 — Dual Spaces and Hahn-Banach](/en/functional-analysis/04-dual-spaces-hahn-banach/)*
-
-*Next: [Part 6 — Bounded Operators](/en/functional-analysis/06-bounded-operators/)*

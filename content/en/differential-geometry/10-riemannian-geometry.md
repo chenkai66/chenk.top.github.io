@@ -31,11 +31,9 @@ A historical orientation, since the names accumulate quickly. Riemann introduced
 
 ## 1. Riemannian Metrics
 
-
 ![Parallel transport on a sphere: vector rotates 90 degrees around a spherical triangle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_parallel_transport_paths.png)
 
 ![Riemannian metric: unit balls in Euclidean vs hyperbolic geometry](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_riemannian_metric.png)
-
 
 A **Riemannian metric** on a smooth manifold $M$ is a smooth assignment
 $$g: M \to T^*M \otimes T^*M, \qquad p \mapsto g_p$$
@@ -84,7 +82,6 @@ A Riemannian metric gives a canonical identification between tangent and cotange
 
 ![Levi-Civita connection: the unique metric-compatible torsion-free connection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_levi_civita.png)
 
-
 In coordinates: if $v = v^i\partial_i$, then $v^\flat = g_{ij}v^j\,dx^i$. The matrix of $\flat$ is the metric matrix $g_{ij}$; the matrix of $\sharp$ is its inverse $g^{ij}$. These are the constructions that physicists call "raising and lowering indices."
 
 **Gradient.** The gradient of a smooth $f: M \to \mathbb{R}$ is the metric-dependent vector field $\nabla f = (df)^\sharp$. In coordinates $(\nabla f)^i = g^{ij}\partial_j f$. Without a metric, $df$ is a covector field; with a metric, you can convert it to a vector field that "points in the direction of steepest ascent" with magnitude equal to the rate of ascent. The gradient depends on the metric and is the right notion for variational and gradient-flow problems.
@@ -97,9 +94,7 @@ To differentiate vector fields, we need extra data. An **affine connection** on 
 
 ![Animation: parallel transport along latitude on sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_parallel_transport.gif)
 
-
 ![Parallel transport is path-dependent on curved spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_parallel_transport_paths.png)
-
 
 1. $\nabla_{fX} Y = f \nabla_X Y$ (linear in $X$ over smooth functions),
 2. $\nabla_X (fY) = X(f) Y + f \nabla_X Y$ (Leibniz rule in $Y$).
@@ -115,7 +110,6 @@ In a coordinate chart, $\nabla$ is determined by the **Christoffel symbols** $\G
 **Theorem (Fundamental theorem of Riemannian geometry).** On any Riemannian manifold $(M, g)$, there is a *unique* affine connection $\nabla$ that is both torsion-free and metric-compatible. This is the **Levi-Civita connection**.
 
 ![Covariant derivative: parallel vs non-parallel transport](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_covariant_derivative.png)
-
 
 *Proof sketch.* Imposing torsion-freeness and metric compatibility produces the **Koszul formula**:
 
@@ -143,7 +137,6 @@ Given a curve $\gamma$ and a vector $v$ at $\gamma(0)$, the **parallel transport
 
 ![Hopf-Rinow: complete vs incomplete manifolds](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_hopf_rinow.png)
 
-
 ![Parallel transport along a closed loop on the sphere returns a rotated vector](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/10-riemannian-geometry/dg_v2_10_3_parallel_transport.png)
 
 **The key point.** On Euclidean space, parallel transport is path-independent: walking from $p$ to $q$ along any path, you carry vectors the same way (just translate them). On a curved manifold, parallel transport is generally **path-dependent**: a vector carried from $p$ to $p$ around a closed loop returns rotated. This is the geometric heart of curvature.
@@ -169,7 +162,6 @@ $$\ddot\gamma^k + \Gamma^k_{ij}\dot\gamma^i\dot\gamma^j = 0.$$
 This is a second-order ODE in the curve's coordinates, with initial data $(\gamma(0), \dot\gamma(0)) \in TM$. By Picard-Lindelof, geodesics exist and are locally unique; they may not extend for all time (the manifold could be incomplete).
 
 ![Connection as horizontal subspace in the tangent bundle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_connection_bundle.png)
-
 
 Geodesics are **locally length-minimizing**: among nearby curves with the same endpoints, the geodesic has the shortest length. They are *not always* globally minimizing — on the sphere, the great-circle arc from the north pole to a point near the south pole going "the long way" is a geodesic but not the shortest path.
 
@@ -293,9 +285,3 @@ The next article puts curvature centre stage. Riemann tensor, sectional curvatur
 A final observation on what metrics give you. The fact that we get a metric space structure (Riemannian distance) from infinitesimal data (the inner product on tangent spaces) is genuinely remarkable. It is the Riemannian incarnation of the principle that local data, integrated, gives global data — the same principle that makes integration on smooth manifolds work, that makes Stokes' theorem identify boundary and bulk, and that ultimately makes Gauss-Bonnet identify local curvature with global topology. Every step in the conceptual hierarchy of differential geometry is a variation on this theme.
 
 ---
-
-*This is Part 10 of the [Differential Geometry](/en/series/differential-geometry/) series (12 articles).*
-
-*Previous: [Part 9 — Integration and Stokes' Theorem](/en/differential-geometry/09-integration-stokes/)*
-
-*Next: [Part 11 — Curvature on Manifolds](/en/differential-geometry/11-curvature-on-manifolds/)*

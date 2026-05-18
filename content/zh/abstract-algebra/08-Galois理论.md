@@ -25,8 +25,10 @@ translationKey: "abstract-algebra-8"
 
 ## Galois 群：固定基域的自同构
 
-
 ![Galois 对应：域扩张与子群的双射](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/aa08_galois_correspondence.png)
+
+![Galois 群：固定基域的自同构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/08_galois_group.png)
+
 
 给定一个域扩张 $L/K$，*$L$ 在 $K$ 上的自同构* 是一个域同构 $\sigma : L \to L$，使得对于每个 $a \in K$ 有 $\sigma(a) = a$。所有这样的自同构在复合下形成一个群，称为 $L/K$ 的 *Galois 群*：
 
@@ -257,12 +259,6 @@ $$\{e\} = G_0 \trianglelefteq G_1 \trianglelefteq \cdots \trianglelefteq G_n = G
 - $S_n$ 对于 $n \leq 4$（$S_3$ 有 $\{e\}
 <!-- 本节内容因生成长度限制截断；完整推导请参阅本系列对应英文版本。 -->
 
-
 ![A_5 is simple and non-abelian — the obstruction to solving the quintic（图）](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/08-galois-theory/aa_v2_08_5_quintic.png)
 
-
 ---
-
-*本文是[《抽象代数》](/zh/series/abstract-algebra/)系列的第 8 篇（共 12 篇）。*
-
-*下一篇：[第 9 篇 — 模](/zh/abstract-algebra/09-modules/)*

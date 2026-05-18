@@ -17,17 +17,26 @@ series_total: 12
 translationKey: "abstract-algebra-12"
 ---
 
+![Symmetry in physics: gauge groups](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/12_symmetry_physics.png)
+
+
 For eleven articles, we have built algebra from the ground up: groups, rings, fields, Galois theory, modules, representations, categories. At times, the material may have felt like pure abstraction — beautiful, perhaps, but detached from the "real world." This final article corrects that impression. The structures we have studied are not just mathematically elegant; they are the backbone of technologies and theories that shape modern life. By the end of this article, the question "is abstract algebra useful?" should feel about as well-posed as "is calculus useful?" — the answer is so overwhelmingly yes that the question itself sounds quaint.
 
 The fact that algebra has applications is not, by itself, surprising. What is surprising is how *deep* those applications go. RSA encryption is not just "an application that happens to use modular arithmetic" — its security rests on a hard problem about $\mathbb{Z}/n$ that we still cannot solve. Reed-Solomon codes are not "an application that happens to use polynomials" — they exploit the precise interplay between polynomial degree and the count of roots in a finite field. The standard model of particle physics is not "an application that happens to use group theory" — its very structure is dictated by the irreducible representations of certain Lie groups. In each case, the applied technology *is* the algebraic structure, transcribed into a different language.
 
 This article walks through six applications, in roughly increasing order of conceptual depth: RSA, elliptic curve cryptography, Reed-Solomon codes, QR codes, particle physics symmetries, and crystallography. The selection is not exhaustive but is meant to convey the range. Each section gives enough math to see the algebraic skeleton, then steps back to make the broader point. The pace is faster than in previous articles — we are not re-deriving the algebra, just noting where it lives.
 
+![Animation: point addition on an elliptic curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/12_elliptic_addition.gif)
+
+
 ---
 
 ## RSA Encryption
 
 The RSA cryptosystem, invented by Rivest, Shamir, and Adleman in 1977, is the canonical first example of public-key cryptography. The math is entirely elementary — modular arithmetic, Fermat's little theorem, the Chinese remainder theorem — but the system relies on a *computational* asymmetry: factoring large integers is hard, even though multiplying them is easy.
+
+![RSA encryption: modular exponentiation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/12_rsa.png)
+
 
 Public-key cryptography itself is one of the genuinely surprising ideas of the 20th century. Before 1976, all serious cryptography assumed Alice and Bob shared a secret key, established somehow in advance. The Diffie-Hellman paper (1976) and then RSA (1977) showed that two parties who have *never communicated* can establish a shared secret over a public channel. This was so counterintuitive that it took the cryptographic community years to fully accept it. The mathematical content is simple — modular exponentiation is one-way (easy to compute, hard to invert without a trapdoor) — but the *conceptual* leap was profound.
 
@@ -61,6 +70,9 @@ The algebraic content of RSA is exactly the structure theorem for $(\mathbb{Z}/n
 
 The natural next step beyond RSA. Instead of $(\mathbb{Z}/n)^\times$, use the group of points on an elliptic curve over a finite field.
 
+![Elliptic curve group law](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/12_elliptic_curve.png)
+
+
 An **elliptic curve** over $\mathbb{F}_p$ is the set of solutions $(x, y) \in \mathbb{F}_p^2$ to an equation of the form
 
 $$y^2 = x^3 + ax + b,$$
@@ -89,6 +101,9 @@ A historical note: Diffie and Hellman invented the key-exchange idea in 1976, bu
 
 Cryptography is one part of practical algebra; *coding theory* is another. The problem: send data over a noisy channel, with some symbols corrupted in transit. How do you recover the original message?
 
+![Linear codes and error detection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/12_coding_theory.png)
+
+
 The Reed-Solomon answer: encode your message as the *evaluations of a polynomial* at known points. If the polynomial has degree $\leq k$, then $n$ evaluations determine it uniquely (when $n > k$). So with redundant evaluations, you can recover the polynomial even if some of them are wrong.
 
 **Construction.** Fix a finite field $\mathbb{F}_q$ and points $\alpha_1, \ldots, \alpha_n \in \mathbb{F}_q$ (with $n \leq q$). To encode a message $(m_0, m_1, \ldots, m_{k-1}) \in \mathbb{F}_q^k$, form the polynomial $f(x) = m_0 + m_1 x + \cdots + m_{k-1} x^{k-1}$ and transmit $(f(\alpha_1), f(\alpha_2), \ldots, f(\alpha_n))$.
@@ -98,6 +113,9 @@ The Reed-Solomon answer: encode your message as the *evaluations of a polynomial
 **Why this works.** Two distinct polynomials of degree $\leq k$ agree at $\leq k$ points (degree-bound theorem from article 6). So if two received words come from polynomials differing in $> 2k$ positions, they cannot be confused. Conversely, with $\leq \lfloor (n-k)/2 \rfloor$ errors, the received word lies within Hamming distance $(n-k)/2$ of *exactly one* valid codeword. The polynomial structure of $\mathbb{F}_q[x]$ provides the redundancy.
 
 **A toy example.** Take $\mathbb{F}_5$ and message $(m_0, m_1) = (3, 2) \in \mathbb{F}_5^2$, so $f(x) = 3 + 2x$. Encode using points $\alpha = (0, 1, 2, 3, 4)$: transmit $(3, 0, 2, 4, 1)$ in $\mathbb{F}_5^5$. (Compute: $f(0) = 3, f(1) = 5 = 0, f(2) = 7 = 2, f(3) = 9 = 4, f(4) = 11 = 1$.)
+
+![Error-correcting codes: Hamming distance](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/12_error_correcting.png)
+
 
 Suppose we receive $(3, 0, 4, 4, 1)$ — one error at position $\alpha = 2$. Use Lagrange interpolation: any 2 correctly-received values determine the polynomial. Since we don't know which are correct, try subsets. The first two values give $f(0) = 3, f(1) = 0$, hence $f(x) = 3 + 2x$ (consistent with the rest except position 2, identifying $\alpha = 2$ as the erroneous position). For real Reed-Solomon decoding, the Berlekamp-Massey or Sugiyama algorithms automate this, but the algebraic skeleton is exactly polynomial interpolation.
 
@@ -238,7 +256,3 @@ I hope this series has been a useful introduction to that toolkit. The articles 
 Mathematics is the slow accumulation of structural insight, one definition at a time. The journey from "I have heard of groups" to "I can use representation theory to predict particle interactions" is long, but every step is well-defined and each builds on the last. That is the genuine satisfaction of the subject — not that it is useful (though it is), but that it *makes sense*, in a way that very few other things do. Welcome to the structure. The structure is welcoming you back.
 
 ---
-
-*This is Part 12 of the [Abstract Algebra](/en/series/abstract-algebra/) series (12 articles).*
-
-*Previous: [Part 11 — Category Theory](/en/abstract-algebra/11-category-theory/)*

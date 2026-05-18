@@ -23,7 +23,6 @@ The motivating problem is older than $\delta$ itself. Consider the wave equation
 
 ![Delta distribution as limit of bump functions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig11_delta_distribution.png)
 
-
 Laurent Schwartz's distribution theory (1944-1950) solves both problems with one trick. Stop trying to assign pointwise values to generalized "functions." Instead, define them by how they act on smooth test functions: $f$ is the linear map $\varphi \mapsto \int f\varphi$. Two functions equal a.e. give the same map, so $L^1_{\text{loc}}$ embeds into the dual space of test functions. But that dual space is much larger than $L^1_{\text{loc}}$; it contains $\delta$, derivatives of $\delta$, principal-value distributions, and a great deal of structure besides. Once we have the dual, every operation we want — derivative, Fourier transform, convolution — extends from smooth functions to all distributions by formal duality.
 
 Sobolev spaces are the second piece of the story. Schwartz's distributions are too big to be a useful Banach space (the dual of $C_c^\infty$ has no natural norm topology). For PDE we want concrete Hilbert spaces, with norms, embeddings, and compactness. Sergei Sobolev's 1930s construction does exactly this: $W^{k,p}(\Omega)$ contains functions whose distributional derivatives up to order $k$ live in $L^p$. These are the natural domains for differential operators, the right setting for weak solutions, and they come with three key tools — embedding theorems, trace theorems, Rellich-Kondrachov compactness — without which the Lax-Milgram theorem of the next article would have nothing to bite on.
@@ -67,7 +66,6 @@ A key result: every distribution is the limit (in $\mathcal{D}'$) of a sequence 
 ### The space of test functions
 
 ![Test functions: smooth with compact support](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig11_test_functions.png)
-
 
 Let $\Omega \subseteq \mathbb{R}^n$ be open. The space of **test functions** is
 
@@ -127,7 +125,6 @@ If $u \in \mathcal{D}'(\mathbb{R}^n)$ has compact support and $\varphi \in C^\in
 
 ![Animation: mollification smoothing a function](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/gif11_mollification.gif)
 
-
 $$
 (u * \varphi)(x) = \langle u_y, \varphi(x - y)\rangle.
 $$
@@ -171,7 +168,6 @@ For the heat equation $(\partial_t - \Delta)u = 0$, the fundamental solution is 
 ### From distributional to weak derivative
 
 ![Weak derivative of |x|](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig11_weak_derivative.png)
-
 
 Distributional derivatives always exist; they are abstract objects in $\mathcal{D}'$. For PDE we want concrete derivatives that live in $L^p$.
 
@@ -271,7 +267,6 @@ The embedding theorems answer a fundamental question: if a function has $k$ deri
 
 ![Sobolev embedding in 1D](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig11_sobolev_embedding.png)
 
-
 ### Sobolev inequality (Gagliardo-Nirenberg-Sobolev)
 
 **Theorem.** Let $1 \le p < n$ and define $p^* = np/(n-p)$ (the **Sobolev conjugate exponent**). Then there exists $C = C(n, p)$ such that for all $u \in W^{1,p}(\mathbb{R}^n)$,
@@ -329,7 +324,6 @@ This extension reduces problems on domains to problems on $\mathbb{R}^n$, where 
 A function in $W^{1,p}(\Omega)$ is defined only up to a set of measure zero. The boundary $\partial\Omega$ has Lebesgue measure zero in $\mathbb{R}^n$, so pointwise restriction to the boundary is not well-defined. Yet boundary conditions like $u|_{\partial\Omega} = 0$ (Dirichlet) or $\partial u/\partial n|_{\partial\Omega} = g$ (Neumann) are essential for PDE.
 
 ![Trace theorem: restricting to boundary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig11_trace_theorem.png)
-
 
 The **trace theorem** resolves this by showing that restriction to the boundary extends to a continuous operation on Sobolev spaces.
 
@@ -430,9 +424,3 @@ We have built the distributional and Sobolev-space foundations needed for modern
 In the final article of this series, we put everything together. The **Lax-Milgram theorem** gives existence and uniqueness for elliptic boundary value problems. **Variational methods** convert PDE into minimization problems. **Stone's theorem** connects self-adjoint operators to quantum dynamics. The abstract machinery of functional analysis meets its most important applications.
 
 ---
-
-*This is Part 11 of the [Functional Analysis](/en/series/functional-analysis/) series (12 articles).*
-
-*Previous: [Part 10 — Semigroups of Operators](/en/functional-analysis/10-semigroups/)*
-
-*Next: [Part 12 — Applications: PDE and QM](/en/functional-analysis/12-applications-pde-qm/)*

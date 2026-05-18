@@ -31,7 +31,6 @@ A **tangent space** $T_pM$ is an $n$-dimensional real vector space, and like any
 
 ![Orientable vs non-orientable: torus vs Mobius strip](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/09_orientation.png)
 
-
 ![Orientation of a manifold via consistent ordered bases](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_v2_09_1_orientation.png)
 
 **Three equivalent definitions.** A manifold $M$ is orientable if any of the following holds:
@@ -64,9 +63,7 @@ A **manifold with boundary** is a topological space locally modeled on the upper
 
 ![Animation: flux through surface equals boundary circulation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/09_stokes_flux.gif)
 
-
 ![Stokes theorem: integral over boundary equals integral of exterior derivative](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/09_stokes_theorem.png)
-
 
 ![Boundary of an oriented manifold with the induced orientation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_v2_09_2_boundary.png)
 
@@ -101,7 +98,6 @@ The natural objects to integrate on a manifold are top-degree forms: $n$-forms o
 
 ![Generalized Stokes unifies Green, Gauss, and classical Stokes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/09_classical_theorems.png)
 
-
 **Local definition.** On $\mathbb{R}^n$ with the standard orientation, an $n$-form $\omega = f(x)\,dx^1\wedge\dots\wedge dx^n$ has integral
 $$\int_{\mathbb{R}^n} \omega = \int_{\mathbb{R}^n} f(x)\,dx^1\dots dx^n,$$
 where the right-hand side is the ordinary Lebesgue integral. Notice the implicit ordering: the wedge product with positive sign matches the standard ordering of variables in the iterated integral.
@@ -134,7 +130,6 @@ $$\int_M d\omega = \int_{\partial M} \omega.$$
 
 ![de Rham cohomology: topology from calculus](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/09_de_rham.png)
 
-
 That is the entire theorem, and it is the most important formula in differential calculus.
 
 ![Stokes' theorem: integral of d-omega over M equals integral of omega over the boundary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_v2_09_3_stokes.png)
@@ -166,7 +161,6 @@ By symmetry $\int_{\bar B^3} 4x\,dV = 0$ (odd function over a symmetric domain).
 All three classical "integral theorems" of vector calculus are special cases of Stokes' theorem.
 
 ![Integration of forms over triangulated chains](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/09_integration_chain.png)
-
 
 ![Classical theorems unified: gradient, Stokes, Green, divergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_v2_09_4_classical_unify.png)
 
@@ -203,7 +197,6 @@ Cauchy's integral formula. From this, all of complex analysis (Liouville's theor
 Stokes' theorem implies a fundamental fact: integration of closed forms over closed manifolds depends only on the cohomology class of the form.
 
 ![Boundary operator on chains: boundary of boundary is zero](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/09_boundary_operator.png)
-
 
 **Claim.** If $\omega_1, \omega_2$ are closed $k$-forms on $M$ (no boundary) with $\omega_1 - \omega_2 = d\eta$ exact, then for any closed $k$-cycle $C$,
 $$\int_C \omega_1 = \int_C \omega_2.$$
@@ -303,9 +296,3 @@ We now have integration, Stokes, and the algebraic-topological consequences. The
 7. Topological invariants (winding number, Euler characteristic, Brouwer fixed point) are computed by Stokes-type arguments.
 
 ---
-
-*This is Part 9 of the [Differential Geometry](/en/series/differential-geometry/) series (12 articles).*
-
-*Previous: [Part 8 — Differential Forms](/en/differential-geometry/08-differential-forms/)*
-
-*Next: [Part 10 — Riemannian Geometry](/en/differential-geometry/10-riemannian-geometry/)*

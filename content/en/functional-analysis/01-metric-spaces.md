@@ -24,7 +24,6 @@ The first thing graduate analysis did to me was take away my picture. Up to that
 
 ![Unit balls in different metrics on R^2](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/01_metric_balls.png)
 
-
 The trouble is that calculus on $\mathbb{R}^n$ piggybacks on a structure we never had to name. The Euclidean distance gives us convergence, convergence gives us continuity, continuity gives us derivatives and integrals, and the loop closes because $\mathbb{R}^n$ is *complete* — every Cauchy sequence has a limit inside the space. Strip away any of those pieces and the calculus collapses. So when functional analysis asks me to do calculus on a space of functions, I cannot just import the Euclidean recipe. I need a definition of distance that survives the move to infinite dimensions, and a notion of completeness that does not silently assume I am in $\mathbb{R}^n$.
 
 A concrete example pins this down. Take $C[0,1]$, the continuous real-valued functions on $[0,1]$. Try the "obvious" generalization of Euclidean distance: $d(f,g)^2 = \sum_{n=1}^{\infty} (f_n - g_n)^2$ for some basis expansion. The series may not converge. Or pick the equally innocent $d(f,g) = \int_0^1 |f-g|\,dt$. That works as a metric, but Cauchy sequences in this metric escape from $C[0,1]$ — their limits are merely integrable, not continuous. The space leaks. Metric spaces and the notion of completeness exist precisely so that I can talk about which spaces leak and which do not.
@@ -38,7 +37,6 @@ There is a second thing finite-dimensional intuition gets wrong, and it is more 
 A **metric space** is a pair $(X, d)$ where $X$ is a set and $d: X \times X \to \mathbb{R}$ is a function such that for every $x, y, z \in X$:
 
 ![Cauchy sequences: complete vs incomplete spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/01_cauchy_sequence.png)
-
 
 1. $d(x, y) \geq 0$ (non-negativity).
 2. $d(x, y) = 0 \iff x = y$ (positive definiteness).
@@ -74,7 +72,6 @@ A sequence $(x_n) \subset X$ **converges** to $x \in X$, written $x_n \to x$, if
 
 ![Completion of a metric space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/01_completeness.png)
 
-
 The **open ball** of radius $r$ around $x$ is $B(x, r) = \{ y \in X : d(x,y) < r \}$. A set $U \subseteq X$ is **open** if every point of $U$ is the center of some open ball contained in $U$. This generates a topology, and convergence in the metric agrees with convergence in this topology, so I get topology and metric for the price of one definition. A set is **closed** if its complement is open, equivalently if it contains the limit of every convergent sequence of its elements — the metric makes the topological notion of closure (smallest closed set containing $A$) coincide with the sequential notion (limits of sequences in $A$).
 
 ![Open balls under Euclidean, taxicab, and supremum metrics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/01-metric-spaces/fa_v2_01_2_open_balls.png)
@@ -89,9 +86,7 @@ A sequence $(x_n)$ is **Cauchy** if for every $\varepsilon > 0$ there exists $N$
 
 ![Animation: contraction mapping iteration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/01_contraction.gif)
 
-
 ![Banach contraction mapping theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/01_banach_fixed_point.png)
-
 
 Every convergent sequence is Cauchy (triangle inequality, again: $d(x_m, x_n) \leq d(x_m, x) + d(x, x_n) \to 0$). The converse — every Cauchy sequence is convergent — is the defining property of a **complete** metric space. It is *not* a free gift. It is an extra hypothesis that has to be earned space by space.
 
@@ -121,7 +116,6 @@ The good news: every metric space $(X, d)$ has a **completion** $(\widehat X, \w
 
 ![Open and closed sets in metric spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/01_open_closed_sets.png)
 
-
 ![Completing the rationals to the reals via Cauchy sequences](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/01-metric-spaces/fa_v2_01_4_completion.png)
 
 In more detail. Let $\mathcal{C}$ be the set of all Cauchy sequences in $X$. Define $(x_n) \sim (y_n)$ iff $d(x_n, y_n) \to 0$. This is an equivalence relation (reflexivity and symmetry are obvious; transitivity uses the triangle inequality). Define $\widehat X = \mathcal{C}/{\sim}$ and
@@ -145,7 +139,6 @@ The lesson: every reasonable function space you have ever met — the $L^p$ spac
 Once a metric space is complete, a remarkable rigidity result kicks in. The **Baire Category Theorem** says: in a complete metric space, the countable intersection of dense open sets is still dense. Equivalently, a complete metric space cannot be written as a countable union of *nowhere-dense* sets (sets whose closure has empty interior).
 
 ![Baire category theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/01_baire_category.png)
-
 
 ![Baire category theorem: a complete metric space is not a countable union of nowhere-dense sets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/01-metric-spaces/fa_v2_01_5_baire.png)
 
@@ -236,7 +229,6 @@ Separability matters because it decides whether I can do "constructive" approxim
 
 A clean theorem combining the ideas of this article: a metric space is separable iff it has a countable basis for its topology iff every open cover has a countable subcover (Lindelöf property). For complete metric spaces, separability is equivalent to being homeomorphic to a subset of the Hilbert cube $[0,1]^{\mathbb{N}}$. So separability is roughly "no bigger than the continuum, in a structured way," and it is exactly the regularity condition we want for any space that pretends to extend $\mathbb{R}^n$.
 
-
 ## A Working Catalog of Metrics You Will Actually Meet
 
 Theory is one thing; the catalog of metrics that show up in everyday analysis is another. A short list of the metrics I find myself reaching for, with the property that distinguishes each.
@@ -278,7 +270,6 @@ These properties matter much less in functional analysis than they do in topolog
 
 Where connectivity *does* matter is in the spectral theory of operators. A bounded operator with disconnected spectrum can be decomposed by the Riesz functional calculus into "spectral parts," and the decomposition is what powers the Jordan-canonical-form-style classification of compact operators (Article 7). So connectivity in the *spectrum* (a subset of $\mathbb{C}$) is the place where this metric-space concept earns its keep, even when connectivity in the underlying Banach space is automatic.
 
-
 ## Looking Ahead
 
 Metric spaces give me distance and convergence, completeness lets me actually compute limits, Baire and Banach fixed-point provide leverage, and compactness recovers finite-dimensional intuition under controlled hypotheses. None of this required any algebraic structure on $X$. In the next article I add a vector space structure compatible with the metric — a *norm* — and the theory immediately tightens: I can talk about linear maps, closed subspaces, finite-dimensional approximation, and the very particular completeness that makes a normed space a Banach space. The metric framework is general enough to host edit distance and the discrete metric; the normed framework will be specific enough to support actual analysis.
@@ -286,10 +277,6 @@ Metric spaces give me distance and convergence, completeness lets me actually co
 One last meta-point. Notice how each tool in this article cashed in completeness exactly once, in subtly different ways. Cauchy sequences in the construction of completion: completeness is the conclusion. Baire: completeness produces a non-empty intersection. Contraction mapping: completeness produces the limit of iterates. Compactness in metric spaces (via $(3)$): completeness is half the definition. The definition of complete metric space is so concentrated that essentially every theorem we will prove that goes beyond first-year topology can be traced back to it. When you get stuck on a proof in functional analysis, asking "where am I using completeness?" is the question that most often unblocks you.
 
 ---
-
-*This is Part 1 of the [Functional Analysis](/en/series/functional-analysis/) series (12 articles).*
-
-*Next: [Part 2 — Normed and Banach Spaces](/en/functional-analysis/02-normed-and-banach/)*
 
 ## What's next
 

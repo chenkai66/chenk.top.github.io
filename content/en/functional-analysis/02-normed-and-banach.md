@@ -21,14 +21,11 @@ description: "Norm axioms, classical examples, equivalence of norms in finite di
 
 ## Why a Norm Is More Than a Metric Wearing a Hat
 
-
 ![Unit balls in different Lp norms](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa02_lp_balls.png)
 
 ![Animation: l^p unit ball morphing as p changes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_lp_morph.gif)
 
-
 ![Unit balls in l^p spaces for various p](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_lp_unit_balls.png)
-
 
 In Article 1, the metric was a free-standing function on a set with no algebraic structure. That generality bought us topology and completeness, but it gave nothing back to the algebra. The moment I am willing to assume the underlying set is a vector space, a more rigid object becomes available: a **norm**, a single nonnegative function on the space whose induced metric $d(x,y) = \|x - y\|$ is *translation-invariant* and *positively homogeneous*.
 
@@ -41,7 +38,6 @@ The strange thing about working in a normed space rather than a generic metric s
 Let $V$ be a vector space over $\mathbb{R}$ or $\mathbb{C}$. A **norm** on $V$ is a function $\|\cdot\|: V \to [0, \infty)$ satisfying for all $x, y \in V$ and scalars $\alpha$:
 
 ![Norm equivalence in finite dimensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_norm_equivalence.png)
-
 
 1. $\|x\| = 0 \iff x = 0$ (positive definiteness).
 2. $\|\alpha x\| = |\alpha|\, \|x\|$ (positive homogeneity).
@@ -77,7 +73,6 @@ Equivalence of norms is precisely equivalence of induced topologies: a sequence 
 
 ![Banach (complete) vs incomplete normed space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_banach_vs_incomplete.png)
 
-
 **Theorem.** Any two norms on a finite-dimensional vector space are equivalent.
 
 *Sketch of proof.* Let $V$ be $n$-dimensional with basis $e_1, \ldots, e_n$, and define $\|x\|_2 = \big(\sum |x_i|^2\big)^{1/2}$ in coordinates. Let $\|\cdot\|$ be any other norm. Writing $x = \sum x_i e_i$ and using the triangle inequality and homogeneity gives $\|x\| \leq \sum |x_i| \|e_i\| \leq C_2 \|x\|_2$ for $C_2 = (\sum \|e_i\|^2)^{1/2}$ (Cauchy-Schwarz). For the lower bound, $\|\cdot\|: (V, \|\cdot\|_2) \to \mathbb{R}$ is continuous (by the upper bound) and the unit sphere $S = \{ x : \|x\|_2 = 1 \}$ is compact in $\|\cdot\|_2$ (closed and bounded in finite dimensions). So $\|\cdot\|$ attains a minimum $C_1 > 0$ on $S$, and homogeneity gives $\|x\| \geq C_1 \|x\|_2$ on all of $V$. $\square$
@@ -98,7 +93,6 @@ For sequence spaces, the inclusion chain $\ell^1 \subset \ell^2 \subset \cdots \
 
 ![Schauder basis approximation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_schauder_basis.png)
 
-
 For Lebesgue function spaces on a *finite measure space* (such as $L^p[0,1]$), the inclusion goes the opposite direction: $L^q[0,1] \subset L^p[0,1]$ when $q \geq p$, by Hölder's inequality applied to $|f|^p \cdot 1$. On a non-finite measure space (like $\mathbb{R}$), neither inclusion holds — the function $1/(1 + |t|)$ is in $L^p(\mathbb{R})$ for $p > 1$ but not for $p = 1$, while a function blowing up like $|t|^{-1/p}$ near $0$ belongs to no $L^q$ for $q > p$. So $L^p$ inclusions are subtle and depend on the measure. For sequence spaces, where the counting measure is infinite but every singleton has measure $1$, only the "decay at infinity" direction matters, hence the simple chain.
 
 ![Inclusion chain l^1 ⊂ l^2 ⊂ ... ⊂ l^infinity for sequence spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/02-normed-and-banach/fa_v2_02_3_lp_chain.png)
@@ -114,7 +108,6 @@ The worked inclusions are essentially the only "free" structure on the $\ell^p$ 
 A normed space is a **Banach space** if it is complete in the metric induced by its norm. The completeness is a matter of *fact about a specific norm*, not just about the underlying vector space. Adding a norm structure to a Banach space and a non-Banach space sometimes produces the same vector space — for instance, $\ell^p$ as a vector space is a subspace of $\ell^\infty$, and they are very different objects when topologized.
 
 ![Hierarchy of function spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_function_spaces.png)
-
 
 ![Banach space: a normed space that is complete with respect to its norm](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/02-normed-and-banach/fa_v2_02_4_banach_complete.png)
 
@@ -142,7 +135,6 @@ There is a slick test: a normed space $V$ is a Banach space iff every absolutely
 In a finite-dimensional normed space, every basis (in the algebraic sense) is also a "topological" basis: every vector is a finite linear combination of basis elements. In an infinite-dimensional Banach space, an algebraic (Hamel) basis is enormous — by the Baire theorem, an infinite-dimensional Banach space cannot have a countable Hamel basis — and useless for analysis.
 
 ![Absolute vs conditional convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_series_convergence.png)
-
 
 The right notion for separable Banach spaces is a **Schauder basis**: a sequence $(e_n) \subset V$ such that every $x \in V$ has a unique representation $x = \sum_{n=1}^\infty c_n e_n$ as a *convergent series* (in the norm of $V$). The convergence is a topological condition, not an algebraic one, and it is what distinguishes Schauder bases from Hamel bases.
 
@@ -275,7 +267,6 @@ When a normed space has the property that the dual operator-norm ball is also st
 
 Compare the boundary of the unit ball of $\ell^1$ in $\mathbb{R}^2$ — the diamond $|x| + |y| = 1$ — with the boundary of the $\ell^2$ ball, the circle $x^2 + y^2 = 1$. At the point $(1/2, 1/2) \cdot \sqrt{2} = (1/\sqrt{2}, 1/\sqrt{2})$ on the $\ell^2$ unit circle, the tangent line is unique (a smooth point). At the corresponding $\ell^1$ vertex $(1, 0)$, *infinitely many* lines are "supporting hyperplanes" — every line through $(1, 0)$ with slope between $-1$ and $1$ (exclusive) passes through the half-plane $\{x + y < 1\}$ near $(1,0)$ and so supports the ball. This profusion of supporting hyperplanes is exactly what produces non-unique best approximations and non-uniqueness in many optimization problems posed in $\ell^1$.
 
-
 ## Reflexivity, Separability, Density: Three Cheap Words That Do A Lot
 
 Banach space theory has a small vocabulary of structural adjectives that get used over and over: *reflexive*, *separable*, *uniformly convex*. They are easy to define but it takes a while to develop a feel for what each one *buys* you.
@@ -321,7 +312,6 @@ The $\ell^p$ family, $1 < p < \infty$, is the canonical example of all three pro
 
 The "preferred" Banach spaces of analysis — the ones in which most theorems work cleanly — are uniformly convex. Hilbert space is the limiting case where uniform convexity is encoded in the parallelogram law itself.
 
-
 ## Looking Ahead
 
 Banach spaces give us everything we need to do *operator analysis*: norm, completeness, bounded linear maps, quotients, Schauder bases, and inequalities like Hölder and Minkowski. But there is one more axiom we have not yet imposed: an *inner product*, the abstraction of dot product. An inner product makes available the parallelogram law, orthogonality, and projections — the geometry of $\mathbb{R}^n$ resurrected in infinite dimensions. The next article introduces Hilbert spaces and shows what happens when the unit ball is round.
@@ -329,9 +319,3 @@ Banach spaces give us everything we need to do *operator analysis*: norm, comple
 The next article (Article 3) introduces the **Baire category theorem** and its three great consequences: the *uniform boundedness principle* (Banach-Steinhaus theorem), the *open mapping theorem*, and the *closed graph theorem*. These are the power tools of Banach space theory --- they take completeness as input and produce sweeping structural conclusions about bounded linear operators. The uniform boundedness principle says that pointwise boundedness of a family of operators implies uniform boundedness (in the operator norm). The open mapping theorem says that a surjective bounded linear map between Banach spaces is automatically an open map. The closed graph theorem says that a closed linear map between Banach spaces is automatically bounded. Each of these results is genuinely surprising --- it extracts a global conclusion from seemingly local hypotheses --- and each relies crucially on completeness. Once you have them in hand, the theory begins to feel remarkably powerful.
 
 ---
-
-*This is Part 2 of the [Functional Analysis](/en/series/functional-analysis/) series (12 articles).*
-
-*Previous: [Part 1 — Metric Spaces](/en/functional-analysis/01-metric-spaces/)*
-
-*Next: [Part 3 — Hilbert Spaces](/en/functional-analysis/03-hilbert-spaces/)*

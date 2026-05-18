@@ -19,9 +19,7 @@ description: "Closed operators, the distinction between symmetric and self-adjoi
 
 ![Deficiency indices determine self-adjoint extensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_deficiency_indices.png)
 
-
 ![Symmetric vs self-adjoint: domain matters](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_symmetric_vs_selfadjoint.png)
-
 
 Two articles ago I was talking about how spectral theory is the linear-algebraic infrastructure of quantum mechanics. The trouble is that nearly every operator a physicist actually cares about -- the position operator, the momentum operator, the Laplacian, the Schrodinger Hamiltonian -- is *not bounded*. They are not defined on the whole Hilbert space. They are densely defined, with domains that depend on the regularity or decay of the input function. None of the previous spectral apparatus applies directly. We need to extend it.
 
@@ -29,18 +27,15 @@ The extension is delicate. With unbounded operators, simply writing "$T = T^*$" 
 
 ![Laplacian spectrum and eigenfunctions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_laplacian_spectrum.png)
 
-
 The historical context matters. Von Neumann developed the theory of unbounded operators in the late 1920s precisely to put quantum mechanics on firm foundations. Schrodinger's equation and Heisenberg's matrix mechanics were already in use, but without a clear statement of what "self-adjoint" means for differential operators -- and without a spectral theorem for such operators -- the mathematical foundations were unclear. Von Neumann's work (published 1929-1932, culminating in his *Mathematische Grundlagen der Quantenmechanik*) resolved this by introducing the notions of closed operators, deficiency indices, and self-adjoint extensions. The theory we develop here is essentially his framework, cleaned up by subsequent generations but unchanged in its core ideas.
 
 ## Domains and Why They Encode Physics
 
 ![Essential spectrum vs discrete spectrum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_essential_spectrum.png)
 
-
 An **unbounded operator** on a Hilbert space $H$ is a linear map $T: D(T) \to H$ where the **domain** $D(T)$ is a dense linear subspace of $H$. The map need not be defined on all of $H$; the domain is part of the data. Two operators with the same formula but different domains are different operators -- with potentially different spectra and different physical interpretations.
 
 ![Domain of unbounded operator as proper subspace](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_domain.png)
-
 
 ![Unbounded operators with their dense but proper domain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_1_unbounded_domain.png)
 
@@ -61,13 +56,11 @@ A subtlety that trips up many students: the Laplacian $-d^2/dx^2$ on $[0,1]$ has
 
 The physical principle: the number of boundary conditions needed to specify a self-adjoint extension equals the deficiency index (which equals the order of the ODE for regular problems). A first-order operator needs one condition; a second-order operator needs two. This correspondence between the order of the differential equation, the number of boundary conditions, and the deficiency indices is one of the cleanest structural results in the theory.
 
-
 ## Closed Operators, Closability, and the Graph
 
 The fundamental regularity condition for unbounded operators is **closedness**. The graph $G(T) = \{(x, Tx) : x \in D(T)\} \subset H \times H$ is a linear subspace of the product Hilbert space. The operator $T$ is **closed** if $G(T)$ is closed in $H \times H$. Equivalently: if $x_n \in D(T)$, $x_n \to x$, and $Tx_n \to y$, then $x \in D(T)$ and $Tx = y$.
 
 ![Closed operator: graph is closed subspace](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_closed_operator.png)
-
 
 ![Closed operator: graph is closed in the product topology](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_2_closed_op.png)
 
@@ -82,7 +75,6 @@ An operator is **closable** if the closure of its graph $\overline{G(T)}$ is its
 The **graph norm** $\|x\|_T = (\|x\|^2 + \|Tx\|^2)^{1/2}$ makes $D(T)$ into a Hilbert space (when $T$ is closed). The closed graph theorem can be rephrased: a closed operator between Banach spaces with domain equal to the whole source space must be bounded. The contrapositive: unbounded operators MUST have proper domains. The graph norm is the natural topology on $D(T)$, and many estimates in PDE theory (a priori estimates, regularity theorems) are statements about boundedness of operators in graph norms.
 
 A key use of closedness: the **resolvent identity** $(\lambda - T)^{-1} - (\mu - T)^{-1} = (\mu - \lambda)(\lambda - T)^{-1}(\mu - T)^{-1}$ holds for closed operators and gives analyticity of the resolvent $\lambda \mapsto (\lambda - T)^{-1}$ as a $B(H)$-valued function on the resolvent set. This analyticity is the foundation of the Dunford-Taylor functional calculus (contour integrals of the resolvent) and connects operator theory to complex analysis.
-
 
 ## The Adjoint and Self-Adjointness: A Delicate Distinction
 
@@ -109,7 +101,6 @@ The physical interpretation: a particle confined to $[0, \infty)$ by an infinite
 
 By contrast, on the full line $\mathbb{R}$, the momentum $-id/dx$ on $H^1(\mathbb{R})$ has deficiency indices $(0,0)$ (neither $e^x$ nor $e^{-x}$ is in $L^2(\mathbb{R})$), so it is essentially self-adjoint. The particle can move freely in both directions, and momentum is a genuine observable. The domain (whole line vs half-line) encodes the physical setup, and the deficiency indices detect whether the setup admits a consistent observable.
 
-
 ## The Spectral Theorem for Unbounded Self-Adjoint Operators
 
 The spectral theorem extends to unbounded self-adjoint operators with essentially the same statement as for bounded ones, but with the spectrum potentially extending to infinity.
@@ -128,11 +119,9 @@ This is the Courant-Fischer minimax characterization. It is the foundation of va
 
 ![Animation: heat semigroup smoothing initial data](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/gif09_heat_semigroup.gif)
 
-
 ![Essential spectrum vs discrete spectrum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_6_essential.png)
 
 The spectrum splits into **discrete** ($\sigma_d$ = isolated eigenvalues of finite multiplicity) and **essential** ($\sigma_{ess}$ = everything else). **Weyl's theorem**: $\sigma_{ess}(T + K) = \sigma_{ess}(T)$ for compact $K$. For Schrodinger operators $-\Delta + V$ with $V \to 0$ at infinity, $\sigma_{ess}(-\Delta + V) = [0,\infty) = \sigma(-\Delta)$ (the essential spectrum is unchanged by the decaying potential). Discrete eigenvalues below zero correspond to bound states -- the hydrogen atom has $\sigma_d = \{-1/(4n^2) : n \geq 1\}$ and $\sigma_{ess} = [0,\infty)$.
-
 
 ## Self-Adjointness Criteria: Kato-Rellich and the Friedrichs Extension
 
@@ -153,7 +142,6 @@ The technique extends to multi-electron atoms and molecules. The Hamiltonian for
 **(c) Essential self-adjointness via deficiency indices.** A symmetric operator is essentially self-adjoint iff $n_+ = n_- = 0$, i.e., $T^* \pm i$ have trivial kernel. Equivalently, $\text{Range}(T \pm i)$ is dense in $H$. For $-\Delta$ on $C_c^\infty(\mathbb{R}^n)$, essential self-adjointness follows from the ellipticity of $-\Delta$ and the density of smooth functions in the graph norm.
 
 ![Position, momentum, and Hamiltonian operators in quantum mechanics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_7_qm_examples.png)
-
 
 ## Quantum Mechanics: The Canonical Operators
 
@@ -176,7 +164,6 @@ If one tries to use a merely symmetric (not self-adjoint) operator, $e^{itT}$ ca
 The proof of Stone's theorem in one direction is immediate from the spectral theorem: given self-adjoint $T$ with spectral measure $E$, define $U(t) = e^{itT} = \int e^{it\lambda}\,dE(\lambda)$. Since $|e^{it\lambda}| = 1$, this is unitary. Strong continuity follows from dominated convergence: $\|U(t)x - x\|^2 = \int|e^{it\lambda} - 1|^2\,d\|E(\lambda)x\|^2 \to 0$ as $t \to 0$. The converse (every strongly continuous unitary group has a self-adjoint generator) is the deeper half and requires reconstructing the generator from the group via $Tx = \lim_{t\to 0} (U(t)x - x)/(it)$.
 
 **Worked example: the free Schrodinger equation.** $i\partial_t\psi = -\frac{1}{2}\Delta\psi$ on $L^2(\mathbb{R}^3)$. The Hamiltonian $H = -\frac{1}{2}\Delta$ is self-adjoint on $H^2(\mathbb{R}^3)$. Stone's theorem gives the solution $\psi(t) = e^{-iHt}\psi_0 = e^{it\Delta/2}\psi_0$. In Fourier space: $\hat\psi(t, \xi) = e^{-it|\xi|^2/2}\hat\psi_0(\xi)$ -- each frequency propagates with a phase that depends quadratically on $|\xi|$. The dispersive nature (higher frequencies travel faster) causes wave packets to spread, and the decay $\|\psi(t)\|_{L^\infty} \leq C t^{-3/2}\|\psi_0\|_{L^1}$ follows from stationary phase. All of this is organized by the spectral theorem applied to a single self-adjoint operator.
-
 
 ## Common Confusions, Trotter Formula, and Numerical Methods
 
@@ -206,7 +193,6 @@ A serious pitfall is **spectral pollution**: spurious eigenvalues appearing in g
 
 For self-adjoint operators bounded below, the min-max principle guarantees that Galerkin eigenvalues are always upper bounds for the true eigenvalues -- the Rayleigh-Ritz method cannot undershoot. This is why variational computation of ground states is so robust: truncating to any finite basis gives an upper bound on $\lambda_1$, and increasing the basis can only improve the estimate. The convergence rate depends on how well the basis captures the true eigenfunction: polynomial bases give algebraic convergence (rate $O(N^{-k})$ for $C^k$ eigenfunctions), while spectral methods (Fourier, Hermite) give exponential convergence for analytic eigenfunctions. The harmonic oscillator eigenfunctions, being entire functions times a Gaussian, are approximated exponentially fast by Hermite spectral methods -- a practical consequence of the smoothness that self-adjointness guarantees.
 
-
 ## What's Next
 
 The next article puts unbounded self-adjoint operators to dynamical use, constructing the **one-parameter semigroups** they generate. The Hille-Yosida theorem characterizes generators of strongly continuous contraction semigroups -- these are the operators $A$ for which $e^{tA}$ exists as a bounded operator for $t \geq 0$ and satisfies $\|e^{tA}\| \leq 1$. For the unitary case (self-adjoint generator), this is Stone's theorem; for the dissipative case (accretive operators, not necessarily self-adjoint), it is the full Hille-Yosida machinery. The Lumer-Phillips theorem gives an elegant reformulation: a densely defined closed operator $A$ generates a contraction semigroup iff both $A$ and $A^*$ are dissipative (meaning $\text{Re}\langle Ax, x\rangle \leq 0$ for all $x \in D(A)$).
@@ -214,9 +200,3 @@ The next article puts unbounded self-adjoint operators to dynamical use, constru
 These semigroups solve initial-value problems for evolution PDE: the heat equation $\partial_t u = \Delta u$ (generated by $\Delta$, dissipative), the wave equation $\partial_t^2 u = \Delta u$ (reduced to a first-order system, generated by a skew-adjoint operator on an energy space), the Schrodinger equation $i\partial_t u = Hu$ (generated by $-iH$, unitary), and the Fokker-Planck equation $\partial_t \rho = \nabla\cdot(D\nabla\rho - b\rho)$ (generated by a non-self-adjoint second-order operator). The framework converts time-dependent PDE into operator theory on a fixed Hilbert space -- the natural sequel to the spectral theory we have built. The key insight is that solving a PDE in time is equivalent to exponentiating an (often unbounded) operator, and the conditions for this exponentiation to produce well-behaved solutions are precisely the conditions (closedness, density of domain, dissipativity) that the Hille-Yosida theorem verifies.
 
 ---
-
-*This is Part 9 of the [Functional Analysis](/en/series/functional-analysis/) series (12 articles).*
-
-*Previous: [Part 8 — Spectral Theory](/en/functional-analysis/08-spectral-theory/)*
-
-*Next: [Part 10 — Semigroups](/en/functional-analysis/10-semigroups/)*

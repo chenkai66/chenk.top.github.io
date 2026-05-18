@@ -25,7 +25,6 @@ Up to now, the theory has been about spaces and the elements that live in them. 
 
 ![Dual space: functionals as hyperplanes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_dual_space.png)
 
-
 A working analyst uses Hahn-Banach the way a working algebraist uses Zorn's lemma: invisibly, dozens of times a day, never proving it from scratch. The point of this article is to produce the theorem cleanly and inspect a few of its standard consequences — the geometric form, the existence of supporting hyperplanes, the canonical embedding into the bidual. Article 5 will then put the dual to work in the form of weak topologies.
 
 ## The Dual Space
@@ -36,9 +35,7 @@ Under this norm, $X^*$ is a Banach space — even when $X$ itself is not (a Cauc
 
 ![Animation: finding separating hyperplane](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_separation.gif)
 
-
 ![Hahn-Banach separation theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_hahn_banach_separation.png)
-
 
 So the dual is automatically a Banach space, regardless of the original space's completeness. This is one of the structural niceties that makes dual constructions so popular: forming the dual *upgrades* incomplete normed spaces to complete ones.
 
@@ -68,7 +65,6 @@ In $\ell^2$, take $y = (1, 1/2, 1/3, \ldots, 1/n, 0, 0, \ldots)$ for $n = 4$, so
 
 ![Hahn-Banach extension](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_hahn_banach_extension.png)
 
-
 The complex version: replace sublinear by *seminorm* (so $p(\alpha x) = |\alpha| p(x)$), require $|\varphi_0(x)| \leq p(x)$ on $M$, and the extension satisfies $|\varphi(x)| \leq p(x)$ on $X$.
 
 The version most often quoted: any bounded linear functional on a subspace of a normed space extends to a bounded linear functional on the whole space without enlarging its norm. This is just the seminorm case with $p(x) = \|\varphi_0\|_M \cdot \|x\|$.
@@ -93,7 +89,6 @@ The "geometric" or "separation" form of Hahn-Banach is more useful in optimizati
 
 ![Reflexive spaces: X = X**](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_reflexive.png)
 
-
 **Theorem (Geometric Hahn-Banach).** Let $X$ be a real normed space, $A, B \subseteq X$ disjoint, non-empty, convex sets. (i) If $A$ is open, there exist $\varphi \in X^*$ and $\alpha \in \mathbb{R}$ with $\varphi(a) < \alpha \leq \varphi(b)$ for all $a \in A$, $b \in B$. (ii) If $A$ is closed and $B$ is compact, there exists $\varphi \in X^*$ and $\alpha < \beta$ with $\varphi(a) \leq \alpha < \beta \leq \varphi(b)$ for all $a \in A$, $b \in B$ — *strict* separation.
 
 In words: any two disjoint convex sets can be separated by a hyperplane, with strict separation if one of the sets is closed and the other is compact (specifically separated by a slab).
@@ -114,7 +109,6 @@ A particular case of geometric Hahn-Banach: a closed convex set $C$ in a Banach 
 
 ![Dual space identifications](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_dual_lp.png)
 
-
 ![Supporting hyperplane to a convex set at a boundary point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/04-dual-spaces-hahn-banach/fa_v2_04_7_supporting.png)
 
 In the language of convex analysis, $\varphi$ belongs to the **subdifferential** of the indicator function of $C$ at $x_0$. The subdifferential is the dual object that records all "supporting directions" at the point.
@@ -132,7 +126,6 @@ This non-uniqueness is exactly the geometric reason $\ell^1$ minimization can ha
 The dual space $X^*$ is itself a Banach space, so it has its own dual $X^{**} = (X^*)^*$, called the **bidual**. There is a canonical embedding $J: X \to X^{**}$ defined by $(Jx)(\varphi) = \varphi(x)$ for $\varphi \in X^*$. This embedding is well-defined (the linear map $\varphi \mapsto \varphi(x)$ is bounded with norm $\leq \|x\|$), linear, and isometric — the latter using Hahn-Banach to find a $\varphi$ with $|\varphi(x)| = \|x\|$ and $\|\varphi\| = 1$.
 
 ![Annihilator of a subspace](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_annihilator.png)
-
 
 A Banach space is **reflexive** if $J$ is surjective, i.e., $X = X^{**}$ canonically. Reflexivity is a strong property; it is preserved under taking closed subspaces, quotients, and finite products, and it implies many compactness and regularity results.
 
@@ -258,7 +251,6 @@ When you see a problem in Banach-space functional analysis, here is the typical 
 
 Most of these moves are nearly mechanical once you have internalized the dual viewpoint. Hahn-Banach is in the background for all of them, providing the existence of the functionals you need.
 
-
 ## Goldstine and the Density of $X$ in $X^{**}$
 
 A finer point of bidual theory. The canonical embedding $J: X \to X^{**}$ is isometric, and $J(X)$ is a closed subspace of $X^{**}$ (the image of an isometry is closed). When $X$ is non-reflexive, $J(X) \subsetneq X^{**}$. How much "extra" is $X^{**}$ compared to $X$?
@@ -307,8 +299,6 @@ A clean theorem: a bounded sequence $(x_n)$ has the same value under *every* Ban
 
 Almost convergence sits between Cesàro convergence and bounded convergence — it is a way of recovering "limit" semantics for sequences that fail to converge in any pointwise sense. The functional analytic content is purely Hahn-Banach: the existence of a single translation-invariant bounded linear extension of $\lim$ produces almost-convergence as the canonical "best regularization."
 
-
-
 ## A Fixed-Point Connection: Markov-Kakutani
 
 A classical fixed-point theorem in convex analysis that uses Hahn-Banach machinery:
@@ -334,9 +324,3 @@ We now have the dual space $X^*$ as a real, populated object. Hahn-Banach provid
 These results transform functional analysis from the study of individual operators into a theory with powerful automatic regularity properties — properties that have no analogue in finite dimensions because they are trivially true there. Where the Hahn-Banach theorem guaranteed the existence of enough functionals, the next three theorems will constrain the behavior of families of operators in ways that are impossible to anticipate from finite-dimensional linear algebra alone.
 
 ---
-
-*This is Part 4 of the [Functional Analysis](/en/series/functional-analysis/) series (12 articles).*
-
-*Previous: [Part 3 — Hilbert Spaces](/en/functional-analysis/03-hilbert-spaces/)*
-
-*Next: [Part 5 — Weak Topologies](/en/functional-analysis/05-weak-topologies/)*

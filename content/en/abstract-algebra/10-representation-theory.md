@@ -17,6 +17,9 @@ series_total: 12
 translationKey: "abstract-algebra-10"
 ---
 
+![Maschke's theorem: complete reducibility](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/10_maschke.png)
+
+
 An abstract group is a set with a binary operation satisfying certain axioms. This is elegant but sometimes hard to work with — how do you compute with elements of a group defined by generators and relations, or extract numerical invariants from a multiplication table? The solution, going back to Frobenius and Burnside over a century ago, is to represent group elements as matrices. Matrices are concrete: you can multiply them, take traces, compute determinants, decompose them into eigenspaces. Representation theory is the systematic study of this idea, and it has become one of the most powerful tools in modern algebra, number theory, and mathematical physics.
 
 The reason representation theory works at all is a small miracle: every finite group has *enough* finite-dimensional representations to "see" all of its structure. The decomposition of representations into irreducibles is unique. The number of irreducibles equals the number of conjugacy classes. The character of a representation (the trace of each matrix) is a class function, and the irreducible characters form an orthonormal basis for class functions. These four facts — uniqueness of decomposition, irreducible-conjugacy-class match, orthogonality, completeness — turn representation theory into a *computational* discipline, not just a structural one.
@@ -31,11 +34,17 @@ The historical context is worth a sentence. Frobenius invented characters in 189
 
 Let $G$ be a group and $V$ a finite-dimensional vector space over $\mathbb{C}$. A **representation** of $G$ on $V$ is a group homomorphism $\rho : G \to \mathrm{GL}(V)$. In words: every group element $g$ gets assigned an invertible linear map $\rho(g) : V \to V$, compatible with the group operation: $\rho(gh) = \rho(g)\rho(h)$ and $\rho(e) = I$. Once you pick a basis of $V$, each $\rho(g)$ becomes an invertible matrix, and the group operation becomes matrix multiplication. The integer $n = \dim V$ is the **degree** of the representation. Different choices of basis give *equivalent* representations (related by conjugation $T\rho(g)T^{-1}$), so the natural level of abstraction is "linear maps on $V$" rather than specific matrices.
 
+![Matrix representation of a group](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/10_matrix_rep.png)
+
+
 ![Representation rho: G -> GL(V)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/10-representation-theory/aa_v2_10_1_rep_def.png)
 
 Standard examples to fix notation. The **trivial representation**: $V = \mathbb{C}$, $\rho(g) = 1$ for all $g$. Boring but always present, and always relevant (it measures invariants). The **sign representation** of $S_n$: $V = \mathbb{C}$, $\rho(\sigma) = \mathrm{sgn}(\sigma) \in \{\pm 1\}$. The **permutation representation**: given a $G$-action on a finite set $X$, let $V = \mathbb{C}^X$ have basis $\{e_x : x \in X\}$ and let $\rho(g)e_x = e_{g \cdot x}$; the dimension is $|X|$ and the character $\chi(g) = \#\mathrm{Fix}(g)$. The **regular representation**: $X = G$ acting on itself by left multiplication, dimension $|G|$, the "biggest" natural representation. The **standard representation** of $S_n$: inside the permutation representation on $\mathbb{C}^n$, the subspace $V_0 = \{(v_1, \ldots, v_n) : \sum v_i = 0\}$ is invariant and has dimension $n-1$; this is the standard representation.
 
 A **subrepresentation** is a subspace $W \subseteq V$ that is $G$-invariant: $\rho(g)W \subseteq W$ for all $g$. A representation is **irreducible** if it has no proper nontrivial subrepresentations — the only invariant subspaces are $\{0\}$ and $V$ itself. Irreducibles are the atoms of the theory; everything else is built from them.
+
+![Regular representation decomposes into all irreducibles](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/10_regular_rep.png)
+
 
 **Maschke's theorem** is the foundational structural result: if $G$ is finite and $\mathrm{char}(k) \nmid |G|$ (automatic over $\mathbb{C}$), then every representation is **completely reducible** — it decomposes as a direct sum of irreducibles: $V \cong V_1^{\oplus m_1} \oplus V_2^{\oplus m_2} \oplus \cdots \oplus V_k^{\oplus m_k}$, where the $V_i$ are distinct irreducibles and $m_i$ are multiplicities. The decomposition is unique up to reordering.
 
@@ -56,6 +65,12 @@ The concrete content of Maschke's theorem is best appreciated by contrast with w
 ## Schur's Lemma and Character Theory
 
 Once you have irreducibles as atoms, you need to understand the maps between them. **Schur's lemma** provides the definitive answer and is the structural backbone of the entire character theory.
+
+![Character table of S3](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/10_character_table.png)
+
+
+![Schur's lemma: morphisms between irreducibles](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/10_schur_lemma.png)
+
 
 **Schur's Lemma.** Let $V, W$ be irreducible representations of $G$ over $\mathbb{C}$, and let $T : V \to W$ be $G$-equivariant ($T\rho_V(g) = \rho_W(g)T$ for all $g$). Then: (a) either $T = 0$ or $T$ is an isomorphism; (b) if $V = W$, then $T = \lambda I$ for some $\lambda \in \mathbb{C}$.
 
@@ -86,6 +101,9 @@ The proof uses Schur's lemma at the matrix-coefficient level: $\frac{1}{|G|}\sum
 ## Counting Irreducibles and Building Character Tables
 
 The **regular representation** $\mathbb{C}[G]$ (left multiplication of $G$ on itself) decomposes as $\bigoplus_i V_i^{\oplus d_i}$ — each irreducible appears with multiplicity equal to its own dimension. Taking dimensions: $|G| = \sum_i d_i^2$. This is the **sum-of-squares formula**, and it constrains possible dimensions severely.
+
+![Irreducible representations: no proper subrepresentations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/10_irreducible.png)
+
 
 **Number of irreducibles = number of conjugacy classes.** The irreducible characters are orthonormal in the space of class functions. That space has dimension $k$ (the number of conjugacy classes). An orthonormal set in $\mathbb{C}^k$ has at most $k$ elements; a separate argument (the regular representation decomposes into exactly $k$ distinct irreducibles) shows there are at least $k$. So there are exactly $k$ irreducibles, and their characters form an orthonormal basis.
 
@@ -198,10 +216,7 @@ The Frobenius-Schur indicator connects to physics: representations with $\nu = 1
 
 In the next article, we step back to look at the bigger picture: **category theory** provides a universal language for describing the common structures we have encountered throughout this series — groups, rings, modules, representations, and the maps between them.
 
+![Animation: rotation group representation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/10_rotation_rep.gif)
+
+
 ---
-
-*This is Part 10 of the [Abstract Algebra](/en/series/abstract-algebra/) series (12 articles).*
-
-*Previous: [Part 9 — Modules](/en/abstract-algebra/09-modules/)*
-
-*Next: [Part 11 — Category Theory](/en/abstract-algebra/11-category-theory/)*

@@ -29,6 +29,9 @@ Sylow 定理填补了这个空白。它们说：对于每个最大素数幂 $p^a
 
 ![S3 的子群格](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/aa04_subgroup_lattice.png)
 
+![Cauchy 定理：p | |G| 蕴含存在 p 阶元](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/04_cauchy_theorem.png)
+
+
 在正式讨论 Sylow 定理之前，需要了解它们分解的基本单元。一个有限的 $p$-群是一个阶为 $p^k$ 的群。等价地（通过下面证明的 Cauchy 定理），每个元素的阶都是 $p$ 的幂。这些是构建块；整个 Sylow 程序是一种策略，用于将任意有限群沿着其 $p$-群部分切割，并从中读出结构。
 
 关于有限 $p$-群 $G$ 最有用的事实是它的中心 $Z(G)$ 是非平凡的。证明用到了最纯粹形式的类方程：
@@ -56,6 +59,9 @@ $$S \;=\; \{(g_1, g_2, \ldots, g_p) \in G^p : g_1 g_2 \cdots g_p = e\}.$$
 ## Sylow 定理：陈述、证明及结构后果
 
 设有限群 $G$ 的阶为 $|G| = p^a m$，其中 $p \nmid m$（因此 $p^a$ 是整除 $|G|$ 的 $p$ 的最高次幂）。Sylow $p$-子群是阶为 $p^a$ 的子群。
+
+![Sylow p-子群：极大 p-幂子群](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/04_sylow_subgroups.png)
+
 
 Sylow I（存在性）：$G$ 至少有一个 Sylow $p$-子群。
 

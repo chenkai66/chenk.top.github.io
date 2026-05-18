@@ -18,11 +18,9 @@ translationKey: "functional-analysis-3"
 ---
 ## Hilbert 空间——无限维空间中的几何
 
-
 ![Hilbert 空间中的正交投影](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fa03_projection.png)
 
 ![内积几何：角度与投影](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/03_inner_product.png)
-
 
 Hilbert 空间是数学中一个非常重要的概念。它是一种特殊的向量空间，其中每个向量都有长度，并且可以计算两个向量之间的夹角。这使得 Hilbert 空间在处理无限维问题时特别有用。
 
@@ -45,7 +43,6 @@ Hilbert 空间是数学中一个非常重要的概念。它是一种特殊的向
 Banach 空间是一个完备的赋范空间，而 Hilbert 空间则进一步引入了角度。这个额外的约定——内积——几乎恢复了所有有限维几何在无限维空间中的性质。正交性、投影、勾股定理、子空间中最近点的概念——这些都回来了。代价只是一个公理；回报是巨大的，无论是在几何上还是计算上。
 
 ![投影定理：子空间中的最近点](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/03_orthogonal_projection.png)
-
 
 设 $\mathcal{H}$ 是复数域 $\mathbb{C}$ 上的向量空间。内积是一个函数 $\langle \cdot, \cdot \rangle : \mathcal{H} \times \mathcal{H} \to \mathbb{C}$，满足对所有 $x, y, z \in \mathcal{H}$ 和 $\alpha \in \mathbb{C}$：
 
@@ -77,9 +74,7 @@ Cauchy-Schwarz 不等式指出，对于所有 $x, y \in \mathcal{H}$，有 $|\la
 
 ![动画：Fourier 级数逐项逼近](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/03_fourier_approx.gif)
 
-
 ![L^2 中的 Fourier 级数：标准正交基](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/03_fourier_basis.png)
-
 
 Hilbert 空间理论的核心是投影定理：对于任何闭子空间 $M \subseteq \mathcal{H}$ 和任何 $x \in \mathcal{H}$，存在唯一的 $m_0 \in M$ 使得 $\|x - m\|$ 在所有 $m \in M$ 中最小化，并且这个最小化点由正交条件 $(x - m_0) \perp M$ 刻画。空间可以分解为 $\mathcal{H} = M \oplus M^\perp$，其中 $M^\perp = \{y \in \mathcal{H} : \langle y, m \rangle = 0 \text{ 对所有 } m \in M\}$。
 
@@ -98,7 +93,6 @@ Hilbert 空间理论的核心是投影定理：对于任何闭子空间 $M \subs
 在 $\mathcal{H}$ 中，一个 **正交系统** 是一组向量 $\{e_\alpha\}_{\alpha \in A}$，满足 $\langle e_\alpha, e_\beta \rangle = \delta_{\alpha\beta}$。如果它的闭线性生成空间等于 $\mathcal{H}$，那么它就是一个 **基**（完备正交系统）。换句话说，如果对所有 $\alpha$ 有 $\langle x, e_\alpha \rangle = 0$，则 $x = 0$。最大正交系统的势称为该空间的 Hilbert 维数是指在特定的数学背景下定义的一种维度概念。
 
 ![Riesz 表示定理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/03_riesz_representation.png)
-
 
 对于 **可分** Hilbert 空间——那些有一个可数稠密子集的空间——Hilbert 维数是可数的，我们可以将基表示为 $(e_n)_{n=1}^\infty$。基础的分类定理说：每个无限维可分 Hilbert 空间都与 $\ell^2$ 同构同距。本质上只有一个可分 Hilbert 空间，一旦选择了一个基，在 $L^2$、Sobolev 空间或 Hardy 空间中的所有计算实际上都是在 $\ell^2$ 中进行的。这个空间非常刚性；所有有趣的数学都在作用于它的算子中。
 
@@ -122,7 +116,6 @@ Hilbert 空间中最重要的结构性定理是 Riesz 表示定理（Riesz-Frech
 
 ![正交分解 H = M + M^perp](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/03_orthogonal_complement.png)
 
-
 *证明*。如果 $\varphi = 0$，取 $y_\varphi = 0$。否则，$M = \ker(\varphi)$ 是一个闭的超平面（余维数为1）。其正交补 $M^\perp$ 是一维的；选取 $z \in M^\perp$ 使得 $\varphi(z) = 1$（归一化）。对于任意 $x \in \mathcal{H}$，写成 $x = (x - \varphi(x) z) + \varphi(x) z$。第一项在 $M$ 中（检查：$\varphi(x - \varphi(x)z) = \varphi(x) - \varphi(x) = 0$）。因此 $\langle x, z \rangle = \langle \varphi(x) z, z \rangle = \varphi(x)\|z\|^2$，从而 $\varphi(x) = \langle x, z/\|z\|^2 \rangle$。设 $y_\varphi = z/\|z\|^2$。唯一性：如果 $\langle x, y_1 \rangle = \langle x, y_2 \rangle$ 对所有 $x$ 成立，则 $\langle x, y_1 - y_2 \rangle = 0$ 对所有 $x$ 成立，所以 $y_1 = y_2$（取 $x = y_1 - y_2$）。$\square$
 
 这个定理建立了共轭线性的等距同构 $\mathcal{H}^* \cong \mathcal{H}$。Hilbert 空间是自对偶的：对偶空间（共轭线性地）就是空间本身。这与一般的 Banach 空间相比是一个巨大的简化：$(\ell^1)^* = \ell^\infty$，$(c_0)^* = \ell^1$，$(L^1)^* = L^\infty$。在 Hilbert 空间中，向量和线性泛函之间没有概念上的差距——内积将它们识别出来。
@@ -140,7 +133,6 @@ Hilbert 空间中最重要的结构性定理是 Riesz 表示定理（Riesz-Frech
 对于有界算子 $T: \mathcal{H} \to \mathcal{H}$，其**伴随算子** $T^*$ 定义为 $\langle Tx, y \rangle = \langle x, T^*y \rangle$ 对所有 $x, y$ 成立。存在性：对固定的 $y$，函数 $x \mapsto \langle Tx, y \rangle$ 是有界的（由 $\|T\|\|y\|$ 控制），根据 Riesz 表示定理，它等于 $\langle x, z \rangle$ 对某个唯一的 $z$ 成立；定义 $T^*y = z$。映射 $y \mapsto T^*y$ 是线性的，并且 $\|T^*\| = \|T\|$。
 
 ![Bessel 不等式与 Parseval 恒等式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/03_bessel_parseval.png)
-
 
 基本的结构恒等式是 **$C^*$-恒等式**：$\|T^*T\| = \|T\|^2$。这使得有界算子的代数 $B(\mathcal{H})$ 成为一个 $C^*$-代数——这是第 8 章抽象谱理论和 Gelfand-Naimark 定理的起点。
 
@@ -211,7 +203,3 @@ Hilbert 空间是分析学家的天堂——自对偶、自反，几何结构忠
 ---
 
 *这是 [泛函分析](/zh/series/functional-analysis/) 系列（共 12 篇文章）的第 3 部分。*
-
-*上一篇：[第 2 部分 —— 赋范空间和 Banach 空间](/zh/functional-analysis/02-normed-and-banach/)*
-
-*下一篇：[第 4 部分 —— 对偶空间和 Hahn-Banach 定理](/zh/functional-analysis/04-dual-spaces-hahn-banach/)*

@@ -27,11 +27,9 @@ The intrinsic / extrinsic split is going to recur for the next ten chapters, so 
 
 ## What is a Surface?
 
-
 ![Tangent plane on a saddle surface with tangent vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_parametric_surfaces.png)
 
 ![Parametric surfaces: sphere, torus, and saddle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_parametric_surfaces.png)
-
 
 The naive definition — "a 2D thing in 3D space" — is fine for intuition but useless for proofs. A precise definition has to say what "smooth" means, how to give the surface coordinates, and how to handle places where coordinates fail.
 
@@ -64,7 +62,6 @@ Given a chart $\mathbf{x}: U\to S$ around a point $p = \mathbf{x}(q)$, the parti
 
 ![Coordinate curves on a torus](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_coordinate_curves.png)
 
-
 **Definition.** The *tangent plane* at $p\in S$ is
 $$T_pS = \mathrm{span}\{\mathbf{x}_u(q), \mathbf{x}_v(q)\} \subseteq \mathbb{R}^3.$$
 
@@ -94,7 +91,6 @@ Now we get to the heart of the matter. Given a chart $\mathbf{x}(u,v)$, define t
 $$E = \mathbf{x}_u\cdot\mathbf{x}_u,\qquad F = \mathbf{x}_u\cdot\mathbf{x}_v,\qquad G = \mathbf{x}_v\cdot\mathbf{x}_v.$$
 
 ![First fundamental form: measuring area on a surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_first_form_area.png)
-
 
 These are the *coefficients of the first fundamental form*. Equivalently, they assemble into a $2\times 2$ matrix:
 $$\mathrm{I} = \begin{pmatrix} E & F \\ F & G \end{pmatrix},$$
@@ -147,7 +143,6 @@ Once again, intrinsic: the surface ant computes areas using only $E, F, G$.
 I will now grind through three standard surfaces and write down the first fundamental form. Doing this once carefully cements the apparatus.
 
 ![Metric distortion under different parametrizations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_metric_distortion.png)
-
 
 ### The plane
 
@@ -212,7 +207,6 @@ relates the two bases of $T_pS$.
 
 ![Measuring curve length on a surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_curve_on_surface.png)
 
-
 The first fundamental forms transform tensorially: $\tilde{\mathrm{I}} = J^T \mathrm{I} J$. Determinants: $\det\tilde{\mathrm{I}} = (\det J)^2 \det\mathrm{I}$, so $\sqrt{\tilde E\tilde G - \tilde F^2} = |\det J|\sqrt{EG - F^2}$, which is exactly the change-of-variables formula for the area integral. The two charts agree on lengths, angles, and areas.
 
 This transformation rule is the prototype for what later becomes "tensor transformation laws" in general relativity. The first fundamental form is a $(0,2)$-tensor; its components in any two charts are related by the Jacobian of the transition map.
@@ -227,7 +221,6 @@ This transformation rule is the prototype for what later becomes "tensor transfo
 $$\mathbf{w}_1\cdot\mathbf{w}_2 = (df_p\mathbf{w}_1)\cdot(df_p\mathbf{w}_2).$$
 
 ![Isometric surfaces: same metric, different shape](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_isometry.png)
-
 
 Equivalently: in matching charts $\mathbf{x}_1$ on $S_1$ and $\mathbf{x}_2 = f\circ\mathbf{x}_1$ on $S_2$, $E_1 = E_2$, $F_1 = F_2$, $G_1 = G_2$.
 
@@ -413,9 +406,3 @@ A short closing example to fix one more time the difference between intrinsic an
 Take a breath; that is a lot of formulas for one chapter. The good news: chapter 3 builds on this one but does not replace it. The first fundamental form is permanent; we will use it in every subsequent article. The bad news: chapters 3 and 4 will compose the second fundamental form on top of $\mathrm{I}$, and there is more bookkeeping coming. The trick to surviving differential geometry is to keep the conceptual picture clear (intrinsic = $\mathrm{I}$, extrinsic = $\mathrm{II}$, glued by Gauss-Codazzi) while doing the algebra patiently. Onward.
 
 ---
-
-*This is Part 2 of the [Differential Geometry](/en/series/differential-geometry/) series (12 articles).*
-
-*Previous: [Part 1 — Curves in Space](/en/differential-geometry/01-curves-in-space/)*
-
-*Next: [Part 3 — Curvature of Surfaces](/en/differential-geometry/03-second-form-curvature/)*

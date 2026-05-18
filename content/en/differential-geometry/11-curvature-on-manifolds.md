@@ -33,11 +33,9 @@ A second guiding picture. Think of the curvature tensor as the *infinitesimal ho
 
 ## 1. The Riemann Curvature Tensor
 
-
 ![Gaussian curvature on a torus: outer K>0 (red), inner K<0 (blue)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_scalar_curvature.png)
 
 ![Riemann curvature tensor: change in vector after parallel transport around loop](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_riemann_tensor.png)
-
 
 The **Riemann curvature tensor** $R$ is defined by
 $$R(X, Y)Z = \nabla_X \nabla_Y Z - \nabla_Y \nabla_X Z - \nabla_{[X, Y]}Z.$$
@@ -65,7 +63,6 @@ The Riemann tensor with all indices lowered satisfies:
 
 ![Sectional curvature: positive, zero, and negative](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_sectional_curvature.png)
 
-
 1. **Antisymmetry in first pair:** $R_{ijkl} = -R_{jikl}$.
 2. **Antisymmetry in second pair:** $R_{ijkl} = -R_{ijlk}$.
 3. **Pair-swap symmetry:** $R_{ijkl} = R_{klij}$.
@@ -84,9 +81,7 @@ For any 2-plane $\Pi \subset T_p M$ spanned by $X, Y$, the **sectional curvature
 
 ![Animation: geodesic deviation in positive vs negative curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_geodesic_deviation.gif)
 
-
 ![Ricci curvature: volume growth of geodesic balls](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_ricci_curvature.png)
-
 
 $$K(\Pi) = \frac{R(X, Y, X, Y)}{g(X, X)g(Y, Y) - g(X, Y)^2}.$$
 
@@ -111,7 +106,6 @@ A consequence of the symmetries: knowing $K$ on every 2-plane determines $R$ ent
 The **Ricci tensor** is the trace of Riemann over the first and third indices:
 
 ![Scalar curvature colored on a deformed sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_scalar_curvature.png)
-
 
 $$\mathrm{Ric}(Y, Z) = \mathrm{tr}(X \mapsto R(X, Y)Z), \qquad R_{jk} = R^i_{jik}.$$
 
@@ -154,7 +148,6 @@ where:
 
 ![Curvature hierarchy: Riemann -> Ricci -> Scalar (successive traces)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_curvature_hierarchy.png)
 
-
 ![Riemann tensor decomposition into Weyl, traceless Ricci, and scalar parts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/11-curvature-on-manifolds/dg_v2_11_5_decomp.png)
 
 In dimensions 2 and 3, the Weyl tensor vanishes identically — there is "not enough room" for a non-trivial conformally-invariant piece. So:
@@ -179,7 +172,6 @@ In dimensions 2 and 3, the Weyl tensor vanishes identically — there is "not en
 A Riemannian manifold has **constant sectional curvature** $\kappa$ if $K(\Pi) = \kappa$ for every 2-plane at every point. The simply connected complete examples — the **model spaces** — are:
 
 ![Jacobi fields: geodesic deviation on sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_jacobi_fields.png)
-
 
 ![Three model spaces of constant sectional curvature: sphere, plane, hyperbolic plane](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/11-curvature-on-manifolds/dg_v2_11_6_constant_K.png)
 
@@ -245,7 +237,6 @@ The implications are strict in dimension $\geq 4$: there are Einstein manifolds 
 
 A final practical note. When reading textbooks, papers, or computer algebra outputs, the first thing I do is verify the convention by computing the Ricci tensor of the round 2-sphere and checking the sign. This thirty-second check has saved me many hours of confusion over the years. Conventions in differential geometry are not standardised across sources, with at least three competing sign conventions in active use; the only safe approach is to verify the convention against a known case before trusting any further computation built on top.
 
-
 ---
 
 ## 8. Computing Curvature in Practice
@@ -298,9 +289,3 @@ We have built the curvature apparatus: Riemann tensor, sectional, Ricci, and sca
 The next article shifts venue once more, to fiber bundles. The Levi-Civita connection becomes a special case of a connection on a principal $O(n)$-bundle. The Riemann tensor becomes a curvature 2-form. Sectional curvatures become Chern classes after integration. Yang-Mills theory is the variational problem of these connections. The package of tools we have built here scales naturally to that bundle-theoretic setting, and the same pictures (parallel transport rotates vectors; curvature measures the rotation per unit area) apply with $G$ replaced by an arbitrary structure group. That generalisation is the bridge to gauge theory in physics, which is the topic of the final article.
 
 ---
-
-*This is Part 11 of the [Differential Geometry](/en/series/differential-geometry/) series (12 articles).*
-
-*Previous: [Part 10 — Riemannian Geometry](/en/differential-geometry/10-riemannian-geometry/)*
-
-*Next: [Part 12 — Bundles and Physics](/en/differential-geometry/12-bundles-and-physics/)*

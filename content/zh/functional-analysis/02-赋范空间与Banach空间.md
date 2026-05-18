@@ -21,14 +21,11 @@ description: "范数公理、经典例子、有限维空间中范数的等价性
 
 ## 为什么范数不仅仅是戴着帽子的度量
 
-
 ![不同 Lp 范数下的单位球](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fa02_lp_balls.png)
 
 ![动画：l^p 单位球随 p 变化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/02_lp_morph.gif)
 
-
 ![不同 p 值下 l^p 空间的单位球](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/02_lp_unit_balls.png)
-
 
 在第一篇文章中，度量是一个集合上的独立函数，没有代数结构。这种一般性带来了拓扑和完备性，但对代数没有任何回馈。一旦我愿意假设底层集合是向量空间，一个更刚性的对象就变得可用：**范数**，一个定义在空间上的非负函数，其诱导的度量 $d(x,y) = \|x - y\|$ 是*平移不变的*和*正齐次的*。
 
@@ -41,7 +38,6 @@ description: "范数公理、经典例子、有限维空间中范数的等价性
 设 $V$ 是 $\mathbb{R}$ 或 $\mathbb{C}$ 上的向量空间。$V$ 上的一个**范数**是满足以下条件的函数 $\|\cdot\|: V \to [0, \infty)$：
 
 ![有限维中的范数等价性](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/02_norm_equivalence.png)
-
 
 1. $\|x\| = 0 \iff x = 0$ （正定性）。
 2. $\|\alpha x\| = |\alpha|\, \|x\|$ （正齐次性）。
@@ -77,7 +73,6 @@ $$C_1 \|x\|_a \leq \|x\|_b \leq C_2 \|x\|_a \quad \text{对于所有 } x \in V.$
 
 ![Banach（完备）vs 不完备赋范空间](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/02_banach_vs_incomplete.png)
 
-
 可以证明，有限维向量空间上的任意两个范数都是等价的。
 
 *证明概要。* 设 $V$ 是 $n$ 维的，基为 $e_1, \ldots, e_n$，并在坐标中定义 $\|x\|_2 = \big(\sum |x_i|^2\big)^{1/2}$。设 $\|\cdot\|$ 是任何其他范数。写成 $x = \sum x_i e_i$ 并使用三角不等式和齐次性得到 $\|x\| \leq \sum |x_i| \|e_i\| \leq C_2 \|x\|_2$ 对于 $C_2 = (\sum \|e_i\|^2)^{1/2}$（Cauchy-Schwarz 不等式）。对于下界，$\|\cdot\|: (V, \|\cdot\|_2) \to \mathbb{R}$ 是连续的（由上界给出），单位球 $S = \{ x : \|x\|_2 = 1 \}$ 在 $\|\cdot\|_2$ 下是紧的（在有限维下闭且有界）。因此 $\|\cdot\|$ 在 $S$ 上达到最小值 $C_1 > 0$，并且齐次性给出 $\|x\| \geq C_1 \|x\|_2$ 在整个 $V$ 上。$\square$
@@ -98,7 +93,6 @@ $$C_1 \|x\|_a \leq \|x\|_b \leq C_2 \|x\|_a \quad \text{对于所有 } x \in V.$
 
 ![Schauder 基逼近](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/02_schauder_basis.png)
 
-
 对于有限测度空间上的Lebesgue函数空间（如 $L^p[0,1]$），包含方向相反：当 $q \geq p$ 时，$L^q[0,1] \subset L^p[0,1]$，通过Hölder不等式应用于 $|f|^p \cdot 1$。在非有限测度空间（如 $\mathbb{R}$）上，两种包含都不成立 —— 函数 $1/(1 + |t|)$ 在 $p > 1$ 时属于 $L^p(\mathbb{R})$ 但在 $p = 1$ 时不属于，而像 $|t|^{-1/p}$ 在 $0$ 附近发散的函数不属于任何 $q > p$ 的 $L^q$。因此 $L^p$ 包含是微妙的，取决于测度。对于序列空间，计数测度是无限的，但每个单点集的测度为 $1$，只有“无穷远处的衰减”方向重要，因此包含链简单。
 
 ![序列空间的包含链 l^1 ⊂ l^2 ⊂ ... ⊂ l^infinity](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/02-normed-and-banach/fa_v2_02_3_lp_chain.png)
@@ -114,7 +108,6 @@ $$C_1 \|x\|_a \leq \|x\|_b \leq C_2 \|x\|_a \quad \text{对于所有 } x \in V.$
 一个赋范空间是**Banach空间**，如果它在其范数诱导的度量下是完备的。完备性是关于*特定范数*的事实，而不仅仅是关于底层向量空间。给一个Banach空间和一个非Banach空间添加范数结构有时会产生相同的向量空间 —— 例如，作为向量空间的 $\ell^p$ 是 $\ell^\infty$ 的子空间，但它们在拓扑化后是非常不同的对象。
 
 ![函数空间的层次结构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/02_function_spaces.png)
-
 
 ![Banach空间：在其范数下完备的赋范空间](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/02-normed-and-banach/fa_v2_02_4_banach_complete.png)
 
@@ -142,7 +135,6 @@ $$C_1 \|x\|_a \leq \|x\|_b \leq C_2 \|x\|_a \quad \text{对于所有 } x \in V.$
 在有限维赋范空间中，每个基（代数意义上的）也是“拓扑”基：每个向量都是基元素的有限线性组合。在无限维Banach空间中，代数（Hamel）基非常庞大 —— 根据Baire定理，无限维Banach空间不能有可数的Hamel基 —— 并且对分析毫无用处。
 
 ![绝对收敛 vs 条件收敛](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/02_series_convergence.png)
-
 
 对于可分Banach空间，正确的概念是一个序列 $(e_n) \subset V$ 被称为Schauder基，如果每个 $x \in V$ 都有唯一表示 $x = \sum_{n=1}^\infty c_n e_n$ 作为*收敛级数*（在 $V$ 的范数下）。收敛是一个拓扑条件，而不是代数条件，这也是Schauder基与Hamel基的区别。
 
@@ -255,7 +247,3 @@ $$\|T\| = \sup_{x \neq 0} \frac{\|T x\|_Y}{\|x\|_X} = \sup_{\|x\|_X \leq 1} \|T 
 <!-- 本节内容因生成长度限制截断；完整推导请参阅本系列对应英文版本。 -->
 
 ---
-
-*本文是[《泛函分析》](/zh/series/functional-analysis/)系列的第 2 篇（共 12 篇）。*
-
-*下一篇：[第 3 篇 — Hilbert 空间](/zh/functional-analysis/03-hilbert-spaces/)*

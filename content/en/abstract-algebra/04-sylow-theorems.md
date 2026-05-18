@@ -17,11 +17,17 @@ series_total: 12
 translationKey: "abstract-algebra-4"
 ---
 
+![Classification of groups of small order](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/04_group_classification.png)
+
+
 Lagrange's theorem tells you the order of any subgroup must divide $|G|$. That is a necessary condition, and it is famously *not* sufficient — the alternating group $A_4$ has order $12$, but no subgroup of order $6$. So the moment you start asking "given $|G| = n$, what does $G$ actually look like?", Lagrange leaves you holding an empty bag.
 
 The Sylow theorems are what go inside that bag. They say: for every maximal prime power $p^a$ dividing $|G|$, a subgroup of order $p^a$ exists, all such subgroups are conjugate, and their count $n_p$ is sharply constrained ($n_p \equiv 1 \pmod p$, $n_p \mid [G:P]$). Ludwig Sylow proved this in 1872, and 150 years later it is still the first thing you reach for when somebody hands you a finite group of unknown order and asks what it is.
 
 The whole point of this article is to make those three statements feel inevitable rather than magical, and then to push them as far as they go: classifying small groups, ruling out simple groups at certain orders, and getting to the threshold where $A_5$ — order $60$ — finally cracks open the door to nonabelian simple groups.
+
+![Conjugation action and Sylow counting](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/04_conjugation_action.png)
+
 
 I should be upfront about the dependency graph here. To make Sylow do real work you need three preliminaries glued in your head: the class equation, the orbit-stabilizer formula, and the basic theory of group actions. Sylow is essentially a clever choice of action ($G$ acting on a carefully chosen set of $p$-power-sized subsets, or on the set of its own Sylow subgroups by conjugation) followed by orbit-stabilizer, then a residue calculation modulo $p$. Once you internalize that pattern, the three theorems stop being three separate results and start looking like one technique applied three times.
 
@@ -29,8 +35,10 @@ I should be upfront about the dependency graph here. To make Sylow do real work 
 
 ## The Atoms: p-Groups, Cauchy, and the Class Equation
 
-
 ![Subgroup lattice of S3](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/aa04_subgroup_lattice.png)
+
+![Cauchy's theorem: p divides |G| implies element of order p](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/04_cauchy_theorem.png)
+
 
 Before the Sylow theorems proper, we need the atoms they decompose things into. A finite **$p$-group** is a group of order $p^k$. Equivalently (by Cauchy's theorem, which we prove below), every element has order a power of $p$. These are the building blocks; the whole Sylow program is a strategy for cutting an arbitrary finite group along its $p$-group pieces and reading off the structure.
 
@@ -61,6 +69,9 @@ There is an intermediate result worth mentioning: **Cauchy-Sylow for $p$-subgrou
 ## The Three Sylow Theorems: Statement, Proof, and Structural Consequences
 
 Fix a finite group $G$ with $|G| = p^a m$, where $p \nmid m$ (so $p^a$ is the exact power of $p$ dividing $|G|$). A **Sylow $p$-subgroup** is a subgroup of order $p^a$.
+
+![Sylow p-subgroups: maximal p-power subgroups](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/04_sylow_subgroups.png)
+
 
 **Sylow I (Existence).** $G$ has at least one Sylow $p$-subgroup.
 
@@ -103,6 +114,9 @@ Concrete instances: $|G| = 15 = 3 \cdot 5$: $3 \nmid 4$, so $G \cong \mathbb{Z}/
 When $p \mid q - 1$, you get exactly two groups: the cyclic $\mathbb{Z}/pq$ (when $n_p = 1$) and a nonabelian semidirect product $\mathbb{Z}/q \rtimes \mathbb{Z}/p$ (when $n_p = q$). Example: $|G| = 6 = 2 \cdot 3$, and $2 \mid 3 - 1$, giving $\mathbb{Z}/6$ and $S_3$. Another: $|G| = 21 = 3 \cdot 7$, and $3 \mid 7 - 1 = 6$, giving $\mathbb{Z}/21$ and a nonabelian group of order $21$ (the unique one, which embeds as a subgroup of $\mathrm{Aff}(\mathbb{F}_7)$ via $x \mapsto ax + b$ with $a^3 = 1$).
 
 The element-counting technique mentioned above is the second-most-useful tool after the congruence itself. Here is the key observation: if $P$ and $Q$ are distinct Sylow $p$-subgroups of prime order $p$, then $P \cap Q = \{e\}$ (since any nontrivial subgroup of a group of order $p$ is the whole group). So distinct Sylow $p$-subgroups of order $p$ share only the identity, meaning each contributes $p - 1$ elements of order $p$ that no other Sylow $p$-subgroup contains. If $n_p$ Sylow $p$-subgroups exist, they collectively account for $n_p(p-1)$ non-identity elements. When $p^a > p$ (i.e., the Sylow subgroup is not of prime order), the intersection arithmetic is more delicate — two Sylow subgroups can overlap in a proper non-trivial subgroup — but for prime-order Sylows the counting is clean and powerful.
+
+![Semidirect product construction](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/04_semi_direct.png)
+
 
 **Order $12 = 2^2 \cdot 3$.** Sylow III: $n_3 \mid 4$ and $n_3 \equiv 1 \pmod 3$, so $n_3 \in \{1, 4\}$. $n_2 \mid 3$ and $n_2 \equiv 1 \pmod 2$, so $n_2 \in \{1, 3\}$. The congruence alone does not force uniqueness here. But element counting does: if $n_3 = 4$, that accounts for $4 \cdot 2 = 8$ elements of order $3$ (each Sylow $3$-subgroup has $2$ non-identity elements, and distinct Sylow $3$-subgroups intersect trivially since they have prime order). This leaves only $12 - 8 = 4$ non-order-$3$ elements, which must form the unique Sylow $2$-subgroup. So if $n_3 \neq 1$, then $n_2 = 1$. Either way, at least one Sylow subgroup is normal, and we can classify using semidirect products. The result: five groups of order $12$ ($\mathbb{Z}/12$, $\mathbb{Z}/6 \times \mathbb{Z}/2$, $A_4$, $D_6$, $\mathrm{Dic}_3$).
 
@@ -182,10 +196,7 @@ The Sylow theorems also open the door to the *transfer homomorphism* and related
 
 The next article moves from internal subgroup structure to the relationship between groups: **rings**, where two operations interact, and the ideals/quotients machinery that grows out of paying attention to that interaction. The bridge: when you classify groups via semidirect products $N \rtimes H$, the action $H \to \mathrm{Aut}(N)$ is a ring-like structure in disguise (the endomorphism ring of $N$ as a $\mathbb{Z}$-module). Rings make this explicit.
 
+![Animation: counting Sylow subgroups](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/04_sylow_counting.gif)
+
+
 ---
-
-*This is Part 4 of the [Abstract Algebra](/en/series/abstract-algebra/) series (12 articles).*
-
-*Previous: [Part 3 — Quotient Groups and Homomorphisms](/en/abstract-algebra/03-quotient-groups-and-homomorphisms/)*
-
-*Next: [Part 5 — Rings and Ideals](/en/abstract-algebra/05-rings-and-ideals/)*

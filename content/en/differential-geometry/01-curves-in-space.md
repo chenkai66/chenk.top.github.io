@@ -30,7 +30,6 @@ A note on tone before we start. This series is going to favour computation over 
 
 ## Curves as Paths through Space
 
-
 ![Frenet frame on a helix: tangent T (red), normal N (green), binormal B (purple)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_frenet_serret.png)
 
 Informally, a curve is a path traced out by a moving point. There is one subtlety to flag right away: do we mean the *image* (the set of points on the path) or the *parametrization* (the specific function describing the motion)? Differential geometers care about both, and in fact a lot of the early grunt work is making sure our definitions distinguish properties of the image from properties of the particular speedometer reading.
@@ -73,9 +72,7 @@ Length is therefore a property of the image, not the parametrization.
 
 ![Animation: Frenet frame moving along a curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_frenet_moving.gif)
 
-
 ![Curvature comparison: circle, helix, and general curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_curves_gallery.png)
-
 
 Define the *arc-length function* with reference point $t_0$:
 $$s(t) = \int_{t_0}^{t} |\alpha'(\tau)|\, d\tau.$$
@@ -113,7 +110,6 @@ $$2\mathbf{T}\cdot \mathbf{T}' = 0,$$
 so $\mathbf{T}'(s)$ is orthogonal to $\mathbf{T}(s)$. The magnitude of $\mathbf{T}'$ measures how fast the unit tangent rotates as we walk along the curve.
 
 ![Torsion measures how the curve twists out of its osculating plane](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_torsion.png)
-
 
 **Definition (Curvature).** $\kappa(s) = |\mathbf{T}'(s)| = |\alpha''(s)|$.
 
@@ -161,7 +157,6 @@ $$\mathbf{B}(s) = \mathbf{T}(s) \times \mathbf{N}(s).$$
 
 ![Helix: constant curvature and torsion](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_arc_length.png)
 
-
 The plane spanned by $\mathbf{T}$ and $\mathbf{N}$ (the *osculating plane*) contains the curve to second order at the point of evaluation. Geometrically, it is the plane that "best fits" the curve at that point.
 
 ![Osculating plane to a curve at a point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/01-curves-in-space/dg_v2_01_5_osculating.png)
@@ -198,7 +193,6 @@ $$\mathbf{N}' = (\mathbf{B}\times\mathbf{T})' = \mathbf{B}'\times\mathbf{T} + \m
 we land on:
 
 ![Osculating circle at points of varying curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_curvature_osculating.png)
-
 
 $$\frac{d}{ds}\begin{pmatrix}\mathbf{T}\\ \mathbf{N}\\ \mathbf{B}\end{pmatrix} = \begin{pmatrix}0 & \kappa & 0 \\ -\kappa & 0 & \tau \\ 0 & -\tau & 0\end{pmatrix}\begin{pmatrix}\mathbf{T}\\ \mathbf{N}\\ \mathbf{B}\end{pmatrix}.$$
 
@@ -241,7 +235,6 @@ In other words: the helix is, up to rigid motion, *the* curve with constant curv
 Numerical examples solidify the apparatus. I will take the time to compute $\kappa$ and $\tau$ on a few standards.
 
 ![Evolute: the locus of centers of curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_evolute.png)
-
 
 ![Classical curves: cardioid, lemniscate, logarithmic spiral](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/01-curves-in-space/dg_v2_01_7_classical_curves.png)
 
@@ -353,7 +346,3 @@ The next chapter moves to surfaces — two-dimensional objects in $\mathbb{R}^3$
 The deepest result waiting for us in that direction is Gauss's *Theorema Egregium*: even though Gaussian curvature is defined extrinsically (in terms of how the surface bends in space), it can in fact be computed entirely from the intrinsic metric. A flatlander could measure it from inside the surface. That is the kind of theorem that gets named "egregious".
 
 ---
-
-*This is Part 1 of the [Differential Geometry](/en/series/differential-geometry/) series (12 articles).*
-
-*Next: [Part 2 — Surfaces and the First Fundamental Form](/en/differential-geometry/02-surfaces-first-form/)*

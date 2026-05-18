@@ -21,12 +21,17 @@ In 1832, a twenty-year-old mathematician named Evariste Galois, on the eve of a 
 
 What I find astonishing about Galois's idea is the *direction* of the abstraction. He did not study polynomials by computing their roots more cleverly. He studied them by ignoring the roots entirely and instead analyzing the *permutations* of those roots that preserve all algebraic relations among them. The set of such permutations forms a group, and the structure of that group tells you everything you wanted to know about the original polynomial. It is a complete change of subject — from numbers to groups — that nevertheless answers the original question. This article walks through that change of subject in detail.
 
+![Splitting field symmetries](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/08_splitting_symmetry.png)
+
+
 ---
 
 ## The Galois Group: Automorphisms Fixing the Base Field
 
-
 ![Galois correspondence: bijection between field extensions and subgroups](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/aa08_galois_correspondence.png)
+
+![Galois group as automorphisms fixing the base field](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/08_galois_group.png)
+
 
 Given a field extension $L/K$, an *automorphism of $L$ over $K$* is a field isomorphism $\sigma : L \to L$ such that $\sigma(a) = a$ for every $a \in K$. The collection of all such automorphisms forms a group under composition, called the *Galois group* of $L/K$:
 
@@ -67,6 +72,9 @@ A small worked check. For $f(x) = x^4 + 1$ (the eighth cyclotomic polynomial), t
 ## Fixed Fields and the Galois Correspondence
 
 In one direction, given an extension $L/K$, we get a group $\mathrm{Gal}(L/K)$. In the other direction, given a subgroup $H \leq \mathrm{Gal}(L/K)$, we get a field:
+
+![Fixed field of a subgroup](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/08_fixed_field.png)
+
 
 $$L^H = \{\alpha \in L : \sigma(\alpha) = \alpha \text{ for all } \sigma \in H\}.$$
 
@@ -238,6 +246,9 @@ Some practical computational notes:
 
 We now translate the question "can this polynomial be solved by radicals?" into group theory.
 
+![Solvable groups and radical extensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/08_solvable_groups.png)
+
+
 **Definition.** A polynomial $f(x) \in K[x]$ is *solvable by radicals* over $K$ if there is a tower
 $$K = K_0 \subseteq K_1 \subseteq \cdots \subseteq K_r$$
 in which each step is obtained by adjoining a radical (i.e., $K_{i+1} = K_i(\sqrt[n_i]{a_i})$ for some $n_i \geq 1$ and $a_i \in K_i$), and the splitting field of $f$ is contained in $K_r$.
@@ -285,6 +296,9 @@ The proof of solvability $\Leftrightarrow$ radicals also gives a recipe. If $G$ 
 
 For the *general* polynomial of degree $n$ — the one with indeterminate coefficients, $f(x) = x^n + a_{n-1}x^{n-1} + \cdots + a_0$ over $K = \mathbb{Q}(a_0, \ldots, a_{n-1})$ — the Galois group is $S_n$. (This is essentially because no algebraic relations hold among the roots beyond what is forced by the symmetric functions.)
 
+![The unsolvability of the general quintic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/08_quintic.png)
+
+
 **Corollary.** The general polynomial of degree $n$ is solvable by radicals iff $S_n$ is solvable iff $n \leq 4$.
 
 For $n = 2$: $S_2 = \mathbb{Z}/2$ is abelian. Quadratic formula.
@@ -318,6 +332,9 @@ It also illustrates the broader pattern of 19th-century algebra: hard concrete p
 
 Galois theory completes our tour of fields. We have seen how the structure of polynomials, fields, and groups intertwine to give one of the deepest results in classical algebra. In the next article, we leave fields and groups behind to introduce a new perspective: *modules*, the natural generalization of vector spaces to arbitrary rings. Modules unify abelian groups, vector spaces, and ideals into a single framework — and they are the first step toward the homological methods that dominate modern algebra.
 
+![Animation: Galois group permuting roots](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/08_root_permutation.gif)
+
+
 Before moving on, three takeaways worth keeping in your back pocket:
 
 1. *The Galois group sees everything algebraic.* Two elements of a Galois extension are conjugate over $K$ iff some Galois-group element swaps them. Every algebraic property that survives field automorphisms can be read off the group action.
@@ -325,9 +342,3 @@ Before moving on, three takeaways worth keeping in your back pocket:
 3. *Solvability is about chains of cyclic steps.* The general philosophy — break a problem into iterated cyclic (or abelian) pieces — recurs throughout algebra: composition series for groups, refinements for representations, derived functors in homological algebra. Galois theory is the original example, and it is the one whose connection to a concrete classical question is most striking.
 
 ---
-
-*This is Part 8 of the [Abstract Algebra](/en/series/abstract-algebra/) series (12 articles).*
-
-*Previous: [Part 7 — Field Extensions](/en/abstract-algebra/07-field-extensions/)*
-
-*Next: [Part 9 — Modules](/en/abstract-algebra/09-modules/)*

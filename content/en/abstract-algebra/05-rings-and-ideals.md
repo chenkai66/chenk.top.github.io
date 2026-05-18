@@ -25,6 +25,9 @@ This article develops ring theory from scratch: the axioms, the key examples, th
 
 Mental picture: a ring is a number system. It has an additive structure (you can add and subtract), a multiplicative structure (you can multiply, possibly without dividing), and the two interact via distributivity. The integers $\mathbb{Z}$ are the prototypical example; everything else is a generalization.
 
+![Ring hierarchy: rings, domains, PIDs, fields](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/05_ring_hierarchy.png)
+
+
 Consider $\mathbb{Z}$. As a group under addition, $(\mathbb{Z}, +)$ is infinite cyclic --- completely understood. But the interesting number theory of $\mathbb{Z}$ involves multiplication: primes, divisibility, the Fundamental Theorem of Arithmetic. Addition alone cannot see any of this structure.
 
 Similarly, consider the set $\mathbb{R}[x]$ of polynomials with real coefficients. As an additive group it is just a vector space, but the ability to *multiply* polynomials is what makes factorization, roots, and algebraic geometry possible.
@@ -156,6 +159,9 @@ The norm provides a Euclidean function: for any $\alpha, \beta \in \mathbb{Z}[i]
 
 Mental picture: an ideal is a subset closed under addition and "absorbing" multiplication by everything in the ring. It is the right notion of "kernel" for ring homomorphisms, and the right thing to mod out by.
 
+![Ideals absorb multiplication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/05_ideal_structure.png)
+
+
 **Definition.** A ring homomorphism $\varphi: R \to S$ satisfies:
 
 1. $\varphi(a + b) = \varphi(a) + \varphi(b)$,
@@ -177,6 +183,9 @@ Asymmetry note: in non-commutative rings we distinguish *left ideals* ($ra \in I
 
 In a commutative ring, the *principal ideal* $(a) = aR = \{ar : r \in R\}$.
 
+![PID examples and non-examples](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/05_pid_examples.png)
+
+
 ![A principal ideal (a) inside the ring Z[x]](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/05-rings-and-ideals/aa_v2_05_3_principal_ideal.png)
 
 **Theorem.** Every ideal of $\mathbb{Z}$ is principal.
@@ -194,6 +203,9 @@ This makes $\mathbb{Z}$ a *principal ideal domain* (PID).
 ### Maximal and Prime Ideals
 
 **Definition.** A proper ideal $\mathfrak{m} \subsetneq R$ is *maximal* if no ideal $I$ has $\mathfrak{m} \subsetneq I \subsetneq R$.
+
+![Prime vs maximal ideals](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/05_prime_maximal.png)
+
 
 **Definition.** A proper ideal $\mathfrak{p} \subsetneq R$ is *prime* if $ab \in \mathfrak{p}$ implies $a \in \mathfrak{p}$ or $b \in \mathfrak{p}$.
 
@@ -235,11 +247,17 @@ When $I + J = R$ (comaximal), the Chinese Remainder Theorem for rings gives $R/(
 
 **Numerical example.** In $\mathbb{Z}$: $(4) + (6) = (\gcd(4,6)) = (2)$, $(4) \cap (6) = (\text{lcm}(4,6)) = (12)$, $(4)(6) = (24)$. Note $(4) + (6) \neq R$, so they are not comaximal. By contrast $(4) + (9) = (1) = \mathbb{Z}$, and $\mathbb{Z}/(4 \cap 9) = \mathbb{Z}/36 \cong \mathbb{Z}/4 \times \mathbb{Z}/9$ (CRT).
 
+![Chinese Remainder Theorem for rings](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/05_chinese_remainder.png)
+
+
 **A useful identity.** For ideals $I, J, K$ in a commutative ring: $I(J + K) = IJ + IK$, $I \cap (J + K) \supseteq (I \cap J) + (I \cap K)$, with equality not guaranteed. The lattice of ideals is *modular* (in the lattice-theoretic sense) but generally not distributive.
 
 ## Quotient Rings and the First Isomorphism Theorem
 
 Mental picture: just as for groups, you mod out by an ideal to get a quotient ring. The ideal axioms guarantee the multiplication is well-defined.
+
+![Quotient ring construction](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/05_quotient_ring.png)
+
 
 For $I \trianglelefteq R$ a two-sided ideal, $R/I$ has elements $\{a + I\}$ and operations:
 
@@ -338,6 +356,9 @@ A sociological point: the realization that "elements lie, but ideals tell the tr
 
 We have built the basic language of ring theory: rings, homomorphisms, ideals, quotient rings, integral domains, PIDs, and the Noetherian property. In the next article we focus on *polynomial rings* $R[x]$: the division algorithm, irreducibility criteria, Gauss's lemma, and the theory of unique factorization. Polynomial rings are the testing ground for everything we have developed here, and they connect ring theory directly to the classical problems of solving equations and understanding algebraic numbers.
 
+![Animation: ring operations and ideal absorption](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/05_ring_operations.gif)
+
+
 A summary worth keeping: groups have one operation, rings have two; ideals are the kernel notion for rings; quotient rings let us construct new rings with prescribed relations; PIDs are the cleanest setting where ideals are generated by single elements.
 
 A second summary, this time historical. The conceptual leap "from numbers to ideals" reframes classical questions about divisibility into questions about subsets of rings. The leap was made independently by Kummer (with his "ideal numbers"), Dedekind (with the modern set-theoretic definition), and Kronecker (with a constructive but more cumbersome formulation). Dedekind's version is what we use today. The whole subsequent history of algebraic number theory and algebraic geometry is the unfolding of this conceptual move.
@@ -349,9 +370,3 @@ A second summary, this time historical. The conceptual leap "from numbers to ide
 A second reflection: ideals are simultaneously the right substitute for normal subgroups (when modding out) and the right substitute for elements (when factoring). The "factor uniquely as primes" property of $\mathbb{Z}$ generalizes to many rings only at the level of ideals, not elements. This is why algebraic number theorists work with ideals more than with numbers: they are the units of structural arithmetic.
 
 ---
-
-*This is Part 5 of the [Abstract Algebra](/en/series/abstract-algebra/) series (12 articles).*
-
-*Previous: [Part 4 — Sylow Theorems](/en/abstract-algebra/04-sylow-theorems/)*
-
-*Next: [Part 6 — Polynomial Rings](/en/abstract-algebra/06-polynomial-rings/)*

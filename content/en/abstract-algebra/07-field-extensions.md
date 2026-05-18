@@ -23,6 +23,9 @@ I find it useful to think of a field extension as a kind of controlled inflation
 
 ---
 
+![Finite fields GF(p^n) structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/07_finite_fields.png)
+
+
 ## Motivation: Solving Polynomials Requires Bigger Fields
 
 Consider the polynomial $f(x) = x^2 + 1$ over $\mathbb{R}$. It has no real roots, since $x^2 \geq 0$ for all $x \in \mathbb{R}$. But if we pass to the larger field $\mathbb{C} = \mathbb{R}(i)$, the polynomial factors as $(x - i)(x + i)$. The strategy is brutally simple: if your equation has no solution, build a field where it does.
@@ -51,6 +54,9 @@ There is also a useful bookkeeping benefit. When you start hopping between $\mat
 ## Field Extensions and Degree
 
 **Definition.** A *field extension* is a pair of fields $K \subseteq L$ (equivalently, an injective field homomorphism $K \hookrightarrow L$). We write $L/K$ and call $K$ the *base field* (or *ground field*) and $L$ the *extension field*. The notation $L/K$ does not mean a quotient — it is simply a conventional way to indicate that $L$ extends $K$.
+
+![Degree formula: [L:K] = [L:F][F:K]](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/07_degree_formula.png)
+
 
 Since $L$ is a field containing $K$, it carries the structure of a vector space over $K$: addition in $L$ is the vector addition, and scalar multiplication by elements of $K$ is given by the field multiplication in $L$. This is the linchpin that lets us bring linear algebra to bear on what looks like a question about roots of polynomials. The *degree* of the extension is
 
@@ -84,6 +90,9 @@ The same two-sided argument — find a polynomial, then check it is the minimal 
 ## Simple Extensions and Minimal Polynomials
 
 **Definition.** An extension $L/K$ is *simple* if $L = K(\alpha)$ for some $\alpha \in L$. The element $\alpha$ is a *primitive element*.
+
+![Minimal polynomial determines the extension](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/07_minimal_polynomial.png)
+
 
 **Definition.** Let $\alpha \in L$. We say $\alpha$ is *algebraic over $K$* if $f(\alpha) = 0$ for some nonzero polynomial $f(x) \in K[x]$. Otherwise, $\alpha$ is *transcendental over $K$*.
 
@@ -142,6 +151,9 @@ A tiny taste of why transcendence is hard: any finite list of polynomials with i
 
 The tower law is the workhorse of dimension counting. Given three nested fields $K \subseteq M \subseteq L$, we can climb $K \to M \to L$ in two steps and the dimensions multiply.
 
+![Tower of field extensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/07_extension_tower.png)
+
+
 **Theorem (Tower Law).** If $K \subseteq M \subseteq L$ are fields and $L/M$, $M/K$ are both finite, then $L/K$ is finite and
 $$[L : K] = [L : M] \cdot [M : K].$$
 
@@ -192,6 +204,12 @@ A small numerical reality check: for $\mathbb{Q}(\sqrt{2}, \sqrt{3})$ over $\mat
 ## Splitting Fields and Algebraic Closures
 
 We now move from "adjoin one root" to "adjoin all the roots."
+
+![Splitting field: smallest field containing all roots](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/07_splitting_field.png)
+
+
+![Algebraic vs transcendental elements](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/07_algebraic_elements.png)
+
 
 **Definition.** Let $f(x) \in K[x]$ be a polynomial of degree $n \geq 1$. A *splitting field* of $f$ over $K$ is a field $L \supseteq K$ such that:
 
@@ -295,6 +313,9 @@ One more remark to close out this section. There is a useful "transitivity" fact
 
 We have assembled all the ingredients: field extensions and their degrees, the tower law for computing degrees in chains, minimal polynomials that describe simple extensions, splitting fields that give us "complete" factorizations, normality and separability to prevent degenerate behavior. In the next article, we combine these tools into Galois theory proper: the group of automorphisms of a field extension and its remarkable correspondence with the lattice of intermediate fields. This correspondence will ultimately explain why the general quintic cannot be solved by radicals, settling a question that puzzled mathematicians for three centuries.
 
+![Animation: adjoining an element to a field](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/07_adjoin_element.gif)
+
+
 A short forward-looking checklist, so you know what you are walking into. Given a finite Galois extension $L/K$:
 
 - The order of $\mathrm{Gal}(L/K)$ equals $[L:K]$. (This already pins down the group up to a finite list of possibilities.)
@@ -306,9 +327,3 @@ A short forward-looking checklist, so you know what you are walking into. Given 
 If any of those bullets feels mysterious, that is the right state of mind to enter Part 8 with. We will earn each of them, and along the way the entire scaffolding of this article — degrees, towers, splitting fields, minimal polynomials — will pay off all at once.
 
 ---
-
-*This is Part 7 of the [Abstract Algebra](/en/series/abstract-algebra/) series (12 articles).*
-
-*Previous: [Part 6 — Polynomial Rings](/en/abstract-algebra/06-polynomial-rings/)*
-
-*Next: [Part 8 — Galois Theory](/en/abstract-algebra/08-galois-theory/)*

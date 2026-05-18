@@ -29,7 +29,6 @@ Out of the Theorema Egregium come two enormous consequences. First, intrinsic ge
 
 ## Christoffel Symbols: How Coordinates Twist on a Curved Surface
 
-
 ![Geodesics on the sphere (great circles)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg04_geodesics_sphere.png)
 
 In $\mathbb{R}^n$ with the standard coordinates, the basis vectors $\mathbf{e}_1, \ldots, \mathbf{e}_n$ are constant — they do not change from point to point. On a surface parametrized by $\mathbf{x}(u, v)$, the coordinate basis vectors $\mathbf{x}_u$ and $\mathbf{x}_v$ *do* change as we move along the surface. The tangent plane tilts, stretches, and rotates from point to point. When we differentiate a vector field expressed in this basis, we cannot just differentiate the components — we must also account for the basis itself varying. This bookkeeping is the role of Christoffel symbols.
@@ -65,9 +64,7 @@ Armed with Christoffel symbols, we can state and understand the central theorem 
 
 ![Animation: geodesic flow on a surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_geodesic_flow.gif)
 
-
 ![Geodesics on various surfaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_geodesic_surfaces.png)
-
 
 **Theorem (Gauss, 1827 — Theorema Egregium).** The Gaussian curvature $K$ is expressible entirely in terms of the metric coefficients $g_{ij}$ and their first and second partial derivatives. In particular, $K$ does not depend on the second fundamental form $\mathrm{II}$ or on any information about how the surface is embedded in $\mathbb{R}^3$.
 
@@ -108,7 +105,6 @@ With Christoffel symbols in hand, we can define the curves that play the role of
 
 ![Theorema Egregium: Gaussian curvature is intrinsic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_theorema_egregium.png)
 
-
 A curve $\gamma(t) = \mathbf{x}(u_1(t), u_2(t))$ on a surface has an acceleration $\gamma''$ that decomposes into tangential and normal parts. The tangential part is the *covariant derivative* of $\gamma'$ along $\gamma$:
 $$\frac{D\gamma'}{dt} = \sum_k\left(\ddot u_k + \sum_{i,j}\Gamma^k_{ij}\dot u_i\dot u_j\right)\mathbf{x}_k.$$
 
@@ -145,7 +141,6 @@ Geodesics are intrinsic "straight lines." But there is a subtler intrinsic conce
 
 ![Christoffel symbols: how basis vectors change](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_christoffel.png)
 
-
 Given a curve $\gamma(t)$ on $S$ and an initial tangent vector $\mathbf{v}_0 \in T_{\gamma(0)}S$, we seek a vector field $V(t)$ along $\gamma$ that is "constant" in the intrinsic sense — its covariant derivative along $\gamma$ vanishes:
 $$\frac{DV}{dt} = \sum_k\left(\dot V^k + \sum_{i,j}\Gamma^k_{ij}\dot u_i V^j\right)\mathbf{x}_k = 0.$$
 
@@ -178,7 +173,6 @@ The Theorema Egregium opens a classification program: since isometries preserve 
 
 ![Parallel transport on the sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_parallel_transport.png)
 
-
 **Theorem (Minding, 1839).** Any two surfaces with the same constant Gaussian curvature are locally isometric. That is, small patches of one can be mapped isometrically onto small patches of the other.
 
 This means the local geometry of a surface of constant curvature is completely determined by the value of $K$. There are exactly three cases:
@@ -209,7 +203,6 @@ measuring how fast the tangent vector $\gamma'$ rotates *within the tangent plan
 
 ![Exponential map: from tangent plane to surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_exponential_map.png)
 
-
 A geodesic has $\kappa_g \equiv 0$: its tangent does not rotate in-plane. A circle of latitude on a sphere (other than the equator, which is a geodesic) has nonzero $\kappa_g$ — it is constantly turning within the surface to maintain its latitude. The equator has $\kappa_g = 0$ because it is a great circle; other circles of latitude have $\kappa_g = \cot\varphi$ (where $\varphi$ is the colatitude), measuring their deviation from being geodesics.
 
 The total curvature of $\gamma$ as a space curve satisfies $\kappa^2 = \kappa_n^2 + \kappa_g^2$, partitioning into extrinsic and intrinsic parts. Crucially, $\kappa_g$ is computable from $\mathrm{I}$ alone — it is intrinsic. This makes it available on abstract manifolds where there is no ambient space.
@@ -230,9 +223,3 @@ This is the local form of the Gauss-Bonnet theorem, and it encapsulates the enti
 The Gauss-Bonnet theorem takes the local formula above and applies it globally: integrating $K$ over an entire closed surface yields $2\pi\chi(S)$, where $\chi$ is the Euler characteristic — a topological invariant. It is the most beautiful theorem in classical differential geometry, connecting analysis to topology.
 
 ---
-
-*This is Part 4 of the [Differential Geometry](/en/series/differential-geometry/) series (12 articles).*
-
-*Previous: [Part 3 — Curvature of Surfaces](/en/differential-geometry/03-second-form-curvature/)*
-
-*Next: [Part 5 — The Gauss-Bonnet Theorem](/en/differential-geometry/05-gauss-bonnet/)*

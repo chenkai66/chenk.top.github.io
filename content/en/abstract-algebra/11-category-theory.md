@@ -28,6 +28,15 @@ The standard concern is that this is "abstract nonsense." There is some truth to
 
 A **category** $\mathcal{C}$ consists of: a class of **objects** $\mathrm{Ob}(\mathcal{C})$; for each pair of objects $A, B$, a set $\mathrm{Hom}_\mathcal{C}(A, B)$ of **morphisms** (arrows) from $A$ to $B$; a composition law $\circ$ that is associative; and for each object $A$, an identity morphism $1_A$ that is neutral for composition. That is the entire definition — intentionally minimal, because almost everything in mathematics fits this mold for some choice of objects and arrows.
 
+![Natural transformation between functors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/11_natural_transform.png)
+
+
+![Functor: structure-preserving map between categories](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/11_functor.png)
+
+
+![Category: objects and morphisms](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/11_category_diagram.png)
+
+
 ![Categories Set, Grp, Top compared](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/11-category-theory/aa_v2_11_1_categories.png)
 
 The standard algebraic examples: $\mathbf{Set}$ (sets and functions), $\mathbf{Grp}$ (groups and group homomorphisms), $\mathbf{Ring}$ (rings and ring homomorphisms), $\mathbf{Ab}$ (abelian groups), $\mathbf{Vect}_k$ ($k$-vector spaces and linear maps), $R$-$\mathbf{Mod}$ ($R$-modules and $R$-linear maps), $\mathbf{Top}$ (topological spaces and continuous maps). But also examples that reveal the framework's reach:
@@ -57,6 +66,12 @@ Why does this matter? Because "natural" is the precise way to say "canonical" or
 ## Universal Properties and Limits
 
 The most productive single idea in category theory is the **universal property**: characterizing an object not by its internal construction but by its relationship to all other objects. The philosophy is that "what an object *does* (i.e., what maps into and out of it look like) determines what it *is*."
+
+![Limits and colimits in categories](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/11_limits.png)
+
+
+![Universal property: unique factoring morphism](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/11_universal_property.png)
+
 
 **Initial and terminal objects.** An object $I$ is **initial** if for every $A$ there is a unique morphism $I \to A$. An object $T$ is **terminal** if for every $A$ there is a unique $A \to T$. In $\mathbf{Set}$: $\emptyset$ is initial, singletons are terminal. In $\mathbf{Grp}$: the trivial group $\{e\}$ is both (a zero object). In $\mathbf{Ring}$: $\mathbb{Z}$ is initial (unique ring map $\mathbb{Z} \to R$ for any $R$, namely $n \mapsto n \cdot 1_R$); the zero ring $\{0\}$ is terminal.
 
@@ -103,6 +118,9 @@ In algebraic geometry, the Yoneda perspective is foundational: schemes are studi
 ## Adjoint Functors
 
 A pair of functors $F : \mathcal{C} \to \mathcal{D}$ and $G : \mathcal{D} \to \mathcal{C}$ is an **adjoint pair** ($F$ left adjoint to $G$, written $F \dashv G$) if there is a natural bijection
+
+![Adjoint functors: free ⊣ forgetful](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/11_adjunction.png)
+
 
 $$\mathrm{Hom}_\mathcal{D}(F(A), B) \;\cong\; \mathrm{Hom}_\mathcal{C}(A, G(B))$$
 
@@ -184,10 +202,7 @@ A closing thought on the role of abstraction in this series. We started with gro
 
 In the final article of this series, we turn to **applications**: how abstract algebra finds concrete use in cryptography, coding theory, physics, and topology — showing that the structural patterns we have developed are not just elegant but powerful.
 
+![Animation: diagram chasing in a commutative diagram](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/11_diagram_chase.gif)
+
+
 ---
-
-*This is Part 11 of the [Abstract Algebra](/en/series/abstract-algebra/) series (12 articles).*
-
-*Previous: [Part 10 — Representation Theory](/en/abstract-algebra/10-representation-theory/)*
-
-*Next: [Part 12 — Applications](/en/abstract-algebra/12-applications/)*

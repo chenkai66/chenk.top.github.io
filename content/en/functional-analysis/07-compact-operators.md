@@ -23,21 +23,17 @@ The condition "maps bounded sets to precompact sets" sounds abstract, but it is 
 
 ![Spectrum of compact operator clusters at zero](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig07_spectrum_compact.png)
 
-
 A terminological note: Riesz (1918) called these operators *vollstetig* (totally continuous). The older English translation "completely continuous" still appears in pre-1970 books. The modern definition (maps bounded sets to precompact sets) is the clean one; the older definition (maps weakly convergent sequences to norm-convergent ones) is equivalent on reflexive spaces but differs on $\ell^1$. I use the modern definition throughout.
 
 ![Compact operator: maps the unit ball to a precompact set](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/07-compact-operators/fa_v2_07_1_compact_def.png)
 
 ## Definition, Examples, and the Approximation by Finite Rank
 
-
 ![Spectrum of a compact operator: eigenvalues accumulate at 0](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa07_compact_spectrum.png)
 
 ![Animation: finite-rank operators converging to compact operator](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/gif07_compact_approx.gif)
 
-
 ![Finite-rank approximation of compact operators](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig07_finite_rank_approx.png)
-
 
 An operator $T: X \to Y$ between Banach spaces is **compact** if $\overline{T(B_X)}$ is compact in $Y$, equivalently if every bounded sequence $(x_n)$ has a subsequence $(x_{n_k})$ with $(Tx_{n_k})$ convergent. The operator does the work of compactification that the ambient space (in infinite dimensions) declined to do. Every clever argument in this article reduces to extracting a convergent subsequence of images at exactly the right moment.
 
@@ -57,13 +53,11 @@ The non-self-adjoint case is genuinely different: $V$ has the same norm as its a
 
 The lack of a spectral decomposition for non-normal compact operators is not just an inconvenience -- it reflects genuine complexity. The theory of non-normal operators (in particular, the theory of invariant subspaces and the still-open invariant subspace problem for compact operators on general Banach spaces) is vastly harder than the normal case. The spectral theorem for compact self-adjoint operators is a gift of symmetry that non-self-adjoint operators simply do not share.
 
-
 ## The Spectral Theorem for Compact Self-Adjoint Operators
 
 The centerpiece of compact operator theory is the spectral decomposition, which says that compact self-adjoint operators behave exactly like real diagonal matrices with entries tending to zero.
 
 ![Compact operator maps bounded set to relatively compact set](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig07_compact_operator.png)
-
 
 **Theorem.** Let $T: H \to H$ be a compact self-adjoint operator on a separable Hilbert space. Then there exists an orthonormal system $(e_n)$ of eigenvectors with real eigenvalues $(\lambda_n)$ satisfying $\lambda_n \to 0$, such that $T = \sum_n \lambda_n \langle \cdot, e_n \rangle e_n$. The eigenvalues are the only nonzero spectral values, each has finite multiplicity, and they accumulate only at zero.
 
@@ -81,13 +75,11 @@ The min-max characterization of eigenvalues (Courant-Fischer) extends from matri
 
 ![Classical compact operators: integral operators on L^2](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/07-compact-operators/fa_v2_07_7_compact_examples.png)
 
-
 ## The Fredholm Alternative
 
 The **Fredholm alternative** for compact operators is the infinite-dimensional version of the statement that a square matrix equation $Ax = b$ either has a unique solution (when $A$ is invertible) or the homogeneous equation $Ax = 0$ has nontrivial solutions (when $A$ is singular) -- with no third possibility.
 
 ![Fredholm alternative: either unique solution or finite-dimensional kernel](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig07_fredholm_alternative.png)
-
 
 **Theorem (Fredholm alternative).** Let $T: X \to X$ be compact and $\lambda \neq 0$. Then exactly one of the following holds:
 
@@ -105,16 +97,13 @@ The elegance of Fredholm theory is that the entire solvability analysis of the i
 
 A more physically motivated example: the Neumann series. For $\|\lambda^{-1}T\| < 1$ (i.e., $|\lambda| > \|T\|$), the resolvent $(\lambda I - T)^{-1} = \lambda^{-1}\sum_{n=0}^\infty (\lambda^{-1}T)^n$ converges geometrically. This is the "Born series" in scattering theory -- each term represents a higher-order scattering event. For $|\lambda| \leq \|T\|$, the series may diverge, but the Fredholm alternative still guarantees that the resolvent exists except at the (at most countably many) eigenvalues. The spectrum of a compact operator is thus entirely composed of eigenvalues (plus possibly zero) -- there is no continuous spectrum, no residual spectrum at nonzero points.
 
-
 ## Singular Values, Hilbert-Schmidt, and Trace Class
 
 For non-self-adjoint compact operators, the spectral theorem does not directly apply, but the **singular value decomposition** provides a complete structural description. For any compact $T: H \to H$, the operator $T^*T$ is compact, self-adjoint, and positive. Applying the spectral theorem to $T^*T$ gives eigenvalues $s_1^2 \geq s_2^2 \geq \ldots \geq 0$ tending to zero. The **singular values** are $s_n = \sqrt{\lambda_n(T^*T)}$, and the SVD is:
 
 ![Singular value decomposition for compact operators](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig07_svd.png)
 
-
 ![Hilbert-Schmidt operator as matrix with square-summable entries](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig07_hilbert_schmidt.png)
-
 
 $$T = \sum_n s_n \langle \cdot, v_n \rangle u_n$$
 
@@ -145,7 +134,6 @@ The duality between these operator ideals mirrors the sequence-space duality $\e
 
 In quantum information theory, the trace-norm distance $\|\rho - \sigma\|_1 = \text{tr}|\rho - \sigma|$ between density matrices quantifies distinguishability of quantum states (it equals twice the maximum success probability of distinguishing $\rho$ from $\sigma$ minus one). The Hilbert-Schmidt distance $\|\rho - \sigma\|_{HS}$ is computationally easier but physically less meaningful. The operator norm $\|\rho - \sigma\|_{op}$ gives the maximum eigenvalue difference. Each norm captures a different operational meaning, and the hierarchy trace $\geq$ HS $\geq$ operator reflects the ordering of physical distinguishability criteria.
 
-
 ## Compact Operators and Inverse Problems
 
 A practical application that shows why compact operators are simultaneously useful and dangerous. Many inverse problems take the form: given measured data $g$, recover the underlying signal $f$ from $Tf = g$, where $T$ is a compact forward operator. Examples: deblurring (convolution with a PSF), X-ray tomography (Radon transform), heat equation backward in time (evolution operator).
@@ -163,7 +151,6 @@ This is not merely an engineering trick -- it has a precise operator-theoretic i
 The slogan: **compact operators smooth, and smoothing is hard to invert**. The singular value decay rate of $T$ quantifies the degree of ill-posedness. Mildly ill-posed problems (polynomial decay $s_n \sim n^{-\alpha}$, like numerical differentiation with $\alpha = 1$) can be regularized effectively -- the achievable resolution degrades polynomially with noise level. Severely ill-posed problems (exponential decay $s_n \sim e^{-cn}$, like backward heat equation or analytic continuation) resist regularization -- the achievable resolution degrades only logarithmically with noise level, meaning even modest noise destroys most information.
 
 Modern approaches to inverse problems (compressed sensing, total-variation regularization, deep learning priors) all operate within this SVD framework. They differ in the choice of penalty (sparsity in a wavelet basis, bounded variation, learned neural-network prior) but share the structural diagnosis: compact operators erase information about high-frequency components, and reconstruction requires prior assumptions to replace what was lost. The spectral theorem for compact self-adjoint operators, applied to $T^*T$, is the mathematical infrastructure underlying the entire field of inverse problems.
-
 
 ## Compactness Criteria and the Rellich-Kondrachov Embedding
 
@@ -193,7 +180,6 @@ For numerical computation: the Galerkin method for eigenvalues of $-\Delta$ on $
 
 The Weyl asymptotic law $\lambda_n \sim c_d n^{2/d}$ (for the Dirichlet Laplacian on a $d$-dimensional domain) determines the singular-value decay of the resolvent: $s_n((-\Delta)^{-1}) \sim n^{-2/d}$. In dimension $d = 1$, the resolvent is trace class ($\sum n^{-2} < \infty$). In $d = 2$, it is Hilbert-Schmidt but not trace class ($\sum n^{-1}$ diverges but $\sum n^{-2}$ converges -- wait, in 2D the Weyl law gives $\lambda_n \sim cn$, so $s_n \sim 1/n$ and $\sum 1/n$ diverges). In $d = 3$, the resolvent is compact but not Hilbert-Schmidt ($\lambda_n \sim cn^{2/3}$, so $s_n \sim n^{-2/3}$, and $\sum n^{-4/3} < \infty$ -- actually it IS Hilbert-Schmidt in 3D). The precise relationship between domain dimension, Weyl asymptotics, and Schatten-class membership of the resolvent is a beautiful interface between spectral geometry and operator ideals.
 
-
 ## What's Next
 
 The spectral theorem for compact self-adjoint operators gives a complete diagonalization -- but it only works for compact operators. Most operators in mathematical physics (differential operators, multiplication operators, the position and momentum operators of quantum mechanics) are not compact. Their spectra can have continuous parts, their "eigenvectors" may not be genuine Hilbert-space elements (think of plane waves $e^{ikx}$ for the momentum operator -- not in $L^2$), and the sum $\sum \lambda_n \langle \cdot, e_n\rangle e_n$ must be replaced by an integral $\int \lambda\,dE(\lambda)$ against a spectral measure.
@@ -201,9 +187,3 @@ The spectral theorem for compact self-adjoint operators gives a complete diagona
 The next article promotes spectral theory to the general bounded self-adjoint case. The compact case reappears as the special instance where the spectral measure is purely atomic (a sum of point masses at the eigenvalues). The multiplication operator $Mf(t) = tf(t)$ on $L^2[0,1]$ exemplifies the opposite extreme: purely continuous spectrum with no eigenvalues at all, spectral measure absolutely continuous with respect to Lebesgue. Between these extremes live operators with mixed spectrum -- discrete eigenvalues below an essential-spectrum threshold, and continuous spectrum above -- which is exactly the structure of quantum-mechanical Hamiltonians (bound states below the ionization energy, scattering states above). The spectral theorem unifies all these cases into a single framework.
 
 ---
-
-*This is Part 7 of the [Functional Analysis](/en/series/functional-analysis/) series (12 articles).*
-
-*Previous: [Part 6 — Bounded Operators](/en/functional-analysis/06-bounded-operators/)*
-
-*Next: [Part 8 — Spectral Theory](/en/functional-analysis/08-spectral-theory/)*

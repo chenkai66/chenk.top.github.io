@@ -41,7 +41,13 @@ But not every subgroup works. If you try to mod out by an arbitrary subgroup, th
 
 Mental picture: a normal subgroup is a subgroup that "looks the same from every conjugation viewpoint." If you stir the group around by conjugation, the subgroup is unchanged as a set. This invariance is exactly what is needed to make the coset multiplication well-defined.
 
+![Normal subgroup: conjugation-invariant](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/03_normal_subgroup.png)
+
+
 **Definition.** A subgroup $N$ of a group $G$ is *normal* (written $N \trianglelefteq G$) if for every $g \in G$ and every $n \in N$, the conjugate $gng^{-1}$ belongs to $N$. Equivalently, $gNg^{-1} = N$ for all $g \in G$.
+
+![Short exact sequence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/03_short_exact.png)
+
 
 This says that $N$ is invariant under conjugation: you cannot escape $N$ by conjugating its elements.
 
@@ -75,6 +81,9 @@ Condition (2) is often most practical for checking normality. Note: $gN = Ng$ do
 
 **Worked check of the index-2 test.** $A_n$ has index $2$ in $S_n$, so $A_n \trianglelefteq S_n$. The rotation subgroup of $D_n$ has index $2$, so it is normal in $D_n$. The orientation-preserving isometries of $\mathbb{R}^n$ form an index-$2$ subgroup of all isometries, hence are normal. The pattern repeats: any "even-vs-odd" split is automatically a normal subgroup.
 
+![Commutator subgroup and abelianization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/03_commutator.png)
+
+
 **A worked non-test.** Consider the permutation $\sigma = (1\ 2)$ in $S_4$. The cyclic subgroup $\langle \sigma \rangle = \{e, (1\ 2)\}$ has order $2$, but its index in $S_4$ is $12$, not $2$. So the index-$2$ test does not apply. In fact $\langle \sigma \rangle$ is not normal: $(1\ 3)(1\ 2)(1\ 3)^{-1} = (2\ 3) \notin \langle \sigma \rangle$.
 
 **Why normality matters beyond quotients.** Normal subgroups appear everywhere in algebra. A group is *simple* if it has no proper non-trivial normal subgroups. Simple groups are the building blocks of finite group theory in the same way primes are the building blocks of integers. The classification of finite simple groups (completed in the 2000s after $\sim 10000$ pages of proofs) lists every simple group, and the Jordan-Hölder theorem says every finite group is built from simple groups via successive normal extensions.
@@ -86,6 +95,9 @@ A second reason normality matters: the *normalizer* $N_G(H) = \{g \in G : gHg^{-
 ## The Quotient Group Construction
 
 Mental picture: pick a normal subgroup $N$. Collapse each coset $gN$ to a single point. The collapsed points form a new group $G/N$, with operation inherited from $G$. The points of $G/N$ are equivalence classes, where $g_1 \sim g_2$ iff $g_1 g_2^{-1} \in N$.
+
+![Quotient group: collapsing a normal subgroup](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/03_quotient_group.png)
+
 
 **Construction.** Let $N \trianglelefteq G$. Define $G/N$ to be the set of left cosets of $N$:
 
@@ -122,6 +134,9 @@ A pedagogical note: students often struggle with quotient groups because the ele
 ## Group Homomorphisms
 
 Mental picture: a homomorphism is a function from one group to another that respects the multiplication. It is the right notion of "structure-preserving map" between groups, and the key tool for comparing groups.
+
+![Homomorphism preserves group structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/03_homomorphism.png)
+
 
 **Definition.** A *homomorphism* is a function $\varphi: G \to H$ between groups satisfying $\varphi(g_1 g_2) = \varphi(g_1)\varphi(g_2)$ for all $g_1, g_2 \in G$.
 
@@ -165,6 +180,9 @@ A consequence worth noting: a homomorphism preserves orders in the divisor sense
 ## The First Isomorphism Theorem
 
 Mental picture: collapsing a group by its kernel gives exactly the image. A homomorphism $\varphi$ "factors" canonically as a surjective projection $G \to G/\ker\varphi$ followed by an isomorphism $G/\ker\varphi \to \text{im}(\varphi)$.
+
+![First isomorphism theorem: G/ker(f) ≅ im(f)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/03_first_isomorphism.png)
+
 
 **Theorem (First Isomorphism Theorem).** Let $\varphi: G \to H$ be a group homomorphism. Then
 
@@ -296,6 +314,9 @@ Noether's career ran into substantial institutional barriers: she was unpaid for
 
 We now have a powerful toolkit: normal subgroups let us build quotients, homomorphisms let us compare groups, and the isomorphism theorems reveal deep structural connections. The next article takes on a different challenge: given a finite group $G$, how can we find subgroups of specific orders? The *Sylow theorems* provide the answer, giving existence, conjugacy, and counting results for subgroups of prime-power order. They are the sharpest tool available for classifying finite groups, and they build directly on the normal subgroup machinery developed here.
 
+![Animation: cosets collapsing into quotient elements](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/03_coset_collapse.gif)
+
+
 A summary worth keeping: quotient groups are about deliberate forgetting; homomorphisms are about systematic comparison; the isomorphism theorems are the precise statement that forgetting and comparing are two sides of the same coin.
 
 **Reading recommendations.** For a thorough treatment of the isomorphism theorems with many examples, see Dummit and Foote chapter 3. For a categorical perspective, see Mac Lane's *Categories for the Working Mathematician* or Awodey's *Category Theory*. For the historical development, Kiernan's article "The development of Galois theory from Lagrange to Artin" (1971) traces the evolution of the normal subgroup concept across a century.
@@ -303,9 +324,3 @@ A summary worth keeping: quotient groups are about deliberate forgetting; homomo
 **One last reflection.** The isomorphism theorems are sometimes presented as "abstract nonsense," but they are anything but: every concrete computation in finite group theory --- from listing groups of order $100$ to deciding whether two given matrices generate the same group --- depends on them. They are the syntax that makes group theory writable; learn to use them fluently and you will find that most "advanced" results are surprisingly direct consequences.
 
 ---
-
-*This is Part 3 of the [Abstract Algebra](/en/series/abstract-algebra/) series (12 articles).*
-
-*Previous: [Part 2 — Group Actions and Symmetry](/en/abstract-algebra/02-group-actions-and-symmetry/)*
-
-*Next: [Part 4 — Sylow Theorems](/en/abstract-algebra/04-sylow-theorems/)*

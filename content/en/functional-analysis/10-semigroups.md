@@ -23,13 +23,11 @@ The semigroup theory developed by Hille, Yosida, and Phillips is what salvages t
 
 ![Exponential formula convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig10_exponential_formula.png)
 
-
 ## $C_0$-Semigroups
 
 Let $X$ be a Banach space. A **strongly continuous one-parameter semigroup**, or $C_0$-semigroup, is a family $\{T(t) : t \geq 0\} \subset B(X)$ such that:
 
 ![Semigroup property: T(s+t) = T(s)T(t)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig10_semigroup_property.png)
-
 
 1. $T(0) = I$.
 2. $T(t + s) = T(t) T(s)$ for all $t, s \geq 0$.
@@ -48,7 +46,6 @@ A standard estimate: for a $C_0$-semigroup, there exist $M \geq 1$ and $\omega \
 Given a $C_0$-semigroup $T(t)$, its **generator** $A$ is defined by
 
 ![Generator as infinitesimal limit of semigroup](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig10_generator.png)
-
 
 $$ A x = \lim_{t \to 0^+} \frac{T(t) x - x}{t}, $$
 
@@ -71,7 +68,6 @@ Let me walk through a complete example. The Dirichlet Laplacian on $L^2[0, 1]$ h
 
 ![Heat kernel and the heat equation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig10_heat_equation.png)
 
-
 $$ T(t) f = \sum_{n=1}^\infty e^{-n^2 \pi^2 t} \langle f, \phi_n \rangle \phi_n. $$
 
 For $t > 0$, the exponential damping factors $e^{-n^2 \pi^2 t}$ kill all high-frequency components, so $T(t) f$ is $C^\infty$ regardless of how rough $f$ is. The semigroup is compact for every $t > 0$ (the operator is Hilbert-Schmidt with rapidly decaying singular values). This compactness is what gives the heat semigroup its remarkable regularizing properties.
@@ -85,7 +81,6 @@ This example also illustrates why **spectral methods** for PDE are popular: when
 The defining theorem of the subject. It tells us *exactly* which operators are generators of $C_0$-semigroups.
 
 ![Hille-Yosida resolvent bound](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig10_hille_yosida.png)
-
 
 **Theorem (Hille-Yosida, 1948).** A linear operator $A: D(A) \to X$ is the generator of a contraction $C_0$-semigroup on $X$ if and only if:
 
@@ -199,7 +194,6 @@ For non-self-adjoint generators, spectral gaps and asymptotic behavior are subtl
 
 ![Stability types for semigroups](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig10_stability.png)
 
-
 A useful technical tool: given the generator $A$, can we write down the semigroup $T(t)$ explicitly? The Laplace transform identity
 
 $$ R(\lambda; A) = \int_0^\infty e^{-\lambda t} T(t) \, dt $$
@@ -221,7 +215,6 @@ The formula is mostly of theoretical use — it lets one transfer estimates on t
 ![Time evolution of a vector under a semigroup](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/10-semigroups/fa_v2_10_5_evolution.png)
 
 ![Animation: heat equation evolution over time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/gif10_heat_evolution.gif)
-
 
 The semigroup defines a flow on the Banach space, with each initial condition tracing out a continuous trajectory. For $x \in D(A)$ this trajectory is differentiable; for general $x \in X$ it is at least continuous. The decay or growth of the trajectory is controlled by the spectral properties of $A$:
 
@@ -341,9 +334,3 @@ A historical note worth mentioning: Hille's theorem dates from 1948, Yosida's al
 The downside of the semigroup framework is that it covers only the linear case, with nonlinear perturbations handled via fixed-point techniques. For genuinely nonlinear evolution (the Navier-Stokes equations in 3D, fully nonlinear Hamilton-Jacobi equations, Ricci flow), one needs additional tools: viscosity solutions, weak solutions, geometric measure theory. But in every case the linear backbone is still semigroup theory, and the nonlinear add-ons are precisely that — add-ons. Get the semigroup right, and the rest follows. The Hille-Yosida theorem is the gateway, and once one is comfortable applying it, evolution PDE stop being mysterious — they become exercises in identifying the right generator, verifying the hypotheses, and then reading off the dynamics from the spectrum. Twenty pages of textbook reduce to a sequence of concrete checks.
 
 ---
-
-*This is Part 10 of the [Functional Analysis](/en/series/functional-analysis/) series (12 articles).*
-
-*Previous: [Part 9 — Unbounded Operators](/en/functional-analysis/09-unbounded-operators/)*
-
-*Next: [Part 11 — Distributions and Sobolev Spaces](/en/functional-analysis/11-distributions-sobolev/)*

@@ -31,7 +31,6 @@ translationKey: "differential-geometry-9"
 
 ![可定向 vs 不可定向：环面 vs Mobius 带](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_orientation.png)
 
-
 ![流形通过一致的有序基的方向](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_1_orientation.png)
 
 如果以下任一条件成立，则流形 $M$ 是可定向的：
@@ -64,9 +63,7 @@ translationKey: "differential-geometry-9"
 
 ![动画：通过曲面的通量等于边界环量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_stokes_flux.gif)
 
-
 ![Stokes 定理：边界上的积分等于外微分的积分](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_stokes_theorem.png)
-
 
 ![带诱导方向的带边界流形的边界](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_2_boundary.png)
 
@@ -101,7 +98,6 @@ $M = \bar B^3$ 具有 $dx\wedge dy\wedge dz$。边界是 $S^2$。球面上某一
 
 ![广义 Stokes 统一了 Green、Gauss 和经典 Stokes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_classical_theorems.png)
 
-
 在具有标准方向的 $\mathbb{R}^n$ 上，$n$ 形式 $\omega = f(x)\,dx^1\wedge\dots\wedge dx^n$ 的积分为
 $$\int_{\mathbb{R}^n} \omega = \int_{\mathbb{R}^n} f(x)\,dx^1\dots dx^n,$$
 其中右边是普通的 Lebesgue 积分。注意隐含的顺序：楔积的正号匹配迭代积分中变量的标准顺序。
@@ -134,7 +130,6 @@ $$\int_M d\omega = \int_{\partial M} \omega.$$
 
 ![de Rham 上同调：从微积分到拓扑](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_de_rham.png)
 
-
 这就是整个定理，它是微积分中最重要的公式。
 
 ![斯托克斯定理：$M$ 上 $d\omega$ 的积分等于边界上 $\omega$ 的积分](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_3_stokes.png)
@@ -166,7 +161,6 @@ $$d\omega = (\partial_x(x^2+y) + \partial_y(xy + z) + \partial_z(xz - y))\,dx\we
 所有三个经典“积分定理”都是斯托克斯定理的特例。
 
 ![在三角剖分链上积分微分形式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_integration_chain.png)
-
 
 ![经典定理统一：梯度、斯托克斯、格林、散度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_4_classical_unify.png)
 
@@ -203,7 +197,6 @@ $$\oint_{|z - z_0| = R}\frac{f(z)}{z - z_0}dz = 2\pi i\,f(z_0).$$
 斯托克斯定理意味着一个基本事实：闭流形上闭形式的积分仅依赖于形式的上同调类。
 
 ![链上的边界算子：边界的边界为零](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_boundary_operator.png)
-
 
 如果 $\omega_1, \omega_2$ 是 $M$（无边界）上的闭 $k$ 形式，且 $\omega_1 - \omega_2 = d\eta$ 是精确的，则对于任何闭 $k$ 循环 $C$，
 $$\int_C \omega_1 = \int_C \omega_2.$$
@@ -255,12 +248,6 @@ $$\mathrm{lk}(\gamma_1,\gamma_2) = \frac{1}{4\pi}\oint_{\gamma_1}\oint_{\gamma_2
 斯托克斯定理的全部力量在链水平上最清晰地显现：链上的 $\partial$ 和形式上的 $d$ 在积分配对下是
 <!-- 本节内容因生成长度限制截断；完整推导请参阅本系列对应英文版本。 -->
 
-
 ![Stokes' theorem applied to a sphere and a torus（图）](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_7_examples.png)
 
-
 ---
-
-*本文是[《微分几何》](/zh/series/differential-geometry/)系列的第 9 篇（共 12 篇）。*
-
-*下一篇：[第 10 篇 — Riemann 几何](/zh/differential-geometry/10-riemannian-geometry/)*

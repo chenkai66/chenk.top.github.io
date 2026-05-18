@@ -25,7 +25,6 @@ For five articles I have been building scaffolding: metric and normed spaces, Hi
 
 ![Operator norm: image of unit ball](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_operator_norm.png)
 
-
 The proofs all share a common engine: the Baire category theorem applied to the Banach space, exploiting completeness in the same way each time. Once you have one of the three theorems, the other two follow with relatively short additional arguments. So this whole article is really about one idea, refracted through three corollaries.
 
 ## Bounded Linear Operators: A Recap
@@ -35,9 +34,7 @@ $$\|T\| = \sup_{\|x\|_X \leq 1} \|T x\|_Y = \sup_{x \neq 0} \|T x\|_Y / \|x\|_X.
 
 ![Animation: open mapping theorem demonstration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_open_mapping.gif)
 
-
 ![Open mapping theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_open_mapping.png)
-
 
 ![Operator norm as the supremum of ||Tx|| over the unit ball](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/06-bounded-operators/fa_v2_06_1_op_norm.png)
 
@@ -62,7 +59,6 @@ Let me state all three before proving any. They come as a package.
 
 ![Closed graph theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_closed_graph.png)
 
-
 **(UBP) Uniform Boundedness Principle.** Let $X$ be a Banach space, $Y$ any normed space, and $\mathcal{F} \subseteq B(X, Y)$ a family of bounded operators. If $\sup_{T \in \mathcal{F}} \|T x\| < \infty$ for every $x \in X$ (pointwise boundedness), then $\sup_{T \in \mathcal{F}} \|T\| < \infty$ (uniform boundedness).
 
 **(OMT) Open Mapping Theorem.** Let $X, Y$ be Banach spaces and $T: X \to Y$ a bounded linear *surjection*. Then $T$ is an *open map*: $T(U)$ is open in $Y$ for every open $U \subseteq X$.
@@ -78,7 +74,6 @@ The three are intimately related; once we have UBP, OMT and CGT will fall out wi
 The proof is so clean it should be done in detail.
 
 ![Uniform boundedness principle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_uniform_boundedness.png)
-
 
 *Proof of UBP.* For each $n \in \mathbb{N}$, define $F_n = \{ x \in X : \|T x\| \leq n \text{ for all } T \in \mathcal{F} \}$. Each $F_n$ is closed: it is the intersection over $T \in \mathcal{F}$ of the closed sets $\{ x : \|T x\| \leq n \}$, and an arbitrary intersection of closed sets is closed.
 
@@ -101,7 +96,6 @@ UBP is what lets me make pointwise arguments and conclude global facts. Pointwis
 A bit more elaborate, but built on the same Baire argument.
 
 ![Three pillars of functional analysis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_three_theorems.png)
-
 
 *Sketch of proof of OMT.* By translation, it suffices to show $T(U)$ contains a ball around $0$ whenever $U$ is an open ball around $0$.
 
@@ -138,7 +132,6 @@ OMT and the bounded inverse theorem are how one extracts continuity from algebra
 CGT is essentially a reformulation of OMT.
 
 ![B(X,Y): space of bounded operators](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_bxy.png)
-
 
 *Proof of CGT.* The graph $G = \{(x, Tx) : x \in X\}$ is by hypothesis a closed subspace of $X \times Y$, where $X \times Y$ is a Banach space with norm $\|(x, y)\| = \|x\| + \|y\|$. So $G$ is itself a Banach space. The projection $\pi_X : G \to X$, $(x, Tx) \mapsto x$, is bounded (its norm is $\leq 1$) and bijective. By the bounded inverse theorem, $\pi_X^{-1}: X \to G$ is bounded, i.e., $\|x\| + \|T x\| \leq C \|x\|$ for some constant $C$. Therefore $\|T x\| \leq (C-1) \|x\|$, and $T$ is bounded. $\square$
 
@@ -260,7 +253,6 @@ The interplay between CGT and unbounded operators is interesting. CGT says: if a
 
 This dichotomy structures Article 9: bounded operators live on the whole space; unbounded operators live on dense subspaces with the rest of the space "unreachable." The right notion of *self-adjoint* for unbounded operators is more subtle than for bounded ones, and resolving these subtleties is what makes spectral theory of unbounded operators (like the Hamiltonians of quantum mechanics) genuinely deep.
 
-
 ## A Spectral-Theoretic Use of the Three Theorems
 
 A textbook application: every compact, self-adjoint operator on a Hilbert space has a complete orthogonal eigenbasis with eigenvalues tending to zero. The proof (taken up in detail in Article 8) uses the three big theorems repeatedly.
@@ -320,15 +312,8 @@ The operator algebra $B(X)$ on a Banach space is itself a Banach algebra under c
 
 The Banach algebra perspective unifies operator theory, harmonic analysis (the convolution algebra $L^1(G)$ for $G$ a topological group), and complex function theory (the disk algebra, Hardy algebras). All of these inherit the three big theorems by virtue of being Banach algebras with bounded multiplication.
 
-
 ## Looking Ahead
 
 The progression of this series so far has been: spaces (Articles 1-3), duality (Article 4), compactness via weak topologies (Article 5), general operator theory (this article), and now we specialize to compact operators (Article 7) where the spectral theory becomes especially concrete and powerful. Each level of specialization — from bounded operators to compact operators to self-adjoint compact operators — buys us stronger structural results, culminating in a theory that is virtually indistinguishable from finite-dimensional linear algebra.
 
 ---
-
-*This is Part 6 of the [Functional Analysis](/en/series/functional-analysis/) series (12 articles).*
-
-*Previous: [Part 5 — Weak Topologies](/en/functional-analysis/05-weak-topologies/)*
-
-*Next: [Part 7 — Compact Operators](/en/functional-analysis/07-compact-operators/)*

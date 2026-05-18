@@ -21,11 +21,9 @@ translationKey: "functional-analysis-3"
 
 ## Inner Products and the Geometry They Create
 
-
 ![Orthogonal projection in Hilbert space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa03_projection.png)
 
 ![Inner product geometry: angle and projection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_inner_product.png)
-
 
 If a Banach space is a normed space that has agreed to be complete, a Hilbert space is a Banach space that has further agreed to admit angles. That extra agreement — an inner product — is what restores almost all of finite-dimensional geometry to the infinite-dimensional setting. Orthogonality, projection, the Pythagorean theorem, the notion of "closest point in a subspace" — all come back unchanged. The price of admission is a single axiom; the reward, geometric and computational, is enormous.
 
@@ -53,13 +51,11 @@ The **parallelogram law** $\|x + y\|^2 + \|x - y\|^2 = 2\|x\|^2 + 2\|y\|^2$ char
 
 Why does this matter for applications? Linear regression minimizes $\|y - X\beta\|^2$ in a Hilbert space — that is an orthogonal projection. Fourier series expand functions in an orthonormal basis of $L^2$ — that is Hilbert-space geometry. Quantum mechanics postulates that states live in a Hilbert space and observables are self-adjoint operators. Signal processing decomposes signals into frequency components — orthogonal decomposition in $L^2$. The energy method in PDE uses the $H^1$ inner product to extract a priori estimates. Kernel methods in machine learning operate in a reproducing kernel Hilbert space. Every one of these is a Hilbert-space argument wearing domain-specific clothing. The inner product gives them a single grammar.
 
-
 ## Orthogonality, Projections, and the Closest-Point Property
 
 Two vectors $x, y \in \mathcal{H}$ are **orthogonal**, written $x \perp y$, if $\langle x, y \rangle = 0$. The Pythagorean theorem carries over unchanged: if $x \perp y$, then $\|x + y\|^2 = \|x\|^2 + \|y\|^2$. For $n$ pairwise orthogonal vectors, $\|\sum_{k=1}^n x_k\|^2 = \sum_{k=1}^n \|x_k\|^2$. This extends to convergent infinite sums: if $(x_k)$ are pairwise orthogonal and $\sum \|x_k\|^2 < \infty$, the series $\sum x_k$ converges and its norm-squared equals the sum of the individual norm-squares. Infinite-dimensional Pythagoras is not a generalization one has to prove carefully from scratch — it follows from the finite case by continuity of the norm and completeness.
 
 ![Projection theorem: closest point in subspace](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_orthogonal_projection.png)
-
 
 The geometric heart of Hilbert space theory is the **projection theorem**: for any closed subspace $M \subseteq \mathcal{H}$ and any $x \in \mathcal{H}$, there exists a unique $m_0 \in M$ minimizing $\|x - m\|$ over $m \in M$, and the minimizer is characterized by the orthogonality condition $(x - m_0) \perp M$. The space decomposes as $\mathcal{H} = M \oplus M^\perp$ where $M^\perp = \{y \in \mathcal{H} : \langle y, m \rangle = 0 \text{ for all } m \in M\}$.
 
@@ -73,16 +69,13 @@ Take a concrete function: $f(t) = |t|$ on $[-\pi, \pi]$. Its Fourier coefficient
 
 The projection theorem fails in Banach spaces that are not Hilbert. In $C[0,1]$ with the sup norm, the best polynomial approximation (Chebyshev approximation) exists and is unique, but it is characterized by an equioscillation condition, not by orthogonality — there is no inner product. In $L^1$, closest points in closed subspaces may not be unique at all. The projection theorem is genuinely a Hilbert-space luxury, and it is the single feature that makes Hilbert spaces the analyst's paradise.
 
-
 ## Orthonormal Bases, Parseval, and the Classification Theorem
 
 An **orthonormal system** in $\mathcal{H}$ is a collection $\{e_\alpha\}_{\alpha \in A}$ with $\langle e_\alpha, e_\beta \rangle = \delta_{\alpha\beta}$. It is a **basis** (complete orthonormal system) if its closed linear span equals $\mathcal{H}$, equivalently if $\langle x, e_\alpha \rangle = 0$ for all $\alpha$ forces $x = 0$. The cardinality of a maximal orthonormal system is an invariant called the **Hilbert dimension** of the space.
 
 ![Animation: Fourier series building up](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_fourier_approx.gif)
 
-
 ![Fourier series in L^2: orthonormal basis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_fourier_basis.png)
-
 
 For **separable** Hilbert spaces — those with a countable dense subset — the Hilbert dimension is countable, and we index the basis as $(e_n)_{n=1}^\infty$. The foundational classification theorem says: every separable infinite-dimensional Hilbert space is isometrically isomorphic to $\ell^2$. There is essentially one separable Hilbert space, and every calculation in $L^2$, in Sobolev spaces, in Hardy spaces, is secretly a calculation in $\ell^2$ once a basis is chosen. The space is rigid; all the interesting mathematics lives in the operators acting on it.
 
@@ -100,13 +93,11 @@ The convergence need not be pointwise — there exist $L^2$ functions whose Four
 
 A non-trivial consequence of separability: $L^2[0,1]$ and $\ell^2$ are isometrically isomorphic. Any orthonormal basis $(e_n)$ of $L^2[0,1]$ defines an isomorphism $U: L^2 \to \ell^2$ by $Uf = (\langle f, e_n\rangle)_{n=1}^\infty$. The map $U$ preserves the inner product (by Parseval) and is surjective (given $(c_n) \in \ell^2$, the series $\sum c_n e_n$ converges in $L^2$). So the Fourier basis, the Legendre basis, and the Haar wavelet basis all give different "coordinates" on the same abstract Hilbert space. The choice of basis is a modeling decision, not a mathematical one.
 
-
 ## The Riesz Representation Theorem and Its Consequences
 
 The most structurally important theorem about Hilbert spaces is the **Riesz representation theorem** (Riesz-Frechet): every continuous linear functional $\varphi : \mathcal{H} \to \mathbb{C}$ has the form $\varphi(x) = \langle x, y_\varphi \rangle$ for a unique $y_\varphi \in \mathcal{H}$, with $\|\varphi\| = \|y_\varphi\|$.
 
 ![Riesz representation theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_riesz_representation.png)
-
 
 *Proof.* If $\varphi = 0$, take $y_\varphi = 0$. Otherwise, $M = \ker(\varphi)$ is a closed hyperplane (codimension 1). Its orthogonal complement $M^\perp$ is one-dimensional; pick $z \in M^\perp$ with $\varphi(z) = 1$ (normalizing). For any $x \in \mathcal{H}$, write $x = (x - \varphi(x) z) + \varphi(x) z$. The first term is in $M$ (check: $\varphi(x - \varphi(x)z) = \varphi(x) - \varphi(x) = 0$). So $\langle x, z \rangle = \langle \varphi(x) z, z \rangle = \varphi(x)\|z\|^2$, giving $\varphi(x) = \langle x, z/\|z\|^2 \rangle$. Set $y_\varphi = z/\|z\|^2$. Uniqueness: if $\langle x, y_1 \rangle = \langle x, y_2 \rangle$ for all $x$, then $\langle x, y_1 - y_2 \rangle = 0$ for all $x$, so $y_1 = y_2$ (take $x = y_1 - y_2$). $\square$
 
@@ -120,13 +111,11 @@ Self-duality immediately gives **reflexivity**: the canonical embedding $J: \mat
 
 **Worked example: the Dirichlet problem.** Consider $-\Delta u = f$ on a bounded domain $\Omega$ with $u|_{\partial\Omega} = 0$. The weak formulation: find $u \in H^1_0(\Omega)$ with $a(u,v) = \int_\Omega \nabla u \cdot \nabla v = \int_\Omega f v = F(v)$ for all $v \in H^1_0$. The form $a$ is bounded (Cauchy-Schwarz on gradients) and coercive (Poincare inequality: $\|\nabla u\|_{L^2}^2 \geq C\|u\|_{H^1}^2$ on $H^1_0$). Lax-Milgram gives unique existence. The PDE existence theorem is a one-line corollary of Riesz representation. This is the standard pattern in elliptic PDE: formulate weakly, verify coercivity, invoke Lax-Milgram. The hard work is in the Poincare inequality and the function-space setup, not in the abstract existence argument.
 
-
 ## Adjoint Operators and the Algebra $B(\mathcal{H})$
 
 For a bounded operator $T: \mathcal{H} \to \mathcal{H}$, the **adjoint** $T^*$ is defined by $\langle Tx, y \rangle = \langle x, T^*y \rangle$ for all $x, y$. Existence: for fixed $y$, the functional $x \mapsto \langle Tx, y \rangle$ is bounded (by $\|T\|\|y\|$), so by Riesz it equals $\langle x, z \rangle$ for unique $z$; define $T^*y = z$. The assignment $y \mapsto T^*y$ is linear, and $\|T^*\| = \|T\|$.
 
 ![Orthogonal decomposition H = M + M^perp](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_orthogonal_complement.png)
-
 
 The fundamental structural identity is the **$C^*$-identity**: $\|T^*T\| = \|T\|^2$. This makes the algebra $B(\mathcal{H})$ of bounded operators a $C^*$-algebra — the starting point for the abstract spectral theory of Article 8 and the Gelfand-Naimark theorem.
 
@@ -146,13 +135,11 @@ The identity $\ker(T^*) = \text{Range}(T)^\perp$ connects kernels and ranges. Ta
 
 The **polar decomposition** $T = U|T|$ with $|T| = (T^*T)^{1/2}$ and $U$ a partial isometry extends the matrix SVD to infinite dimensions. For the Volterra operator, this gives a factorization into a positive part (capturing "how much" $V$ stretches) and an isometric part (capturing "in which direction").
 
-
 ## Weak Convergence, Tensor Products, and Direct Sums
 
 A sequence $(x_n) \subset \mathcal{H}$ **converges weakly** to $x$, written $x_n \rightharpoonup x$, if $\langle x_n, y \rangle \to \langle x, y \rangle$ for every $y \in \mathcal{H}$. By Riesz, this is the same as convergence against all bounded functionals. Weak convergence is strictly weaker than norm convergence: the standard basis $(e_n) \subset \ell^2$ satisfies $e_n \rightharpoonup 0$ (since $\langle e_n, y \rangle = y_n \to 0$ for any $y \in \ell^2$, as $\sum|y_n|^2 < \infty$ forces $y_n \to 0$) but $\|e_n\| = 1 \not\to 0$.
 
 ![Bessel inequality and Parseval identity](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_bessel_parseval.png)
-
 
 The **Banach-Alaoglu theorem** in the Hilbert setting: every bounded sequence has a weakly convergent subsequence. This is the infinite-dimensional substitute for the Bolzano-Weierstrass theorem. The unit ball, which is not norm-compact, is weakly compact — and this weak compactness is the engine that drives variational methods. To find minimizers of energy functionals, one extracts a weakly convergent subsequence from a minimizing sequence and shows the functional is lower semicontinuous in the weak topology.
 
@@ -168,7 +155,6 @@ The inner product is jointly continuous in the norm topology: $x_n \to x$ and $y
 
 **Worked example.** In $L^2(\mathbb{R}^2)$, the Gaussian $f(x,y) = e^{-(x^2+y^2)/2}$ factors as $f_1 \otimes f_2$ with $f_1(x) = f_2(x) = e^{-x^2/2}$. Its $L^2(\mathbb{R}^2)$ norm squared is $\int e^{-(x^2+y^2)}\,dx\,dy = \pi$. The tensor norm gives $\|f_1\|^2 \cdot \|f_2\|^2 = \sqrt{\pi} \cdot \sqrt{\pi} = \pi$. The function $g(x,y) = xe^{-(x^2+y^2)/2}$ does not factor — it requires the expansion $g = (\text{something in }x) \otimes (\text{something in }y)$ which is impossible since $g(x,y)/g(x',y)$ depends on $y$ in general. Non-factorizable functions in $L^2(\mathbb{R}^2)$ correspond to "entangled" states in the quantum interpretation.
 
-
 ## Reproducing Kernel Hilbert Spaces
 
 A **reproducing kernel Hilbert space** (RKHS) on a set $\Omega$ is a Hilbert space $\mathcal{H}$ of functions $f: \Omega \to \mathbb{C}$ in which point evaluation is a bounded functional: $|f(x)| \leq C_x \|f\|_{\mathcal{H}}$ for every $x \in \Omega$. By Riesz, each evaluation functional $\delta_x$ is represented by an element $K_x \in \mathcal{H}$: $f(x) = \langle f, K_x\rangle$. The two-variable function $K(x,y) = K_x(y) = \langle K_x, K_y\rangle$ is the **reproducing kernel**.
@@ -183,7 +169,6 @@ The kernel trick in machine learning exploits this theory directly. Given a posi
 
 Another important example: the **Bargmann-Fock space** of entire functions $f(z) = \sum a_n z^n$ with $\|f\|^2 = \sum n! |a_n|^2 < \infty$, which has kernel $K(z,w) = e^{z\overline{w}}$. This space appears in quantum optics (coherent states), complex geometry (Bergman kernels), and random matrix theory (correlation functions of Gaussian analytic functions). The reproducing property $f(z) = \langle f, K_z\rangle$ with $K_z(w) = e^{\overline{z}w}$ gives a resolution of identity: $\frac{1}{\pi}\int |K_z\rangle\langle K_z| e^{-|z|^2}\,dA(z) = I$, the over-completeness relation for coherent states.
 
-
 ## The Spectral Preview and Why Operators Matter More Than Spaces
 
 Since every separable Hilbert space is $\ell^2$, the space itself carries no information — it is a blank canvas. All the interesting mathematics lives in the operators painted on it. A self-adjoint operator $T$ on a finite-dimensional Hilbert space has an orthonormal basis of eigenvectors with real eigenvalues — the spectral theorem of linear algebra. In infinite dimensions, the eigenvalue/eigenvector picture breaks down for generic operators, but a residue survives: the spectrum.
@@ -196,15 +181,8 @@ The conceptual hierarchy, then: Article 3 (this one) sets up the stage. Articles
 
 A final remark on why this matters computationally. Every numerical method for PDE — finite elements, spectral methods, Galerkin approximations — is a projection method: approximate the solution by projecting it onto a finite-dimensional subspace $V_h \subset \mathcal{H}$. The error is $\|u - P_{V_h}u\|$, which by the projection theorem equals the distance from $u$ to $V_h$. The theory of approximation (Jackson theorems, Bramble-Hilbert lemma) estimates this distance in terms of the regularity of $u$ and the mesh size $h$. The entire convergence theory of finite elements is Hilbert-space geometry — projections, orthogonality, and the Cea lemma (which says the Galerkin solution is the quasi-optimal projection under coercivity). Once one sees finite-element theory as projection theory in $H^1$, the convergence rates stop being mysterious and become consequences of approximation properties of polynomial subspaces.
 
-
 ## What's Next
 
 Hilbert spaces are the analyst's paradise — self-dual, reflexive, with a geometry that imports faithfully from finite dimensions. But most of analysis lives outside this paradise. The $L^p$ spaces for $p \neq 2$, the space of continuous functions, the space of measures — all are Banach but not Hilbert. The next article asks: on a general Banach space, how do we know enough continuous linear functionals exist? The answer is the Hahn-Banach theorem, the most-used theorem in functional analysis after Riesz.
 
 ---
-
-*This is Part 3 of the [Functional Analysis](/en/series/functional-analysis/) series (12 articles).*
-
-*Previous: [Part 2 — Normed and Banach Spaces](/en/functional-analysis/02-normed-and-banach/)*
-
-*Next: [Part 4 — Dual Spaces and Hahn-Banach](/en/functional-analysis/04-dual-spaces-hahn-banach/)*
