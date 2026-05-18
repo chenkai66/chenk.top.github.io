@@ -30,6 +30,9 @@ A note on tone before we start. This series is going to favour computation over 
 
 ## Curves as Paths through Space
 
+
+![Frenet frame on a helix: tangent T (red), normal N (green), binormal B (purple)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg01_frenet_frame.png)
+
 Informally, a curve is a path traced out by a moving point. There is one subtlety to flag right away: do we mean the *image* (the set of points on the path) or the *parametrization* (the specific function describing the motion)? Differential geometers care about both, and in fact a lot of the early grunt work is making sure our definitions distinguish properties of the image from properties of the particular speedometer reading.
 
 **Definition (Parametrized curve).** A *parametrized curve* in $\mathbb{R}^3$ is a smooth map $\alpha: I \to \mathbb{R}^3$, where $I \subseteq \mathbb{R}$ is an open interval. In coordinates,

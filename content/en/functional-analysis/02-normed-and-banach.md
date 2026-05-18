@@ -21,6 +21,9 @@ description: "Norm axioms, classical examples, equivalence of norms in finite di
 
 ## Why a Norm Is More Than a Metric Wearing a Hat
 
+
+![Unit balls in different Lp norms](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa02_lp_balls.png)
+
 In Article 1, the metric was a free-standing function on a set with no algebraic structure. That generality bought us topology and completeness, but it gave nothing back to the algebra. The moment I am willing to assume the underlying set is a vector space, a more rigid object becomes available: a **norm**, a single nonnegative function on the space whose induced metric $d(x,y) = \|x - y\|$ is *translation-invariant* and *positively homogeneous*.
 
 Translation invariance — $d(x + z, y + z) = d(x, y)$ — sounds like a clerical detail, but it is what makes the metric blind to where the origin lives, and that blindness is what lets me compose linear maps with metric arguments. Positive homogeneity — $\|\alpha x\| = |\alpha| \|x\|$ — gives me a quantitative scaling rule that pure metrics lack. Together, these turn a metric vector space into the natural home for *bounded linear operators*, the protagonists of every subsequent article.

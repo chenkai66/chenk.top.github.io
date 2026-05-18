@@ -33,6 +33,9 @@ A second guiding picture. Think of the curvature tensor as the *infinitesimal ho
 
 ## 1. The Riemann Curvature Tensor
 
+
+![Gaussian curvature on a torus: outer K>0 (red), inner K<0 (blue)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg11_torus_curvature.png)
+
 The **Riemann curvature tensor** $R$ is defined by
 $$R(X, Y)Z = \nabla_X \nabla_Y Z - \nabla_Y \nabla_X Z - \nabla_{[X, Y]}Z.$$
 Read this as: "the failure of $\nabla_X \nabla_Y$ to commute with $\nabla_Y \nabla_X$, corrected for the fact that $X$ and $Y$ themselves do not commute (their bracket is $[X, Y]$)." On flat space ($\mathbb{R}^n$), $\nabla$ is just the ordinary partial derivative and the second covariant derivatives commute, so $R \equiv 0$. Curvature is the obstruction to $\nabla$'s commuting.

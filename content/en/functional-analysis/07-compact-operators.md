@@ -27,6 +27,9 @@ A terminological note: Riesz (1918) called these operators *vollstetig* (totally
 
 ## Definition, Examples, and the Approximation by Finite Rank
 
+
+![Spectrum of a compact operator: eigenvalues accumulate at 0](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa07_compact_spectrum.png)
+
 An operator $T: X \to Y$ between Banach spaces is **compact** if $\overline{T(B_X)}$ is compact in $Y$, equivalently if every bounded sequence $(x_n)$ has a subsequence $(x_{n_k})$ with $(Tx_{n_k})$ convergent. The operator does the work of compactification that the ambient space (in infinite dimensions) declined to do. Every clever argument in this article reduces to extracting a convergent subsequence of images at exactly the right moment.
 
 **Finite-rank operators** -- those with $\dim(\text{Range}(T)) < \infty$ -- are automatically compact (bounded sets in finite-dimensional spaces have compact closure by Heine-Borel). The space $K(X, Y)$ of compact operators is a closed subspace of $B(X, Y)$ and a two-sided ideal: if $T$ is compact and $S$ is bounded, then $ST$ and $TS$ are compact. The proof for closedness: if $T_n \to T$ in norm with each $T_n$ compact, then for any $\varepsilon > 0$, choose $n$ with $\|T - T_n\| < \varepsilon/3$. The precompact set $T_n(B_X)$ has a finite $\varepsilon/3$-net, which serves as a finite $\varepsilon$-net for $T(B_X)$ (by the triangle inequality). Total boundedness of $T(B_X)$ follows, giving precompactness.

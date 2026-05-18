@@ -27,6 +27,9 @@ The intrinsic / extrinsic split is going to recur for the next ten chapters, so 
 
 ## What is a Surface?
 
+
+![Tangent plane on a saddle surface with tangent vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg02_tangent_plane.png)
+
 The naive definition — "a 2D thing in 3D space" — is fine for intuition but useless for proofs. A precise definition has to say what "smooth" means, how to give the surface coordinates, and how to handle places where coordinates fail.
 
 **Definition (Regular surface, classical).** A subset $S\subseteq\mathbb{R}^3$ is a *regular surface* if for every point $p\in S$ there is an open neighborhood $V\subseteq\mathbb{R}^3$ of $p$, an open set $U\subseteq\mathbb{R}^2$, and a smooth map $\mathbf{x}: U\to V\cap S$ satisfying:

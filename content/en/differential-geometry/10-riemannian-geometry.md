@@ -31,6 +31,9 @@ A historical orientation, since the names accumulate quickly. Riemann introduced
 
 ## 1. Riemannian Metrics
 
+
+![Parallel transport on a sphere: vector rotates 90 degrees around a spherical triangle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg10_parallel_transport.png)
+
 A **Riemannian metric** on a smooth manifold $M$ is a smooth assignment
 $$g: M \to T^*M \otimes T^*M, \qquad p \mapsto g_p$$
 where each $g_p$ is a symmetric, positive-definite bilinear form on $T_pM$. In words: at every point you have an inner product on the tangent space, and the inner product varies smoothly.

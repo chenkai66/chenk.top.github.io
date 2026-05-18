@@ -29,6 +29,9 @@ Out of the Theorema Egregium come two enormous consequences. First, intrinsic ge
 
 ## Christoffel Symbols: How Coordinates Twist on a Curved Surface
 
+
+![Geodesics on the sphere (great circles)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg04_geodesics_sphere.png)
+
 In $\mathbb{R}^n$ with the standard coordinates, the basis vectors $\mathbf{e}_1, \ldots, \mathbf{e}_n$ are constant — they do not change from point to point. On a surface parametrized by $\mathbf{x}(u, v)$, the coordinate basis vectors $\mathbf{x}_u$ and $\mathbf{x}_v$ *do* change as we move along the surface. The tangent plane tilts, stretches, and rotates from point to point. When we differentiate a vector field expressed in this basis, we cannot just differentiate the components — we must also account for the basis itself varying. This bookkeeping is the role of Christoffel symbols.
 
 Given a chart $\mathbf{x}(u_1, u_2)$ on a surface, consider the second derivatives $\mathbf{x}_{ij} = \partial^2\mathbf{x}/\partial u_i\partial u_j$. These are vectors in $\mathbb{R}^3$ that decompose into a part tangent to the surface and a part along the normal:

@@ -27,6 +27,9 @@ Once you accept the abstract framework, everything from the previous chapters be
 
 ## Charts, Atlases, and the Definition of a Smooth Manifold
 
+
+![Stereographic projection: covering the circle with two charts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg06_stereographic.png)
+
 The intuition behind a manifold: a space that, near any point, looks indistinguishable from a patch of $\mathbb{R}^n$. The surface of the Earth looks flat from ground level — this is the local-Euclidean property. But globally it wraps around, has no edges, and is compact. A manifold is the mathematical framework that captures this: locally Euclidean, globally possibly complicated.
 
 A *topological $n$-manifold* is a topological space $M$ satisfying three conditions: (1) *Hausdorff* — any two distinct points have disjoint neighborhoods; (2) *second-countable* — the topology has a countable basis; (3) *locally Euclidean of dimension $n$* — every point $p \in M$ has an open neighborhood $U$ homeomorphic to an open subset of $\mathbb{R}^n$. A pair $(U, \varphi)$ where $\varphi: U \to V \subseteq \mathbb{R}^n$ is a homeomorphism is called a *coordinate chart*. The map $\varphi$ assigns $n$ real coordinates to each point in $U$.

@@ -18,6 +18,9 @@ translationKey: "functional-analysis-3"
 ---
 ## Hilbert 空间——无限维空间中的几何
 
+
+![Hilbert 空间中的正交投影](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fa03_projection.png)
+
 Hilbert 空间是数学中一个非常重要的概念。它是一种特殊的向量空间，其中每个向量都有长度，并且可以计算两个向量之间的夹角。这使得 Hilbert 空间在处理无限维问题时特别有用。
 
 核心结论是：Hilbert 空间是一个完备的内积空间。这意味着在这个空间中，每个柯西序列都收敛到该空间中的某个点。此外，内积的存在使得我们可以定义向量的长度和角度。
@@ -80,11 +83,11 @@ Hilbert 空间理论的核心是投影定理：对于任何闭子空间 $M \subs
 
 ## 正交基、Parseval 等式和分类定理
 
-在 $\mathcal{H}$ 中，一个 **正交系统** 是一组向量 $\{e_\alpha\}_{\alpha \in A}$，满足 $\langle e_\alpha, e_\beta \rangle = \delta_{\alpha\beta}$。如果它的闭线性生成空间等于 $\mathcal{H}$，那么它就是一个 **基**（完备正交系统）。换句话说，如果对所有 $\alpha$ 有 $\langle x, e_\alpha \rangle = 0$，则 $x = 0$。最大正交系统的势称为该空间的 **Hilbert 维数**。
+在 $\mathcal{H}$ 中，一个 **正交系统** 是一组向量 $\{e_\alpha\}_{\alpha \in A}$，满足 $\langle e_\alpha, e_\beta \rangle = \delta_{\alpha\beta}$。如果它的闭线性生成空间等于 $\mathcal{H}$，那么它就是一个 **基**（完备正交系统）。换句话说，如果对所有 $\alpha$ 有 $\langle x, e_\alpha \rangle = 0$，则 $x = 0$。最大正交系统的势称为该空间的 Hilbert 维数是指在特定的数学背景下定义的一种维度概念。
 
 对于 **可分** Hilbert 空间——那些有一个可数稠密子集的空间——Hilbert 维数是可数的，我们可以将基表示为 $(e_n)_{n=1}^\infty$。基础的分类定理说：每个无限维可分 Hilbert 空间都与 $\ell^2$ 同构同距。本质上只有一个可分 Hilbert 空间，一旦选择了一个基，在 $L^2$、Sobolev 空间或 Hardy 空间中的所有计算实际上都是在 $\ell^2$ 中进行的。这个空间非常刚性；所有有趣的数学都在作用于它的算子中。
 
-Bessel 不等式和 Parseval 等式。对于任意 $x \in \mathcal{H}$ 和正交系统 $(e_n)$，Fourier 系数 $c_n = \langle x, e_n \rangle$ 满足 Bessel 不等式 $\sum |c_n|^2 \leq \|x\|^2$。当 $(e_n)$ 是一个基时，等号成立——这就是 **Parseval 等式**：$\|x\|^2 = \sum_{n=1}^\infty |c_n|^2$，并且展开式 $x = \sum c_n e_n$ 在范数意义下收敛。Parseval 等式是无穷维的勾股定理：向量的范数平方等于其坐标平方和。
+Bessel 不等式和 Parseval 等式。对于任意 $x \in \mathcal{H}$ 和正交系统 $(e_n)$，Fourier 系数 $c_n = \langle x, e_n \rangle$ 满足 Bessel 不等式 $\sum |c_n|^2 \leq \|x\|^2$。当 $(e_n)$ 是一个基时，等号成立——这就是 Parseval 等式表明 $\|x\|^2 = \sum_{n=1}^\infty |c_n|^2$，并且展开式 $x = \sum c_n e_n$ 在范数意义下收敛。 等式是无穷维的勾股定理：向量的范数平方等于其坐标平方和。
 
 Fourier 展开 $x = \sum \langle x, e_n \rangle e_n$ 的收敛是无条件的——无论项的顺序如何，它都会收敛。这是 Bessel 不等式的结果：由于 $\sum |c_n|^2 < \infty$，对于任何 $\varepsilon > 0$，除了有限多个项外，其余项都有 $|c_n|^2 < \varepsilon$。部分和形成 Cauchy 列，完备性保证了收敛。
 
@@ -106,13 +109,13 @@ Hilbert 空间中最重要的结构性定理是 Riesz 表示定理（Riesz-Frech
 
 这个定理建立了共轭线性的等距同构 $\mathcal{H}^* \cong \mathcal{H}$。Hilbert 空间是自对偶的：对偶空间（共轭线性地）就是空间本身。这与一般的 Banach 空间相比是一个巨大的简化：$(\ell^1)^* = \ell^\infty$，$(c_0)^* = \ell^1$，$(L^1)^* = L^\infty$。在 Hilbert 空间中，向量和线性泛函之间没有概念上的差距——内积将它们识别出来。
 
-自对偶性立即给出**自反性**：典范嵌入 $J: \mathcal{H} \to \mathcal{H}^{**}$ 是满射。自反性是单位球弱紧性的前提条件（第五篇文章），而弱紧性又是变分方法的引擎。因此链条是：内积 $\Rightarrow$ 自对偶 $\Rightarrow$ 自反性 $\Rightarrow$ 弱紧性 $\Rightarrow$ 能量泛函极小值的存在性。
+自对偶性立即给出自反性指的是典范嵌入 $J: \mathcal{H} \to \mathcal{H}^{**}$ 是满射。这种性质是单位球弱紧性的前提条件（第五篇文章），而弱紧性又是变分方法的基础。的引擎。因此链条是：内积 $\Rightarrow$ 自对偶 $\Rightarrow$ 自反性 $\Rightarrow$ 弱紧性 $\Rightarrow$ 能量泛函极小值的存在性。
 
-**应用：Lax-Milgram 定理**。设 $a: \mathcal{H} \times \mathcal{H} \to \mathbb{C}$ 是一个有界的半双线性形式（$|a(u,v)| \leq M\|u\|\|v\|$）并且是强制的（$\text{Re}\,a(u,u) \geq \alpha\|u\|^2$ 对某个 $\alpha > 0$ 成立）。那么对于每一个 $F \in \mathcal{H}^*$，存在唯一的 $u \in \mathcal{H}$ 使得 $a(u,v) = F(v)$ 对所有 $v$ 成立，并且 $\|u\| \leq \|F\|/\alpha$。
+关于应用：Lax-Milgram 定理，设 $a: \mathcal{H} \times \mathcal{H} \to \mathbb{C}$ 是一个有界的半双线性形式（$|a(u,v)| \leq M\|u\|\|v\|$）并且是强制的（$\text{Re}\,a(u,u) \geq \alpha\|u\|^2$ 对某个 $\alpha > 0$ 成立）。那么对于每一个 $F \in \mathcal{H}^*$，存在唯一的 $u \in \mathcal{H}$ 使得 $a(u,v) = F(v)$ 对所有 $v$ 成立，并且 $\|u\| \leq \|F\|/\alpha$。
 
 *证明概要*。对于固定的 $u$，映射 $v \mapsto a(u,v)$ 是一个有界线性泛函，因此根据 Riesz 定理它等于 $\langle Au, v \rangle$ 对于某个唯一的有界算子 $A$。强制性给出 $\alpha\|u\|^2 \leq \text{Re}\langle Au, u\rangle \leq \|Au\|\|u\|$，因此 $\|Au\| \geq \alpha\|u\|$ ——算子 $A$ 在下方有界。下方有界加上稠密的值域（从强制性再次得出，通过标准论证）给出可逆性。然后 $u = A^{-1}y_F$，其中 $F(\cdot) = \langle \cdot, y_F \rangle$ 由 Riesz 定理得到。
 
-**实例：Dirichlet 问题**。考虑 $-\Delta u = f$ 在有界区域 $\Omega$ 上，且 $u|_{\partial\Omega} = 0$。弱形式：找到 $u \in H^1_0(\Omega)$ 使得 $a(u,v) = \int_\Omega \nabla u \cdot \nabla v = \int_\Omega f v = F(v)$ 对所有 $v \in H^1_0$ 成立。形式 $a$ 是有界的（梯度上的 Cauchy-Schwarz 不等式）并且是强制的（Poincare 不等式：$\|\nabla u\|_{L^2}^2 \geq C\|u\|_{H^1}^2$ 在 $H^1_0$ 上成立）。Lax-Milgram 给出唯一解的存在性。偏微分方程存在性定理是 Riesz 表示定理的一个直接推论。这是椭圆型偏微分方程的标准模式：弱形式化，验证强制性，调用 Lax-Milgram。难点在于 Poincare 不等式和函数空间的设置，而不是抽象的存在性论证。
+实例中的Dirichlet 问题考虑的是 $-\Delta u = f$ 在有界区域 $\Omega$ 上，且 $u|_{\partial\Omega} = 0$ 的情况。其弱形式为找到 $u \in H^1_0(\Omega)$ 使得 $a(u,v) = \int_\Omega \nabla u \cdot \nabla v = \int_\Omega f v = F(v)$ 对所有 $v \in H^1_0$ 成立。形式 $a$ 是有界的（梯度上的 Cauchy-Schwarz 不等式）并且是强制的（Poincare 不等式：$\|\nabla u\|_{L^2}^2 \geq C\|u\|_{H^1}^2$ 在 $H^1_0$ 上成立）。Lax-Milgram 给出唯一解的存在性。偏微分方程存在性定理是 Riesz 表示定理的一个直接推论。这是椭圆型偏微分方程的标准模式：弱形式化，验证强制性，调用 Lax-Milgram。难点在于 Poincare 不等式和函数空间的设置，而不是抽象的存在性论证。
 
 ## 伴随算子与代数 $B(\mathcal{H})$
 
@@ -186,8 +189,8 @@ Hilbert 空间是分析学家的天堂——自对偶、自反，几何结构忠
 
 ---
 
-*这是 [泛函分析](/en/series/functional-analysis/) 系列（共 12 篇文章）的第 3 部分。*
+*这是 [泛函分析](/zh/series/functional-analysis/) 系列（共 12 篇文章）的第 3 部分。*
 
-*上一篇：[第 2 部分 —— 赋范空间和 Banach 空间](/en/functional-analysis/02-normed-and-banach/)*
+*上一篇：[第 2 部分 —— 赋范空间和 Banach 空间](/zh/functional-analysis/02-normed-and-banach/)*
 
-*下一篇：[第 4 部分 —— 对偶空间和 Hahn-Banach 定理](/en/functional-analysis/04-dual-spaces-hahn-banach/)*
+*下一篇：[第 4 部分 —— 对偶空间和 Hahn-Banach 定理](/zh/functional-analysis/04-dual-spaces-hahn-banach/)*

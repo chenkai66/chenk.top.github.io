@@ -21,6 +21,9 @@ translationKey: "functional-analysis-3"
 
 ## Inner Products and the Geometry They Create
 
+
+![Orthogonal projection in Hilbert space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa03_projection.png)
+
 If a Banach space is a normed space that has agreed to be complete, a Hilbert space is a Banach space that has further agreed to admit angles. That extra agreement — an inner product — is what restores almost all of finite-dimensional geometry to the infinite-dimensional setting. Orthogonality, projection, the Pythagorean theorem, the notion of "closest point in a subspace" — all come back unchanged. The price of admission is a single axiom; the reward, geometric and computational, is enormous.
 
 Let $\mathcal{H}$ be a vector space over $\mathbb{C}$. An **inner product** is a function $\langle \cdot, \cdot \rangle : \mathcal{H} \times \mathcal{H} \to \mathbb{C}$ satisfying for all $x, y, z \in \mathcal{H}$ and $\alpha \in \mathbb{C}$:

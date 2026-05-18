@@ -21,6 +21,9 @@ translationKey: "functional-analysis-5"
 
 ## Why Weaker Topologies Exist and Why They Matter
 
+
+![Strong convergence vs weak convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa05_weak_convergence.png)
+
 Article 1 ended with a depressing fact: in any infinite-dimensional normed space, the closed unit ball is not compact. No bounded sequence is guaranteed to have a norm-convergent subsequence. If you are trying to find a minimizer of an energy functional — say, the lowest-energy configuration of a vibrating membrane — you take a minimizing sequence, and you need a limit. In finite dimensions, Bolzano-Weierstrass delivers that limit. In infinite dimensions, it does not. The direct method of the calculus of variations appears dead on arrival.
 
 The rescue comes from weakening the topology. A "weaker" topology has fewer open sets and fewer continuous functions, which makes it strictly easier for a set to be compact: with fewer open covers to defeat, more sets pass the compactness test. The trade-off is real — convergence in a weaker topology is less informative. A weakly convergent sequence may not converge pointwise or in norm. It only commits to converging against all continuous linear functionals. But this weaker convergence is enough for variational arguments, provided the energy functional is lower semicontinuous in the weak topology.

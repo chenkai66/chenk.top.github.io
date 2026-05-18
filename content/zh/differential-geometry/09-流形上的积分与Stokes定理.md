@@ -27,7 +27,7 @@ translationKey: "differential-geometry-9"
 
 ## 1. 方向
 
-切空间 $T_pM$ 是一个 $n$ 维实向量空间，像任何这样的空间一样，它有两个有序基的等价类（由保持方向的线性映射和改变方向的线性映射相关）。选择其中一个类就是 $T_pM$ 的一个**方向**。如果可以在整个流形上平滑地做出这种选择，并且在重叠部分一致，则称流形 $M$ 是**可定向的**。当存在时，方向是一个全局拓扑选择——在连通的可定向流形上恰好有两种方向。
+切空间 $T_pM$ 是一个 $n$ 维实向量空间，像任何这样的空间一样，它有两个有序基的等价类（由保持方向的线性映射和改变方向的线性映射相关）。选择其中一个类就是 $T_pM$ 的一个关于方向，如果可以在整个流形上平滑地做出这种选择，并且在重叠部分一致，则称流形 $M$ 是可定向的。当存在时，方向是一个全局拓扑选择——在连通的可定向流形上恰好有方向。
 
 ![流形通过一致的有序基的方向](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_1_orientation.png)
 
@@ -203,7 +203,7 @@ $$H^k_{dR}(M) \times H^{n-k}_{dR}(M) \to \mathbb{R}, \qquad ([\alpha], [\beta]) 
 
 同调类可以通过积分计算。给定一个闭形式，你可以通过在循环上积分来检测其非平凡性；给定一个循环，你可以通过在其上积分闭形式来检测其非平凡性。这是拓扑的分析基础：贝蒂数、欧拉特征、曲面的亏格——都可以通过微分形式获得。
 
-当流形具有额外结构（例如，复代数簇）时，对于特定形式 $\omega$ 和循环 $C$ 的积分 $\int_C\omega$ 被称为**周期**。代数簇的周期是深刻的算术不变量——它们包括 $2\pi i$、$\log 2$、zeta 函数的值以及更多奇异的超越数。Grothendieck、Kontsevich-Zagier 的猜想以及现代动机上同调理论围绕理解周期展开。因此，斯托克斯定理连接到数学中最深奥的开放问题之一：作为代数形式在代数循环上的积分所获得的超越数的结构。
+当流形具有额外结构（例如，复代数簇）时，对于特定形式 $\omega$ 和循环 $C$ 的积分 $\int_C\omega$ 被称为代数簇的周期是深刻的算术不变量——它们包括 $2\pi i$、$\log 2$、zeta 函数的值以及更多奇异的超越数。Grothendieck、Kontsevich-Zagier 的猜想以及现代动机上同调理论围绕理解周期展开。因此，斯托克斯定理连接到数学中最深奥的开放问题之一：作为代数形式在代数循环上的积分所获得的超越数的结构。
 
 流形的许多拓扑不变量可以通过积分类似于曲率的形式来计算。欧拉特征等于 $\int_M e(TM)$（Chern-Gauss-Bonnet）。签名等于 $\int_M L(TM)$（Hirzebruch）。椭圆算子的指标等于 $\int_M \mathrm{ch}(\sigma) \mathrm{Td}(TM)$（Atiyah-Singer）。这些都是伪装下的斯托克斯型计算：一个拓扑不变量作为一个闭形式的积分出现。第 12 章将发展相关的特征类并解释为什么这些公式成立。
 
@@ -225,7 +225,7 @@ $$\int_C d\omega = \int_{\partial C} \omega.$$
 
 在 $\mathbb{R}^2 \setminus \{0\}$ 上的角度形式 $\omega = \frac{-y\,dx + x\,dy}{x^2+y^2}$ 和闭曲线 $\gamma: S^1 \to \mathbb{R}^2 \setminus \{0\}$，整数
 $$n(\gamma) = \frac{1}{2\pi}\int_\gamma \omega$$
-是 $\gamma$ 绕原点的**绕数**。它由拓扑保证为整数值，并可通过分析计算。根据 de Rham，$H^1_{dR}(\mathbb{R}^2\setminus\{0\}) = \mathbb{R}$ 且 $[\omega/2\pi]$ 是生成元；绕数只是上同调配对。
+是 $\gamma$ 绕原点的绕数由拓扑保证为整数值，并可通过分析计算。根据 de Rham，$H^1_{dR}(\mathbb{R}^2\setminus\{0\}) = \mathbb{R}$。}$ 且 $[\omega/2\pi]$ 是生成元；绕数只是上同调配对。
 
 对于 $\mathbb{R}^3$ 中两个不相交的光滑环 $\gamma_1, \gamma_2$，**链接数** $\mathrm{lk}(\gamma_1, \gamma_2)$ 是一个整数，衡量它们相互缠绕的次数。有一个积分公式（Gauss）：
 $$\mathrm{lk}(\gamma_1,\gamma_2) = \frac{1}{4\pi}\oint_{\gamma_1}\oint_{\gamma_2}\frac{(\vec r_1 - \vec r_2)\cdot(d\vec r_1 \times d\vec r_2)}{|\vec r_1 - \vec r_2|^3}.$$

@@ -27,6 +27,9 @@ The plan for this article: define vector fields three different ways (geometric,
 
 ## 1. Vector Fields: Smooth Sections of the Tangent Bundle
 
+
+![Vector field with integral curves (spiral source)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg07_vector_field.png)
+
 A **vector field** $X$ on a smooth manifold $M$ is a smooth assignment $p \mapsto X_p \in T_p M$. In bundle language, it is a smooth section of the tangent bundle $TM \to M$: pick a tangent vector at every point, and require that the choice vary smoothly as you move. The space of all vector fields on $M$ is denoted $\mathfrak{X}(M)$. It is simultaneously a real vector space (you can add fields and scale by constants), a module over $C^\infty(M)$ (you can multiply by smooth functions pointwise), and — as we will see in section 4 — a Lie algebra under the bracket.
 
 In a coordinate chart $(x^1, \dots, x^n)$, every vector field can be written

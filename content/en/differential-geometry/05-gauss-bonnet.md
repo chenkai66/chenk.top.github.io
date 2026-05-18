@@ -31,6 +31,9 @@ What makes this theorem psychologically surprising is the vast gap between its t
 
 ## The Local Gauss-Bonnet Theorem
 
+
+![Gauss-Bonnet theorem: curvature integrates to a topological invariant](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg05_gauss_bonnet.png)
+
 The local version is about a region, not an entire surface. Set up: let $T \subset S$ be a region on an oriented surface, bounded by a simple closed piecewise-smooth curve $\partial T$. The boundary consists of smooth arcs (each with a well-defined geodesic curvature $\kappa_g$) meeting at corners $p_1, \ldots, p_n$ where the tangent direction jumps by exterior angles $\theta_i$ (positive means turning left, in the chosen orientation).
 
 **Theorem (Local Gauss-Bonnet).** Under these conditions,

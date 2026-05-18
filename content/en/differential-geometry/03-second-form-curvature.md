@@ -27,6 +27,9 @@ A spoiler for the next chapter: $K$ — the Gaussian curvature, defined extrinsi
 
 ## The Gauss Map and the Shape Operator
 
+
+![Gaussian curvature classification: sphere K>0, cylinder K=0, saddle K<0](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg03_gaussian_curvature.png)
+
 Given a regular oriented surface $S\subset\mathbb{R}^3$, every point $p$ has a well-defined unit normal $\mathbf{n}(p)\in S^2$ (the unit sphere of directions). The assignment $p\mapsto \mathbf{n}(p)$ is the *Gauss map*:
 $$N: S\to S^2,\qquad p\mapsto \mathbf{n}(p).$$
 

@@ -29,6 +29,9 @@ I should be upfront about the dependency graph here. To make Sylow do real work 
 
 ## The Atoms: p-Groups, Cauchy, and the Class Equation
 
+
+![Subgroup lattice of S3](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/aa04_subgroup_lattice.png)
+
 Before the Sylow theorems proper, we need the atoms they decompose things into. A finite **$p$-group** is a group of order $p^k$. Equivalently (by Cauchy's theorem, which we prove below), every element has order a power of $p$. These are the building blocks; the whole Sylow program is a strategy for cutting an arbitrary finite group along its $p$-group pieces and reading off the structure.
 
 The single most useful fact about a finite $p$-group $G$ is that its center $Z(G)$ is nontrivial. The proof is the class equation in its purest application:

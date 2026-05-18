@@ -99,7 +99,7 @@ Hahn-Banach 让我做三件本来不可能的事情。（i）**延拓**线性泛
 
 ![凸集在边界点处的支撑超平面](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/04-dual-spaces-hahn-banach/fa_v2_04_7_supporting.png)
 
-在凸分析的语言中，$\varphi$ 属于 $C$ 在 $x_0$ 处的指示函数的**次微分**。次微分是记录该点所有“支撑方向”的对偶对象。
+在凸分析的语言中，$\varphi$ 属于 $C$ 在 $x_0$ 处的指示函数的次微分是记录该点所有“支撑方向”的对偶对象。
 
 ### 数值示例
 
@@ -111,7 +111,7 @@ Hahn-Banach 让我做三件本来不可能的事情。（i）**延拓**线性泛
 
 ## 二次对偶与自反性
 
-对偶空间 $X^*$ 本身是 Banach 空间，因此它有自己的对偶 $X^{**} = (X^*)^*$，称为**二次对偶**。有一个典范嵌入 $J: X \to X^{**}$ 定义为 $(Jx)(\varphi) = \varphi(x)$ 对于 $\varphi \in X^*$。这个嵌入是良定义的（线性映射 $\varphi \mapsto \varphi(x)$ 有界且范数 $\leq \|x\|$），线性的，且等距——后者使用 Hahn-Banach 找到一个 $\varphi$ 使得 $|\varphi(x)| = \|x\|$ 且 $\|\varphi\| = 1$。
+对偶空间 $X^*$ 本身是 Banach 空间，因此它有自己的对偶 $X^{**} = (X^*)^*$，称为二次对偶有一个典范嵌入 $J: X \to X^{**}$ 定义为 $(Jx)(\varphi) = \varphi(x)$ 对于 $\varphi \in X^*$。这个嵌入是良定义的（线性映射 $\varphi \mapsto \varphi(x)$ 有界且范数 $\leq \|x\|$），线性的，且等距——后者使用 Hahn-Banach 找到一个 $\varphi$ 使得 $|\varphi(x)| = \|x\|$ 且 $\|\varphi\| = 1$。
 
 Banach 空间是**自反的**，如果 $J$ 是满射，即 $X = X^{**}$ 典范地。自反性是一个强性质；它在取闭子空间、商空间和有限积时保持，并且它蕴含许多紧性和正则性结果。
 

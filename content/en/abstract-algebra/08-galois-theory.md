@@ -25,6 +25,9 @@ What I find astonishing about Galois's idea is the *direction* of the abstractio
 
 ## The Galois Group: Automorphisms Fixing the Base Field
 
+
+![Galois correspondence: bijection between field extensions and subgroups](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/aa08_galois_correspondence.png)
+
 Given a field extension $L/K$, an *automorphism of $L$ over $K$* is a field isomorphism $\sigma : L \to L$ such that $\sigma(a) = a$ for every $a \in K$. The collection of all such automorphisms forms a group under composition, called the *Galois group* of $L/K$:
 
 $$\mathrm{Gal}(L/K) = \mathrm{Aut}_K(L) = \{\sigma : L \to L \mid \sigma \text{ is a field automorphism},\ \sigma|_K = \mathrm{id}\}.$$

@@ -18,6 +18,9 @@ description: "From integers to symmetries, we build the formal definition of a g
 
 ## Why Algebraic Structure Matters
 
+
+![Dihedral group D4: all 8 symmetries of a square](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/aa01_dihedral_d4.png)
+
 Before any definitions, here is the picture I want you to keep in mind. A group is a set in which you can combine any two elements to get a third, undo any element you have produced, and rearrange parentheses without consequence. That is the entire idea, dressed up. The rest of this article is a slow unpacking of that one sentence.
 
 Most of undergraduate mathematics concerns itself with specific objects: the real numbers, continuous functions on $[0,1]$, the vector space $\mathbb{R}^n$. At some point a pattern emerges. The integers under addition and the nonzero rationals under multiplication share a structural resemblance that has nothing to do with the nature of their elements. Both carry a binary operation that is associative, possesses an identity, and admits inverses. Abstract algebra is the study of this structural resemblance, stripped of all incidental detail.
