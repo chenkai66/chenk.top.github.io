@@ -74,7 +74,7 @@ def euler(f, x0, y0, x_end, h):
         x = x + h_eff
         xs.append(x); ys.append(y)
     return np.array(xs), np.array(ys)
-```text
+```
 
 ---
 
@@ -119,7 +119,7 @@ def rk4(f, x0, y0, x_end, h):
         x = x + h_eff
         xs.append(x); ys.append(y)
     return np.array(xs), np.array(ys)
-```sql
+```
 
 ### Side-by-side: Euler vs RK4
 
@@ -216,7 +216,7 @@ sol = solve_ivp(vdp, [0, 3000], [2.0, 0.0],
                 rtol=1e-6, atol=1e-9)
 
 sol = solve_ivp(rhs, [0, T], y0, method='LSODA')
-```text
+```
 
 `solve_ivp`'s most-used options:
 

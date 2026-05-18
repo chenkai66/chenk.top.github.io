@@ -322,7 +322,7 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('moments_and_chebyshev.png', dpi=150)
 plt.show()
-```text
+```
 
 右图以对数尺度展示了切比雪夫上界与正态分布实际尾部概率之间的差距。对正态分布，真实概率随 $k^2$ 指数衰减，而切比雪夫仅保证 $1/k^2$ 的衰减速率。该上界虽保守，却适用于**所有**分布——包括那些尾部远比高斯分布厚重的分布。
 

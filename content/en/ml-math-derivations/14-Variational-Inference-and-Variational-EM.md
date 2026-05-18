@@ -121,7 +121,7 @@ repeat
         log q_j(z_j) <- E_{q_{-j}}[log p(x, z)] + const
         normalize q_j
 until ELBO change < tolerance
-```sql
+```
 
 Every update is a coordinate ascent step on a concave-in-each-coordinate objective, so the ELBO never decreases. Convergence to a local optimum is guaranteed; reaching the global optimum is not.
 
@@ -298,7 +298,7 @@ class VariationalGMM:
 
     def predict(self, X):
         return np.argmax(self._update_r(X, len(X), X.shape[1]), axis=1)
-```sql
+```
 
 The algorithmic shape mirrors the EM-GMM from [Part 13](/en/ml-math-derivations/13-em-algorithm-and-gmm/) — alternate responsibilities and component statistics — but every quantity is a posterior moment under $q$, not a point estimate. A side benefit is **automatic component pruning**: $\alpha_k$ shrinks toward $\alpha_0$ for empty components, so unused topics quietly fade out instead of fitting noise.
 

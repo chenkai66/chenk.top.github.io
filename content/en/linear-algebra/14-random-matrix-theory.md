@@ -112,7 +112,7 @@ plt.hist(all_eigs, bins=90, density=True, alpha=0.55, label="Empirical")
 plt.plot(x, np.sqrt(np.maximum(4 - x**2, 0)) / (2 * np.pi),
          lw=2.5, label="Semicircle")
 plt.legend(); plt.show()
-```text
+```
 
 The fit is essentially perfect already at $n = 200$.
 
@@ -164,7 +164,7 @@ plt.plot(xs, mp, "r", lw=2, label="MP theory")
 for e in (lam_minus, lam_plus):
     plt.axvline(e, ls="--", color="g")
 plt.legend(); plt.show()
-```sql
+```
 
 ---
 
@@ -219,7 +219,7 @@ def mimo_capacity(n_r, n_t, snr_db, trials=500):
 
 print(f"4x4 @ 10 dB: {mimo_capacity(4, 4, 10):.2f} bits/s/Hz")
 print(f"8x8 @ 10 dB: {mimo_capacity(8, 8, 10):.2f} bits/s/Hz")
-```sql
+```
 
 ### Finance: cleaning sample covariance matrices
 
@@ -249,7 +249,7 @@ def clean_covariance(returns):
     bulk = (eigs >= lo) & (eigs <= hi)
     eigs[bulk] = eigs[bulk].mean()
     return vecs @ np.diag(eigs) @ vecs.T
-```sql
+```
 
 ### PCA in high dimensions: how many components to keep?
 
@@ -264,7 +264,7 @@ def pca_signal_count(X):
     Xs = (X - X.mean(0)) / X.std(0)
     eigs = np.linalg.eigvalsh(Xs.T @ Xs / n)
     return int(np.sum(eigs > (1 + np.sqrt(gamma))**2))
-```sql
+```
 
 ### Spiked covariance and the BBP phase transition
 

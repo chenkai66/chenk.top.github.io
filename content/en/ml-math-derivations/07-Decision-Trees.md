@@ -158,7 +158,7 @@ def build_tree(S, depth):
     j*, tau* = argmax_{j, tau} delta_impurity(S, j, tau)
     S_L, S_R = split(S, j*, tau*)
     return Node(j*, tau*, build_tree(S_L, depth+1), build_tree(S_R, depth+1))
-```sql
+```
 
 `stop` typically combines: a class is pure, no informative split exists, depth limit reached, or fewer than `min_samples_split` samples remain. The greedy choice is locally optimal — finding the globally optimal tree is NP-hard, even for binary features.
 
@@ -366,7 +366,7 @@ if __name__ == "__main__":
                                           test_size=0.2, random_state=42)
     reg = CARTRegressor(max_depth=6).fit(Xtr, ytr)
     print(f"Housing MSE:  {mean_squared_error(yte, reg.predict(Xte)):.3f}")
-```python
+```
 
 ## Feature Importance
 
@@ -431,7 +431,7 @@ import matplotlib.pyplot as plt
 plt.figure(figsize=(20, 10))
 plot_tree(clf, feature_names=iris.feature_names,
           class_names=iris.target_names, filled=True, rounded=True)
-```sql
+```
 
 ### Can a tree do feature selection?
 

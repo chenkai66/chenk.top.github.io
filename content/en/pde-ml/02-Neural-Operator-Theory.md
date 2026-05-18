@@ -156,7 +156,7 @@ y_query = torch.rand(n_train, 1)
 model = DeepONet(n_sensors=n_sensors, p=64)
 opt = torch.optim.Adam(model.parameters(), lr=1e-3)
 print(f"DeepONet parameters: {sum(p.numel() for p in model.parameters()):,}")
-```sql
+```
 
 DeepONet's key advantage: it naturally handles **irregular sensor locations** and **different input/output grids**. FNO requires a uniform grid for the FFT. For applications with scattered measurements (weather stations, seismic sensors), DeepONet is the better choice.
 
@@ -238,7 +238,7 @@ print("  N= 128: L2 error = 0.0091  (1.4x grid)")
 print("  N= 256: L2 error = 0.0098  (4x grid)")
 print("  N= 512: L2 error = 0.0105  (8x grid)")
 print("  N=1024: L2 error = 0.0112  (16x grid)")
-```python
+```
 
 The error barely increases — 0.82% at training resolution vs 1.12% at 16x finer grid. This is because FNO learns in Fourier space where the truncation to $k_{\max}$ modes is resolution-agnostic. A PINN or FDM solver would need to be completely retrained or re-meshed for each resolution.
 
@@ -335,7 +335,7 @@ class FNO1d(nn.Module):
         for spec, loc in zip(self.spectral, self.local):
             x = F.gelu(spec(x) + loc(x))
         return self.proj(x.transpose(1, 2)).squeeze(-1)    # [B, N]
-```text
+```
 
 The training loop is a standard supervised regression on $(u_0, u_T)$ pairs generated offline by any reliable solver:
 
@@ -351,7 +351,7 @@ for epoch in range(epochs):
         loss.backward()
         opt.step()
     sched.step()
-```sql
+```
 
 **Reference performance on Burgers ($\nu=10^{-2}$, $N=256$, $1{,}000$ training instances):** validation relative $L^2$ error around $1\%$, training time on a single A100 in the order of minutes. Compare with a PINN that takes minutes *per* instance and you immediately see the operator's economic advantage.
 
@@ -387,7 +387,7 @@ errors =      [0.052, 0.031, 0.018, 0.012, 0.0082, 0.0061]
 
 for n, e in zip(train_sizes, errors):
     print(f"  N_train={n:5d}: L2 error = {e:.4f}")
-```sql
+```
 
 **Rule of thumb for practitioners:** for 1D PDEs with smooth solutions, $N_{\text{train}} \approx 1000$ gives $\sim$1% relative error. For 2D, multiply by 5-10x. For turbulent or multi-scale solutions, multiply by another 10x. If you're above 5% error with 1000 samples, the bottleneck is likely the architecture (too few modes, too small hidden dim), not the data.
 

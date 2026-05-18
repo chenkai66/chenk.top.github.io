@@ -371,7 +371,7 @@ print(f"{'Bonferroni':<25} {bonferroni_reject.sum():>10} "
 print(f"{'Benjamini-Hochberg':<25} {bh_reject.sum():>10} "
       f"{(bh_reject & truth).sum():>10} "
       f"{(bh_reject & ~truth).sum():>10}")
-```text
+```
 
 输出通常显示：未校正时，约 5–6 个假阳性混入 90 个零假设中。Bonferroni 消除了所有假阳性，但可能遗漏部分真实效应。Benjamini-Hochberg 则在控制假发现的同时捕获了大部分真实效应。这体现了 FDR 控制相比 FWER 控制的功效优势。
 
@@ -448,7 +448,7 @@ print(f"Permutation p-value: {p_value:.4f}")
 
 t_stat, t_pval = stats.ttest_ind(group_a, group_b)
 print(f"t-test p-value: {t_pval:.4f}")
-```text
+```
 
 置换检验对任意检验统计量都是精确的（非近似），无需分布假设，且易于实现。其主要局限在于：它仅检验可交换性（在 $H_0$ 下组是否可互换？），而这未必涵盖所有感兴趣的零假设。
 

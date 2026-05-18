@@ -137,7 +137,7 @@ for step in range(10000):
     if step % 2000 == 0:
         print(f"步数 {step:5d}: U 取值范围=[{U.min():.3f}, {U.max():.3f}], "
               f"V 取值范围=[{V.min():.3f}, {V.max():.3f}]")
-```text
+```
 
 每组 $(F, k)$ 参数都会催生一种定性上截然不同的空间图案。其内在机制正是图灵当年的核心洞见：激活剂 $V$ 扩散缓慢，能在局部自我放大；而抑制剂 $U$ 扩散迅速，可在远距离起抑制作用。二者之间的动态竞争，使得原本近乎均匀的初始状态自发演化出丰富的空间结构。
 
@@ -214,7 +214,7 @@ check_turing_instability(fu=-0.035, fv=0, gu=0, gv=-0.1, Du=0.16, Dv=0.08)
 
 print("\nFitzHugh-Nagumo 模型：")
 check_turing_instability(fu=1.0, fv=-1.0, gu=0.5, gv=-1.5, Du=1.0, Dv=10.0)
-```text
+```
 
 这段代码是对理论部分所列四条图灵条件的算法实现。你可以在运行任何数值模拟之前，直接调用它来快速预测给定反应–扩散系统是否具备自发形成空间图案的能力。
 
@@ -324,7 +324,7 @@ def simulate_oversmoothing(X0, adj_norm, n_layers=64):
         energies.append(dirichlet_energy(X, adj_norm).item())
     return energies
 
-```text
+```
 
 这种指数衰减并非实现缺陷，而是一个**严格成立的定理**：对归一化邻接矩阵 $\tilde{A}$，有  
 $$E(\tilde{A}^L X_0) \leq \lambda_2^{2L} \cdot E(X_0),$$  
@@ -415,7 +415,7 @@ class RDGNN(nn.Module):
             h_react = r(torch.cat([h, h0], dim=-1)) - self.alpha * h
             h = h + self.eps_d * h_diff + self.eps_r * h_react
         return self.decoder(h)
-```text
+```
 
 该架构极为简洁：一个共享的 GCN 用于扩散，$L$ 个小型 MLP 用于反应，两端各有一个线性投影。图 6c 显示，仅凭如此简单的结构，就能在 Cora 数据集上将准确率维持至 64 层——深度达到 GCN 崩溃阈值的八倍。
 

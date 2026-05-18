@@ -459,7 +459,7 @@ ax.axhline(0, color='gray', linestyle='-')
 plt.tight_layout()
 plt.savefig('mcmc_demo.png', dpi=150)
 plt.show()
-```sql
+```
 
 The MCMC histogram closely matches the exact Beta posterior, verifying that the sampler works. The trace plot shows the chain exploring the parameter space, and the autocorrelation plot reveals how quickly successive samples become independent (shorter correlation = more efficient sampling).
 

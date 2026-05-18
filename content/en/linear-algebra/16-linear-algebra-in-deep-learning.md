@@ -66,7 +66,7 @@ h_batch = linear(x_batch)        # (32, 256)
 
 print(linear.weight.shape)       # torch.Size([256, 784])
 print(linear.bias.shape)         # torch.Size([256])
-```sql
+```
 
 ### Reading a trained weight matrix
 
@@ -121,7 +121,7 @@ class ManualLinear:
         self.grad_W = grad_z.T @ self.x
         self.grad_b = grad_z.sum(dim=0)
         return grad_z @ self.W                    # to previous layer
-```text
+```
 
 ### The Jacobian view
 
@@ -182,7 +182,7 @@ x = torch.randn(2, 3, 8, 8)
 w = torch.randn(16, 3, 3, 3)
 print((conv2d_via_im2col(x, w, padding=1) - F.conv2d(x, w, padding=1))
       .abs().max().item())   # ~1e-6
-```text
+```
 
 ### Depthwise separable convolution = low-rank factorization
 
@@ -206,7 +206,7 @@ class DepthwiseSeparableConv(nn.Module):
 
 print(sum(p.numel() for p in nn.Conv2d(64, 128, 3, padding=1).parameters()))
 print(sum(p.numel() for p in DepthwiseSeparableConv(64, 128).parameters()))
-```sql
+```
 
 ---
 
@@ -244,7 +244,7 @@ def scaled_dot_product_attention(Q, K, V, mask=None):
         scores = scores.masked_fill(mask == 0, float('-inf'))
     weights = F.softmax(scores, dim=-1)
     return weights @ V, weights
-```text
+```
 
 ### Multi-head: many subspaces in parallel
 
@@ -274,7 +274,7 @@ class MultiHeadAttention(nn.Module):
         out, w = scaled_dot_product_attention(Q, K, V, mask)
         out = out.transpose(1, 2).contiguous().view(B, -1, self.n_heads * self.d_k)
         return self.W_o(out), w
-```sql
+```
 
 The cost of vanilla attention is $O(n^2 d_k)$ in time and $O(n^2)$ in memory — the $n\times n$ score matrix is the bottleneck for long sequences. FlashAttention re-tiles the computation so that matrix never lives in HBM; mathematically it is identical, just kinder to the memory hierarchy.
 
@@ -295,7 +295,7 @@ The decoder adds **cross-attention** (queries from the decoder, keys/values from
 ```python
 def causal_mask(seq_len):
     return torch.tril(torch.ones(seq_len, seq_len)).unsqueeze(0).unsqueeze(0)
-```sql
+```
 
 Because there is no recurrence, the model needs **positional encoding** to know where each token sits. Sinusoidal encodings,
 $$\mathrm{PE}_{(\mathrm{pos}, 2i)} = \sin(\mathrm{pos}/10000^{2i/d}), \qquad \mathrm{PE}_{(\mathrm{pos}, 2i+1)} = \cos(\mathrm{pos}/10000^{2i/d})$$
@@ -397,7 +397,7 @@ class LoRALinear(nn.Module):
     def merge(self):
         """Fold B A into the base weight - zero overhead at inference."""
         self.base.weight.data += (self.B @ self.A) * self.scaling
-```sql
+```
 
 ### The LoRA family
 

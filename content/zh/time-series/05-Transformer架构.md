@@ -141,7 +141,7 @@ class TemporalPositionalEncoding(nn.Module):
             for i, emb in enumerate(self.cal_embeds):
                 out = out + emb(cal[..., i])
         return out
-```text
+```
 
 ## 多头注意力学到了什么
 
@@ -197,7 +197,7 @@ def autoregressive_forecast(model, history: torch.Tensor, horizon: int):
         out.append(pred)
         seq = torch.cat([seq, pred], dim=1)
     return torch.cat(out, dim=1)
-```text
+```
 
 **与 encoder-decoder 的权衡对比**：
 
@@ -237,7 +237,7 @@ class PatchEmbedding(nn.Module):
         L_trim = (L // P) * P
         x = x[:, :L_trim, :].reshape(B, L_trim // P, P * C)
         return self.proj(x)              # (B, L/P, d_model)
-```text
+```
 
 ## 参考实现
 
@@ -274,7 +274,7 @@ class TimeSeriesTransformer(nn.Module):
         causal = nn.Transformer.generate_square_subsequent_mask(L_tgt).to(src.device)
         out = self.decoder(tgt_emb, memory, tgt_mask=causal)
         return self.head(out)            # (B, L_tgt, C)
-```python
+```
 
 几点工程实践建议：
 

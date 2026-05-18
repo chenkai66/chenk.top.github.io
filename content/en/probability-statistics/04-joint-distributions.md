@@ -315,7 +315,7 @@ ax.legend()
 plt.tight_layout()
 plt.savefig('joint_distributions.png', dpi=150)
 plt.show()
-```sql
+```
 
 The top row shows how correlation $\rho$ shapes the bivariate normal: negative correlation tilts the ellipse one way, zero correlation gives a circle (independent), and positive correlation tilts the other way. The bottom row illustrates conditional distributions (the red slice), order statistics (how the maximum shifts toward 1 as $n$ grows), and convolutions (sums of exponentials becoming Gamma distributions).
 

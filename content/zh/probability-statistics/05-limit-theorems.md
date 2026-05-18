@@ -288,7 +288,7 @@ plt.suptitle('Central Limit Theorem: Standardized Sample Means vs N(0,1)',
 plt.tight_layout()
 plt.savefig('clt_convergence.png', dpi=150, bbox_inches='tight')
 plt.show()
-```text
+```
 
 该模拟展示了 CLT 的实际运作。每行对应一种源分布——有的偏斜（指数分布）、有的离散（伯努利分布）、有的对称（均匀分布）。每列增大样本量 $n$。红色曲线为标准正态 $\mathcal{N}(0,1)$。
 
@@ -411,7 +411,7 @@ plt.suptitle('Law of Large Numbers: Running Averages Converge to True Mean',
 plt.tight_layout()
 plt.savefig('lln_convergence.png', dpi=150, bbox_inches='tight')
 plt.show()
-```text
+```
 
 每幅图展示 10 条独立的运行均值 $\bar{X}_n$ 轨迹。初期轨迹嘈杂且远离真实均值（红色虚线）；随着 $n$ 增大，所有轨迹均收敛——这正是 LLN 的直观体现。指数分布初始波动最大（因其右尾厚重），但即便如此，$n \approx 500$ 时亦趋于稳定。
 

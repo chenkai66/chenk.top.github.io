@@ -342,7 +342,7 @@ plt.suptitle('概率分布图鉴', fontsize=16, y=1.02)
 plt.tight_layout()
 plt.savefig('distribution_gallery.png', dpi=150, bbox_inches='tight')
 plt.show()
-```text
+```
 
 此图鉴让你一览所有分布的形状。注意以下模式：
 
@@ -419,7 +419,7 @@ ax.legend()
 plt.tight_layout()
 plt.savefig('gaussian_mixture.png', dpi=150)
 plt.show()
-```text
+```
 
 ## 如何选择合适分布：决策指南
 

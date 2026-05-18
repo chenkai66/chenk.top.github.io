@@ -93,7 +93,7 @@ print(f"symmetry err: {np.max(np.abs(sigmoid(-z) - (1 - sigmoid(z)))):.2e}")
 num = np.gradient(sig, z)
 ana = sig * (1 - sig)
 print(f"derivative err: {np.max(np.abs(num - ana)):.2e}")
-```sql
+```
 
 ### Logistic Regression Model
 
@@ -148,7 +148,7 @@ The right panel above makes this concrete: when $y = 1$ and the model predicts $
 y_hat = np.linspace(1e-3, 1 - 1e-3, 500)
 grad_mse = np.abs((y_hat - 1) * y_hat * (1 - y_hat))
 grad_ce  = np.abs(y_hat - 1)
-```text
+```
 
 ---
 
@@ -206,7 +206,7 @@ for j in range(d):
     grad_num[j] = (loss(w + e) - loss(w - e)) / (2 * eps)
 
 print(f"max diff: {np.max(np.abs(grad_ana - grad_num)):.2e}")
-```sql
+```
 
 ### Optimisation Variants
 
@@ -285,7 +285,7 @@ for k in range(K):
                    + np.log(stable_softmax(z - e)[c])) / (2 * eps)
 
 print(f"max diff: {np.max(np.abs(grad_ana - grad_num)):.2e}")
-```sql
+```
 
 ---
 
@@ -387,7 +387,7 @@ def stable_sigmoid(z):
         1 / (1 + np.exp(-z)),
         np.exp(z) / (1 + np.exp(z)),
     )
-```text
+```
 
 ### Numerically Stable Softmax
 
@@ -398,7 +398,7 @@ def stable_softmax(z):
     z = z - np.max(z, axis=-1, keepdims=True)
     e = np.exp(z)
     return e / np.sum(e, axis=-1, keepdims=True)
-```text
+```
 
 ### Complete Binary Classifier
 
@@ -434,7 +434,7 @@ class LogisticRegression:
 
     def predict(self, X, threshold=0.5):
         return (self.predict_proba(X) >= threshold).astype(int)
-```text
+```
 
 ### Complete Multi-Class Classifier
 
@@ -466,7 +466,7 @@ class SoftmaxRegression:
 
     def predict(self, X):
         return np.argmax(self.predict_proba(X), axis=1)
-```sql
+```
 
 ---
 

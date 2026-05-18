@@ -263,7 +263,7 @@ def lr_range_test(model, loader, loss_fn, optimizer,
         for g in optimizer.param_groups:
             g["lr"] = lr
     return lrs, losses
-```sql
+```
 
 A tidy variant smooths the loss with an exponential moving average and stops automatically once loss rises by more than $4\times$ the running minimum — that's how `fastai`'s `lr_find()` is implemented.
 
@@ -303,7 +303,7 @@ def layer_wise_param_groups(model, base_lr=3e-4, decay=0.8):
                        "lr": base_lr * (decay ** (n - 1 - i))})
     groups.append({"params": model.classifier.parameters(), "lr": base_lr})
     return groups
-```python
+```
 
 For LLM fine-tuning the same idea reappears as:
 
@@ -455,7 +455,7 @@ def lr_warmup_cosine(step, total_steps, warmup_steps, lr_max, lr_min=0.0):
     T = max(1, total_steps - warmup_steps)
     cos = 0.5 * (1.0 + math.cos(math.pi * t / T))
     return lr_min + (lr_max - lr_min) * cos
-```text
+```
 
 ### Warmup + Stable + Decay (WSD)
 
@@ -472,7 +472,7 @@ def lr_wsd(step, total_steps, warmup_steps, cooldown_steps,
     T = max(1, cooldown_steps)
     frac = min(1.0, (t + 1) / T)
     return lr_max + (lr_min - lr_max) * frac
-```text
+```
 
 ## Plugging it into a training loop
 
@@ -496,7 +496,7 @@ def train_one_epoch(model, loader, optimizer, step_offset, total_steps,
         optimizer.step()
         step += 1
     return step
-```text
+```
 
 A typical configuration call:
 
@@ -507,7 +507,7 @@ schedule_fn = lambda s, T: lr_wsd(
     cooldown_steps=int(0.10 * T),
     lr_max=3e-4, lr_min=3e-5,
 )
-```sql
+```
 
 ---
 

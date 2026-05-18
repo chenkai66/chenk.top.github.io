@@ -133,7 +133,7 @@ print(f"#SV = {len(clf.support_)} of {len(X)} samples")
 for i in clf.support_:
     print(f"  SV idx {i}: y(w.x+b) = {y[i] * (X[i] @ w + b):.4f}  "
           f"(should be ~1)")
-```sql
+```
 
 ---
 
@@ -239,7 +239,7 @@ gamma = 5.0
 K = np.exp(-gamma * np.sum((X[:, None] - X[None, :]) ** 2, axis=-1))
 eig = np.linalg.eigvalsh(K)
 print(f"eigenvalues: {eig.round(4)} -- all >= 0: {np.all(eig >= -1e-10)}")
-```sql
+```
 
 ---
 
@@ -313,7 +313,7 @@ $$\gamma = \frac{y\,(w^\top x_0 + b)}{\lVert w \rVert} = \frac{1 \cdot (3 + 4 - 
 import numpy as np
 w, b, x, y = np.array([3, 4]), -1, np.array([1, 1]), 1
 print(y * (w @ x + b) / np.linalg.norm(w))   # 1.2
-```sql
+```
 
 ### Exercise 2 — Closure of kernels under sum
 

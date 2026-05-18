@@ -290,7 +290,7 @@ enet = make_pipeline(
     StandardScaler(),
     ElasticNetCV(l1_ratio=[0.1, 0.5, 0.7, 0.9, 0.95, 0.99, 1.0], cv=5),
 )
-```sql
+```
 
 Two things scikit-learn handles for you that you would otherwise have to write. (1) `RidgeCV` with `cv=None` uses the leave-one-out closed form via the SVD of $\mathbf{X}$, costing one decomposition rather than $n$ refits. (2) `LassoCV` and `ElasticNetCV` use the *warm start* trick along the regularisation path: after solving for the largest $\lambda$ (which gives $\hat{\boldsymbol\beta} = \mathbf{0}$), the solution at the next $\lambda$ is close, so coordinate descent converges in a handful of sweeps. This makes the entire 100-point path roughly twice the cost of a single fit.
 

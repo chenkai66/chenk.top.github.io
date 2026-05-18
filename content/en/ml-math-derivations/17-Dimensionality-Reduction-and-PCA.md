@@ -127,7 +127,7 @@ pca = PCA().fit(X)
 cum = np.cumsum(pca.explained_variance_ratio_)
 k_95 = int(np.searchsorted(cum, 0.95) + 1)
 print(f"Components for 95% variance: {k_95}")
-```sql
+```
 
 ---
 

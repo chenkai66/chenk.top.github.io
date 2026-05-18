@@ -296,7 +296,7 @@ plt.suptitle('Bias-Variance Tradeoff: Polynomial Regression', fontsize=14, y=1.0
 plt.tight_layout()
 plt.savefig('bias_variance.png', dpi=150, bbox_inches='tight')
 plt.show()
-```sql
+```
 
 The visualization shows the tradeoff directly. At degree 1 (underfitting), the mean prediction (red) is far from the true function (black dashed) — high bias — but the individual fits (blue) cluster tightly — low variance. At degree 19 (overfitting), the mean prediction matches the true function well — low bias — but individual fits are wildly different — high variance. The sweet spot is somewhere in between.
 
@@ -332,7 +332,7 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('bias_variance_curve.png', dpi=150)
 plt.show()
-```sql
+```
 
 ## Sufficient Statistics and Data Reduction
 

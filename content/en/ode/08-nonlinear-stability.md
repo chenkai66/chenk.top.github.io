@@ -122,7 +122,7 @@ for ax, (b, title) in zip(axes, [(0,'Undamped'), (0.3,'Underdamped'), (2.0,'Over
     ax.set_xlim(-3, 3); ax.set_ylim(-3, 3); ax.set_aspect('equal')
     ax.grid(True, alpha=0.3)
 plt.tight_layout(); plt.show()
-```sql
+```
 
 ---
 
@@ -246,7 +246,7 @@ def rk4_step(f, x, t, h):
     k3 = h * np.array(f(x + k2/2, t + h/2))
     k4 = h * np.array(f(x + k3,    t + h))
     return x + (k1 + 2*k2 + 2*k3 + k4) / 6
-```sql
+```
 
 ---
 
@@ -295,7 +295,7 @@ def monodromy(f, jac, gamma0, T):
     y0 = np.concatenate([gamma0, np.eye(d).ravel()])
     sol = solve_ivp(rhs, (0, T), y0, rtol=1e-10)
     return sol.y[d:, -1].reshape(d, d)
-```sql
+```
 
 Van der Pol with $\mu = 1$: the non-trivial multiplier is about $0.04$. Strongly attracting — trajectories visibly snap onto the cycle in a couple of revolutions.
 

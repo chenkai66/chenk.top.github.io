@@ -269,7 +269,7 @@ steps = 500
 gd_hist = gd(steps)
 hb_hist = heavy_ball(steps)
 nag_hist = nesterov(steps)
-```text
+```
 
 ![GD vs Heavy-Ball vs Nesterov on a kappa=100 quadratic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig1_convergence.png "Convergence curves: sqrt(kappa) speedup of momentum")
 

@@ -331,7 +331,7 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('birthday_problem.png', dpi=150)
 plt.show()
-```text
+```
 
 运行该模拟可验证精确计算：当 $n = 23$ 时，概率约为 0.507；当 $n = 50$ 时，概率超过 0.97。蒙特卡洛模拟得到的绿色散点紧密围绕蓝色精确曲线，说明：**即便个体结果随机，整体行为却高度可预测。**
 
@@ -388,7 +388,7 @@ def monty_hall_sim(n_trials=100_000):
     print(f"换门获胜: {switch_wins/n_trials:.4f} (理论值: 0.6667)")
 
 monty_hall_sim()
-```text
+```
 
 ## 概率作为信念的度量
 

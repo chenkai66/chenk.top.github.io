@@ -153,7 +153,7 @@ v3 = np.array([7, 8, 9])      # = 2*v2 - v1, so dependent
 
 A = np.column_stack([v1, v2, v3])
 print(np.linalg.matrix_rank(A))   # 2, not 3 -> dependent
-```text
+```
 
 ### Why independence is non-negotiable
 
@@ -301,7 +301,7 @@ red, green, blue = np.eye(3) * 255
 yellow = red + green          # [255, 255,   0]
 purple = red + blue           # [255,   0, 255]
 white  = red + green + blue   # [255, 255, 255]
-```text
+```
 
 **Grayscale** is a 1D subspace: $\vec{c}=k(1,1,1)$ for $k\in[0,255]$ — one dial, one degree of freedom, lying along the diagonal of the RGB cube.
 
@@ -346,7 +346,7 @@ print(is_independent([np.array([1, 2, 3]),
                       np.array([4, 5, 6]),
                       np.array([7, 8, 9])]))   # False
 print(is_independent(list(np.eye(3))))         # True
-```text
+```
 
 ### Is a target vector inside a span?
 
@@ -360,7 +360,7 @@ def in_span(target, vectors, tol=1e-8):
 v1, v2 = np.array([1, 1]), np.array([2, 2])     # parallel
 print(in_span(np.array([1, 0]), [v1, v2]))      # False
 print(in_span(np.array([3, 3]), [v1, v2]))      # True
-```sql
+```
 
 ### Extract a basis from a redundant set
 
@@ -380,7 +380,7 @@ vs = [np.array([1, 0, 0]),
       np.array([1, 1, 0]),    # = v1 + v2  -> redundant
       np.array([0, 0, 1])]
 print(len(extract_basis(vs)))   # 3 -> {v1, v2, v4}
-```sql
+```
 
 ---
 
@@ -421,7 +421,7 @@ A = np.column_stack([v1, v2, v3])
 print(np.linalg.matrix_rank(A))           # 3  -- "independent"
 print(np.linalg.matrix_rank(A, tol=1e-8)) # 2  -- the truth
 print(np.linalg.svd(A, compute_uv=False)) # [~14, ~10, ~1e-9]
-```sql
+```
 
 `matrix_rank` defaults to a tolerance based on the largest singular value. With strict numerics it reports rank 3, but the third singular value is $10^{-9}$ — the column is *effectively* dependent. If you build a model that inverts $A^TA$, the inversion blows up: the condition number is $\sim 10^{10}$.
 

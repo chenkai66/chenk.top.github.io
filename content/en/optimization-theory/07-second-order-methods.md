@@ -184,7 +184,7 @@ for i = k-m, k-m+1, ..., k-1:         # second loop, "going forward"
     r ← r + (α_i - β) s_i
 
 return r                              # r = H_k g
-```python
+```
 
 Each loop touches each pair once; the total work is $4mn$ inner products plus a vector scaling — totally bypassing the $O(n^2)$ matrix update.
 

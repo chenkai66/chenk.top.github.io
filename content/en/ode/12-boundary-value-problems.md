@@ -99,7 +99,7 @@ def shooting_method(f, a, b, alpha, beta, s_low=-10, s_high=10):
                     rtol=1e-9, atol=1e-12)
     x_out = np.linspace(a, b, 200)
     return x_out, sol.sol(x_out)[0]
-```text
+```
 
 ### When shooting works — and when it does not
 
@@ -155,7 +155,7 @@ def finite_difference_linear(p, q, r, a, b, alpha, beta, N):
 
     y_int = solve_banded((1, 1), ab, rhs)
     return x, np.concatenate([[alpha], y_int, [beta]])
-```text
+```
 
 ### Convergence
 
@@ -184,7 +184,7 @@ off  = (-1 / h**2) * np.ones(n - 1)
 eigvals, eigvecs = eigh_tridiagonal(main, off, select='i',
                                     select_range=(0, 9))
 print(eigvals.round(4))    # [1.0000  4.0000  9.0000 16.0000 25.0000 ...]
-```sql
+```
 
 ---
 
@@ -240,7 +240,7 @@ y_init[0] = 0.5 * np.sin(np.pi * x_init)        # bump-shaped guess
 
 sol = solve_bvp(fun, bc, x_init, y_init, tol=1e-10)
 assert sol.success
-```sql
+```
 
 `solve_bvp`'s strengths:
 

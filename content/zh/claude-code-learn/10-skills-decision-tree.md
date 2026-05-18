@@ -197,7 +197,7 @@ description: Use when deploying to the staging environment, preparing a staging 
 
 # Deploy command
 
-```bash
+```
 docker build -t acme-api:staging -f Dockerfile.staging .
 
 docker tag acme-api:staging 123456789.dkr.ecr.us-east-1.amazonaws.com/acme-api:staging
@@ -214,7 +214,7 @@ aws ecs update-service \
 
 After deploy, wait 60 seconds, then verify:
 
-```bash
+```
 curl -s https://staging.acme.dev/health | jq .
 ```bash
 
@@ -222,7 +222,7 @@ curl -s https://staging.acme.dev/health | jq .
 
 If the deploy is bad:
 
-```bash
+```
 aws ecs describe-services --cluster acme-staging-ecs --services acme-api \
   | jq '.services[0].deployments[] | select(.status == "PRIMARY") | .taskDefinition'
 

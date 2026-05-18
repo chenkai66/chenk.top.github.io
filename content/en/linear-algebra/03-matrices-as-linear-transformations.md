@@ -335,7 +335,7 @@ plot_transform(np.array([[2,   0],   [0,   1.5]]), "Scaling")
 plot_transform(np.array([[1,   0.5], [0,   1  ]]), "Shear")
 plot_transform(np.array([[-1,  0],   [0,   1  ]]), "Reflection about y-axis")
 plot_transform(np.array([[1,   2],   [2,   4  ]]), "Singular: collapses to a line")
-```text
+```
 
 ### A Tiny 2D Game Transform
 
@@ -375,7 +375,7 @@ t.position = np.array([100.0, 50.0])
 t.rotation = np.pi / 4               # 45 degrees
 t.scale    = np.array([2.0, 1.5])
 print(t.apply([[-1, -1], [1, -1], [1, 1], [-1, 1]]))
-```sql
+```
 
 This is exactly the "TRS" pattern (Translate * Rotate * Scale) used by Unity, Unreal, Godot, and every other 3D engine.
 

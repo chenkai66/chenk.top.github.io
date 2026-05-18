@@ -188,7 +188,7 @@ class ProbSparseAttention(nn.Module):
 
         ctx = ctx.transpose(1, 2).contiguous().view(B, L_Q, self.d_model)
         return self.W_o(ctx)
-```python
+```
 
 几个细节需注意：
 
@@ -230,7 +230,7 @@ class DistillingLayer(nn.Module):
         x = self.act(x)
         x = self.pool(x)
         return x.transpose(1, 2)
-```text
+```
 
 ---
 
@@ -361,7 +361,7 @@ class Informer(nn.Module):
             dec = layer(dec, enc, self_mask=causal)
 
         return self.head(dec[:, -self.out_len:, :])  # (B, out_len, c_out)
-```text
+```
 
 训练时，解码器输入由最后 `label_len` 个真实值与 `out_len` 个零占位符拼接而成：
 
@@ -373,7 +373,7 @@ def build_decoder_input(x_enc, label_len, out_len):
         x_enc.size(0), out_len, x_enc.size(-1), device=x_enc.device
     )
     return torch.cat([start, placeholder], dim=1)
-```text
+```
 
 ---
 

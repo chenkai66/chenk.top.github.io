@@ -413,7 +413,7 @@ grad_f = lambda x: 2 * A @ x
 
 x = np.array([1.0, 2.0])
 print(f"Relative error: {gradient_check(f, grad_f, x):.2e}")  # ~1e-10
-```text
+```
 
 A relative error below$10^{-7}$is good; below$10^{-9}$is excellent.
 
@@ -469,7 +469,7 @@ def optimize_comparison():
     plt.show()
 
 optimize_comparison()
-```sql
+```
 
 ---
 

@@ -337,7 +337,7 @@ plt.suptitle('Gallery of Probability Distributions', fontsize=16, y=1.02)
 plt.tight_layout()
 plt.savefig('distribution_gallery.png', dpi=150, bbox_inches='tight')
 plt.show()
-```sql
+```
 
 This gallery lets you see the shape of every distribution at a glance. A few patterns to notice:
 
@@ -418,7 +418,7 @@ ax.legend()
 plt.tight_layout()
 plt.savefig('gaussian_mixture.png', dpi=150)
 plt.show()
-```text
+```
 
 ## Choosing the Right Distribution: A Decision Guide
 

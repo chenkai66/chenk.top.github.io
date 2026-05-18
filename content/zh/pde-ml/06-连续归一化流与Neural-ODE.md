@@ -146,7 +146,7 @@ for step in range(2000):
     opt.zero_grad(); loss.backward(); opt.step()
     if step % 500 == 0:
         print(f"Step {step}: loss={loss.item():.5f}")
-```text
+```
 
 该 Neural ODE 成功学习到了一个光滑的向量场，能将任意初始点沿螺旋路径连续演化。与 ResNet 不同，这里的积分深度（即欧拉步数）是一个**超参数**，而非固定的网络结构设计——它甚至可以进一步设为自适应的（例如根据局部误差动态调整步长）。
 
@@ -206,7 +206,7 @@ def adjoint_backward(func, h_T, loss_grad, theta, T=1.0, steps=100):
 print("标准反向传播：O(L × d) 内存（需缓存全部中间隐状态 h）")
 print("伴随方法：    O(d) 内存（运行时按需重建 h，无需缓存）")
 print("计算开销：    约为正向计算的 2 倍（需额外求解一次 ODE）")
-```text
+```
 
 | 方法 | 内存复杂度 | 计算开销 | 梯度精度 |
 |------|------------|----------|----------|
@@ -309,7 +309,7 @@ for step in range(5000):
     opt.zero_grad(); loss.backward(); opt.step()
     if step % 1000 == 0:
         print(f"训练步数 {step}: NLL={loss.item():.3f}")
-```text
+```
 
 `log_prob` 方法在反向求解常微分方程的同时，借助 Hutchinson 估计器持续累积对数密度的变化量。最终结果由基础分布的对数概率 $\log p_0(\mathbf{z}_0)$ 与累积的散度积分共同构成——整个过程无需显式计算任何雅可比行列式。
 
@@ -412,7 +412,7 @@ def sample_flow_matching(model, n=2000, steps=100):
 
 samples = sample_flow_matching(model, n=3000)
 print(f"共生成 {samples.shape[0]} 个样本，均值 ≈ {samples.mean(0).numpy().round(3)}")
-```text
+```
 
 对比一下两者的简洁性：FFJORD 训练时必须嵌入常微分方程（ODE）求解器、依赖 Hutchinson 迹估计技巧，并需反复调试数值容差；而流匹配本质上就是**一次标准回归任务**——采样噪声、采样数据、线性插值、预测瞬时速度。ODE 求解器仅在推理阶段才被调用，且此时使用最朴素的欧拉法（50–100 步）就已足够稳健高效。
 
@@ -453,7 +453,7 @@ def augmented_neural_ode(func, x, k=1, steps=100):
         h = h + dt * func(torch.tensor(t), h)
     # 投影回原始的 d 维空间
     return h[:, :x.shape[-1]]
-```text
+```
 
 在更高维的 $\mathbb{R}^{d+k}$ 空间中，动力学系统拥有了“抬升”一个簇、使其越过另一个簇、再“放下”的自由度——这就像高速公路上的立交桥（overpass）。虽然该方法需额外消耗 $k$ 个维度，却能彻底解除拓扑限制。Dupont 等人（2019）指出：对大多数二维问题，仅需 $k = 1$ 即可满足需求；而对于一般的 $d$ 维数据，取 $k = d$ 可提供最大的建模灵活性。
 

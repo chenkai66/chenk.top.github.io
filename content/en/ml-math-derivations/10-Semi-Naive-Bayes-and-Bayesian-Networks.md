@@ -124,7 +124,7 @@ X  = np.column_stack([x0, x1, x2])
 
 print("Naive Bayes 5-fold CV:",
       cross_val_score(BernoulliNB(), X, y, cv=5).mean().round(4))
-```sql
+```
 
 ---
 
@@ -177,7 +177,7 @@ def conditional_mutual_info(X, y, j, k):
                 if min(p_jk, p_j, p_k) > 0:
                     cmi += p_c * p_jk * np.log(p_jk / (p_j * p_k))
     return cmi
-```sql
+```
 
 The CMI for the dependent pair $(x_0,x_1)$ in the synthetic example above will be visibly larger than for the independent pair $(x_0,x_2)$ — that ordering is exactly what Kruskal will exploit.
 

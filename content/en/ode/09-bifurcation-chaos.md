@@ -107,7 +107,7 @@ ax = fig.add_subplot(111, projection='3d')
 ax.plot(sol[:,0], sol[:,1], sol[:,2], lw=0.4, alpha=0.85)
 ax.set(xlabel='X', ylabel='Y', zlabel='Z', title='Lorenz Attractor')
 plt.tight_layout(); plt.show()
-```sql
+```
 
 ---
 
@@ -210,7 +210,7 @@ def double_pendulum(state, t, L1=1, L2=1, m1=1, m2=1, g=9.8):
 t = np.linspace(0, 20, 2000)
 sol1 = odeint(double_pendulum, [np.pi/2, 0, np.pi/2, 0],          t)
 sol2 = odeint(double_pendulum, [np.pi/2 + 0.001, 0, np.pi/2, 0], t)
-```sql
+```
 
 The double pendulum is the cleanest *physical* demonstration of chaos — you can build one on a table.
 
@@ -318,7 +318,7 @@ def benettin_lambda1(y0, T_total=1000, dt=0.5):
     return log_sum / T_total
 
 print(benettin_lambda1([1, 1, 1]))   # ~ 0.905
-```sql
+```
 
 For the full spectrum, replace $\delta$ with an $n\times n$ orthonormal matrix and QR-renormalise each step (Wolf algorithm). The Lorenz spectrum is roughly $(0.905, 0, -14.57)$; sum equals divergence $-(\sigma + \beta + 1) = -13.67$ — consistency check.
 

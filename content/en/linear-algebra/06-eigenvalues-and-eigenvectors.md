@@ -267,7 +267,7 @@ def power_iteration(A, num_iters=100):
 A = np.array([[4, 2], [1, 3]])
 val, vec = power_iteration(A)
 print(f"Dominant eigenvalue: {val:.4f}")   # ~5.0
-```text
+```
 
 For *all* eigenvalues, the production-quality algorithm is **QR iteration**, which NumPy, MATLAB, and LAPACK use under the hood:
 
@@ -280,7 +280,7 @@ def qr_algorithm(A, num_iters=200):
     return np.diag(Ak)
 
 print(qr_algorithm(np.array([[4, 2], [1, 3]])))   # [5, 2]
-```text
+```
 
 ---
 
@@ -297,7 +297,7 @@ import numpy as np
 L = np.array([[0, 2, 0.5], [0.6, 0, 0], [0, 0.8, 0]])
 eigenvalues, eigenvectors = np.linalg.eig(L)
 print("Dominant eigenvalue:", max(abs(eigenvalues)))
-```text
+```
 
 The **dominant eigenvalue** decides everything: $|\lambda_1| > 1$ means the population grows; $|\lambda_1| < 1$ means it goes extinct; $|\lambda_1| = 1$ means it stabilises. The corresponding eigenvector is the **stable age distribution** — whatever ratios you start with, you eventually converge to this one.
 
@@ -331,7 +331,7 @@ r = np.ones(n) / n
 for _ in range(100):
     r = G @ r
 print("PageRank:", r)
-```python
+```
 
 ---
 

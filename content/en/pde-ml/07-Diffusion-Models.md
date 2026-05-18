@@ -104,7 +104,7 @@ for t in [0, 100, 300, 500, 999]:
     xt = np.sqrt(alpha_bar[t]) * x0 + np.sqrt(1 - alpha_bar[t]) * eps
     print(f"t={t:4d}: mean={xt.mean(0).round(3)}, std={xt.std(0).round(3)}, "
           f"alpha_bar={alpha_bar[t]:.4f}")
-```sql
+```
 
 At $t=0$, the data has clear two-moon structure (low variance, off-centre mean). By $t=999$, $\bar\alpha_T \approx 10^{-4}$, so $\mathbf{x}_T$ is nearly pure Gaussian noise — the low-pass filter has killed all structure.
 
@@ -229,7 +229,7 @@ for step in range(5000):
     opt.zero_grad(); loss.backward(); opt.step()
     if step % 1000 == 0:
         print(f"Step {step}: loss={loss.item():.4f}")
-```sql
+```
 
 The annealing over multiple noise levels is critical: small $\sigma$ gives accurate score estimates near the data but poor coverage in low-density regions; large $\sigma$ gives broad coverage but imprecise scores. The multi-scale approach gets both.
 
@@ -317,7 +317,7 @@ for step in range(10000):
     opt.zero_grad(); loss.backward(); opt.step()
     if step % 2000 == 0:
         print(f"Step {step}: loss={loss.item():.4f}")
-```text
+```
 
 The training loop is strikingly simple: pick a random timestep, add the corresponding noise, predict the noise, backpropagate. The complexity is in the architecture (here a simple MLP; for images, a U-Net with attention) and the noise schedule.
 
@@ -382,7 +382,7 @@ samples_ddpm = ddpm_sample(model, alpha_bar, betas, n=2000, T=T)
 samples_ddim = ddim_sample(model, alpha_bar, n=2000, steps=50, T=T)
 print(f"DDPM mean: {samples_ddpm.mean(0).numpy().round(3)}")
 print(f"DDIM mean: {samples_ddim.mean(0).numpy().round(3)}")
-```sql
+```
 
 DDIM uses $20\times$ fewer model evaluations while producing comparable quality. The key difference: DDPM injects fresh noise at each step (SDE), DDIM does not (ODE). For DDIM, the same initial noise always produces the same output — this enables latent-space interpolation and inversion.
 
@@ -426,7 +426,7 @@ Bottleneck (self-attention + ResBlock)
 ResBlock → ResBlock → Upsample (×4 levels)
   ↓
 Output eps_pred (C×H×W)
-```text
+```
 
 The total parameter count for a typical image model is 100M–900M (vs ~1M for our 2D toy examples). The skip connections are essential: without them, fine spatial detail is lost in the bottleneck and the model cannot reconstruct high-frequency content — exactly the content that diffusion destroys first and must reconstruct last.
 
@@ -472,7 +472,7 @@ def guided_sample(model, alpha_bar, cond, w=7.5, steps=50, T=1000):
         x0_pred = (x - torch.sqrt(1 - ab_t) * eps_guided) / torch.sqrt(ab_t)
         x = torch.sqrt(ab_prev) * x0_pred + torch.sqrt(1 - ab_prev) * eps_guided
     return x
-```sql
+```
 
 **Why it works:** guidance amplifies the difference between "what the model generates given the prompt" and "what it generates unconditionally". This pushes samples toward regions that are *unusually likely under the condition* — tighter, more prompt-aligned generations at the cost of some diversity. Mathematically, it approximates sampling from $p(x|c)^w \cdot p(x)^{1-w}$, a sharpened conditional distribution.
 

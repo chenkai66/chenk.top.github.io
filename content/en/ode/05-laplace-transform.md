@@ -120,7 +120,7 @@ plt.title("Airy Functions: Solutions of y'' - xy = 0")
 plt.legend(); plt.ylim(-0.6, 1.2)
 plt.grid(True, alpha=0.3); plt.tight_layout()
 plt.show()
-```sql
+```
 
 ---
 
@@ -231,7 +231,7 @@ ax2.set_title('Zeros of Bessel Functions (Drum Modes)')
 ax2.legend(fontsize=9); ax2.grid(True, alpha=0.3)
 
 plt.tight_layout(); plt.show()
-```sql
+```
 
 ### Bessel function of the second kind
 
@@ -296,7 +296,7 @@ plt.axhline(0, color='k', linewidth=0.5)
 plt.xlabel('x'); plt.title('Legendre Polynomials')
 plt.legend(fontsize=9); plt.grid(True, alpha=0.3)
 plt.tight_layout(); plt.show()
-```text
+```
 
 ---
 
@@ -349,7 +349,7 @@ for n in range(5):
 plt.xlabel('Position x'); plt.ylabel('Wavefunction + energy offset')
 plt.title('Quantum Harmonic Oscillator Wavefunctions')
 plt.grid(True, alpha=0.3); plt.tight_layout(); plt.show()
-```text
+```
 
 ---
 
@@ -394,7 +394,7 @@ print(f"H_4(1.0) = {special.eval_hermite(4, 1.0):.1f}")
 
 Ai, Aip, Bi, Bip = special.airy(2.0)
 print(f"Ai(2) = {Ai:.6f}")
-```sql
+```
 
 The figures in this article were produced by `scripts/figures/ode/05-power-series.py`; rerun it after pulling to regenerate every PNG into both the EN and ZH asset folders.
 

@@ -84,7 +84,7 @@ class CausalConv1d(nn.Module):
         if self.padding > 0:
             y = y[:, :, : -self.padding]
         return y
-```text
+```
 
 两个关键细节：
 
@@ -114,7 +114,7 @@ def required_layers(receptive_field: int, kernel_size: int = 3) -> int:
     """返回最小的 L，满足 1 + (k-1)(2**L - 1) >= receptive_field。"""
     L = (receptive_field - 1) / (kernel_size - 1) + 1
     return max(1, math.ceil(math.log2(L)))
-```text
+```
 
 调用 `required_layers(168, kernel_size=3)` 返回 `7`，这正是处理需回溯一周的小时级数据的理想选择。
 
@@ -171,7 +171,7 @@ class TCNResidualBlock(nn.Module):
         out = self.dropout(self.relu(self._causal(self.conv1, x)))
         out = self.dropout(self.relu(self._causal(self.conv2, out)))
         return self.relu(out + self.skip(x))
-```text
+```
 
 该模块足够简洁，常被内联使用，但封装为独立模块有两个优势：一是使感受野计算更透明，二是在极少数情况下可轻松将权重归一化替换为层归一化。
 
@@ -203,7 +203,7 @@ class TCN(nn.Module):
     @property
     def receptive_field(self) -> int:
         return 1 + 2 * (self._k - 1) * (2 ** len(self._channels) - 1)
-```text
+```
 
 配置注意事项：
 
@@ -283,7 +283,7 @@ def train_tcn(model, train_loader, val_loader,
             torch.save(model.state_dict(), "tcn_best.pt")
         if (epoch + 1) % 10 == 0:
             print(f"epoch {epoch + 1}: train {train_loss:.4f} val {val_loss:.4f}")
-```text
+```
 
 两点强调：梯度裁剪对 TCN **非必需**（残差 + 权重归一化已使梯度稳定），但加上也无妨；`ReduceLROnPlateau` 比固定调度更稳健，因合适学习率取决于数据集与感受野。
 
@@ -300,7 +300,7 @@ def make_windows(series: np.ndarray, history: int, horizon: int):
     X = torch.from_numpy(X).float().unsqueeze(1)  # (N, 1, history)
     y = torch.from_numpy(y).float().unsqueeze(1)  # (N, 1, horizon)
     return X, y
-```text
+```
 
 ## 案例一：每小时交通流量预测
 
@@ -336,7 +336,7 @@ model = TCN(input_size=1, output_size=1,
 print("感受野：", model.receptive_field)  # 509
 
 train_tcn(model, train_loader, val_loader, num_epochs=80)
-```text
+```
 
 注意 `output_size=1` 生成单通道序列。直接多步预测通常希望网络一次性输出整个预测区间，有两种方式：
 
@@ -378,7 +378,7 @@ Xm, ym = make_multivariate_windows(sensors_s, target_idx=0,
 model = TCN(input_size=4, output_size=1,
             channels=[64, 64, 128, 128, 128], kernel_size=3, dropout=0.2)
 print("感受野：", model.receptive_field)  # 253
-```text
+```
 
 **为何多变量输入在 TCN 中“开箱即用”**：首层卷积在每个时间步跨所有四通道卷积，跨特征交互天然融入，无需额外融合模块。
 
@@ -397,7 +397,7 @@ def feature_ablation(model, X_val, y_val, names):
 
 print(feature_ablation(model, Xm[:200], ym[:200],
                        ["temp", "hum", "pres", "light"]))
-```text
+```
 
 上述合成数据中，湿度主导（构造时与温度强相关）；真实传感器数据中结果更杂乱，但仍可作为有效合理性检查。
 

@@ -362,7 +362,7 @@ Lambda = np.diag(eigenvalues)
 print("Eigenvalues:", eigenvalues)
 print("Q^T Q (should be I):\n", Q.T @ Q)
 print("Reconstruction Q Lambda Q^T:\n", Q @ Lambda @ Q.T)
-```text
+```
 
 ### Cholesky Decomposition
 
@@ -377,7 +377,7 @@ print("L L^T:\n", L @ L.T)
 b = np.array([6.0, 5.0])
 y = np.linalg.solve_triangular(L, b, lower=True)        # not in numpy.linalg
 x = np.linalg.solve_triangular(L.T, y, lower=False)     # use scipy in practice
-```text
+```
 
 ### Quadratic Form and Its Principal Axes
 
@@ -402,7 +402,7 @@ for i in range(2):
 ax.set_aspect('equal')
 ax.set_title('Quadratic form contours and eigenvectors')
 plt.show()
-```sql
+```
 
 ---
 

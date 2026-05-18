@@ -355,7 +355,7 @@ if __name__ == "__main__":
     print(f"Ours:    {(ours.predict(X_te) == y_te).mean():.4f}")
     print(f"sklearn: {sk.score(X_te, y_te):.4f}")
     # Both print 0.9778 on this seed.
-```sql
+```
 
 ---
 

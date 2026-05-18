@@ -294,7 +294,7 @@ plt.suptitle('Central Limit Theorem: Standardized Sample Means vs N(0,1)',
 plt.tight_layout()
 plt.savefig('clt_convergence.png', dpi=150, bbox_inches='tight')
 plt.show()
-```sql
+```
 
 This simulation is the CLT in action. Each row is a different source distribution — some skewed (Exponential), some discrete (Bernoulli), some symmetric (Uniform). Each column increases the sample size $n$. The red curve is the standard Normal $\mathcal{N}(0,1)$.
 
@@ -421,7 +421,7 @@ plt.suptitle('Law of Large Numbers: Running Averages Converge to True Mean',
 plt.tight_layout()
 plt.savefig('lln_convergence.png', dpi=150, bbox_inches='tight')
 plt.show()
-```sql
+```
 
 Each panel shows 10 independent sample paths of the running average $\bar{X}_n$. Early on, the paths are noisy and far from the true mean (red dashed line). As $n$ grows, all paths converge — this is the LLN in action. The Exponential distribution has the most initial volatility (due to its heavy right tail), but even it settles down by $n \approx 500$.
 

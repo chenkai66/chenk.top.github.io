@@ -115,7 +115,7 @@ y_cubic = y_B * (x / x_B)**3
 for name, y in [("Cycloid", y_cycloid), ("Line", y_line),
                 ("Parabola", y_parabola), ("Cubic", y_cubic)]:
     print(f"{name:12s}  T = {descent_time(y, x):.4f} s")
-```sql
+```
 
 The cycloid wins by 10-15% — not a small margin. Notice how steep initial descent (the cubic) helps, but is still suboptimal because it takes too shallow a path near the end. The cycloid balances gravity-driven acceleration against path length, exactly as the Euler-Lagrange equation demands.
 
@@ -161,7 +161,7 @@ for step in range(5000):
     u[0] = u[-1] = 0  # Dirichlet BC
 
 print(f"Energy: {energies[0]:.2f} -> {energies[-1]:.4f}")
-```text
+```
 
 The Dirichlet energy decreases monotonically at *every* time step — never rises, not even by a floating-point fluctuation. This is not a numerical coincidence; it is the defining property of a gradient flow. Every PDE we meet in this article shares this structure: identify the energy, follow its steepest descent, and the resulting PDE is physically meaningful.
 
@@ -209,7 +209,7 @@ rng = np.random.default_rng(42)
 p = rng.normal(0, 1, 10000)
 q = rng.normal(3, 2, 10000)
 print(f"W_2(N(0,1), N(3,2)) = {wasserstein_2_1d(p, q):.3f}")
-```text
+```
 
 The 1D sorting trick gives the *exact* optimal transport at $O(n \log n)$ cost. In higher dimensions, computing $W_2$ requires solving a linear program or using entropic regularisation (Sinkhorn's algorithm), which is far more expensive.
 
@@ -261,7 +261,7 @@ x0 = rng.normal(2.0, 0.3, 2000)  # start far from equilibrium
 traj = jko_particles(x0, V_grad, tau=0.01, n_steps=500)
 print(f"Mean: {traj[0].mean():.2f} -> {traj[-1].mean():.2f}")
 print(f"Std:  {traj[0].std():.2f} -> {traj[-1].std():.2f}")
-```sql
+```
 
 The particles flow downhill in the potential landscape while spreading out (the entropy term acts as repulsion). This is exactly the Fokker-Planck dynamics discretised at the particle level — each particle follows the gradient of the *functional derivative* $\delta\mathcal{F}/\delta\rho = V + \log\rho + 1$, which includes both the external force $-\nabla V$ and the entropic pressure $-\nabla\log\rho$.
 
@@ -340,7 +340,7 @@ for m in [20, 200, 2000]:
     w_final = snaps[max(snaps.keys())]
     print(f"m={m:4d}: final weight std={w_final.std():.3f}, "
           f"range=[{w_final.min():.2f}, {w_final.max():.2f}]")
-```sql
+```
 
 At $m = 2000$, the weight histogram is nearly indistinguishable from a smooth KDE — the mean-field limit is already visible. The narrowing standard deviation reflects the fact that, in the mean-field regime, the overall weight scale shrinks as $O(1/\sqrt{m})$ while individual weights move $O(1)$ relative to their initial values.
 
@@ -429,7 +429,7 @@ for epoch in range(2000):
     opt.zero_grad(); loss.backward(); opt.step()
     if epoch % 500 == 0:
         print(f"Epoch {epoch:4d}: recon={recon:.3f}, KL={kl:.3f}, ELBO={loss:.3f}")
-```sql
+```
 
 The trade-off is visible in the numbers: as reconstruction improves, the KL term *increases* because the encoder pushes the latent codes further from the standard normal to encode cluster identity. The ELBO initially decreases (better reconstruction outweighs the KL penalty) but eventually the KL term dominates. This tension is the variational principle at work — the optimal $q(z|x)$ balances fidelity against regularity, exactly as a Ritz functional balances boundary fit against smoothness.
 

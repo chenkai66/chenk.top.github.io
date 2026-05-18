@@ -290,7 +290,7 @@ class GMM:
 
     def predict(self, X):
         return np.argmax(self._e_step(X)[0], axis=1)
-```text
+```
 
 ---
 
@@ -324,7 +324,7 @@ gmm = GaussianMixture(
 gmm.fit(X)
 log_resp = gmm.predict_proba(X)         # γ_{ik}
 bic = gmm.bic(X)                        # for K selection
-```sql
+```
 
 Two flags worth knowing. `covariance_type='diag'` drops the off-diagonals of $\boldsymbol{\Sigma}_k$, reducing parameters from $K D(D+1)/2$ to $KD$ and per-iteration cost from $O(NKD^2)$ to $O(NKD)$. On $D=128$ embeddings this is the difference between minutes and hours. `init_params='k-means++'` runs K-means first to seed the means; without it, EM on more than four components routinely converges to a degenerate solution where one mixture absorbs everything.
 

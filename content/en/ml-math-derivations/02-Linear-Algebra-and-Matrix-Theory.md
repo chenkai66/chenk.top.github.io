@@ -339,7 +339,7 @@ def grad_numeric(w, eps=1e-7):
 w_test = rng.standard_normal(d)
 print(f"\ngradient check: ||analytic - numeric|| = "
       f"{np.linalg.norm(grad(w_test) - grad_numeric(w_test)):.2e}")
-```text
+```
 
 Three things to notice in the output: the Eckart-Young error matches theory to machine precision; QR is one to two orders of magnitude more accurate than normal equations even on benign matrices; the analytic gradient agrees with finite differences to ~$10^{-9}$.
 

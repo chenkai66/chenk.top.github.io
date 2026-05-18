@@ -304,7 +304,7 @@ user_factors, movie_factors, time_factors = factors
 print(user_factors.shape)   # (100, 5)
 print(movie_factors.shape)  # (50, 5)
 print(time_factors.shape)   # (12, 5)
-```text
+```
 
 Each row of `user_factors` is a 5-D embedding of one user; rows of `movie_factors` and `time_factors` play the same role for movies and months. CP simultaneously embeds all three axes into a shared 5-D latent space.
 
@@ -357,7 +357,7 @@ print([f.shape for f in factors])       # [(100, 10), (50, 8), (12, 4)]
 original_size   = 100 * 50 * 12
 compressed_size = 10 * 8 * 4 + 100 * 10 + 50 * 8 + 12 * 4
 print(f"Compression: {original_size / compressed_size:.2f}x")
-```sql
+```
 
 ### Multilinear rank
 
@@ -551,7 +551,7 @@ def mode_n_product(X, A, mode):
 def simple_cp_als(X, rank, n_iter=100):
     """Returns (A, B, C) factor matrices."""
     pass
-```sql
+```
 
 **Exercise 10.** Using the `tensorly` library:
 

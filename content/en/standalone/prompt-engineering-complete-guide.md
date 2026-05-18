@@ -347,7 +347,7 @@ Requirements:
 {format_test_cases(tests) if tests else ''}
 
 Provide complete, runnable code:
-    ```{language}
+    ```
 """
     code = extract_code_block(llm_call(prompt, temperature=0.3))
     if tests:
@@ -363,7 +363,7 @@ The pattern is *generate → test → repair*. The repair prompt feeds the faili
 
 Long conversations exceed the context window. The fix: keep a sliding window of recent messages plus an LLM-generated summary of the older ones.
 
-```python
+```
 class ConversationManager:
     def __init__(self, model, system_prompt: str, max_tokens: int = 4000):
         self.model = model
@@ -408,7 +408,7 @@ Prompt engineering is empirical. Without metrics you are guessing.
 
 **Metrics, in order of cost.**
 
-```python
+```
 def exact_match(pred, truth):
     return normalize(pred) == normalize(truth)
 
@@ -442,7 +442,7 @@ Pick the cheapest metric that correlates with what you actually care about.
 
 ### A/B testing prompt variants
 
-```python
+```
 class PromptExperiment:
     def __init__(self, test_set, metrics):
         self.test_set = test_set
@@ -481,7 +481,7 @@ When prompts misbehave, run through this checklist:
 
 A small detector that flags the most common issues:
 
-```python
+```
 class PromptDebugger:
     AMBIGUOUS = {"relevant", "appropriate", "good", "bad",
                  "some", "few", "many", "stuff", "things"}
@@ -505,7 +505,7 @@ class PromptDebugger:
 
 Bucket failures by mode. The categories below cover the vast majority of mistakes:
 
-```python
+```
 def categorize_error(pred: str, truth: str) -> str:
     p, t = normalize(pred), normalize(truth)
     if not p:

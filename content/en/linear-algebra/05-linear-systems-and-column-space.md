@@ -147,7 +147,7 @@ b = np.array([2, 12, 2], dtype=float)
 x = np.linalg.solve(A, b)
 print(f"Solution: {x}")
 print(f"Verify Ax = {A @ x}")
-```sql
+```
 
 ---
 
@@ -239,7 +239,7 @@ A = np.array([[1, 2, 3],
               [7, 8, 9]])
 
 print(f"Rank: {np.linalg.matrix_rank(A)}")  # 2  (row 3 = 2*row 2 - row 1)
-```sql
+```
 
 ---
 
@@ -321,7 +321,7 @@ b = np.array([2, 3, 5, 4])
 
 x, *_ = np.linalg.lstsq(A, b, rcond=None)
 print(f"Best fit: y = {x[0]:.2f}x + {x[1]:.2f}")
-```sql
+```
 
 ### Computer Graphics: Projection
 
@@ -370,7 +370,7 @@ analyze_system(np.array([[1, 2], [3, -1]], dtype=float),
 
 analyze_system(np.array([[1, 2, 3], [2, 4, 6]], dtype=float),
                np.array([1, 2], dtype=float))
-```text
+```
 
 ---
 
@@ -410,7 +410,7 @@ off  = -1.0 * np.ones(n - 1)
 A = sp.diags([off, diag, off], [-1, 0, 1], format="csr")
 b = np.ones(n)
 x, info = spla.cg(A, b, rtol=1e-8)   # ~600 iterations, ~0.5 s
-```python
+```
 
 The same problem with a dense `np.linalg.solve` would need $10^{15}$ FLOPs and 80 GB of RAM. Sparse iteration finishes in under a second on a laptop.
 

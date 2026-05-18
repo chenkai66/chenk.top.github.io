@@ -101,7 +101,7 @@ print(expm(A * 0.5))        # exp((0.5)A) -- uses scaling-and-squaring Padé
 vals, P = np.linalg.eig(A)
 expm_via_eig = P @ np.diag(np.exp(vals * 0.5)) @ np.linalg.inv(P)
 print(expm_via_eig.real)    # same matrix (modulo floating-point noise)
-```sql
+```
 
 ---
 
@@ -210,7 +210,7 @@ Two equal masses on a line, each tied to a wall by a spring of stiffness $k$ and
 ```text
 Wall —/\/\/— [m] —/\/\/— [m] —/\/\/— Wall
        k        κ        k
-```sql
+```
 
 Newton's laws give
 $$\ddot x_1 = -k\,x_1 + \kappa(x_2 - x_1), \qquad \ddot x_2 = -k\,x_2 + \kappa(x_1 - x_2).$$

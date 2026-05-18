@@ -196,7 +196,7 @@ class GRUForecaster(nn.Module):
     def forward(self, x):  # x: (B, T, d_in)
         out, _ = self.gru(x)
         return self.head(out[:, -1, :])  # 取最后一步预测
-```text
+```
 
 ### 训练循环：四个稳定性要点
 
@@ -217,7 +217,7 @@ def train_one_epoch(model, loader, opt, max_grad_norm=1.0, device="cuda"):
         opt.step()
         losses.append(loss.item())
     return sum(losses) / len(losses)
-```text
+```
 
 四个要点：
 
@@ -261,7 +261,7 @@ def train_one_epoch(model, loader, opt, max_grad_norm=1.0, device="cuda"):
 self.bigru = nn.GRU(input_size, hidden_size, num_layers,
                     batch_first=True, bidirectional=True)
 self.head  = nn.Linear(hidden_size * 2, output_size)
-```text
+```
 
 **GRU 输出加注意力机制**。不用最后一个隐藏状态，改为对所有时间步做可学习加权求和。通常能带来 1–3% 的 RMSE 改进，代价是一层额外线性变换：
 
@@ -273,7 +273,7 @@ class AttnHead(nn.Module):
     def forward(self, h_seq):                       # (B, T, H)
         w = torch.softmax(self.score(h_seq), dim=1)  # (B, T, 1)
         return (w * h_seq).sum(dim=1)                # (B, H)
-```text
+```
 
 **Conv1D + GRU 组合**。在 GRU 前加 1D 卷积作为特征提取器。卷积捕获局部模式，GRU 跨时间整合。这是传感器数据的常用方案，通常比单纯堆叠多层 GRU 更有效。
 
@@ -296,7 +296,7 @@ packed = pack_padded_sequence(x, lengths.cpu(),
 out, _ = gru(packed)
 out, _ = pad_packed_sequence(out, batch_first=True)
 last = out[torch.arange(out.size(0)), lengths - 1]   # 真正的最后一步
-```text
+```
 
 ---
 
@@ -327,7 +327,7 @@ class StreamingGRU(nn.Module):
         # x: (1, 1, F)，h: (num_layers, 1, H)
         out, h_new = self.gru(x, h)
         return self.head(out[:, -1, :]), h_new
-```python
+```
 
 用 `torch.jit.script`（而非 `trace`，后者会固化时间维度）导出，即可获得一个每 tick $O(1)$ 成本的可部署流式预测器。
 

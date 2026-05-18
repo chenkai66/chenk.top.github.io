@@ -188,7 +188,7 @@ print(lb)  # high p-value -> residuals are white noise
 fc = model.get_forecast(steps=30)
 mean_fc = fc.predicted_mean
 ci = fc.conf_int(alpha=0.05)
-```text
+```
 
 The forecast on a held-out tail looks like this:
 
@@ -215,7 +215,7 @@ model = SARIMAX(
 ).fit(disp=False)
 
 forecast = model.get_forecast(steps=24)
-```sql
+```
 
 ![SARIMA(1,1,1)(1,1,1,12) forecast on a series with strong yearly seasonality.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig5_sarima_forecast.png)
 *Fig. 6 — The seasonal cycle is reproduced cleanly out of sample because the seasonal-difference operator $(1-B^{12})$ has stripped the yearly pattern from the residual, and the seasonal AR/MA terms put it back in the forecast at the right phase.*

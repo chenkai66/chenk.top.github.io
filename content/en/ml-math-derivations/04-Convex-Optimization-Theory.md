@@ -372,7 +372,7 @@ for _ in range(500):
     u    = u + beta - z                                     # dual ascent
 print(f"ADMM:   nonzeros = {int(np.sum(np.abs(z) > 1e-4))}/10, "
       f"err = {np.linalg.norm(z - beta_true):.4f}")
-```sql
+```
 
 ---
 

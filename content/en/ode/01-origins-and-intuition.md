@@ -92,7 +92,7 @@ plt.title("Newton's Law of Cooling"); plt.legend(); plt.tight_layout(); plt.show
 
 print(f"After 10 min: {T_sol[np.abs(t-10).argmin()][0]:.1f} °C")
 print(f"After 30 min: {T_sol[np.abs(t-30).argmin()][0]:.1f} °C")
-```sql
+```
 
 ### The closed-form answer
 
@@ -257,7 +257,7 @@ ax2.set_xlabel("x"); ax2.set_ylabel("v = dx/dt")
 ax2.set_title("Phase portrait — energy conservation gives a closed ellipse")
 ax2.set_aspect("equal")
 plt.tight_layout(); plt.show()
-```sql
+```
 
 The right panel is a **phase portrait**, our first glimpse of how second-order systems live naturally in a 2D space of $(x, v)$. Energy conservation forces the trajectory to be a closed ellipse; that geometric fact will become the centrepiece of [Chapter 7](/en/ode/07-systems-and-phase-plane/).
 
@@ -321,7 +321,7 @@ plt.plot(t, y_euler, color="#ef4444", linewidth=2, linestyle="--", label="Euler 
 plt.xlabel("t"); plt.ylabel("y(t)")
 plt.title("Analytical vs. Numerical")
 plt.legend(); plt.tight_layout(); plt.show()
-```text
+```
 
 Euler is the seed of every more sophisticated method (Runge–Kutta, Adams–Bashforth, the symplectic integrators used for orbit propagation). We will spend [Chapter 11](/en/ode/11-numerical-methods/) unpacking how the modern solvers in `scipy.integrate.solve_ivp` actually work — but the logic is always the same: estimate the derivative, take a step, repeat, control the error.
 

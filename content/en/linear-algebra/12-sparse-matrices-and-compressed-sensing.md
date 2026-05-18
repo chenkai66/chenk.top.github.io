@@ -238,7 +238,7 @@ def ista(Phi, y, lam, max_iter=2000, tol=1e-6):
         if np.linalg.norm(x - x_old) < tol:
             break
     return x
-```text
+```
 
 ### FISTA — Nesterov-Accelerated ISTA
 
@@ -260,7 +260,7 @@ def fista(Phi, y, lam, max_iter=2000, tol=1e-6):
         if np.linalg.norm(x - x_old) < tol:
             break
     return x
-```text
+```
 
 ### IHT — Iterative Hard Thresholding
 
@@ -287,7 +287,7 @@ def omp(Phi, y, k):
         r = y - Phi_S @ x_S
     x[S] = x_S
     return x
-```sql
+```
 
 OMP is fast and easy to reason about, but greedy: a wrong choice early on cannot be undone. LASSO and FISTA are slower but globally optimal.
 

@@ -136,7 +136,7 @@ for step in range(10000):
     if step % 2000 == 0:
         print(f"Step {step:5d}: U range=[{U.min():.3f}, {U.max():.3f}], "
               f"V range=[{V.min():.3f}, {V.max():.3f}]")
-```sql
+```
 
 Each $(F, k)$ pair produces a qualitatively different pattern. The mechanism is exactly Turing's insight: the activator $V$ diffuses slowly and amplifies locally, while the inhibitor $U$ diffuses fast and suppresses at long range. Their competition creates spatial structure from an almost-uniform initial state.
 
@@ -214,7 +214,7 @@ check_turing_instability(fu=-0.035, fv=0, gu=0, gv=-0.1, Du=0.16, Dv=0.08)
 
 print("\nFitzHugh-Nagumo:")
 check_turing_instability(fu=1.0, fv=-1.0, gu=0.5, gv=-1.5, Du=1.0, Dv=10.0)
-```sql
+```
 
 This is the algorithmic version of the four Turing conditions from the theory section. You can use it to predict whether a given reaction-diffusion system will spontaneously form patterns — before running any simulation.
 
@@ -316,7 +316,7 @@ def simulate_oversmoothing(X0, adj_norm, n_layers=64):
         energies.append(dirichlet_energy(X, adj_norm).item())
     return energies
 
-```text
+```
 
 The exponential decay is not a bug — it's a *theorem*: for the normalised adjacency $\tilde{A}$, $E(\tilde{A}^L X_0) \leq \lambda_2^{2L} \cdot E(X_0)$ where $\lambda_2 < 1$ is the second-largest eigenvalue of $\tilde{A}$. On Cora, $\lambda_2 \approx 0.98$, so by layer 64, the energy has decayed by a factor of $0.98^{128} \approx 0.08$ — nearly zero.
 
@@ -402,7 +402,7 @@ class RDGNN(nn.Module):
             h_react = r(torch.cat([h, h0], dim=-1)) - self.alpha * h
             h = h + self.eps_d * h_diff + self.eps_r * h_react
         return self.decoder(h)
-```sql
+```
 
 Notice how lean the architecture is: one shared GCN for diffusion, $L$ small MLPs for reaction, two linear projections at the ends. The accuracy curves in Fig. 6c show that this is enough to maintain Cora performance up to 64 layers — eight times deeper than the regime in which GCN collapses.
 

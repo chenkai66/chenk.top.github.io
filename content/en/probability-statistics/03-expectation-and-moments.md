@@ -323,7 +323,7 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('moments_and_chebyshev.png', dpi=150)
 plt.show()
-```text
+```
 
 The right panel shows the gap between Chebyshev's bound and the actual Normal tail probability on a log scale. For the Normal distribution, the true probability drops exponentially in $k^2$, while Chebyshev only guarantees $1/k^2$ decay. The bound is conservative, but it applies to **every** distribution — including ones with much heavier tails than the Gaussian.
 

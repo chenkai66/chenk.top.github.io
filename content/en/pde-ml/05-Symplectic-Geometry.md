@@ -150,7 +150,7 @@ def leapfrog(q, p, dVdq, h, n_steps):
         q = q + h * p               # full drift
         p = p - 0.5 * h * dVdq(q)   # half kick
     return q, p
-```text
+```
 
 That is the entire symplectic story for separable Hamiltonians. Six lines, no dependencies, qualitatively correct for every conservative system. **Now we will teach a neural network to do this.**
 
@@ -213,7 +213,7 @@ class HNN(nn.Module):
         n = self.dim // 2
         dHdq, dHdp = grad_H[:, :n], grad_H[:, n:]
         return torch.cat([dHdp, -dHdq], dim=-1)    # J grad H
-```text
+```
 
 Two design choices matter:
 
@@ -265,7 +265,7 @@ print("Double pendulum extrapolation (100s):")
 print("  HNN:        energy error < 0.01%")
 print("  Vanilla NN: energy error ~ 50%")
 print("  RK4:        energy error ~ 5%")
-```sql
+```
 
 The double pendulum is the acid test: it has a 4-dimensional phase space, two coupled degrees of freedom, and Lyapunov exponents that amplify any numerical error. An HNN trained on just 4 seconds of data can extrapolate to 100 seconds because it enforces energy conservation *exactly* at the architecture level — the error stays bounded by the modified Hamiltonian theory ($\tilde{H} = H + O(h^2)$, and $\tilde{H}$ is exactly conserved).
 
@@ -354,7 +354,7 @@ class LNN(nn.Module):
         return qddot
 
 model_lnn = LNN(dim=2)
-```text
+```
 
 **HNN vs LNN vs SympNet comparison:**
 
@@ -431,7 +431,7 @@ for step in range(3000):
     q_pred, p_pred = model(q_train, p_train)
     loss = ((q_pred - q_target)**2 + (p_pred - p_target)**2).mean()
     opt.zero_grad(); loss.backward(); opt.step()
-```sql
+```
 
 Each shear layer is *exactly* symplectic (the Jacobian is a lower or upper triangular matrix with ones on the diagonal, so $\det = 1$). Their composition is also symplectic. Unlike HNN (which needs an ODE solver to integrate Hamilton's equations), SympNet directly outputs the next state in a single forward pass — making it 10-50x faster for long rollouts.
 
@@ -491,7 +491,7 @@ class PortHamiltonianNN(nn.Module):
         JmR = J.unsqueeze(0) - R
         return torch.bmm(JmR, dH.unsqueeze(-1)).squeeze(-1)
 
-```sql
+```
 
 This is the principled way to handle real-world systems: the symplectic part preserves energy (oscillations), the dissipation part removes it (damping). The network learns both structures from data, and the architecture *guarantees* that total energy is non-increasing — a hard physical constraint that no unconstrained network can enforce.
 
@@ -565,7 +565,7 @@ traj = leapfrog_3body(state0, dt=0.001, n_steps=50000)
 H0 = three_body_hamiltonian(traj[0])
 H_final = three_body_hamiltonian(traj[-1])
 print(f"Energy drift over 50s: {abs(H_final - H0) / abs(H0) * 100:.6f}%")
-```sql
+```
 
 With a symplectic integrator, the energy error oscillates but never grows — even after 50,000 steps. With RK4, the energy would drift by ~1% over the same period, and with forward Euler, by ~100%. This is the practical payoff of the modified Hamiltonian theorem: the symplectic integrator exactly conserves a *nearby* Hamiltonian $\tilde{H} = H + O(h^2)$.
 

@@ -122,7 +122,7 @@ class LSTMForecaster(nn.Module):
         # x: (batch, seq_len, input_size)
         out, _ = self.lstm(x)              # (batch, seq_len, hidden_size)
         return self.head(out[:, -1, :])     # use last time step
-```sql
+```
 
 A few non-obvious points:
 
@@ -135,7 +135,7 @@ for name, p in model.lstm.named_parameters():
     if "bias" in name:
         n = p.size(0)
         p.data[n // 4 : n // 2].fill_(1.0)   # forget-gate bias
-```sql
+```
 
 ## From Cell to Forecaster
 
@@ -277,7 +277,7 @@ def gate_stats(model, batch):
                    "f": chunks[1].mean().item(),
                    "g": chunks[2].mean().item(),
                    "o": chunks[3].mean().item()})
-```text
+```
 
 If the forget-gate bias is below zero after training, the network has learned to flush memory on every step — usually a sign that your sequences are too short to reward retention. Shorten them further or switch to a stateless feed-forward model.
 
@@ -312,7 +312,7 @@ class WrappedForecaster(nn.Module):
 
     def forward(self, x):
         return self.base((x - self.mean) / self.std)
-```sql
+```
 
 This single change has saved me three production incidents.
 

@@ -112,7 +112,7 @@ def kmeans(X, K, max_iter=100):
             break
         centroids = new_centroids
     return labels, centroids
-```sql
+```
 
 ### K-means++ Initialization
 

@@ -117,7 +117,7 @@ for R0 in [1.5, 2.0, 2.5, 3.0]:
     ax.plot(sol.t, sol.y[1], lw=2, label=f'R0 = {R0}')
 ax.set_xlabel('Days'); ax.set_ylabel('Fraction infectious')
 ax.legend(); plt.tight_layout(); plt.show()
-```sql
+```
 
 ---
 

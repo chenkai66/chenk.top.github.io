@@ -256,7 +256,7 @@ axes[1].semilogx(w, mag);      axes[1].set_title("Bode magnitude (dB)")
 axes[2].semilogx(w, phase);    axes[2].set_title("Bode phase (deg)")
 for ax in axes: ax.grid(True, alpha=0.3, which="both")
 plt.tight_layout()
-```sql
+```
 
 ---
 
@@ -301,7 +301,7 @@ print("L{sin(wt)}  =", laplace_transform(sin(omega*t), t, s))
 F = (3*s + 5) / ((s + 1) * (s + 2))
 print("partial fractions:", apart(F, s))
 print("L^{-1}{F}        =", inverse_laplace_transform(F, s, t))
-```text
+```
 
 ### Pole–zero analysis with SciPy
 
@@ -318,7 +318,7 @@ stable = all(p.real < 0 for p in poles)
 print(f"poles  = {poles}")
 print(f"zeros  = {zeros}")
 print(f"stable = {stable}")
-```sql
+```
 
 ---
 

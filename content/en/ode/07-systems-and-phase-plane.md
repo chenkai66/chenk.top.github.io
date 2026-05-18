@@ -126,7 +126,7 @@ for n in range(-2, 3):
     ax.plot(n*np.pi, 0, 'go' if n%2==0 else 'rx', markersize=10)
 ax.set(xlabel='theta', ylabel='omega', title='Damped pendulum phase portrait')
 ax.grid(True, alpha=0.3); plt.tight_layout(); plt.show()
-```sql
+```
 
 ---
 
@@ -260,7 +260,7 @@ plt.plot(t, sol[:,2]*180/np.pi, 'b-', linewidth=2)
 plt.xlabel('Time (s)'); plt.ylabel('Angle (degrees)')
 plt.title('Inverted pendulum stabilized by LQR')
 plt.grid(True, alpha=0.3); plt.tight_layout(); plt.show()
-```sql
+```
 
 ---
 
@@ -298,7 +298,7 @@ Q = np.eye(2)
 P = solve_continuous_lyapunov(A, -Q)   # convention: A P + P A^T = -Q
 print("P =", P)
 print("Positive definite?", np.all(eigvals(P).real > 0))
-```python
+```
 
 Under the hood it runs Bartels-Stewart: Schur-decompose $A = U T U^\top$, transform the unknown to $\tilde P = U^\top P U$, and back-substitute column by column on the resulting upper-triangular system. Cost is $O(n^3)$, which beats the naive Kronecker-product flattening by a factor of $n^3$.
 

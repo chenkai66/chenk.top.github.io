@@ -370,7 +370,7 @@ print(f"{'Bonferroni':<25} {bonferroni_reject.sum():>10} "
 print(f"{'Benjamini-Hochberg':<25} {bh_reject.sum():>10} "
       f"{(bh_reject & truth).sum():>10} "
       f"{(bh_reject & ~truth).sum():>10}")
-```sql
+```
 
 The output typically shows: without correction, about 5-6 false positives sneak in among the 90 nulls. Bonferroni eliminates all false positives but may miss some true effects. Benjamini-Hochberg finds most true effects while keeping false discoveries under control. This illustrates the power advantage of FDR control over FWER control.
 
@@ -449,7 +449,7 @@ print(f"Permutation p-value: {p_value:.4f}")
 
 t_stat, t_pval = stats.ttest_ind(group_a, group_b)
 print(f"t-test p-value: {t_pval:.4f}")
-```text
+```
 
 Permutation tests are exact (not approximate) for any test statistic, require no distributional assumptions, and are easy to implement. Their main limitation: they only test exchangeability (are the groups interchangeable under $H_0$?), which may not capture all null hypotheses of interest.
 

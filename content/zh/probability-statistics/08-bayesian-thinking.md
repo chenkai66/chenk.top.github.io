@@ -460,7 +460,7 @@ ax.axhline(0, color='gray', linestyle='-')
 plt.tight_layout()
 plt.savefig('mcmc_demo.png', dpi=150)
 plt.show()
-```text
+```
 
 MCMC 生成的直方图与精确的 Beta 后验高度吻合，验证了采样器的有效性。迹线图展示了马尔可夫链在参数空间中的探索过程，而自相关图则揭示了连续样本之间何时趋于独立（自相关越短，采样效率越高）。
 

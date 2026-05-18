@@ -314,7 +314,7 @@ ax.legend()
 plt.tight_layout()
 plt.savefig('joint_distributions.png', dpi=150)
 plt.show()
-```sql
+```
 
 顶行展示了相关系数 $\rho$ 如何塑造二元正态分布：负相关使椭圆沿某一方向倾斜，零相关给出圆形（独立），正相关则朝另一方向倾斜。底行展示了条件分布（红色切片）、次序统计量（最大值随 $n$ 增大而右移）、以及卷积（指数分布之和趋近 Gamma 分布）。
 

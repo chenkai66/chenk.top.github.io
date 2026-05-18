@@ -330,7 +330,7 @@ def lasso_fista(A, y, mu, n_iter=500, tol=1e-8):
         t = (1.0 + np.sqrt(1.0 + 4.0 * t * t)) / 2.0
 
     return x
-```text
+```
 
 **实践建议**：
 

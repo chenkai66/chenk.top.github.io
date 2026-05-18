@@ -109,7 +109,7 @@ for k = 0, 1, 2, ...:
     if m / t_k < ε: stop
     t_{k+1} = μ * t_k
 return x_{k+1}
-```sql
+```
 
 Each outer iteration multiplies $t$ by $\mu$. The number of outer iterations is $\log(m / (t_0 \epsilon)) / \log \mu$, typically 20--50. The crucial question is **how many Newton steps each inner solve takes** — and this is where self-concordance comes in.
 

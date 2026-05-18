@@ -98,7 +98,7 @@ for t = 0, 1, 2, ...:
     if ||∇f(x_t)|| ≤ ε and "no recent perturbation":
         x_t ← x_t + ξ_t  with ξ_t uniform on ball of radius r
     x_{t+1} = x_t - η ∇f(x_t)
-```sql
+```
 
 The idea: at a stationary point with negative eigenvalue, a random perturbation $\xi_t$ has positive component along the negative eigenvector with overwhelming probability. The GD steps after the perturbation amplify this component (the matrix exponential in the negative-eigenvalue direction), pushing the iterate away from the saddle.
 

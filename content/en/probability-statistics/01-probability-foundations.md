@@ -332,7 +332,7 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('birthday_problem.png', dpi=150)
 plt.show()
-```sql
+```
 
 Running this simulation confirms the exact calculation: at $n = 23$, the probability is approximately 0.507, and at $n = 50$ it exceeds 0.97. The green dots from the Monte Carlo simulation cluster tightly around the blue exact curve, illustrating that randomness is predictable in aggregate even when individual outcomes are not.
 
@@ -389,7 +389,7 @@ def monty_hall_sim(n_trials=100_000):
     print(f"Switch wins: {switch_wins/n_trials:.4f} (theory: 0.6667)")
 
 monty_hall_sim()
-```sql
+```
 
 ## Probability as a Measure of Belief
 

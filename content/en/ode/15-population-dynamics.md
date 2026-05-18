@@ -112,7 +112,7 @@ ax[0].plot(sol.y[0], sol.y[1]); ax[0].set_xlabel('prey'); ax[0].set_ylabel('pred
 ax[1].plot(sol.t, sol.y[0], label='prey')
 ax[1].plot(sol.t, sol.y[1], label='predator'); ax[1].legend()
 plt.tight_layout(); plt.show()
-```sql
+```
 
 ### Functional responses (Holling)
 
@@ -198,7 +198,7 @@ lam, vec = np.linalg.eig(L)
 i = np.argmax(np.abs(lam))
 print('Long-run growth rate:', lam[i].real)
 print('Stable age distribution:', np.abs(vec[:, i].real / vec[:, i].real.sum()))
-```sql
+```
 
 ---
 

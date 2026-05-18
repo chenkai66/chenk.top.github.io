@@ -285,7 +285,7 @@ class GMM:
 
     def predict(self, X):
         return np.argmax(self._e_step(X)[0], axis=1)
-```text
+```
 ## 数值实现的几个坑
 
 上述推导虽数学优雅，但工程实现中潜藏诸多陷阱。我在生产环境中反复遭遇以下三类问题。
@@ -316,7 +316,7 @@ gmm = GaussianMixture(
 gmm.fit(X)
 log_resp = gmm.predict_proba(X)         # γ_{ik}
 bic = gmm.bic(X)                        # 用于选择 K 值
-```sql
+```
 
 有两个参数值得特别关注。`covariance_type='diag'` 会舍弃 $\boldsymbol{\Sigma}_k$ 的非对角元素，将参数量从 $K D(D+1)/2$ 减至 $KD$，单次迭代复杂度也从 $O(NKD^2)$ 降至 $O(NKD)$。对 $D=128$ 的嵌入向量，这能将运行时间从小时级缩短至分钟级。`init_params='k-means++'` 会先运行 K-means 初始化均值；否则当分量数超过 4 时，EM 常收敛至退化解（如某成分吸收全部数据）。
 

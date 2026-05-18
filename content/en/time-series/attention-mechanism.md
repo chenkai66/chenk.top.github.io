@@ -89,7 +89,7 @@ def scaled_dot_product_attention(Q, K, V, mask=None):
         scores = scores.masked_fill(mask == 0, float("-inf"))
     weights = F.softmax(scores, dim=-1)                          # row-stochastic
     return weights @ V, weights                                  # (B, n, d_v), (B, n, n)
-```sql
+```
 
 The whole mechanism is two matrix multiplications surrounding a softmax. The expressive power lives in the learned projections $W^Q, W^K, W^V$.
 
@@ -132,7 +132,7 @@ def causal_mask(n, device):
     return torch.tril(torch.ones(n, n, device=device)).bool()  # 1 below diag
 
 scores = scores.masked_fill(~causal_mask(n, scores.device), float("-inf"))
-```sql
+```
 
 This is the only line that distinguishes a forecasting Transformer from a sequence-classification Transformer.
 
@@ -189,7 +189,7 @@ class MultiHeadAttention(nn.Module):
         out = weights @ v                                # (B, h, n, d_k)
         out = out.transpose(1, 2).reshape(B, n, -1)      # (B, n, d_model)
         return self.W_o(out), weights
-```text
+```
 
 **How many heads?** For $d_\text{model} = 64\!-\!128$, four heads is a sensible starting point. If you visualise heads after training and several are near-identical, *reduce*. If a single head is trying to encode multiple distinct patterns, *increase*.
 
@@ -224,7 +224,7 @@ def time_features(timestamps, d_model):
     freqs = 1.0 / (10000 ** (torch.arange(0, d_model, 2) / d_model))
     args = deltas.unsqueeze(-1) * freqs                  # (B, n, d_model/2)
     return torch.cat([torch.sin(args), torch.cos(args)], dim=-1)
-```text
+```
 
 This generalises sinusoidal PE to arbitrary time intervals — the same code handles 1 Hz IoT data, irregular trade ticks, and missing samples uniformly.
 
@@ -263,7 +263,7 @@ class LSTMAttention(nn.Module):
             outs.append(y)
             y_prev = y.unsqueeze(1).expand(-1, 1, x.size(-1))       # naive feedback
         return torch.cat(outs, dim=1), alpha
-```sql
+```
 
 Empirically this architecture (or variants — DA-RNN, dual-stage attention, etc.) wins many M-competition style benchmarks, especially when the horizon is short and data is limited.
 
