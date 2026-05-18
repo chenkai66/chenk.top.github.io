@@ -33,8 +33,6 @@ A second guiding picture. Think of the curvature tensor as the *infinitesimal ho
 
 ## The Riemann Curvature Tensor
 
-![Gaussian curvature on a torus: outer K>0 (red), inner K<0 (blue)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_scalar_curvature.png)
-
 ![Riemann curvature tensor: change in vector after parallel transport around loop](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_riemann_tensor.png)
 
 The **Riemann curvature tensor** $R$ is defined by
@@ -81,8 +79,6 @@ For any 2-plane $\Pi \subset T_p M$ spanned by $X, Y$, the **sectional curvature
 
 ![Animation: geodesic deviation in positive vs negative curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_geodesic_deviation.gif)
 
-![Ricci curvature: volume growth of geodesic balls](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_ricci_curvature.png)
-
 $$K(\Pi) = \frac{R(X, Y, X, Y)}{g(X, X)g(Y, Y) - g(X, Y)^2}.$$
 
 The denominator is the squared area of the parallelogram spanned by $X, Y$. The whole expression depends only on $\Pi$, not on the choice of basis.
@@ -104,8 +100,6 @@ A consequence of the symmetries: knowing $K$ on every 2-plane determines $R$ ent
 ## Ricci and Scalar Curvature
 
 The **Ricci tensor** is the trace of Riemann over the first and third indices:
-
-![Scalar curvature colored on a deformed sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_scalar_curvature.png)
 
 $$\mathrm{Ric}(Y, Z) = \mathrm{tr}(X \mapsto R(X, Y)Z), \qquad R_{jk} = R^i_{jik}.$$
 
@@ -146,8 +140,6 @@ where:
 - $\tilde{\mathrm{Ric}}$ is the **traceless Ricci** part: tensors built from $\mathrm{Ric} - \frac{R}{n}g$.
 - $R_{\mathrm{scalar}}$ is the part built from scalar curvature alone.
 
-![Curvature hierarchy: Riemann -> Ricci -> Scalar (successive traces)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_curvature_hierarchy.png)
-
 ![Riemann tensor decomposition into Weyl, traceless Ricci, and scalar parts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/11-curvature-on-manifolds/dg_v2_11_5_decomp.png)
 
 In dimensions 2 and 3, the Weyl tensor vanishes identically — there is "not enough room" for a non-trivial conformally-invariant piece. So:
@@ -170,8 +162,6 @@ In dimensions 2 and 3, the Weyl tensor vanishes identically — there is "not en
 ## Constant-Curvature Spaces
 
 A Riemannian manifold has **constant sectional curvature** $\kappa$ if $K(\Pi) = \kappa$ for every 2-plane at every point. The simply connected complete examples — the **model spaces** — are:
-
-![Jacobi fields: geodesic deviation on sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_jacobi_fields.png)
 
 ![Three model spaces of constant sectional curvature: sphere, plane, hyperbolic plane](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/11-curvature-on-manifolds/dg_v2_11_6_constant_K.png)
 
@@ -366,7 +356,6 @@ Article 12 will introduce fiber bundles, principal bundles, connections, curvatu
 
 You now have curvature on the tangent bundle. Article 12 generalizes to arbitrary bundles. Read it asking "what is the right notion of curvature for a connection on a non-tangent vector bundle?" The answer — a Lie-algebra-valued 2-form — is the language of modern theoretical physics.
 
-
 ### One last worked example: sectional curvature on $\mathbb{CP}^2$ with Fubini-Study
 
 The complex projective plane $\mathbb{CP}^2$ with the Fubini-Study metric has sectional curvature varying between $1$ and $4$ depending on the choice of 2-plane. For 2-planes that are *complex lines* (preserved by the complex structure $J$), the sectional curvature is $4$. For 2-planes that are *totally real* (where $JV$ is perpendicular to the plane), the sectional curvature is $1$. Other 2-planes interpolate between these extremes.
@@ -388,7 +377,6 @@ Ricci tensor: $\text{Ric}_{tt} = -3\ddot a/a$, $\text{Ric}_{xx} = a\ddot a + 2\d
 For our universe at present: $H_0 = \dot a/a \approx 70$ km/s/Mpc $\approx 2.2 \times 10^{-18}$ s$^{-1}$, and $\ddot a/a$ similar magnitude (since the universe accelerates at order $H_0^2$). So scalar curvature $R \approx 12 H_0^2 \approx 6 \times 10^{-35}$ s$^{-2}$. Plug into Einstein's equation $R = -8\pi G \rho_{\text{trace}}$ to relate to the matter density. The numbers match present cosmological observations to within 5%.
 
 This is exactly the kind of curvature computation that turned cosmology into a quantitative science: the Riemann tensor of a model spacetime, integrated against observations, gives concrete predictions about the size, age, and composition of the universe.
-
 
 ## What's Next
 

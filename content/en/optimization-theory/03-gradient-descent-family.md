@@ -23,7 +23,6 @@ Why is "tuning the LR is an art" a meme for ResNet, while every modern LLM paper
 
 This post walks the lineage end-to-end on a single thread: each step exists because of a **specific failure** of the previous one. We end with the three directions that have actually entered the post-2023 large-model toolkit: Lion, Sophia, and Schedule-Free.
 
-
 ---
 
 Why is "learning-rate tuning is an art" a meme around ResNet, while practically every modern LLM paper just shrugs and writes "AdamW with $\beta_1{=}0.9, \beta_2{=}0.95, \mathrm{wd}{=}0.1$" before moving on? It isn't an accident. It is **the endpoint of thirty-plus years of optimizer evolution**.
@@ -258,7 +257,6 @@ This is the table that decides which optimizer you can actually run. A 7 B model
 
 A practical rule of thumb: if optimizer state exceeds 1.5× model weight memory, you are likely going to want to either shard the optimizer (ZeRO-1), quantize it (`bitsandbytes`), or move to a state-lighter algorithm (Lion, Adafactor). The choice depends on whether your bottleneck is single-GPU memory or aggregate cluster memory.
 
-
 ![Optimizer state memory across optimizers, and total VRAM at 7B / 70B scale](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/03-gradient-descent-family/fig8_optimizer_memory.png)
 
 ## Mixed precision: where the optimizer sees fp32
@@ -275,7 +273,6 @@ The standard recipe is:
 This is what PyTorch's `torch.amp` and DeepSpeed do automatically. It also explains why the "memory cost" rows above are in fp32 bytes — even if your model is fp16, the optimizer is paying fp32 per param.
 
 bf16 changes the calculus slightly: its dynamic range is wide enough that you can sometimes keep gradients in bf16 throughout, but the optimizer state is still fp32 in every implementation worth using. For LLM pretraining at scale this is non-negotiable.
-
 
 ![Mixed-precision training data flow: where each tensor lives in fp16/bf16 vs fp32](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/03-gradient-descent-family/fig9_mixed_precision.png)
 

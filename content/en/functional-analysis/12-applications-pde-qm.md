@@ -122,7 +122,6 @@ Lax-Milgram applies, and we get a unique weak solution $u \in H_0^1(\Omega)$ wit
 
 ---
 
-
 ### Worked Numerical Example
 Take $\Omega = (0,1)$ and the reaction-diffusion problem $-u'' + u = 1$ with $u(0)=u(1)=0$. The bilinear form is $a(u,v) = \int_0^1 (u'v' + uv)\,dx$ on $V=H_0^1(0,1)$. Continuity holds with $M=1$. Coercivity holds with $\alpha=1$ because $a(u,u) = \|u\|_{H^1}^2$. The functional is $F(v) = \int_0^1 v\,dx$, with dual norm $\|F\|_{V^*} \le 1$. Lax-Milgram guarantees $\|u\|_{H^1} \le 1$.
 
@@ -205,7 +204,6 @@ The Lax-Milgram theorem handles linear problems. For nonlinear elliptic PDE, the
 Monotonicity ($\langle Au - Av, u - v \rangle \ge 0$ for all $u, v$) replaces linearity plus coercivity. Hemicontinuity (the map $t \mapsto \langle A(u + tv), w \rangle$ is continuous) replaces full continuity. This framework covers the $p$-Laplacian $-\text{div}(|\nabla u|^{p-2}\nabla u) = f$, the Euler-Lagrange equation for the energy $J(u) = \frac{1}{p}\int |\nabla u|^p - \int fu$, a genuinely nonlinear problem that requires going beyond Hilbert spaces to $W_0^{1,p}(\Omega)$.
 
 ---
-
 
 ### Worked Numerical Example
 Consider $J(u) = \frac{1}{2}\int_0^1 (u')^2\,dx - \int_0^1 \sin(\pi x)u\,dx$ on $H_0^1(0,1)$. The Euler-Lagrange equation is $-u'' = \sin(\pi x)$, solved by $u(x) = \pi^{-2}\sin(\pi x)$. Plugging back, $J(u) = \frac{1}{2\pi^2} - \frac{1}{\pi^2} = -\frac{1}{2\pi^2} \approx -0.05066$.
@@ -299,7 +297,6 @@ All rigorous consequences of Stone's theorem and the spectral theorem.
 
 ---
 
-
 ### Worked Numerical Example
 Take the harmonic oscillator ground state $\psi_0(x) = \pi^{-1/4}e^{-x^2/2}$ in $L^2(\mathbb{R})$ with $\hbar=m=\omega=1$. Position operator $Q$ multiplies by $x$, momentum $P = -i d/dx$. Compute variances explicitly.
 $\langle Q \rangle = 0$ by symmetry. $\langle Q^2 \rangle = \frac{1}{\sqrt{\pi}}\int_{-\infty}^\infty x^2 e^{-x^2}\,dx = 1/2$. So $\Delta Q = \sqrt{1/2}$.
@@ -309,8 +306,6 @@ The product $\Delta Q \Delta P = 1/2$. The commutator $[Q,P] = iI$ gives the Rob
 ## Stone's Theorem and Schrodinger Dynamics
 
 ### Statement
-
-![Animation: Schrodinger wave packet evolution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/gif12_schrodinger.gif)
 
 ![Stone's theorem: unitary groups and self-adjoint generators](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig12_stone_theorem.png)
 
@@ -368,7 +363,6 @@ For an unbounded potential like the Coulomb problem, the construction is identic
 
 ---
 
-
 ### Worked Numerical Example
 Consider the free Hamiltonian $\hat{H} = -\frac{1}{2}\partial_x^2$ on $L^2(\mathbb{R})$. Take initial data $\psi_0(x) = (2/\pi)^{1/4}e^{-x^2}$, normalized so $\|\psi_0\|^2=1$. Stone's theorem says $U(t) = e^{-it\hat{H}}$ is unitary, so $\|\psi(t)\|=1$ for all $t$.
 
@@ -423,7 +417,6 @@ The functional-analytic approach to elliptic boundary value problems follows a c
 Each step relies on different tools, yet the framework is unified and modular. This is the enduring contribution of the functional-analytic approach: it separates existence from regularity from computation, allowing each question to be addressed with optimal techniques.
 
 ---
-
 
 ### Worked Numerical Example
 Solve $-u'' = f$ on $(0,1)$ with $u(0)=u(1)=0$ and $f(x) = x^{-1/4}$. Note $f \in L^2(0,1)$ because $\int_0^1 x^{-1/2}\,dx = 2 < \infty$, but $f \notin C^0$. Lax-Milgram gives $u \in H_0^1$. Elliptic regularity predicts $u \in H^2$.

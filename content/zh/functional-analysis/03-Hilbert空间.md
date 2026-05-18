@@ -20,8 +20,6 @@ translationKey: "functional-analysis-3"
 
 ![Hilbert 空间中的正交投影](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fa03_projection.png)
 
-![内积几何：角度与投影](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/03_inner_product.png)
-
 ## 当“角度”消失之后
 
 上一篇 Banach 空间给了我一种长度感——每个向量有范数，每个序列可以谈收敛，每个连续函数族可以做绝对收敛级数。但有一件最直观的事 Banach 空间还做不到：判断两个向量是否“互相垂直”。在 $\mathbb{R}^3$ 里我闭着眼都知道 $(1,0,0)$ 和 $(0,1,0)$ 正交、$(1,1,0)$ 和 $(1,1,0)$ 平行——这种判断默认依赖内积 $\langle x, y \rangle = \sum x_i y_i$。一旦只剩范数，不再有内积，正交、夹角、投影这一整套语言都失效了。
@@ -65,8 +63,6 @@ Cauchy-Schwarz 不等式指出，对于所有 $x, y \in \mathcal{H}$，有 $|\la
 两个向量 $x, y \in \mathcal{H}$ 是正交的，记作 $x \perp y$，如果 $\langle x, y \rangle = 0$。勾股定理同样适用：如果 $x \perp y$，那么 $\|x + y\|^2 = \|x\|^2 + \|y\|^2$。对于 $n$ 个两两正交的向量，$\|\sum_{k=1}^n x_k\|^2 = \sum_{k=1}^n \|x_k\|^2$。这可以扩展到收敛的无穷级数：如果 $(x_k)$ 两两正交且 $\sum \|x_k\|^2 < \infty$，则级数 $\sum x_k$ 收敛，并且其范数平方等于各个向量范数平方之和。无穷维的勾股定理不需要从头开始仔细证明——它可以通过范数的连续性和完备性从有限情况推导出来。
 
 “最近点性质”是 Hilbert 空间几何里我用得最多的一条：对任何闭凸子集 $C$ 和外部点 $x$，$C$ 中存在唯一的最近点。这一条在有限维欧氏几何里几乎是显然的，但在一般 Banach 空间里失效——比如在 $C[0,1]$（带上确界范数）上，最近点的唯一性需要 Chebyshev 等振荡定理；在 $L^1$ 上唯一性甚至完全失败。Hilbert 空间能保留这条性质，靠的就是平行四边形等式，它把“最近点候选序列两两距离”转化成“它们和最近点距离的差”，从而把最近点的存在转化成柯西序列的极限存在——一个完备性问题。这条转化是后面投影定理的核心。
-
-![动画：Fourier 级数逐项逼近](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/03_fourier_approx.gif)
 
 ![L^2 中的 Fourier 级数：标准正交基](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/03_fourier_basis.png)
 

@@ -19,7 +19,6 @@ translationKey: "pde-ml-4"
 ---
 ![PDE and ML (4): Variational Inference and the Fokker-Planck Equation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/illustration_1.png)
 
-
 ---
 
 Why do variational inference (a method that looks purely optimization) and Langevin MCMC (a method that looks purely sampling) end up at the same partial differential equation?
@@ -88,7 +87,6 @@ whose unique stationary solution (under mild regularity) is the **Gibbs distribu
 ![Density evolution under the Fokker-Planck equation in a double-well potential.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig1_fokker_planck_evolution.png)
 *Figure 1. Solving the FP equation by finite differences. Starting from a narrow Gaussian on the left well, the density spreads, hops the barrier, and converges to the symmetric Gibbs density $p_\infty \propto e^{-V/D}$ (right panel).*
 
-
 ### Hamiltonian Monte Carlo: Momentum Beats Random Walks
 
 ULA explores by random diffusion, which is painfully slow in high dimensions or across energy barriers. **Hamiltonian Monte Carlo (HMC)** introduces auxiliary momentum $v$ and simulates Hamiltonian dynamics on the joint energy $H(\theta, v) = V(\theta) + \frac{1}{2}\|v\|^2$. The momentum lets the sampler "roll" across low-density valleys instead of waiting for noise to kick it over.
@@ -138,12 +136,9 @@ Why does HMC beat ULA? Consider a double-well potential with a barrier of height
 
 The PDE perspective: HMC corresponds to the **underdamped** (kinetic) Langevin equation $d\theta = v\,dt$, $dv = -\nabla V(\theta)\,dt - \gamma v\,dt + \sqrt{2\gamma}\,dW$, whose Fokker-Planck has second-order structure and faster convergence than the overdamped case.
 
-
 ## Langevin Dynamics: Sampling as a PDE
 
 ![Langevin dynamics: 200 particles sampling a double-well potential converging to Gibbs equilibrium](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/anim_langevin_sampling.gif)
-
-![PDE and ML (4): Variational Inference and the Fokker-Planck Equation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/illustration_2.png)
 
 The **overdamped Langevin equation** for sampling from $p^\star \propto e^{-V}$ is
 $$dX_t = -\nabla V(X_t)\, dt + \sqrt{2\tau}\, dW_t.$$
@@ -168,7 +163,6 @@ ULA's bias is $O(\eta)$; **MALA** (Metropolis-Adjusted Langevin) restores exactn
 
 ![Langevin SDE trajectories and the empirical density they generate.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig2_langevin_sde_to_density.png)
 *Figure 2. Left: 25 representative particles bouncing inside the double well; many never cross the barrier in finite time. Right: the histogram of 400 particles converges to the Gibbs target as $t$ grows — the discrete sampler is realising the FP equation in figure 1.*
-
 
 ### Stochastic Gradient Langevin Dynamics (SGLD)
 
@@ -212,7 +206,6 @@ def sgld(grad_log_prior, grad_log_likelihood, x0, data,
 
 In practice SGLD is the workhorse behind "Bayesian deep learning at scale" because it reuses the same mini-batch infrastructure as SGD. The cost per step is identical to standard training; the only addition is the noise injection $\sqrt{\eta_k}\,\xi_k$. The trade-off: finite step sizes introduce asymptotic bias, and diagnosing convergence requires monitoring the noise-to-signal ratio of the gradient estimator.
 
-
 ## KL Divergence is a Wasserstein Gradient Flow
 
 Decompose the KL divergence relative to $p^\star \propto e^{-V}$:
@@ -235,7 +228,6 @@ which is exactly the FP equation for Langevin with $\tau = 1$. Hence:
 ![KL divergence as a Wasserstein gradient flow.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig3_kl_gradient_flow.png)
 *Figure 3. Two initial densities (concentrated and broad) are evolved by the FP equation toward the bimodal target. The right panel shows their KL divergence to $p^\star$ decaying monotonically — the gradient-flow guarantee in action.*
 
-
 ### Sampler Comparison: ULA vs MALA vs HMC vs SGLD
 
 The table below summarizes the four gradient-based MCMC algorithms we have discussed. All target $p^\star \propto e^{-V}$ in $d$ dimensions with condition number $\kappa = L/m$ (ratio of smoothness to strong convexity).
@@ -253,7 +245,6 @@ Key observations:
 - **SGLD wins on wall-clock time** when $N$ is large because each step costs $O(B)$ instead of $O(N)$, but the asymptotic bias never vanishes at fixed $\eta$.
 - **MALA** is the natural "fix" for ULA's bias but gains relatively little in high dimensions compared to HMC.
 - All four are instances of the same Fokker-Planck flow, differing only in their discretization scheme and whether momentum is included.
-
 
 ## VI vs MCMC in Practice
 
@@ -294,7 +285,6 @@ and as the bandwidth $h \to 0$ this PDE collapses to the standard Fokker-Planck 
 
 ![SVGD particles on a bimodal target.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig5_svgd_particles.png)
 *Figure 5. Left: snapshots of 80 SVGD particles starting at the origin and splitting to populate both modes within a few hundred iterations. Right: full particle trajectories show the kernel repulsion preventing collapse, while the drift term locks particles around $\pm 2$.*
-
 
 ### Adaptive Bandwidth and Non-Gaussian Posteriors
 
@@ -337,7 +327,6 @@ def svgd_adaptive(x, score_fn, eta=0.05, k_neighbors=5):
 
 The lesson generalizes: in real Bayesian posteriors (which are rarely Gaussian), local geometric adaptation is not optional --- it is the difference between coverage and mode collapse. Matrix-valued kernels (Wang et al., 2019) push this further by using a full $d \times d$ metric tensor per particle.
 
-
 ## Convergence Theory
 
 **Definition (LSI).** $p^\star$ satisfies a **log-Sobolev inequality** with constant $\lambda > 0$ if for all smooth probability densities $p \ll p^\star$:
@@ -363,7 +352,6 @@ The figure below uses 24 random Fourier features as a tractable "Bayesian NN" so
 
 ![Bayesian neural net posterior bands.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig7_bayesian_nn.png)
 *Figure 7. Left: posterior predictive for a regression model with a gap in the training data; the 90% Langevin band widens precisely where data is missing. Right: predictive standard deviation peaks in the data gap — exactly the **epistemic uncertainty** that point-estimate networks lack.*
-
 
 ### Full Experiment: BNN Uncertainty on a 1D Regression Task
 
@@ -449,7 +437,6 @@ std_pred = predictions.std(axis=0)
 The result demonstrates the core promise of Bayesian inference: **calibrated uncertainty**. In the gap region $x \in [1, 3]$, the posterior predictive standard deviation is 3-5x larger than in the data-rich regions. A point-estimate network (trained with SGD) would output a confident but arbitrary interpolation through the gap, with no indication that its prediction is unreliable.
 
 This is not a toy property --- it is the foundation of active learning (query where uncertainty is high), safe reinforcement learning (avoid states with high epistemic uncertainty), and model selection (prefer models with tighter predictive bands on held-out data).
-
 
 ## Numerical Implementation: SDE Simulation You Can Actually Run
 

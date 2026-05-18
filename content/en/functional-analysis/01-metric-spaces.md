@@ -80,15 +80,12 @@ What changes is the *shape* of the balls. In $\mathbb{R}^2$, the unit ball under
 
 A continuous map between metric spaces $f: (X, d_X) \to (Y, d_Y)$ is one for which preimages of open sets are open, equivalently: for every $\varepsilon > 0$ and every $x \in X$ there exists $\delta > 0$ such that $d_X(x, x') < \delta$ implies $d_Y(f(x), f(x')) < \varepsilon$. Continuity in the metric sense is automatically continuity in the topological sense, but the metric formulation buys me **uniform continuity** ($\delta$ depending only on $\varepsilon$, not on $x$) and **Lipschitz continuity** ($d_Y(f(x), f(x')) \leq L \cdot d_X(x, x')$). These are quantitative notions absent from pure topology, and they are what let me prove rate-of-convergence theorems.
 
-
 ### Worked Numerical Example
 Take $f_n(t) = t^n$ on $[0,1]$. Under the supremum metric $d_\infty(f,g) = \sup_t |f(t)-g(t)|$, the distance to the zero function is $d_\infty(f_n, 0) = 1$ for every $n$. The sequence does not converge to $0$. Switch to the integral metric $d_1(f,g) = \int_0^1 |f-g|\,dt$. Compute $d_1(f_n, 0) = \int_0^1 t^n\,dt = 1/(n+1)$. For $n=9$, $d_1 = 0.1$. For $n=99$, $d_1 = 0.01$. For $n=999$, $d_1 = 0.001$. The numbers shrink to zero linearly in $1/n$. The sequence converges to $0$ in $(C[0,1], d_1)$ but stays exactly distance $1$ away in $(C[0,1], d_\infty)$. The open ball $B_{d_1}(0, 0.05)$ contains $f_{99}$, while $B_{d_\infty}(0, 0.5)$ contains none of them. Convergence is not a property of the sequence alone; it is a property of the pair (sequence, metric).
 
 ## Cauchy Sequences and the Hidden Hypothesis
 
 A sequence $(x_n)$ is **Cauchy** if for every $\varepsilon > 0$ there exists $N$ such that $d(x_m, x_n) < \varepsilon$ for all $m, n \geq N$. The eyes-glaze-over phrasing hides the actual content: the terms get arbitrarily close *to each other*, with no reference to a candidate limit.
-
-![Animation: contraction mapping iteration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/01_contraction.gif)
 
 ![Banach contraction mapping theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/01_banach_fixed_point.png)
 
@@ -114,15 +111,12 @@ Completeness is the algebraic license to do limit-based arguments. Want to defin
 
 The completeness of a space is *metric-dependent*, not just space-dependent. The space $C[0,1]$ is complete under the supremum metric $d_\infty(f,g) = \sup_t |f-g|$ (the sequence above does not converge uniformly, so it is not Cauchy in $d_\infty$), but incomplete under $d_1$. The question is never just "is this complete?" — it is "is this complete under that metric?"
 
-
 ### Worked Numerical Example
 Work in $X = (0, 1)$ with the standard metric $d(x,y) = |x-y|$. Define $x_n = 1/n$. Compute pairwise distances: $d(x_{10}, x_{20}) = |0.1 - 0.05| = 0.05$. $d(x_{100}, x_{200}) = |0.01 - 0.005| = 0.005$. $d(x_{1000}, x_{2000}) = 0.0005$. For any $\varepsilon = 10^{-k}$, choosing $N = 10^k$ guarantees $d(x_m, x_n) < \varepsilon$ for all $m,n \geq N$. The sequence is Cauchy by direct arithmetic. The candidate limit is $0$, but $0 \notin (0,1)$. The distances between terms collapse to zero while the sequence drifts toward a hole in the space. The Cauchy condition detects internal coherence; it cannot detect whether the destination exists inside $X$.
 
 ## The Completion of a Metric Space
 
 The good news: every metric space $(X, d)$ has a **completion** $(\widehat X, \widehat d)$ — a complete metric space containing an isometric, dense copy of $X$. The construction is canonical. Take all Cauchy sequences in $X$, declare two of them equivalent if their pointwise distance tends to zero, and define the distance between equivalence classes as the limit of pointwise distances. This is essentially how Cantor builds $\mathbb{R}$ from $\mathbb{Q}$.
-
-![Open and closed sets in metric spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/01_open_closed_sets.png)
 
 ![Completing the rationals to the reals via Cauchy sequences](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/01-metric-spaces/fa_v2_01_4_completion.png)
 
@@ -142,15 +136,12 @@ A subtler point: the elements of $L^1[0,1]$ are *equivalence classes*, not funct
 
 The lesson: every reasonable function space you have ever met — the $L^p$ spaces, the Sobolev spaces, the Hardy spaces — is the completion of a more concrete space (continuous functions, or smooth compactly supported functions) in some specific norm. Completeness is not optional decoration; it is the price of admission for limits.
 
-
 ### Worked Numerical Example
 Take $\mathbb{Q}$ with $d(x,y)=|x-y|$. Consider two Cauchy sequences approximating $\sqrt{2}$: $a_n$ from Newton's method ($1, 1.5, 1.41666..., 1.414215...$) and $b_n$ from decimal truncation ($1, 1.4, 1.41, 1.414, 1.4142$). Compute termwise distances: $|a_1-b_1|=0$, $|a_2-b_2|=0.1$, $|a_3-b_3| \approx 0.00666$, $|a_4-b_4| \approx 0.000215$, $|a_5-b_5| \approx 0.000013$. The distance sequence tends to $0$. By the completion construction, $[(a_n)] = [(b_n)]$ in $\widehat{\mathbb{Q}}$. They define the same point. Now take $c_n = 1.5, 1.42, 1.415, 1.4143, ...$ (rounding up). $|a_n - c_n|$ also tends to $0$. All three sequences belong to the same equivalence class. The real number $\sqrt{2}$ is not a single sequence; it is the entire class of rational sequences whose mutual distances vanish. The completion turns this vanishing distance into an actual point.
 
 ## The Baire Category Theorem
 
 Once a metric space is complete, a remarkable rigidity result kicks in. The **Baire Category Theorem** says: in a complete metric space, the countable intersection of dense open sets is still dense. Equivalently, a complete metric space cannot be written as a countable union of *nowhere-dense* sets (sets whose closure has empty interior).
-
-![Baire category theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/01_baire_category.png)
 
 ![Baire category theorem: a complete metric space is not a countable union of nowhere-dense sets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/01-metric-spaces/fa_v2_01_5_baire.png)
 
@@ -199,7 +190,6 @@ For $h$ small enough, $T$ is a contraction in the supremum metric on $C[t_0, t_0
 
 The fixed-point theorem is how I solve almost every existence problem in this series. The Picard-Lindelöf theorem on existence of solutions to ODEs is a fixed-point argument in $C[a, b]$. The implicit function theorem in Banach spaces is a fixed-point argument. Solutions of integral equations of the form $f = g + Kf$ exist as fixed points of $T f = g + K f$ whenever $K$ is contractive. The Hartman-Grobman theorem on linearization of dynamical systems uses a fixed-point argument in a function space. Every time I solve $T x = x$ by iteration and bound the rate of convergence, I am cashing in the same theorem.
 
-
 ### Worked Numerical Example
 Let $X = [0, 1]$ and $T(x) = \cos(x)$. The derivative is $T'(x) = -\sin(x)$. On $[0,1]$, $|T'(x)| \leq \sin(1) \approx 0.84147$. So $T$ is a contraction with $\lambda = 0.84147$. Start at $x_0 = 0.5$. Iterate: $x_1 = \cos(0.5) \approx 0.87758$, $x_2 = \cos(0.87758) \approx 0.63901$, $x_3 = \cos(0.63901) \approx 0.80269$, $x_4 \approx 0.69478$. The theoretical error bound after $n=4$ steps is $d(x_4, x^*) \leq \frac{\lambda^4}{1-\lambda} d(x_1, x_0) \approx \frac{0.501}{0.15853} \times 0.37758 \approx 1.19$. The actual fixed point is $x^* \approx 0.739085$. The true error is $|0.69478 - 0.739085| \approx 0.0443$. The bound is loose but valid. The contraction constant $\lambda < 1$ forces the error envelope to shrink geometrically, and completeness guarantees the envelope closes on a point inside $[0,1]$.
 
@@ -236,7 +226,6 @@ Total boundedness is the abstract notion; equicontinuity plus pointwise boundedn
 ### Why this matters
 
 Compactness is the topological substitute for "finite." Continuous functions on compact sets attain their extrema (Weierstrass), are uniformly continuous, and are bounded. Compactness lets me extract convergent subsequences and so converts existence questions ("does some maximizer exist?") into routine arguments. The whole calculus of variations, the whole theory of weak solutions of PDEs, and most of operator spectral theory cash in compactness at some critical step.
-
 
 ### Worked Numerical Example
 Test total boundedness with $\varepsilon = 0.2$. In $[0,1] \subset \mathbb{R}$, place balls of radius $0.2$ at centers $0.1, 0.3, 0.5, 0.7, 0.9$. Five balls cover the interval exactly. The covering number $N(0.2) = 5$ is finite. Now take the closed unit ball $B$ in $\ell^2$. Consider the standard basis vectors $e_1, e_2, e_3, e_4, e_5$. Pairwise distances are $\|e_i - e_j\|_2 = \sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$. A ball of radius $0.2$ has diameter $0.4$. It can contain at most one $e_k$. To cover just these five points requires five disjoint balls. Since $\ell^2$ contains infinitely many such vectors, $N(0.2)$ is infinite. The unit ball is bounded (radius $1$) but fails total boundedness at $\varepsilon = 0.2$. Compactness collapses in infinite dimensions because boundedness no longer controls the covering number.

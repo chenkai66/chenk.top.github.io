@@ -26,7 +26,6 @@ A surprising amount of "optimizer folklore" collapses into three concepts:
 
 This post lays them out on a single thread: nail the geometric intuition with the minimum number of inequalities, prove the key theorems, then close with a least-squares experiment that pits GD, Heavy Ball, and Nesterov against each other. The goal is not to stack formulas — it is to make you able to look at a new problem and instantly answer "what step size, what rate, is acceleration worth it?"
 
-
 ---
 
 Anyone who has tuned a deep network knows the loop: bump the learning rate up a bit, the loss explodes; drop it, training crawls. Underneath that frustration there are really only three quantities in play:

@@ -64,8 +64,6 @@ Armed with Christoffel symbols, we can state and understand the central theorem 
 
 ![Animation: geodesic flow on a surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_geodesic_flow.gif)
 
-![Geodesics on various surfaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_geodesic_surfaces.png)
-
 **Theorem (Gauss, 1827 — Theorema Egregium).** The Gaussian curvature $K$ is expressible entirely in terms of the metric coefficients $g_{ij}$ and their first and second partial derivatives. In particular, $K$ does not depend on the second fundamental form $\mathrm{II}$ or on any information about how the surface is embedded in $\mathbb{R}^3$.
 
 In orthogonal coordinates ($F = 0$), there is a relatively clean formula (Brioschi's formula):
@@ -286,7 +284,6 @@ Article 5 will state and prove the Gauss-Bonnet theorem, which says that for a c
 
 You now have all the local intrinsic geometry. Article 5 packages it into a global theorem. Read it asking "where does the topological invariant $\chi$ enter the proof?" The answer — Euler's formula $V - E + F = \chi$ — comes in via combinatorics of triangulations, and the magic is how the geometric integral exactly recovers it.
 
-
 ### One last worked example: Brioschi's intrinsic formula on the sphere
 
 Brioschi's formula expresses Gaussian curvature in terms of $E$, $F$, $G$ alone. For an orthogonal parametrization ($F = 0$):
@@ -304,7 +301,6 @@ Now scale up. For $s = 1000$ km: $E \approx 0.55°$, a meaningful angular discre
 This scaling — "curvature effects are quadratic in length scale, divided by curvature radius squared" — is the universal heuristic for when curvature matters. In GR, near a black hole of Schwarzschild radius $r_s$, deviations from flat spacetime become $O(1)$ at distances $\sim r_s$. In differential geometry, the same heuristic governs everything from cartographic projection error to gravitational lensing.
 
 A second numerical anchor: the holonomy of parallel transport around a small geodesic loop of area $A$ on a surface of Gaussian curvature $K$ is approximately $K \cdot A$ rad — exactly the Gauss-Bonnet relationship at infinitesimal scale. For a $1$-meter loop on Earth's surface (treating Earth as a sphere), $K \approx 1/R^2 \approx 2.5 \times 10^{-14}$ m$^{-2}$, area $\approx 1$ m$^2$, so holonomy $\approx 2.5 \times 10^{-14}$ rad — utterly negligible at human scale. For a $1000$-km-radius region, holonomy reaches $0.05$ rad $\approx 3°$ — easily measurable, and the basis for precision navigation systems that account for Earth's curvature.
-
 
 ## What's next
 

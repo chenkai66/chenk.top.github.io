@@ -110,7 +110,6 @@ The last term $\mathcal L_d$ is absent in **forward problems** but central to **
 ![Three loss components and a balanced-weighting comparison.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig2_loss_decomposition.png)
 *Figure 2. Left: with naive equal weights the PDE residual decays quickly while the boundary loss stalls — the network produces what aerodynamicists jokingly call "physics-respecting noise". Right: after NTK-balanced adaptive weighting the three curves descend together — this is what healthy PINN training looks like.*
 
-
 ### Complete PINN implementation: 1D heat equation
 
 Before we discuss why autodiff matters, let us build a complete PINN from scratch. The 1D heat equation on $[0,1] \times [0,1]$:
@@ -193,7 +192,6 @@ Key design choices visible in this code:
 2. **Automatic differentiation**: We never discretize $\partial u/\partial t$ or $\partial^2 u/\partial x^2$. PyTorch's `autograd` computes exact derivatives of the network output with respect to its inputs.
 3. **Mesh-free sampling**: Collocation points are simply random samples in $[0,1]^2$. No mesh connectivity, no element assembly.
 
-
 ### Why automatic differentiation matters
 
 Naive numerical differentiation,
@@ -259,7 +257,6 @@ where $B$ satisfies the boundary by construction and $\tilde u_\theta$ is uncons
 
 **Fix 3: NTK balancing.** Wang–Yu–Perdikaris (2022) [^wang2022ntk] proved PINN training dynamics are governed by three Neural Tangent Kernels; weighting by the trace of each NTK is the principled choice.
 
-
 ### Fixing spectral bias: Fourier features and SIREN
 
 Before examining spectral bias in detail, let us see the practical fix. The core idea: if a standard MLP has trouble representing high-frequency functions, we can **lift the input into a high-frequency basis** before feeding it to the network.
@@ -282,7 +279,6 @@ class FourierFeatureLayer(nn.Module):
     def forward(self, x):
         proj = x @ self.B  # shape: (batch, num_features)
         return torch.cat([torch.cos(proj), torch.sin(proj)], dim=-1)
-
 
 class PINN_RFF(nn.Module):
     # PINN with Fourier feature input encoding
@@ -330,7 +326,6 @@ class SirenLayer(nn.Module):
 - **RFF** ($\sigma > 10$): Aggressive high-frequency capture. Risk: if $\sigma$ is too large, optimization becomes harder.
 - **SIREN** ($\omega_0 = 30$): Best for problems where the solution has structure at many scales (e.g., turbulence, wave interference). Requires careful initialization but gives smooth, infinitely differentiable outputs at all frequencies.
 
-
 ### Pathology B: spectral bias
 
 Neural network training has a well-known bias: **low frequencies are learned first, high frequencies last** (Rahaman 2019; Tancik 2020). For PINNs the impact is especially severe because the PDE residual involves second derivatives, which amplify high-frequency error by $k^2$ — the worse the network is at high frequencies, the larger the residual, in a vicious circle.
@@ -356,7 +351,6 @@ Combining the fixes on a Burgers experiment:
 *Figure 4. With only 50 noisy labels, pure supervised training (red) is quickly trapped at a 4% noise plateau. Adding the PDE residual (blue) keeps the physics constraint pushing the error down to 0.3%. This is the core value PINNs add over plain regression.*
 
 ---
-
 
 ### Method comparison: PINNs vs classical solvers vs neural operators
 
@@ -425,7 +419,6 @@ def adaptive_resample(model, x_domain, t_domain, N_total=10000, N_new=2000):
 
 RAR typically improves accuracy by 3--10x for problems with localized features (shocks, boundary layers) at no extra computational cost per epoch.
 
-
 ## Experiment: Burgers and an inverse problem
 
 ### Forward problem: the Burgers shock
@@ -457,7 +450,6 @@ Forward problems are unremarkable; inverse problems are where PINNs shine. Appen
 **Why is PINN so good at inverse problems?** Classical inverse problems require nested optimisation — outer loop on parameters, inner loop on the PDE solver; every parameter change triggers a full forward solve. PINNs put "satisfies the PDE" *into* the loss, so parameter and $\theta$ live on the same gradient — no outer loop. The price is uncertainty quantification: ensembles or Bayesian PINNs, not a textbook MCMC + FEM stack.
 
 ---
-
 
 ### Complete inverse problem: recovering the diffusion coefficient
 
@@ -549,7 +541,6 @@ Key implementation details for inverse problems:
 - **High data weight**: The coefficient 100.0 on `loss_data` ensures the network fits observations tightly. Without it, the PDE loss dominates and $\nu$ may not converge.
 - **Observation window**: We only observe $t \in [0, 0.5]$ but enforce the PDE on the full domain. The PDE acts as a physics-informed regularizer that extrapolates beyond the data.
 
-
 ## Failure modes and limits
 
 PINNs are not silver bullets. Common industrial pitfalls:
@@ -581,7 +572,6 @@ A practitioner's rule of thumb: **complex geometry, high dimensions, parameter i
 PINNs do not aim to replace FEM. Their real role is to make **prior physics a first-class citizen of deep-learning model design.** That theme will run through every subsequent chapter.
 
 ---
-
 
 ## Handing off to the next chapters
 
@@ -616,7 +606,6 @@ After this chapter, you should be able to give the one-sentence answer:
 The handful of core ideas in this chapter (PDE residual as loss, operators on function spaces, Wasserstein geometry, symplectic structure, scores, diffusion) recur throughout the rest of the series. If a section stalls you, jot the question down and keep reading — the next chapter usually re-explains it from a different angle.
 
 The fastest sanity check on your own understanding is to run this chapter's equation on a minimal example: a 1-D heat equation, a single pendulum, a 2-D Gaussian mixture. The code is short, but it converts "looks right" into "it's right on my machine."
-
 
 ## References
 

@@ -22,7 +22,6 @@ translationKey: "pde-ml-7"
 ---
 ![偏微分方程与机器学习（七）：扩散模型与Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-Diffusion-Models/illustration_1.png)
 
-
 ---
 
 扩散模型的输出端我们很熟悉：一张高质量图片。但训练目标乍看之下却很反直觉——**先把数据加噪声加到完全是高斯，再学怎么一步步去噪**。为什么这个绕远路的策略反而比直接学数据分布有效？
@@ -585,7 +584,6 @@ def guided_sample(model, alpha_bar, cond, w=7.5, steps=50, T=1000):
 本章给的几个核心想法（PDE 残��作为损失、函数空间上的算子、Wasserstein 几何、辛结构、score、扩散）在后面的章节里会反复出现。如果某一段卡住了，建议先记下问题继续往下读——下一章往往会从另一个角度把它再讲一遍。
 
 如果你想验证自己读懂了，最直接的练习是把本章的方程在一个最小例子上跑通：一维热方程、单摆、二维高斯混合。代码不长，但能让公式从“看着对”变成“在我电脑上确实是对的”。
-
 
 ## 参考文献
 

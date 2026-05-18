@@ -23,7 +23,6 @@ When data has hidden structure — like an unobserved cluster label, a missing f
 
 ![ML Math Derivations (13): EM Algorithm and GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn

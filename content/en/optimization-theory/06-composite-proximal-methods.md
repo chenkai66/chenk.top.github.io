@@ -21,7 +21,6 @@ When your objective contains a non-smooth piece (sparse regularisation, total va
 
 This guide builds the minimum convex-analysis toolkit, derives the Moreau envelope and the core properties of the prox map, lists the closed-form proxes you actually use, and plugs them into ISTA, FISTA, ADMM, SVM, and sparse optimisation — with an emphasis on why each piece works, when one method beats another, and the implementation traps that hurt the most.
 
-
 ---
 
 The moment your objective grows a non-smooth piece — an L1 penalty, a TV term, the indicator of a constraint set — plain gradient descent starts to choke: either there's no gradient at the kink, or each step blows the constraint.

@@ -22,7 +22,6 @@ translationKey: "ml-math-derivations-16"
 ---
 ![ML Math Derivations (16): Conditional Random Fields — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn

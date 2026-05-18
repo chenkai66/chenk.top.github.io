@@ -29,10 +29,6 @@ description: "范数公理、经典例子、有限维空间中范数的等价性
 
 ## 为什么范数不仅仅是戴着帽子的度量
 
-![不同 Lp 范数下的单位球](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fa02_lp_balls.png)
-
-![动画：l^p 单位球随 p 变化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/02_lp_morph.gif)
-
 ![不同 p 值下 l^p 空间的单位球](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/02_lp_unit_balls.png)
 
 在第一篇文章中，度量是一个集合上的独立函数，没有代数结构。这种一般性带来了拓扑和完备性，但对代数没有任何回馈。一旦我愿意假设底层集合是向量空间，一个更刚性的对象就变得可用：**范数**，一个定义在空间上的非负函数，其诱导的度量 $d(x,y) = \|x - y\|$ 是*平移不变的*和*正齐次的*。
@@ -118,8 +114,6 @@ $$C_1 \|x\|_a \leq \|x\|_b \leq C_2 \|x\|_a \quad \text{对于所有 } x \in V.$
 ## Banach空间：完备性落地
 
 一个赋范空间是**Banach空间**，如果它在其范数诱导的度量下是完备的。完备性是关于*特定范数*的事实，而不仅仅是关于底层向量空间。给一个Banach空间和一个非Banach空间添加范数结构有时会产生相同的向量空间 —— 例如，作为向量空间的 $\ell^p$ 是 $\ell^\infty$ 的子空间，但它们在拓扑化后是非常不同的对象。
-
-![函数空间的层次结构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/02_function_spaces.png)
 
 ![Banach空间：在其范数下完备的赋范空间](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/02-normed-and-banach/fa_v2_02_4_banach_complete.png)
 

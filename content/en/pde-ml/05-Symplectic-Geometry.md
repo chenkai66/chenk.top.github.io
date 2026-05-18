@@ -20,7 +20,6 @@ translationKey: "pde-ml-5"
 ---
 ![PDE and ML (5): Symplectic Geometry and Structure-Preserving Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/illustration_1.png)
 
-
 ---
 
 A pendulum keeps swinging for a very long time without slowly winding down — energy is conserved. The Earth orbits the Sun for billions of years without flying off — angular momentum is conserved. Behind every "this quantity stays constant" lurks a piece of geometry called **symplectic structure**.
@@ -621,7 +620,6 @@ With a symplectic integrator, the energy error oscillates but never grows — ev
 The handful of core ideas in this chapter (PDE residual as loss, operators on function spaces, Wasserstein geometry, symplectic structure, scores, diffusion) recur throughout the rest of the series. If a section stalls you, jot the question down and keep reading — the next chapter usually re-explains it from a different angle.
 
 The fastest sanity check on your own understanding is to run this chapter's equation on a minimal example: a 1-D heat equation, a single pendulum, a 2-D Gaussian mixture. The code is short, but it converts "looks right" into "it's right on my machine."
-
 
 ## References
 

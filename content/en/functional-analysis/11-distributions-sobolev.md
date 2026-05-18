@@ -61,7 +61,6 @@ A key result: every distribution is the limit (in $\mathcal{D}'$) of a sequence 
 
 ---
 
-
 ### Worked Numerical Example
 Take $-u'' = f$ on $(0,1)$ with $u(0)=u(1)=0$ and $f = \chi_{[0.2, 0.6]}$. Integrate twice explicitly. On $[0, 0.2]$, $u''=0$ and $u(0)=0$ gives $u(x) = c_1 x$. On $[0.2, 0.6]$, $u''=-1$ gives $u(x) = -\frac{1}{2}x^2 + c_2 x + c_3$. On $[0.6, 1]$, $u''=0$ and $u(1)=0$ gives $u(x) = c_4(1-x)$. Enforce $C^1$ matching at $x=0.2$ and $x=0.6$. Solving the linear system yields $c_1 = 0.4$, $c_2 = 0.6$, $c_3 = -0.06$, $c_4 = 0.24$. The resulting $u$ is piecewise quadratic, continuous, and has a continuous first derivative. The second derivative jumps from $0$ to $-1$ at $x=0.2$ and back at $x=0.6$. Now test the weak formulation with $\varphi(x) = x(1-x)$. Compute $\int_0^1 u'\varphi' dx$. Since $\varphi'(x) = 1-2x$, split the integral over the three intervals. Direct calculation gives $\int_0^{0.2} 0.4(1-2x)dx + \int_{0.2}^{0.6} (-x+0.6)(1-2x)dx + \int_{0.6}^1 (-0.24)(1-2x)dx = 0.064$. Compute the right side: $\int_0^1 f\varphi dx = \int_{0.2}^{0.6} x(1-x)dx = [\frac{x^2}{2} - \frac{x^3}{3}]_{0.2}^{0.6} = 0.064$. The identity holds exactly. The classical second derivative fails at two points, but the integral identity survives without modification.
 
@@ -167,7 +166,6 @@ For the heat equation $(\partial_t - \Delta)u = 0$, the fundamental solution is 
 
 ---
 
-
 ### Worked Numerical Example
 Compute $\langle \mathrm{p.v.}\frac{1}{x}, \varphi \rangle$ for $\varphi(x) = x e^{-x^2}$. By definition, the pairing is $\lim_{\epsilon \to 0} \int_{|x|>\epsilon} \frac{x e^{-x^2}}{x} dx = \lim_{\epsilon \to 0} \int_{|x|>\epsilon} e^{-x^2} dx$. The integrand simplifies to a Gaussian. The limit removes a symmetric interval around zero, which contributes zero measure to the Lebesgue integral of a continuous function. Thus the value is exactly $\int_{-\infty}^\infty e^{-x^2} dx = \sqrt{\pi} \approx 1.77245$. Now try $\psi(x) = e^{-x^2}$. The pairing becomes $\lim_{\epsilon \to 0} \int_{|x|>\epsilon} \frac{e^{-x^2}}{x} dx$. The integrand is odd, and the domain $(-\infty, -\epsilon) \cup (\epsilon, \infty)$ is symmetric. The integral vanishes identically for every $\epsilon > 0$, so the limit is $0$. This explicit computation shows how the principal value extracts the odd part of the test function near the singularity while discarding the even part. The distribution is well-defined precisely because the $1/x$ singularity is cancelled by the vanishing of $\varphi(0)$ or by symmetry. If you replace $\varphi$ with a function that does not vanish at $0$ and lacks symmetry, the limit diverges, which is why $1/x$ alone is not a distribution without the p.v. prescription.
 
@@ -269,7 +267,6 @@ A variant, the **Poincare-Wirtinger inequality**, holds for functions without bo
 
 ---
 
-
 ### Worked Numerical Example
 Consider the hat function $u(x) = \max(0, 1-|x|)$ on $\Omega = (-2, 2)$. Classically, $u$ is not differentiable at $x=-1, 0, 1$. The weak derivative $g$ must satisfy $\int_{-2}^2 u \varphi' dx = -\int_{-2}^2 g \varphi dx$. Split the left integral: $\int_{-1}^0 (1+x)\varphi' dx + \int_0^1 (1-x)\varphi' dx$. Integrate by parts on each smooth piece. The boundary terms at $\pm 1$ vanish because $u(\pm 1)=0$. The interior terms at $0$ cancel because $u$ is continuous. We are left with $-\int_{-1}^0 1\cdot \varphi dx + \int_0^1 (-1)\cdot \varphi dx$. Thus $g(x) = 1$ on $(-1,0)$, $g(x) = -1$ on $(0,1)$, and $0$ elsewhere. Compute the $H^1$ norm explicitly. $\|u\|_{L^2}^2 = 2\int_0^1 (1-x)^2 dx = 2[ -\frac{(1-x)^3}{3} ]_0^1 = \frac{2}{3}$. $\|g\|_{L^2}^2 = \int_{-1}^0 1^2 dx + \int_0^1 (-1)^2 dx = 2$. The squared $H^1$ norm is $\frac{2}{3} + 2 = \frac{8}{3}$, so $\|u\|_{H^1} = \sqrt{8/3} \approx 1.63299$. The calculation requires no distributional machinery beyond integration by parts on subintervals, yet it places a non-differentiable function firmly inside a Hilbert space.
 
@@ -330,7 +327,6 @@ The embeddings extend from $\mathbb{R}^n$ to domains $\Omega$ under boundary reg
 This extension reduces problems on domains to problems on $\mathbb{R}^n$, where Fourier-analytic tools are available. The Lipschitz hypothesis is essentially sharp: domains with cusps or fractal boundaries can fail the extension property.
 
 ---
-
 
 ### Worked Numerical Example
 Verify the 1D Sobolev inequality $\|u\|_{L^\infty(\mathbb{R})} \le \frac{1}{\sqrt{2}} \|u\|_{H^1(\mathbb{R})}$ for $u(x) = e^{-|x|}$. The supremum is clearly $u(0) = 1$. Compute the $L^2$ norm: $\|u\|_{L^2}^2 = \int_{-\infty}^\infty e^{-2|x|} dx = 2\int_0^\infty e^{-2x} dx = 1$. The weak derivative is $u'(x) = -\mathrm{sgn}(x)e^{-|x|}$, so $\|u'\|_{L^2}^2 = \int_{-\infty}^\infty e^{-2|x|} dx = 1$. The $H^1$ norm squared is $1+1=2$, giving $\|u\|_{H^1} = \sqrt{2} \approx 1.41421$. The inequality reads $1 \le \frac{1}{\sqrt{2}} \cdot \sqrt{2} = 1$. The bound is saturated. This is not an accident: in one dimension, the optimal constant $1/\sqrt{2}$ is achieved exactly by multiples of $e^{-|x|}$. The embedding $H^1(\mathbb{R}) \hookrightarrow C^0_b(\mathbb{R})$ is continuous, and the numerical check confirms that controlling the function and its first derivative in $L^2$ strictly bounds the pointwise maximum. If you drop the derivative term and only control $\|u\|_{L^2}$, you can make the peak arbitrarily high by narrowing a bump while preserving area, destroying any $L^\infty$ bound. The derivative term is what locks the height down.
@@ -432,7 +428,6 @@ A practical workflow I have settled on for new PDE problems: pick the right Sobo
 One final remark on terminology that confused me as a graduate student. The term "weak solution" overloads in two distinct ways. First, a weak solution of $-\Delta u = f$ in $H^1_0(\Omega)$ is a function satisfying the variational identity $\int \nabla u \cdot \nabla\varphi = \int f\varphi$ for all $\varphi \in H^1_0$. Second, a "distributional solution" is a distribution $u$ satisfying $-\Delta u = f$ in $\mathcal{D}'(\Omega)$. These coincide when $u \in H^1$ and $f \in H^{-1}$, but the two notions live in nominally different worlds. The Sobolev framework gives the variational reading; the distributional framework gives the wider one. Most PDE textbooks elide the distinction, but it matters when the data is rough enough that no Sobolev solution exists yet a distributional one does. The full picture has both notions in play, with the appropriate one selected by the data class.
 
 ---
-
 
 ### Worked Numerical Example
 Take $\Omega = B_1(0) \subset \mathbb{R}^2$ and $u(x,y) = x$. The trace on $\partial\Omega$ is $\gamma_0 u(\theta) = \cos\theta$. Compute the $L^2$ norm of the trace: $\|\gamma_0 u\|_{L^2(\partial\Omega)}^2 = \int_0^{2\pi} \cos^2\theta \, d\theta = \pi$. Compute the $H^1$ norm of $u$ on the disk. $\|u\|_{L^2(\Omega)}^2 = \int_0^{2\pi} \int_0^1 r^2 \cos^2\theta \, r dr d\theta = \frac{1}{4} \cdot \pi = \frac{\pi}{4}$. The gradient is $\nabla u = (1, 0)$, so $\|\nabla u\|_{L^2(\Omega)}^2 = \int_\Omega 1 \, dx dy = \pi$. The squared $H^1$ norm is $\frac{\pi}{4} + \pi = \frac{5\pi}{4}$. The trace inequality demands $\|\gamma_0 u\|_{L^2} \le C \|u\|_{H^1}$. Plugging in the numbers: $\sqrt{\pi} \le C \sqrt{5\pi/4}$, which simplifies to $1 \le C \sqrt{5}/2$, or $C \ge 2/\sqrt{5} \approx 0.8944$. The trace operator is bounded, and the constant depends only on the domain geometry. If you attempt to restrict a generic $L^2$ function to the boundary, the left side is undefined. The $H^1$ control provides exactly enough regularity to make the boundary integral finite and continuous with respect to the bulk norm.

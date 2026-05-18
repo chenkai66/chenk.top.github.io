@@ -29,8 +29,6 @@ The reason this article matters: Stokes' theorem is the *single* result of diffe
 
 A **tangent space** $T_pM$ is an $n$-dimensional real vector space, and like any such space it admits two equivalence classes of ordered bases (related by orientation-preserving vs. orientation-reversing linear maps). A choice of one class is an **orientation** of $T_pM$. A manifold $M$ is **orientable** if such choices can be made smoothly across the manifold, agreeing on overlaps. An orientation, when it exists, is a global topological choice — there are exactly two orientations on a connected orientable manifold.
 
-![Orientable vs non-orientable: torus vs Mobius strip](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/09_orientation.png)
-
 ![Orientation of a manifold via consistent ordered bases](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_v2_09_1_orientation.png)
 
 **Three equivalent definitions.** A manifold $M$ is orientable if any of the following holds:
@@ -60,10 +58,6 @@ These are equivalent, and each is useful in different contexts. The form-theoret
 ## Manifolds with Boundary; Induced Orientation
 
 A **manifold with boundary** is a topological space locally modeled on the upper half-space $\mathbb{H}^n = \{x \in \mathbb{R}^n : x^n \geq 0\}$. Charts come in two flavors: interior charts (whose images miss the boundary $\{x^n = 0\}$) and boundary charts (whose images touch $\{x^n = 0\}$). The **boundary** $\partial M$ is the set of points sitting on $\{x^n = 0\}$ in some boundary chart. It is an $(n-1)$-dimensional manifold (without boundary).
-
-![Animation: flux through surface equals boundary circulation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/09_stokes_flux.gif)
-
-![Stokes theorem: integral over boundary equals integral of exterior derivative](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/09_stokes_theorem.png)
 
 ![Boundary of an oriented manifold with the induced orientation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_v2_09_2_boundary.png)
 
@@ -159,8 +153,6 @@ By symmetry $\int_{\bar B^3} 4x\,dV = 0$ (odd function over a symmetric domain).
 ## Classical Theorems Recovered
 
 All three classical "integral theorems" of vector calculus are special cases of Stokes' theorem.
-
-![Integration of forms over triangulated chains](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/09_integration_chain.png)
 
 ![Classical theorems unified: gradient, Stokes, Green, divergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/09-integration-stokes/dg_v2_09_4_classical_unify.png)
 
@@ -361,7 +353,6 @@ Article 10 introduces Riemannian metrics in earnest, generalizing the first fund
 (3) The exponential map $\exp_p: T_pM \to M$ takes tangent vectors at $p$ to points along geodesics. It is the manifold analog of the chart "centered at $p$." What is the metric analog of stereographic projection?
 
 You now have integration. Article 10 adds metric. Read it asking "what is the manifold analog of $E$, $F$, $G$, and how does it interact with the connection?" The answer — the metric is a (0, 2)-tensor, the connection is a derivative for vector fields, and Levi-Civita ties them together — is the conceptual core of Riemannian geometry.
-
 
 ### One last worked example: Stokes' on a pyramid with corner contributions
 

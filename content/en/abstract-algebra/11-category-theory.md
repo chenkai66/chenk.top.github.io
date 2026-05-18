@@ -28,15 +28,6 @@ The standard concern is that this is "abstract nonsense." There is some truth to
 
 A **category** $\mathcal{C}$ consists of: a class of **objects** $\mathrm{Ob}(\mathcal{C})$; for each pair of objects $A, B$, a set $\mathrm{Hom}_\mathcal{C}(A, B)$ of **morphisms** (arrows) from $A$ to $B$; a composition law $\circ$ that is associative; and for each object $A$, an identity morphism $1_A$ that is neutral for composition. That is the entire definition — intentionally minimal, because almost everything in mathematics fits this mold for some choice of objects and arrows.
 
-![Natural transformation between functors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/11_natural_transform.png)
-
-
-![Functor: structure-preserving map between categories](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/11_functor.png)
-
-
-![Category: objects and morphisms](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/11_category_diagram.png)
-
-
 ![Categories Set, Grp, Top compared](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/11-category-theory/aa_v2_11_1_categories.png)
 
 The standard algebraic examples: $\mathbf{Set}$ (sets and functions), $\mathbf{Grp}$ (groups and group homomorphisms), $\mathbf{Ring}$ (rings and ring homomorphisms), $\mathbf{Ab}$ (abelian groups), $\mathbf{Vect}_k$ ($k$-vector spaces and linear maps), $R$-$\mathbf{Mod}$ ($R$-modules and $R$-linear maps), $\mathbf{Top}$ (topological spaces and continuous maps). But also examples that reveal the framework's reach:
@@ -67,11 +58,7 @@ Why does this matter? Because "natural" is the precise way to say "canonical" or
 
 The most productive single idea in category theory is the **universal property**: characterizing an object not by its internal construction but by its relationship to all other objects. The philosophy is that "what an object *does* (i.e., what maps into and out of it look like) determines what it *is*."
 
-![Limits and colimits in categories](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/11_limits.png)
-
-
 ![Universal property: unique factoring morphism](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/11_universal_property.png)
-
 
 **Initial and terminal objects.** An object $I$ is **initial** if for every $A$ there is a unique morphism $I \to A$. An object $T$ is **terminal** if for every $A$ there is a unique $A \to T$. In $\mathbf{Set}$: $\emptyset$ is initial, singletons are terminal. In $\mathbf{Grp}$: the trivial group $\{e\}$ is both (a zero object). In $\mathbf{Ring}$: $\mathbb{Z}$ is initial (unique ring map $\mathbb{Z} \to R$ for any $R$, namely $n \mapsto n \cdot 1_R$); the zero ring $\{0\}$ is terminal.
 
@@ -120,7 +107,6 @@ In algebraic geometry, the Yoneda perspective is foundational: schemes are studi
 A pair of functors $F : \mathcal{C} \to \mathcal{D}$ and $G : \mathcal{D} \to \mathcal{C}$ is an **adjoint pair** ($F$ left adjoint to $G$, written $F \dashv G$) if there is a natural bijection
 
 ![Adjoint functors: free ⊣ forgetful](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/11_adjunction.png)
-
 
 $$\mathrm{Hom}_\mathcal{D}(F(A), B) \;\cong\; \mathrm{Hom}_\mathcal{C}(A, G(B))$$
 
@@ -204,8 +190,6 @@ In the final article of this series, we turn to **applications**: how abstract a
 
 ![Animation: diagram chasing in a commutative diagram](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/11_diagram_chase.gif)
 
-
-
 ## Deeper Dive: Computations in Category Theory
 
 Category theory looks ethereal until you start drawing diagrams and watching the universal properties pin objects down. Five computations:
@@ -261,7 +245,6 @@ Two reflections to take away from category theory:
 2. *Adjunctions encode "free" and "forgetful" pairs.* Whenever you see a "free" construction (free group, free module, polynomial ring, ...), there is an adjunction lurking. The forgetful functor goes one way; the free functor goes the other; and the unit and counit of the adjunction encode the universal property. Once you see this, half of abstract algebra organizes itself.
 
 The final article, Part 12, will tie everything together with applications: cryptography, physics, coding theory, and the place of algebra in modern mathematics. By that point you will have all the tools — groups, rings, modules, fields, Galois groups, representations, categories — and the applications will feel like a natural deployment of what you already know.
-
 
 ## Supplementary Notes
 

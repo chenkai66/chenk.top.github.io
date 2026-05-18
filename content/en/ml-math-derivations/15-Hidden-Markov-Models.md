@@ -25,7 +25,6 @@ These are the **three problems of HMMs**, and the surprise is that all three red
 
 ![ML Math Derivations (15): Hidden Markov Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn
@@ -150,8 +149,6 @@ These are the two statistics Baum-Welch needs in its E-step.
 ---
 
 ## Viterbi: From Sum to Max
-
-![ML Math Derivations (15): Hidden Markov Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/illustration_2.png)
 
 ![Viterbi trellis: the max-product DP highlights the single most-likely state path through time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/fig5_viterbi_path.png)
 

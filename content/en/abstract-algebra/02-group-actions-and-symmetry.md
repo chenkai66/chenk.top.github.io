@@ -18,7 +18,6 @@ description: "We formalize how groups act on sets, prove the orbit-stabilizer th
 
 ![Counting orbits with Burnside](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/02_orbit_counting.png)
 
-
 ## From Abstract Groups to Concrete Actions
 
 Mental picture before any definitions: a group acting on a set is a collection of moves, and the set is the playground those moves permute. Pick up an object, do a move from the group, set it down. The orbit of an object is everywhere you can take it. The stabilizer is every move that puts it back exactly where it started.
@@ -54,7 +53,6 @@ This reformulation is important: the *kernel* of $\varphi$ is $\{g \in G : g \cd
 
 ![Regular action: Cayley's theorem embedding](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/02_regular_action.png)
 
-
 **Cayley's theorem** follows immediately: every group acts on itself by left multiplication, and this action is faithful. Hence every group is isomorphic to a subgroup of some symmetric group. Specifically, if $|G| = n$, then $G$ embeds into $S_n$.
 
 **Right actions.** A *right action* is a map $X \times G \to X$, written $(x, g) \mapsto x \cdot g$, satisfying $x \cdot e = x$ and $x \cdot (gh) = (x \cdot g) \cdot h$. Any right action becomes a left action via $g \cdot x = x \cdot g^{-1}$. We focus on left actions throughout.
@@ -84,7 +82,6 @@ This reformulation is important: the *kernel* of $\varphi$ is $\{g \in G : g \cd
 Mental picture: the orbit of a point is its trajectory under the group --- "everywhere it can travel." The stabilizer is the set of moves that hold the point fixed. These two notions are inversely proportional in a precise sense.
 
 ![Orbit-stabilizer theorem: |G| = |Orb(x)| * |Stab(x)|](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/02_orbit_stabilizer.png)
-
 
 **Definition.** Let $G$ act on $X$ and $x \in X$.
 
@@ -153,11 +150,7 @@ This is a paradigmatic application: the existence of a transitive action of $G$ 
 
 Mental picture: to count things up to symmetry, average the number of things each symmetry leaves alone. This is the entire content of Burnside's lemma, modulo a couple of double-counting tricks.
 
-![Fixed points of group actions on a set](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/02_fixed_points.png)
-
-
 ![Burnside's lemma: counting distinct colorings](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/02_burnside.png)
-
 
 For a group element $g \in G$ acting on $X$, define the *fixed-point set* of $g$:
 
@@ -236,7 +229,6 @@ Sanity check by enumeration: $3$ monochromatic (RRR, GGG, BBB), $6$ "two-and-one
 Mental picture: conjugation is the group's way of looking at itself in a mirror. Two elements are conjugate if some change of coordinates (the conjugating element) turns one into the other. The conjugacy classes are the "structural species" of the group.
 
 ![Conjugacy classes partition the group](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/02_conjugacy_classes.png)
-
 
 The action of a group on itself by conjugation: $g \cdot x = gxg^{-1}$. The orbits are *conjugacy classes*, and the stabilizer of $x$ is the *centralizer* $C_G(x) = \{g \in G : gx = xg\}$.
 
@@ -377,7 +369,6 @@ Group actions are a lens through which abstract group structure becomes visible.
 
 ![Animation: group acting on colored objects](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/02_group_action.gif)
 
-
 In the next article, we turn to *normal subgroups and quotient groups*. A normal subgroup $N \trianglelefteq G$ is precisely a subgroup invariant under the conjugation action. The quotient $G/N$ is a new group whose elements are the cosets of $N$, and the natural map $G \to G/N$ is the prototype of a group homomorphism. This leads to the isomorphism theorems --- the structural backbone of the entire subject.
 
 The tools developed here --- orbits, stabilizers, conjugacy classes --- will reappear throughout the series. They are not optional machinery for special problems; they are the standard vocabulary for analyzing any finite group. Every theorem from the Sylow theorems to the classification of finite simple groups relies on counting arguments rooted in the orbit-stabilizer framework.
@@ -385,7 +376,6 @@ The tools developed here --- orbits, stabilizers, conjugacy classes --- will rea
 **A summary in one sentence.** Group actions translate group theory into combinatorics; orbit-stabilizer is the dictionary, Burnside is the bilingual word frequency table, and the class equation is the structural fingerprint that controls everything.
 
 **Reading recommendations.** For a deep dive into actions, the chapter on group actions in Dummit and Foote covers everything we touched on and more, including double cosets, $G$-equivariant maps, and the orbit-counting interpretation of double cosets. For a more combinatorial bent, Stanley's *Enumerative Combinatorics* (vol. 2) develops Polya theory and applications to enumeration with great care. Tom Leinster's *Basic Category Theory* gives the modern abstract perspective: a $G$-set is the same as a functor from the one-object category $BG$ to $\mathbf{Set}$.
-
 
 ## Deeper Dive: Worked Computations on Actions
 

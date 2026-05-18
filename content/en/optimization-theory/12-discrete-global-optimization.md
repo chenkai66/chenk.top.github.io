@@ -32,7 +32,6 @@ This article:
 2. Surveys the heuristic landscape — particle swarm, genetic algorithms, simulated annealing, spiral optimization — and where each fits.
 3. Walks through a substantial case study: applying the Spiral Optimization Algorithm to a constrained mean-variance portfolio problem (a mixed-integer nonlinear program, MINLP).
 
-
 ---
 
 For eleven articles we've assumed the variables are continuous and the objective is convex (or at least convex-relaxable). This article confronts two classes of problems where neither holds:

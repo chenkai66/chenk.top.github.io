@@ -22,7 +22,6 @@ aliases:
 
 本文沿着一条主线完整梳理这段演化史：每一步的出现，都是因为前一步存在 **某个具体缺陷**。最终我们会介绍三种真正进入 2023 年后大模型工具箱的方向：Lion、Sophia 和 Schedule-Free。
 
-
 ---
 
 为什么训练 ResNet 的时候“调学习率是一门艺术”是个梗，可几乎每篇 LLM 论文写到优化器都只是淡淡一句 “AdamW, $\beta_1{=}0.9, \beta_2{=}0.95, \mathrm{wd}{=}0.1$” 就翻篇了？这不是巧合，是**三十多年优化器演化的终点**。
@@ -257,7 +256,6 @@ $$x_{t+1} = (1-c_t)\,x_t + c_t\,z_{t+1} \quad\text{(returned "averaged" paramete
 
 实用经验法则：若优化器状态超过模型权重内存的 1.5 倍，你很可能需要分片优化器（ZeRO-1）、量化（`bitsandbytes`）或改用状态更轻的算法（Lion、Adafactor）。具体选择取决于瓶颈是单卡内存还是集群总内存。
 
-
 ![Optimizer state memory across optimizers, and total VRAM at 7B / 70B scale](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/03-gradient-descent-family/fig8_optimizer_memory.png)
 
 ## 混合精度：优化器看到的是 fp32
@@ -274,7 +272,6 @@ $$x_{t+1} = (1-c_t)\,x_t + c_t\,z_{t+1} \quad\text{(returned "averaged" paramete
 PyTorch 的 `torch.amp` 和 DeepSpeed 会自动处理。这也解释了为何上表中的“内存成本”以 fp32 字节计——即使模型是 fp16，优化器仍为每个参数支付 fp32 成本。
 
 bf16 略有不同：其动态范围足够宽，有时可全程保留 bf16 梯度，但所有值得使用的实现中优化器状态仍是 fp32。在大规模 LLM 预训练中，这是不可妥协的。
-
 
 ![Mixed-precision training data flow: where each tensor lives in fp16/bf16 vs fp32](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/03-gradient-descent-family/fig9_mixed_precision.png)
 

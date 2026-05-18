@@ -31,7 +31,6 @@ Suppose we want to study an abelian group $A$ as an algebraic object. We can add
 
 ![Modules vs vector spaces: scalars from a ring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/09_module_vs_vector.png)
 
-
 The catch is that $\mathbb{Z}$-multiplication is no longer reversible: doubling an element does not generally give a doubling-inverse. This single failure of "scalar division" is what turns the simple theory of vector spaces into the messier theory of modules. Reversibility was the secret ingredient that made bases work, and we lose it the moment we leave the field setting.
 
 So a $\mathbb{Z}$-module is "an abelian group with the natural $\mathbb{Z}$-action," and conversely, every $\mathbb{Z}$-module is an abelian group, with the action by integers being forced. This already shows that modules are not a marginal generalization: every abelian group you have ever seen — $\mathbb{Z}$, $\mathbb{Z}/n\mathbb{Z}$, $\mathbb{Q}/\mathbb{Z}$, the additive group of $\mathbb{R}$ — is a $\mathbb{Z}$-module.
@@ -106,7 +105,6 @@ The basic structural theorems for modules parallel those for groups and rings. M
 
 ![Quotient modules and submodules](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/09_quotient_module.png)
 
-
 **Isomorphism Theorems.**
 
 1. *(First)* If $\varphi : M \to N$ is an $R$-module homomorphism, then $M/\ker\varphi \cong \mathrm{im}\,\varphi$.
@@ -145,7 +143,6 @@ Tucking these definitions away pays off later: in homological algebra you talk c
 In linear algebra, every vector space has a basis. For modules, this fails, and the failure is informative.
 
 ![Free modules: basis elements generate everything](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/09_free_module.png)
-
 
 **Definition.** An $R$-module $M$ is *free* on a set $S$ if every element of $M$ is uniquely a finite $R$-linear combination of elements of $S$. Equivalently, $M \cong R^{|S|}$ via $S \to R^{|S|}$, $s_i \mapsto e_i$.
 
@@ -192,7 +189,6 @@ We now state the central classification result of module theory.
 
 ![Structure theorem for finitely generated modules over PID](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/09_structure_theorem.png)
 
-
 **Theorem (Structure of finitely generated modules over a PID).** Let $R$ be a PID and $M$ a finitely generated $R$-module. Then there exist a non-negative integer $r$ and elements $d_1, d_2, \ldots, d_k \in R$ (non-zero, non-unit) with $d_1 \mid d_2 \mid \cdots \mid d_k$ such that
 $$M \cong R^r \oplus R/(d_1) \oplus R/(d_2) \oplus \cdots \oplus R/(d_k).$$
 The integer $r$ (the *free rank*) and the ideals $(d_1), \ldots, (d_k)$ (the *invariant factors*) are uniquely determined by $M$.
@@ -218,9 +214,6 @@ So the structure theorem says: every finitely generated module over a PID splits
 The submodule $K \subseteq R^n$ is described by a matrix $A$ whose columns are a basis of $K$ written in the standard basis of $R^n$. Different choices of bases for $R^n$ and $K$ change $A$ by left- and right-multiplication by invertible matrices. Smith normal form says we can choose bases so that $A$ is diagonal:
 $$A = \mathrm{diag}(d_1, d_2, \ldots, d_k, 0, \ldots, 0)$$
 with $d_1 \mid d_2 \mid \cdots \mid d_k$. Then $M \cong R^n / K \cong R/(d_1) \oplus \cdots \oplus R/(d_k) \oplus R^{n-k}$, and $r = n - k$. $\square$
-
-![Smith normal form computation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/09_smith_normal.png)
-
 
 ![Smith normal form algorithm reducing a matrix over a PID](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/09-modules/aa_v2_09_5_smith_normal.png)
 
@@ -295,7 +288,6 @@ We close with a notational tool that becomes essential in homological algebra.
 
 ![Exact sequences of modules](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/09_exact_sequence.png)
 
-
 **Definition.** A sequence of $R$-modules and $R$-module homomorphisms
 $$\cdots \to M_{i-1} \xrightarrow{f_{i-1}} M_i \xrightarrow{f_i} M_{i+1} \to \cdots$$
 is *exact at $M_i$* if $\mathrm{im}\,f_{i-1} = \ker f_i$. The sequence is *exact* if it is exact at every $M_i$.
@@ -334,13 +326,11 @@ Modules unify a vast range of algebraic structures and provide the language for 
 
 ![Animation: torsion elements in a module](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/09_torsion.gif)
 
-
 In the next article, we focus on a special case of module theory that has a life of its own: *representation theory*. A representation of a group $G$ over a field $K$ is a $K[G]$-module — but the group structure imposes extra rigidity, leading to clean decomposition theorems (Maschke's theorem) and powerful invariants (characters). We will see how representations bring linear algebra to bear on group theory, and why characters are one of the most useful gadgets in algebra.
 
 Some forward references for context. Group representations split (Maschke, Part 10) — meaning every representation is a direct sum of irreducibles — provided the characteristic of $K$ does not divide $|G|$. So in characteristic 0 (or "good" characteristic), representations of finite groups behave like vector spaces with no torsion, and classification is easy. In "bad" characteristic, representations have non-split exact sequences and start looking like the messier modules we have seen in this article. The two regimes are called *ordinary* and *modular* representation theory respectively, and they have very different flavors. We focus on the ordinary case.
 
 In Part 11 we go up another level of abstraction to category theory, where modules become an example rather than the subject. By Part 12 we will see modules show up in cryptography and physics, providing the algebraic substrate for both abstract and applied results. The PID structure theorem is, in a real sense, the technical engine that drives all of this.
-
 
 ## Deeper Dive: Computations with Modules
 
@@ -393,7 +383,6 @@ Three questions for Part 10, on representation theory:
 3. *What does the character of a representation tell us?* Almost everything: characters determine representations up to isomorphism, they form an orthonormal basis under a natural inner product, and they encode arithmetic information about the group.
 
 In Part 11 we go up another level of abstraction to category theory, where modules become an example rather than the subject. By Part 12 we will see modules show up in cryptography and physics, providing the algebraic substrate for both abstract and applied results. The PID structure theorem is, in a real sense, the technical engine that drives all of this.
-
 
 ## Supplementary Notes
 

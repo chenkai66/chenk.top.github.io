@@ -24,7 +24,6 @@ This chapter is a working tour, not an encyclopaedia: we focus on the three clas
 
 ![Ordinary Differential Equations (13): Introduction to Partial Differential Equations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/13-pde-introduction/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn

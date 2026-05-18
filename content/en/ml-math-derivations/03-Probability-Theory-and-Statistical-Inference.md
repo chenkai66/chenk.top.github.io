@@ -19,7 +19,6 @@ translationKey: "ml-math-derivations-3"
 ---
 ![ML Math Derivations (3): Probability Theory and Statistical Inference — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/03-Probability-Theory-and-Statistical-Inference/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn

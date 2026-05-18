@@ -23,7 +23,6 @@ translationKey: "optim-05"
 
 统一的工具是一个 **Lyapunov 势函数（Lyapunov potential）** —— 一种非负量，算法在每一步都会使其减小。Nesterov 和 Heavy-Ball 都有 Lyapunov 证明，而下界本质上说明了 Lyapunov 减小的速度不可能更快。
 
-
 ---
 
 上一篇我们见过 Nesterov 加速：把梯度下降里每条件数的代价从 $\kappa$ 压到 $\sqrt{\kappa}$。但读完之后我自己留了几个问号：
@@ -215,7 +214,6 @@ $$
 ![Catalyst meta-algorithm flowchart](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig5_catalyst.png "Outer Nesterov loop drives an inner regularized solver")
 
 外层循环在 *锚点* $y_k$ 上运行 Nesterov 风格的动量；内层循环对正则化子问题 $g_{y_k}(x) = f(x) + \frac{\kappa}{2}\|x - y_k\|^2$ 调用任意线性收敛求解器。由于 $g_{y_k}$ 通过构造是 $\kappa$-强凸的，即使原问题非强凸，也能使用线性收敛的内部求解器。
-
 
 ### 应用示例
 

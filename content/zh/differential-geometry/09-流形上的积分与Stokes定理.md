@@ -38,8 +38,6 @@ $$\int_M d\omega = \int_{\partial M}\omega.$$
 
 切空间 $T_pM$ 是一个 $n$ 维实向量空间，像任何这样的空间一样，它有两个有序基的等价类（由保持方向的线性映射和改变方向的线性映射相关）。选择其中一个类就是 $T_pM$ 的一个关于方向，如果可以在整个流形上平滑地做出这种选择，并且在重叠部分一致，则称流形 $M$ 是可定向的。当存在时，方向是一个全局拓扑选择——在连通的可定向流形上恰好有方向。
 
-![可定向 vs 不可定向：环面 vs Mobius 带](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_orientation.png)
-
 ![流形通过一致的有序基的方向](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_1_orientation.png)
 
 如果以下任一条件成立，则流形 $M$ 是可定向的：
@@ -69,10 +67,6 @@ $$\int_M d\omega = \int_{\partial M}\omega.$$
 ## 带边界的流形；诱导方向
 
 **带边界的流形**是局部模型为半空间 $\mathbb{H}^n = \{x \in \mathbb{R}^n : x^n \geq 0\}$ 的拓扑空间。坐标图有两种类型：内部坐标图（其图像不包含边界 $\{x^n = 0\}$）和边界坐标图（其图像触及 $\{x^n = 0\}$）。**边界** $\partial M$ 是在某个边界坐标图中位于 $\{x^n = 0\}$ 上的点集。它是一个 $(n-1)$ 维流形（无边界）。
-
-![动画：通过曲面的通量等于边界环量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_stokes_flux.gif)
-
-![Stokes 定理：边界上的积分等于外微分的积分](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_stokes_theorem.png)
 
 ![带诱导方向的带边界流形的边界](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_2_boundary.png)
 
@@ -172,8 +166,6 @@ $$d\omega = (\partial_x(x^2+y) + \partial_y(xy + z) + \partial_z(xz - y))\,dx\we
 ## 经典定理的恢复
 
 所有三个经典“积分定理”都是斯托克斯定理的特例。
-
-![在三角剖分链上积分微分形式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_integration_chain.png)
 
 ![经典定理统一：梯度、斯托克斯、格林、散度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/09-integration-stokes/dg_v2_09_4_classical_unify.png)
 

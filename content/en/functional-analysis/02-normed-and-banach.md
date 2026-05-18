@@ -21,11 +21,7 @@ description: "Norm axioms, classical examples, equivalence of norms in finite di
 
 ## Why a Norm Is More Than a Metric Wearing a Hat
 
-![Unit balls in different Lp norms](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa02_lp_balls.png)
-
 ![Animation: l^p unit ball morphing as p changes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_lp_morph.gif)
-
-![Unit balls in l^p spaces for various p](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_lp_unit_balls.png)
 
 In Article 1, the metric was a free-standing function on a set with no algebraic structure. That generality bought us topology and completeness, but it gave nothing back to the algebra. The moment I am willing to assume the underlying set is a vector space, a more rigid object becomes available: a **norm**, a single nonnegative function on the space whose induced metric $d(x,y) = \|x - y\|$ is *translation-invariant* and *positively homogeneous*.
 
@@ -103,7 +99,6 @@ Take the harmonic-style sequence $x_n = 1/n$. Then $\sum 1/n = \infty$, so $x \n
 
 The worked inclusions are essentially the only "free" structure on the $\ell^p$ family. The norms are inequivalent: an isometric copy of $\ell^1$ inside $\ell^2$ does not coincide with the topology of $\ell^2$, etc. The $\ell^p$ family is a beautiful one-parameter laboratory for testing whether a property of Banach spaces is general or specific to a particular geometry.
 
-
 ### Worked Numerical Example
 
 Take the geometric sequence $x = (2^{-n})_{n \geq 0} = (1, 1/2, 1/4, 1/8, \ldots)$. I will compute its norm across four different $\ell^p$ spaces to verify the inclusion chain $\ell^1 \subset \ell^2 \subset \ell^4 \subset \ell^\infty$ and the monotonicity $\|x\|_q \leq \|x\|_p$ for $q > p$.
@@ -118,8 +113,6 @@ The chain $1 \leq 1.0164 \leq 1.1547 \leq 2$ holds exactly as the theory predict
 ## Banach Spaces: When Completeness Lands
 
 A normed space is a **Banach space** if it is complete in the metric induced by its norm. The completeness is a matter of *fact about a specific norm*, not just about the underlying vector space. Adding a norm structure to a Banach space and a non-Banach space sometimes produces the same vector space — for instance, $\ell^p$ as a vector space is a subspace of $\ell^\infty$, and they are very different objects when topologized.
-
-![Hierarchy of function spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_function_spaces.png)
 
 ![Banach space: a normed space that is complete with respect to its norm](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/02-normed-and-banach/fa_v2_02_4_banach_complete.png)
 
@@ -200,7 +193,6 @@ In $L^1(\mathbb{R})$, consider the closed subspace $W$ of functions whose integr
 
 Quotients are the way I deal with subspaces that I want to ignore. In the theory of operators, $V / \ker(T)$ identifies elements of $V$ that $T$ sends to the same place. The first isomorphism theorem then says $V / \ker(T) \cong \mathrm{Range}(T)$ via the induced map $\widetilde T: V/\ker(T) \to \mathrm{Range}(T)$. When $T$ is bounded with closed range, $\widetilde T$ is a bicontinuous isomorphism — Article 6 will exploit this.
 
-
 ### Worked Numerical Example
 
 I will compute a quotient norm explicitly in a finite-dimensional setting where the geometry is visible. Let $V = \mathbb{R}^3$ equipped with the $\ell^1$ norm $\|v\|_1 = |v_1| + |v_2| + |v_3|$. Let $W = \{(t, t, t) : t \in \mathbb{R}\}$ be the diagonal subspace. Take the coset represented by $x = (1, 0, 0)$. The quotient norm is defined as $\|x + W\|_{V/W} = \inf_{w \in W} \|x - w\|_1$.
@@ -254,7 +246,6 @@ The space $B(X, Y)$ of bounded linear operators is a normed space under the oper
 The shift operator $S: \ell^2 \to \ell^2$ defined by $S(x_1, x_2, x_3, \ldots) = (0, x_1, x_2, \ldots)$ is bounded with $\|S\| = 1$. To see this, $\|S x\|_2^2 = \sum_{n \geq 2} |x_{n-1}|^2 = \|x\|_2^2$, so $\|S x\|_2 = \|x\|_2$ for every $x$, hence $\|S\| = 1$. The same operator is an isometry but not surjective, since the first coordinate of $S x$ is always $0$. This is the kind of structural fact that has no analog in finite dimensions, where every isometry of a finite-dimensional space onto itself is automatically surjective.
 
 The differentiation operator $D: C^1[0,1] \to C[0,1]$, $f \mapsto f'$, is bounded if I put the natural $C^1$ norm $\|f\|_{C^1} = \|f\|_\infty + \|f'\|_\infty$ on the domain: $\|D f\|_\infty = \|f'\|_\infty \leq \|f\|_{C^1}$, so $\|D\| \leq 1$, and the inequality is sharp on functions like $f(t) = \sin(2\pi t) / 2\pi$. But if I put the sup norm on $C^1[0,1]$ (without the derivative term), $D$ is unbounded — the family $f_n(t) = \sin(n \pi t) / n$ has sup norm $1/n \to 0$ but $D f_n = \pi \cos(n\pi t)$ has sup norm $\pi$, refusing to vanish. So the same algebraic operator is bounded under one norm choice and unbounded under another. The pairing of operator and norm is irreducible.
-
 
 ### Worked Numerical Example
 
@@ -335,7 +326,6 @@ In $L^2[0, 1]$, find the best polynomial approximation of degree $\leq 2$ to $f(
 
 For comparison, in the sup norm on $C[0,1]$, the best polynomial approximation of degree $\leq 2$ to $t^3$ is *not* the $L^2$ projection. It is given by Chebyshev approximation (Article 4), and the answer is different — the sup-norm best approximation equioscillates between $-c$ and $+c$ at four points of $[0,1]$. The norm-dependence of best approximation is one of the most concrete reasons different $L^p$ choices lead to different theorems.
 
-
 ### Worked Numerical Example
 
 I will compute the distance from a point to a line in $\mathbb{R}^2$ under two different norms to demonstrate how strict convexity controls uniqueness. Let $W = \{(t, t) : t \in \mathbb{R}\}$ and $x = (1, 0)$.
@@ -355,7 +345,6 @@ The unit ball of a Banach space encodes the entire norm. Three conditions on its
 The $\ell^p$ family, $1 < p < \infty$, is the canonical example of all three properties. The boundary cases $p = 1$ and $p = \infty$ fail all three: $\ell^1$ has corners (vertices) and $\ell^\infty$ has flat faces. These geometric pathologies translate into theorem failures: in $\ell^1$, best approximation can be non-unique (the supporting hyperplane at a vertex is non-unique); in $\ell^\infty$, weak-norm convergence does not control norm convergence (Schur property is the closest substitute).
 
 The "preferred" Banach spaces of analysis — the ones in which most theorems work cleanly — are uniformly convex. Hilbert space is the limiting case where uniform convexity is encoded in the parallelogram law itself.
-
 
 ### Worked Numerical Example
 

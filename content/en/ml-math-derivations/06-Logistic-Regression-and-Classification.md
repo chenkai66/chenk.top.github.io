@@ -22,7 +22,6 @@ translationKey: "ml-math-derivations-6"
 
 ![ML Math Derivations (6): Logistic Regression and Classification — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn
@@ -247,7 +246,6 @@ Take logits $\mathbf{z} = (2, 1, 0)$ and the true class $c = 0$ (one-hot $\mathb
 **Cross-entropy.** $\mathcal{L} = -\ln P_0 = -\ln 0.6652 \approx 0.4076$ nats. Equivalently, $\mathcal{L} = -z_0 + \ln \sum_j e^{z_j} = -2 + \ln(7.389 + 2.718 + 1.000) = -2 + \ln 11.107 = -2 + 2.408 = 0.408$.
 
 **Gradient.** $\partial \mathcal{L}/\partial \mathbf{z} = \mathbf{P} - \mathbf{t} = (0.6652 - 1,\, 0.2447 - 0,\, 0.0900 - 0) = (-0.3348,\, 0.2447,\, 0.0900)$. Three things are visible from this single number: the gradient on the *correct* class is negative (push $z_0$ up), the gradients on the other two are positive (push $z_1, z_2$ down), and the magnitudes sum to zero (because $\sum_k P_k = \sum_k t_k = 1$ — the gradient never moves probability mass off the simplex). If the model were already confident — say $\mathbf{z} = (10, 1, 0)$ giving $P_0 \approx 0.9999$ — the gradient would shrink to $\approx (-10^{-4}, 7 \cdot 10^{-5}, 3 \cdot 10^{-5})$ and learning would stall on this example, which is exactly the desired behaviour: don't waste capacity on points already classified correctly.
-
 
 ![Softmax probability simplex for K=3 with sample logits](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/fig4_softmax_simplex.png)
 

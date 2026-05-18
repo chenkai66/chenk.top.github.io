@@ -27,7 +27,6 @@ This article develops:
 
 Each result is proved or carefully cited. We close with the SVM example, where the dual cuts the problem dimension from $d$ (number of features) to $n$ (number of training points) — the original kernel-method magic.
 
-
 ---
 
 The single deepest idea in constrained optimization, in my view, is this: **constraints have prices**.
@@ -108,7 +107,6 @@ The gap $p^\star - d^\star \geq 0$ is the **duality gap**. When it is zero, **st
 
 ---
 
-
 ![Weak duality and the duality gap](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig1.png)
 *Figure 1 — Weak duality. The dual function $g(\lambda)$ never exceeds the primal optimum $p^\star$. Its supremum $d^\star$ is the best lower bound; the shaded region is the duality gap, which collapses to zero under strong duality.*
 
@@ -131,7 +129,6 @@ $$
 Conjugacy and the fact that $V$ is convex and lower-semicontinuous near $0$ give $V(0) = -V^{**}(0)$, which unwinds to $p^\star = d^\star$.
 
 The full proof is in Boyd & Vandenberghe §5.3.2; the key step is to apply the supporting hyperplane theorem at the boundary point $(0, V(0))$ of the convex set $\{(u, t) : t \geq V(u)\}$. Slater's condition ensures the supporting hyperplane is non-vertical, which gives a finite multiplier. $\blacksquare$
-
 
 ![Value function and supporting hyperplane](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig4.png)
 *Figure 4 — Strong duality via the value function. $V(u)$ is the optimal value of the constraint-perturbed problem; convexity plus Slater's condition yields a non-vertical supporting hyperplane at $u=0$ whose slope is exactly $-\lambda^\star$.*
@@ -159,7 +156,6 @@ If $x^\star$ is primal-optimal and $(\lambda^\star, \nu^\star)$ is dual-optimal 
 | $\lambda_i^\star f_i(x^\star) = 0$ for all $i$                           | Complementary slackness           |
 
 **Why these hold under strong duality.** Strong duality gives $f_0(x^\star) = L(x^\star, \lambda^\star, \nu^\star) \leq L(x, \lambda^\star, \nu^\star)$ for all $x$. So $x^\star$ minimizes $L(\cdot, \lambda^\star, \nu^\star)$ over $\mathbb{R}^n$, giving stationarity. Primal/dual feasibility hold by definition. The only non-trivial step is complementary slackness: from $L(x^\star, \lambda^\star, \nu^\star) = f_0(x^\star)$ we get $\sum_i \lambda_i^\star f_i(x^\star) = 0$, and since each term is $\leq 0$ they must all be zero individually.
-
 
 ![KKT geometric picture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig3.png)
 *Figure 3 — KKT stationarity in two dimensions. At the optimum $x^\star$ the negative objective gradient $-\nabla f_0$ lies in the cone spanned by the active constraint gradients with non-negative weights $\lambda_i^\star$.*
@@ -194,7 +190,6 @@ $$
 L(x^\star, \lambda, \nu) \leq L(x^\star, \lambda^\star, \nu^\star) \leq L(x, \lambda^\star, \nu^\star) \quad \forall x, \forall \lambda \geq 0, \nu.
 $$
 The right inequality is primal optimality of $x^\star$ given the multipliers; the left is dual optimality.
-
 
 ![Saddle surface of the Lagrangian](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig2.png)
 *Figure 2 — The Lagrangian as a saddle surface. Minimising over $x$ for each $\lambda$ traces the dual function (green); maximising over feasible $x$ for each $\lambda$ traces the primal value (orange). They meet at the saddle point under strong duality.*

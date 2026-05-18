@@ -33,8 +33,6 @@ A historical orientation, since the names accumulate quickly. Riemann introduced
 
 ![Parallel transport on a sphere: vector rotates 90 degrees around a spherical triangle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_parallel_transport_paths.png)
 
-![Riemannian metric: unit balls in Euclidean vs hyperbolic geometry](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_riemannian_metric.png)
-
 A **Riemannian metric** on a smooth manifold $M$ is a smooth assignment
 $$g: M \to T^*M \otimes T^*M, \qquad p \mapsto g_p$$
 where each $g_p$ is a symmetric, positive-definite bilinear form on $T_pM$. In words: at every point you have an inner product on the tangent space, and the inner product varies smoothly.
@@ -94,8 +92,6 @@ To differentiate vector fields, we need extra data. An **affine connection** on 
 
 ![Animation: parallel transport along latitude on sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_parallel_transport.gif)
 
-![Parallel transport is path-dependent on curved spaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_parallel_transport_paths.png)
-
 1. $\nabla_{fX} Y = f \nabla_X Y$ (linear in $X$ over smooth functions),
 2. $\nabla_X (fY) = X(f) Y + f \nabla_X Y$ (Leibniz rule in $Y$).
 
@@ -134,8 +130,6 @@ Every covariant derivative, geodesic equation, Riemann tensor calculation traces
 ## Parallel Transport
 
 Given a curve $\gamma$ and a vector $v$ at $\gamma(0)$, the **parallel transport** of $v$ along $\gamma$ is the unique vector field $V$ along $\gamma$ with $V(0) = v$ and $\nabla_{\dot\gamma} V = 0$. In coordinates, this is a linear ODE $\dot V^k + \Gamma^k_{ij}\dot\gamma^i V^j = 0$. By Picard-Lindelof, parallel transport exists and is unique. The transport map $P_\gamma : T_{\gamma(0)} M \to T_{\gamma(1)} M$ is a linear isomorphism, and for the Levi-Civita connection an isometry — it preserves the metric.
-
-![Hopf-Rinow: complete vs incomplete manifolds](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_hopf_rinow.png)
 
 ![Parallel transport along a closed loop on the sphere returns a rotated vector](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/10-riemannian-geometry/dg_v2_10_3_parallel_transport.png)
 
@@ -351,7 +345,6 @@ Article 11 will introduce the Riemann curvature tensor and its symmetries. To pr
 
 You now have parallel transport. Article 11 turns it into a tensor that lives at every point. Read it asking "what is the right way to extract a finite-dimensional algebraic gadget from the global holonomy?" The answer — the Riemann tensor — is the heart of curved-space geometry.
 
-
 ### One last worked example: holonomy as Lie-algebra-valued integral
 
 Take the unit sphere $S^2$ and a small geodesic triangle of side $\epsilon$ near the north pole. Parallel-transport a tangent vector around the triangle. The holonomy is a rotation in $SO(2) \cong U(1)$, parametrized by an angle. By Gauss-Bonnet, this angle equals the area of the triangle times $K = 1$, so it is $O(\epsilon^2)$.
@@ -374,7 +367,6 @@ $\arccos(0.640) = 0.876$ rad. Distance: $6371 \cdot 0.876 \approx 5580$ km. Matc
 This is exactly the geodesic equation solved in closed form for the constant-curvature sphere — possible because of the high symmetry. For non-symmetric Riemannian manifolds, the geodesic ODE must be integrated numerically. Fast geodesic-distance algorithms (fast marching, heat method) are central to mesh processing and computer graphics, where one needs distances on a triangulated surface in O(n log n) time. The mathematical content is unchanged: solve $\nabla_{\dot\gamma}\dot\gamma = 0$, integrate length. The engineering content is: do it on a mesh, with precision constraints.
 
 A second numerical example: the exponential map $\exp_p: T_pM \to M$ and the cut locus on the sphere. On the unit sphere, the exponential map at the north pole sends a tangent vector $v \in T_N S^2$ of length $|v|$ to the point at angular distance $|v|$ along the geodesic in direction $v/|v|$. The map is a diffeomorphism on the open ball of radius $\pi$ in $T_N S^2$, but at $|v| = \pi$ everything maps to the south pole (the entire boundary circle collapses to one point). The cut locus of the north pole is the single point at the south pole, where geodesics first stop being shortest. The injectivity radius is $\pi$. For Riemannian manifolds in general, the injectivity radius is a fundamental invariant — Bishop-Gromov volume comparison theorems use it to bound volume growth. Computing it numerically on a complicated manifold is a research-grade problem; on the sphere it is exact.
-
 
 ## What's Next
 

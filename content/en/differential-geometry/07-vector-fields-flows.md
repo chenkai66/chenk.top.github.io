@@ -29,8 +29,6 @@ The plan for this article: define vector fields three different ways (geometric,
 
 ![Vector field with integral curves (spiral source)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/07_vector_fields_2d.png)
 
-![Vector fields on the plane: sources, sinks, and vortices](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/07_vector_fields_2d.png)
-
 A **vector field** $X$ on a smooth manifold $M$ is a smooth assignment $p \mapsto X_p \in T_p M$. In bundle language, it is a smooth section of the tangent bundle $TM \to M$: pick a tangent vector at every point, and require that the choice vary smoothly as you move. The space of all vector fields on $M$ is denoted $\mathfrak{X}(M)$. It is simultaneously a real vector space (you can add fields and scale by constants), a module over $C^\infty(M)$ (you can multiply by smooth functions pointwise), and — as we will see in section 4 — a Lie algebra under the bracket.
 
 In a coordinate chart $(x^1, \dots, x^n)$, every vector field can be written
@@ -63,10 +61,6 @@ At every instant, the curve's velocity is exactly the value of the vector field 
 $$\frac{d x^i}{dt} = X^i(x^1(t), \dots, x^n(t)), \qquad x^i(0) = p^i.$$
 This is a first-order autonomous system in $n$ variables.
 
-![Animation: flow of a vector field over time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/07_flow.gif)
-
-![Flow of a vector field: integral curves](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/07_flow_map.png)
-
 ![Integral curves of a vector field via streamplot](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/07-vector-fields-flows/dg_v2_07_2_integral_curves.png)
 
 The **Picard-Lindelof theorem** guarantees that for any smooth $X$ and any starting point $p$, an integral curve exists and is unique on some open interval around $0$. The interval might be small (the integral curve could escape to infinity in finite time — think of $\dot x = x^2$ on $\mathbb{R}$, which blows up at $t = 1/x_0$), but locally everything is fine. On compact manifolds, the interval is always all of $\mathbb{R}$ — there is nowhere to escape to — and the field is called **complete**.
@@ -90,8 +84,6 @@ This is exactly rotation by angle $t$ around the origin. The integral curves are
 If $X$ is complete, we can stitch all integral curves together. Define
 $$\varphi_t: M \to M, \qquad \varphi_t(p) = \gamma_p(t),$$
 where $\gamma_p$ is the integral curve starting at $p$. The map $\varphi_t$ pushes every point along its integral curve for time $t$. The collection $\{\varphi_t\}_{t \in \mathbb{R}}$ is the **flow** of $X$.
-
-![Lie bracket measures non-commutativity of flows](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/07_lie_bracket.png)
 
 ![Flow phi_t advancing each point along its integral curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/07-vector-fields-flows/dg_v2_07_3_flow_phi_t.png)
 
@@ -171,8 +163,6 @@ The bracket only differentiates vector fields. But we want to differentiate func
 $$\mathcal{L}_X T = \lim_{t \to 0} \frac{\varphi_t^* T - T}{t} = \left.\frac{d}{dt}\right|_{t=0} \varphi_t^* T,$$
 where $\varphi_t^*$ is the pullback by $\varphi_t$. Geometrically: drag $T$ along the flow for time $t$, compare to its original value, divide by $t$, take the limit.
 
-![Integral curves of a nonlinear vector field](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/07_integral_curves.png)
-
 ![Lie derivative L_X T as the rate of change of T along the flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/07-vector-fields-flows/dg_v2_07_5_lie_derivative.png)
 
 **Special cases.**
@@ -207,8 +197,6 @@ Confirmed: $\mathcal{L}_X g = 0$. The vector field $X$ is a **Killing vector fie
 ## Worked Examples: Rotation, Source, Sink
 
 To consolidate, here are three classical fields on $\mathbb{R}^2$ that you should learn to recognize on sight. Each illustrates a different qualitative behavior, and each sits inside a larger family with physical significance.
-
-![Lie derivative: rate of change along a flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/07_lie_derivative.png)
 
 ![Three classical vector fields: rotation, source, sink](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/07-vector-fields-flows/dg_v2_07_6_field_examples.png)
 
@@ -371,7 +359,6 @@ Article 8 will introduce differential forms and the wedge product. To prepare:
 (3) The wedge product $\alpha \wedge \beta$ is anti-symmetric. Beginners ask "why anti-symmetric?" The answer is that anti-symmetry is what makes integrals of $k$-forms over $k$-dimensional submanifolds well-defined under change of orientation. Why does antisymmetry capture orientation?
 
 You now have vector fields. Article 8 introduces their duals. Read it asking "what is the geometric thing that 1-forms eat?" The answer — they eat tangent vectors and produce numbers, with the right transformation behavior under change of coordinates — connects to the integration theory of article 9.
-
 
 ### One last worked example: Frobenius integrability on $\mathbb{R}^3$
 

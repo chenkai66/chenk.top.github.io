@@ -19,7 +19,6 @@ translationKey: "pde-ml-4"
 ---
 ![偏微分方程与机器学习（四）：变分推断与Fokker-Planck方程 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-Variational-Inference/illustration_1.png)
 
-
 ---
 
 为什么变分推断（一个看起来纯优化的方法）和 Langevin MCMC（一个看起来纯采样的方法）最后会汇到同一个偏微分方程？
@@ -52,7 +51,6 @@ translationKey: "pde-ml-4"
 - 第三篇中介绍的 Wasserstein 梯度流。
 - 对随机微积分的初步直觉（布朗运动、Itô 积分）。
 - 实验部分需熟悉 Python / PyTorch。
-
 
 ---
 
@@ -144,8 +142,6 @@ $$
 ## Langevin 动力学：采样即 PDE
 
 ![Langevin动力学: 200个粒子在双势阱中采样并收敛至Gibbs平衡态](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-变分推断与Fokker-Planck方程/anim_langevin_sampling.gif)
-
-![wanxiang illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/illustration_2.png)
 
 用于从 $p^\star \propto e^{-V}$ 采样的 **过阻尼 Langevin 方程** 为：
 $$dX_t = -\nabla V(X_t)\, dt + \sqrt{2\tau}\, dW_t.$$

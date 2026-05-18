@@ -62,7 +62,6 @@ So the orbit solves the abstract Cauchy problem $u'(t) = A u(t)$ with $u(0) = x$
 
 A small exercise: for the scalar example $T(t) = e^{at}$ on $\mathbb{R}$, the generator is multiplication by $a$, with domain all of $\mathbb{R}$. For a finite matrix $A$, $T(t) = e^{tA}$ has generator $A$ with domain $\mathbb{C}^n$. For an unbounded operator $A$ on $L^2(\mathbb{R})$, the generator's domain is a proper dense subspace, and the unbounded-operator domain considerations of the previous article come back into play.
 
-
 ### Worked Numerical Example
 
 Take the translation semigroup on $L^2(\mathbb{R})$, $(T(t)f)(x) = f(x - t)$. The generator is $A = -d/dx$ with domain $H^1(\mathbb{R})$. I will verify the generator limit numerically for a specific function. Let $f(x) = e^{-x^2/2}$. Its $L^2$ norm squared is $\int_{-\infty}^\infty e^{-x^2} dx = \sqrt{\pi} \approx 1.77245$. The derivative is $f'(x) = -x e^{-x^2/2}$, so $Af = x e^{-x^2/2}$.
@@ -129,7 +128,6 @@ with the limit in the strong topology. This factorizes the combined dynamics int
 
 The perturbation theory of generators is itself a major subject. For full coverage one can consult Engel-Nagel's "One-Parameter Semigroups for Linear Evolution Equations," which is the modern standard reference and well worth reading when one is doing serious work with evolution PDE.
 
-
 ### Worked Numerical Example
 
 Consider the diagonal semigroup on $\ell^2$ given by $T_A(t)(x_n) = (e^{-n^2 t} x_n)$. The generator $A$ multiplies the $n$-th coordinate by $-n^2$. Let $B$ be the bounded operator $B(x_n) = (3 x_n)$. By the bounded perturbation theorem, $A+B$ generates a semigroup with growth bound shifted by $\|B\| = 3$.
@@ -175,7 +173,6 @@ The heat semigroup is the standard analytic semigroup: it extends to $T(z) = e^{
 Analytic semigroups are the cleanest setting for **maximal regularity** results in PDE: the parabolic equation $u' = Au + f$ has solutions with the same regularity as $f$ (modulo derivatives), provided $A$ generates an analytic semigroup. This is the foundation of $L^p$ theory for parabolic equations and one of the main reasons semigroup theory is the right framework for parabolic PDE.
 
 The complementary class is **contraction semigroups** (which include the unitary groups of Stone's theorem and the Markov semigroups of probability). Contraction semigroups are not generally analytic — the Schrödinger semigroup $e^{it\Delta}$ is unitary but not analytic in $t$, since $\sigma(i\Delta) = i \cdot [0, \infty)$ lies on the imaginary axis, which is the boundary between sectors and not in the interior of any sector. Different physics (parabolic vs hyperbolic vs unitary) gives different semigroup classes, and the technical tools differ accordingly.
-
 
 ### Worked Numerical Example
 
@@ -226,7 +223,6 @@ A more refined bound, the **logarithmic Sobolev inequality**, controls relative 
 
 For non-self-adjoint generators, spectral gaps and asymptotic behavior are subtler. The spectral radius does not in general control the operator norm of $T(t)$ — there can be **transient growth** before exponential decay sets in (the **pseudospectrum** of Trefethen and Embree captures this). For applications in fluid dynamics, where the linearized Navier-Stokes generator is highly non-normal, transient growth from non-orthogonality of eigenvectors plays a major role in stability theory.
 
-
 ### Worked Numerical Example
 
 Consider the diagonal semigroup on $\ell^2$ defined by $T(t)(x_n) = (e^{-n t} x_n)$ for $n = 1, 2, 3, \ldots$. The generator has eigenvalues $-1, -2, -3, \ldots$. The spectral gap is $\alpha = 1$. The theory predicts $\|T(t)x\| \leq e^{-t} \|x\|$.
@@ -260,8 +256,6 @@ The formula is mostly of theoretical use — it lets one transfer estimates on t
 ## Time Evolution Under a Semigroup
 
 ![Time evolution of a vector under a semigroup](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/10-semigroups/fa_v2_10_5_evolution.png)
-
-![Animation: heat equation evolution over time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/gif10_heat_evolution.gif)
 
 The semigroup defines a flow on the Banach space, with each initial condition tracing out a continuous trajectory. For $x \in D(A)$ this trajectory is differentiable; for general $x \in X$ it is at least continuous. The decay or growth of the trajectory is controlled by the spectral properties of $A$:
 
@@ -312,7 +306,6 @@ In practice, when one solves a PDE numerically, one is implicitly approximating 
 
 The convergence theory of these schemes is a direct consequence of semigroup theory. The **Lax equivalence theorem** states: for a well-posed Cauchy problem (i.e., one whose solution is given by a $C_0$-semigroup), a consistent finite-difference scheme is convergent iff it is stable. The semigroup framework is the right setting for proving this, since "well-posed Cauchy problem" is precisely "operator generates a $C_0$-semigroup."
 
-
 ### Worked Numerical Example
 
 I will compare Forward Euler and Crank-Nicolson for the scalar ODE $u' = -8u$, $u(0)=1$, which is a trivial semigroup $T(t) = e^{-8t}$. The exact solution at $t=0.1$ is $e^{-0.8} \approx 0.449329$.
@@ -338,7 +331,6 @@ A useful refinement of Hille-Yosida for contraction semigroups. An operator $A$ 
 The advantage of Lumer-Phillips over Hille-Yosida is that one only has to check one resolvent estimate (at $\lambda = 1$, say) rather than estimates at all $\lambda > 0$. For physically motivated operators (Markov generators, dissipative differential operators), checking dissipativity is often easier than estimating the full resolvent. This is the standard tool for proving generation theorems in stochastic analysis.
 
 A canonical example: $A = -d^2/dx^2$ on $L^2[0, 1]$ with Dirichlet boundary conditions. Dissipativity follows from $\langle -u'', u \rangle = \int (u')^2 \geq 0$, so $\langle Au, u \rangle \leq 0$. The range condition $\text{range}(I + A) = L^2$ is the existence of a Dirichlet solution to $u - u'' = f$, a standard elliptic regularity result. Hence by Lumer-Phillips, $-A$ generates a contraction semigroup — the heat semigroup with Dirichlet boundary, our familiar friend.
-
 
 ### Worked Numerical Example
 

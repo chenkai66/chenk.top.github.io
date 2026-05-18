@@ -30,9 +30,6 @@ Historically, the notion crystallized in the early nineteenth century through th
 
 In this article we define groups, build a library of examples, introduce the notion of a subgroup, and prove Lagrange's theorem --- the first genuinely nontrivial result in the subject. Every claim will be either proved or demonstrated by explicit computation. Worked-out numerical examples appear in roughly every section; if you skip them on first reading you will miss most of the value of an article like this.
 
-![Cayley table for Z/4Z](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/01_cayley_table.png)
-
-
 ![Cayley table of Z/4Z showing the four group axioms in action](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/01-groups-first-encounter/aa_v2_01_1_cayley_z4.png)
 
 ## The Formal Definition: Four Axioms
@@ -40,7 +37,6 @@ In this article we define groups, build a library of examples, introduce the not
 Mental picture: a group is a set with a "combine" button. Push the button on any two elements and you get back a third, always inside the set. Some element does nothing. Every element has an undo.
 
 ![The four group axioms: closure, associativity, identity, inverse](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/01_group_axioms.png)
-
 
 **Definition.** A *group* is a set $G$ together with a binary operation $\cdot : G \times G \to G$ satisfying:
 
@@ -80,7 +76,6 @@ A direct consequence worth noting: in the Cayley table of a finite group, every 
 Mental picture: a cyclic group is a hand on a clock that ticks forward by one position each time you press the button. Some clocks have finitely many positions, some go on forever. That is essentially all there is to the structure.
 
 ![Cyclic groups: Z/nZ as clock arithmetic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/01_cyclic_groups.png)
-
 
 **Definition.** A group $G$ is *cyclic* if there exists $g \in G$ such that every element of $G$ is a power of $g$: $G = \{g^n : n \in \mathbb{Z}\}$. We write $G = \langle g \rangle$ and call $g$ a *generator*.
 
@@ -133,7 +128,6 @@ Mental picture: take a physical object, write down everything you can do to it t
 
 ![Symmetry group of a square: rotations and reflections](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/01_symmetry_group.png)
 
-
 **The symmetric group $S_n$.** Let $X = \{1, 2, \ldots, n\}$. The set of all bijections $\sigma : X \to X$ forms a group under composition, called the *symmetric group* $S_n$. Its order is $n!$.
 
 We write permutations in cycle notation. The permutation $\sigma \in S_4$ defined by $\sigma(1) = 2, \sigma(2) = 4, \sigma(3) = 3, \sigma(4) = 1$ is written $(1\ 2\ 4)$, a $3$-cycle fixing $3$. Every permutation decomposes uniquely (up to ordering) into disjoint cycles, and disjoint cycles commute.
@@ -181,7 +175,6 @@ A useful invariant for distinguishing groups of the same order is the *order pro
 Mental picture: a subgroup is a smaller group living inside a bigger one, sharing the same operation. Lagrange's theorem says these inside-groups can only have certain sizes --- they have to evenly divide the host.
 
 ![Subgroup lattice of Z/12Z](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/01_subgroup_lattice.png)
-
 
 **Definition.** A *subgroup* of $(G, \cdot)$ is a nonempty subset $H \subseteq G$ that is itself a group under the same operation. We write $H \leq G$.
 
@@ -249,9 +242,6 @@ The Sylow theorems, which we will reach in Article 4, restore a partial converse
 ## Orders and Cosets: Worked Examples
 
 ![A group homomorphism f: Z to Z/4Z and its kernel](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/01-groups-first-encounter/aa_v2_01_6_homomorphism.png)
-
-![Cosets partition the group into equal-size pieces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/01_cosets.png)
-
 
 **Worked Example 1: Subgroups of $\mathbb{Z}/12\mathbb{Z}$.**
 
@@ -336,7 +326,6 @@ We have established the language of groups, built a working inventory of example
 
 ![Animation: group operation on symmetries](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/01_group_operation.gif)
 
-
 In the next article, we develop the theory of *group actions*: the formalism for how a group can move things around in a set. This leads to the orbit-stabilizer theorem, Burnside's counting lemma, and the conjugacy class equation --- tools that will let us prove results about the internal structure of groups by studying their external behavior.
 
 Beyond that, the series will continue through normal subgroups and quotient groups (the correct notion of dividing one group by another), homomorphisms and isomorphism theorems, direct and semidirect products, the Sylow theorems (which provide a partial converse to Lagrange), and eventually the classification of finitely generated abelian groups. Each of these builds directly on the foundation laid here.
@@ -346,7 +335,6 @@ The reader who has worked through the examples in this article --- computing pro
 **A remark on notation.** Throughout this series, $|G|$ denotes the order (number of elements) of a finite group $G$, $|g|$ or $\text{ord}(g)$ denotes the order of an element, $H \leq G$ means $H$ is a subgroup of $G$, $[G:H]$ is the index, and $\langle g \rangle$ is the cyclic subgroup generated by $g$. We write $\cong$ for "is isomorphic to." These conventions are standard in algebra textbooks (Lang, Dummit-Foote, Hungerford) and will be used without further comment.
 
 **A remark on the road ahead.** The next eleven articles will revisit every concept introduced here from a more powerful angle. Group actions will subsume the Cayley-table viewpoint. Quotient groups will replace ad hoc coset arguments. Sylow theory will give us the divisibility tools we need to actually classify groups of small order. Field and Galois theory will explain why all of this was originally invented. None of that will make sense, however, unless the foundations laid down here --- four axioms, cosets, Lagrange --- are absolutely solid. Spend the time.
-
 
 ## Deeper Dive: Worked Computations
 

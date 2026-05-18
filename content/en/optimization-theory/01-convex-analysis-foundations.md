@@ -24,7 +24,6 @@ If you only remember three things from this article, make it these:
 - The **conjugate** $f^*$ is the Legendre transform generalized — it converts pointwise inequalities into linear ones and is the bridge between primal and dual problems.
 - The **subdifferential** $\partial f(x)$ is the right notion of "gradient" for non-smooth convex functions; it is non-empty whenever $x$ lies in the relative interior of $\mathrm{dom}(f)$.
 
-
 ---
 
 The first time I tried to prove a gradient-descent convergence rate on my own, I got stuck not on the inequalities but on a wall of innocent-looking words: convex set, epigraph, conjugate, subgradient. None of them is mysterious; together they felt like jargon for jargon's sake.

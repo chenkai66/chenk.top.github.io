@@ -26,8 +26,6 @@ translationKey: "abstract-algebra-4"
 
 ## 原子：p-群、Cauchy 定理和类方程
 
-![S3 的子群格](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/aa04_subgroup_lattice.png)
-
 ![Cauchy 定理：p | |G| 蕴含存在 p 阶元](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/04_cauchy_theorem.png)
 
 在正式碰 Sylow 定理之前，我得先让你看清它们拆解出来的基本零件。有限 $p$-群（$p$-group）就是阶为 $p^k$ 的群，其中 $p$ 是素数，$k \ge 1$。换句话说，整个群的尺寸纯粹由同一个素数堆叠而成。

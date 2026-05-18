@@ -25,7 +25,6 @@ This post derives VI from a single identity, builds the mean-field algorithm and
 
 ![ML Math Derivations (14): Variational Inference and Variational EM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn

@@ -33,8 +33,6 @@ What makes this theorem psychologically surprising is the vast gap between its t
 
 ![Gauss-Bonnet theorem: curvature integrates to a topological invariant](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_local_gauss_bonnet.png)
 
-![Euler characteristic for various surfaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_euler_characteristic.png)
-
 The local version is about a region, not an entire surface. Set up: let $T \subset S$ be a region on an oriented surface, bounded by a simple closed piecewise-smooth curve $\partial T$. The boundary consists of smooth arcs (each with a well-defined geodesic curvature $\kappa_g$) meeting at corners $p_1, \ldots, p_n$ where the tangent direction jumps by exterior angles $\theta_i$ (positive means turning left, in the chosen orientation).
 
 **Theorem (Local Gauss-Bonnet).** Under these conditions,
@@ -73,8 +71,6 @@ The integral of curvature over a geodesic triangle equals the angle excess (or d
 
 To go from local to global, we need to tile the entire surface with triangles and sum. This requires the combinatorial machinery of *triangulations* and the *Euler characteristic*.
 
-![Local Gauss-Bonnet: angle sum in geodesic triangle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_local_gauss_bonnet.png)
-
 A *triangulation* of a closed surface $S$ is a decomposition into finitely many "curved triangles" (images of flat triangles under smooth maps) such that any two triangles either share nothing, share a single vertex, or share an entire edge. Every closed surface admits a triangulation (Rado, 1925). A given surface admits infinitely many triangulations.
 
 The *Euler characteristic* is the integer
@@ -97,8 +93,6 @@ The connection to Gauss-Bonnet: the theorem says $\iint_S K\,dA = 2\pi\chi(S)$. 
 $$\iint_S K\,dA = 2\pi\chi(S).$$
 
 ![Animation: deforming surface while preserving Euler characteristic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_deformation.gif)
-
-![Total curvature integral equals topological invariant](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_curvature_integral.png)
 
 The proof by triangulation-and-telescoping is the most transparent. Choose a triangulation of $S$ with *geodesic* edges (on a smooth surface this is always possible — geodesics between sufficiently close points are unique and depend smoothly on their endpoints). Apply the local Gauss-Bonnet theorem to each triangle $T_j$ (which has geodesic sides, so $\kappa_g = 0$):
 $$\iint_{T_j} K\,dA = A_1^{(j)} + A_2^{(j)} + A_3^{(j)} - \pi,$$
@@ -290,7 +284,6 @@ Article 6 introduces smooth manifolds, the abstract framework that lets us do ca
 
 You now have a complete classical theory of surfaces. Article 6 is the conceptual hinge of the series: the move from "surface in $\mathbb{R}^3$" to "manifold." Read it asking "what is the cleanest definition that recovers all of the above without ever using an embedding?" The answer — charts, atlases, smooth structures — is one of the great mathematical inventions of the 20th century.
 
-
 ### One last worked example: Gauss-Bonnet on a square pillow
 
 A "pillow" is two unit squares glued along their boundaries to form a closed polyhedral surface — topologically a sphere, four corners. Each square contributes flat interior ($K = 0$), so the smooth-curvature integral is $0$. The four corners each have angle defect: at each corner, two squares meet, contributing total interior angle $2 \cdot \pi/2 = \pi$, so defect $2\pi - \pi = \pi$ per corner. Total angle defect: $4\pi$.
@@ -306,7 +299,6 @@ Beyond sphere ($\chi = 2$) and torus ($\chi = 0$), the genus-$g$ closed orientab
 So Gauss-Bonnet, combined with uniformization, gives a complete classification: spheres are positively curved, tori are flat, higher-genus surfaces are hyperbolic. Three model geometries, three kinds of topology. This is the simplest non-trivial example of the Thurston geometrization program, which generalizes the picture to 3-manifolds (eight model geometries instead of three; resolved by Perelman in 2003).
 
 Verify Gauss-Bonnet on a genus-2 hyperbolic surface: total area is $\int dA = -2\pi \chi/K = -2\pi(-2)/(-1) = 4\pi$. So every genus-2 hyperbolic surface has area exactly $4\pi$ — independent of which hyperbolic metric you choose. The topology fixes the area.
-
 
 ## What's next
 

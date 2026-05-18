@@ -22,7 +22,6 @@ translationKey: "ml-math-derivations-7"
 
 ![ML Math Derivations (7): Decision Trees — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/07-Decision-Trees/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn
@@ -33,7 +32,6 @@ translationKey: "ml-math-derivations-7"
 - How CART handles continuous features, missing values, and categorical features without breaking its greedy framework.
 - Pre-pruning vs post-pruning, and the exact derivation of the cost-complexity threshold $\alpha$.
 - How feature importance is *defined* (not just printed by sklearn) and where it can be misleading.
-
 
 ---
 

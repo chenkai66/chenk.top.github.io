@@ -23,7 +23,6 @@ translationKey: "ml-math-derivations-17"
 ---
 ![ML Math Derivations (17): Dimensionality Reduction and PCA — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn

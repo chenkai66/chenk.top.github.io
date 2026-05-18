@@ -25,7 +25,6 @@ This chapter shows how the entire ODE toolkit — Laplace transforms (Ch 4), lin
 
 ![Ordinary Differential Equations (16): Fundamentals of Control Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/16-control-theory/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn

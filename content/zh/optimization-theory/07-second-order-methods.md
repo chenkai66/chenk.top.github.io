@@ -21,7 +21,6 @@ translationKey: "optim-07"
 
 本文将给出各类算法的收敛性证明，从割线条件出发推导 BFGS 更新公式，逐行解析 L-BFGS 的双循环递归（two-loop recursion），并阐释信赖域方法（该方法使用相同的 Hessian 信息，但采用不同的全局化策略）。
 
-
 ---
 
 上一篇结尾我们停在一阶方法的极限：要达到 $\epsilon$-精度，迭代次数最少 $O(\sqrt{\kappa})$。这个 $\sqrt{\kappa}$ 是个硬墙——只要你只用一阶信息（梯度），就别指望更快。
@@ -60,7 +59,6 @@ $$
 
 几何解释：牛顿法用局部二次模型近似目标函数 $f$，并直接跳转至该二次模型的极小点。若 $f$ 本身即为二次函数，则牛顿法一步收敛。
 
-
 ![牛顿法局部二次模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig1.png)
 *图 1. 牛顿法在 x_k 处用局部二次模型近似 f，并直接跳跃到该二次模型的极小点；若 f 本身就是二次函数，则一步收敛。*
 
@@ -87,7 +85,6 @@ $$
 
 “有效数字位数倍增”现象在此具象化：若 $\|x_k - x^\star\| = 10^{-3}$，则 $\|x_{k+1} - x^\star\| \leq C \cdot 10^{-6}$，进而 $\leq C^2 \cdot 10^{-12}$，依此类推。从误差 $10^{-3}$ 收敛至 $10^{-12}$ 仅需 2 次迭代，而一阶方法则需约 $\log(10^9) / \log(\sqrt{\kappa})$ 次迭代。
 
-
 ![收敛速率对比：梯度下降 vs BFGS vs 牛顿](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig2.png)
 *图 2. 误差随迭代次数的对数曲线：梯度下降以线性速率衰减（每步乘一个常数），BFGS 实现超线性，牛顿法每步将有效数字位数翻倍（二次收敛）。*
 
@@ -102,7 +99,6 @@ $$
   $\nabla f(x_k + \alpha d_k)^\top d_k \geq c_2 \nabla f(x_k)^\top d_k$，对牛顿类方法通常取 $c_2 = 0.9$。
 
 一旦迭代点 $x_k$ 进入 $x^\star$ 的邻域，单位步长 $\alpha_k = 1$ 即满足 Wolfe 条件，算法自动切换至二次收敛阶段。
-
 
 ![阻尼牛顿法回溯线搜索](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig3.png)
 *图 3. 阻尼牛顿法：从 x_k 出发，纯牛顿步（alpha=1）越过了局部最优；回溯逐次将 alpha 减半，直至满足 Armijo 充分下降条件（虚线为上界）。*
@@ -187,7 +183,6 @@ return r                              # r = H_k g
 
 每个循环各访问每对 $(s_i, y_i)$ 一次；总计算量为 $4mn$ 次内积加一次向量缩放，完全规避了 $O(n^2)$ 级别的矩阵更新。
 
-
 ![L-BFGS 双循环递推](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig4.png)
 *图 4. L-BFGS 双循环递推示意：第一轮反向遍历 m 对历史，得到 alpha_i 与更新后的 q；中间施加初始缩放 H_k^0；第二轮正向遍历，最终输出 r = H_k g，全程复杂度 O(mn)、无需构造 H_k。*
 
@@ -245,7 +240,6 @@ $$
 - 否则：取连接 $0$、$d_k^{SD}$ 与 $d_k^N$ 的分段线性路径中位于信赖域边界上的点，得到一个长度缩减的拟牛顿步。
 
 狗腿路径是一条从原点出发、经 $d_k^{SD}$ 再至 $d_k^N$ 的“折线”。该路径上的模型函数值单调递减，因此最优可行解必位于路径与信赖域边界的交点处（若 $d_k^N$ 在域内，则即为其本身）。
-
 
 ![信赖域狗腿法路径](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig5.png)
 *图 5. 二维信赖域子问题：二次模型 m(d) 的等高线、信赖域 ||d||<=Delta （虚线圆）、最速下降方向 d_SD、牛顿步 d_N，以及由 0 → d_SD → d_N 构成的狗腿折线。狗腿解为路径与信赖域边界的交点。*

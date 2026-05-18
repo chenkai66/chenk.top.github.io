@@ -24,7 +24,6 @@ Article 02 introduced Nesterov acceleration and showed it improves the per-itera
 
 The unifying tool is a **Lyapunov potential** — a non-negative quantity that the algorithm decreases at every step. Both Nesterov and Heavy-Ball admit Lyapunov proofs, and the lower bound essentially says no Lyapunov decrease can happen faster.
 
-
 ---
 
 We met Nesterov acceleration last article: it cuts the per-condition-number cost of gradient descent from $\kappa$ down to $\sqrt{\kappa}$. After reading that I was left with three sharp questions of my own:
@@ -216,7 +215,6 @@ If the inner solver has linear convergence rate $\rho$ on $\kappa$-strongly conv
 ![Catalyst meta-algorithm flowchart](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig5_catalyst.png "Outer Nesterov loop drives an inner regularized solver")
 
 The outer loop runs Nesterov-style momentum on the *anchors* $y_k$; the inner loop calls any linearly-convergent solver on the regularized subproblem $g_{y_k}(x) = f(x) + \frac{\kappa}{2}\|x - y_k\|^2$. Because $g_{y_k}$ is $\kappa$-strongly convex by construction, even a non-strongly-convex problem becomes amenable to a linearly-convergent inner solver.
-
 
 ### Example application
 

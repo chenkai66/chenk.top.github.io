@@ -459,8 +459,6 @@ We now collect the experimental evidence that supports the theory above. All fou
 
 ### Brachistochrone (Figure 1)
 
-![Candidate descent paths and time functional values: the cycloid is the unique minimiser of the brachistochrone problem.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig1_functional_minimization.png)
-
 Five candidate descent curves connect $A=(0,0)$ and $B=(\pi, 2)$. We discretise the time functional $T[y] = \int \sqrt{(1+y'^2)/(2gy)}\, dx$ by trapezoidal quadrature and rank the curves by descent time. The cycloid wins by a comfortable margin, beating both the straight line ("shortest path") and the steeper "drop-and-coast" candidate. This single picture captures the entire spirit of the calculus of variations: distinct admissible curves give distinct functional values, and only one curve makes the first variation vanish.
 
 ### The First-Variation Argument (Figure 2)
@@ -482,13 +480,9 @@ with explicit finite differences. The initial density is a sharp Gaussian far fr
 
 ### Mean-Field Limit (Figure 4)
 
-![Mean-field limit: weight histograms converge to a smooth density as width grows.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig4_mean_field_limit.png)
-
 A two-layer ReLU network with width $m \in \{20, 200, 2000\}$ is trained to fit $f_\ast(x) = \sin(\pi x) + 0.5 \sin(3\pi x)$ on 64 points. The first-layer weight histograms after $0$, $200$, and $1500$ epochs become visibly smoother as $m$ grows; by $m = 2000$ the histogram is already a faithful sample of a continuous density. The right column shows the corresponding loss decays — wider networks converge faster, in line with mean-field over-parameterisation theory. The learning rate is scaled $\propto 1/\sqrt{m}$ to keep per-particle drift $O(1)$, which is the correct scaling for the mean-field regime.
 
 ### Energy Landscape (Figure 5)
-
-![Non-convex 2D energy landscape with gradient flow trajectories converging to the global minimum.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig5_energy_landscape.png)
 
 A deliberately non-convex 2-D energy with a tilt and trigonometric "bumps" demonstrates the universal dissipation identity. The gradient-flow trajectory, integrated by RK45, settles into the basin of attraction of the lowest-energy minimum; the energy time-series confirms monotone decrease. The same picture in a million dimensions is the working mental model for neural-network training — except that real loss landscapes typically have far flatter minima (a fact responsible for both generalisation and the success of stochastic gradient methods).
 

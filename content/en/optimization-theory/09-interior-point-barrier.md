@@ -26,7 +26,6 @@ This article unpacks the machinery in three layers:
 
 We give the central-path complexity proof in full.
 
-
 ---
 
 In 1984 Karmarkar shook the optimization world: linear programming, he showed, is solvable in polynomial time not just on paper (the ellipsoid method had already done that) but in *practice*. His algorithm stayed strictly inside the feasible polytope, never touching the edges — that's where the name "interior-point" comes from.
@@ -158,7 +157,6 @@ These properties are what makes Newton's method robust on a self-concordant func
 ![Two phases of Newton on a self-concordant function](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig4.png)
 *Figure 4. **Left:** the per-step decrease $\omega(\lambda) = \lambda - \log(1+\lambda)$ stays above an absolute constant ($\geq 0.02$) whenever $\lambda \geq 1/4$, so the **damped phase** burns down $\phi$ at a constant rate. **Right:** once the Newton decrement enters the **quadratic region** $\lambda \leq 1/4$, full Newton steps satisfy $\lambda_+ \leq 2\lambda^2$ and convergence is dramatic. Crucially the boundary $1/4$ is independent of conditioning.*
 
-
 ### Putting it together for the barrier method
 
 For each outer iteration of the barrier method, we Newton-solve $\min_x t f_0(x) + \phi(x)$. If $f_0$ is self-concordant (or more generally if $t f_0 + \phi$ is) and we warm-start from $x^\star(t/\mu)$ (the previous solution), the warm start lies in the quadratic-convergence region of the new objective. So **each outer iteration costs $O(1)$ Newton steps**, independent of $t$ and the problem size.
@@ -201,7 +199,6 @@ Modern solvers use **predictor-corrector** schemes (Mehrotra, 1992): predict the
 ![Barrier weight schedule and duality gap](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig3.png)
 *Figure 3. Two outer-iteration schedules for the barrier method on an LP with $m=200$ constraints. Long-step ($\mu=10$) inflates $t_k$ aggressively and reaches tolerance in $\sim 8$ outer iterations; short-step ($\mu = 1 + 1/\sqrt{\nu}$) takes $\sim 90$ tiny steps but each inner solve is provably $O(1)$ Newton steps. Both produce a duality gap $m/t_k$ that decays geometrically.*
 
-
 ---
 
 ## Primal-dual interior-point methods
@@ -230,7 +227,6 @@ This is a system in $(x, \nu, \lambda)$ with $1/t$ as a perturbation. Newton's m
 The vast majority of solvers (Mosek, Gurobi for QP, SDPT3 for SDP, OSQP for QP) implement primal-dual interior-point methods with predictor-corrector and adaptive step sizes.
 ![Primal-dual residuals over iterations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig5.png)
 *Figure 5. Convergence of a Mehrotra predictor-corrector primal-dual interior-point method. The primal residual $\|Ax-b\|$, dual residual $\|A^\top \nu + \lambda - c\|$ and duality gap $x^\top \lambda$ all drop together at a geometric rate. The **predictor** step computes the affine direction along the central path; the **corrector** step adds a centering correction so the next iterate stays close to the central path.*
-
 
 ---
 

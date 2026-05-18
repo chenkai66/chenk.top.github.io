@@ -21,7 +21,6 @@ translationKey: "pde-ml-8"
 ---
 ![PDE and ML (8): Reaction-Diffusion Systems and Graph Neural Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/illustration_1.png)
 
-
 ---
 
 Anyone who has trained a deep GNN has seen it collapse — past a dozen or so layers, every node's embedding becomes nearly identical and the model goes mush. There is a name for this — **over-smoothing** — and the underlying math is surprisingly clean: **GNN message passing is essentially a diffusion equation on the graph**, and diffusion's long-time behavior is to flatten everything to a constant.
@@ -512,7 +511,6 @@ That closes the eight-chapter PDE-and-ML arc. Looking back, the thread is cleane
 Lined up together, the whole series has been doing exactly one thing: **using mathematical structure as the inductive bias of a neural network**. Each chapter is the same idea with a different constraint plugged in.
 
 Where to next? Three threads are worth chasing further: (1) operator learning meeting foundation models (PDE foundation models); (2) structure-preserving networks landing in molecular dynamics and climate modeling; (3) score-based methods crossing into reinforcement learning and planning. I hope these eight chapters left you with the key needed to walk down any one of them.
-
 
 ## References
 

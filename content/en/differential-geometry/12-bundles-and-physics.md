@@ -33,8 +33,6 @@ A historical anchor before we dive in. Yang and Mills wrote down their non-abeli
 
 A **fiber bundle** is a smooth surjection $\pi: E \to B$ of manifolds satisfying a **local triviality** condition: every point $b \in B$ has a neighborhood $U$ such that $\pi^{-1}(U) \cong U \times F$ as smooth manifolds, with the projection corresponding to the first factor. Here $F$ is the **typical fiber**, $B$ is the **base**, $E$ is the **total space**.
 
-![Fiber bundle: total space, base, fiber, and section](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/12_fiber_bundle.png)
-
 ![Fiber bundle structure with base, total space, and fibers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/12-bundles-and-physics/dg_v2_12_1_fiber_bundle.png)
 
 Locally, a fiber bundle is just a product. Globally, it can twist: as you move around in $B$, the fibers might glue back together with non-trivial transition functions, producing topologically interesting total spaces.
@@ -61,8 +59,6 @@ Locally, a fiber bundle is just a product. Globally, it can twist: as you move a
 ## Principal Bundles
 
 A **principal $G$-bundle** $\pi: P \to B$ is a fiber bundle whose fiber is a Lie group $G$, equipped with a free right action $P \times G \to P$ that preserves fibers and acts transitively on each fiber. In other words: each fiber is a copy of $G$, and the group $G$ acts on the fibers by right multiplication.
-
-![Tangent bundle: tangent planes varying smoothly over a sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/12_tangent_bundle.png)
 
 ![Principal G-bundle with a free right action of the structure group](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/12-bundles-and-physics/dg_v2_12_2_principal.png)
 
@@ -100,8 +96,6 @@ A **connection** on a principal $G$-bundle $P \to B$ is a 1-form $A$ on $P$ valu
 
 ![Animation: parallel transport in a fiber bundle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/12_bundle_transport.gif)
 
-![Fiber bundles in physics: gauge theory dictionary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/12_gauge_theory.png)
-
 Equivalently, a connection is a smooth distribution of horizontal subspaces $H_p \subset T_pP$ such that $T_pP = H_p \oplus V_p$ (with $V_p = \ker d\pi_p$ the vertical subspace) and the distribution is $G$-equivariant.
 
 ![Connection on a principal bundle and the horizontal lift of a curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/12-bundles-and-physics/dg_v2_12_3_connection.png)
@@ -123,8 +117,6 @@ Equivalently, a connection is a smooth distribution of horizontal subspaces $H_p
 The **curvature** of a connection $A$ is the Lie-algebra-valued 2-form
 $$F = dA + A \wedge A$$
 on the principal bundle (where $A \wedge A$ is the wedge product combined with the Lie bracket on $\mathfrak{g}$). For abelian $G = \mathrm{U}(1)$, the bracket is trivial and $F = dA$, the ordinary exterior derivative of the gauge potential. For non-abelian $G$, the second term is essential and produces the self-interaction of gauge fields.
-
-![Hopf fibration: S^1 fibers over S^2](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/12_hopf_fibration.png)
 
 ![Curvature 2-form F = dA + A wedge A on a principal bundle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/12-bundles-and-physics/dg_v2_12_4_curvature_form.png)
 
@@ -160,8 +152,6 @@ The first two terms are the Maxwell-like exterior derivative; the last is the no
 
 Given a curvature 2-form $F$ on a principal $G$-bundle and a $G$-invariant polynomial $P$ on $\mathfrak{g}$, the form $P(F)$ is a closed differential form on the base $B$, and its de Rham class $[P(F)] \in H^*(B; \mathbb{R})$ is independent of the choice of connection. This is the **Chern-Weil construction**, and it produces topological invariants of bundles.
 
-![Characteristic classes: topology from curvature integrals](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/12_chern_class.png)
-
 ![Chern classes as topological invariants of a complex vector bundle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/12-bundles-and-physics/dg_v2_12_5_chern.png)
 
 **Chern classes (complex vector bundles).** For a $\mathrm{U}(n)$-bundle (equivalently, complex rank-$n$ vector bundle), the **total Chern class** is
@@ -193,8 +183,6 @@ $$S_{YM}[A] = \frac{1}{2}\int_M \langle F \wedge *F\rangle,$$
 where $\langle \cdot, \cdot\rangle$ is an invariant inner product on $\mathfrak{g}$ (typically the Killing form) and $*$ is the Hodge star. Connections that are critical points of $S_{YM}$ satisfy the **Yang-Mills equation**
 $$d_A * F = 0,$$
 where $d_A = d + [A, \cdot]$ is the covariant exterior derivative.
-
-![Electromagnetism as U(1) bundle connection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/12_em_connection.png)
 
 ![Yang-Mills field as a connection minimizing |F|^2](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/12-bundles-and-physics/dg_v2_12_6_yang_mills.png)
 
@@ -327,7 +315,6 @@ The series ends here, but the road continues. Three directions to consider:
 
 You now have a working command of differential geometry from curves through gauge theory. The 12 articles cover what every working geometer or theoretical physicist must know. The next steps depend on direction: pure geometers go to spin and index theory, applied physicists go to gauge theory and field theory, applied mathematicians go to symplectic geometry and dynamical systems. The shared toolkit is what you have learned. Read each next-direction text asking "where do my 12 articles fit into this larger picture?" — the answer is always: they are the foundation.
 
-
 ### One last worked example: Wilson loop in a $U(1)$ gauge theory
 
 A Wilson loop is the quantity $W(\gamma) = \exp(i \oint_\gamma A)$ for a loop $\gamma$ and a $U(1)$ connection $A$. It is gauge-invariant and physical: in QED, $W(\gamma)$ is the quantum-mechanical phase acquired by a charged particle traveling around $\gamma$.
@@ -351,7 +338,6 @@ To anchor the gauge-theory dictionary in numbers, compare the strengths and stru
 The curvature 2-form $F = dA + A \wedge A$ has its second piece grow with the coupling — abelian theories have linear field equations, non-abelian have nonlinear. QCD's confinement is conjecturally a consequence of the nonlinearity becoming non-perturbative at low energy.
 
 Quantitative test of the gauge-theory dictionary: the running of the couplings $\alpha_1, \alpha_2, \alpha_3$ with energy scale, computed from the Lie-algebra structure of each group, predicts approximate unification at $\sim 10^{16}$ GeV. This is the empirical seed of grand unified theories — the curvatures of the three Standard Model bundles, extrapolated, almost meet. The "almost" is one of the open problems of theoretical physics.
-
 
 ## Where to Go from Here
 

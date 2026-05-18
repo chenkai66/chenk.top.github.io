@@ -159,8 +159,6 @@ A form $\omega$ is **closed** if $d\omega = 0$. It is **exact** if $\omega = d\e
 
 ![Animation: Stokes theorem — boundary integral equals interior integral](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/08_stokes_visual.gif)
 
-![Exterior derivative: the de Rham complex](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/08_exterior_derivative.png)
-
 **Why $d^2 = 0$.** In coordinates, $df = \partial_i f\,dx^i$ and $d^2 f = \partial_j \partial_i f\,dx^j \wedge dx^i$. Mixed partials are symmetric, $\partial_j\partial_i f = \partial_i\partial_j f$, while $dx^j \wedge dx^i = -dx^i \wedge dx^j$ is antisymmetric. The product of symmetric and antisymmetric vanishes. So $d^2 f = 0$. By the Leibniz rule and induction on degree, $d^2 \omega = 0$ for all $\omega$.
 
 **A closed but not exact form.** On $\mathbb{R}^2 \setminus \{0\}$, define
@@ -184,8 +182,6 @@ This single example contains the entire idea of de Rham cohomology: closedness i
 If $f: M \to N$ is a smooth map, vector fields cannot be pushed forward in any natural way (you would need $f$ to be a diffeomorphism, or at least an immersion with extra data). But **forms can always be pulled back**. Given $\omega \in \Omega^k(N)$, define $f^*\omega \in \Omega^k(M)$ by
 $$(f^*\omega)_p(X_1, \dots, X_k) = \omega_{f(p)}(df_p(X_1), \dots, df_p(X_k)).$$
 The form on $M$ "feels" the form on $N$ through the differential of $f$.
-
-![Pullback: forms travel backward under smooth maps](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/08_pullback.png)
 
 ![Pullback f^* omega of a form under a smooth map](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/08-differential-forms/dg_v2_08_5_pullback.png)
 
@@ -366,7 +362,6 @@ Article 9 will introduce integration on manifolds and prove Stokes' theorem. To 
 (3) The boundary operator $\partial$ and the exterior derivative $d$ are dual: $\langle d\omega, c \rangle = \langle \omega, \partial c \rangle$. This Stokes-Poincaré duality is what makes de Rham cohomology pair with simplicial homology. How does the duality translate between the smooth and combinatorial worlds?
 
 You now have the algebra of forms. Article 9 puts integration on it. Read it asking "what is the geometric reason that $d \circ d = 0$ corresponds to $\partial \circ \partial = 0$?" The answer is that they are the same statement, viewed through the duality between forms and chains.
-
 
 ### One last worked example: the volume form on $S^3$ via three 1-forms
 

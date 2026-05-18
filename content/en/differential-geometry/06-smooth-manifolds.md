@@ -29,8 +29,6 @@ Once you accept the abstract framework, everything from the previous chapters be
 
 ![Stereographic projection: covering the circle with two charts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/dg06_stereographic.png)
 
-![Charts and atlas: covering a manifold with coordinate patches](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_charts_atlas.png)
-
 The intuition behind a manifold: a space that, near any point, looks indistinguishable from a patch of $\mathbb{R}^n$. The surface of the Earth looks flat from ground level — this is the local-Euclidean property. But globally it wraps around, has no edges, and is compact. A manifold is the mathematical framework that captures this: locally Euclidean, globally possibly complicated.
 
 A *topological $n$-manifold* is a topological space $M$ satisfying three conditions: (1) *Hausdorff* — any two distinct points have disjoint neighborhoods; (2) *second-countable* — the topology has a countable basis; (3) *locally Euclidean of dimension $n$* — every point $p \in M$ has an open neighborhood $U$ homeomorphic to an open subset of $\mathbb{R}^n$. A pair $(U, \varphi)$ where $\varphi: U \to V \subseteq \mathbb{R}^n$ is a homeomorphism is called a *coordinate chart*. The map $\varphi$ assigns $n$ real coordinates to each point in $U$.
@@ -54,8 +52,6 @@ A concrete grounding: take $S^2$ with stereographic projection from the north po
 ## Examples That Ground the Abstraction
 
 **$\mathbb{R}^n$ and its open subsets.** The identity map gives a single global chart. Open subsets inherit the smooth structure. Example: $\mathrm{GL}(n, \mathbb{R}) = \{A \in M_n(\mathbb{R}) : \det A \neq 0\}$ is an open subset of $\mathbb{R}^{n^2}$ (since $\det$ is continuous and $\mathrm{GL}(n)$ is the preimage of $\mathbb{R} \setminus \{0\}$), hence a smooth manifold of dimension $n^2$. The space of invertible matrices is a manifold — this is the starting point for Lie group theory.
-
-![Tangent space at a point on a manifold](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_tangent_space.png)
 
 ![Two-chart atlas for the 2-sphere from stereographic projection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/06-smooth-manifolds/dg_v2_06_3_sphere_charts.png)
 
@@ -84,8 +80,6 @@ One more illuminating example: the *Klein bottle*. Take a square $[0,1]^2$ and i
 On a surface in $\mathbb{R}^3$, a tangent vector at $p$ is a velocity vector $\gamma'(0)$ of some curve through $p$ — it lives in the ambient $\mathbb{R}^3$ and happens to be tangent to the surface. For abstract manifolds with no ambient space, we need a purely intrinsic definition.
 
 ![Animation: transitioning between chart coordinates](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_chart_transition.gif)
-
-![Transition maps between overlapping charts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_transition_maps.png)
 
 The insight: a tangent vector at $p$ is completely characterized by its action as a directional derivative. Given any smooth function $f: M \to \mathbb{R}$, a tangent vector $v$ at $p$ produces a number $v(f) \in \mathbb{R}$ — the rate of change of $f$ in the direction $v$. This number is linear in $f$ and satisfies the Leibniz (product) rule: $v(fg) = f(p)v(g) + g(p)v(f)$.
 
@@ -261,7 +255,6 @@ Article 7 will introduce vector fields, integral curves, flows, and Lie brackets
 (3) The Frobenius theorem says that a distribution (an assignment of subspaces of tangent spaces) is integrable if and only if it is closed under brackets. This is one of the deepest theorems in basic differential geometry. Why should integrability of a geometric distribution reduce to an algebraic identity?
 
 You now have the abstract framework. Article 7 puts dynamics on it. Read it asking "what is the geometric meaning of $[X, Y] = 0$, and how does it generalize from flat space to curved manifolds?"
-
 
 ### One last worked example: the projective plane $\mathbb{RP}^2$ as a quotient manifold
 

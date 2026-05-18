@@ -32,10 +32,6 @@ The proofs all share a common engine: the Baire category theorem applied to the 
 A linear map $T: X \to Y$ between normed spaces is **bounded** (equivalently, continuous) if there exists $C \geq 0$ with $\|T x\|_Y \leq C \|x\|_X$ for all $x \in X$. The smallest such $C$ is the operator norm
 $$\|T\| = \sup_{\|x\|_X \leq 1} \|T x\|_Y = \sup_{x \neq 0} \|T x\|_Y / \|x\|_X.$$
 
-![Animation: open mapping theorem demonstration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_open_mapping.gif)
-
-![Open mapping theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/06_open_mapping.png)
-
 ![Operator norm as the supremum of ||Tx|| over the unit ball](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/06-bounded-operators/fa_v2_06_1_op_norm.png)
 
 The space $B(X, Y)$ of bounded linear operators is a normed space; if $Y$ is Banach, then $B(X, Y)$ is Banach. (Cauchy sequences of operators converge pointwise to a limit; uniform Cauchy-ness propagates.) When $Y = \mathbb{C}$, $B(X, \mathbb{C}) = X^*$, recovering the dual space.
@@ -91,7 +87,6 @@ Suppose $(\varphi_n)$ is a sequence of bounded linear functionals on a Banach sp
 
 UBP is what lets me make pointwise arguments and conclude global facts. Pointwise boundedness is a far easier condition to verify — just check that for each individual $x$, the family is bounded — than uniform boundedness, which would require a single bound holding over all $x, T$ simultaneously. UBP says they are equivalent in Banach space, and the trade is worth a lot. Examples in operator theory: any pointwise-converging sequence of bounded operators has a bounded operator as its limit; the Fourier coefficients of an $L^2$ function form a bounded family of functionals, etc.
 
-
 ### Worked Numerical Example
 Consider the family of functionals $\varphi_n \in (\ell^2)^*$ defined by $\varphi_n(x) = \sum_{k=1}^n \frac{x_k}{\sqrt{k}}$. For any fixed $x \in \ell^2$, the sequence $(\varphi_n(x))$ converges to $\sum_{k=1}^\infty x_k/\sqrt{k}$ by Cauchy-Schwarz, so $\sup_n |\varphi_n(x)| < \infty$. Pointwise boundedness holds. UBP guarantees $\sup_n \|\varphi_n\| < \infty$. I can verify the bound explicitly. The Riesz representation gives $\|\varphi_n\| = \|v_n\|_2$ where $v_n = (1, 1/\sqrt{2}, \dots, 1/\sqrt{n}, 0, \dots)$. Computing partial norms:
 $$\|v_1\|_2 = 1, \quad \|v_4\|_2 = \sqrt{1 + \frac{1}{2} + \frac{1}{3} + \frac{1}{4}} = \sqrt{2.0833} \approx 1.443,$$
@@ -133,7 +128,6 @@ The lesson: surjectivity is essential. Without it, OMT and its consequences fail
 ### Why this matters
 
 OMT and the bounded inverse theorem are how one extracts continuity from algebraic data. Many problems in analysis come down to "does this PDE/ODE/integral equation have a continuous-data-to-solution map?" OMT often answers yes, given existence and uniqueness of solutions: existence is surjectivity, uniqueness is injectivity, and OMT then provides continuity for free.
-
 
 ### Worked Numerical Example
 Take $T: \ell^1 \to \mathbb{R}^2$ defined by $T(x) = \left(\sum_{n=1}^\infty x_n, \sum_{n=1}^\infty (-1)^n x_n\right)$. $T$ is linear, bounded with $\|T\| \leq 2$, and surjective. OMT guarantees $T(B_{\ell^1}(0,1))$ contains an open ball around $0$ in $\mathbb{R}^2$. I can compute the exact radius. The image of the $\ell^1$ unit ball under a linear map is the convex hull of the images of the extreme points $\pm e_n$. We have $T(e_1) = (1, -1)$, $T(e_2) = (1, 1)$, $T(e_3) = (1, -1)$, etc. The image set is exactly the convex hull of $\{(1,-1), (1,1), (-1,1), (-1,-1)\}$, which is a square rotated by $45^\circ$ with vertices at distance $\sqrt{2}$ from the origin. The largest Euclidean ball inscribed in this square has radius $r = 1$. Thus $B_{\mathbb{R}^2}(0, 1) \subseteq T(B_{\ell^1}(0,1))$. For any $y = (0.6, 0.6)$ with $\|y\|_2 \approx 0.8485 < 1$, I can explicitly find a preimage in the unit ball: $x = (0, 0.6, 0, \dots)$ gives $T(x) = (0.6, -0.6)$, not quite. Try $x = (0.3, 0.3, 0, \dots)$. Then $\|x\|_1 = 0.6 < 1$ and $T(x) = (0.6, 0)$. The geometry matches the theorem's guarantee precisely.
@@ -192,7 +186,6 @@ A reminder from Article 5 made concrete: in $B(X, Y)$, several different notions
 
 The three coincide in finite dimensions and diverge in infinite dimensions. UBP is what allows weak/strong limits of bounded operators to inherit boundedness automatically — pointwise convergence implies pointwise boundedness, hence (by UBP) uniform boundedness, hence the limit is bounded. So while norm convergence is the strongest, strong/weak limits of bounded operators are still bounded, with norm $\leq \liminf$ of the norms.
 
-
 ### Worked Numerical Example
 Let $P_n: \ell^2 \to \ell^2$ be the truncation projection $P_n(x_1, x_2, \dots) = (x_1, \dots, x_n, 0, \dots)$. Strong convergence to $I$ means $\|P_n x - x\|_2 \to 0$ for each fixed $x$. Take $x = (1, 1/2, 1/4, 1/8, \dots)$. Then $\|x\|_2^2 = \sum_{k=0}^\infty (1/2^k)^2 = \sum (1/4)^k = 4/3 \approx 1.3333$. For $n=3$, the tail norm squared is $\|P_3 x - x\|_2^2 = \sum_{k=4}^\infty (1/2^{k-1})^2 = (1/8)^2 + (1/16)^2 + \cdots = \frac{1/64}{1 - 1/4} = \frac{1}{48} \approx 0.02083$. The strong error is $\sqrt{0.02083} \approx 0.1443$. As $n$ increases, this tail vanishes. However, norm convergence requires $\|P_n - I\| \to 0$. Compute the operator norm: $\|(P_n - I) e_{n+1}\|_2 = \| - e_{n+1} \|_2 = 1$. Since $\|e_{n+1}\|_2 = 1$, we have $\|P_n - I\| \geq 1$ for every $n$. In fact $\|P_n - I\| = 1$. Strong convergence holds with explicit decaying tails; norm convergence fails completely because the operator always misses at least one basis direction entirely.
 
@@ -231,7 +224,6 @@ So in Banach spaces, separately continuous bilinear forms are automatically join
 ### Numerical example
 
 The inner product on $\ell^2$, $\langle x, y \rangle = \sum x_n \overline{y_n}$, is separately continuous (the partial sum is continuous in either variable for fixed other variable), and Cauchy-Schwarz is the joint continuity bound: $|\langle x, y \rangle| \leq \|x\|_2 \|y\|_2$. UBP gives the existence of *some* joint continuity constant, which Cauchy-Schwarz then computes to be $1$.
-
 
 ### Worked Numerical Example
 Consider $B: \ell^2 \times \ell^2 \to \mathbb{R}$ given by $B(x, y) = \sum_{n=1}^\infty \frac{x_n y_n}{n}$. Separate continuity is immediate: fixing $x$, the map $y \mapsto B(x,y)$ is an inner product with $(x_n/n)$, which lies in $\ell^2$. UBP guarantees a joint bound $|B(x,y)| \leq C \|x\|_2 \|y\|_2$. I can compute $C$ and test it. By Cauchy-Schwarz, $|B(x,y)| \leq \left(\sum \frac{x_n^2}{n^2}\right)^{1/2} \|y\|_2 \leq \left(\sum x_n^2\right)^{1/2} \|y\|_2 = \|x\|_2 \|y\|_2$, so $C=1$. Test with $x = y = (1, 1/2, 1/3, 1/4, \dots)$. Then $\|x\|_2^2 = \sum 1/n^2 = \pi^2/6 \approx 1.64493$, so $\|x\|_2 \approx 1.28255$. The bilinear form evaluates to $B(x,x) = \sum_{n=1}^\infty \frac{1}{n^3} = \zeta(3) \approx 1.202056$. The joint bound predicts $|B(x,x)| \leq 1 \cdot (1.28255)^2 \approx 1.64493$. Indeed $1.202056 \leq 1.64493$. The inequality is strict here because the weight $1/n$ decays. If I take $x = e_1$, $B(e_1, e_1) = 1$ and $\|e_1\|_2^2 = 1$, so the constant $C=1$ is sharp. The abstract UBP conclusion matches the explicit calculation.
@@ -319,7 +311,6 @@ Operator theory's role in numerical analysis goes beyond the Lax equivalence the
 The proof uses all three big theorems: stability is UBP; the bounded inverse extension is OMT; convergence on a dense subspace is extended to convergence on the whole space by the closed graph theorem.
 
 This is the abstract framework that justifies finite-difference, finite-element, spectral, and meshless methods for linear PDE. Each discretization satisfies the abstract Lax framework, and the analyst's job is to verify stability and consistency — both of which reduce to operator-norm estimates inherited from the underlying continuous problem.
-
 
 ### Worked Numerical Example
 Discretize the integration operator $T f = \int_0^1 f(t) dt$ on $L^2[0,1]$ using the midpoint rule on a uniform mesh with $N=4$ intervals ($h=0.25$). The discrete operator $T_4: \mathbb{R}^4 \to \mathbb{R}$ acts on nodal values $f_i = f((i-0.5)h)$ as $T_4(f) = h \sum_{i=1}^4 f_i$. For $f(t) = t^2$, exact integral is $1/3 \approx 0.333333$. Midpoint nodes: $0.125, 0.375, 0.625, 0.875$. Squared values: $0.015625, 0.140625, 0.390625, 0.765625$. Sum: $1.3125$. Multiply by $h=0.25$: $T_4(f) = 0.328125$. Absolute error: $|0.333333 - 0.328125| = 0.005208$. Consistency holds as $h \to 0$. Stability requires $\sup_h \|T_h\| < \infty$ under the discrete $\ell^2$ norm scaled by $\sqrt{h}$. The discrete norm is $\|f\|_h = \sqrt{h \sum f_i^2}$. By Cauchy-Schwarz, $|T_h(f)| = |h \sum f_i| \leq \sqrt{h} \sqrt{h \sum f_i^2} \cdot \sqrt{N h} = \sqrt{1} \|f\|_h$. So $\|T_h\| \leq 1$ uniformly in $h$. The numerical error decays exactly because consistency and uniform stability hold, mirroring the Lax framework. No hidden blow-up occurs.

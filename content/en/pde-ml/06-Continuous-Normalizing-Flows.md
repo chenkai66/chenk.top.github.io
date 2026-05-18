@@ -21,7 +21,6 @@ translationKey: "pde-ml-6"
 ---
 ![PDE and ML (6): Continuous Normalizing Flows and Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png)
 
-
 ---
 
 How do you turn an isotropic Gaussian into a photograph of a cat?
@@ -539,7 +538,6 @@ Flow Matching converges $\sim 2.7\times$ faster and produces qualitatively clean
 The handful of core ideas in this chapter (PDE residual as loss, operators on function spaces, Wasserstein geometry, symplectic structure, scores, diffusion) recur throughout the rest of the series. If a section stalls you, jot the question down and keep reading — the next chapter usually re-explains it from a different angle.
 
 The fastest sanity check on your own understanding is to run this chapter's equation on a minimal example: a 1-D heat equation, a single pendulum, a 2-D Gaussian mixture. The code is short, but it converts "looks right" into "it's right on my machine."
-
 
 ## References
 

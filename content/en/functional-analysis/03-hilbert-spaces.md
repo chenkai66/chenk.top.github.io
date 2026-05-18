@@ -21,8 +21,6 @@ translationKey: "functional-analysis-3"
 
 ## Inner Products and the Geometry They Create
 
-![Orthogonal projection in Hilbert space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa03_projection.png)
-
 ![Inner product geometry: angle and projection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_inner_product.png)
 
 If a Banach space is a normed space that has agreed to be complete, a Hilbert space is a Banach space that has further agreed to admit angles. That extra agreement — an inner product — is what restores almost all of finite-dimensional geometry to the infinite-dimensional setting. Orthogonality, projection, the Pythagorean theorem, the notion of "closest point in a subspace" — all come back unchanged. The price of admission is a single axiom; the reward, geometric and computational, is enormous.
@@ -51,7 +49,6 @@ The **parallelogram law** $\|x + y\|^2 + \|x - y\|^2 = 2\|x\|^2 + 2\|y\|^2$ char
 
 Why does this matter for applications? Linear regression minimizes $\|y - X\beta\|^2$ in a Hilbert space — that is an orthogonal projection. Fourier series expand functions in an orthonormal basis of $L^2$ — that is Hilbert-space geometry. Quantum mechanics postulates that states live in a Hilbert space and observables are self-adjoint operators. Signal processing decomposes signals into frequency components — orthogonal decomposition in $L^2$. The energy method in PDE uses the $H^1$ inner product to extract a priori estimates. Kernel methods in machine learning operate in a reproducing kernel Hilbert space. Every one of these is a Hilbert-space argument wearing domain-specific clothing. The inner product gives them a single grammar.
 
-
 ### Worked Numerical Example
 
 In $\ell^2$, take $x = (1, 1/2, 1/4, 1/8, \ldots)$ and $y = (1, -1/2, 1/4, -1/8, \ldots)$. Both are geometric sequences with ratio $\pm 1/2$. Compute the squared norms: $\|x\|^2 = \sum_{n=0}^\infty (1/4)^n = 1/(1 - 1/4) = 4/3$. Similarly $\|y\|^2 = 4/3$. The inner product is $\langle x, y \rangle = \sum_{n=0}^\infty (1/4)^n (-1)^n = \sum_{n=0}^\infty (-1/4)^n = 1/(1 + 1/4) = 4/5 = 0.8$. Cauchy-Schwarz demands $0.8 \le \sqrt{4/3} \cdot \sqrt{4/3} = 4/3 \approx 1.333$, which holds. The cosine of the angle is $\cos\theta = \langle x, y \rangle / (\|x\|\|y\|) = 0.8 / (4/3) = 0.6$. A calculator gives $\theta = \arccos(0.6) \approx 0.9273$ radians, or $53.13^\circ$. These two infinite sequences meet at a precise, computable angle. The geometry is identical to $\mathbb{R}^2$; only the coordinate count changed.
@@ -74,7 +71,6 @@ Take a concrete function: $f(t) = |t|$ on $[-\pi, \pi]$. Its Fourier coefficient
 
 The projection theorem fails in Banach spaces that are not Hilbert. In $C[0,1]$ with the sup norm, the best polynomial approximation (Chebyshev approximation) exists and is unique, but it is characterized by an equioscillation condition, not by orthogonality — there is no inner product. In $L^1$, closest points in closed subspaces may not be unique at all. The projection theorem is genuinely a Hilbert-space luxury, and it is the single feature that makes Hilbert spaces the analyst's paradise.
 
-
 ### Worked Numerical Example
 
 Project $f(t) = t^2$ onto $M = \text{span}\{1, t\}$ in $L^2[0,1]$. The projection $P_M f(t) = a + bt$ satisfies the normal equations $\langle t^2 - a - bt, 1 \rangle = 0$ and $\langle t^2 - a - bt, t \rangle = 0$. Computing the integrals: $\int_0^1 (t^2 - a - bt)\,dt = 1/3 - a - b/2 = 0$, and $\int_0^1 (t^3 - at - bt^2)\,dt = 1/4 - a/2 - b/3 = 0$. Solving the linear system yields $b = 1$ and $a = -1/6$. The closest linear function is $P_M f(t) = t - 1/6$. The squared error is $\|f - P_M f\|^2 = \int_0^1 (t^2 - t + 1/6)^2\,dt = 1/180 \approx 0.005556$. Any other choice of $a, b$ produces a larger integral. The projection theorem guarantees this is the global minimum, and the orthogonality condition $\langle t^2 - t + 1/6, 1 \rangle = \langle t^2 - t + 1/6, t \rangle = 0$ verifies it directly.
@@ -82,8 +78,6 @@ Project $f(t) = t^2$ onto $M = \text{span}\{1, t\}$ in $L^2[0,1]$. The projectio
 ## Orthonormal Bases, Parseval, and the Classification Theorem
 
 An **orthonormal system** in $\mathcal{H}$ is a collection $\{e_\alpha\}_{\alpha \in A}$ with $\langle e_\alpha, e_\beta \rangle = \delta_{\alpha\beta}$. It is a **basis** (complete orthonormal system) if its closed linear span equals $\mathcal{H}$, equivalently if $\langle x, e_\alpha \rangle = 0$ for all $\alpha$ forces $x = 0$. The cardinality of a maximal orthonormal system is an invariant called the **Hilbert dimension** of the space.
-
-![Animation: Fourier series building up](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_fourier_approx.gif)
 
 ![Fourier series in L^2: orthonormal basis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_fourier_basis.png)
 
@@ -102,7 +96,6 @@ The **Gram-Schmidt process** constructs orthonormal systems from linearly indepe
 The convergence need not be pointwise — there exist $L^2$ functions whose Fourier series diverge at some points (Carleson's theorem gives pointwise a.e. convergence, but that is a much harder result). The norm convergence in $L^2$ is a different and weaker statement: it says the $L^2$ norm of the difference between $f$ and its $N$-th partial sum tends to zero. This is exactly what Parseval gives us, and it is all that the Hilbert-space theory guarantees.
 
 A non-trivial consequence of separability: $L^2[0,1]$ and $\ell^2$ are isometrically isomorphic. Any orthonormal basis $(e_n)$ of $L^2[0,1]$ defines an isomorphism $U: L^2 \to \ell^2$ by $Uf = (\langle f, e_n\rangle)_{n=1}^\infty$. The map $U$ preserves the inner product (by Parseval) and is surjective (given $(c_n) \in \ell^2$, the series $\sum c_n e_n$ converges in $L^2$). So the Fourier basis, the Legendre basis, and the Haar wavelet basis all give different "coordinates" on the same abstract Hilbert space. The choice of basis is a modeling decision, not a mathematical one.
-
 
 ### Worked Numerical Example
 
@@ -125,7 +118,6 @@ Self-duality immediately gives **reflexivity**: the canonical embedding $J: \mat
 *Proof sketch.* For fixed $u$, the map $v \mapsto a(u,v)$ is a bounded linear functional, so by Riesz it equals $\langle Au, v \rangle$ for a unique bounded operator $A$. Coercivity gives $\alpha\|u\|^2 \leq \text{Re}\langle Au, u\rangle \leq \|Au\|\|u\|$, so $\|Au\| \geq \alpha\|u\|$ — the operator $A$ is bounded below. Bounded below plus dense range (from coercivity again, by a standard argument) gives invertibility. Then $u = A^{-1}y_F$ where $F(\cdot) = \langle \cdot, y_F \rangle$ by Riesz.
 
 **Worked example: the Dirichlet problem.** Consider $-\Delta u = f$ on a bounded domain $\Omega$ with $u|_{\partial\Omega} = 0$. The weak formulation: find $u \in H^1_0(\Omega)$ with $a(u,v) = \int_\Omega \nabla u \cdot \nabla v = \int_\Omega f v = F(v)$ for all $v \in H^1_0$. The form $a$ is bounded (Cauchy-Schwarz on gradients) and coercive (Poincare inequality: $\|\nabla u\|_{L^2}^2 \geq C\|u\|_{H^1}^2$ on $H^1_0$). Lax-Milgram gives unique existence. The PDE existence theorem is a one-line corollary of Riesz representation. This is the standard pattern in elliptic PDE: formulate weakly, verify coercivity, invoke Lax-Milgram. The hard work is in the Poincare inequality and the function-space setup, not in the abstract existence argument.
-
 
 ### Worked Numerical Example
 
@@ -154,7 +146,6 @@ The identity $\ker(T^*) = \text{Range}(T)^\perp$ connects kernels and ranges. Ta
 **Worked example: the Volterra operator.** Define $Vf(t) = \int_0^t f(s)\,ds$ on $L^2[0,1]$. Computing the adjoint via Fubini: $\langle Vf, g\rangle = \int_0^1 g(t)\int_0^t f(s)\,ds\,dt = \int_0^1 f(s)\int_s^1 g(t)\,dt\,ds = \langle f, V^*g\rangle$, so $V^*g(s) = \int_s^1 g(t)\,dt$. The operator $V$ is not self-adjoint ($V \neq V^*$), not normal, and has spectrum $\{0\}$ — it is quasinilpotent. Yet $V \neq 0$. This shows that compact operators (Article 7) can have trivial spectrum without being zero, a phenomenon impossible for self-adjoint operators.
 
 The **polar decomposition** $T = U|T|$ with $|T| = (T^*T)^{1/2}$ and $U$ a partial isometry extends the matrix SVD to infinite dimensions. For the Volterra operator, this gives a factorization into a positive part (capturing "how much" $V$ stretches) and an isometric part (capturing "in which direction").
-
 
 ### Worked Numerical Example
 

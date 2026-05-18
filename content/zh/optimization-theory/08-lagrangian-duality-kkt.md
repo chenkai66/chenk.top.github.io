@@ -26,7 +26,6 @@ translationKey: "optim-08"
 
 每一项结论均给出严格证明或明确引用。最后以 SVM 为例收尾：其对偶问题将问题维度从 $d$（特征维数）降至 $n$（训练样本数）——这正是核方法（kernel method）最初展现的“魔法”。
 
-
 ---
 
 约束优化里我觉得最深刻的一个想法是这一句话：**约束是有价格的**。
@@ -127,7 +126,6 @@ $$
 
 完整证明见 Boyd 与 Vandenberghe 《凸优化》第 5.3.2 节；关键步骤是在凸集 $\{(u, t) : t \geq V(u)\}$ 的边界点 $(0, V(0))$ 处应用支撑超平面定理。斯莱特条件确保所得到的支撑超平面非竖直，从而导出有限的拉格朗日乘子。$\blacksquare$
 
-
 ![值函数与支撑超平面](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig4.png)
 *图 4 —— 通过值函数解释强对偶性。$V(u)$ 是扰动约束后的最优值函数；凸性加斯莱特条件保证 $u=0$ 处存在非竖直的支撑超平面，其斜率恰好为 $-\lambda^\star$。*
 
@@ -153,7 +151,6 @@ $$
 
 **为何在强对偶下这些条件成立？**  
 强对偶性给出 $f_0(x^\star) = L(x^\star, \lambda^\star, \nu^\star) \leq L(x, \lambda^\star, \nu^\star)$ 对所有 $x$ 成立。因此 $x^\star$ 是拉格朗日函数 $L(\cdot, \lambda^\star, \nu^\star)$ 在 $\mathbb{R}^n$ 上的全局最小值点，从而导出平稳性条件。原始/对偶可行性由定义直接保证。唯一非平凡的步骤是互补松弛性：由 $L(x^\star, \lambda^\star, \nu^\star) = f_0(x^\star)$ 可得 $\sum_i \lambda_i^\star f_i(x^\star) = 0$；又因每一项 $\lambda_i^\star f_i(x^\star) \leq 0$，故各项必须各自为零。
-
 
 ![KKT 条件的几何图景](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig3.png)
 *图 3 —— 二维下的 KKT 平稳性。在最优点 $x^\star$ 处，目标函数负梯度 $-\nabla f_0$ 落在活跃约束梯度所张成的凸锥中，权重 $\lambda_i^\star$ 非负。*
@@ -188,7 +185,6 @@ $$
 L(x^\star, \lambda, \nu) \leq L(x^\star, \lambda^\star, \nu^\star) \leq L(x, \lambda^\star, \nu^\star) \quad \forall x,\ \forall \lambda \geq 0,\ \nu.
 $$
 右侧不等式表示：给定乘子 $(\lambda^\star, \nu^\star)$，$x^\star$ 是原始最优；左侧不等式表示：$(\lambda^\star, \nu^\star)$ 是对偶最优。
-
 
 ![拉格朗日函数的鞍点曲面](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig2.png)
 *图 2 —— 拉格朗日函数的鞍点曲面。对每个 $\lambda$ 关于 $x$ 取最小，得到对偶函数（绿色）；对每个原始可行 $x$ 关于 $\lambda$ 取最大，得到原始值（橙色）。强对偶下两者相交于鞍点。*

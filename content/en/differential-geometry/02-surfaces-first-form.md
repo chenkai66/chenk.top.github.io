@@ -29,8 +29,6 @@ The intrinsic / extrinsic split is going to recur for the next ten chapters, so 
 
 ![Tangent plane on a saddle surface with tangent vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_parametric_surfaces.png)
 
-![Parametric surfaces: sphere, torus, and saddle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_parametric_surfaces.png)
-
 The naive definition — "a 2D thing in 3D space" — is fine for intuition but useless for proofs. A precise definition has to say what "smooth" means, how to give the surface coordinates, and how to handle places where coordinates fail.
 
 **Definition (Regular surface, classical).** A subset $S\subseteq\mathbb{R}^3$ is a *regular surface* if for every point $p\in S$ there is an open neighborhood $V\subseteq\mathbb{R}^3$ of $p$, an open set $U\subseteq\mathbb{R}^2$, and a smooth map $\mathbf{x}: U\to V\cap S$ satisfying:
@@ -337,7 +335,6 @@ The next article introduces the second fundamental form, which is the surface an
 (3) On a curve, $\kappa$ and $\tau$ are independent — given any two functions, you get a curve. On a surface, $E$, $F$, $G$ and the second-form coefficients $L$, $M$, $N$ are *not* independent. What is the constraint, and where does it come from?
 
 You now have all the intrinsic side of surface geometry: first fundamental form, length, area, isometry. The next article adds the extrinsic half. Read it asking "what is the surface analog of $T'$, $N'$, $B'$ that I had for curves, and how does it split into intrinsic and extrinsic pieces?" That is exactly the Gauss-Weingarten-Codazzi decomposition, and once you can read those formulas as the surface analog of Frenet-Serret, the second fundamental form ceases to be magic.
-
 
 ### One last worked example: the pseudosphere and constant negative curvature
 

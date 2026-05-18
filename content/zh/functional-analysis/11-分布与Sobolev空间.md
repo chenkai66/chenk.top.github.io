@@ -183,8 +183,6 @@ $$
 
 ![Sobolev 空间层次](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fig11_sobolev_spaces.png)
 
-![|x| 的弱导数](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fig11_weak_derivative.png)
-
 分布导数总是存在的；它们是$\mathcal{D}'$中的抽象对象。对于PDE，我们希望具体的导数生活在$L^p$中。
 
 如果$u \in L^1_{\text{loc}}(\Omega)$在方向$\partial^\alpha$上有**弱导数**$g \in L^1_{\text{loc}}(\Omega)$，则
@@ -293,8 +291,6 @@ $$
 
 具体的兑换由 Sobolev 共轭指数 $p^* = np/(n-p)$ 控制（当 $p < n$ 时）。$W^{1,p} \hookrightarrow L^{p^*}$ 是说一个导数把可积性从 $L^p$ 提升到 $L^{p^*}$；当 $kp = n$ 时正好达到嵌入到所有 $L^q$ 的临界（$q < \infty$）；当 $kp > n$ 时跨过阈值，得到逐点连续性甚至 Hölder 连续性。这条阈值在三维情形特别有意义：$H^1(\mathbb{R}^3) \hookrightarrow L^6$ 但 $H^1$ 函数不必连续，需要 $H^2$ 才有连续性。这就是为什么在三维 PDE 中“弱解的连续性”是个非平凡问题。
 
-![迹定理：限制到边界](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fig11_trace_theorem.png)
-
 ![一维 Sobolev 嵌入](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fig11_sobolev_embedding.png)
 
 ### Sobolev不等式（Gagliardo-Nirenberg-Sobolev）
@@ -347,11 +343,7 @@ Rellich-Kondrachov在$q = p^*$处失败：嵌入$W^{1,p}(\Omega) \hookrightarrow
 
 扩展定理说明，$\Omega$ 上的 Sobolev 函数总可以被延拓到整个 $\mathbb{R}^n$ 上而不损失正则性。这把所有 $\mathbb{R}^n$ 上证明的嵌入定理（Sobolev 不等式、Morrey 不等式、Rellich-Kondrachov）自动转移到 $\Omega$ 上：先扩展到 $\mathbb{R}^n$、应用 $\mathbb{R}^n$ 版本、再限制回 $\Omega$。Lipschitz 边界正则性是扩展算子存在的标准条件；更粗糙的边界（带有内尖点等）可能让扩展失效，对应的嵌入定理也会出问题。
 
-![迹定理：把 Sobolev 函数限制到边界](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/11-distributions-sobolev/fa_v2_11_5_trace.png)
-
 ![$H^s$ 与 $H^{-s}$ 的对偶](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/11-distributions-sobolev/fa_v2_11_6_dual_sobolev.png)
-
-![分布及其导数的例子](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/11-distributions-sobolev/fa_v2_11_7_examples.png)
 
 ### 迹定理
 

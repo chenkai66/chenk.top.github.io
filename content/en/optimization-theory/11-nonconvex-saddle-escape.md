@@ -26,7 +26,6 @@ Three positive results:
 
 Each is rigorous in its setting. The article also discusses what is **not** known — there is no general theorem saying "SGD finds the global optimum of a deep network."
 
-
 ---
 
 For ten articles we've stayed inside the safe convex world: gradient zero means optimal. But the moment we sit down to train a neural network, the loss surface is full of local minima, saddle points, plateaus. **Why does SGD work at all?**
@@ -76,7 +75,6 @@ The good news: **most saddles are escapable**.
 
 *Figure: the four classes of stationary points sorted by Hessian eigenvalue signature. Strict saddles (third panel) have at least one strictly negative eigenvalue and are escapable; degenerate critical points (fourth panel) have a zero eigenvalue and require higher-order information.*
 
-
 ---
 
 ## Saddle escape via perturbed GD
@@ -108,7 +106,6 @@ The idea: at a stationary point with negative eigenvalue, a random perturbation 
 
 *Figure: the canonical strict saddle $f(x,y) = x^2 - y^2$. Vanilla GD descends the $x$-direction and stalls at the saddle (grey). A small random perturbation gives a non-zero $y$-component, which the negative curvature amplifies exponentially — the iterate escapes (orange).*
 
-
 > **Theorem (Jin et al. 2017).** For an $L$-smooth, $\rho$-Hessian-Lipschitz function with the strict saddle property, perturbed GD finds an $\epsilon$-second-order stationary point (i.e., $\|\nabla f\| \leq \epsilon$ and $\lambda_{\min}(\nabla^2 f) \geq -\sqrt{\rho \epsilon}$) in
 > 
 $$
@@ -139,7 +136,6 @@ PL is **weaker than strong convexity** — every $\mu$-strongly convex function 
 ![PL condition vs strong convexity](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/11-nonconvex-saddle-escape/fig3.png)
 
 *Figure: left — strong convexity forces a unique minimum, while PL allows multiple disjoint global minima (the quartic $\tfrac12(x^2-1.2)^2$ has two). Right — both functions satisfy $\|\nabla f\|^2 \geq 2\mu(f - f^\star)$ (log-log scale, dashed line is the PL boundary with $\mu = 0.5$).*
-
 
 > **Theorem.** If $f$ is $L$-smooth and satisfies the PL inequality with $\mu$, GD with step $\eta = 1/L$ converges linearly:
 > 
@@ -188,7 +184,6 @@ NTK is descriptive of "lazy training" — wide networks where weights barely cha
 
 *Figure: left — in the NTK / lazy regime a wide network's parameters $\theta$ stay inside a tiny neighborhood of the initialization $\theta_0$ (blue), while a narrow network's parameters move substantially (orange, feature learning). Right — under PL with NTK constant $\mu$, GD enjoys the linear rate $(1-\mu/L)^t$, in contrast to the sublinear plateau of generic non-convex landscapes.*
 
-
 ### Implicit bias of SGD
 
 SGD does not just find any global min — it finds **flat** ones. Empirically, SGD-found minima generalize better than the same loss values found by full-batch GD. The conjectured mechanism: the SGD noise has variance proportional to the loss's local curvature, so SGD spends more time in flat regions where curvature is small.
@@ -198,7 +193,6 @@ A precise statement (Mandt et al. 2017): SGD's stationary distribution at consta
 ![Flat vs sharp minima and the generalization gap](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/11-nonconvex-saddle-escape/fig5.png)
 
 *Figure: left — a 1-D loss with one flat (wide) basin and one sharp (narrow) basin at almost identical training-loss values. Right — when the test distribution shifts the loss slightly, the flat minimum's value barely changes (gap $\approx 0.05$) while the sharp minimum's value blows up (gap $\approx 0.93$). This is the geometric intuition behind SGD's preference for flat minima and their better generalization.*
-
 
 This is part of a larger story — **implicit bias** — where the choice of optimization algorithm shapes the function class effectively learned, even when the loss has many global minima. Linear models with logistic loss converge to the max-margin solution under GD; the same loss with Adam finds different solutions.
 

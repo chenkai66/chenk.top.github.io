@@ -30,8 +30,6 @@ translationKey: "abstract-algebra-8"
 
 ![Galois 对应：域扩张与子群的双射](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/aa08_galois_correspondence.png)
 
-![Galois 群：固定基域的自同构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/figures/08_galois_group.png)
-
 我们先从一个最朴素的困惑开始。假设你有一个域扩张（field extension）$L/K$，比如把有理数域 $\mathbb{Q}$ 扩大成 $\mathbb{Q}(\sqrt{2})$。在这个更大的域里，多了很多新元素。如果我们想研究这个扩张的“内部结构”，最直接的办法是什么？不是去列元素清单，而是去找那些“保持结构不变的变换”。在域的世界里，这种变换叫自同构（automorphism）。
 
 但这里有个关键限制：我们只关心那些**不动基域 $K$** 的自同构。为什么？因为 $K$ 是我们的“地基”，地基要是跟着一起动，我们就失去了参照系。正式写出来就是：

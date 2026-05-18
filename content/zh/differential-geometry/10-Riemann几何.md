@@ -44,8 +44,6 @@ translationKey: "differential-geometry-10"
 
 ![球面上的平行移动与和乐：向量沿三角形路径传输后旋转 90°](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_parallel_transport_paths.png)
 
-![Riemannian 度量：Euclid 几何 vs 双曲几何中的单位球](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_riemannian_metric.png)
-
 **黎曼度量** 在光滑流形 $M$ 上是一个光滑的赋值
 $$g: M \to T^*M \otimes T^*M, \qquad p \mapsto g_p$$
 其中每个 $g_p$ 是 $T_pM$ 上的对称正定双线性形式。换句话说：在每一点上都有一个切空间上的内积，并且内积随点的变化而光滑变化。
@@ -119,8 +117,6 @@ $$\nabla f = -\sin\theta \cdot 1 \cdot \partial_\theta + 0 = -\sin\theta\,\parti
 
 ![动画：球面纬线上的平行移动](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_parallel_transport.gif)
 
-![弯曲空间上平行移动依赖路径](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_parallel_transport_paths.png)
-
 **联络** $\nabla$ 在 $TM$ 上（更准确地说，是 *仿射联络*）是一个 $\mathbb{R}$-线性算子
 $$\nabla: \mathfrak{X}(M) \times \mathfrak{X}(M) \to \mathfrak{X}(M), \qquad (X, Y) \mapsto \nabla_X Y$$
 满足：
@@ -150,8 +146,6 @@ $$\nabla_X Y = \left(X^i \partial_i Y^k + \Gamma^k_{ij}X^i Y^j\right)\partial_k.
 ## Levi-Civita 联络
 
 在黎曼流形上，存在唯一的既 **度量兼容**（$X g(Y, Z) = g(\nabla_X Y, Z) + g(Y, \nabla_X Z)$，“度量是平行的”）又 **无挠**（$\nabla_X Y - \nabla_Y X = [X, Y]$，“没有内置扭曲”）的联络。这就是 **Levi-Civita 联络**，黎曼几何的标准联络。
-
-![协变导数：平行与非平行传输](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_covariant_derivative.png)
 
 ![Levi-Civita 联络作为唯一的无挠度量联络](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/10-riemannian-geometry/dg_v2_10_2_levi_civita.png)
 
@@ -183,8 +177,6 @@ $$\ddot x - \frac{2}{y}\dot x \dot y = 0, \qquad \ddot y + \frac{1}{y}(\dot x^2 
 给定一个联络和一条曲线 $\gamma: [a, b] \to M$，沿 $\gamma$ 的向量场 $V$ 是 **平行的**，如果 $\nabla_{\dot\gamma}V = 0$。在坐标下：$\dot V^k + \Gamma^k_{ij}\dot\gamma^i V^j = 0$。这是一个关于 $V$ 的一阶线性 ODE，因此对于任何初始条件 $V(a) \in T_{\gamma(a)}M$，存在唯一的沿 $\gamma$ 的平行场 $V$ 使得 $V(a)$ 给定。映射
 $$P_\gamma: T_{\gamma(a)}M \to T_{\gamma(b)}M, \qquad V(a) \mapsto V(b)$$
 是沿 $\gamma$ 的 平行移动是线性同构，并且（对于 Levi-Civita 联络）是一个等距映射 —— 它保持度量。
-
-![Hopf-Rinow：完备与不完备流形](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_hopf_rinow.png)
 
 ![沿球面上的闭合环路的平行移动返回一个旋转后的向量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/10-riemannian-geometry/dg_v2_10_3_parallel_transport.png)
 

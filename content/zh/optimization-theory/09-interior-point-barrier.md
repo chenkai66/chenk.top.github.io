@@ -25,7 +25,6 @@ translationKey: "optim-09"
 
 我们完整给出中心路径复杂度的严格证明。
 
-
 ---
 
 1984 年 Karmarkar 给整个优化领域带来一记震动：他证明了线性规划不仅理论上能多项式时间求解（椭球法早就在纸面上做到了），**实际中**也能。他的算法始终待在可行多面体的内部，从不踩边——这就是“内点法”这个名字的来源。
@@ -158,7 +157,6 @@ $$
 ![自协调函数上牛顿法的两阶段行为](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig4.png)
 *图 4. **左图**：每步下降量 $\omega(\lambda) = \lambda - \log(1+\lambda)$ 在 $\lambda \geq 1/4$ 时始终大于绝对常数（$\geq 0.02$），故**阻尼阶段**以恒定速率削减 $\phi$。**右图**：一旦牛顿减量进入**二次收敛区域** $\lambda \leq 1/4$，完整牛顿步满足 $\lambda_+ \leq 2\lambda^2$，收敛极为迅速。关键在于阈值 $1/4$ 与问题条件数无关。*
 
-
 ### 将其整合应用于障碍法（barrier method）
 
 在障碍法的每一外层迭代中，我们求解 $\min_x t f_0(x) + \phi(x)$，并采用牛顿法。若 $f_0$ 自和谐（或更一般地，若 $t f_0 + \phi$ 自和谐），且从上一轮解 $x^\star(t/\mu)$（即前一参数 $t/\mu$ 对应的最优解）出发热启动（warm-start），则该初值已落在新目标函数的二次收敛区域内。因此，**每次外层迭代仅需 $O(1)$ 次牛顿迭代**，其代价与 $t$ 及问题规模均无关。
@@ -202,7 +200,6 @@ $$
 ![障碍权重序列与对偶间隙](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig3.png)
 *图 3. 对含 $m=200$ 个约束的线性规划问题采用两种外层迭代策略：长步长（$\mu=10$）约 8 次外层迭代即可收敛；短步长（$\mu=1+1/\sqrt{\nu}$）需约 90 次小步迭代，但每次内层求解理论上仅需 $O(1)$ 次牛顿迭代。两者的对偶间隙 $m/t_k$ 均以几何速率衰减。*
 
-
 ---
 
 ## 原始-对偶内点法
@@ -231,7 +228,6 @@ $$
 目前绝大多数主流求解器（如 Mosek、Gurobi（QP）、SDPT3（SDP）、OSQP（QP））均实现基于预测-校正机制与自适应步长策略的原始-对偶内点法。
 ![原始-对偶残差随迭代下降](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig5.png)
 *图 5. Mehrotra 预测-校正型原始-对偶内点法的收敛过程：原始残差 $\|Ax-b\|$、对偶残差 $\|A^\top \nu + \lambda - c\|$ 与对偶间隙 $x^\top \lambda$ 三者同步以几何速率下降。**预测**步沿中心路径计算仿射方向，**校正**步引入中心化修正，确保下一迭代点保持在中心路径附近。*
-
 
 ---
 

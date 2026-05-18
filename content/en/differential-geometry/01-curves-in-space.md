@@ -70,8 +70,6 @@ This formula is invariant under orientation-preserving reparametrization: if $\b
 $$\int_a^b |\beta'(s)|\,ds = \int_a^b |\alpha'(\phi(s))|\phi'(s)\,ds = \int_{\phi(a)}^{\phi(b)} |\alpha'(t)|\,dt.$$
 Length is therefore a property of the image, not the parametrization.
 
-![Animation: Frenet frame moving along a curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_frenet_moving.gif)
-
 ![Curvature comparison: circle, helix, and general curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_curves_gallery.png)
 
 Define the *arc-length function* with reference point $t_0$:
@@ -234,8 +232,6 @@ In other words: the helix is, up to rigid motion, *the* curve with constant curv
 
 Numerical examples solidify the apparatus. I will take the time to compute $\kappa$ and $\tau$ on a few standards.
 
-![Evolute: the locus of centers of curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_evolute.png)
-
 ![Classical curves: cardioid, lemniscate, logarithmic spiral](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/01-curves-in-space/dg_v2_01_7_classical_curves.png)
 
 **Plane circle.** $\alpha(t) = (r\cos t, r\sin t, 0)$. Then $|\alpha'| = r$, $\alpha'\times\alpha'' = (0,0,r^2)$, $|\alpha'\times\alpha''| = r^2$, so $\kappa = r^2/r^3 = 1/r$. And $\alpha''' = (r\sin t, -r\cos t, 0)$ has zero dot product with $\alpha'\times\alpha''$ (it lies in the $xy$-plane), so $\tau = 0$. As expected.
@@ -397,8 +393,6 @@ The next article moves from one-dimensional curves to two-dimensional surfaces. 
 (3) On a curve, intrinsic and extrinsic geometry coincide trivially (arc length is intrinsic, curvature is extrinsic, end of story). On a surface, the two come apart, and the gap between them is what the entire rest of the series is about. What is the right way to keep them separate?
 
 The Frenet machinery you now have is exactly the right preparation: it taught you to read a curve through a *frame* attached to it. The next article does the same for surfaces, but the frame becomes two-dimensional and the equations governing how it changes are matrix-valued. Read the next article asking "how do these formulas reduce to Frenet-Serret if I restrict the surface to a curve on it?" — they all do, and tracking the reduction is the cleanest way to ground the new abstractions.
-
-
 
 ### One last worked example: the cycloid and total turning
 

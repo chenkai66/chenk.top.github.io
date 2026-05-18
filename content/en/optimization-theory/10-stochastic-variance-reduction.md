@@ -33,7 +33,6 @@ This article:
 3. Derives SVRG and proves its linear convergence on strongly convex objectives.
 4. Mentions SAGA and Katyusha and the lower bound that motivated their development.
 
-
 ---
 
 Stochastic gradient descent (SGD) only looks at one sample's gradient per step. That's obviously cheap — but what's the cost? And is there a way to keep "one sample per step" while recovering the fast convergence of the full-gradient method?

@@ -33,8 +33,6 @@ Let $X$ be a normed space over $\mathbb{R}$ or $\mathbb{C}$. The **dual space** 
 $$\|\varphi\|_{X^*} = \sup_{\|x\| \leq 1} |\varphi(x)|.$$
 Under this norm, $X^*$ is a Banach space — even when $X$ itself is not (a Cauchy sequence of functionals is pointwise Cauchy, the limit defines a linear functional, and the boundedness passes to the limit by uniform Cauchy-ness).
 
-![Animation: finding separating hyperplane](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_separation.gif)
-
 ![Hahn-Banach separation theorem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_hahn_banach_separation.png)
 
 So the dual is automatically a Banach space, regardless of the original space's completeness. This is one of the structural niceties that makes dual constructions so popular: forming the dual *upgrades* incomplete normed spaces to complete ones.
@@ -103,7 +101,6 @@ Use the Minkowski functional $p_A(x) = \inf\{t > 0 : x \in tA\}$ of an open conv
 
 The geometric form is the basis of every duality argument in optimization. Convex programming relies on the fact that an infeasible system $A x = b, x \geq 0$ corresponds to a separating hyperplane, and the hyperplane gives a "Farkas-type" certificate of infeasibility. The minimax theorems of game theory are theorems about separating convex sets (the saddle point of a game is the meeting point of two convex hulls). The Choquet integral representation of points in compact convex sets — every point of a compact convex set in a Banach space is the integral of a probability measure on the extreme points — is a deep application of separation.
 
-
 ### Worked Numerical Example
 
 Take $X = \mathbb{R}^2$ equipped with the $\ell^1$ norm $\|x\|_1 = |x_1| + |x_2|$. Let $C = \{x \in \mathbb{R}^2 : x_1 + 2x_2 \leq 2, x_1 \geq 0, x_2 \geq 0\}$, a closed convex triangle with vertices $(0,0), (2,0), (0,1)$. Pick the exterior point $x_0 = (3, 2)$. The distance from $x_0$ to $C$ in $\ell^1$ is attained at the vertex $(2,0)$: $d(x_0, C) = |3-2| + |2-0| = 3$.
@@ -113,8 +110,6 @@ The geometric Hahn-Banach theorem guarantees a functional $\varphi \in X^*$ with
 ## Supporting Hyperplanes
 
 A particular case of geometric Hahn-Banach: a closed convex set $C$ in a Banach space $X$ has a supporting hyperplane at every boundary point. That is, for every $x_0 \in \partial C$, there exists $\varphi \in X^*$ with $\varphi(x_0) = \sup_{c \in C} \varphi(c)$.
-
-![Dual space identifications](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/04_dual_lp.png)
 
 ![Supporting hyperplane to a convex set at a boundary point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/04-dual-spaces-hahn-banach/fa_v2_04_7_supporting.png)
 
@@ -161,7 +156,6 @@ where $\perp$ takes annihilators in the appropriate dual or pre-dual. The closed
 
 Take $T: \ell^1 \to \ell^\infty$, $T x = (x_1, x_1 + x_2, x_1 + x_2 + x_3, \ldots)$ — partial sums of a sequence, viewed as a bounded operator. The functional $\varphi_n \in (\ell^\infty)^*$ given by $\varphi_n(y) = y_n$ has norm $1$. Then $T^* \varphi_n \in (\ell^1)^* = \ell^\infty$ is the functional $x \mapsto x_1 + \cdots + x_n$, represented by the bounded sequence $(1, 1, \ldots, 1, 0, 0, \ldots)$ with $n$ ones. As $n \to \infty$, $\|T^*\varphi_n\|_{\ell^\infty} = 1$ remains bounded, illustrating $\|T^*\| \leq \|T\|$ — and in fact $\|T\| = \|T^*\| = 1$ (since the partial sum of sequences with $\ell^1$-norm at most $1$ has $\ell^\infty$-norm at most $1$).
 
-
 ### Worked Numerical Example
 
 Consider the right-shift operator $T: \ell^1 \to \ell^1$ defined by $T(x_1, x_2, x_3, \ldots) = (0, x_1, x_2, \ldots)$. Clearly $\|T\| = 1$. The dual space is $(\ell^1)^* = \ell^\infty$. Take a specific functional $\varphi \in \ell^\infty$ given by the sequence $\varphi = (1, 1/2, 1/4, 1/8, \ldots)$, so $\varphi_n = 2^{-(n-1)}$. Its dual norm is $\|\varphi\|_\infty = 1$.
@@ -183,7 +177,6 @@ This duality between subspaces and their annihilators is the foundation of every
 ### Why this matters
 
 Annihilator duality reduces "where can $T x = y$ be solved?" to "what are the elements of $\ker(T^*)$?" — a question about a different operator on a different space. In PDE this is everyday: the inhomogeneous equation $L u = f$ has a solution iff $f$ is orthogonal to $\ker(L^*)$, where $L^*$ is the formal adjoint of the differential operator (the boundary terms in integration by parts giving the right notion of adjoint). This is sometimes called the "solvability condition" or "compatibility condition."
-
 
 ### Worked Numerical Example
 
@@ -255,7 +248,6 @@ The bipolar theorem is a direct consequence of Hahn-Banach geometric form: any p
 
 Convex analysis and optimization are mostly about working with this duality. The Fenchel-Legendre transform of a convex function is exactly the polar applied to the epigraph, and the resulting Fenchel duality theorem reduces minimization of $f + g$ to maximization of $-f^* - g^*$ over the dual variables, where $f^*$ is the conjugate. Many of the cleanest algorithms in modern optimization (proximal methods, ADMM, mirror descent) are bookkeeping on the polar duality.
 
-
 ### Worked Numerical Example
 
 Let $X = \mathbb{R}^2$ with the standard pairing. Take the convex set $C = \{(x_1, x_2) : x_1 \geq 0, x_2 \geq 0, x_1 + x_2 \leq 2\}$. This is a right triangle containing the origin. The polar is $C^\circ = \{\varphi \in \mathbb{R}^2 : \varphi_1 x_1 + \varphi_2 x_2 \leq 1 \ \forall x \in C\}$. Testing the vertices of $C$ gives necessary conditions: $\varphi \cdot (0,0) = 0 \leq 1$, $\varphi \cdot (2,0) = 2\varphi_1 \leq 1 \implies \varphi_1 \leq 1/2$, $\varphi \cdot (0,2) = 2\varphi_2 \leq 1 \implies \varphi_2 \leq 1/2$. Since $x_1, x_2 \geq 0$ in $C$, any $\varphi$ with negative components only makes the dot product smaller, so the constraints are exactly $\varphi_1 \leq 1/2$ and $\varphi_2 \leq 1/2$. Thus $C^\circ = \{\varphi : \varphi_1 \leq 1/2, \varphi_2 \leq 1/2\}$, an unbounded quadrant shifted to $(1/2, 1/2)$.
@@ -322,7 +314,6 @@ This is more subtle and uses Hahn-Banach: every functional on $M$ extends (non-u
 These two duality identities are the Banach-space versions of the "first isomorphism theorem" for groups or rings: subspaces and quotients dualize each other, and the corresponding short exact sequences "$0 \to M \to X \to X/M \to 0$" dualize to "$0 \to M^\perp \to X^* \to M^* \to 0$".
 
 The applications are constant in operator theory. To analyze the range of $T: X \to Y$, identify the *closure* of the range as $\ker(T^*)^\perp$ via the previous identities. To analyze the cokernel $Y / \overline{\mathrm{Range}(T)}$, recognize it as $\ker(T^*)$ by quotient duality. The "Fredholm alternative" of Article 7 — for $T - \lambda I$ with $T$ compact — is exactly this duality applied to a particular family of operators.
-
 
 ### Worked Numerical Example
 

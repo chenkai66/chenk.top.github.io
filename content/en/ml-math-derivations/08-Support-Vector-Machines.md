@@ -23,7 +23,6 @@ translationKey: "ml-math-derivations-8"
 
 ![ML Math Derivations (8): Support Vector Machines — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn

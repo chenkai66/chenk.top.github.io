@@ -19,7 +19,6 @@ translationKey: "ml-math-derivations-4"
 ---
 ![ML Math Derivations (4): Convex Optimization Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn

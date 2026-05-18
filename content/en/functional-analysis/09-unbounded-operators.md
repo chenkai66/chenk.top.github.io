@@ -19,8 +19,6 @@ description: "Closed operators, the distinction between symmetric and self-adjoi
 
 ![Deficiency indices determine self-adjoint extensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_deficiency_indices.png)
 
-![Symmetric vs self-adjoint: domain matters](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_symmetric_vs_selfadjoint.png)
-
 Two articles ago I was talking about how spectral theory is the linear-algebraic infrastructure of quantum mechanics. The trouble is that nearly every operator a physicist actually cares about -- the position operator, the momentum operator, the Laplacian, the Schrodinger Hamiltonian -- is *not bounded*. They are not defined on the whole Hilbert space. They are densely defined, with domains that depend on the regularity or decay of the input function. None of the previous spectral apparatus applies directly. We need to extend it.
 
 The extension is delicate. With unbounded operators, simply writing "$T = T^*$" no longer makes unambiguous sense because the two sides may have different domains. There is a real distinction between *symmetric* operators (where $\langle Tx, y\rangle = \langle x, Ty\rangle$ on the common domain) and *self-adjoint* operators (where additionally the domain of $T$ equals the domain of $T^*$). For bounded operators these coincide; for unbounded ones they diverge in subtle ways, and the gap between them is where most of the difficulty of mathematical physics lives. The reward for handling this carefully is that the spectral theorem, the functional calculus, and Stone's theorem all extend -- and we get to do quantum mechanics rigorously.
@@ -34,8 +32,6 @@ The historical context matters. Von Neumann developed the theory of unbounded op
 ![Essential spectrum vs discrete spectrum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_essential_spectrum.png)
 
 An **unbounded operator** on a Hilbert space $H$ is a linear map $T: D(T) \to H$ where the **domain** $D(T)$ is a dense linear subspace of $H$. The map need not be defined on all of $H$; the domain is part of the data. Two operators with the same formula but different domains are different operators -- with potentially different spectra and different physical interpretations.
-
-![Domain of unbounded operator as proper subspace](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_domain.png)
 
 ![Unbounded operators with their dense but proper domain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_1_unbounded_domain.png)
 
@@ -56,15 +52,12 @@ A subtlety that trips up many students: the Laplacian $-d^2/dx^2$ on $[0,1]$ has
 
 The physical principle: the number of boundary conditions needed to specify a self-adjoint extension equals the deficiency index (which equals the order of the ODE for regular problems). A first-order operator needs one condition; a second-order operator needs two. This correspondence between the order of the differential equation, the number of boundary conditions, and the deficiency indices is one of the cleanest structural results in the theory.
 
-
 ### Worked Numerical Example
 Take $T = -i\,d/dx$ on $L^2[0,1]$ with the twisted boundary condition $f(1) = e^{i\theta}f(0)$. Set $\theta = \pi/3$. The eigenvalue equation $-if' = \lambda f$ gives $f(x) = C e^{i\lambda x}$. The boundary condition forces $e^{i\lambda} = e^{i\pi/3}$, so $\lambda_n = 2\pi n + \pi/3$ for $n \in \mathbb{Z}$. Computing the first three eigenvalues: $\lambda_0 = \pi/3 \approx 1.0472$, $\lambda_1 = 7\pi/3 \approx 7.3304$, $\lambda_{-1} = -5\pi/3 \approx -5.2360$. The corresponding normalized eigenfunctions are $f_n(x) = e^{i(2\pi n + \pi/3)x}$. Verify the boundary condition numerically for $n=1$: $f_1(0) = 1$, $f_1(1) = e^{i7\pi/3} = e^{i\pi/3} \approx 0.5 + 0.8660i$. The ratio $f_1(1)/f_1(0)$ matches $e^{i\theta}$ exactly. Shift $\theta$ to $\pi/3 + 2\pi$ and the spectrum is identical; the physics depends only on the flux modulo $2\pi$. This explicit calculation shows how a single real parameter in the domain definition shifts the entire discrete spectrum rigidly, encoding a magnetic Aharonov-Bohm phase without altering the differential expression.
 
 ## Closed Operators, Closability, and the Graph
 
 The fundamental regularity condition for unbounded operators is **closedness**. The graph $G(T) = \{(x, Tx) : x \in D(T)\} \subset H \times H$ is a linear subspace of the product Hilbert space. The operator $T$ is **closed** if $G(T)$ is closed in $H \times H$. Equivalently: if $x_n \in D(T)$, $x_n \to x$, and $Tx_n \to y$, then $x \in D(T)$ and $Tx = y$.
-
-![Closed operator: graph is closed subspace](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_closed_operator.png)
 
 ![Closed operator: graph is closed in the product topology](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_2_closed_op.png)
 
@@ -79,7 +72,6 @@ An operator is **closable** if the closure of its graph $\overline{G(T)}$ is its
 The **graph norm** $\|x\|_T = (\|x\|^2 + \|Tx\|^2)^{1/2}$ makes $D(T)$ into a Hilbert space (when $T$ is closed). The closed graph theorem can be rephrased: a closed operator between Banach spaces with domain equal to the whole source space must be bounded. The contrapositive: unbounded operators MUST have proper domains. The graph norm is the natural topology on $D(T)$, and many estimates in PDE theory (a priori estimates, regularity theorems) are statements about boundedness of operators in graph norms.
 
 A key use of closedness: the **resolvent identity** $(\lambda - T)^{-1} - (\mu - T)^{-1} = (\mu - \lambda)(\lambda - T)^{-1}(\mu - T)^{-1}$ holds for closed operators and gives analyticity of the resolvent $\lambda \mapsto (\lambda - T)^{-1}$ as a $B(H)$-valued function on the resolvent set. This analyticity is the foundation of the Dunford-Taylor functional calculus (contour integrals of the resolvent) and connects operator theory to complex analysis.
-
 
 ### Worked Numerical Example
 Consider $T = d/dx$ on $C^1[0,1] \subset L^2[0,1]$. Compute the graph norm of $f(x) = x(1-x)$. First, $\|f\|^2 = \int_0^1 x^2(1-x)^2 dx = \int_0^1 (x^2 - 2x^3 + x^4) dx = 1/3 - 1/2 + 1/5 = 1/30 \approx 0.03333$. The derivative is $f'(x) = 1-2x$, so $\|f'\|^2 = \int_0^1 (1-2x)^2 dx = \int_0^1 (1 - 4x + 4x^2) dx = 1 - 2 + 4/3 = 1/3 \approx 0.33333$. The graph norm is $\|f\|_T = \sqrt{1/30 + 1/3} = \sqrt{11/30} \approx 0.60553$. Now take the sequence $g_n(x) = \frac{\sin(n\pi x)}{n}$. We have $\|g_n\|^2 = \frac{1}{2n^2} \to 0$, but $\|g_n'\|^2 = \frac{\pi^2}{2}$, constant. The sequence converges to zero in $L^2$ but diverges in the graph norm. This numerical gap proves that $L^2$ convergence alone does not preserve membership in $D(T)$. The graph norm enforces simultaneous control of the function and its derivative, which is why closed operators require limits to be taken in $\|\cdot\|_T$, not $\|\cdot\|_{L^2}$.
@@ -109,7 +101,6 @@ The physical interpretation: a particle confined to $[0, \infty)$ by an infinite
 
 By contrast, on the full line $\mathbb{R}$, the momentum $-id/dx$ on $H^1(\mathbb{R})$ has deficiency indices $(0,0)$ (neither $e^x$ nor $e^{-x}$ is in $L^2(\mathbb{R})$), so it is essentially self-adjoint. The particle can move freely in both directions, and momentum is a genuine observable. The domain (whole line vs half-line) encodes the physical setup, and the deficiency indices detect whether the setup admits a consistent observable.
 
-
 ### Worked Numerical Example
 Compute the deficiency indices for $P = i\,d/dx$ on $L^2[0,\infty)$ with domain $D(P) = \{f \in H^1 : f(0) = 0\}$. We solve $(P^* \mp i)g = 0$, which reduces to $ig' \mp ig = 0$, or $g' = \pm g$. The solutions are $g_+(x) = e^{-x}$ and $g_-(x) = e^{x}$. Check $L^2$ integrability explicitly: $\|g_+\|^2 = \int_0^\infty e^{-2x} dx = [-\frac{1}{2}e^{-2x}]_0^\infty = 0.5$. Since $0.5 < \infty$, $g_+ \in L^2$. For $g_-$, $\|g_-\|^2 = \int_0^\infty e^{2x} dx = \infty$. Thus $\ker(P^* - i)$ is one-dimensional, spanned by $e^{-x}$, while $\ker(P^* + i) = \{0\}$. The deficiency indices are $(n_+, n_-) = (1, 0)$. The asymmetry is exact and numerical: one square-integrable solution exists for $+i$, zero for $-i$. Von Neumann's criterion $n_+ = n_-$ fails by a count of one. No unitary map can bridge a 1D space to a 0D space, so no self-adjoint extension exists. The calculation leaves no ambiguity.
 
@@ -129,12 +120,9 @@ This unitary equivalence (via Fourier) is the prototype of the spectral theorem 
 $$\lambda_k = \min_{\substack{V \subset D(T) \\ \dim V = k}} \max_{\substack{x \in V \\ \|x\| = 1}} \langle Tx, x\rangle.$$
 This is the Courant-Fischer minimax characterization. It is the foundation of variational methods in quantum chemistry (choosing a finite-dimensional subspace gives upper bounds on eigenvalues) and of domain monotonicity results (enlarging the domain -- loosening boundary conditions -- can only decrease eigenvalues). For the Dirichlet Laplacian on a bounded domain $\Omega$, the min-max gives the Weyl asymptotic: $\lambda_k \sim C_n(|\Omega|^{-2/n})k^{2/n}$ as $k \to \infty$, relating the growth rate of eigenvalues to the volume of the domain.
 
-![Animation: heat semigroup smoothing initial data](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/gif09_heat_semigroup.gif)
-
 ![Essential spectrum vs discrete spectrum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/09-unbounded-operators/fa_v2_09_6_essential.png)
 
 The spectrum splits into **discrete** ($\sigma_d$ = isolated eigenvalues of finite multiplicity) and **essential** ($\sigma_{ess}$ = everything else). **Weyl's theorem**: $\sigma_{ess}(T + K) = \sigma_{ess}(T)$ for compact $K$. For Schrodinger operators $-\Delta + V$ with $V \to 0$ at infinity, $\sigma_{ess}(-\Delta + V) = [0,\infty) = \sigma(-\Delta)$ (the essential spectrum is unchanged by the decaying potential). Discrete eigenvalues below zero correspond to bound states -- the hydrogen atom has $\sigma_d = \{-1/(4n^2) : n \geq 1\}$ and $\sigma_{ess} = [0,\infty)$.
-
 
 ### Worked Numerical Example
 Take $H = -\Delta$ on $L^2(\mathbb{R})$ and the Gaussian state $\psi(x) = e^{-x^2/2}$. Its Fourier transform is $\hat\psi(\xi) = \sqrt{2\pi} e^{-\xi^2/2}$. The spectral measure $E$ for $H$ acts by multiplication by $\xi^2$ in Fourier space. Compute the probability that a measurement of kinetic energy yields a value in $[0,1]$. This is $\|E([0,1])\psi\|^2 / \|\psi\|^2$. The denominator is $\int_{-\infty}^\infty e^{-x^2} dx = \sqrt{\pi} \approx 1.77245$. The numerator restricts the Fourier integral to $\xi^2 \in [0,1]$, i.e., $\xi \in [-1,1]$: $\int_{-1}^1 |\sqrt{2\pi} e^{-\xi^2/2}|^2 \frac{d\xi}{2\pi} = \int_{-1}^1 e^{-\xi^2} d\xi$. Numerical integration gives $\approx 1.49365$. The ratio is $1.49365 / 1.77245 \approx 0.84270$, which equals $\text{erf}(1)$. The spectral theorem converts an unbounded differential operator into a concrete frequency cutoff. The number $0.8427$ is the exact weight of low-energy modes in this Gaussian packet, computed without solving any ODE.
@@ -180,7 +168,6 @@ If one tries to use a merely symmetric (not self-adjoint) operator, $e^{itT}$ ca
 The proof of Stone's theorem in one direction is immediate from the spectral theorem: given self-adjoint $T$ with spectral measure $E$, define $U(t) = e^{itT} = \int e^{it\lambda}\,dE(\lambda)$. Since $|e^{it\lambda}| = 1$, this is unitary. Strong continuity follows from dominated convergence: $\|U(t)x - x\|^2 = \int|e^{it\lambda} - 1|^2\,d\|E(\lambda)x\|^2 \to 0$ as $t \to 0$. The converse (every strongly continuous unitary group has a self-adjoint generator) is the deeper half and requires reconstructing the generator from the group via $Tx = \lim_{t\to 0} (U(t)x - x)/(it)$.
 
 **Worked example: the free Schrodinger equation.** $i\partial_t\psi = -\frac{1}{2}\Delta\psi$ on $L^2(\mathbb{R}^3)$. The Hamiltonian $H = -\frac{1}{2}\Delta$ is self-adjoint on $H^2(\mathbb{R}^3)$. Stone's theorem gives the solution $\psi(t) = e^{-iHt}\psi_0 = e^{it\Delta/2}\psi_0$. In Fourier space: $\hat\psi(t, \xi) = e^{-it|\xi|^2/2}\hat\psi_0(\xi)$ -- each frequency propagates with a phase that depends quadratically on $|\xi|$. The dispersive nature (higher frequencies travel faster) causes wave packets to spread, and the decay $\|\psi(t)\|_{L^\infty} \leq C t^{-3/2}\|\psi_0\|_{L^1}$ follows from stationary phase. All of this is organized by the spectral theorem applied to a single self-adjoint operator.
-
 
 ### Worked Numerical Example
 Verify the canonical commutation relation $[X, P] = iI$ on the test function $\psi(x) = e^{-x^2}$ at the point $x = 0.5$. Compute $P\psi = -i \frac{d}{dx} e^{-x^2} = 2ix e^{-x^2}$. Then $(XP\psi)(0.5) = 0.5 \cdot 2i(0.5) e^{-0.25} = 0.5i e^{-0.25} \approx 0.38940i$. Next compute $(X\psi)(x) = x e^{-x^2}$, so $(PX\psi)(x) = -i \frac{d}{dx}(x e^{-x^2}) = -i(e^{-x^2} - 2x^2 e^{-x^2})$. At $x=0.5$: $(PX\psi)(0.5) = -i(e^{-0.25} - 0.5 e^{-0.25}) = -0.5i e^{-0.25} \approx -0.38940i$. Subtract: $(XP - PX)\psi(0.5) = 0.38940i - (-0.38940i) = 0.77880i$. Compare to $i\psi(0.5) = i e^{-0.25} \approx 0.77880i$. The match is exact to five decimals. This pointwise verification shows why bounded operators cannot satisfy the CCR: if $X$ and $P$ were bounded, taking norms would give $1 \leq 2\|X\|\|P\|$, but iterating the commutator yields factorial growth that forces at least one norm to be infinite. The numerical equality holds precisely because the domain excludes vectors where the derivatives blow up.

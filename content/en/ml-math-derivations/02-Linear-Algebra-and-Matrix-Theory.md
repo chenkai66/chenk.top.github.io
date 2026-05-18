@@ -19,7 +19,6 @@ translationKey: "ml-math-derivations-2"
 ---
 ![ML Math Derivations (2): Linear Algebra and Matrix Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/illustration_1.png)
 
-
 ---
 
 ## Why this chapter, and what's different

@@ -21,7 +21,6 @@ translationKey: "ml-math-derivations-19"
 ---
 ![ML Math Derivations (19): Neural Networks and Backpropagation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/illustration_1.png)
 
-
 ---
 
 > **Hook.** In 1969 Minsky and Papert proved that a single perceptron could not learn XOR, and connectionist research went into a fifteen-year freeze. The thaw came when Rumelhart, Hinton and Williams realised that *stacking* perceptrons makes the problem disappear — and that the same chain rule everyone learns in calculus, applied carefully, computes every gradient in a multilayer network for the cost of a single extra forward pass. That algorithm is backpropagation. Every gradient in every Transformer, every diffusion model, every GPT trained today still runs on it.
@@ -203,7 +202,6 @@ $w_1 \leftarrow 0.5 - 0.5 \cdot 0.1228 = 0.4386$.
 $b_1 \leftarrow 0 - 0.5 \cdot 0.1228 = -0.0614$.
 
 Recomputing the forward pass with the updated weights gives $\hat y \approx -0.236$, $\mathcal{L} \approx 0.0279$ — the loss dropped by a factor of $\approx 4.9$ in one step. Two structural facts are visible. The hidden-layer gradient is *attenuated* by $\sigma'(z_1) \approx 0.235$ on the way back: with a deeper network this factor compounds and produces vanishing gradients, exactly the problem analysed in the next section. And the gradients at every layer are products of three things that were already computed during the forward pass (an upstream error, a local Jacobian, a cached activation) — no Jacobian matrix is ever materialised, and the per-parameter cost is $\mathcal{O}(1)$.
-
 
 ```python
 def backprop(X, y, weights, biases, activations):

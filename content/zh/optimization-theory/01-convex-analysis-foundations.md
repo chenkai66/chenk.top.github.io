@@ -23,7 +23,6 @@ translationKey: "optim-01"
 - **共轭函数（conjugate）** $f^*$ 是广义化的勒让德变换（Legendre transform）：它将逐点不等式转化为线性不等式，是连接原始问题（primal problem）与对偶问题（dual problem）的关键桥梁。
 - **次微分（subdifferential）** $\partial f(x)$ 是非光滑凸函数在点 $x$ 处“梯度”的恰当推广；只要 $x$ 位于 $\mathrm{dom}(f)$ 的相对内部（relative interior），$\partial f(x)$ 就非空。
 
-
 ---
 
 我第一次试着自己证明梯度下降的收敛速率时，被一堆看起来很无害的术语挡住了：凸集、上镜图、共轭、次梯度。它们都没什么神秘，但堆在一起像一面墙。

@@ -25,7 +25,6 @@ This chapter builds that machinery from scratch. We start with the basic SIR mod
 
 ![Ordinary Differential Equations (14): Epidemic Models and Epidemiology — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/14-epidemiology/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn

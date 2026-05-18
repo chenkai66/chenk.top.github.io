@@ -75,7 +75,6 @@ A standard consequence is the **first resolvent identity**: $R(\lambda) - R(\mu)
 
 **The spectrum is non-empty and bounded.** For any $T \in B(X)$ on a complex Banach space, $\sigma(T) \neq \emptyset$ and $\sigma(T) \subset \{\lambda : |\lambda| \leq \|T\|\}$. The bound is the Neumann series argument: for $|\lambda| > \|T\|$, the series $\sum (T/\lambda)^n / \lambda$ converges to $R(\lambda; T)$. Non-emptiness uses that if $\sigma(T) = \emptyset$, then $R(\lambda; T)$ would be entire and bounded, hence constant by Liouville, but it goes to zero as $|\lambda| \to \infty$, hence is identically zero — contradiction. The non-emptiness of the spectrum is thus a complex-analytic theorem that has no analog in real Banach spaces.
 
-
 ### Worked Numerical Example
 
 Take $A = \begin{pmatrix} 2 & 1 \\ 0 & 4 \end{pmatrix}$ on $\mathbb{C}^2$. The eigenvalues are $2$ and $4$, so $\sigma(A) = \{2, 4\}$. Pick $\lambda_0 = 6 \in \rho(A)$. We compute the resolvent explicitly:
@@ -89,8 +88,6 @@ Direct inversion confirms this: $(5I - A)^{-1} = \begin{pmatrix} 3 & -1 \\ 0 & 1
 ## Spectral Radius
 
 Define the **spectral radius** $r(T) = \sup\{|\lambda| : \lambda \in \sigma(T)\}$. The neat fact is that this geometric quantity equals an analytic limit:
-
-![Spectral radius formula](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig08_spectral_radius.png)
 
 ![Spectral radius formula r(T) = lim ||T^n||^(1/n)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/08-spectral-theory/fa_v2_08_3_spectral_radius.png)
 
@@ -106,7 +103,6 @@ $$ A = \begin{pmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ 0 & 0 & 0 \end{pmatrix}. $$
 
 Then $A^2$ has a single $1$ in the top-right corner, $A^3 = 0$. So $\|A^n\| = 0$ for $n \geq 3$, and $r(A) = 0$. The spectrum of $A$ is $\{0\}$ (it is nilpotent). Now take $B = A + 0.01 \cdot I$. The spectrum is $\{0.01\}$, $\|B^n\|^{1/n} \to 0.01$. The eigenvalue equals the asymptotic growth rate. The spectral radius formula in three lines.
 
-
 ### Worked Numerical Example
 
 Consider the weighted shift matrix $T = \begin{pmatrix} 0 & 3 \\ 1/3 & 0 \end{pmatrix}$ on $\mathbb{C}^2$. The characteristic polynomial is $\lambda^2 - 1 = 0$, so $\sigma(T) = \{1, -1\}$ and $r(T) = 1$. The spectral radius formula claims $\lim_{n \to \infty} \|T^n\|^{1/n} = 1$. Let us verify the convergence numerically. Compute powers:
@@ -116,8 +112,6 @@ The sequence alternates: $T^{2k} = I$, $T^{2k+1} = T$. The spectral norm $\|I\|_
 ## Self-Adjoint Operators on Hilbert Space
 
 From here on, $H$ is a complex Hilbert space and $T \in B(H)$ is self-adjoint, meaning $T = T^*$. The world becomes much friendlier.
-
-![Self-adjoint operators have real spectrum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig08_selfadjoint_spectrum.png)
 
 ![Spectrum of a self-adjoint operator lies on the real line](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/08-spectral-theory/fa_v2_08_4_self_adjoint.png)
 
@@ -153,7 +147,6 @@ In particular, we have $e^T$, $\sqrt{T}$ (for positive $T$), $|T| = (T^*T)^{1/2}
 
 A small numerical instance. Take $T = \text{diag}(1, 2, 3)$ on $\mathbb{C}^3$. Then $\sigma(T) = \{1, 2, 3\}$, and for $f$ continuous, $\Phi(f) = \text{diag}(f(1), f(2), f(3))$ — the functional calculus reduces to applying $f$ to the eigenvalues. For an operator with continuous spectrum, the same idea works but the "diagonal" is replaced with a multiplication operator on a function space. This is essentially the content of the spectral theorem.
 
-
 ### Worked Numerical Example
 
 Let $T = \text{diag}(0.1, 0.4, 0.8)$ on $\mathbb{C}^3$. The spectrum is $\sigma(T) = \{0.1, 0.4, 0.8\}$. Take the continuous function $f(t) = t e^{-t}$ on $[0, 1]$. The functional calculus defines $f(T)$ by applying $f$ to the diagonal entries. Compute the values:
@@ -165,8 +158,6 @@ Thus $f(T) = \text{diag}(0.09048, 0.26813, 0.35946)$. The operator norm $\|f(T)\
 ## The Spectral Theorem for Bounded Self-Adjoint Operators
 
 There are several equivalent formulations. The two I find most useful are the **multiplication operator form** and the **spectral measure form**.
-
-![Spectral theorem: decomposition via projection-valued measure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig08_spectral_theorem.png)
 
 ![Spectral theorem for bounded self-adjoint operators on Hilbert space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/08-spectral-theory/fa_v2_08_5_spectral_thm.png)
 
@@ -246,7 +237,6 @@ Some operators come up so often that knowing their spectra by heart is useful. A
 
 These examples are not just trivia. They are the building blocks of intuition: when faced with a new operator, one should ask which of these it resembles. Most operators in practice are perturbations of these models, or combinations.
 
-
 ### Worked Numerical Example
 
 The discrete Laplacian on a finite grid with Dirichlet boundary conditions is a standard test case. For $N=4$ interior points, the matrix is
@@ -299,7 +289,6 @@ where $\Gamma_U$ encloses only the part of the spectrum in $U$. The projection $
 For self-adjoint operators on a Hilbert space, the Riesz functional calculus and the continuous (or Borel) functional calculus agree where they overlap; the Borel calculus extends further, since we can apply non-holomorphic functions like indicators of arbitrary Borel sets. For general operators, the Riesz calculus is the strongest tool available, and it is what enables results like the Jordan canonical form for compact operators and the structure theory of operator semigroups.
 
 A small worked example. Consider the matrix $A = \text{diag}(1, 2, 3, 4) + \varepsilon N$, where $N$ is some nilpotent perturbation and $\varepsilon$ is small. The Riesz projection $P_1$ associated with the spectral component near $\lambda = 1$ is approximately $\text{diag}(1, 0, 0, 0)$ for small $\varepsilon$, perturbed by an $O(\varepsilon)$ correction computable by the contour integral. This is how perturbation theory in quantum mechanics (Rayleigh-Schrödinger) is rigorously set up — the spectral projections of the unperturbed operator are deformed analytically as the perturbation is turned on, and the projections track the eigenvalues continuously as long as no level crossings occur.
-
 
 ### Worked Numerical Example
 

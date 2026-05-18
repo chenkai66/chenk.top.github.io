@@ -29,8 +29,6 @@ A spoiler for the next chapter: $K$ — the Gaussian curvature, defined extrinsi
 
 ![Gaussian curvature classification: sphere K>0, cylinder K=0, saddle K<0](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_curvature_classification.png)
 
-![Gauss map: surface normals mapped to the unit sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_gauss_map.png)
-
 Given a regular oriented surface $S\subset\mathbb{R}^3$, every point $p$ has a well-defined unit normal $\mathbf{n}(p)\in S^2$ (the unit sphere of directions). The assignment $p\mapsto \mathbf{n}(p)$ is the *Gauss map*:
 $$N: S\to S^2,\qquad p\mapsto \mathbf{n}(p).$$
 
@@ -82,8 +80,6 @@ For a cylinder of radius $r$ with axis along the $z$-direction, parametrize $\ma
 From the principal curvatures $k_1, k_2$, we extract two scalar invariants:
 $$K = k_1 k_2 = \det S = \frac{LN - M^2}{EG - F^2}, \qquad H = \frac{k_1 + k_2}{2} = \frac{1}{2}\mathrm{tr}\,S = \frac{EN - 2FM + GL}{2(EG - F^2)}.$$
 
-![Animation: normal curvature as direction rotates](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_normal_rotation.gif)
-
 ![Principal curvatures: maximum and minimum normal curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_normal_curvature.png)
 
 The Gaussian curvature $K$ is the product of principal curvatures; the mean curvature $H$ is their average. Together they determine $k_1$ and $k_2$ via $k_{1,2} = H \pm \sqrt{H^2 - K}$, so no information is lost.
@@ -107,8 +103,6 @@ A physical thought experiment cements the intuition. Take a sheet of paper ($K =
 ## Worked Examples: From Spheres to Saddles
 
 Theory needs grounding. Here are four detailed computations that cover the main cases.
-
-![Normal curvature varies with direction](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_normal_curvature.png)
 
 **The saddle surface $z = uv$ (hyperbolic paraboloid).** Chart $\mathbf{x}(u,v) = (u, v, uv)$. Compute: $\mathbf{x}_u = (1, 0, v)$, $\mathbf{x}_v = (0, 1, u)$. First form: $E = 1+v^2$, $F = uv$, $G = 1+u^2$, and $EG-F^2 = 1+u^2+v^2$. Cross product: $\mathbf{x}_u\times\mathbf{x}_v = (-v, -u, 1)$, with magnitude $\sqrt{1+u^2+v^2}$. Unit normal: $\mathbf{n} = (-v, -u, 1)/\sqrt{1+u^2+v^2}$. Second derivatives: $\mathbf{x}_{uu} = 0$, $\mathbf{x}_{uv} = (0,0,1)$, $\mathbf{x}_{vv} = 0$. So $L = \mathbf{n}\cdot\mathbf{x}_{uu} = 0$, $M = \mathbf{n}\cdot\mathbf{x}_{uv} = 1/\sqrt{1+u^2+v^2}$, $N = 0$.
 
@@ -273,7 +267,6 @@ Article 4 will prove the Theorema Egregium: the Gaussian curvature, defined here
 (3) "Intrinsic" so far has meant "computable from $E, F, G$." Article 4 will give a formula for $K$ in terms of $E, F, G$ alone (no $L, M, N$). What does the formula look like, and how could two so-different forms ever produce the same number?
 
 You now have both fundamental forms. Article 4 shows they are not as independent as they look. Read it asking "what is the algebraic identity that lets me eliminate $L, M, N$ from the formula for $K$?" The answer (Brioschi's formula) is one of the most surprising calculations in classical geometry.
-
 
 ### One last worked example: catenoid mean curvature and the soap-film equation
 

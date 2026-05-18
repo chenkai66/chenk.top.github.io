@@ -23,7 +23,6 @@ translationKey: "ml-math-derivations-20"
 ---
 ![ML Math Derivations (20): Regularization and Model Selection — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/20-Regularization-and-Model-Selection/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn

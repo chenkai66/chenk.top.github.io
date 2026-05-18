@@ -21,7 +21,6 @@ aliases:
 
 Your model diverges. You halve the learning rate. Now it trains, but takes forever. You halve again — now the loss is a flat line. Sound familiar? Of all the knobs you can turn, **learning rate** is the one that most often decides whether training converges, crawls, or blows up. This guide gives you the intuition, the minimal math, and a practical workflow to get it right — from a 12-layer CNN on your laptop to a 70B-parameter LLM on a thousand GPUs.
 
-
 ---
 
 Training crashes on the first thousand steps. You halve the learning rate; now the model trains, but agonizingly slowly. Halve it again, and the loss barely moves. Sound familiar? Of every knob on a deep model, **the learning rate is the one most likely to decide whether you converge at all** — and, failing that, whether you converge in days or weeks.
@@ -602,7 +601,6 @@ If you remember nothing else: **most problems blamed on "the optimizer" are LR-s
 Once the tools from this article feel automatic, the next one builds directly on them: concepts introduced here will be reused as black boxes in later proofs. If a term still feels slippery, come back to the corresponding H2 section above — these ideas recur throughout the series, and you don't need to grasp them in one pass.
 
 If you want to put today's material to work right away, **the highest-leverage exercise** is this: pick an optimization problem you already understand, and check the article's headline inequalities (convexity, $L$-smoothness, strong convexity, the duality bound) against it one by one. You'll quickly find which assumptions actually hold and which only do so on paper — that's a more useful muscle than reading two more papers.
-
 
 ## References
 
