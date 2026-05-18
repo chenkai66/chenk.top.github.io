@@ -62,6 +62,8 @@ This is the metric inherited from the standard embedding $S^2 \subset \mathbb{R}
 $$g = \frac{dx^2 + dy^2}{y^2}.$$
 This metric has constant Gaussian curvature $-1$. Geodesics are vertical lines and semicircles meeting the $x$-axis at right angles. The distance between $(0, 1)$ and $(0, e)$ is $1$ (for the geodesic going up); the distance "tends to infinity" as $y \to 0$ along any path approaching the boundary. The hyperbolic plane is the prototypical model of negative curvature.
 
+![Riemannian metric: unit balls in Euclidean vs hyperbolic geometry](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/10_riemannian_metric.png)
+
 4. **Pullback / induced metric.** If $f: M \to (N, h)$ is an immersion (injective differential), the **pullback metric** $f^*h$ on $M$ is defined by $(f^*h)_p(u, v) = h_{f(p)}(df_p u, df_p v)$. This is how submanifolds inherit metrics from their ambient spaces. Every smoothly embedded surface in $\mathbb{R}^3$ becomes Riemannian this way — and the result is always positive-definite if $f$ is an immersion.
 
 **Existence of Riemannian metrics.** Every paracompact smooth manifold admits a Riemannian metric. Proof: cover by charts, take the Euclidean metric in each chart, and glue with a partition of unity — convex combinations of inner products are inner products, so positive-definiteness is preserved.

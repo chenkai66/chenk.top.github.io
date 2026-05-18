@@ -145,6 +145,8 @@ is, term by term:
 $$C^\infty \xrightarrow{\nabla} \mathrm{vec.\ fields} \xrightarrow{\nabla\times} \mathrm{vec.\ fields} \xrightarrow{\nabla\cdot} C^\infty.$$
 And $d^2 = 0$ becomes $\nabla \times \nabla = 0$ and $\nabla \cdot (\nabla \times) = 0$. The two identities of vector calculus are one identity in form language.
 
+![Exterior derivative: the de Rham complex](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/08_exterior_derivative.png)
+
 **Why this matters.** $d$ is **coordinate-free**. The classical formulas for grad, curl, div in spherical or cylindrical coordinates have intimidating coefficients (factors of $r^2 \sin\theta$ etc.). Those factors are artifacts of expressing the metric in those coordinates; $d$ itself is the same in any chart, and the formula is always "differentiate coefficients, wedge with new $dx^j$." This is one of the genuine simplifications of differential geometry: $d$ is *the* derivative on manifolds.
 
 **Invariant formula for $d$.** There is a beautiful coordinate-free formula:
@@ -203,6 +205,8 @@ $$f^*(dx\wedge dy) = (\cos\theta\,dr - r\sin\theta\,d\theta)\wedge(\sin\theta\,d
 $$= r\cos^2\theta\,dr\wedge d\theta - r\sin^2\theta\,d\theta\wedge dr$$ (cross terms with $dr\wedge dr$ and $d\theta\wedge d\theta$ vanish)
 $$= r\cos^2\theta\,dr\wedge d\theta + r\sin^2\theta\,dr\wedge d\theta = r\,dr\wedge d\theta.$$
 The factor of $r$ — the Jacobian of polar coordinates — falls out automatically. No need to memorize "for polar coordinates, multiply by $r$": it is built into the algebra of forms.
+
+![Pullback: forms travel backward under smooth maps](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/08_pullback.png)
 
 **Why this matters.** Pullback is the operation that makes integration coordinate-independent. When you compute $\int_M f^*\omega$ for $f: M \to N$, you are integrating "the form $\omega$ as seen from $M$." If $f$ is a parametrization of $M$ inside $N$, this is exactly the change-of-variables formula in disguise. In gauge theory, pullback under a gauge transformation is how you change frames. In statistical mechanics, pullback under a coordinate change is how the partition function transforms. The algebraic rules are the same in every case.
 

@@ -73,6 +73,8 @@ $$g = d\theta^2 + \sin^2\theta\,d\phi^2.$$
 $$g = \frac{dx^2 + dy^2}{y^2}.$$
 这个度量具有常高斯曲率 $-1$。测地线是垂直线和与 $x$ 轴垂直相交的半圆。$(0, 1)$ 和 $(0, e)$ 之间的距离是 $1$（对于向上走的测地线）；当 $y \to 0$ 沿任何接近边界的路径时，距离“趋于无穷”。双曲平面是负曲率的典型模型。
 
+![Riemannian 度量：Euclid 几何 vs 双曲几何中的单位球](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_riemannian_metric.png)
+
 4. 拉回/诱导度量：如果 $f: M \to (N, h)$ 是浸入（微分单射），则 **拉回度量** $f^*h$ 在 $M$ 上定义为 $(f^*h)_p(u, v) = h_{f(p)}(df_p u, df_p v)$。这就是子流形如何从其环境空间继承度量的方式。$\mathbb{R}^3$ 中的每个光滑嵌入表面都可以通过这种方式变成黎曼流形 —— 并且如果 $f$ 是浸入，则结果总是正定的。
 
 每个仿紧光滑流形都允许一个黎曼度量。证明：用坐标图覆盖，取每个坐标图中的欧几里得度量，然后用单位分解粘合。正定形式的凸组合是正定的。因此，黎曼几何是你总可以添加到任何光滑流形上的特征。
@@ -130,6 +132,8 @@ $$\nabla_{\partial_i}\partial_j = \Gamma^k_{ij}\,\partial_k$$
 确定。一个计算给出
 $$\nabla_X Y = \left(X^i \partial_i Y^k + \Gamma^k_{ij}X^i Y^j\right)\partial_k.$$
 第一项是显然的“分量的方向导数”；第二项是考虑基向量变化的修正项。$\Gamma^k_{ij}$ 是位置的函数，*不是* 张量分量 —— 它们在坐标变换下按非齐次规则变换，正好补偿 $Y^k$ 的偏导数的非齐次性。
+
+![协变导数：平行与非平行传输](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/10_covariant_derivative.png)
 
 为什么这么多结构？联络是流形上的 *额外数据* —— 一般来说没有规范选择。两个联络相差一个张量（Christoffel 符号的差按张量方式变换）。联络的空间是一个无限维仿射空间。
 

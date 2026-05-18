@@ -79,6 +79,8 @@ $$\chi(S) = V - E + F,$$
 
 一个说明性的计算：二十面体（球面的一种三角剖分）有 $V = 12$，$E = 30$，$F = 20$，得到 $\chi = 12 - 30 + 20 = 2$。立方体（不是三角剖分，因为面是正方形，但可以通过将每个正方形切成两个三角形来三角剖分）有 $V = 8$，$E = 18$（12 条原边加上 6 条对角线），$F = 12$，得到 $\chi = 8 - 18 + 12 = 2$。对于球面，无论具体三角剖分如何，总是 $2$。
 
+![不同曲面的 Euler 示性数](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/05_euler_characteristic.png)
+
 对于环面，一种标准的三角剖分（通过在基本域 $[0,1]^2$ 上取 $3 \times 3$ 的正方形网格并将每个正方形切成两个三角形，然后识别相对的边）给出 $V = 9$，$E = 27$，$F = 18$：$\chi = 9 - 27 + 18 = 0$。
 
 与 Gauss-Bonnet 定理的联系：该定理说 $\iint_S K\,dA = 2\pi\chi(S)$。一个光滑量（曲率）的积分等于一个整数（Euler 示性数）乘以 $2\pi$。局部分析与全局组合学在此交汇。
@@ -141,6 +143,8 @@ Descartes 的多面体定理（1630年代）。对于凸多面体，每个顶点
 - 亏格 0（$\chi = 2 > 0$）：常正曲率。圆球是模型。
 - 亏格 1（$\chi = 0$）：常零曲率。平坦环面（正方形对边识别）是模型。
 - 亏格 $\geq 2$（$\chi < 0$）：常负曲率。双曲平面的商是模型。
+
+![总曲率积分等于拓扑不变量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/05_curvature_integral.png)
 
 Gauss-Bonnet 决定了符号；一致化定理（深刻，由 Koebe 和 Poincare 在 1907 年左右证明）提供了存在性。它们一起将所有闭曲面几何分类为三种类型：球面、欧几里得和双曲。这种三分法是 Thurston 几何化猜想（三维中有 8 种模型几何）的二维祖先，Perelman 在 2003 年证明了这个猜想。
 

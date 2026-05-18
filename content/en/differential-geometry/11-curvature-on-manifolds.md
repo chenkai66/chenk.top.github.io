@@ -147,6 +147,8 @@ In dimensions 2 and 3, the Weyl tensor vanishes identically — there is "not en
 - 3D: $R$ determined by Ricci alone (six components — Ricci has six in 3D, the same count as Riemann).
 - 4D and higher: $R$ has Weyl plus Ricci plus scalar contributions — Weyl carries information not captured by Ricci.
 
+![Curvature hierarchy: Riemann -> Ricci -> Scalar (successive traces)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_curvature_hierarchy.png)
+
 **Vacuum Einstein in 4D.** Einstein vacuum equations $\mathrm{Ric} = 0$ kill the Ricci and scalar parts, but leave $W$ free. So gravitational waves and the Schwarzschild-Kerr fields are encoded in the Weyl tensor — the genuine "free" gravitational degrees of freedom.
 
 **Conformal invariance.** The Weyl tensor is conformally invariant in the sense that under $g \mapsto e^{2\sigma}g$, $W$ transforms simply — its conformal class is preserved. This is what makes it the natural object for conformal geometry, twistor theory, and certain approaches to general relativity.
@@ -280,6 +282,8 @@ Lower the index: $R_{\phi\theta\phi\theta} = g_{\phi\phi} R^\phi_{\theta\phi\the
 Sectional curvature in the $\phi$-$\theta$ plane: $K = R_{\phi\theta\phi\theta} / (g_{\phi\phi}g_{\theta\theta} - g_{\phi\theta}^2) = \sin^2\phi / \sin^2\phi = 1$. Confirmed: the unit sphere has constant sectional curvature 1.
 
 Ricci tensor: $\text{Ric}_{\phi\phi} = R^\theta_{\phi\theta\phi} g_{...}$ — easier in 2D, $\text{Ric}_{ij} = K g_{ij}$, so $\text{Ric}_{\phi\phi} = 1$, $\text{Ric}_{\theta\theta} = \sin^2\phi$. Scalar curvature: $R = g^{ij}\text{Ric}_{ij} = 1 \cdot 1 + (1/\sin^2\phi) \cdot \sin^2\phi = 2$. So the sphere has constant scalar curvature 2 (= $n(n-1)K$ for $n=2$, $K=1$).
+
+![Jacobi fields: geodesic deviation on sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/11_jacobi_fields.png)
 
 ### A worked numerical example: Riemann tensor on hyperbolic space
 

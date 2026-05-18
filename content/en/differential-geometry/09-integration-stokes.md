@@ -47,6 +47,8 @@ These are equivalent, and each is useful in different contexts. The form-theoret
 
 **A concrete check.** Consider $\mathbb{RP}^2$ as the quotient of $S^2$ by the antipodal map $A(x) = -x$. The pullback $A^* (dx\wedge dy\wedge dz) = -dx\wedge dy\wedge dz$ in $\mathbb{R}^3$ — so $A$ reverses orientation on the ambient space, but on the *sphere* the calculation is more subtle. Working with local charts, you find that the antipodal map reverses orientation on $S^2$, so the quotient cannot inherit an orientation. Concrete, mechanical, and fundamentally a topological fact about the equivalence class of bases.
 
+![Orientable vs non-orientable: torus vs Mobius strip](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/09_orientation.png)
+
 **Why this matters.** Orientation is not a redundant decoration — it is what makes integrals signed. The integral $\int_a^b f(x)\,dx = -\int_b^a f(x)\,dx$ in 1D is the simplest manifestation: reversing the orientation of the interval flips the sign of the integral. On surfaces and higher-dimensional manifolds, the same phenomenon controls flux signs, charge conservation, and the consistency of Stokes' theorem. Without orientation, you would not even know which side of a surface counts as "outward."
 
 **Non-orientable integration: densities.** When $M$ is non-orientable, you cannot integrate top-degree forms (the sign is ambiguous), but you can integrate **densities** — objects that pick up the *absolute value* of the Jacobian under change of coordinates rather than the signed Jacobian. Densities are how you do integration on non-orientable manifolds. In physics they are usually invisible because spacetime is taken to be orientable, but in mathematical biology and certain topology problems (counting orbits on a Klein bottle, for instance) they are unavoidable.
@@ -141,6 +143,8 @@ That's it. The whole theorem is the 1D fundamental theorem applied chart by char
 **Worked example: integrating a winding form.** On $\mathbb{R}^2 \setminus \{0\}$, the angle form $\omega = \frac{-y\,dx + x\,dy}{x^2+y^2}$ is closed but not exact. Take $M$ to be the annulus $\{1 \leq r \leq 2\}$. Stokes' theorem says
 $$\int_M d\omega = \int_{\partial M}\omega.$$
 The left side is zero ($d\omega = 0$). The boundary is the inner circle (oriented clockwise — opposite of the standard counter-clockwise) plus the outer circle (counter-clockwise). The integral around each circle is $2\pi$, so the boundary integral is $-2\pi + 2\pi = 0$. Consistent. The form contributes $2\pi$ from each circle, but with opposite orientations they cancel.
+
+![Animation: flux through surface equals boundary circulation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/09_stokes_flux.gif)
 
 **Worked example: a non-trivial calculation.** Compute $\int_{\partial \bar B^3} \omega$ for $\omega = (x^2 + y)\,dy\wedge dz + (xy + z)\,dz\wedge dx + (xz - y)\,dx\wedge dy$, where $\bar B^3$ is the closed unit ball. Use Stokes:
 $$d\omega = (\partial_x(x^2+y) + \partial_y(xy + z) + \partial_z(xz - y))\,dx\wedge dy\wedge dz = (2x + x + x)\,dx\wedge dy\wedge dz = 4x\,dx\wedge dy\wedge dz.$$

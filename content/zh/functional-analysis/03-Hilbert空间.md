@@ -90,6 +90,8 @@ Bessel 不等式和 Parseval 等式。对于任意 $x \in \mathcal{H}$ 和正交
 
 Fourier 展开 $x = \sum \langle x, e_n \rangle e_n$ 的收敛是无条件的——无论项的顺序如何，它都会收敛。这是 Bessel 不等式的结果：由于 $\sum |c_n|^2 < \infty$，对于任何 $\varepsilon > 0$，除了有限多个项外，其余项都有 $|c_n|^2 < \varepsilon$。部分和形成 Cauchy 列，完备性保证了收敛。
 
+![动画：Fourier 级数逐项逼近](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/03_fourier_approx.gif)
+
 **Gram-Schmidt 过程** 从线性无关集合构造正交系统。从 $\{v_1, v_2, \ldots\}$ 开始，设 $e_1 = v_1/\|v_1\|$，然后迭代地 $e_n = (v_n - \sum_{k<n}\langle v_n, e_k\rangle e_k)/\|...\|$。每一步过程中，生成空间保持不变：$\text{span}\{e_1, \ldots, e_n\} = \text{span}\{v_1, \ldots, v_n\}$。
 
 实例：经典的正交基：在 $L^2[-1,1]$ 中，多项式 $\{1, t, t^2, \ldots\}$ 是线性无关但不正交的。Gram-Schmidt 过程产生（归一化后）Legendre 多项式：$P_0 = 1/\sqrt{2}$，$P_1 = t\sqrt{3/2}$，$P_2 = (3t^2-1)\sqrt{5/8}$。指数函数 $\{e^{int}/(2\pi)^{1/2}\}_{n \in \mathbb{Z}}$ 形成 $L^2[-\pi,\pi]$ 的 Fourier 基。Hermite 函数 $h_n(x) = c_n H_n(x) e^{-x^2/2}$ 形成 $L^2(\mathbb{R})$ 的正交基——它们是量子谐振子的特征函数。每个基针对不同的问题：Legendre 用于区间上的多项式逼近，Fourier 用于周期现象，Hermite 用于 Schrodinger 方程的二次势。

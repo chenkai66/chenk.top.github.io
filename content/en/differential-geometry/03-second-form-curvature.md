@@ -161,6 +161,8 @@ Beyond the principal curvatures, the variation of normal curvature $\kappa_n$ ac
 
 Euler's theorem states: if $\mathbf{w}$ makes angle $\alpha$ with the first principal direction, then $\kappa_n(\mathbf{w}) = k_1\cos^2\alpha + k_2\sin^2\alpha$. The normal curvature varies sinusoidally between $k_1$ and $k_2$ as we rotate through the tangent plane. This gives a clean geometric picture: the two principal directions are where the surface bends the most and the least, and all other directions are intermediate.
 
+![Animation: normal curvature as direction rotates](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/03_normal_rotation.gif)
+
 *Lines of curvature* are curves whose tangent at every point is a principal direction. On the sphere, every curve is a line of curvature (every direction is principal at an umbilic). On the cylinder, the two families are axial lines and circular cross-sections. On a generic surface, lines of curvature form an orthogonal net covering the surface, and in line-of-curvature coordinates we have $F = M = 0$ simultaneously — both forms are diagonal. This simplifies many computations dramatically.
 
 *Asymptotic lines* are curves along which the normal curvature vanishes: $\mathrm{II}(\gamma', \gamma') = La'^2 + 2Ma'b' + Nb'^2 = 0$. They exist only where $K \leq 0$. At a hyperbolic point, the discriminant $M^2 - LN > 0$ (since $K = (LN-M^2)/(EG-F^2) < 0$), giving two real solutions for $a':b'$ — two asymptotic directions. At a parabolic point, exactly one asymptotic direction. At an elliptic point, none (the second form is definite).

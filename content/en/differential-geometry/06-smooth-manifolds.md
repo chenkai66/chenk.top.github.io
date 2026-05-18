@@ -87,6 +87,8 @@ We *define* a tangent vector at $p$ to be a linear map $v: C^\infty(M) \to \math
 
 In a chart $(U, \varphi)$ with coordinates $(x^1, \ldots, x^n)$, the partial derivative operators $\partial/\partial x^i|_p$ defined by $(\partial/\partial x^i|_p)(f) = \partial(f \circ \varphi^{-1})/\partial x^i|_{\varphi(p)}$ are derivations at $p$. They form a basis for $T_pM$ (one can prove this rigorously), so $\dim T_pM = n$. Every tangent vector $v$ has a unique expansion $v = \sum_i v^i \,\partial/\partial x^i|_p$ with real coefficients $v^i$.
 
+![Tangent space at a point on a manifold](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/06_tangent_space.png)
+
 Under a change of coordinates $x \mapsto \tilde{x}$, the components transform by the Jacobian: $\tilde{v}^j = \sum_i (\partial\tilde{x}^j/\partial x^i) v^i$. This is the classical "contravariant vector" transformation law. The derivation definition packages it intrinsically: you never write down the Jacobian explicitly; it emerges from the chain rule when you compute $v(f)$ in different charts.
 
 The equivalence with the "curve velocity" picture: given a smooth curve $\gamma: (-\varepsilon, \varepsilon) \to M$ with $\gamma(0) = p$, define $v_\gamma(f) = (f \circ \gamma)'(0)$. This is a derivation at $p$ (linearity is clear; Leibniz follows from the product rule for real functions). Two curves give the same derivation iff they have the same coordinate velocity in any chart. So tangent vectors are equivalence classes of curves, or derivations, or $n$-tuples-that-transform-by-the-Jacobian — three equivalent viewpoints, used interchangeably depending on context.

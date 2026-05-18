@@ -52,6 +52,8 @@ The map $\mathbf{x}$ is called a *coordinate chart*, *parametrization*, or *patc
 
 The technical sufficiency of these parametrizations as proper "charts" is something I will check explicitly for one of them, the sphere, later in the article. The point right now is to have concrete things in your head.
 
+![Parametric surfaces: sphere, torus, and saddle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/02_parametric_surfaces.png)
+
 ---
 
 ## The Tangent Plane

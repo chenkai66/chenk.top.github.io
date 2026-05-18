@@ -54,6 +54,8 @@ $$\int_M d\omega = \int_{\partial M}\omega.$$
 - **莫比乌斯带**是非可定向的。带着一个选定的有序基绕带一圈，你会以相反的基返回。等价地说，莫比乌斯带上不存在处处非零的 2 形式。
 - **实射影平面** $\mathbb{RP}^2$ 由于相同的原因是非可定向的。实际上，$\mathbb{RP}^n$ 可定向当且仅当 $n$ 为奇数。
 
+![可定向 vs 不可定向：环面 vs Mobius 带](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_orientation.png)
+
 将 $\mathbb{RP}^2$ 视为 $S^2$ 在反演映射 $A(x) = -x$ 下的商。拉回 $A^* (dx\wedge dy\wedge dz) = -dx\wedge dy\wedge dz$ 在 $\mathbb{R}^3$ 中——因此 $A$ 在环境空间中反转方向，但在*球*上计算更为微妙。使用局部坐标图，你会发现反演映射在 $S^2$ 上反转方向，因此商不能继承一个方向。具体、机械，从根本上说是关于基的等价类的拓扑事实。
 
 方向不是多余的装饰——它使积分有符号。一维中的积分 $\int_a^b f(x)\,dx = -\int_b^a f(x)\,dx$ 是最简单的体现：反转区间的方向会翻转积分的符号。在曲面和更高维流形上，同样的现象控制着通量符号、电荷守恒和斯托克斯定理的一致性。没有方向，你甚至不知道曲面的哪一侧算作“向外”。
@@ -154,6 +156,8 @@ $$\int_M d\omega = \int_{\partial M} \omega.$$
 举个例子，在 $\mathbb{R}^2 \setminus \{0\}$ 上，角度形式 $\omega = \frac{-y\,dx + x\,dy}{x^2+y^2}$ 是闭的但不是精确的。取 $M$ 为环面 $\{1 \leq r \leq 2\}$。斯托克斯定理说
 $$\int_M d\omega = \int_{\partial M}\omega.$$
 左边为零（$d\omega = 0$）。边界是内圆（顺时针——与标准逆时针相反）加上外圆（逆时针）。每个圆的积分是 $2\pi$，所以边界积分是 $-2\pi + 2\pi = 0$。一致。形式在每个圆上贡献 $2\pi$，但由于方向相反，它们抵消了。
+
+![动画：通过曲面的通量等于边界环量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/differential-geometry/figures/09_stokes_flux.gif)
 
 举个例子，计算 $\int_{\partial \bar B^3} \omega$ 对于 $\omega = (x^2 + y)\,dy\wedge dz + (xy + z)\,dz\wedge dx + (xz - y)\,dx\wedge dy$，其中 $\bar B^3$ 是闭单位球。使用斯托克斯：
 $$d\omega = (\partial_x(x^2+y) + \partial_y(xy + z) + \partial_z(xz - y))\,dx\wedge dy\wedge dz = (2x + x + x)\,dx\wedge dy\wedge dz = 4x\,dx\wedge dy\wedge dz.$$

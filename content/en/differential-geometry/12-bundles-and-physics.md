@@ -253,6 +253,8 @@ A connection on this bundle is a 1-form on $S^3$ valued in the Lie algebra $\mat
 
 The integral $\int_{S^2} F = -4\pi$ (with sign depending on orientation choice). Up to factors of $2\pi$, this is the *first Chern number* of the bundle, an integer that classifies $U(1)$-bundles over $S^2$. The Hopf bundle has Chern number $\pm 1$ (sign depending on orientation), and Chern-Weil theory tells us that this integer is a topological invariant — no smooth deformation of the connection changes it.
 
+![Hopf fibration: S^1 fibers over S^2](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/12_hopf_fibration.png)
+
 ### A worked numerical example: magnetic monopole as a connection
 
 A magnetic monopole at the origin gives a magnetic field $B = g \hat r / r^2$ where $g$ is the monopole charge. As a 2-form on $\mathbb{R}^3 \setminus \{0\}$, this is $F = g \sin\phi\, d\phi \wedge d\theta$ in spherical coordinates. Restrict to a sphere of radius $r$ (where the monopole field is well-defined): $\int_{S^2_r} F = g \cdot 4\pi$.
@@ -260,6 +262,8 @@ A magnetic monopole at the origin gives a magnetic field $B = g \hat r / r^2$ wh
 Dirac quantization: $g$ must be a half-integer multiple of $1/(2 q_e)$, where $q_e$ is the electron charge. Why? Because the magnetic field cannot be derived from a globally defined gauge potential $A$ (there must be a Dirac string), and the requirement that the wavefunction is single-valued forces the integral $\int F$ to be a multiple of $2\pi/q_e$.
 
 In the language of bundles: the gauge potential $A$ is a connection on a $U(1)$ bundle over $\mathbb{R}^3 \setminus \{0\}$. This space deformation-retracts to $S^2$, so $U(1)$ bundles over it are classified by $\pi_1(U(1)) = \mathbb{Z}$ — exactly the integer Chern number, exactly the integer monopole charge in units of $1/q_e$. Dirac quantization is the topological statement that bundles are classified by integers.
+
+![Electromagnetism as U(1) bundle connection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/12_em_connection.png)
 
 ### Intuition + counterexample: why curvature is Lie-algebra-valued
 
@@ -274,6 +278,8 @@ Counterexample to "F = dA is the right formula": for $SU(2)$ Yang-Mills, the gau
 The tangent bundle $TM$ of a manifold $M$ is the canonical example of a vector bundle. Fiber: the tangent space $T_p M$, an $n$-dimensional vector space. Local triviality: every chart $\varphi: U \to \mathbb{R}^n$ gives a trivialization $TU \cong U \times \mathbb{R}^n$ via $(p, v) \mapsto (\varphi(p), d\varphi(v))$.
 
 Transition functions: where two charts $\varphi_\alpha$ and $\varphi_\beta$ overlap, the transition function on $TM$ is $g_{\alpha\beta}: U_\alpha \cap U_\beta \to GL(n, \mathbb{R})$, $g_{\alpha\beta}(p) = d(\varphi_\beta \circ \varphi_\alpha^{-1})|_{\varphi_\alpha(p)}$ — the Jacobian of the chart change. So $TM$ is naturally a $GL(n, \mathbb{R})$-bundle, or equivalently (by reduction of structure group via a Riemannian metric) an $O(n)$-bundle, or (with orientation) an $SO(n)$-bundle.
+
+![Tangent bundle: tangent planes varying smoothly over a sphere](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/12_tangent_bundle.png)
 
 Concrete computation: on $S^2$ with stereographic charts, the transition Jacobian is the differential of $z \mapsto 1/\bar z$ in complex notation. At a point at distance $r$ from the origin in the chart, the Jacobian acts as multiplication by $-1/r^2$ together with complex conjugation — a reflection composed with a scaling. So the tangent bundle of $S^2$ has nontrivial transition functions; it cannot be globally trivialized (consistent with the hairy-ball theorem, which says $TS^2$ has no global non-vanishing section).
 

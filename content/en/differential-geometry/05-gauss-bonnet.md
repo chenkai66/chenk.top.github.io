@@ -81,6 +81,8 @@ Standard values: $\chi(S^2) = 2$ (sphere — verify with an octahedron: $6 - 12 
 
 An illustrative calculation: the icosahedron (a triangulation of $S^2$) has $V = 12$, $E = 30$, $F = 20$, giving $\chi = 12 - 30 + 20 = 2$. The cube (not a triangulation, since faces are squares, but can be triangulated by cutting each square into two triangles) gives $V = 8$, $E = 18$ (12 original + 6 diagonals), $F = 12$, and $\chi = 8 - 18 + 12 = 2$. Always $2$ for the sphere, no matter the specific triangulation.
 
+![Euler characteristic for various surfaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_euler_characteristic.png)
+
 For the torus, a standard triangulation (obtained by taking a $3 \times 3$ grid of squares on the fundamental domain $[0,1]^2$ and cutting each into two triangles, then identifying opposite edges) gives $V = 9$, $E = 27$, $F = 18$: $\chi = 9 - 27 + 18 = 0$.
 
 The connection to Gauss-Bonnet: the theorem says $\iint_S K\,dA = 2\pi\chi(S)$. An integral of a smooth quantity (curvature) equals an integer (Euler characteristic) times $2\pi$. Local analysis meets global combinatorics.
@@ -120,6 +122,8 @@ A closer look at the telescoping: what happens to the boundary integrals when we
 - Genus-$g$ surface: total curvature $2\pi(2 - 2g)$.
 
 You can redistribute the curvature (make some regions more curved at the expense of others), but you cannot change the total. Topology constrains geometry absolutely.
+
+![Total curvature integral equals topological invariant](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/05_curvature_integral.png)
 
 Imagine inflating a sphere into an elongated ellipsoid: curvature concentrates at the tips and thins out at the waist, but the integral stays at $4\pi$. Imagine denting the sphere to create a dimple: you create a small region of negative curvature (inside the concavity) compensated by extra positive curvature at the rim of the dimple. The total never budges from $4\pi$. Imagine continuously deforming a sphere into any other closed genus-0 surface — say, the shape of a kidney, or a lumpy asteroid. Every deformation merely redistributes curvature; the total is locked.
 

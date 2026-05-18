@@ -118,6 +118,8 @@ Three equivalent characterizations, each with different intuitive content:
 
 On the unit sphere, geodesics are great circles — the curves of maximal radius. On a cylinder, geodesics are helices (including the special cases of straight lines along the axis and circles around the cylinder). On the Poincare disk model of the hyperbolic plane, geodesics are circular arcs perpendicular to the boundary circle (plus diameters).
 
+![Geodesics on various surfaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/04_geodesic_surfaces.png)
+
 **Worked example: geodesic equations on the sphere.** With $\Gamma^\theta_{\theta\varphi} = \cot\varphi$ and $\Gamma^\varphi_{\theta\theta} = -\sin\varphi\cos\varphi$ (all others zero), the geodesic equations are:
 $$\ddot\theta + 2\cot\varphi\,\dot\theta\dot\varphi = 0, \qquad \ddot\varphi - \sin\varphi\cos\varphi\,\dot\theta^2 = 0.$$
 

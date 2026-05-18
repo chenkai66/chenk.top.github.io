@@ -101,6 +101,8 @@ which is exactly the rotation matrix $R_t$ acting on $\mathbb{R}^2$. The group l
 
 **Continuing the dilation example.** For $X = x\,\partial_x$ on $\mathbb{R}$, the flow is $\varphi_t(x) = e^t x$. The group law is $e^s e^t = e^{s+t}$, and we have rediscovered $(\mathbb{R}_{>0}, \times) \cong (\mathbb{R}, +)$ as a flow. The exponential map on this Lie group is literally the exponential function from calculus.
 
+![Animation: flow of a vector field over time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/07_flow.gif)
+
 **Pushforward of a vector field.** If $\varphi_t$ is the flow of $X$ and $Y$ is another vector field, we can ask: how does $Y$ change as we drag it along $X$'s flow? The answer is the *pushforward* $(\varphi_t)_* Y$, defined by $((\varphi_t)_* Y)_q = (d\varphi_t)_p Y_p$ where $q = \varphi_t(p)$. This will be central in section 4 when we define the Lie bracket as a derivative of pushforwards.
 
 **Aside: incomplete fields and local flows.** When $X$ is not complete — e.g. $X = x^2 \partial_x$ on $\mathbb{R}$ — the flow is only defined on an open subset of $\mathbb{R} \times M$ called the *flow domain*. For each $p$, there is a maximal interval $(a_p, b_p)$ on which $\varphi_t(p)$ is defined; the integral curve "escapes" if $b_p < \infty$. Most theorems involving flows still work locally, by restricting to small enough $t$. In practice, complete vector fields are common (compactly supported $X$ on any manifold; bounded $X$ on $\mathbb{R}^n$; left-invariant fields on Lie groups), so the distinction is more often a technical aside than a serious obstacle.
@@ -189,6 +191,8 @@ $(\mathcal{L}_X g)_{yy} = \partial_y X^y + \partial_y X^y = 0$.
 Confirmed: $\mathcal{L}_X g = 0$. The vector field $X$ is a **Killing vector field** for the Euclidean metric.
 
 **Worked example 3.** Compute $\mathcal{L}_X (x^2 + y^2) dx\wedge dy$ for the same rotation $X$. The function $x^2 + y^2$ is invariant under $X$ (computed in section 1), so $\mathcal{L}_X(x^2 + y^2) = 0$. The form $dx \wedge dy$ is the volume form on $\mathbb{R}^2$, and $\mathcal{L}_X(dx\wedge dy) = (\nabla \cdot X) dx \wedge dy = 0$ since $X$ is divergence-free. By the Leibniz rule, $\mathcal{L}_X((x^2+y^2)dx\wedge dy) = 0$. Three different "preservation" facts about rotation, all encoded in single Lie-derivative computations.
+
+![Lie derivative: rate of change along a flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/07_lie_derivative.png)
 
 **Why this matters.** Symmetries of geometric structures are exactly the vector fields with $\mathcal{L}_X(\text{structure}) = 0$. Killing fields preserve the metric ($\mathcal{L}_X g = 0$); these are the infinitesimal isometries. Symplectic vector fields preserve the symplectic form ($\mathcal{L}_X \omega = 0$); these generate Hamiltonian flows. Conformal vector fields satisfy $\mathcal{L}_X g = \lambda g$; these generate angle-preserving (but not length-preserving) transformations. The Lie derivative is the universal language of "this flow is a symmetry of that object" — and it is the same operator regardless of what kind of tensor that object is.
 
@@ -289,6 +293,8 @@ $X(Yf) = \partial_x(xf_y) = f_y + xf_{xy}$.
 $Y(Xf) = x\partial_y(f_x) = xf_{xy}$.
 $[X, Y]f = f_y$. So $[X, Y] = \partial_y$. Translating in $x$ then translating in the variable-$y$-direction is *not* the same as the reverse: the first sequence accumulates a vertical drift. This is exactly the way a parallel-parking car maneuver works (next paragraph).
 
+![Lie bracket measures non-commutativity of flows](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/07_lie_bracket.png)
+
 ### A worked numerical example: brackets in robotics — parallel parking
 
 Model a car at position $(x, y)$ with heading $\theta$. Two control vector fields:
@@ -308,6 +314,8 @@ This is the bracket structure that makes parallel parking possible. Even though 
 Take $X = -y\partial_x + x\partial_y$ on $\mathbb{R}^2$. The integral curve through $(x_0, y_0)$ satisfies $\dot x = -y, \dot y = x$. This is the classical harmonic oscillator system. Solution: $x(t) = x_0 \cos t - y_0 \sin t$, $y(t) = x_0 \sin t + y_0 \cos t$. So $\Phi^X_t = $ rotation by angle $t$. The flow is the one-parameter family of rotations, and the orbits are concentric circles. The exception is the origin, which is a fixed point ($X(0, 0) = 0$). Numerically, starting at $(1, 0)$: at $t = \pi/4$, position is $(\cos\pi/4, \sin\pi/4) = (\sqrt{2}/2, \sqrt{2}/2)$. Speed at this point: $|X(\sqrt{2}/2, \sqrt{2}/2)| = |(-\sqrt{2}/2, \sqrt{2}/2)| = 1$. Constant speed along the orbit, as expected for a circle of radius 1 traversed in time $2\pi$ — average speed $1$.
 
 Now perturb: $\tilde X = -y\partial_x + x\partial_y + 0.01(x\partial_x + y\partial_y)$. The integral curves become outward-spiraling, with radial growth rate $0.01$ and angular speed $1$. At $t = 100$, the radius has grown by a factor of $e \approx 2.72$. This kind of small-perturbation analysis is exactly what robotic control engineers do to certify stability: integrate the linearized system, check whether the spectrum is in the left half-plane, conclude.
+
+![Integral curves of a nonlinear vector field](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/07_integral_curves.png)
 
 ### A fourth worked example: Lie derivative of a 1-form
 

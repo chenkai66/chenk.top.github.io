@@ -158,6 +158,8 @@ $$X^g = \text{Fix}(g) = \{x \in X : g \cdot x = x\}$$
 
 This is the set of elements of $X$ left unchanged by $g$.
 
+![Fixed points of group actions on a set](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/02_fixed_points.png)
+
 **Theorem (Burnside's Lemma).** Let $G$ be a finite group acting on a finite set $X$. The number of distinct orbits is
 
 $$|\text{Orbits}| = \frac{1}{|G|} \sum_{g \in G} |X^g|$$

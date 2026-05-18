@@ -144,6 +144,10 @@ $\alpha(t) = (t, t^2, 0)$. Then $\alpha' = (1, 2t, 0)$, $\alpha'' = (0, 2, 0)$, 
 $$\kappa(t) = \frac{2}{(1+4t^2)^{3/2}}.$$
 At $t = 0$ (the vertex), $\kappa = 2$. As $|t|\to\infty$, $\kappa\to 0$ — the parabola straightens out. The radius of curvature at the vertex is $1/2$; if you placed a circle of radius $1/2$ tangent to the parabola at the origin, it would match the parabola to second order. This is the *osculating circle* — literally "kissing circle" in Latin. It is the geometric content of curvature.
 
+As the parameter sweeps along the curve, the centre of the osculating circle traces out a new curve called the *evolute*. The evolute encodes the locus of all curvature centres and is itself a rich geometric object — for an ellipse, the evolute is a four-cusped astroid; for a parabola, it is a semicubical parabola.
+
+![Evolute: the locus of centers of curvature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_evolute.png)
+
 **Why this matters.** Curvature is the first geometric invariant of a curve. It is independent of orientation-preserving reparametrization and rigid motion. Two curves with the same $\kappa(s)$ are "almost" the same — they could still differ by how much they twist out of any plane. That residual twist is what we capture next.
 
 ---
@@ -203,6 +207,8 @@ $$\Omega = \begin{pmatrix}0 & \kappa & 0 \\ -\kappa & 0 & \tau \\ 0 & -\tau & 0\
 has eigenvalues $0$ and $\pm i\sqrt{\kappa^2 + \tau^2}$, with the zero eigenvalue corresponding to the *Darboux vector* $\boldsymbol{\omega} = \tau\mathbf{T} + \kappa\mathbf{B}$. Geometrically, $\boldsymbol{\omega}$ is the instantaneous axis of rotation of the Frenet frame. The frame at time $s + ds$ is obtained from the frame at time $s$ by an infinitesimal rotation about $\boldsymbol{\omega}$ by an angle $|\boldsymbol{\omega}|\,ds = \sqrt{\kappa^2+\tau^2}\,ds$. So the *total angular speed* of the frame is $\sqrt{\kappa^2+\tau^2}$, decomposed into a "twisting" part ($\tau\mathbf{T}$, around the tangent) and a "bending" part ($\kappa\mathbf{B}$, around the binormal).
 
 **Why this matters.** The Frenet-Serret system is a closed ODE for the frame. Given $\kappa(s)$, $\tau(s)$, and an initial frame at $s = 0$, we can integrate forward and recover the entire moving frame, and then recover $\alpha$ itself by integrating $\mathbf{T}$. This is the engine behind the next theorem.
+
+![Animation: Frenet frame moving along a curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/differential-geometry/figures/01_frenet_moving.gif)
 
 ### Fundamental Theorem of Curves
 

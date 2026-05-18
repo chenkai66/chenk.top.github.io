@@ -118,6 +118,8 @@ Computing $\chi_W$: the quotient $S_4 \to S_3$ has kernel $V_4 = \{e, (12)(34), 
 
 Verification: $\langle \chi_V, \chi_V \rangle = \frac{1}{24}(9 + 6 + 3 + 0 + 6) = 24/24 = 1$. Irreducible. $\langle \chi_V, \chi_W \rangle = \frac{1}{24}(6 + 0 - 6 + 0 + 0) = 0$. Orthogonal. Column sums-of-squares: $\frac{1}{24}(1 + 1 + 4 + 9 + 9) \cdot (\text{column size}) = 1$ for each column when properly computed. The table is self-consistent.
 
+![Character table of S3](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/10_character_table.png)
+
 The systematic procedure — count conjugacy classes, solve sum-of-squares for dimensions, identify 1-dimensional reps from the abelianization $G^{\mathrm{ab}}$, use fixed-point formula for permutation characters, fill remaining entries from orthogonality — works for any group where you can enumerate conjugacy classes.
 
 A useful structural observation: the character table is always a square matrix (rows = irreducibles, columns = conjugacy classes), and it satisfies *column orthogonality* as well as row orthogonality. The second orthogonality relation states: $\sum_i \chi_i(g)\overline{\chi_i(h)} = \frac{|G|}{|C_G(g)|} \delta_{[g],[h]}$, where $[g], [h]$ denote conjugacy classes. This is sometimes more convenient computationally — if you know most of a column, the second orthogonality relation can pin down the missing entry.

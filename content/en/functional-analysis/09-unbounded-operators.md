@@ -82,6 +82,8 @@ For a densely defined operator $T$ with domain $D(T)$, the **adjoint** $T^*$ is 
 
 The critical point: $D(T^*)$ may be larger or smaller than $D(T)$. The adjoint of a densely defined operator is always closed (its graph is the orthogonal complement of a rotation of $G(T)$ in $H \times H$). But the domain $D(T^*)$ depends on $T$ and its domain in a non-obvious way.
 
+![Symmetric vs self-adjoint: domain matters](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fig09_symmetric_vs_selfadjoint.png)
+
 **Definitions:**
 - $T$ is **symmetric** if $D(T) \subseteq D(T^*)$ and $T^*x = Tx$ for all $x \in D(T)$. Equivalently, $\langle Tx, y\rangle = \langle x, Ty\rangle$ for all $x, y \in D(T)$.
 - $T$ is **self-adjoint** if $T = T^*$, meaning $D(T) = D(T^*)$ and $Tx = T^*x$ for all $x \in D(T)$.
