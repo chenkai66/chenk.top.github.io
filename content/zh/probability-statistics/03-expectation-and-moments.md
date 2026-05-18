@@ -272,7 +272,6 @@ $$P((X - \mu)^2 \geq k^2 \sigma^2) \leq \frac{E[(X - \mu)^2]}{k^2 \sigma^2} = \f
 
 ## Python：可视化矩与切比雪夫上界
 
-
 ![期望作为概率分布的质量中心平衡点](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/03-expectation-as-center-of-mass-balance-point-on-probability-d.jpg)
 
 ```python
@@ -282,7 +281,6 @@ from scipy import stats
 
 fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 
-# 1. 期望作为质心
 ax = axes[0]
 x = np.linspace(-4, 6, 300)
 for mu, sigma in [(0, 1), (2, 0.7), (-1, 1.5)]:
@@ -294,7 +292,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-# 2. 方差作为离散程度
 ax = axes[1]
 x = np.linspace(-6, 6, 300)
 for sigma in [0.5, 1, 2]:
@@ -306,7 +303,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-# 3. 切比雪夫上界 vs 实际值
 ax = axes[2]
 ks = np.linspace(1, 5, 100)
 chebyshev_bound = 1 / ks**2
@@ -326,7 +322,7 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('moments_and_chebyshev.png', dpi=150)
 plt.show()
-```
+```text
 
 右图以对数尺度展示了切比雪夫上界与正态分布实际尾部概率之间的差距。对正态分布，真实概率随 $k^2$ 指数衰减，而切比雪夫仅保证 $1/k^2$ 的衰减速率。该上界虽保守，却适用于**所有**分布——包括那些尾部远比高斯分布厚重的分布。
 

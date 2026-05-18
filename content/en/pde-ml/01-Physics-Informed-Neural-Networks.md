@@ -122,11 +122,9 @@ The exact solution is $u(x,t) = e^{-\nu \pi^2 t}\sin(\pi x)$. We will train a ne
 import torch
 import torch.nn as nn
 
-# Set diffusivity and device
 nu = 0.01
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Simple fully-connected network
 class PINN(nn.Module):
     def __init__(self, layers=[2, 64, 64, 64, 1]):
         super().__init__()
@@ -144,12 +142,10 @@ class PINN(nn.Module):
 model = PINN().to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-# Collocation points inside the domain
 N_f = 10000
 x_f = torch.rand(N_f, 1, requires_grad=True, device=device)
 t_f = torch.rand(N_f, 1, requires_grad=True, device=device)
 
-# Boundary and initial condition points
 N_bc = 200
 t_bc = torch.rand(N_bc, 1, device=device)
 x_ic = torch.rand(N_bc, 1, device=device)
@@ -184,7 +180,7 @@ for epoch in range(5000):
 
     if epoch % 1000 == 0:
         print(f"Epoch {epoch}: PDE={loss_pde:.2e}, BC={loss_bc:.2e}, IC={loss_ic:.2e}")
-```
+```text
 
 Key design choices visible in this code:
 
@@ -199,7 +195,6 @@ $$\partial_x u\approx\frac{u(x+\varepsilon)-u(x-\varepsilon)}{2\varepsilon},$$
 has two killers: $\varepsilon$ too small drowns in floating-point round-off, and high-order derivatives compound the error. Reverse-mode autodiff is symbolic-exact: every elementary operation has a known derivative, the chain rule is automatically composed, and the **result equals the analytic derivative to machine precision.**
 
 ```python
-# 1-D heat equation residual: u_t - nu * u_xx
 def heat_residual(model, x, t, nu=0.1):
     x.requires_grad_(True); t.requires_grad_(True)
     u = model(torch.cat([x, t], dim=1))                # forward pass
@@ -207,7 +202,7 @@ def heat_residual(model, x, t, nu=0.1):
     u_x  = torch.autograd.grad(u, x, torch.ones_like(u), create_graph=True)[0]
     u_xx = torch.autograd.grad(u_x, x, torch.ones_like(u_x), create_graph=True)[0]
     return u_t - nu * u_xx                             # residual, target -> 0
-```
+```sql
 
 The flag `create_graph=True` keeps the derivative itself in the computation graph, so that `loss = (residual**2).mean()` propagates back to $\nabla_\theta$ correctly.
 
@@ -299,7 +294,7 @@ class PINN_RFF(nn.Module):
         inp = torch.cat([x, t], dim=1)
         features = self.rff(inp)
         return self.net(features)
-```
+```sql
 
 **SIREN (Sinusoidal Representation Networks):** An alternative where every activation is a sine function with a carefully initialized frequency:
 
@@ -319,7 +314,7 @@ class SirenLayer(nn.Module):
 
     def forward(self, x):
         return torch.sin(self.omega_0 * self.linear(x))
-```
+```sql
 
 **When to use which:**
 - **RFF** ($\sigma = 1$--$10$): Good default for moderately oscillatory solutions. Cheap to implement, no architecture change needed beyond the input layer.
@@ -410,12 +405,7 @@ def adaptive_resample(model, x_domain, t_domain, N_total=10000, N_new=2000):
     t_out = torch.cat([t_new, t_unif], dim=0).requires_grad_(True)
     return x_out, t_out
 
-# Usage in training loop: resample every 1000 epochs
-# for epoch in range(20000):
-#     if epoch % 1000 == 0 and epoch > 0:
-#         x_f, t_f = adaptive_resample(model, x_f, t_f)
-#     ... (normal training step)
-```
+```sql
 
 RAR typically improves accuracy by 3--10x for problems with localized features (shocks, boundary layers) at no extra computational cost per epoch.
 
@@ -482,7 +472,6 @@ class InversePINN(nn.Module):
     def forward(self, x, t):
         return self.net(torch.cat([x, t], dim=1))
 
-# Generate synthetic observations from exact solution
 nu_true = 0.01
 N_obs = 50
 x_obs = torch.rand(N_obs, 1, device=device)
@@ -494,7 +483,6 @@ u_obs += 0.01 * torch.randn_like(u_obs)  # add noise
 model = InversePINN().to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-# Collocation points for PDE residual
 N_f = 5000
 
 for epoch in range(10000):
@@ -530,10 +518,9 @@ for epoch in range(10000):
         print(f"Epoch {epoch}: nu={model.nu.item():.6f} (true=0.01), "
               f"loss_data={loss_data:.2e}")
 
-# Typical result after 10k epochs: nu ~ 0.0098-0.0102
 print(f"Recovered nu = {model.nu.item():.6f}, relative error = "
       f"{abs(model.nu.item() - 0.01) / 0.01 * 100:.2f}%")
-```
+```sql
 
 Key implementation details for inverse problems:
 

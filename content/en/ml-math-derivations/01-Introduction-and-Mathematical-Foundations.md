@@ -400,7 +400,6 @@ def generate_data(n_samples, noise_std=0.5):
     y = true_function(X.ravel()) + noise
     return X, y
 
-# Fixed test set, drawn once
 n_test = 1000
 X_test, y_test_noisy = generate_data(n_test)
 y_test_true = true_function(X_test.ravel())
@@ -434,7 +433,7 @@ for m in sample_sizes:
     print(f"{m:>6d} | {np.mean(train_err):>10.4f} | "
           f"{np.mean(test_err):>10.4f} | {bias_sq:>8.4f} | "
           f"{variance:>10.4f} | {bias_sq + variance + sigma_sq:>14.4f}")
-```
+```sql
 
 **What you should observe.**
 

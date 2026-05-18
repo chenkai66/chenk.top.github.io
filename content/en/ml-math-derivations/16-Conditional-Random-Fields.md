@@ -294,7 +294,7 @@ class BiLSTM_CRF(nn.Module):
             self.lstm(self.embedding(sentence))[0].squeeze(0)
         )
         return self.forward_score(emissions) - self.gold_score(emissions, tags)
-```
+```sql
 
 The loss is exactly $\log Z(\mathbf{X}) - \text{score}(\mathbf{Y}_{\text{gold}}, \mathbf{X})$, i.e. the negative of equation (6) for one example. Backpropagation through the forward algorithm computes the same "empirical minus expected" gradient automatically — the chain rule rediscovers (7).
 

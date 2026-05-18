@@ -45,7 +45,6 @@ A random variable is **discrete** if it takes values in a countable set (finite 
 
 ![Discrete vs continuous](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-discrete-vs-continuous.png)
 
-
 ### Probability Mass Function (PMF)
 
 The **PMF** of a discrete random variable $X$ is
@@ -64,7 +63,6 @@ $$F_X(x) = P(X \leq x) = \sum_{t \leq x} p_X(t) \quad \text{(discrete case)}.$$
 The CDF is right-continuous, non-decreasing, with $\lim_{x \to -\infty} F(x) = 0$ and $\lim_{x \to \infty} F(x) = 1$.
 
 ## Key Discrete Distributions
-
 
 ![Probability distributions as mountain landscapes normal expo](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/02-probability-distributions-as-mountain-landscapes-normal-expo.jpg)
 
@@ -251,7 +249,6 @@ from scipy import stats
 
 fig, axes = plt.subplots(3, 3, figsize=(15, 12))
 
-# 1. Bernoulli
 ax = axes[0, 0]
 for p in [0.2, 0.5, 0.8]:
     ax.bar([0, 1], [1-p, p], alpha=0.5, width=0.3, label=f'p={p}')
@@ -260,7 +257,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('P(X=x)')
 ax.legend()
 
-# 2. Binomial
 ax = axes[0, 1]
 n = 20
 for p in [0.2, 0.5, 0.8]:
@@ -271,7 +267,6 @@ ax.set_xlabel('k')
 ax.set_ylabel('P(X=k)')
 ax.legend()
 
-# 3. Geometric
 ax = axes[0, 2]
 for p in [0.2, 0.5, 0.8]:
     k = np.arange(1, 15)
@@ -281,7 +276,6 @@ ax.set_xlabel('k')
 ax.set_ylabel('P(X=k)')
 ax.legend()
 
-# 4. Poisson
 ax = axes[1, 0]
 for lam in [1, 4, 10]:
     k = np.arange(0, 20)
@@ -291,7 +285,6 @@ ax.set_xlabel('k')
 ax.set_ylabel('P(X=k)')
 ax.legend()
 
-# 5. Uniform
 ax = axes[1, 1]
 x = np.linspace(-0.5, 1.5, 300)
 ax.plot(x, stats.uniform.pdf(x, 0, 1), 'b-', linewidth=2, label='Uniform(0,1)')
@@ -301,7 +294,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-# 6. Exponential
 ax = axes[1, 2]
 x = np.linspace(0, 5, 300)
 for lam in [0.5, 1, 2]:
@@ -311,7 +303,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-# 7. Normal
 ax = axes[2, 0]
 x = np.linspace(-5, 8, 300)
 for mu, sigma in [(0,1), (2,0.5), (0,2)]:
@@ -322,7 +313,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-# 8. Gamma
 ax = axes[2, 1]
 x = np.linspace(0, 15, 300)
 for a, b in [(1, 1), (2, 1), (5, 1), (5, 2)]:
@@ -333,7 +323,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-# 9. Beta
 ax = axes[2, 2]
 x = np.linspace(0.001, 0.999, 300)
 for a, b in [(0.5, 0.5), (1, 1), (2, 5), (5, 2), (5, 5)]:
@@ -348,7 +337,7 @@ plt.suptitle('Gallery of Probability Distributions', fontsize=16, y=1.02)
 plt.tight_layout()
 plt.savefig('distribution_gallery.png', dpi=150, bbox_inches='tight')
 plt.show()
-```
+```sql
 
 This gallery lets you see the shape of every distribution at a glance. A few patterns to notice:
 
@@ -360,13 +349,11 @@ This gallery lets you see the shape of every distribution at a glance. A few pat
 
 ## Connections Between Distributions
 
-
 ![Random variable transformation machine input outcomes output](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/02-random-variable-transformation-machine-input-outcomes-output.jpg)
 
 The distributions above are not isolated — they form a family with deep connections:
 
 ![Distribution connections](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-distribution-connections.png)
-
 
 1. **Bernoulli is Binomial with $n=1$**: $\text{Binomial}(1, p) = \text{Bernoulli}(p)$
 2. **Binomial is a sum of Bernoullis**: If $X_i \sim \text{Bernoulli}(p)$ i.i.d., then $\sum X_i \sim \text{Binomial}(n, p)$
@@ -410,7 +397,6 @@ where $f_k$ are the component densities and $w_k$ are the mixing weights.
 Gaussian Mixture Models (GMMs) are a workhorse of unsupervised learning: they model complex, multimodal data as weighted sums of Gaussians, with parameters fit via the Expectation-Maximization (EM) algorithm.
 
 ```python
-# Visualize a Gaussian mixture
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
@@ -432,7 +418,7 @@ ax.legend()
 plt.tight_layout()
 plt.savefig('gaussian_mixture.png', dpi=150)
 plt.show()
-```
+```text
 
 ## Choosing the Right Distribution: A Decision Guide
 

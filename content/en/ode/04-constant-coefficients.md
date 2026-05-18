@@ -245,7 +245,6 @@ from scipy import signal
 import numpy as np
 import matplotlib.pyplot as plt
 
-# H(s) = 1 / (s^2 + 0.5 s + 1) -- under-damped second-order
 sys = signal.TransferFunction([1.0], [1.0, 0.5, 1.0])
 
 t, y = signal.step(sys)
@@ -257,7 +256,7 @@ axes[1].semilogx(w, mag);      axes[1].set_title("Bode magnitude (dB)")
 axes[2].semilogx(w, phase);    axes[2].set_title("Bode phase (deg)")
 for ax in axes: ax.grid(True, alpha=0.3, which="both")
 plt.tight_layout()
-```
+```sql
 
 ---
 
@@ -302,7 +301,7 @@ print("L{sin(wt)}  =", laplace_transform(sin(omega*t), t, s))
 F = (3*s + 5) / ((s + 1) * (s + 2))
 print("partial fractions:", apart(F, s))
 print("L^{-1}{F}        =", inverse_laplace_transform(F, s, t))
-```
+```text
 
 ### Pole–zero analysis with SciPy
 
@@ -310,7 +309,6 @@ print("L^{-1}{F}        =", inverse_laplace_transform(F, s, t))
 import numpy as np
 from scipy import signal
 
-# H(s) = (s + 2) / (s^2 + 3 s + 2)
 sys = signal.TransferFunction([1, 2], [1, 3, 2])
 
 poles = np.roots([1, 3, 2])
@@ -320,7 +318,7 @@ stable = all(p.real < 0 for p in poles)
 print(f"poles  = {poles}")
 print(f"zeros  = {zeros}")
 print(f"stable = {stable}")
-```
+```sql
 
 ---
 

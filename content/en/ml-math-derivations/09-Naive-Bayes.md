@@ -341,7 +341,6 @@ class BernoulliNB:
         log_post = np.log(self.prior_) + log_lik
         return self.classes_[np.argmax(log_post, axis=1)]
 
-# --- Validation against scikit-learn ---
 if __name__ == "__main__":
     from sklearn.datasets import load_iris
     from sklearn.model_selection import train_test_split
@@ -356,7 +355,7 @@ if __name__ == "__main__":
     print(f"Ours:    {(ours.predict(X_te) == y_te).mean():.4f}")
     print(f"sklearn: {sk.score(X_te, y_te):.4f}")
     # Both print 0.9778 on this seed.
-```
+```sql
 
 ---
 

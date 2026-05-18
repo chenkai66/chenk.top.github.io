@@ -406,7 +406,7 @@ class GradientBoostingRegressor:
         for tree in self.trees:
             F += self.learning_rate * self._predict_tree(tree, X)
         return F
-```
+```sql
 
 ---
 

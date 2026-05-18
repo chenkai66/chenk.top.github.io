@@ -304,7 +304,7 @@ t = np.linspace(0, 60, 300)
 T = sol.sol(t)[0]
 print(f"At t=10 min: {T[50]:.1f} C")
 print(f"At t=30 min: {T[150]:.1f} C")
-```
+```sql
 
 `solve_ivp` adapts the step size automatically. For most problems you do *not* need to write your own RK4; you need to know when the standard solver will struggle (stiff systems — see [Chapter 11](/en/ode/11-numerical-methods/)).
 

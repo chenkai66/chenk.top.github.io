@@ -21,7 +21,6 @@ translationKey: "time-series-7"
 
 本章将深入剖析为何如此简洁的架构能同时击败 LSTMs 和 ARIMA 风格的集成模型，并指导你如何在自己的数据上实现与调优。
 
-
 ---
 
 ## 你将学到什么
@@ -247,7 +246,7 @@ def make_generic(history: int, horizon: int,
         basis = GenericBasis(theta_size, history, horizon)
         blocks.append(NBeatsBlock(basis, history, hidden, layers))
     return NBeats(blocks)
-```
+```text
 
 一个关键细节：在可解释变体中，`TrendBasis` 与 `SeasonalityBasis` 实例在**同一栈内的所有块间共享**。各块拥有独立 MLP 与系数头，但共用同一固定基矩阵，既维持归纳偏置，又节省参数。
 
@@ -294,7 +293,7 @@ def train_nbeats(model, train_loader, val_loader, epochs=100,
             torch.save(model.state_dict(), "nbeats.pt")
         if (ep + 1) % 10 == 0:
             print(f"epoch {ep+1}: train {train_loss:.4f} val {val_loss:.4f}")
-```
+```text
 
 几点实践建议：
 
@@ -342,7 +341,7 @@ class EnsembleNBeats:
     def predict(self, x: torch.Tensor, aggregator="median") -> torch.Tensor:
         outs = torch.stack([m(x) for m in self.models], dim=0)
         return outs.median(dim=0).values if aggregator == "median" else outs.mean(0)
-```
+```text
 
 对 sMAPE 类损失，中位数聚合优于均值，因其对单窗口异常预测更具鲁棒性。
 
@@ -361,7 +360,7 @@ model = make_interpretable(
     trend_degree=2,                     # 平滑的多年趋势
     hidden=256, layers=4,
 )
-```
+```text
 
 训练后可提取各栈贡献，观察其学习内容：
 
@@ -384,9 +383,7 @@ def stack_contributions(model: NBeats, x: torch.Tensor) -> dict:
     return out
 
 contribs = stack_contributions(model, x_val[:1])
-# contribs["trend"]        -> 12 个月的趋势分量
-# contribs["seasonality"]  -> 12 个月的季节性分量
-```
+```text
 
 **典型结果**：在拥有 5 年历史的真实零售数据上，可解释 N-BEATS 在 12 月预测 horizon 上 MAPE 达 7%–12%，媲美最佳梯度提升+特征工程流水线，却省去繁重特征工程。真正的优势在于可解释性：一个允许业务方用已知促销事件覆盖 12 月季节性的模型，远比回测精度高 0.5% 的黑盒实用。
 
@@ -404,7 +401,7 @@ model = make_generic(
     num_blocks=30, theta_size=32,
     hidden=512, layers=4,
 )
-```
+```text
 
 **逐窗口标准化在此尤为关键**：需求水平随季节大幅波动；若不做标准化，模型会浪费容量学习“冬季高于夏季”这类常识。标准化后，网络只需专注形状学习。
 
@@ -414,11 +411,10 @@ def normalise_window(x: torch.Tensor) -> tuple:
     sd = x.std(dim=-1, keepdim=True) + 1e-6
     return (x - mu) / sd, mu, sd
 
-# 前向计算：
 x_norm, mu, sd = normalise_window(x)
 y_norm = model(x_norm)
 y_hat = y_norm * sd + mu  # 广播到 (B, H)
-```
+```text
 
 **典型结果**：在公开 ETT（Electricity Transformer Temperature）小时级数据集上，10 个通用 N-BEATS 模型集成在 24 小时 horizon 上 MSE 约 0.31，显著优于 LSTM（~0.42），且实现成本远低于 Informer，精度却相当。
 
@@ -495,7 +491,6 @@ N-BEATS 是个“架构平淡无奇”的模型，却靠将合适模块按正确
 下一章我们将以 **Informer** 收尾，它解决的是另一难题：如何让 Transformer 在千步级 horizon 预测中，避开 $\mathcal{O}(L^2)$ 注意力计算成本的拖累。
 
 ---
-
 
 ## 下一步
 

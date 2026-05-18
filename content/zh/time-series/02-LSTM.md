@@ -117,7 +117,7 @@ class LSTMForecaster(nn.Module):
         # x: (batch, seq_len, input_size)
         out, _ = self.lstm(x)              # (batch, seq_len, hidden_size)
         return self.head(out[:, -1, :])     # 取最后一个时间步
-```
+```text
 
 几点容易忽略的细节：
 
@@ -130,7 +130,7 @@ for name, p in model.lstm.named_parameters():
     if "bias" in name:
         n = p.size(0)
         p.data[n // 4 : n // 2].fill_(1.0)   # 遗忘门偏置
-```
+```text
 
 ## 从单元到预测器
 
@@ -272,7 +272,7 @@ def gate_stats(model, batch):
                    "f": chunks[1].mean().item(),
                    "g": chunks[2].mean().item(),
                    "o": chunks[3].mean().item()})
-```
+```text
 
 若训练后遗忘门偏置低于 0，说明网络学会了“每步清空记忆”——通常因序列太短，记忆无价值。此时可进一步缩短序列，或直接改用无状态前馈模型。
 
@@ -307,7 +307,7 @@ class WrappedForecaster(nn.Module):
 
     def forward(self, x):
         return self.base((x - self.mean) / self.std)
-```
+```text
 
 这一改动已帮我避免三次线上事故。
 

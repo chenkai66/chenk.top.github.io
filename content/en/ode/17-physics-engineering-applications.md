@@ -65,13 +65,12 @@ def pendulum(t, s):
     theta, omega = s
     return [omega, -(g/L)*np.sin(theta)]
 
-# librations vs rotations: vary initial angular velocity at theta=0
 for v0 in [1.5, 4.0, 6.5, 7.5]:    # last two go over the top
     sol = solve_ivp(pendulum, (0, 10), [0.0, v0],
                     t_eval=np.linspace(0, 10, 2000),
                     rtol=1e-10, atol=1e-12)
     # examine sol.y -- you will see closed loops or monotone theta
-```
+```sql
 
 **Why this matters.** The pendulum is the simplest non-trivial nonlinear conservative system, and its phase portrait already contains every concept of Chapters 7-8: stable/unstable equilibria, separatrices, period-energy relations, integrability. Every other oscillator — molecular vibrations, Josephson junctions, plasma waves — borrows this skeleton.
 
@@ -112,13 +111,12 @@ def kepler(t, s):
     r = np.hypot(x, y)
     return [vx, vy, -GM*x/r**3, -GM*y/r**3]
 
-# circle, ellipse, near-parabolic
 for v0 in [1.0, 0.85, 0.55]:
     sol = solve_ivp(kepler, (0, 15), [1, 0, 0, v0],
                     t_eval=np.linspace(0, 15, 4000),
                     method='DOP853', rtol=1e-10)
     # sol.y[0:2] traces the orbit
-```
+```sql
 
 ![Kepler orbits at different initial speeds; inverse-square vs inverse-cube collapse; numerical conservation of energy and angular momentum.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/17-physics-engineering-applications/fig3_planetary_orbits.png)
 *Left: starting at $(1,0)$ with varying tangential velocity, the orbit transitions from a circle to a thin ellipse — exactly the family Kepler observed. Top-right: a single conceptual experiment — replace $1/r^2$ with $1/r^3$, and the orbit no longer closes; it spirals into the centre (consistent with **Bertrand's theorem**: only $1/r^2$ and the harmonic potential give closed orbits universally). Bottom-right: a high-order numerical integrator preserves both conserved quantities to roughly $10^{-7}$ over many revolutions.*

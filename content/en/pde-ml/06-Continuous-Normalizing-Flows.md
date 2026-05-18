@@ -130,11 +130,9 @@ def neural_ode_forward(func, h0, t_span=(0, 1), steps=100):
         t += dt
     return h
 
-# Example: fit a spiral trajectory
 func = ODEFunc(dim=2, hidden=64)
 opt = torch.optim.Adam(func.parameters(), lr=1e-3)
 
-# Target: damped spiral from (2, 0) to near origin
 t_true = torch.linspace(0, 1, 50)
 theta = 4 * torch.pi * t_true
 r = 2 * (1 - t_true)
@@ -147,11 +145,7 @@ for step in range(2000):
     opt.zero_grad(); loss.backward(); opt.step()
     if step % 500 == 0:
         print(f"Step {step}: loss={loss.item():.5f}")
-# Step    0: loss=1.23456
-# Step  500: loss=0.01234
-# Step 1000: loss=0.00089
-# Step 1500: loss=0.00012
-```
+```text
 
 The Neural ODE learns a smooth vector field that pushes any starting point along the spiral. Unlike a ResNet, the integration depth (number of Euler steps) is a *hyperparameter*, not a fixed architectural choice — and can be made adaptive.
 
@@ -207,11 +201,10 @@ def adjoint_backward(func, h_T, loss_grad, theta, T=1.0, steps=100):
 
     return param_grad
 
-# Memory comparison
 print("Standard backprop: O(L * d) memory (stores all intermediate h)")
 print("Adjoint method:    O(d) memory (re-derives h on the fly)")
 print("Cost:              ~2x compute (one extra ODE solve)")
-```
+```sql
 
 | Method | Memory | Compute | Gradient accuracy |
 |--------|--------|---------|------------------|
@@ -305,10 +298,8 @@ class FFJORD(nn.Module):
         log_p0 = -0.5 * (z**2).sum(dim=-1) - z.shape[-1] * 0.5 * torch.log(torch.tensor(2*torch.pi))
         return log_p0 + log_det
 
-# Training loop
 model = FFJORD(dim=2)
 opt = torch.optim.Adam(model.parameters(), lr=1e-3)
-# x_data = ... (your 2D samples)
 
 for step in range(5000):
     log_px = model.log_prob(x_data)
@@ -316,7 +307,7 @@ for step in range(5000):
     opt.zero_grad(); loss.backward(); opt.step()
     if step % 1000 == 0:
         print(f"Step {step}: NLL={loss.item():.3f}")
-```
+```text
 
 The `log_prob` method integrates the ODE backwards while accumulating the log-density change via Hutchinson's estimator. The base log-probability $\log p_0(\mathbf{z}_0)$ plus the accumulated divergence integral gives the data log-likelihood — all without computing a single determinant.
 
@@ -419,7 +410,7 @@ def sample_flow_matching(model, n=2000, steps=100):
 
 samples = sample_flow_matching(model, n=3000)
 print(f"Generated {samples.shape[0]} samples, mean={samples.mean(0).numpy().round(3)}")
-```
+```sql
 
 Compare the simplicity: FFJORD needs an ODE solver in training, Hutchinson trace estimation, careful tolerance tuning. Flow Matching is *just regression* — sample noise, sample data, interpolate, predict velocity. The ODE solver is only needed at inference time, and even then a simple Euler with 50-100 steps works well.
 
@@ -461,7 +452,7 @@ def augmented_neural_ode(func, x, k=1, steps=100):
         h = h + dt * func(torch.tensor(t), h)
     # Project back to original d dimensions
     return h[:, :x.shape[-1]]
-```
+```sql
 
 In $\mathbb{R}^{d+k}$, the flow has room to "lift" one cluster up, slide it over the other, and bring it back down — like an overpass on a highway. This costs $k$ extra dimensions but removes the topological limitation entirely. Dupont et al. (2019) showed that $k=1$ suffices for most 2D problems; for general $d$-dimensional data, $k = d$ gives maximal flexibility.
 

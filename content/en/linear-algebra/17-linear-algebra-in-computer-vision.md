@@ -54,7 +54,7 @@ import numpy as np, cv2
 img = cv2.imread('photo.jpg')           # (H, W, 3), BGR order
 B, G, R = cv2.split(img.astype(float) / 255)
 gray = 0.299 * R + 0.587 * G + 0.114 * B
-```
+```sql
 
 ### Images as high-dimensional vectors
 
@@ -97,7 +97,7 @@ def rotation_matrix(theta):
 
 S = np.diag([2.0, 2.0])
 T = rotation_matrix(np.pi / 4) @ S        # first S, then R
-```
+```text
 
 ---
 
@@ -144,9 +144,7 @@ def affine_matrix(rotation_deg, scale, translation):
                      [0,       0,      1]])
 
 M = affine_matrix(30, (1.5, 1.5), (100, 50))
-# OpenCV uses the 2x3 top rows:
-# warped = cv2.warpAffine(img, M[:2, :], (W, H))
-```
+```sql
 
 ---
 
@@ -178,8 +176,7 @@ with SVD — taking the singular vector with the smallest singular value as $\ma
 src = np.float32([[100,100],[200,100],[200,200],[100,200]])
 dst = np.float32([[120, 90],[220,110],[210,220],[ 90,210]])
 H, _ = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
-# corrected = cv2.warpPerspective(img, H, (W, H))
-```
+```sql
 
 **Where this shows up.** Panorama stitching (one $\mathbf{H}$ per image pair when the camera only rotates), document scanners (rectifying skewed photos of paper), augmented reality (placing a virtual object on a tracked planar marker), top-down "bird's-eye" views in autonomous driving.
 
@@ -224,7 +221,7 @@ def project(X_world, K, R, t):
     u  = K[0, 0] * x + K[0, 2]
     v  = K[1, 1] * y + K[1, 2]
     return np.stack([u, v], axis=1)
-```
+```sql
 
 ### Calibration and Zhang's method
 
@@ -252,7 +249,7 @@ The essential matrix has the special form $\mathbf{E} = [\mathbf{t}]_\times \mat
 F, _ = cv2.findFundamentalMat(pts1, pts2, cv2.FM_RANSAC, 3.0, 0.99)
 E, _ = cv2.findEssentialMat(pts1, pts2, K, cv2.RANSAC, 0.999, 1.0)
 _, R, t, _ = cv2.recoverPose(E, pts1, pts2, K)
-```
+```text
 
 ---
 
@@ -265,7 +262,7 @@ Given two known projection matrices $\mathbf{P}_1, \mathbf{P}_2$ and a correspon
 ```python
 X4 = cv2.triangulatePoints(P1, P2, pts1.T, pts2.T)
 X3 = (X4[:3] / X4[3]).T
-```
+```sql
 
 ### Structure from Motion
 
@@ -308,7 +305,7 @@ def so3_exp(phi):                    # Rodrigues' formula
         return np.eye(3)
     a = phi / theta; A = skew(a)
     return np.eye(3) + np.sin(theta) * A + (1 - np.cos(theta)) * (A @ A)
-```
+```sql
 
 ### Pose-graph optimisation
 
@@ -374,7 +371,7 @@ def harris(img, k=0.04, win=2, ksize=3):
     Sxy = cv2.GaussianBlur(Ix * Iy, (2 * win + 1,) * 2, 0)
     detM, trM = Sxx * Syy - Sxy ** 2, Sxx + Syy
     return detM - k * trM ** 2
-```
+```sql
 
 ### Optical flow: the same matrix again
 

@@ -130,7 +130,7 @@ def hmc_sample(V, grad_V, x0, step=0.02, L=20, n_samples=2000):
 
     print(f"HMC acceptance rate: {accepted / n_samples:.2%}")
     return np.array(samples)
-```
+```sql
 
 Why does HMC beat ULA? Consider a double-well potential with a barrier of height $B$. ULA needs $O(e^B / \eta)$ steps to cross; HMC only needs enough kinetic energy, which happens with probability $\sim e^{-B}$ per sample of $v$. The leapfrog trajectory then carries the particle ballistically across the barrier in $L$ steps. This reduces mixing time from exponential-in-$B$ (diffusion) to polynomial (ballistic transport).
 
@@ -157,7 +157,7 @@ def langevin_sample(grad_log_p, x0, step=0.01, n_steps=10_000, tau=1.0):
     for _ in range(n_steps):
         x = x + step * grad_log_p(x) + np.sqrt(2 * step * tau) * torch.randn_like(x)
     return x
-```
+```sql
 
 ULA's bias is $O(\eta)$; **MALA** (Metropolis-Adjusted Langevin) restores exactness via an accept-reject step. **HMC** (Hamiltonian Monte Carlo) is the natural underdamped analogue with momentum.
 
@@ -202,7 +202,7 @@ def sgld(grad_log_prior, grad_log_likelihood, x0, data,
             samples.append(x.copy())
 
     return np.array(samples)
-```
+```sql
 
 In practice SGLD is the workhorse behind "Bayesian deep learning at scale" because it reuses the same mini-batch infrastructure as SGD. The cost per step is identical to standard training; the only addition is the noise injection $\sqrt{\eta_k}\,\xi_k$. The trade-off: finite step sizes introduce asymptotic bias, and diagnosing convergence requires monitoring the noise-to-signal ratio of the gradient estimator.
 
@@ -277,7 +277,7 @@ def svgd_step(x, score, eta=0.05):
     grad_K = -(x[:, None] - x[None, :]) / h**2 * K[..., None]   # (n, n, d)
     phi = (K @ score - grad_K.sum(axis=0)) / n
     return x + eta * phi
-```
+```text
 
 In the infinite-particle limit SVGD obeys
 $$\partial_t p \;=\; -\nabla\!\cdot\!\bigl(p\, v[p]\bigr),\qquad v[p](x) = \mathbb{E}_{y \sim p}\!\bigl[k(y,x)\nabla\log p^\star(y) + \nabla_y k(y,x)\bigr],$$
@@ -321,7 +321,7 @@ def svgd_adaptive(x, score_fn, eta=0.05, k_neighbors=5):
     # SVGD update
     phi = (K @ score + grad_K.sum(axis=0)) / n
     return x + eta * phi
-```
+```sql
 
 **Banana posterior example.** Consider the 2D distribution $p^\star(x_1, x_2) \propto \exp\bigl(-\frac{1}{2}(x_1^2/s_1^2 + (x_2 - x_1^2)^2/s_2^2)\bigr)$ with $s_1 = 2, s_2 = 0.5$. This creates a narrow, curved ridge that global-bandwidth SVGD struggles to fill. With adaptive bandwidth, particles spread along the entire banana within 500 iterations, whereas median-heuristic SVGD collapses to the bend at the origin.
 
@@ -360,15 +360,12 @@ To make Bayesian uncertainty tangible, we train a small neural network on synthe
 ```python
 import numpy as np
 
-# Generate training data with a gap between x=1 and x=3
 np.random.seed(42)
 x_left = np.random.uniform(-2, 1, 40)
 x_right = np.random.uniform(3, 6, 40)
 x_train = np.concatenate([x_left, x_right])
 y_train = np.sin(x_train) + 0.1 * np.random.randn(len(x_train))
 
-# Simple 1-hidden-layer network: input -> 20 units -> output
-# Total params: 20*1 + 20 + 1*20 + 1 = 61
 def init_weights():
     W1 = np.random.randn(20, 1) * 0.5
     b1 = np.zeros(20)
@@ -405,7 +402,6 @@ def grad_log_posterior(params, x_batch, y_batch, N, sigma_y=0.1, sigma_w=1.0):
     grad = (N / B) * grad - params / sigma_w**2
     return grad
 
-# SGLD sampling
 def sgld_bnn(x_train, y_train, n_steps=20000, batch_size=16, eta=1e-4):
     N = len(x_train)
     params = init_weights()
@@ -423,16 +419,13 @@ def sgld_bnn(x_train, y_train, n_steps=20000, batch_size=16, eta=1e-4):
 
     return np.array(posterior_samples)
 
-# Collect posterior samples and compute predictive statistics
 samples = sgld_bnn(x_train, y_train)
 x_test = np.linspace(-3, 7, 200)
 predictions = np.array([forward(s, x_test) for s in samples])
 
 mean_pred = predictions.mean(axis=0)
 std_pred = predictions.std(axis=0)
-# The std_pred peaks in [1, 3] -- the gap region
-# This is epistemic uncertainty: the model knows what it does not know
-```
+```sql
 
 The result demonstrates the core promise of Bayesian inference: **calibrated uncertainty**. In the gap region $x \in [1, 3]$, the posterior predictive standard deviation is 3-5x larger than in the data-rich regions. A point-estimate network (trained with SGD) would output a confident but arbitrary interpolation through the gap, with no indication that its prediction is unreliable.
 
@@ -453,7 +446,7 @@ def langevin(grad_U, x0, eta=1e-3, n_steps=10000):
         x = x - eta*grad_U(x) + np.sqrt(2*eta)*np.random.randn(*x.shape)
         samples.append(x.copy())
     return np.array(samples)
-```
+```sql
 
 Three things bite you in practice:
 

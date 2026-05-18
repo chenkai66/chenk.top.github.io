@@ -21,7 +21,6 @@ For most of the 2010s, saying "deep learning for time series" meant using LSTM. 
 
 This chapter explains why that recipe works. We'll derive the receptive-field formula that makes dilation important, walk through the residual block step by step, and finish with two production-grade case studies (traffic flow and multivariate sensor forecasting) using a PyTorch implementation you can copy out.
 
-
 ---
 
 ## What You Will Learn
@@ -87,7 +86,7 @@ class CausalConv1d(nn.Module):
         if self.padding > 0:
             y = y[:, :, : -self.padding]
         return y
-```
+```text
 
 Two important details:
 
@@ -119,7 +118,7 @@ def required_layers(receptive_field: int, kernel_size: int = 3) -> int:
     """Smallest L such that 1 + (k-1)(2**L - 1) >= receptive_field."""
     L = (receptive_field - 1) / (kernel_size - 1) + 1
     return max(1, math.ceil(math.log2(L)))
-```
+```text
 
 Calling `required_layers(168, kernel_size=3)` returns `7`, which is what you want for hourly data with weekly memory.
 
@@ -178,7 +177,7 @@ class TCNResidualBlock(nn.Module):
         out = self.dropout(self.relu(self._causal(self.conv1, x)))
         out = self.dropout(self.relu(self._causal(self.conv2, out)))
         return self.relu(out + self.skip(x))
-```
+```sql
 
 The block is simple enough that people often inline it, but having it as a module makes the receptive-field calculation transparent and lets you swap weight norm for layer norm in the rare cases where it helps.
 
@@ -212,7 +211,7 @@ class TCN(nn.Module):
     @property
     def receptive_field(self) -> int:
         return 1 + 2 * (self._k - 1) * (2 ** len(self._channels) - 1)
-```
+```sql
 
 A few notes on configuration:
 
@@ -296,7 +295,7 @@ def train_tcn(model, train_loader, val_loader,
             torch.save(model.state_dict(), "tcn_best.pt")
         if (epoch + 1) % 10 == 0:
             print(f"epoch {epoch + 1}: train {train_loss:.4f} val {val_loss:.4f}")
-```
+```text
 
 Two things to highlight: gradient clipping is *not* strictly necessary for TCN (residual + weight norm keep gradients well-behaved), but it costs nothing to add. And `ReduceLROnPlateau` is more robust than a fixed schedule because the right learning rate depends on the dataset and the receptive field.
 
@@ -313,7 +312,7 @@ def make_windows(series: np.ndarray, history: int, horizon: int):
     X = torch.from_numpy(X).float().unsqueeze(1)  # (N, 1, history)
     y = torch.from_numpy(y).float().unsqueeze(1)  # (N, 1, horizon)
     return X, y
-```
+```text
 
 ---
 
@@ -351,7 +350,7 @@ model = TCN(input_size=1, output_size=1,
 print("Receptive field:", model.receptive_field)  # 509
 
 train_tcn(model, train_loader, val_loader, num_epochs=80)
-```
+```text
 
 Note that `output_size=1` produces a one-channel sequence. In direct multi-step forecasting you usually want the network to emit the entire horizon at once. Two ways to do that:
 
@@ -391,12 +390,11 @@ def make_multivariate_windows(arr, target_idx, history, horizon):
 
 Xm, ym = make_multivariate_windows(sensors_s, target_idx=0,
                                    history=72, horizon=12)
-# ... build loaders ...
 
 model = TCN(input_size=4, output_size=1,
             channels=[64, 64, 128, 128, 128], kernel_size=3, dropout=0.2)
 print("Receptive field:", model.receptive_field)  # 253
-```
+```text
 
 **Why a multivariate input "just works" in TCN.** Because the first layer convolves across all four input channels at every time step, cross-feature interactions are baked in for free. There is no need for a separate fusion module.
 
@@ -415,7 +413,7 @@ def feature_ablation(model, X_val, y_val, names):
 
 print(feature_ablation(model, Xm[:200], ym[:200],
                        ["temp", "hum", "pres", "light"]))
-```
+```sql
 
 On the synthetic data above, humidity dominates (it is correlated with temperature by construction). On real sensor data the picture is messier but still informative as a sanity check.
 
@@ -495,7 +493,6 @@ Use it as your first forecasting baseline. If it loses to something more elabora
 Next chapter we move from convolutions to **N-BEATS**, which throws away both convolution and recurrence in favour of fully connected blocks plus basis-function expansion, and won the M4 forecasting competition while staying interpretable.
 
 ---
-
 
 ## What's next
 

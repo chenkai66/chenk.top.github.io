@@ -293,7 +293,6 @@ from scipy.linalg import svd, qr, cholesky
 
 rng = np.random.default_rng(42)
 
-# -------- SVD low-rank approximation: Eckart-Young in action --------
 m, n, true_rank = 100, 80, 10
 U_t = rng.standard_normal((m, true_rank))
 S_t = np.diag(np.linspace(10, 1, true_rank))
@@ -308,7 +307,6 @@ for k in [1, 5, 10, 20]:
     theory = np.sqrt(np.sum(s[k:] ** 2))
     print(f"  k={k:2d}: actual={actual:6.2f}  theory={theory:6.2f}")
 
-# -------- QR vs normal equations: numerical stability --------
 m, n = 100, 10
 A = rng.standard_normal((m, n))
 x_true = rng.standard_normal(n)
@@ -322,7 +320,6 @@ print(f"\nkappa(A) = {np.linalg.cond(A):.1f},  "
 print(f"normal-eq error: {np.linalg.norm(x_normal - x_true):.2e}")
 print(f"QR error       : {np.linalg.norm(x_qr - x_true):.2e}")
 
-# -------- Gradient check on linear regression --------
 n, d = 100, 5
 X = rng.standard_normal((n, d))
 w_true = rng.standard_normal(d)
@@ -342,7 +339,7 @@ def grad_numeric(w, eps=1e-7):
 w_test = rng.standard_normal(d)
 print(f"\ngradient check: ||analytic - numeric|| = "
       f"{np.linalg.norm(grad(w_test) - grad_numeric(w_test)):.2e}")
-```
+```text
 
 Three things to notice in the output: the Eckart-Young error matches theory to machine precision; QR is one to two orders of magnitude more accurate than normal equations even on benign matrices; the analytic gradient agrees with finite differences to ~$10^{-9}$.
 

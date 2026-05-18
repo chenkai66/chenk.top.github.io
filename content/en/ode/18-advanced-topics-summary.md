@@ -77,8 +77,6 @@ That is a learnable ODE. The forward pass is now an ODE solve; the network has *
 *Top-left: a discrete ResNet (left, blue blocks) becomes a continuous "depth" ODE (right, gradient bar) as $N \to \infty$. Top-right: trajectories under a learned vector field $f_\theta(h,t)$ — this is the network "thinking". Bottom-left: the adjoint method runs the ODE backwards in time to get parameter gradients without storing intermediate activations. Bottom-right: increasing the number of ResNet layers approximates the same continuous trajectory more and more finely; an adaptive ODE solver picks the step size automatically.*
 
 ```python
-# Conceptual Neural ODE training loop (pseudo-code)
-# Real code uses torchdiffeq, jax.experimental.ode, or diffrax
 
 import torch, torch.nn as nn
 from torchdiffeq import odeint_adjoint as odeint
@@ -98,7 +96,7 @@ t  = torch.linspace(0., 1., 20)
 h_traj = odeint(f, h0, t)                    # shape (20, 32, 2)
 loss   = ((h_traj[-1] - target) ** 2).mean()
 loss.backward()                              # adjoint computes grads
-```
+```text
 
 Neural ODEs naturally handle **irregularly sampled time series** (medical records, sensor logs) and gave rise to **continuous normalising flows** for density modelling. They are also, philosophically, the cleanest example we have of *machine learning rediscovering the calculus tradition* — the integrator is no longer a tool, it *is* the model.
 
@@ -143,7 +141,7 @@ for tau in [0.5, 1.5, 2.0, 2.5]:    # last two cross r*tau = pi/2
     plt.plot(t, N, label=f'tau = {tau}')
 plt.axhline(1, color='k', ls='--', alpha=0.4)
 plt.legend(); plt.show()
-```
+```sql
 
 The **Mackey-Glass equation** with $\tau = 17$ produces low-dimensional chaos — a strange attractor born from a single delayed feedback loop. Delays show up in epidemiology (incubation periods), economics (production lead time), and any control loop with a transmission lag.
 
@@ -182,7 +180,7 @@ for _ in range(20):
     S = S0 * np.exp((mu - 0.5*sig**2)*t + sig*W)
     plt.plot(t, S, lw=0.9, alpha=0.7)
 plt.title('Geometric Brownian motion'); plt.show()
-```
+```sql
 
 SDEs form the foundation of mathematical finance, statistical physics, neuroscience, and — this is where we'll come back to — modern generative AI.
 

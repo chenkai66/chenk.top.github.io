@@ -20,7 +20,6 @@ translationKey: "linear-algebra-9"
 ---
 ![Essence of Linear Algebra (9): Singular Value Decomposition — The Crown Jewel of Linear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_1.png)
 
-
 ---
 
 ## Why SVD Earns the Crown
@@ -262,12 +261,11 @@ def compress(img, k):
     U, s, Vt = np.linalg.svd(img, full_matrices=False)
     return U[:, :k] @ np.diag(s[:k]) @ Vt[:k, :]
 
-# Diagnostics: how much energy do you keep at each k?
 U, s, Vt = np.linalg.svd(img, full_matrices=False)
 for k in [5, 20, 50, 100]:
     energy = (s[:k] ** 2).sum() / (s ** 2).sum() * 100
     print(f"k={k:>3}: {energy:.1f}% energy retained")
-```
+```text
 
 ---
 
@@ -305,14 +303,13 @@ The left panel shows the canonical least-squares line fit; the right panel shows
 ```python
 import numpy as np
 
-# Least-squares line fit y = a x + b via the pseudoinverse
 x = np.linspace(-2, 4, 25)
 y = 1.2 * x + 0.4 + np.random.default_rng(0).normal(0, 1, 25)
 
 A = np.column_stack([x, np.ones_like(x)])
 coef = np.linalg.pinv(A) @ y          # uses SVD internally
 print(f"slope={coef[0]:.3f}  intercept={coef[1]:.3f}")
-```
+```text
 
 ---
 
@@ -352,7 +349,7 @@ def pca(X, k):
     scores = Xc @ components.T             # n x k
     var = (s ** 2) / (X.shape[0] - 1)
     return scores, components, (var / var.sum())[:k]
-```
+```sql
 
 ---
 
@@ -437,7 +434,7 @@ A = np.array([[3.0, 2.0], [2.0, 3.0]])
 U, s, Vt = svd_via_eigen(A)
 print("singular values:", s)
 print("reconstruction:\n", U @ np.diag(s) @ Vt)
-```
+```text
 
 ### Image compression demo
 
@@ -456,8 +453,7 @@ def plot_compression(img, ks):
         ax.set_title(f"k={k}  ({energy:.0f}%)"); ax.axis("off")
     plt.tight_layout(); plt.show()
 
-# plot_compression(your_grayscale_image, [5, 20, 50, 100])
-```
+```text
 
 ---
 

@@ -16,8 +16,6 @@ translationKey: "functional-analysis-1"
 description: "From the real line to infinite-dimensional function spaces: why completeness is the dividing line."
 ---
 
-# Metric Spaces: Distance, Convergence, and Completeness
-
 ## Why I Had to Stop Trusting My Finite-Dimensional Intuition
 
 The first thing graduate analysis did to me was take away my picture. Up to that point, "distance" had always been the length of an arrow drawn from the origin to a point — Pythagoras, three coordinates, done. Then somebody asked me how far two functions are from each other and the arrow disappeared.

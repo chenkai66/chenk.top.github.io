@@ -17,8 +17,6 @@ series_total: 12
 translationKey: "functional-analysis-3"
 ---
 
-# Hilbert Spaces — Geometry in Infinite Dimensions
-
 ## Inner Products and the Geometry They Create
 
 ![Inner product geometry: angle and projection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/03_inner_product.png)

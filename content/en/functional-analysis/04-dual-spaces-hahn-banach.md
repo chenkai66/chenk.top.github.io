@@ -17,8 +17,6 @@ series_total: 12
 translationKey: "functional-analysis-4"
 ---
 
-# Dual Spaces and the Hahn-Banach Theorem — Taming Linear Functionals
-
 ## Why You Cannot Skip This Article
 
 Up to now, the theory has been about spaces and the elements that live in them. This article changes the perspective: it asks what you can say about a vector $x$ by *measuring* $x$ against a family of test functionals. The shift from "vectors" to "vectors plus functionals" is what turns Banach spaces into a serviceable analogue of finite-dimensional linear algebra. In finite dimensions, every linear functional is continuous and the dual space is the same dimension as the original — so there is nothing to prove. In infinite dimensions, continuity is a real constraint, and the existence of enough continuous functionals to separate points or extend partial data is *not* obvious. The Hahn-Banach theorem is what guarantees this, and it is the result that makes functional analysis possible.

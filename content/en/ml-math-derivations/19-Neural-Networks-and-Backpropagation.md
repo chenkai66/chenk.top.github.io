@@ -226,7 +226,7 @@ def backprop(X, y, weights, biases, activations):
         if l > 0:
             delta = (weights[l].T @ delta) * activations[l].deriv(z[l - 1])
     return grad_W, grad_b
-```
+```sql
 
 The whole algorithm is essentially three lines: one outer product, one sum, one transposed matrix–vector product gated by an activation derivative. Modern autograd engines automate the bookkeeping but execute exactly this recursion under the hood.
 
@@ -335,7 +335,7 @@ loss.backward()            # backward: chain rule, populates .grad on every Para
 
 for p in net.parameters():
     print(p.shape, p.grad.norm().item())
-```
+```text
 
 Three things are happening under `loss.backward()`. First, every tensor with `requires_grad=True` accumulates references to the operation that produced it during the forward pass — this is the *tape*. Second, `backward` walks the tape in reverse topological order; each node knows how to multiply its incoming cotangent by its local Jacobian (without materialising the Jacobian when a more efficient vector-Jacobian product exists). Third, gradients accumulate into `.grad` rather than overwrite — this is why training loops always start with `optimizer.zero_grad()`.
 

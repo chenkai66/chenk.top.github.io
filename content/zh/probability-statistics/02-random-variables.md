@@ -44,7 +44,6 @@ $$X: \Omega \to \mathbb{R}$$
 
 ![分布连接](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-distribution-connections.png)
 
-
 ### 概率质量函数（PMF）
 
 离散型随机变量 $X$ 的**概率质量函数（Probability Mass Function, PMF）** 定义为：
@@ -66,9 +65,7 @@ CDF 是右连续、非减函数，且满足 $\lim_{x \to -\infty} F(x) = 0$ 与 
 
 ## 关键离散分布
 
-
 ![分位数函数](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-quantile-function.png)
-
 
 ![概率分布如山地景观：正态分布和指数分布](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/02-probability-distributions-as-mountain-landscapes-normal-expo.jpg)
 
@@ -157,7 +154,6 @@ $$f_X(x) = F_X'(x).$$
 ### 均匀分布（Uniform Distribution）
 $$X \sim \text{Uniform}(a, b), \quad f_X(x) = \frac{1}{b-a} \text{ for } x \in [a, b].$$
 ![主要分布图库](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-distribution-gallery.png)
-
 
 - **均值：** $E[X] = (a+b)/2$
 - **方差：** $\text{Var}(X) = (b-a)^2/12$
@@ -258,7 +254,6 @@ from scipy import stats
 
 fig, axes = plt.subplots(3, 3, figsize=(15, 12))
 
-# 1. Bernoulli
 ax = axes[0, 0]
 for p in [0.2, 0.5, 0.8]:
     ax.bar([0, 1], [1-p, p], alpha=0.5, width=0.3, label=f'p={p}')
@@ -267,7 +262,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('P(X=x)')
 ax.legend()
 
-# 2. Binomial
 ax = axes[0, 1]
 n = 20
 for p in [0.2, 0.5, 0.8]:
@@ -278,7 +272,6 @@ ax.set_xlabel('k')
 ax.set_ylabel('P(X=k)')
 ax.legend()
 
-# 3. Geometric
 ax = axes[0, 2]
 for p in [0.2, 0.5, 0.8]:
     k = np.arange(1, 15)
@@ -288,7 +281,6 @@ ax.set_xlabel('k')
 ax.set_ylabel('P(X=k)')
 ax.legend()
 
-# 4. Poisson
 ax = axes[1, 0]
 for lam in [1, 4, 10]:
     k = np.arange(0, 20)
@@ -298,7 +290,6 @@ ax.set_xlabel('k')
 ax.set_ylabel('P(X=k)')
 ax.legend()
 
-# 5. Uniform
 ax = axes[1, 1]
 x = np.linspace(-0.5, 1.5, 300)
 ax.plot(x, stats.uniform.pdf(x, 0, 1), 'b-', linewidth=2, label='Uniform(0,1)')
@@ -308,7 +299,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-# 6. Exponential
 ax = axes[1, 2]
 x = np.linspace(0, 5, 300)
 for lam in [0.5, 1, 2]:
@@ -318,7 +308,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-# 7. Normal
 ax = axes[2, 0]
 x = np.linspace(-5, 8, 300)
 for mu, sigma in [(0,1), (2,0.5), (0,2)]:
@@ -329,7 +318,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-# 8. Gamma
 ax = axes[2, 1]
 x = np.linspace(0, 15, 300)
 for a, b in [(1, 1), (2, 1), (5, 1), (5, 2)]:
@@ -340,7 +328,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-# 9. Beta
 ax = axes[2, 2]
 x = np.linspace(0.001, 0.999, 300)
 for a, b in [(0.5, 0.5), (1, 1), (2, 5), (5, 2), (5, 5)]:
@@ -355,7 +342,7 @@ plt.suptitle('概率分布图鉴', fontsize=16, y=1.02)
 plt.tight_layout()
 plt.savefig('distribution_gallery.png', dpi=150, bbox_inches='tight')
 plt.show()
-```
+```text
 
 此图鉴让你一览所有分布的形状。注意以下模式：
 
@@ -366,7 +353,6 @@ plt.show()
 - **Gamma** 推广了 Exponential，新增形状参数控制“峰形”。
 
 ## 分布间的联系
-
 
 ![随机变量变换机：输入结果输出](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/02-random-variable-transformation-machine-input-outcomes-output.jpg)
 
@@ -412,7 +398,6 @@ $$f(x) = \sum_{k=1}^{K} w_k f_k(x), \qquad \sum_{k=1}^K w_k = 1, \quad w_k \geq 
 高斯混合模型（Gaussian Mixture Models, GMMs）是无监督学习的主力：它将复杂、多峰数据建模为高斯分布的加权和，参数通过期望最大化（Expectation-Maximization, EM）算法拟合。
 
 ```python
-# 可视化高斯混合
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
@@ -434,7 +419,7 @@ ax.legend()
 plt.tight_layout()
 plt.savefig('gaussian_mixture.png', dpi=150)
 plt.show()
-```
+```text
 
 ## 如何选择合适分布：决策指南
 

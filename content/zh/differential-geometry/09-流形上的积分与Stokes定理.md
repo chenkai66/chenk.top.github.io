@@ -248,7 +248,7 @@ $$\int_C d\omega = \int_{\partial C} \omega.$$
 
 在 $\mathbb{R}^2 \setminus \{0\}$ 上的角度形式 $\omega = \frac{-y\,dx + x\,dy}{x^2+y^2}$ 和闭曲线 $\gamma: S^1 \to \mathbb{R}^2 \setminus \{0\}$，整数
 $$n(\gamma) = \frac{1}{2\pi}\int_\gamma \omega$$
-是 $\gamma$ 绕原点的绕数由拓扑保证为整数值，并可通过分析计算。根据 de Rham，$H^1_{dR}(\mathbb{R}^2\setminus\{0\}) = \mathbb{R}$。}$ 且 $[\omega/2\pi]$ 是生成元；绕数只是上同调配对。
+是 $\gamma$ 绕原点的绕数由拓扑保证为整数值，并可通过分析计算。根据 de Rham，$H^1_{dR}(\mathbb{R}^2\setminus\{0\}) = \mathbb{R}$。 且 $[\omega/2\pi]$ 是生成元；绕数只是上同调配对。
 
 对于 $\mathbb{R}^3$ 中两个不相交的光滑环 $\gamma_1, \gamma_2$，**链接数** $\mathrm{lk}(\gamma_1, \gamma_2)$ 是一个整数，衡量它们相互缠绕的次数。有一个积分公式（Gauss）：
 $$\mathrm{lk}(\gamma_1,\gamma_2) = \frac{1}{4\pi}\oint_{\gamma_1}\oint_{\gamma_2}\frac{(\vec r_1 - \vec r_2)\cdot(d\vec r_1 \times d\vec r_2)}{|\vec r_1 - \vec r_2|^3}.$$

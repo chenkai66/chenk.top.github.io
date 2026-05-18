@@ -321,7 +321,6 @@ from scipy.linalg import cho_factor, cho_solve
 
 np.random.seed(42)
 
-# ---- A convex quadratic: f(x) = 0.5 x^T Q x - b^T x ----
 n = 10
 A = np.random.randn(n, n)
 Q = A.T @ A + np.eye(n)        # PD
@@ -330,20 +329,17 @@ x_true = np.linalg.solve(Q, b)
 f      = lambda x: 0.5 * x @ Q @ x - b @ x
 grad_f = lambda x: Q @ x - b
 
-# ---- Gradient Descent ----
 x = np.zeros(n)
 alpha = 1.0 / np.linalg.eigvalsh(Q).max()    # alpha = 1/L
 for _ in range(200):
     x = x - alpha * grad_f(x)
 print(f"GD:     ||x - x*|| = {np.linalg.norm(x - x_true):.2e}")
 
-# ---- Newton (Hessian = Q is constant: one step is exact) ----
 x = np.zeros(n)
 for _ in range(5):
     x = x - np.linalg.solve(Q, grad_f(x))
 print(f"Newton: ||x - x*|| = {np.linalg.norm(x - x_true):.2e}")
 
-# ---- BFGS (with Armijo backtracking line search) ----
 x, H, g = np.zeros(n), np.eye(n), grad_f(np.zeros(n))
 for _ in range(200):
     d = -H @ g
@@ -361,7 +357,6 @@ for _ in range(200):
     x, g = x_new, g_new
 print(f"BFGS:   ||x - x*|| = {np.linalg.norm(x - x_true):.2e}")
 
-# ---- ADMM for Lasso ----
 ns, nf = 100, 50
 X = np.random.randn(ns, nf)
 beta_true = np.zeros(nf); beta_true[:10] = np.random.randn(10)
@@ -375,7 +370,7 @@ for _ in range(500):
     u    = u + beta - z                                     # dual ascent
 print(f"ADMM:   nonzeros = {int(np.sum(np.abs(z) > 1e-4))}/10, "
       f"err = {np.linalg.norm(z - beta_true):.4f}")
-```
+```sql
 
 ---
 

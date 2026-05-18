@@ -288,7 +288,7 @@ def nesterov_restart(A, b, n_iter):
         hist.append(np.linalg.norm(A.T @ (A @ x_new - b)))
         x_prev, x, f_prev = x, x_new, f_new
     return x, hist
-```
+```sql
 
 ### What we observe
 

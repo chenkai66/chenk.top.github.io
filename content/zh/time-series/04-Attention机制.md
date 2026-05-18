@@ -86,7 +86,7 @@ def scaled_dot_product_attention(Q, K, V, mask=None):
         scores = scores.masked_fill(mask == 0, float("-inf"))
     weights = F.softmax(scores, dim=-1)                          # 行随机矩阵
     return weights @ V, weights                                  # (B, n, d_v), (B, n, n)
-```
+```text
 
 整个机制仅包含两次矩阵乘法夹一个 softmax。其表达能力完全源于可学习的投影矩阵 $W^Q, W^K, W^V$。
 
@@ -127,7 +127,7 @@ def causal_mask(n, device):
     return torch.tril(torch.ones(n, n, device=device)).bool()  # 对角线及以下为 1
 
 scores = scores.masked_fill(~causal_mask(n, scores.device), float("-inf"))
-```
+```text
 
 这正是预测型 Transformer 与序列分类 Transformer 的唯一区别。
 
@@ -183,7 +183,7 @@ class MultiHeadAttention(nn.Module):
         out = weights @ v                                # (B, h, n, d_k)
         out = out.transpose(1, 2).reshape(B, n, -1)      # (B, n, d_model)
         return self.W_o(out), weights
-```
+```text
 
 **该用多少头？** 当 $d_\text{model} = 64\!-\!128$ 时，建议从 4 个头起步。训练后可视化各头：若多个头高度相似，应减少头数；若单个头试图编码多种模式，则应增加头数。
 
@@ -217,7 +217,7 @@ def time_features(timestamps, d_model):
     freqs = 1.0 / (10000 ** (torch.arange(0, d_model, 2) / d_model))
     args = deltas.unsqueeze(-1) * freqs                  # (B, n, d_model/2)
     return torch.cat([torch.sin(args), torch.cos(args)], dim=-1)
-```
+```text
 
 该方法可统一处理 1 Hz 的 IoT 数据、不规则交易 tick 以及缺失样本。
 
@@ -255,7 +255,7 @@ class LSTMAttention(nn.Module):
             outs.append(y)
             y_prev = y.unsqueeze(1).expand(-1, 1, x.size(-1))
         return torch.cat(outs, dim=1), alpha
-```
+```text
 
 实证表明，此类架构（如 DA-RNN、双阶段注意力等）在 M-competition 类基准测试中表现优异，尤其适用于预测视野较短、数据有限的场景。
 

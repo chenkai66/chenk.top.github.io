@@ -25,7 +25,6 @@ This article develops the mathematical framework for summarizing distributions. 
 
 ## Expectation
 
-
 ![Expectation as balance point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-expectation.png)
 
 ### Definition
@@ -84,9 +83,7 @@ We used LOTUS with $g(x) = x^2$ and $f(x) = 1$ on $[0,1]$. No need to derive the
 
 ## Variance
 
-
 ![Variance visualization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-variance.png)
-
 
 ![Covariance correlation dance partners moving together or ind](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/03-covariance-correlation-dance-partners-moving-together-or-ind.jpg)
 
@@ -129,7 +126,6 @@ $$\text{Var}(X + Y) = \text{Var}(X) + \text{Var}(Y) + 2\text{Cov}(X, Y)$$
 which brings us to our next topic.
 
 ## Covariance
-
 
 ![Covariance scatter plots](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-covariance-scatter.png)
 
@@ -187,7 +183,6 @@ Correlation measures the strength and direction of the **linear** relationship b
 The $k$-th **moment** of $X$ about the origin is $E[X^k]$. The $k$-th **central moment** is $E[(X - \mu)^k]$.
 
 ![Moment generating function](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-mgf.png)
-
 
 - 1st moment: $E[X] = \mu$ (location)
 - 2nd central moment: $\text{Var}(X) = \sigma^2$ (spread)
@@ -278,7 +273,6 @@ Chebyshev is **distribution-free** — it holds for any distribution with finite
 
 ## Python: Visualizing Moments and Chebyshev's Bound
 
-
 ![Expectation as center of mass balance point on probability d](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/03-expectation-as-center-of-mass-balance-point-on-probability-d.jpg)
 
 ```python
@@ -288,7 +282,6 @@ from scipy import stats
 
 fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 
-# 1. Expectation as center of mass
 ax = axes[0]
 x = np.linspace(-4, 6, 300)
 for mu, sigma in [(0, 1), (2, 0.7), (-1, 1.5)]:
@@ -300,7 +293,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-# 2. Variance as spread
 ax = axes[1]
 x = np.linspace(-6, 6, 300)
 for sigma in [0.5, 1, 2]:
@@ -312,7 +304,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-# 3. Chebyshev bound vs actual
 ax = axes[2]
 ks = np.linspace(1, 5, 100)
 chebyshev_bound = 1 / ks**2
@@ -332,7 +323,7 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('moments_and_chebyshev.png', dpi=150)
 plt.show()
-```
+```text
 
 The right panel shows the gap between Chebyshev's bound and the actual Normal tail probability on a log scale. For the Normal distribution, the true probability drops exponentially in $k^2$, while Chebyshev only guarantees $1/k^2$ decay. The bound is conservative, but it applies to **every** distribution — including ones with much heavier tails than the Gaussian.
 

@@ -21,7 +21,6 @@ The 2018 M4 forecasting competition served 100,000 series across six frequencies
 
 This chapter unpacks why such a stripped-down architecture beats both LSTMs and ARIMA-style ensembles, and how to implement and tune it for your own series.
 
-
 ---
 
 ## What You Will Learn
@@ -252,7 +251,7 @@ def make_generic(history: int, horizon: int,
         basis = GenericBasis(theta_size, history, horizon)
         blocks.append(NBeatsBlock(basis, history, hidden, layers))
     return NBeats(blocks)
-```
+```text
 
 A small but important detail: in the interpretable variant, the `TrendBasis` and `SeasonalityBasis` instances are **shared across blocks within a stack**. Each block has its own MLP and its own coefficient heads, but they all multiply by the same fixed basis matrix, which keeps the inductive bias intact and saves a few parameters.
 
@@ -299,7 +298,7 @@ def train_nbeats(model, train_loader, val_loader, epochs=100,
             torch.save(model.state_dict(), "nbeats.pt")
         if (ep + 1) % 10 == 0:
             print(f"epoch {ep+1}: train {train_loss:.4f} val {val_loss:.4f}")
-```
+```sql
 
 A few practical notes:
 
@@ -347,7 +346,7 @@ class EnsembleNBeats:
     def predict(self, x: torch.Tensor, aggregator="median") -> torch.Tensor:
         outs = torch.stack([m(x) for m in self.models], dim=0)
         return outs.median(dim=0).values if aggregator == "median" else outs.mean(0)
-```
+```sql
 
 Median is a better aggregator than mean for sMAPE-style losses because it is robust to one model going crazy on a single window.
 
@@ -366,7 +365,7 @@ model = make_interpretable(
     trend_degree=2,                     # smooth multi-year trend
     hidden=256, layers=4,
 )
-```
+```text
 
 After training, we can pull the per-stack contribution to inspect what each part learned:
 
@@ -390,9 +389,7 @@ def stack_contributions(model: NBeats, x: torch.Tensor) -> dict:
     return out
 
 contribs = stack_contributions(model, x_val[:1])
-# contribs["trend"][0]      -> 12-month trend component
-# contribs["seasonality"][0] -> 12-month seasonal component
-```
+```text
 
 **Typical numbers.** On a real retail series with 5 years of history, an interpretable N-BEATS reaches MAPE of 7-12% on the 12-month horizon, comparable to the best gradient-boosted feature-engineering pipelines but without the feature-engineering work. The interpretability is the genuine win: a model that lets the business team override the December seasonality with a known promotional event is much more useful than a black box that scores 0.5% better on backtest.
 
@@ -410,7 +407,7 @@ model = make_generic(
     num_blocks=30, theta_size=32,
     hidden=512, layers=4,
 )
-```
+```text
 
 **Per-window normalisation matters most here.** Demand levels swing across seasons; without per-window standardisation the model wastes capacity learning that "winter is bigger than summer". With it, the network only has to learn shape.
 
@@ -420,11 +417,10 @@ def normalise_window(x: torch.Tensor) -> tuple:
     sd = x.std(dim=-1, keepdim=True) + 1e-6
     return (x - mu) / sd, mu, sd
 
-# Forward:
 x_norm, mu, sd = normalise_window(x)
 y_norm = model(x_norm)
 y_hat = y_norm * sd + mu  # broadcast to (B, H)
-```
+```sql
 
 **Typical numbers.** On the public ETT (Electricity Transformer Temperature) dataset with hourly demand, an ensemble of 10 generic N-BEATS models reaches MSE around 0.31 on the 24-hour horizon, comfortably ahead of LSTM (~0.42) and competitive with Informer at much lower implementation cost.
 
@@ -500,7 +496,6 @@ For most univariate forecasting problems with regular sampling and clear trend/s
 Next chapter we close the series with **Informer**, which solves a different problem: how to push a Transformer to thousand-step horizons without the $\mathcal{O}(L^2)$ attention cost killing you.
 
 ---
-
 
 ## What's next
 

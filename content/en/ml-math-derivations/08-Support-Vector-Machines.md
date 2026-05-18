@@ -121,7 +121,6 @@ For prediction, you can throw away every non-SV training point. That is the mode
 import numpy as np
 from sklearn.svm import SVC
 
-# A tiny separable problem
 X = np.array([[1, 2], [2, 3], [3, 3],
               [1, 0], [2, 1], [0, 1]], dtype=float)
 y = np.array([1, 1, 1, -1, -1, -1])
@@ -134,7 +133,7 @@ print(f"#SV = {len(clf.support_)} of {len(X)} samples")
 for i in clf.support_:
     print(f"  SV idx {i}: y(w.x+b) = {y[i] * (X[i] @ w + b):.4f}  "
           f"(should be ~1)")
-```
+```sql
 
 ---
 
@@ -230,19 +229,17 @@ import numpy as np
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 
-# XOR: linearly inseparable, RBF solves it instantly
 X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]], dtype=float)
 y = np.array([0, 1, 1, 0])
 
 print("linear:", accuracy_score(y, SVC(kernel="linear").fit(X, y).predict(X)))
 print("rbf   :", accuracy_score(y, SVC(kernel="rbf", gamma=5).fit(X, y).predict(X)))
 
-# Verify the Gram matrix is PSD
 gamma = 5.0
 K = np.exp(-gamma * np.sum((X[:, None] - X[None, :]) ** 2, axis=-1))
 eig = np.linalg.eigvalsh(K)
 print(f"eigenvalues: {eig.round(4)} -- all >= 0: {np.all(eig >= -1e-10)}")
-```
+```sql
 
 ---
 
@@ -316,7 +313,7 @@ $$\gamma = \frac{y\,(w^\top x_0 + b)}{\lVert w \rVert} = \frac{1 \cdot (3 + 4 - 
 import numpy as np
 w, b, x, y = np.array([3, 4]), -1, np.array([1, 1]), 1
 print(y * (w @ x + b) / np.linalg.norm(w))   # 1.2
-```
+```sql
 
 ### Exercise 2 — Closure of kernels under sum
 

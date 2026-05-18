@@ -17,8 +17,6 @@ series_total: 12
 translationKey: "functional-analysis-6"
 ---
 
-# Bounded Linear Operators and the Big Theorems
-
 ## Why This Article Is Where the Theory Catches Fire
 
 For five articles I have been building scaffolding: metric and normed spaces, Hilbert spaces, dual spaces, weak topologies. None of those individually felt very impressive — I am, after all, just doing topology and linear algebra in slightly more general settings than usual. The point at which functional analysis genuinely *delivers* is right here, in the three great theorems of Banach space operator theory: the **Uniform Boundedness Principle**, the **Open Mapping Theorem**, and the **Closed Graph Theorem**. Each of these takes a piece of "pointwise" or "set-theoretic" data — pointwise boundedness, surjectivity, closedness of the graph — and concludes a global structural property — uniform boundedness, openness, continuity — that has no analog in finite dimensions because finite-dimensional linear algebra makes them all true automatically.

@@ -226,7 +226,7 @@ x_hat = np.linalg.solve(H, b)
 
 print(f"kappa(H_{n})    = {np.linalg.cond(H):.2e}")
 print(f"relative error = {np.linalg.norm(x_true - x_hat) / np.linalg.norm(x_true):.2e}")
-```
+```sql
 
 By size 12, the relative error is of order 1: the answer can be 100% wrong even though the algorithm is "correct".
 
@@ -417,7 +417,7 @@ print(f"Spectral norm  : {np.linalg.norm(A, 2):.4f}")
 print(f"1-norm         : {np.linalg.norm(A, 1):.4f}")
 print(f"inf-norm       : {np.linalg.norm(A, np.inf):.4f}")
 print(f"Condition #    : {np.linalg.cond(A):.4f}")
-```
+```text
 
 ### Hilbert matrix experiment
 
@@ -434,7 +434,7 @@ plt.ylabel("Condition number")
 plt.axhline(1e16, ls="--")  # double precision wall
 plt.title("Hilbert matrix: condition number explodes with n")
 plt.show()
-```
+```text
 
 ### Comparing least-squares methods
 
@@ -459,7 +459,7 @@ def compare_methods(cond_target=1e8, n=50, seed=0):
     print(f"SVD error       : {np.linalg.norm(x_svd - x_true):.2e}")
 
 compare_methods()
-```
+```python
 
 ---
 

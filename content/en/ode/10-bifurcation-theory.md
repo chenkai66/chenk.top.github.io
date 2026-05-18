@@ -176,8 +176,7 @@ def hopf(s, t, mu, omega=1.0):
 
 t = np.linspace(0, 60, 6000)
 sol = odeint(hopf, [0.05, 0.05], t, args=(0.4,))
-# sol now spirals out and lands on the limit cycle r = sqrt(0.4) ~ 0.632
-```
+```sql
 
 ---
 
@@ -284,7 +283,7 @@ def detect_bifurcations(f, fx, x_branch, mu_grid):
                                    'omega': abs(curr_pair[0].imag)})
         prev = eigs
     return events
-```
+```sql
 
 ---
 

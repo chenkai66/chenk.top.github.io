@@ -17,8 +17,6 @@ series_total: 12
 translationKey: "functional-analysis-5"
 ---
 
-# Weak and Weak-* Topologies — When Norm Convergence Is Too Strong
-
 ## Why Weaker Topologies Exist and Why They Matter
 
 ![Strong convergence vs weak convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/fa05_weak_convergence.png)

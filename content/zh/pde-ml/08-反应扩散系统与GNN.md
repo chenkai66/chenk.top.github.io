@@ -111,13 +111,11 @@ def gray_scott_step(U, V, Du, Dv, F, k, dx, dt):
     dV = Dv * laplacian(V) + UVV - (F + k) * V
     return U + dt * dU, V + dt * dV
 
-# 设置：256×256 网格
 N = 256
 dx = 1.0
 dt = 1.0
 Du, Dv = 0.16, 0.08
 
-# 初始化：均匀稳态 + 中心区域微小扰动
 U = np.ones((N, N))
 V = np.zeros((N, N))
 r = 20
@@ -126,7 +124,6 @@ V[N//2-r:N//2+r, N//2-r:N//2+r] = 0.25
 U += 0.01 * np.random.randn(N, N)
 V += 0.01 * np.random.randn(N, N)
 
-# 不同的 (F, k) 参数组合会生成截然不同的斑图
 patterns = {
     "spots":      (0.035, 0.065),   # 斑点状图案
     "stripes":    (0.025, 0.060),   # 条纹状图案
@@ -140,10 +137,7 @@ for step in range(10000):
     if step % 2000 == 0:
         print(f"步数 {step:5d}: U 取值范围=[{U.min():.3f}, {U.max():.3f}], "
               f"V 取值范围=[{V.min():.3f}, {V.max():.3f}]")
-# 步数     0: U 取值范围=[0.482, 1.026], V 取值范围=[-0.012, 0.273]
-# 步数 10000: U 取值范围=[0.012, 0.998], V 取值范围=[0.001, 0.487]
-# → 清晰可辨的斑点状图案已形成
-```
+```text
 
 每组 $(F, k)$ 参数都会催生一种定性上截然不同的空间图案。其内在机制正是图灵当年的核心洞见：激活剂 $V$ 扩散缓慢，能在局部自我放大；而抑制剂 $U$ 扩散迅速，可在远距离起抑制作用。二者之间的动态竞争，使得原本近乎均匀的初始状态自发演化出丰富的空间结构。
 
@@ -215,14 +209,12 @@ def check_turing_instability(fu, fv, gu, gv, Du, Dv):
     print(f"  ⇒ 图灵不稳定性：{'是' if turing else '否'}")
     return turing
 
-# Gray-Scott 模型在稳态 (U*, V*) = (1, 0) 处的线性化（F=0.035, k=0.065）：
 print("Gray-Scott 模型（F=0.035，k=0.065）：")
 check_turing_instability(fu=-0.035, fv=0, gu=0, gv=-0.1, Du=0.16, Dv=0.08)
 
-# FitzHugh-Nagumo 模型：
 print("\nFitzHugh-Nagumo 模型：")
 check_turing_instability(fu=1.0, fv=-1.0, gu=0.5, gv=-1.5, Du=1.0, Dv=10.0)
-```
+```text
 
 这段代码是对理论部分所列四条图灵条件的算法实现。你可以在运行任何数值模拟之前，直接调用它来快速预测给定反应–扩散系统是否具备自发形成空间图案的能力。
 
@@ -324,7 +316,6 @@ def dirichlet_energy(X, adj):
     sq_diff = (diff ** 2).sum(dim=-1)  # 沿特征维度求和，得到 (N, N)
     return 0.5 * (adj * sq_diff).sum()
 
-# 模拟 GCN 层数增长过程，并记录每层的狄利克雷能量
 def simulate_oversmoothing(X0, adj_norm, n_layers=64):
     X = X0.clone()
     energies = [dirichlet_energy(X, adj_norm).item()]
@@ -333,14 +324,7 @@ def simulate_oversmoothing(X0, adj_norm, n_layers=64):
         energies.append(dirichlet_energy(X, adj_norm).item())
     return energies
 
-# 实验结果：能量随层数呈指数衰减
-# 第  0 层：E = 142.3
-# 第  4 层：E =  28.7
-# 第  8 层：E =   5.4
-# 第 16 层：E =   0.2
-# 第 32 层：E =   0.001  ← 特征已近乎恒定（严重过平滑）
-# 第 64 层：E =   0.000001
-```
+```text
 
 这种指数衰减并非实现缺陷，而是一个**严格成立的定理**：对归一化邻接矩阵 $\tilde{A}$，有  
 $$E(\tilde{A}^L X_0) \leq \lambda_2^{2L} \cdot E(X_0),$$  
@@ -431,7 +415,7 @@ class RDGNN(nn.Module):
             h_react = r(torch.cat([h, h0], dim=-1)) - self.alpha * h
             h = h + self.eps_d * h_diff + self.eps_r * h_react
         return self.decoder(h)
-```
+```text
 
 该架构极为简洁：一个共享的 GCN 用于扩散，$L$ 个小型 MLP 用于反应，两端各有一个线性投影。图 6c 显示，仅凭如此简单的结构，就能在 Cora 数据集上将准确率维持至 64 层——深度达到 GCN 崩溃阈值的八倍。
 

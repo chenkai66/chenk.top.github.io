@@ -181,7 +181,7 @@ for s = 0, 1, 2, ...:                        # outer epochs
         g_t = ∇f_{i_t}(x_t) - ∇f_{i_t}(w̃_s) + g̃_s
         x_{t+1} = x_t - η g_t
     w̃_{s+1} = x_m  (or random x_t in the epoch)
-```
+```sql
 
 The key is the **gradient estimator**
 $$

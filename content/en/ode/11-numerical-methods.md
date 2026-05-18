@@ -74,7 +74,7 @@ def euler(f, x0, y0, x_end, h):
         x = x + h_eff
         xs.append(x); ys.append(y)
     return np.array(xs), np.array(ys)
-```
+```text
 
 ---
 
@@ -119,7 +119,7 @@ def rk4(f, x0, y0, x_end, h):
         x = x + h_eff
         xs.append(x); ys.append(y)
     return np.array(xs), np.array(ys)
-```
+```sql
 
 ### Side-by-side: Euler vs RK4
 
@@ -205,21 +205,18 @@ The minimal example is **Stormer-Verlet (leapfrog)** for$\ddot q = -\nabla V(q)$
 from scipy.integrate import solve_ivp
 import numpy as np
 
-# Generic non-stiff problem: default RK45 is the right call.
 sol = solve_ivp(lambda t, y: -2*y, [0, 5], [1.0],
                 t_eval=np.linspace(0, 5, 100),
                 rtol=1e-8, atol=1e-10)
 
-# Stiff problem: switch to BDF or Radau.
 def vdp(t, y, mu=1000):
     return [y[1], mu*(1 - y[0]**2)*y[1] - y[0]]
 sol = solve_ivp(vdp, [0, 3000], [2.0, 0.0],
                 method='BDF',
                 rtol=1e-6, atol=1e-9)
 
-# If you do not know whether the system is stiff, let LSODA figure it out.
 sol = solve_ivp(rhs, [0, T], y0, method='LSODA')
-```
+```text
 
 `solve_ivp`'s most-used options:
 

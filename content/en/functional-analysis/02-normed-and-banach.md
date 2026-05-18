@@ -17,8 +17,6 @@ translationKey: "functional-analysis-2"
 description: "Norm axioms, classical examples, equivalence of norms in finite dimensions, completeness and why it matters, Schauder bases, quotient spaces, and the role of separability."
 ---
 
-# Normed Spaces and Banach Spaces
-
 ## Why a Norm Is More Than a Metric Wearing a Hat
 
 ![Animation: l^p unit ball morphing as p changes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/functional-analysis/figures/02_lp_morph.gif)

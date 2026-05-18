@@ -24,7 +24,6 @@ This chapter walks through that toolkit. The goal isn't to memorize formulas; it
 
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/illustration_1.png)
 
-
 ---
 
 ## What You Will Learn
@@ -168,7 +167,6 @@ from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.stats.diagnostic import acorr_ljungbox
 
-# 1. Simulate a non-stationary series (random walk + drift)
 rng = np.random.default_rng(0)
 n = 200
 eps = rng.normal(0, 1.0, n)
@@ -178,23 +176,19 @@ for t in range(1, n):
 
 series = pd.Series(y, index=pd.date_range("2018-01-01", periods=n, freq="D"))
 
-# 2. Identification: ADF test on the level vs the first difference
 print("ADF on level :", adfuller(series)[1])         # large p -> non-stationary
 print("ADF on diff  :", adfuller(series.diff().dropna())[1])  # small p -> stationary
 
-# 3. Estimation: train on the first 170 points
 train, test = series.iloc[:-30], series.iloc[-30:]
 model = ARIMA(train, order=(2, 1, 1)).fit()
 
-# 4. Diagnostic checking
 lb = acorr_ljungbox(model.resid, lags=[10], return_df=True)
 print(lb)  # high p-value -> residuals are white noise
 
-# 5. Forecasting with a 95% interval
 fc = model.get_forecast(steps=30)
 mean_fc = fc.predicted_mean
 ci = fc.conf_int(alpha=0.05)
-```
+```text
 
 The forecast on a held-out tail looks like this:
 
@@ -221,7 +215,7 @@ model = SARIMAX(
 ).fit(disp=False)
 
 forecast = model.get_forecast(steps=24)
-```
+```sql
 
 ![SARIMA(1,1,1)(1,1,1,12) forecast on a series with strong yearly seasonality.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig5_sarima_forecast.png)
 *Fig. 6 — The seasonal cycle is reproduced cleanly out of sample because the seasonal-difference operator $(1-B^{12})$ has stripped the yearly pattern from the residual, and the seasonal AR/MA terms put it back in the forecast at the right phase.*
@@ -321,7 +315,6 @@ Traditional models reach their ceiling when:
 That is the launchpad for the next seven articles. We start with **LSTM** as the canonical non-linear sequential model, then build up through GRU, attention, the Transformer, TCN, N-BEATS, and finally Informer for very long sequences. Each of them generalises one of the linear models above; treat ARIMA / SARIMA / Holt-Winters as the baselines you must beat, not as the past you can skip.
 
 ---
-
 
 ## What's next
 

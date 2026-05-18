@@ -320,11 +320,9 @@ from scipy import stats
 
 np.random.seed(42)
 
-# 真实函数
 def f_true(x):
     return np.sin(2 * np.pi * x)
 
-# 生成数据集并拟合不同阶数的多项式
 n_train = 20
 n_datasets = 200
 x_test = np.linspace(0, 1, 100)
@@ -367,12 +365,11 @@ plt.suptitle('Bias-Variance Tradeoff: Polynomial Regression', fontsize=14, y=1.0
 plt.tight_layout()
 plt.savefig('bias_variance.png', dpi=150, bbox_inches='tight')
 plt.show()
-```
+```text
 
 该可视化直接展示了权衡关系。在阶数 1（欠拟合）时，平均预测（红色）远离真实函数（黑色虚线）——高偏差；但各条拟合曲线（蓝色）紧密聚集——低方差。在阶数 19（过拟合）时，平均预测与真实函数吻合良好——低偏差；但各条拟合曲线差异巨大——高方差。最佳折中点介于两者之间。
 
 ```python
-# 计算偏差-方差权衡曲线
 degrees = range(1, 20)
 biases = []
 variances = []
@@ -404,7 +401,7 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('bias_variance_curve.png', dpi=150)
 plt.show()
-```
+```text
 
 ## 充分统计量与数据降维
 

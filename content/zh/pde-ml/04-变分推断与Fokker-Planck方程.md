@@ -129,7 +129,7 @@ def hmc_sample(V, grad_V, x0, step=0.02, L=20, n_samples=2000):
 
     print(f"HMC 接受率: {accepted / n_samples:.2%}")
     return np.array(samples)
-```
+```text
 
 为什么 HMC 显著优于 ULA？考虑一个具有高度为 $B$ 势垒的双阱势函数：ULA 穿越该势垒所需的步数约为 $O(e^B / \eta)$；而 HMC 只需初始动量提供足够动能——由于 $v$ 每次独立采样，获得足够能量的概率约为 $\sim e^{-B}$。随后，蛙跳轨迹将以弹道式（ballistic）运动在 $L$ 步内直接越过势垒。这使得混合时间从指数级依赖 $B$（扩散主导）大幅降低为多项式级（弹道输运主导）。
 
@@ -160,7 +160,7 @@ def langevin_sample(grad_log_p, x0, step=0.01, n_steps=10_000, tau=1.0):
     for _ in range(n_steps):
         x = x + step * grad_log_p(x) + np.sqrt(2 * step * tau) * torch.randn_like(x)
     return x
-```
+```text
 
 ULA 存在 $O(\eta)$ 的偏差；**MALA**（Metropolis 校正 Langevin）通过接受-拒绝步骤恢复无偏性。**HMC**（哈密顿蒙特卡洛）则是其自然的欠阻尼动量版本。
 
@@ -205,7 +205,7 @@ def sgld(grad_log_prior, grad_log_likelihood, x0, data,
             samples.append(x.copy())
 
     return np.array(samples)
-```
+```text
 
 在实践中，SGLD 已成为“大规模贝叶斯深度学习”的核心引擎——它复用了与标准 SGD 完全相同的底层小批量训练基础设施。每一步的计算开销与常规训练完全一致；唯一新增的操作就是注入噪声项 $\sqrt{\eta_k}\,\xi_k$。当然，这也带来权衡：有限的步长会引入渐近偏差；而判断采样是否收敛，则需持续监控梯度估计器中“噪声”与“信号”的比值。
 
@@ -280,7 +280,7 @@ def svgd_step(x, score, eta=0.05):
     grad_K = -(x[:, None] - x[None, :]) / h**2 * K[..., None]
     phi = (K @ score - grad_K.sum(axis=0)) / n
     return x + eta * phi
-```
+```text
 
 在粒子数趋于无穷的极限下，SVGD 满足 PDE：
 $$\partial_t p \;=\; -\nabla\!\cdot\!\bigl(p\, v[p]\bigr),\qquad v[p](x) = \mathbb{E}_{y \sim p}\!\bigl[k(y,x)\nabla\log p^\star(y) + \nabla_y k(y,x)\bigr],$$
@@ -324,7 +324,7 @@ def svgd_adaptive(x, score_fn, eta=0.05, k_neighbors=5):
     # SVGD 更新步
     phi = (K @ score + grad_K.sum(axis=0)) / n
     return x + eta * phi
-```
+```text
 
 **香蕉形后验分布示例**：考虑二维分布  
 $$p^\star(x_1, x_2) \propto \exp\bigl(-\frac{1}{2}(x_1^2/s_1^2 + (x_2 - x_1^2)^2/s_2^2)\bigr)$$  
@@ -367,15 +367,12 @@ $$
 ```python
 import numpy as np
 
-# 生成训练数据：在 x=1 到 x=3 之间刻意留出空缺
 np.random.seed(42)
 x_left = np.random.uniform(-2, 1, 40)   # 左侧数据点（x ∈ [-2, 1)）
 x_right = np.random.uniform(3, 6, 40)   # 右侧数据点（x ∈ (3, 6]）
 x_train = np.concatenate([x_left, x_right])
 y_train = np.sin(x_train) + 0.1 * np.random.randn(len(x_train))  # 添加高斯噪声
 
-# 简单的单隐层网络：输入 → 20 个神经元 → 输出
-# 总参数量：20×1（W₁） + 20（b₁） + 1×20（W₂） + 1（b₂） = 61
 def init_weights():
     W1 = np.random.randn(20, 1) * 0.5   # 输入到隐层权重（20×1）
     b1 = np.zeros(20)                    # 隐层偏置（20 维）
@@ -412,7 +409,6 @@ def grad_log_posterior(params, x_batch, y_batch, N, sigma_y=0.1, sigma_w=1.0):
     grad = (N / B) * grad - params / sigma_w**2
     return grad
 
-# SGLD 后验采样
 def sgld_bnn(x_train, y_train, n_steps=20000, batch_size=16, eta=1e-4):
     N = len(x_train)
     params = init_weights()
@@ -430,16 +426,13 @@ def sgld_bnn(x_train, y_train, n_steps=20000, batch_size=16, eta=1e-4):
 
     return np.array(posterior_samples)
 
-# 执行采样并计算预测统计量
 samples = sgld_bnn(x_train, y_train)
 x_test = np.linspace(-3, 7, 200)
 predictions = np.array([forward(s, x_test) for s in samples])
 
 mean_pred = predictions.mean(axis=0)      # 预测均值
 std_pred = predictions.std(axis=0)        # 预测标准差（即后验预测不确定性）
-# std_pred 在区间 [1, 3] 内达到峰值 —— 这正是数据空缺区域
-# 该不确定性属于认知不确定性（epistemic uncertainty）：模型清楚地知道自己“不知道什么”
-```
+```text
 
 该结果展现了贝叶斯推断的核心优势：**校准良好的不确定性估计**。在空缺区域 $x \in [1, 3]$ 中，后验预测标准差比数据密集区高出 3–5 倍。相比之下，使用标准 SGD 训练的点估计网络（point-estimate network）会自信地、但毫无依据地在空缺处进行插值，且完全无法提示用户其预测结果并不可靠。
 
@@ -463,7 +456,7 @@ def langevin(grad_U, x0, eta=1e-3, n_steps=10000):
         x = x - eta*grad_U(x) + np.sqrt(2*eta)*np.random.randn(*x.shape)
         samples.append(x.copy())
     return np.array(samples)
-```
+```text
 
 实践中会遇到三个典型问题：
 

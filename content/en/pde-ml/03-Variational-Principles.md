@@ -102,14 +102,12 @@ def descent_time(y_vals, x_vals):
 
 N = 200
 x = np.linspace(0, x_B, N)
-# Cycloid (parametric, interpolated onto uniform x grid)
 theta = np.linspace(0, np.pi, 1000)
 R = y_B / 2
 x_cyc = R * (theta - np.sin(theta))
 y_cyc = R * (1 - np.cos(theta))
 y_cycloid = np.interp(x, x_cyc, y_cyc)
 
-# Competitors
 y_line = y_B / x_B * x
 y_parabola = y_B * (x / x_B)**2
 y_cubic = y_B * (x / x_B)**3
@@ -117,11 +115,7 @@ y_cubic = y_B * (x / x_B)**3
 for name, y in [("Cycloid", y_cycloid), ("Line", y_line),
                 ("Parabola", y_parabola), ("Cubic", y_cubic)]:
     print(f"{name:12s}  T = {descent_time(y, x):.4f} s")
-# Cycloid       T = 0.7854 s   <-- minimum
-# Line          T = 0.8886 s
-# Parabola      T = 0.8187 s
-# Cubic         T = 0.8054 s
-```
+```sql
 
 The cycloid wins by 10-15% — not a small margin. Notice how steep initial descent (the cubic) helps, but is still suboptimal because it takes too shallow a path near the end. The cycloid balances gravity-driven acceleration against path length, exactly as the Euler-Lagrange equation demands.
 
@@ -167,8 +161,7 @@ for step in range(5000):
     u[0] = u[-1] = 0  # Dirichlet BC
 
 print(f"Energy: {energies[0]:.2f} -> {energies[-1]:.4f}")
-# Energy: 54.78 -> 0.0001  (monotone decrease, as predicted)
-```
+```text
 
 The Dirichlet energy decreases monotonically at *every* time step — never rises, not even by a floating-point fluctuation. This is not a numerical coincidence; it is the defining property of a gradient flow. Every PDE we meet in this article shares this structure: identify the energy, follow its steepest descent, and the resulting PDE is physically meaningful.
 
@@ -212,14 +205,11 @@ def wasserstein_2_1d(samples_a, samples_b):
         b_sorted = np.quantile(samples_b, q)
     return np.sqrt(np.mean((a_sorted - b_sorted)**2))
 
-# Example: two Gaussians
 rng = np.random.default_rng(42)
 p = rng.normal(0, 1, 10000)
 q = rng.normal(3, 2, 10000)
 print(f"W_2(N(0,1), N(3,2)) = {wasserstein_2_1d(p, q):.3f}")
-# Exact value: sqrt(9 + (2-1)^2) = sqrt(10) ~ 3.162
-# W_2(N(0,1), N(3,2)) = 3.163
-```
+```text
 
 The 1D sorting trick gives the *exact* optimal transport at $O(n \log n)$ cost. In higher dimensions, computing $W_2$ requires solving a linear program or using entropic regularisation (Sinkhorn's algorithm), which is far more expensive.
 
@@ -265,15 +255,13 @@ def jko_particles(particles, V_grad, tau, n_steps):
         history.append(particles.copy())
     return history
 
-# Double-well potential V(x) = (x^2 - 1)^2
 V_grad = lambda x: 4 * x * (x**2 - 1)
 rng = np.random.default_rng(0)
 x0 = rng.normal(2.0, 0.3, 2000)  # start far from equilibrium
 traj = jko_particles(x0, V_grad, tau=0.01, n_steps=500)
 print(f"Mean: {traj[0].mean():.2f} -> {traj[-1].mean():.2f}")
 print(f"Std:  {traj[0].std():.2f} -> {traj[-1].std():.2f}")
-# Particles spread from the initial cluster into the double-well basins
-```
+```sql
 
 The particles flow downhill in the potential landscape while spreading out (the entropy term acts as repulsion). This is exactly the Fokker-Planck dynamics discretised at the particle level — each particle follows the gradient of the *functional derivative* $\delta\mathcal{F}/\delta\rho = V + \log\rho + 1$, which includes both the external force $-\nabla V$ and the entropic pressure $-\nabla\log\rho$.
 
@@ -352,10 +340,7 @@ for m in [20, 200, 2000]:
     w_final = snaps[max(snaps.keys())]
     print(f"m={m:4d}: final weight std={w_final.std():.3f}, "
           f"range=[{w_final.min():.2f}, {w_final.max():.2f}]")
-# m=  20: final weight std=1.523, range=[-3.12, 2.87]
-# m= 200: final weight std=0.891, range=[-2.54, 2.41]
-# m=2000: final weight std=0.614, range=[-2.11, 2.03]
-```
+```sql
 
 At $m = 2000$, the weight histogram is nearly indistinguishable from a smooth KDE — the mean-field limit is already visible. The narrowing standard deviation reflects the fact that, in the mean-field regime, the overall weight scale shrinks as $O(1/\sqrt{m})$ while individual weights move $O(1)$ relative to their initial values.
 
@@ -434,7 +419,6 @@ class SimpleVAE(nn.Module):
         kl = -0.5 * torch.sum(1 + logvar - mu**2 - logvar.exp()) / x.shape[0]
         return recon_loss, kl, recon_loss + kl
 
-# Generate 4-mode mixture data
 centers = torch.tensor([[2,2],[-2,2],[2,-2],[-2,-2]], dtype=torch.float)
 data = centers[torch.randint(4, (2000,))] + 0.3 * torch.randn(2000, 2)
 
@@ -445,11 +429,7 @@ for epoch in range(2000):
     opt.zero_grad(); loss.backward(); opt.step()
     if epoch % 500 == 0:
         print(f"Epoch {epoch:4d}: recon={recon:.3f}, KL={kl:.3f}, ELBO={loss:.3f}")
-# Epoch    0: recon=8.234, KL=0.012, ELBO=8.246
-# Epoch  500: recon=0.421, KL=3.127, ELBO=3.548
-# Epoch 1000: recon=0.198, KL=4.851, ELBO=5.049
-# Epoch 1500: recon=0.152, KL=5.234, ELBO=5.386
-```
+```sql
 
 The trade-off is visible in the numbers: as reconstruction improves, the KL term *increases* because the encoder pushes the latent codes further from the standard normal to encode cluster identity. The ELBO initially decreases (better reconstruction outweighs the KL penalty) but eventually the KL term dominates. This tension is the variational principle at work — the optimal $q(z|x)$ balances fidelity against regularity, exactly as a Ritz functional balances boundary fit against smoothness.
 

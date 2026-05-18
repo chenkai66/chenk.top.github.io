@@ -25,7 +25,6 @@ Answering these questions requires **joint distributions** — the mathematical 
 
 ## Joint Distributions: Discrete Case
 
-
 ![Joint PMF table](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-joint-pmf.png)
 
 ### Joint PMF
@@ -98,7 +97,6 @@ Given $Y = y$, $X$ is uniformly distributed on $(0, y)$. This makes sense: the c
 
 ## Independence
 
-
 ![Independence vs dependence linked chains vs free floating ev](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/04-independence-vs-dependence-linked-chains-vs-free-floating-ev.jpg)
 
 Random variables $X$ and $Y$ are **independent** if and only if their joint distribution factors:
@@ -112,7 +110,6 @@ In the example above, $f(x, y) = 6(1-y)$ on a triangular region $\{0 < x < y < 1
 **A second check for independence.** Even if the support is rectangular, the joint PDF must factor as a product $g(x)h(y)$. For instance, $f(x,y) = 4xy$ on $[0,1]^2$ factors as $(2x)(2y)$, so $X$ and $Y$ are independent with $f_X(x) = 2x$ and $f_Y(y) = 2y$. But $f(x,y) = 2(x+y)$ on $[0,1]^2$ does not factor (there's a cross-term), so $X$ and $Y$ are dependent despite having rectangular support.
 
 ## The Bivariate Normal Distribution
-
 
 ![Joint probability distribution as 3d terrain map with margin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/04-joint-probability-distribution-as-3d-terrain-map-with-margin.jpg)
 
@@ -210,7 +207,6 @@ Given $n$ i.i.d. random variables $X_1, \ldots, X_n$, the **order statistics** a
 
 ![Order statistics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-order-statistics.png)
 
-
 - $X_{(1)} = \min(X_1, \ldots, X_n)$
 - $X_{(n)} = \max(X_1, \ldots, X_n)$
 - $X_{(k)}$ is the $k$-th smallest value
@@ -242,7 +238,6 @@ from scipy import stats
 
 fig, axes = plt.subplots(2, 3, figsize=(16, 10))
 
-# Bivariate normals with different correlations
 rhos = [-0.8, 0, 0.8]
 for idx, rho in enumerate(rhos):
     ax = axes[0, idx]
@@ -271,7 +266,6 @@ for idx, rho in enumerate(rhos):
     ax.set_title(f'Bivariate Normal, $\\rho$ = {rho}', fontsize=13)
     ax.set_aspect('equal')
 
-# Marginal and conditional illustration
 ax = axes[1, 0]
 rho = 0.7
 mean = [0, 0]
@@ -280,7 +274,6 @@ np.random.seed(42)
 samples = np.random.multivariate_normal(mean, cov, 2000)
 ax.scatter(samples[:, 0], samples[:, 1], alpha=0.2, s=8, c='gray')
 
-# Highlight conditional: X | Y = 1
 y_val = 1.0
 mask = np.abs(samples[:, 1] - y_val) < 0.15
 ax.scatter(samples[mask, 0], samples[mask, 1], c='red', s=15, alpha=0.7,
@@ -294,7 +287,6 @@ ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.legend(fontsize=9)
 
-# Order statistics
 ax = axes[1, 1]
 np.random.seed(42)
 n_values = [2, 5, 10, 20]
@@ -308,7 +300,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-# Convolution: sum of exponentials
 ax = axes[1, 2]
 x = np.linspace(0, 10, 300)
 lam = 1.0
@@ -324,7 +315,7 @@ ax.legend()
 plt.tight_layout()
 plt.savefig('joint_distributions.png', dpi=150)
 plt.show()
-```
+```sql
 
 The top row shows how correlation $\rho$ shapes the bivariate normal: negative correlation tilts the ellipse one way, zero correlation gives a circle (independent), and positive correlation tilts the other way. The bottom row illustrates conditional distributions (the red slice), order statistics (how the maximum shifts toward 1 as $n$ grows), and convolutions (sums of exponentials becoming Gamma distributions).
 

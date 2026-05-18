@@ -27,7 +27,6 @@ This article lays the groundwork. We'll define precisely what a "probability" is
 
 ## Sample Spaces, Events, and Sigma-Algebras
 
-
 ![Sample space visualization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-sample-space.png)
 
 ### The Sample Space
@@ -65,7 +64,6 @@ A **probability measure** $P$ on $(\Omega, \mathcal{F})$ is a function $P: \math
 
 ![Kolmogorov axioms](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-kolmogorov-axioms.png)
 
-
 **Axiom 1 (Non-negativity).** For every event $A \in \mathcal{F}$,
 $$P(A) \geq 0.$$
 **Axiom 2 (Normalization).** The probability of the entire sample space is 1:
@@ -92,13 +90,11 @@ $$P(A \cup B) = P(A) + P(B) - P(A \cap B).$$
 
 ## Conditional Probability
 
-
 ![Probability sample space as a cosmic universe of possible ou](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/01-probability-sample-space-as-a-cosmic-universe-of-possible-ou.jpg)
 
 Knowing that some event $B$ has occurred changes our beliefs about other events. This is captured by **conditional probability**.
 
 ![Conditional probability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-conditional-probability.png)
-
 
 **Definition.** If $P(B) > 0$, the conditional probability of $A$ given $B$ is
 $$P(A \mid B) = \frac{P(A \cap B)}{P(B)}.$$
@@ -115,7 +111,6 @@ $$P(A_1 \cap A_2 \cap \cdots \cap A_n) = P(A_1) \, P(A_2 \mid A_1) \, P(A_3 \mid
 A standard deck has 52 cards. What is the probability of drawing two aces in a row (without replacement)?
 $$P(\text{Ace}_1 \cap \text{Ace}_2) = P(\text{Ace}_1) \cdot P(\text{Ace}_2 \mid \text{Ace}_1) = \frac{4}{52} \cdot \frac{3}{51} = \frac{12}{2652} = \frac{1}{221} \approx 0.00452.$$
 ## The Law of Total Probability
-
 
 ![Bayes theorem detective updating beliefs with new evidence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/01-bayes-theorem-detective-updating-beliefs-with-new-evidence.jpg)
 
@@ -266,7 +261,6 @@ $$\binom{k + n - 1}{n - 1} = \binom{k + n - 1}{k}.$$
 
 ![Birthday problem curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-birthday-problem.png)
 
-
 This is easier to compute via the complement: let $A$ be "at least one shared birthday," so $A^c$ is "all birthdays distinct."
 $$P(A^c) = \frac{365}{365} \cdot \frac{364}{365} \cdot \frac{363}{365} \cdots \frac{365 - n + 1}{365} = \prod_{k=0}^{n-1} \frac{365 - k}{365}.$$
 Therefore:
@@ -315,12 +309,10 @@ def birthday_simulation(n, days=365, trials=100_000):
             collisions += 1
     return collisions / trials
 
-# Compute exact probabilities for n = 1..80
 ns = np.arange(1, 81)
 exact = [birthday_exact(n) for n in ns]
 approx = [1 - np.exp(-n * (n - 1) / 730) for n in ns]
 
-# Simulate a few key values
 sim_ns = [10, 20, 23, 30, 40, 50, 60, 70]
 sim_probs = [birthday_simulation(n) for n in sim_ns]
 
@@ -340,7 +332,7 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('birthday_problem.png', dpi=150)
 plt.show()
-```
+```sql
 
 Running this simulation confirms the exact calculation: at $n = 23$, the probability is approximately 0.507, and at $n = 50$ it exceeds 0.97. The green dots from the Monte Carlo simulation cluster tightly around the blue exact curve, illustrating that randomness is predictable in aggregate even when individual outcomes are not.
 
@@ -382,7 +374,6 @@ The host's action gives you information. Before the host opens a door, Door 1 ha
 **Why this problem matters beyond game shows:** The Monty Hall problem illustrates a general principle: **conditioning on information changes probabilities in ways that depend on the mechanism generating the information.** The host's choice was constrained (never reveal the car), and this constraint is what makes switching advantageous. In machine learning, analogous situations arise in selection bias, survivorship bias, and collider bias in causal inference.
 
 ```python
-# Monty Hall simulation
 import numpy as np
 
 def monty_hall_sim(n_trials=100_000):
@@ -398,7 +389,7 @@ def monty_hall_sim(n_trials=100_000):
     print(f"Switch wins: {switch_wins/n_trials:.4f} (theory: 0.6667)")
 
 monty_hall_sim()
-```
+```sql
 
 ## Probability as a Measure of Belief
 

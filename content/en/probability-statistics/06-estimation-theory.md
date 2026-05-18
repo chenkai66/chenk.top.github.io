@@ -29,7 +29,6 @@ Suppose we observe data $x_1, x_2, \ldots, x_n$ drawn i.i.d. from some distribut
 
 ![Confidence intervals](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-confidence-interval.png)
 
-
 An **estimator** $\hat{\theta}$ is a function of the data: $\hat{\theta} = g(X_1, \ldots, X_n)$. It is a random variable (since the data are random). An **estimate** is the numerical value $\hat{\theta}(x_1, \ldots, x_n)$ obtained from a specific dataset.
 
 **Notation convention:** $\hat{\theta}$ (hat) denotes an estimator/estimate. $\theta$ (no hat) denotes the true parameter.
@@ -74,7 +73,6 @@ A statistic $T(X_1, \ldots, X_n)$ is **sufficient** for $\theta$ if the conditio
 
 ## Method of Moments
 
-
 ![Maximum likelihood estimation mountain climber finding the p](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/06-maximum-likelihood-estimation-mountain-climber-finding-the-p.jpg)
 
 The simplest estimation method: match sample moments to population moments.
@@ -92,9 +90,7 @@ Method of moments estimators are easy to compute but generally not the most effi
 
 ## Maximum Likelihood Estimation
 
-
 ![Estimation methods comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-estimation-comparison.png)
-
 
 ![Bias variance tradeoff archery target scattered vs centered](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/06-bias-variance-tradeoff-archery-target-scattered-vs-centered-.jpg)
 
@@ -168,7 +164,6 @@ Under regularity conditions (smooth, identifiable model):
 **Warning:** Invariance is a property of the MLE, not of unbiased estimators in general. If $\hat{\theta}$ is unbiased for $\theta$, $g(\hat{\theta})$ is generally **not** unbiased for $g(\theta)$ (by Jensen's inequality, unless $g$ is linear).
 
 ## Fisher Information and the Cramer-Rao Bound
-
 
 ![Fisher information](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-fisher-information.png)
 
@@ -256,11 +251,9 @@ from scipy import stats
 
 np.random.seed(42)
 
-# True function
 def f_true(x):
     return np.sin(2 * np.pi * x)
 
-# Generate datasets and fit polynomials of different degrees
 n_train = 20
 n_datasets = 200
 x_test = np.linspace(0, 1, 100)
@@ -303,12 +296,11 @@ plt.suptitle('Bias-Variance Tradeoff: Polynomial Regression', fontsize=14, y=1.0
 plt.tight_layout()
 plt.savefig('bias_variance.png', dpi=150, bbox_inches='tight')
 plt.show()
-```
+```sql
 
 The visualization shows the tradeoff directly. At degree 1 (underfitting), the mean prediction (red) is far from the true function (black dashed) — high bias — but the individual fits (blue) cluster tightly — low variance. At degree 19 (overfitting), the mean prediction matches the true function well — low bias — but individual fits are wildly different — high variance. The sweet spot is somewhere in between.
 
 ```python
-# Compute bias-variance tradeoff curve
 degrees = range(1, 20)
 biases = []
 variances = []
@@ -340,7 +332,7 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('bias_variance_curve.png', dpi=150)
 plt.show()
-```
+```sql
 
 ## Sufficient Statistics and Data Reduction
 

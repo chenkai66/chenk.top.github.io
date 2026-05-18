@@ -148,7 +148,7 @@ class PIDController:
             self.integral -= error * dt
             u = self.u_min
         return u
-```
+```sql
 
 ---
 
@@ -226,7 +226,7 @@ B = np.array([[0], [1], [0], [-2]])
 K_pp = place_poles(A, B, [-1, -2, -3, -4]).gain_matrix
 print('Pole-placement gain K =', K_pp)
 print('Closed-loop eigenvalues =', np.linalg.eigvals(A - B @ K_pp))
-```
+```sql
 
 **LQR** (linear quadratic regulator) instead chooses $K$ to *minimise* a quadratic cost
 $$J \;=\; \int_0^\infty \bigl(\mathbf x^T Q \mathbf x + \mathbf u^T R \mathbf u\bigr)\,dt,$$
@@ -239,7 +239,7 @@ Q = np.diag([10, 1, 100, 1])      # penalise position and angle heavily
 R = np.array([[1.0]])              # modest control penalty
 P = solve_continuous_are(A, B, Q, R)
 K_lqr = np.linalg.solve(R, B.T @ P)
-```
+```sql
 
 Compared to pole placement, LQR almost always uses less actuator effort to achieve the same disturbance rejection — and its gains are guaranteed to be stabilising whenever $(A, B)$ is stabilisable and $(A, \sqrt{Q})$ is detectable.
 

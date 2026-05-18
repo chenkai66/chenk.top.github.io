@@ -20,7 +20,6 @@ translationKey: "linear-algebra-7"
 ---
 ![Essence of Linear Algebra (7): Orthogonality and Projections — When Vectors Mind Their Own Business — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/illustration_1.png)
 
-
 ---
 
 ## Why Orthogonality Matters
@@ -229,7 +228,7 @@ def modified_gram_schmidt(A):
             R[j, k] = Q[:, j] @ Q[:, k]
             Q[:, k] = Q[:, k] - R[j, k] * Q[:, j]
     return Q, R
-```
+```sql
 
 For production work, prefer **Householder reflections** (used inside `numpy.linalg.qr`) — they are even more stable.
 
@@ -275,7 +274,7 @@ Q, R = qr_decomposition(A)
 print("Q =\n", Q)
 print("R =\n", R)
 print("Verify A = QR:\n", Q @ R)
-```
+```text
 
 ---
 
@@ -311,11 +310,10 @@ y = np.array([2.1, 3.9, 6.2, 7.8, 10.1])
 
 A = np.column_stack([np.ones(len(x)), x])  # design matrix
 
-# QR-based solve (preferred)
 Q, R = np.linalg.qr(A)
 coeffs = np.linalg.solve(R, Q.T @ y)
 print(f"Best fit: y = {coeffs[0]:.4f} + {coeffs[1]:.4f}x")
-```
+```sql
 
 ### Weighted Least Squares
 
@@ -403,7 +401,7 @@ A = np.array([[1, 1, 0],
               [0, 1, 1]], dtype=float).T
 Q = gram_schmidt(A)
 print("Q^T Q (should be I):\n", np.round(Q.T @ Q, 10))
-```
+```text
 
 ### Least Squares via QR
 
@@ -417,7 +415,7 @@ x = np.array([1, 2, 3, 4, 5])
 y = np.array([2.1, 3.9, 6.2, 7.8, 10.1])
 A = np.column_stack([np.ones(len(x)), x])
 print(least_squares_qr(A, y))
-```
+```text
 
 ### Visualizing a Projection
 
@@ -436,7 +434,7 @@ ax.quiver(0, 0, *proj, angles='xy', scale_units='xy', scale=1, color='red', labe
 ax.quiver(*proj, *err, angles='xy', scale_units='xy', scale=1, color='orange', label='error')
 ax.set_xlim(-1, 5); ax.set_ylim(-1, 5); ax.set_aspect('equal'); ax.grid(True); ax.legend()
 plt.show()
-```
+```sql
 
 ---
 

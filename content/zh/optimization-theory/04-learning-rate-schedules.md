@@ -263,7 +263,7 @@ def lr_range_test(model, loader, loss_fn, optimizer,
         for g in optimizer.param_groups:
             g["lr"] = lr
     return lrs, losses
-```
+```text
 
 工程实现上更稳的做法是给 loss 加一个指数滑动平均，并且在 loss 超过历史最低值 $4\times$ 时自动停止——`fastai` 里 `lr_find()` 就是这么写的。
 
@@ -303,7 +303,7 @@ def layer_wise_param_groups(model, base_lr=3e-4, decay=0.8):
                        "lr": base_lr * (decay ** (n - 1 - i))})
     groups.append({"params": model.classifier.parameters(), "lr": base_lr})
     return groups
-```
+```python
 
 LLM 微调里同样的思路换了几张皮：
 
@@ -455,7 +455,7 @@ def lr_warmup_cosine(step, total_steps, warmup_steps, lr_max, lr_min=0.0):
     T = max(1, total_steps - warmup_steps)
     cos = 0.5 * (1.0 + math.cos(math.pi * t / T))
     return lr_min + (lr_max - lr_min) * cos
-```
+```text
 
 ### 预热 + 稳定 + 衰减 (WSD)
 
@@ -472,7 +472,7 @@ def lr_wsd(step, total_steps, warmup_steps, cooldown_steps,
     T = max(1, cooldown_steps)
     frac = min(1.0, (t + 1) / T)
     return lr_max + (lr_min - lr_max) * frac
-```
+```text
 
 ### 接到训练循环里
 
@@ -496,7 +496,7 @@ def train_one_epoch(model, loader, optimizer, step_offset, total_steps,
         optimizer.step()
         step += 1
     return step
-```
+```text
 
 典型配置：
 
@@ -507,7 +507,7 @@ schedule_fn = lambda s, T: lr_wsd(
     cooldown_steps=int(0.10 * T),
     lr_max=3e-4, lr_min=3e-5,
 )
-```
+```text
 
 ---
 

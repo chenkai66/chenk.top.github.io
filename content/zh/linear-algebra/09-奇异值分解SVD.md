@@ -21,7 +21,6 @@ polished_by_qwen_max: true
 ---
 ![线性代数（九）：奇异值分解 SVD — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/09-奇异值分解SVD/illustration_1.png)
 
-
 ---
 
 ## 一、为什么 SVD 配得上“皇冠”二字
@@ -240,12 +239,11 @@ def compress(img, k):
     U, s, Vt = np.linalg.svd(img, full_matrices=False)
     return U[:, :k] @ np.diag(s[:k]) @ Vt[:k, :]
 
-# 诊断：每个 k 保留多少能量？
 U, s, Vt = np.linalg.svd(img, full_matrices=False)
 for k in [5, 20, 50, 100]:
     energy = (s[:k] ** 2).sum() / (s ** 2).sum() * 100
     print(f"k={k:>3}: 能量保留 {energy:.1f}%")
-```
+```text
 
 ## 六、伪逆
 
@@ -281,14 +279,13 @@ $$
 ```python
 import numpy as np
 
-# 用伪逆实现最小二乘拟合 y = a x + b
 x = np.linspace(-2, 4, 25)
 y = 1.2 * x + 0.4 + np.random.default_rng(0).normal(0, 1, 25)
 
 A = np.column_stack([x, np.ones_like(x)])
 coef = np.linalg.pinv(A) @ y          # 内部使用 SVD
 print(f"斜率={coef[0]:.3f}  截距={coef[1]:.3f}")
-```
+```text
 
 ## 七、用 SVD 实现 PCA
 
@@ -324,7 +321,7 @@ def pca(X, k):
     scores = Xc @ components.T             # n x k
     var = (s ** 2) / (X.shape[0] - 1)
     return scores, components, (var / var.sum())[:k]
-```
+```text
 
 ## 八、推荐系统
 
@@ -405,7 +402,7 @@ A = np.array([[3.0, 2.0], [2.0, 3.0]])
 U, s, Vt = svd_via_eigen(A)
 print("奇异值:", s)
 print("重建:\n", U @ np.diag(s) @ Vt)
-```
+```text
 
 ### 图像压缩演示
 
@@ -424,8 +421,7 @@ def plot_compression(img, ks):
         ax.set_title(f"k={k}  ({energy:.0f}%)"); ax.axis("off")
     plt.tight_layout(); plt.show()
 
-# plot_compression(your_grayscale_image, [5, 20, 50, 100])
-```
+```text
 
 ---
 

@@ -26,7 +26,6 @@ Hypothesis testing is the formal framework for answering this question. It's als
 
 ## The Framework
 
-
 ![Statistical power curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-power-curve.png)
 
 ### Setting Up the Hypotheses
@@ -49,7 +48,6 @@ A **test statistic** $T = T(X_1, \ldots, X_n)$ summarizes the data into a single
 
 ![Rejection regions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-rejection-region.png)
 
-
 The **rejection region** $R$ is a set of values of $T$ for which we reject $H_0$:
 
 - If $T \in R$: reject $H_0$
@@ -70,7 +68,6 @@ Common choices: $\alpha = 0.05, 0.01, 0.001$. The rejection region is chosen to 
 
 ![Type I and Type II errors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-error-types.png)
 
-
 - **Type I error rate** = $\alpha$ = P(reject $H_0$ | $H_0$ true)
 - **Type II error rate** = $\beta$ = P(fail to reject $H_0$ | $H_0$ false)
 - **Power** = $1 - \beta$ = P(reject $H_0$ | $H_0$ false)
@@ -86,7 +83,6 @@ We control Type I error directly (by choosing $\alpha$). Power depends on:
 Decreasing $\alpha$ reduces false positives but increases false negatives ($\beta$ goes up, power goes down). You can't minimize both simultaneously with a fixed sample size. The only free lunch is more data.
 
 ## The p-Value
-
 
 ![Ab testing laboratory two beakers being compared scientific](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/07-ab-testing-laboratory-two-beakers-being-compared-scientific-.jpg)
 
@@ -218,7 +214,6 @@ This controls $\text{FDR} \leq \alpha$ and is much more powerful than Bonferroni
 
 ## A/B Testing
 
-
 ![A/B test design](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-ab-test.png)
 
 ### The Setup
@@ -254,23 +249,19 @@ import matplotlib.pyplot as plt
 
 np.random.seed(42)
 
-# Example 1: One-sample t-test
 data = np.random.normal(loc=10.2, scale=0.5, size=25)
 t_stat, p_value = stats.ttest_1samp(data, popmean=10.0)
 print(f"One-sample t-test: t = {t_stat:.4f}, p = {p_value:.4f}")
 
-# Example 2: Two-sample t-test (Welch's)
 group_a = np.random.normal(loc=5.0, scale=1.0, size=30)
 group_b = np.random.normal(loc=5.5, scale=1.2, size=35)
 t_stat, p_value = stats.ttest_ind(group_a, group_b, equal_var=False)
 print(f"Two-sample t-test: t = {t_stat:.4f}, p = {p_value:.4f}")
 
-# Example 3: Chi-squared test
 observed = np.array([[30, 10], [15, 25]])
 chi2, p_value, dof, expected = stats.chi2_contingency(observed)
 print(f"Chi-squared test: chi2 = {chi2:.4f}, p = {p_value:.4f}, dof = {dof}")
 
-# Example 4: A/B test
 n_A, n_B = 5000, 5000
 conversions_A, conversions_B = 500, 560
 p_A = conversions_A / n_A
@@ -283,10 +274,8 @@ print(f"A/B test: z = {z:.4f}, p = {p_value:.4f}")
 print(f"  Lift: {p_B - p_A:.4f} ({(p_B - p_A)/p_A*100:.1f}%)")
 print(f"  95% CI for lift: [{p_B-p_A-1.96*se:.4f}, {p_B-p_A+1.96*se:.4f}]")
 
-# Visualization: p-value under null hypothesis
 fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 
-# Panel 1: p-value illustration
 ax = axes[0]
 x = np.linspace(-4, 4, 300)
 ax.plot(x, stats.norm.pdf(x), 'b-', linewidth=2)
@@ -302,16 +291,12 @@ ax.set_xlabel('Test statistic')
 ax.set_ylabel('Density under $H_0$')
 ax.legend(fontsize=10)
 
-# Panel 2: Power illustration
 ax = axes[1]
 x = np.linspace(-4, 6, 300)
-# Null distribution
 ax.plot(x, stats.norm.pdf(x, 0, 1), 'b-', linewidth=2, label='$H_0$: $\\mu = 0$')
-# Alternative distribution
 delta = 2.0
 ax.plot(x, stats.norm.pdf(x, delta, 1), 'r-', linewidth=2,
         label=f'$H_1$: $\\mu = {delta}$')
-# Critical value
 z_crit = 1.645  # one-sided alpha = 0.05
 ax.axvline(z_crit, color='gray', linestyle='--')
 ax.fill_between(x[x >= z_crit], stats.norm.pdf(x[x >= z_crit], delta, 1),
@@ -322,7 +307,6 @@ ax.set_title('Power of a Test', fontsize=13)
 ax.set_xlabel('Test statistic')
 ax.legend(fontsize=9)
 
-# Panel 3: Multiple testing
 ax = axes[2]
 m_tests = np.arange(1, 101)
 fwer = 1 - (1 - 0.05)**m_tests
@@ -340,10 +324,8 @@ plt.show()
 ```
 
 ```python
-# Demonstrate Benjamini-Hochberg FDR control
 from scipy.stats import false_discovery_control
 
-# Simulate: 100 tests, 10 true effects (mu=3), 90 null (mu=0)
 np.random.seed(42)
 n_tests = 100
 n_true_effects = 10
@@ -365,14 +347,11 @@ for i in range(n_tests):
 p_values = np.array(p_values)
 truth = np.array(truth)
 
-# Bonferroni
 bonferroni_reject = p_values < 0.05 / n_tests
 
-# Benjamini-Hochberg
 sorted_idx = np.argsort(p_values)
 bh_threshold = np.arange(1, n_tests + 1) / n_tests * 0.05
 bh_reject_sorted = p_values[sorted_idx] <= bh_threshold
-# Find largest k where p_(k) <= k/m * alpha
 if bh_reject_sorted.any():
     k = np.max(np.where(bh_reject_sorted)[0]) + 1
     bh_reject = np.zeros(n_tests, dtype=bool)
@@ -391,19 +370,17 @@ print(f"{'Bonferroni':<25} {bonferroni_reject.sum():>10} "
 print(f"{'Benjamini-Hochberg':<25} {bh_reject.sum():>10} "
       f"{(bh_reject & truth).sum():>10} "
       f"{(bh_reject & ~truth).sum():>10}")
-```
+```sql
 
 The output typically shows: without correction, about 5-6 false positives sneak in among the 90 nulls. Bonferroni eliminates all false positives but may miss some true effects. Benjamini-Hochberg finds most true effects while keeping false discoveries under control. This illustrates the power advantage of FDR control over FWER control.
 
 ## Effect Size: What p-Values Don't Tell You
-
 
 ![Hypothesis testing courtroom trial null hypothesis on trial](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/07-hypothesis-testing-courtroom-trial-null-hypothesis-on-trial.jpg)
 
 A p-value tells you whether an effect is statistically distinguishable from zero. It does **not** tell you how large the effect is or whether it matters.
 
 ![Effect size visualization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-effect-size.png)
-
 
 ### Cohen's d
 
@@ -453,7 +430,6 @@ from scipy import stats
 
 np.random.seed(42)
 
-# Observed data
 group_a = np.array([5.1, 4.8, 5.3, 4.9, 5.0, 5.2, 5.4, 4.7])
 group_b = np.array([5.5, 5.8, 5.3, 5.7, 5.9, 5.6, 5.4, 5.8])
 
@@ -462,7 +438,6 @@ combined = np.concatenate([group_a, group_b])
 n_a = len(group_a)
 n_perms = 100_000
 
-# Permutation test
 perm_diffs = np.zeros(n_perms)
 for i in range(n_perms):
     np.random.shuffle(combined)
@@ -472,10 +447,9 @@ p_value = np.mean(np.abs(perm_diffs) >= np.abs(observed_diff))
 print(f"Observed difference: {observed_diff:.4f}")
 print(f"Permutation p-value: {p_value:.4f}")
 
-# Compare with t-test
 t_stat, t_pval = stats.ttest_ind(group_a, group_b)
 print(f"t-test p-value: {t_pval:.4f}")
-```
+```text
 
 Permutation tests are exact (not approximate) for any test statistic, require no distributional assumptions, and are easy to implement. Their main limitation: they only test exchangeability (are the groups interchangeable under $H_0$?), which may not capture all null hypotheses of interest.
 

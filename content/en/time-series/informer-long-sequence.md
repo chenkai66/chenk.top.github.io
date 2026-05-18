@@ -178,7 +178,7 @@ class ProbSparseAttention(nn.Module):
 
         ctx = ctx.transpose(1, 2).contiguous().view(B, L_Q, self.d_model)
         return self.W_o(ctx)
-```
+```python
 
 A few subtleties:
 
@@ -218,7 +218,7 @@ class DistillingLayer(nn.Module):
         x = self.act(x)
         x = self.pool(x)
         return x.transpose(1, 2)
-```
+```sql
 
 ---
 
@@ -347,7 +347,7 @@ class Informer(nn.Module):
             dec = layer(dec, enc, self_mask=causal)
 
         return self.head(dec[:, -self.out_len:, :])  # (B, out_len, c_out)
-```
+```text
 
 For training data construction, the decoder input is built by concatenating the last `label_len` real values with `out_len` zero placeholders:
 
@@ -359,7 +359,7 @@ def build_decoder_input(x_enc, label_len, out_len):
         x_enc.size(0), out_len, x_enc.size(-1), device=x_enc.device
     )
     return torch.cat([start, placeholder], dim=1)
-```
+```sql
 
 ---
 

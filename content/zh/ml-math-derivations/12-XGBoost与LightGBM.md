@@ -338,7 +338,7 @@ class XGBoost:
         for t in self.trees:
             p += self.lr * t.predict(X)
         return p
-```
+```text
 
 整套二阶机制能在 100 行内实现，原因在于有了增益公式后，算法的核心就是不断寻找最优分裂点、递归构建树结构并重复这一过程。
 

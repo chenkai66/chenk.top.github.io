@@ -18,7 +18,6 @@ translationKey: "linear-algebra-1"
 ---
 ![Essence of Linear Algebra (1): The Essence of Vectors — More Than Just Arrows — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/illustration_1.png)
 
-
 ---
 
 ## Why Vectors, and Why Care?
@@ -119,7 +118,7 @@ v = np.array([3, 4])
 print( 2.0 * v)   # [ 6.   8. ]   stretched
 print( 0.5 * v)   # [ 1.5  2. ]   shrunk
 print(-1.0 * v)   # [-3.  -4. ]   reversed
-```
+```sql
 
 A driving analogy makes this stick. If$\vec{v}$is your current velocity, then$2\vec{v}$is doubling your speed,$0.5\vec{v}$is cruising at half-speed, and$-\vec{v}$is a U-turn at the same speed.
 
@@ -154,7 +153,6 @@ Here is the same five numbers,$\{25.3,\,65.0,\,1013,\,15.2,\,45\}$, viewed from 
 ```python
 import numpy as np
 
-# A 28x28 grayscale image becomes a 784-dimensional vector.
 image = np.array([
     [  0, 128, 255],
     [ 64, 192,  32],
@@ -162,7 +160,7 @@ image = np.array([
 ])
 image_vector = image.flatten()
 print(image_vector.shape)   # (9,)
-```
+```text
 
 Once you accept the three viewpoints as one object, very different things become *the same calculation*. Comparing two users' movie tastes, or comparing two images for similarity, or comparing two molecular fingerprints — all reduce to the same dot-product computation we are about to define.
 
@@ -175,7 +173,7 @@ carol = np.array([5, 4, 1, 1, 5])
 
 print(f"alice . bob   = {np.dot(alice, bob)}")     # 28
 print(f"alice . carol = {np.dot(alice, carol)}")   # 57  -- much closer!
-```
+```sql
 
 A famous NLP example takes this even further: words become 300-dimensional vectors trained so that$\text{king} - \text{man} + \text{woman} \approx \text{queen}$. Vector arithmetic captures meaning.
 
@@ -212,7 +210,7 @@ a = np.array([3, 4])
 b = np.array([1, 0])
 proj = (np.dot(a, b) / np.dot(b, b)) * b
 print(proj)   # [3. 0.]
-```
+```sql
 
 ### Orthogonality: Independence, Made Geometric
 
@@ -311,7 +309,7 @@ dt = 1 / 60                                # one frame at 60 fps
 
 velocity = velocity + acceleration * dt
 position = position + velocity * dt
-```
+```text
 
 That is Newtonian mechanics, discretised. Every physics engine you have ever played in a game is built on these two lines, repeated 60 times per second.
 
@@ -325,7 +323,7 @@ blue  = np.array([  0,   0, 255])
 
 purple   = (red + blue) // 2     # midpoint -> [127,   0, 127]
 dark_red = red // 2              # half-bright -> [127,   0,   0]
-```
+```sql
 
 RGB colours live in$\mathbb{R}^3$. Mixing them is literally vector arithmetic.
 
@@ -382,7 +380,7 @@ u2 = np.array([1.0, 0.0])
 v2 = np.array([1.0, 1e-9])
 c2 = np.dot(u2, v2) / (np.linalg.norm(u2) * np.linalg.norm(v2))
 print(np.arccos(c2)) # 0.0  -- WRONG, the true angle is 1e-9
-```
+```python
 
 What happened? Squaring the components inside `norm` destroyed the small coordinate ($10^{-9}$ became $10^{-18}$, below double-precision resolution near 1). Then $c$ rounded to exactly $1$, and `arccos(1) = 0`.
 

@@ -20,7 +20,6 @@ translationKey: "linear-algebra-11"
 ---
 ![Essence of Linear Algebra (11): Matrix Calculus and Optimization — The Engine Behind Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_1.png)
 
-
 ---
 
 ## From Shower Knobs to Neural Networks
@@ -408,14 +407,13 @@ def gradient_check(f, grad_f, x, epsilon=1e-5):
         np.linalg.norm(analytical) + np.linalg.norm(numerical) + 1e-10)
     return rel_error
 
-# Test: f(x) = x^T A x
 A = np.array([[2, 1], [1, 3]], dtype=float)
 f = lambda x: x @ A @ x
 grad_f = lambda x: 2 * A @ x
 
 x = np.array([1.0, 2.0])
 print(f"Relative error: {gradient_check(f, grad_f, x):.2e}")  # ~1e-10
-```
+```text
 
 A relative error below$10^{-7}$is good; below$10^{-9}$is excellent.
 
@@ -471,7 +469,7 @@ def optimize_comparison():
     plt.show()
 
 optimize_comparison()
-```
+```sql
 
 ---
 

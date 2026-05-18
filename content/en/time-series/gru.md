@@ -192,7 +192,7 @@ class GRUForecaster(nn.Module):
     def forward(self, x):                          # x: (B, T, d_in)
         out, _ = self.gru(x)
         return self.head(out[:, -1, :])            # last-step prediction
-```
+```text
 
 ### Training loop with the four stability essentials
 
@@ -213,7 +213,7 @@ def train_one_epoch(model, loader, opt, max_grad_norm=1.0, device="cuda"):
         opt.step()
         losses.append(loss.item())
     return sum(losses) / len(losses)
-```
+```sql
 
 The four essentials:
 
@@ -256,7 +256,7 @@ In about half of well-posed forecasting problems, both architectures land within
 self.bigru = nn.GRU(input_size, hidden_size, num_layers,
                     batch_first=True, bidirectional=True)
 self.head  = nn.Linear(hidden_size * 2, output_size)
-```
+```text
 
 **Attention over GRU outputs**. Replaces the "use the last hidden state" head with a learned weighted sum over all timesteps. Often gives 1--3% RMSE improvement at the cost of one extra linear layer:
 
@@ -268,7 +268,7 @@ class AttnHead(nn.Module):
     def forward(self, h_seq):                       # (B, T, H)
         w = torch.softmax(self.score(h_seq), dim=1)  # (B, T, 1)
         return (w * h_seq).sum(dim=1)                # (B, H)
-```
+```sql
 
 **Conv1D + GRU stack**. A 1D convolution as a featuriser before the GRU. The conv extracts local motifs; the GRU integrates them across time. This is the workhorse for sensor data and is usually a stronger first try than a deeper stack of GRUs.
 
@@ -291,7 +291,7 @@ packed = pack_padded_sequence(x, lengths.cpu(),
 out, _ = gru(packed)
 out, _ = pad_packed_sequence(out, batch_first=True)
 last = out[torch.arange(out.size(0)), lengths - 1]   # true last step
-```
+```sql
 
 ---
 
@@ -322,7 +322,7 @@ class StreamingGRU(nn.Module):
         # x: (1, 1, F), h: (num_layers, 1, H)
         out, h_new = self.gru(x, h)
         return self.head(out[:, -1, :]), h_new
-```
+```python
 
 Trace this with `torch.jit.script` (not `trace`, which would bake in the time dimension), and you have a deployable streaming forecaster with $O(1)$ per-tick cost.
 

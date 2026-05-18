@@ -324,7 +324,7 @@ class XGBoost:
         for t in self.trees:
             p += self.lr * t.predict(X)
         return p
-```
+```sql
 
 The whole second-order machinery fits in fewer than 100 lines because once you have the gain formula, the algorithm is just "find the best split, recurse, repeat".
 

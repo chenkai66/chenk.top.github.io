@@ -20,7 +20,6 @@ translationKey: "linear-algebra-8"
 ---
 ![Essence of Linear Algebra (8): Symmetric Matrices and Quadratic Forms — The Best Matrices in Town — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/illustration_1.png)
 
-
 ---
 
 ## Why Symmetric Matrices Are the "Best"
@@ -357,14 +356,13 @@ import numpy as np
 A = np.array([[3.0, 1.0],
               [1.0, 3.0]])
 
-# eigh is for symmetric/Hermitian matrices: real eigenvalues, orthonormal Q
 eigenvalues, Q = np.linalg.eigh(A)
 Lambda = np.diag(eigenvalues)
 
 print("Eigenvalues:", eigenvalues)
 print("Q^T Q (should be I):\n", Q.T @ Q)
 print("Reconstruction Q Lambda Q^T:\n", Q @ Lambda @ Q.T)
-```
+```text
 
 ### Cholesky Decomposition
 
@@ -376,11 +374,10 @@ L = np.linalg.cholesky(A)
 print("L:\n", L)
 print("L L^T:\n", L @ L.T)
 
-# Use Cholesky to solve A x = b in two triangular solves
 b = np.array([6.0, 5.0])
 y = np.linalg.solve_triangular(L, b, lower=True)        # not in numpy.linalg
 x = np.linalg.solve_triangular(L.T, y, lower=False)     # use scipy in practice
-```
+```text
 
 ### Quadratic Form and Its Principal Axes
 
@@ -405,7 +402,7 @@ for i in range(2):
 ax.set_aspect('equal')
 ax.set_title('Quadratic form contours and eigenvectors')
 plt.show()
-```
+```sql
 
 ---
 

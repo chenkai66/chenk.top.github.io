@@ -102,7 +102,7 @@ while queue not empty:
         Pick fractional variable z_j with value z_j^*
         Branch: queue += {P + (z_j ≤ ⌊z_j^*⌋), P + (z_j ≥ ⌈z_j^*⌉)}
 return incumbent
-```
+```sql
 
 Three key concepts:
 

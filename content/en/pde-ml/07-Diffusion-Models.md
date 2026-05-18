@@ -95,23 +95,16 @@ def make_two_moons(n=2000, noise=0.05):
 x0 = make_two_moons(5000)
 T, beta_min, beta_max = 1000, 0.0001, 0.02
 
-# Linear noise schedule
 betas = np.linspace(beta_min, beta_max, T)
 alphas = 1 - betas
 alpha_bar = np.cumprod(alphas)
 
-# Forward diffusion: x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * eps
 for t in [0, 100, 300, 500, 999]:
     eps = np.random.randn(*x0.shape)
     xt = np.sqrt(alpha_bar[t]) * x0 + np.sqrt(1 - alpha_bar[t]) * eps
     print(f"t={t:4d}: mean={xt.mean(0).round(3)}, std={xt.std(0).round(3)}, "
           f"alpha_bar={alpha_bar[t]:.4f}")
-# t=   0: mean=[ 0.5  0.2], std=[0.6 0.5], alpha_bar=0.9999
-# t= 100: mean=[ 0.5  0.2], std=[0.6 0.5], alpha_bar=0.9900
-# t= 300: mean=[ 0.4  0.1], std=[0.7 0.6], alpha_bar=0.8900
-# t= 500: mean=[ 0.2  0.1], std=[0.8 0.8], alpha_bar=0.5200
-# t= 999: mean=[ 0.0  0.0], std=[1.0 1.0], alpha_bar=0.0001
-```
+```sql
 
 At $t=0$, the data has clear two-moon structure (low variance, off-centre mean). By $t=999$, $\bar\alpha_T \approx 10^{-4}$, so $\mathbf{x}_T$ is nearly pure Gaussian noise — the low-pass filter has killed all structure.
 
@@ -223,7 +216,6 @@ def dsm_loss(model, x0, sigma):
     pred = model(x_noisy, sigma * torch.ones(x0.shape[0], 1))
     return ((pred - target)**2).mean()
 
-# Multi-scale DSM: anneal sigma during training
 sigmas = torch.logspace(start=-2, end=1, steps=10)  # 0.01 to 10
 
 model = ScoreNet()
@@ -237,7 +229,7 @@ for step in range(5000):
     opt.zero_grad(); loss.backward(); opt.step()
     if step % 1000 == 0:
         print(f"Step {step}: loss={loss.item():.4f}")
-```
+```sql
 
 The annealing over multiple noise levels is critical: small $\sigma$ gives accurate score estimates near the data but poor coverage in low-density regions; large $\sigma$ gives broad coverage but imprecise scores. The multi-scale approach gets both.
 
@@ -311,7 +303,6 @@ def ddpm_train_step(model, x0, alpha_bar, T):
     eps_pred = model(x_t, t)
     return ((eps_pred - eps)**2).mean()
 
-# Setup
 T = 1000
 betas = torch.linspace(1e-4, 0.02, T)
 alphas = 1 - betas
@@ -326,7 +317,7 @@ for step in range(10000):
     opt.zero_grad(); loss.backward(); opt.step()
     if step % 2000 == 0:
         print(f"Step {step}: loss={loss.item():.4f}")
-```
+```text
 
 The training loop is strikingly simple: pick a random timestep, add the corresponding noise, predict the noise, backpropagate. The complexity is in the architecture (here a simple MLP; for images, a U-Net with attention) and the noise schedule.
 
@@ -387,13 +378,11 @@ def ddim_sample(model, alpha_bar, n=2000, steps=50, T=1000):
         x = torch.sqrt(ab_prev) * x0_pred + torch.sqrt(1 - ab_prev) * eps_pred
     return x
 
-# Compare: DDPM (1000 steps) vs DDIM (50 steps)
 samples_ddpm = ddpm_sample(model, alpha_bar, betas, n=2000, T=T)
 samples_ddim = ddim_sample(model, alpha_bar, n=2000, steps=50, T=T)
 print(f"DDPM mean: {samples_ddpm.mean(0).numpy().round(3)}")
 print(f"DDIM mean: {samples_ddim.mean(0).numpy().round(3)}")
-# Both should recover the two-moons structure
-```
+```sql
 
 DDIM uses $20\times$ fewer model evaluations while producing comparable quality. The key difference: DDPM injects fresh noise at each step (SDE), DDIM does not (ODE). For DDIM, the same initial noise always produces the same output — this enables latent-space interpolation and inversion.
 
@@ -437,7 +426,7 @@ Bottleneck (self-attention + ResBlock)
 ResBlock → ResBlock → Upsample (×4 levels)
   ↓
 Output eps_pred (C×H×W)
-```
+```text
 
 The total parameter count for a typical image model is 100M–900M (vs ~1M for our 2D toy examples). The skip connections are essential: without them, fine spatial detail is lost in the bottleneck and the model cannot reconstruct high-frequency content — exactly the content that diffusion destroys first and must reconstruct last.
 
@@ -483,7 +472,7 @@ def guided_sample(model, alpha_bar, cond, w=7.5, steps=50, T=1000):
         x0_pred = (x - torch.sqrt(1 - ab_t) * eps_guided) / torch.sqrt(ab_t)
         x = torch.sqrt(ab_prev) * x0_pred + torch.sqrt(1 - ab_prev) * eps_guided
     return x
-```
+```sql
 
 **Why it works:** guidance amplifies the difference between "what the model generates given the prompt" and "what it generates unconditionally". This pushes samples toward regions that are *unusually likely under the condition* — tighter, more prompt-aligned generations at the cost of some diversity. Mathematically, it approximates sampling from $p(x|c)^w \cdot p(x)^{1-w}$, a sharpened conditional distribution.
 

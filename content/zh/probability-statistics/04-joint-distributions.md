@@ -237,7 +237,6 @@ from scipy import stats
 
 fig, axes = plt.subplots(2, 3, figsize=(16, 10))
 
-# Bivariate normals with different correlations
 rhos = [-0.8, 0, 0.8]
 for idx, rho in enumerate(rhos):
     ax = axes[0, idx]
@@ -266,7 +265,6 @@ for idx, rho in enumerate(rhos):
     ax.set_title(f'Bivariate Normal, $\\rho$ = {rho}', fontsize=13)
     ax.set_aspect('equal')
 
-# Marginal and conditional illustration
 ax = axes[1, 0]
 rho = 0.7
 mean = [0, 0]
@@ -275,7 +273,6 @@ np.random.seed(42)
 samples = np.random.multivariate_normal(mean, cov, 2000)
 ax.scatter(samples[:, 0], samples[:, 1], alpha=0.2, s=8, c='gray')
 
-# Highlight conditional: X | Y = 1
 y_val = 1.0
 mask = np.abs(samples[:, 1] - y_val) < 0.15
 ax.scatter(samples[mask, 0], samples[mask, 1], c='red', s=15, alpha=0.7,
@@ -289,7 +286,6 @@ ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.legend(fontsize=9)
 
-# Order statistics
 ax = axes[1, 1]
 np.random.seed(42)
 n_values = [2, 5, 10, 20]
@@ -303,7 +299,6 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-# Convolution: sum of exponentials
 ax = axes[1, 2]
 x = np.linspace(0, 10, 300)
 lam = 1.0
@@ -319,7 +314,7 @@ ax.legend()
 plt.tight_layout()
 plt.savefig('joint_distributions.png', dpi=150)
 plt.show()
-```
+```sql
 
 顶行展示了相关系数 $\rho$ 如何塑造二元正态分布：负相关使椭圆沿某一方向倾斜，零相关给出圆形（独立），正相关则朝另一方向倾斜。底行展示了条件分布（红色切片）、次序统计量（最大值随 $n$ 增大而右移）、以及卷积（指数分布之和趋近 Gamma 分布）。
 

@@ -76,18 +76,14 @@ The "gender" relation is approximately a constant direction; "royalty" is anothe
 import numpy as np
 from gensim.models import KeyedVectors
 
-# Pre-trained Google News vectors (300-d).
 model = KeyedVectors.load_word2vec_format(
     'GoogleNews-vectors-negative300.bin', binary=True)
 
-# Analogy: king is to man as ? is to woman.
 print(model.most_similar(positive=['king', 'woman'], negative=['man'], topn=1))
-# [('queen', 0.7118)]
 
-# Cosine similarity is the natural metric in embedding space.
 print(model.similarity('cat', 'dog'))   # 0.76
 print(model.similarity('cat', 'galaxy'))# 0.04
-```
+```yaml
 
 Caveat: real embeddings are 300 to 4096 dimensions, and the analogy property is statistical, not exact. The 2D picture above is a stylized illustration.
 
@@ -126,17 +122,15 @@ R = np.array([[np.cos(theta), -np.sin(theta)],
               [np.sin(theta),  np.cos(theta)]])
 X = X @ R
 
-# scikit-learn (SVD under the hood for n_components < min(n, p)).
 pca = PCA(n_components=2).fit(X)
 print(pca.components_)              # principal directions, rows are PCs
 print(pca.explained_variance_ratio_)# fraction of total variance per PC
 
-# Equivalent manual computation.
 Xc = X - X.mean(axis=0)
 U, S, Vt = np.linalg.svd(Xc, full_matrices=False)
 print(Vt)                # same up to sign
 print(S**2 / len(X))     # same variances
-```
+```sql
 
 ### Where PCA actually shows up in production
 
@@ -160,8 +154,7 @@ X, y = make_moons(n_samples=200, noise=0.1, random_state=42)
 
 X_pca  = PCA(n_components=2).fit_transform(X)
 X_kpca = KernelPCA(n_components=2, kernel='rbf', gamma=10).fit_transform(X)
-# X_kpca neatly separates the two moons; X_pca does not.
-```
+```text
 
 Kernel PCA has largely been displaced by autoencoders and t-SNE / UMAP for visualization, but it remains a clean illustration of the kernel idea on an unsupervised problem.
 
@@ -196,8 +189,7 @@ from sklearn.datasets import load_iris
 
 X, y = load_iris(return_X_y=True)
 X_lda = LinearDiscriminantAnalysis(n_components=2).fit_transform(X, y)
-# Iris (3 classes) reduces cleanly to 2 LDA dimensions.
-```
+```sql
 
 ### PCA vs LDA at a glance
 
@@ -259,7 +251,7 @@ from sklearn.datasets import make_circles
 X, y = make_circles(n_samples=200, noise=0.1, factor=0.3, random_state=42)
 print(SVC(kernel='linear').fit(X, y).score(X, y))  # ~0.55
 print(SVC(kernel='rbf', gamma=2).fit(X, y).score(X, y))  # ~1.00
-```
+```sql
 
 In modern practice SVMs have been displaced by neural networks for large-scale classification, but RBF-SVMs remain the default for small (a few thousand sample) tabular problems where they routinely match or beat gradient-boosted trees.
 
@@ -307,7 +299,7 @@ def als(R, mask, k=10, n_iter=20, lam=0.1):
                 Pu = P[u]
                 Q[j] = np.linalg.solve(Pu.T @ Pu + I, Pu.T @ R[u, j])
     return P, Q
-```
+```sql
 
 ### Cold-start, biases, and beyond
 
@@ -331,7 +323,7 @@ nmf = NMF(n_components=10, init='nndsvd').fit(X)
 W = nmf.transform(X)        # docs x topics
 H = nmf.components_         # topics x words
 top = np.argsort(H, axis=1)[:, -10:]
-```
+```python
 
 ---
 
@@ -382,7 +374,7 @@ lasso = Lasso(alpha=0.10, fit_intercept=False).fit(X, y)
 print("OLS   nonzero:", (np.abs(ols.coef_)   > 1e-2).sum())   # 20
 print("Ridge nonzero:", (np.abs(ridge.coef_) > 1e-2).sum())   # 20
 print("LASSO nonzero:", (np.abs(lasso.coef_) > 1e-2).sum())   # ~3
-```
+```text
 
 ---
 
@@ -426,7 +418,7 @@ class LinearLayer:
         self.W -= lr * grad_W
         self.b -= lr * grad_b
         return grad_x
-```
+```sql
 
 ### Attention is also linear algebra
 
@@ -485,7 +477,7 @@ Newton's method preconditions by $\mathbf{H}^{-1}$, transforming the geometry so
 def my_pca(X, n_components):
     # 1. center 2. svd 3. take top components 4. project
     pass
-```
+```python
 
 **Exercise 9.** Build a synthetic $100 \times 50$ rank-5 + noise matrix, mask 80% of entries, recover with ALS, and report RMSE on the held-out cells.
 

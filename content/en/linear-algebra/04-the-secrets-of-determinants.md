@@ -233,7 +233,7 @@ print(f"det(A) = {np.linalg.det(A):.1f}")   # 10.0
 
 B = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 print(f"det(B) = {np.linalg.det(B):.1f}")   # 0.0 (numerical noise)
-```
+```text
 
 ---
 
@@ -320,7 +320,7 @@ def show_determinant(A):
 show_determinant(np.array([[2, 0], [0, 1.5]]))   # stretch, det = 3
 show_determinant(np.array([[1, 0.5], [0, 1]]))    # shear,   det = 1
 show_determinant(np.array([[-1, 0], [0, 1]]))     # reflection, det = -1
-```
+```python
 
 Try a few more matrices on your own — in particular, try one with $\det = 0$ and watch the parallelogram collapse to a line.
 
@@ -377,7 +377,7 @@ Sigma = 0.01 * np.eye(200)
 print(np.linalg.det(Sigma))            # 0.0  -- underflow
 sign, logabsdet = np.linalg.slogdet(Sigma)
 print(sign, logabsdet)                 # 1.0  -921.034...
-```
+```text
 
 How does it avoid underflow? `slogdet` runs LU internally and computes
 $$\log|\det A| = \sum_{i=1}^n \log|U_{ii}|.$$

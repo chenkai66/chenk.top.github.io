@@ -234,7 +234,6 @@ The payoff: tensors let you turn a multilinear problem into a linear one, which 
 
 ![Essence of Linear Algebra (13): Tensors and Multilinear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/13-tensors-and-multilinear-algebra/illustration_2.png)
 
-
 ![CP decomposition: any tensor as a sum of rank-1 outer products](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/13-tensors-and-multilinear-algebra/fig4_cp_decomposition.png)
 
 ### What is CP decomposition?
@@ -295,20 +294,17 @@ import numpy as np
 import tensorly as tl
 from tensorly.decomposition import parafac
 
-# Simulated user-movie-time rating tensor:
-# 100 users, 50 movies, 12 months, ratings in [0, 5]
 np.random.seed(42)
 n_users, n_movies, n_months = 100, 50, 12
 X = np.random.rand(n_users, n_movies, n_months) * 5
 
-# CP decomposition with 5 latent components
 weights, factors = parafac(tl.tensor(X), rank=5, n_iter_max=100)
 user_factors, movie_factors, time_factors = factors
 
 print(user_factors.shape)   # (100, 5)
 print(movie_factors.shape)  # (50, 5)
 print(time_factors.shape)   # (12, 5)
-```
+```text
 
 Each row of `user_factors` is a 5-D embedding of one user; rows of `movie_factors` and `time_factors` play the same role for movies and months. CP simultaneously embeds all three axes into a shared 5-D latent space.
 
@@ -353,8 +349,6 @@ HOSVD is workhorse machinery for compression, denoising, and as a warm start for
 ```python
 from tensorly.decomposition import tucker
 
-# Tucker on the same rating tensor
-# Compress 100 users -> 10 dims, 50 movies -> 8, 12 months -> 4
 core, factors = tucker(tl.tensor(X), rank=[10, 8, 4])
 
 print(core.shape)                       # (10, 8, 4)
@@ -363,7 +357,7 @@ print([f.shape for f in factors])       # [(100, 10), (50, 8), (12, 4)]
 original_size   = 100 * 50 * 12
 compressed_size = 10 * 8 * 4 + 100 * 10 + 50 * 8 + 12 * 4
 print(f"Compression: {original_size / compressed_size:.2f}x")
-```
+```sql
 
 ### Multilinear rank
 
@@ -546,21 +540,18 @@ $$\mathbf{a}_2 = [0, 1]^T,\; \mathbf{b}_2 = [0, 1, 1]^T,\; \mathbf{c}_2 = [0, 1]
 **Exercise 9.** Implement in Python:
 
 ```python
-# (a) Mode-n unfolding for a third-order tensor
 def unfold(X, mode):
     """X: ndarray (I, J, K); mode in {0, 1, 2}; returns the unfolded matrix."""
     pass
 
-# (b) n-mode product
 def mode_n_product(X, A, mode):
     """X: (I, J, K); A: (P, I_mode); returns the product tensor."""
     pass
 
-# (c) CP-ALS
 def simple_cp_als(X, rank, n_iter=100):
     """Returns (A, B, C) factor matrices."""
     pass
-```
+```sql
 
 **Exercise 10.** Using the `tensorly` library:
 

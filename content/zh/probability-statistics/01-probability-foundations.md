@@ -26,7 +26,6 @@ translationKey: "probability-statistics-1"
 
 ## 样本空间、事件与 σ-代数
 
-
 ![样本空间可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-sample-space.png)
 
 ### 样本空间
@@ -64,7 +63,6 @@ translationKey: "probability-statistics-1"
 
 ![柯尔莫哥洛夫公理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-kolmogorov-axioms.png)
 
-
 **公理 1 （非负性）**：对任意事件 $A \in \mathcal{F}$，
 $$P(A) \geq 0.$$
 **公理 2 （归一化）**：整个样本空间的概率为 1：
@@ -91,13 +89,11 @@ $$P(A \cup B) = P(A) + P(B) - P(A \cap B).$$
 
 ## 条件概率
 
-
 ![概率样本空间作为所有可能结果的宇宙](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/01-probability-sample-space-as-a-cosmic-universe-of-possible-ou.jpg)
 
 当我们得知某事件 $B$ 已发生时，我们对其他事件的信念会发生变化。这种更新由**条件概率**刻画。
 
 ![条件概率](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-conditional-probability.png)
-
 
 **定义**：若 $P(B) > 0$，则在 $B$ 发生条件下 $A$ 的条件概率为
 $$P(A \mid B) = \frac{P(A \cap B)}{P(B)}.$$
@@ -114,7 +110,6 @@ $$P(A_1 \cap A_2 \cap \cdots \cap A_n) = P(A_1) \, P(A_2 \mid A_1) \, P(A_3 \mid
 一副标准扑克牌共 52 张。连续无放回地抽出两张 A 的概率是多少？
 $$P(\text{Ace}_1 \cap \text{Ace}_2) = P(\text{Ace}_1) \cdot P(\text{Ace}_2 \mid \text{Ace}_1) = \frac{4}{52} \cdot \frac{3}{51} = \frac{12}{2652} = \frac{1}{221} \approx 0.00452.$$
 ## 全概率公式
-
 
 ![贝叶斯定理：侦探根据新证据更新信念](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/01-bayes-theorem-detective-updating-beliefs-with-new-evidence.jpg)
 
@@ -313,12 +308,10 @@ def birthday_simulation(n, days=365, trials=100_000):
             collisions += 1
     return collisions / trials
 
-# 计算 n = 1..80 的精确概率
 ns = np.arange(1, 81)
 exact = [birthday_exact(n) for n in ns]
 approx = [1 - np.exp(-n * (n - 1) / 730) for n in ns]
 
-# 模拟若干关键值
 sim_ns = [10, 20, 23, 30, 40, 50, 60, 70]
 sim_probs = [birthday_simulation(n) for n in sim_ns]
 
@@ -338,7 +331,7 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('birthday_problem.png', dpi=150)
 plt.show()
-```
+```text
 
 运行该模拟可验证精确计算：当 $n = 23$ 时，概率约为 0.507；当 $n = 50$ 时，概率超过 0.97。蒙特卡洛模拟得到的绿色散点紧密围绕蓝色精确曲线，说明：**即便个体结果随机，整体行为却高度可预测。**
 
@@ -380,7 +373,6 @@ $$P(C_2 | H_3) = \frac{1/3}{1/2} = \frac{2}{3}. \quad \blacksquare$$
 **为何此问题超越游戏秀的意义**：三门问题阐明了一个普适原则——**基于信息进行条件化会以依赖于信息生成机制的方式改变概率**。主持人的选择受约束（绝不揭示汽车），正是这一约束使换门变得有利。在机器学习中，类似情形出现在选择偏差（selection bias）、幸存者偏差（survivorship bias）及因果推断中的混杂器偏差（collider bias）中。
 
 ```python
-# 三门问题模拟
 import numpy as np
 
 def monty_hall_sim(n_trials=100_000):
@@ -396,7 +388,7 @@ def monty_hall_sim(n_trials=100_000):
     print(f"换门获胜: {switch_wins/n_trials:.4f} (理论值: 0.6667)")
 
 monty_hall_sim()
-```
+```text
 
 ## 概率作为信念的度量
 

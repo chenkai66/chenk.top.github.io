@@ -29,7 +29,6 @@ Before we can say "converges," we need to say what kind of convergence we mean. 
 
 ![Convergence modes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-convergence-modes.png)
 
-
 ### Convergence in Distribution
 
 $X_n \xrightarrow{d} X$ if $F_{X_n}(x) \to F_X(x)$ for every $x$ at which $F_X$ is continuous.
@@ -68,7 +67,6 @@ Almost sure and $L^2$ convergence are not directly comparable — neither implie
 
 ![LLN convergence animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/probstat-05-lln-convergence.gif)
 
-
 ![LLN simulation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-lln-simulation.png)
 $$\bar{X}_n = \frac{1}{n} \sum_{i=1}^n X_i.$$
 Then $\bar{X}_n \xrightarrow{P} \mu$. That is, for every $\varepsilon > 0$:
@@ -98,7 +96,6 @@ With enough data, the sample mean is close to the true mean with high probabilit
 
 ## The Strong Law of Large Numbers
 
-
 ![Central limit theorem many random streams merging into a bel](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/05-central-limit-theorem-many-random-streams-merging-into-a-bel.jpg)
 
 **Theorem (SLLN).** Under the same conditions as the WLLN (and even weaker ones — finite mean suffices):
@@ -115,9 +112,7 @@ The LLN says the sample mean converges to $\mu$. The CLT tells us **how** — by
 
 ![CLT convergence animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/probstat-05-clt-convergence.gif)
 
-
 ![CLT convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-clt-convergence.png)
-
 
 **Theorem (CLT).** Let $X_1, X_2, \ldots$ be i.i.d. with $E[X_i] = \mu$ and $\text{Var}(X_i) = \sigma^2 \in (0, \infty)$. Then:
 $$\frac{\bar{X}_n - \mu}{\sigma / \sqrt{n}} \xrightarrow{d} \mathcal{N}(0, 1).$$
@@ -170,7 +165,6 @@ The exact answer (computed via scipy) is $0.0284$. The approximation is excellen
 How fast does the CLT convergence happen? The Berry-Esseen theorem provides a bound.
 
 ![Berry-Esseen bound](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-berry-esseen.png)
-
 
 **Theorem (Berry-Esseen).** Under the CLT conditions, if $E[|Z_i|^3] = \rho < \infty$, then:
 $$\sup_x \left|P(W_n \leq x) - \Phi(x)\right| \leq \frac{C \rho}{\sqrt{n}}$$
@@ -250,7 +244,6 @@ from scipy import stats
 
 np.random.seed(42)
 
-# Source distributions
 distributions = {
     'Uniform(0,1)': lambda size: np.random.uniform(0, 1, size),
     'Exponential(1)': lambda size: np.random.exponential(1, size),
@@ -301,14 +294,13 @@ plt.suptitle('Central Limit Theorem: Standardized Sample Means vs N(0,1)',
 plt.tight_layout()
 plt.savefig('clt_convergence.png', dpi=150, bbox_inches='tight')
 plt.show()
-```
+```sql
 
 This simulation is the CLT in action. Each row is a different source distribution — some skewed (Exponential), some discrete (Bernoulli), some symmetric (Uniform). Each column increases the sample size $n$. The red curve is the standard Normal $\mathcal{N}(0,1)$.
 
 At $n = 1$, the histogram reflects the raw distribution shape. By $n = 5$, the distributions are already becoming bell-shaped. At $n = 30$, even the highly skewed Exponential distribution produces sample means that are nearly indistinguishable from a Gaussian. This is the CLT's universality: the source distribution doesn't matter (as long as it has finite variance).
 
 ## Delta Method: CLT for Transformed Quantities
-
 
 ![Law of large numbers coin flips converging to fifty percent](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/05-law-of-large-numbers-coin-flips-converging-to-fifty-percent.jpg)
 
@@ -400,7 +392,6 @@ np.random.seed(42)
 
 fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
-# LLN convergence for different distributions
 distributions = {
     'Exponential(1) [$\\mu=1$]': (np.random.exponential, {'scale': 1.0}, 1.0),
     'Bernoulli(0.7) [$\\mu=0.7$]': (np.random.binomial, {'n': 1, 'p': 0.7}, 0.7),
@@ -430,7 +421,7 @@ plt.suptitle('Law of Large Numbers: Running Averages Converge to True Mean',
 plt.tight_layout()
 plt.savefig('lln_convergence.png', dpi=150, bbox_inches='tight')
 plt.show()
-```
+```sql
 
 Each panel shows 10 independent sample paths of the running average $\bar{X}_n$. Early on, the paths are noisy and far from the true mean (red dashed line). As $n$ grows, all paths converge — this is the LLN in action. The Exponential distribution has the most initial volatility (due to its heavy right tail), but even it settles down by $n \approx 500$.
 

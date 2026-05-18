@@ -26,7 +26,6 @@ This, roughly, is the Bayesian-frequentist debate. It's not about who's right â€
 
 ## Bayesian vs Frequentist: The Core Difference
 
-
 ![Conjugate prior families](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-conjugate-priors.png)
 
 ### The Frequentist View
@@ -73,7 +72,6 @@ A prior is **conjugate** to a likelihood if the resulting posterior belongs to t
 
 ![Prior to posterior updating](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-prior-posterior.png)
 
-
 | Likelihood | Conjugate Prior | Posterior |
 |---|---|---|
 | Bernoulli/Binomial | Beta | Beta |
@@ -87,16 +85,13 @@ Without conjugacy, the posterior integral $p(\mathbf{x}) = \int p(\mathbf{x}|\th
 
 ## The Beta-Binomial Model
 
-
 ![Bayesian updating prior to posterior belief transformation t](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/08-bayesian-updating-prior-to-posterior-belief-transformation-t.jpg)
 
 This is the canonical example of Bayesian inference. We'll work through it in full detail.
 
 ![Bayesian updating animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/probstat-08-bayesian-updating.gif)
 
-
 ![Beta-Binomial sequential updating](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-beta-binomial.png)
-
 
 ### Setup
 
@@ -177,7 +172,6 @@ A **credible interval** is the Bayesian analog of a confidence interval.
 
 ![Credible vs confidence intervals](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-credible-vs-confidence.png)
 
-
 **Definition.** A $100(1-\alpha)\%$ credible interval $[a, b]$ for $\theta$ satisfies:
 $$P(\theta \in [a, b] | \mathbf{x}) = 1 - \alpha.$$
 The **highest posterior density (HPD) interval** is the shortest such interval: it includes all points with posterior density above some threshold.
@@ -233,7 +227,6 @@ Most realistic models don't have conjugate priors. The posterior $p(\theta | \ma
 
 ![MCMC trace plot](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-mcmc-trace.png)
 
-
 **Markov Chain Monte Carlo (MCMC)** methods generate samples $\theta^{(1)}, \theta^{(2)}, \ldots$ from the posterior without computing the normalizing constant.
 
 ### Metropolis-Hastings: The Idea
@@ -249,7 +242,6 @@ The normalizing constant $p(\mathbf{x})$ cancels in the ratio. The resulting Mar
 With a **symmetric** proposal ($q(\theta^*|\theta) = q(\theta|\theta^*)$), the ratio simplifies to $p(\theta^* | \mathbf{x}) / p(\theta^{(t)} | \mathbf{x})$ â€” the algorithm simply moves toward higher-density regions while occasionally accepting downhill moves to explore.
 
 ## Bayesian Connections to Machine Learning
-
 
 ![Mcmc random walk exploring probability landscape pathfinding](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/08-mcmc-random-walk-exploring-probability-landscape-pathfinding.jpg)
 
@@ -298,18 +290,14 @@ from scipy import stats
 
 fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
-# Panel 1: Beta-Binomial updating
 ax = axes[0, 0]
 theta = np.linspace(0, 1, 500)
 alpha_prior, beta_prior = 2, 2
 n_obs, x_obs = 10, 7
 
-# Prior
 prior = stats.beta.pdf(theta, alpha_prior, beta_prior)
-# Likelihood (unnormalized)
 likelihood = theta**x_obs * (1-theta)**(n_obs - x_obs)
 likelihood = likelihood / likelihood.max() * prior.max()  # scale for plotting
-# Posterior
 posterior = stats.beta.pdf(theta, alpha_prior + x_obs, beta_prior + n_obs - x_obs)
 
 ax.plot(theta, prior, 'b-', linewidth=2, label=f'Prior: Beta({alpha_prior},{beta_prior})')
@@ -322,7 +310,6 @@ ax.set_ylabel('Density')
 ax.set_title('Beta-Binomial: 7 heads in 10 flips', fontsize=13)
 ax.legend(fontsize=9)
 
-# Panel 2: Sequential updating
 ax = axes[0, 1]
 observations = [1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1]
 alpha, beta_param = 1, 1  # Start with uniform prior
@@ -343,7 +330,6 @@ ax.set_ylabel('Density')
 ax.set_title('Sequential Bayesian Updating', fontsize=13)
 ax.legend(fontsize=9)
 
-# Panel 3: Prior sensitivity
 ax = axes[1, 0]
 n_obs, x_obs = 5, 4
 priors = [(1, 1, 'Uniform'), (2, 2, 'Beta(2,2)'), (10, 10, 'Beta(10,10)'),
@@ -359,16 +345,13 @@ ax.set_ylabel('Posterior density')
 ax.set_title(f'Prior Sensitivity (n={n_obs}, x={x_obs})', fontsize=13)
 ax.legend(fontsize=9)
 
-# Panel 4: Credible interval vs confidence interval
 ax = axes[1, 1]
-# Normal-Normal model
 mu_0, tau = 0, 2  # prior
 sigma = 1  # known
 data = np.array([1.2, 0.8, 1.5, 0.9, 1.1, 1.3, 0.7, 1.4])
 n = len(data)
 xbar = data.mean()
 
-# Posterior
 precision_post = n/sigma**2 + 1/tau**2
 sigma_post = 1/np.sqrt(precision_post)
 mu_post = (n/sigma**2 * xbar + 1/tau**2 * mu_0) / precision_post
@@ -382,7 +365,6 @@ ax.plot(x, post_dist, 'r-', linewidth=2.5,
         label=f'Posterior: N({mu_post:.2f}, {sigma_post:.3f}$^2$)')
 ax.axvline(xbar, color='green', linestyle=':', label=f'$\\bar{{x}}$ = {xbar:.2f}')
 
-# 95% credible interval
 ci_low = mu_post - 1.96 * sigma_post
 ci_high = mu_post + 1.96 * sigma_post
 ax.axvspan(ci_low, ci_high, alpha=0.15, color='red', label=f'95% CI: [{ci_low:.2f}, {ci_high:.2f}]')
@@ -398,14 +380,12 @@ plt.show()
 ```
 
 ```python
-# Simple Metropolis-Hastings sampler
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
 
 np.random.seed(42)
 
-# Target: posterior for Beta-Binomial (we know the answer, so we can verify)
 n_obs, x_obs = 20, 14
 alpha_prior, beta_prior = 2, 2
 
@@ -417,7 +397,6 @@ def log_posterior(theta):
     log_prior = (alpha_prior - 1) * np.log(theta) + (beta_prior - 1) * np.log(1 - theta)
     return log_lik + log_prior
 
-# Metropolis-Hastings
 n_samples = 50000
 samples = np.zeros(n_samples)
 samples[0] = 0.5
@@ -445,7 +424,6 @@ print(f"Exact posterior mean: {(alpha_prior + x_obs)/(alpha_prior + beta_prior +
 
 fig, axes = plt.subplots(1, 3, figsize=(16, 4.5))
 
-# Trace plot
 ax = axes[0]
 ax.plot(samples[:2000], 'b-', alpha=0.7, linewidth=0.5)
 ax.axhline(y=(alpha_prior + x_obs)/(alpha_prior + beta_prior + n_obs),
@@ -455,7 +433,6 @@ ax.set_ylabel('$\\theta$')
 ax.set_title('MCMC Trace Plot', fontsize=13)
 ax.legend()
 
-# Histogram vs exact posterior
 ax = axes[1]
 theta = np.linspace(0, 1, 200)
 exact = stats.beta.pdf(theta, alpha_prior + x_obs, beta_prior + n_obs - x_obs)
@@ -467,7 +444,6 @@ ax.set_ylabel('Density')
 ax.set_title('MCMC vs Exact Posterior', fontsize=13)
 ax.legend()
 
-# Autocorrelation
 ax = axes[2]
 max_lag = 50
 acf = np.correlate(posterior_samples - posterior_samples.mean(),
@@ -483,7 +459,7 @@ ax.axhline(0, color='gray', linestyle='-')
 plt.tight_layout()
 plt.savefig('mcmc_demo.png', dpi=150)
 plt.show()
-```
+```sql
 
 The MCMC histogram closely matches the exact Beta posterior, verifying that the sampler works. The trace plot shows the chain exploring the parameter space, and the autocorrelation plot reveals how quickly successive samples become independent (shorter correlation = more efficient sampling).
 
