@@ -21,7 +21,7 @@ If you ship anything that touches Chinese-language users, sooner or later you wi
 
 This first article is the lay of the land: what Bailian actually is, the model families you'll touch, the two endpoint flavors, and a hello-world request in both styles so the rest of the series doesn't have to re-explain it.
 
-![Aliyun Bailian (1): Platform Overview and First Request — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/01-platform-overview/illustration_1.png)
+![Aliyun Bailian (1): Platform Overview and First Request — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/01-platform-overview/illustration_1.png)
 
 ---
 
@@ -152,7 +152,7 @@ LLMs and Qwen-Omni support SSE streaming. For Qwen3 with `enable_thinking=True`,
 
 ## A complete first request
 
-![Aliyun Bailian (1): Platform Overview and First Request — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/01-platform-overview/illustration_2.png)
+![Aliyun Bailian (1): Platform Overview and First Request — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/01-platform-overview/illustration_2.png)
 
 Save this as `hello_bailian.py` and run it. If it prints a sentence, your account, key, and network are all good and you can move on to article 2.
 

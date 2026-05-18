@@ -19,7 +19,7 @@ translationKey: "claude-code-learn-6"
 ---
 CLI 是最显而易见的入口，SDK 才是真正有趣的部分，而 GitHub 集成则是它真正体现价值的地方。
 
-![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.png)
+![Claude Code 实战（六）：SDK 与 GitHub CI — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.png)
 
 
 ---
@@ -504,7 +504,7 @@ npx tsx scripts/refactor.ts "Add TypeScript strict null checks and fix all resul
 
 ## GitHub Action
 
-![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_2.png)
+![Claude Code 实战（六）：SDK 与 GitHub CI — 章节小结图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_2.png)
 
 Anthropic 提供了一个官方 Action：`anthropic/claude-code-action@v1`。将其添加到工作流中：
 

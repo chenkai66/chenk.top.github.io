@@ -23,7 +23,7 @@ Single-agent RL rests on one quiet but enormous assumption: the environment is s
 
 The payoff for solving this is large. AlphaStar reached Grandmaster on the StarCraft II ladder, OpenAI Five won against the world champions in Dota 2, and cooperative MARL is increasingly the workhorse for warehouse robotics, traffic-signal control, and multi-LLM agent systems. This chapter builds the conceptual backbone — Markov games, CTDE, value decomposition, counterfactual credit — and lands on a clean QMIX mixer you can drop into your own training loop.
 
-![Reinforcement Learning (9): Multi-Agent Reinforcement Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/illustration_1.png)
+![Reinforcement Learning (9): Multi-Agent Reinforcement Learning — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/illustration_1.png)
 
 
 ---
@@ -68,7 +68,7 @@ The dominant resolution to all four — and the conceptual backbone of the chapt
 
 ## CTDE: train with everything, execute with almost nothing
 
-![Reinforcement Learning (9): Multi-Agent Reinforcement Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/illustration_2.png)
+![Reinforcement Learning (9): Multi-Agent Reinforcement Learning — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/illustration_2.png)
 
 ![Centralized training with decentralized execution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/fig2_ctde.png)
 

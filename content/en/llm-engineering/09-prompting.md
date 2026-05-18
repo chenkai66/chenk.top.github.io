@@ -23,7 +23,7 @@ A prompt that works on 100 examples in a notebook can fail on 10% of inputs in p
 
 Three threads run through everything below. First, in 2026 the *model* is increasingly the place where reasoning lives — RLVR-trained thinking models (chapter 4) have absorbed many tricks the prompting community spent 2022-2024 inventing. Second, **economics dominate technique**: prompt caching, batch APIs, and KV reuse change which "good" prompt patterns are affordable. Third, the threat surface (injection, jailbreaks, retrieval poisoning) is now part of the prompt-engineering job description, not a separate "safety" team's problem.
 
-![LLM Engineering (9): Prompting at Production Scale — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/09-prompting/illustration_1.png)
+![LLM Engineering (9): Prompting at Production Scale — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/09-prompting/illustration_1.png)
 
 ---
 
@@ -154,7 +154,7 @@ Two often-overlooked few-shot facts:
 
 ## Prompt caching changes the cost math
 
-![LLM Engineering (9): Prompting at Production Scale — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/09-prompting/illustration_2.png)
+![LLM Engineering (9): Prompting at Production Scale — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/09-prompting/illustration_2.png)
 
 
 ![fig2: prompt caching cost arithmetic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/09-prompting/fig2_prompt_caching.png)

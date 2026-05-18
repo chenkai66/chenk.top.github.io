@@ -20,7 +20,7 @@ series_order: 16
 series_total: 20
 translationKey: "ml-math-derivations-16"
 ---
-![ML Math Derivations (16): Conditional Random Fields — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/illustration_1.png)
+![ML Math Derivations (16): Conditional Random Fields — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/illustration_1.png)
 
 ---
 
@@ -244,7 +244,7 @@ The trellis above shows it visually: faint grey arrows are all candidate transit
 
 ## CRF in the Deep Learning Era: BiLSTM-CRF
 
-![ML Math Derivations (16): Conditional Random Fields — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/illustration_2.png)
+![ML Math Derivations (16): Conditional Random Fields — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/illustration_2.png)
 
 Modern sequence labelling typically pairs a neural feature extractor with a CRF output layer:
 $$\text{Input} \xrightarrow{\text{Embedding}} \text{BiLSTM} \xrightarrow{\text{emission scores}} \text{CRF layer} \xrightarrow{\text{Viterbi}} \text{Labels}$$

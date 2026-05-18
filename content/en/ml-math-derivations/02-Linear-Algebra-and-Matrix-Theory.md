@@ -17,7 +17,7 @@ series_order: 2
 series_total: 20
 translationKey: "ml-math-derivations-2"
 ---
-![ML Math Derivations (2): Linear Algebra and Matrix Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/illustration_1.png)
+![ML Math Derivations (2): Linear Algebra and Matrix Theory — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/illustration_1.png)
 
 ---
 
@@ -166,7 +166,7 @@ Where PD matrices show up:
 
 ## Singular Value Decomposition — the universal factorisation
 
-![ML Math Derivations (2): Linear Algebra and Matrix Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/illustration_2.png)
+![ML Math Derivations (2): Linear Algebra and Matrix Theory — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/illustration_2.png)
 
 ### The theorem
 

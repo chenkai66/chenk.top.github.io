@@ -19,7 +19,7 @@ translationKey: "ode-1"
 
 This chapter rebuilds your intuition from scratch. We start with a single cup of coffee, derive the same equation that governs radioactive decay and capacitor discharge, then climb upward to direction fields, classification, and the existence-and-uniqueness theorem that tells you when an ODE has a sensible answer at all.
 
-![Ordinary Differential Equations (1): Origins and Intuition — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/01-origins-and-intuition/illustration_1.png)
+![Ordinary Differential Equations (1): Origins and Intuition — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/01-origins-and-intuition/illustration_1.png)
 
 ---
 
@@ -111,7 +111,7 @@ Three things are worth memorising:
 
 ## Direction fields: see the solution before you compute it
 
-![Ordinary Differential Equations (1): Origins and Intuition — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/01-origins-and-intuition/illustration_2.png)
+![Ordinary Differential Equations (1): Origins and Intuition — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/01-origins-and-intuition/illustration_2.png)
 
 Here is a profound little trick that took mathematics 200 years to fully appreciate. For any first-order ODE
 $$\frac{dy}{dt} = f(t, y),$$

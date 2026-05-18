@@ -19,7 +19,7 @@ series_order: 6
 series_total: 8
 translationKey: "pde-ml-6"
 ---
-![PDE and ML (6): Continuous Normalizing Flows and Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png)
+![PDE and ML (6): Continuous Normalizing Flows and Neural ODE — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png)
 
 ---
 
@@ -313,7 +313,7 @@ The `log_prob` method integrates the ODE backwards while accumulating the log-de
 
 ## Optimal Transport and Flow Matching
 
-![PDE and ML (6): Continuous Normalizing Flows and Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_2.png)
+![PDE and ML (6): Continuous Normalizing Flows and Neural ODE — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_2.png)
 
 ### The Benamou-Brenier connection
 

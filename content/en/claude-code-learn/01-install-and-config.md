@@ -19,7 +19,7 @@ translationKey: "claude-code-learn-1"
 
 This is the first in a six-part field guide to Claude Code. The order is deliberate: each piece unlocks the next. By the end, you'll be using six features that 90% of users never touch.
 
-![Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/illustration_1.png)
+![Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/illustration_1.png)
 
 ---
 
@@ -123,7 +123,7 @@ The `-p` flag (print mode) skips the interactive loop. This is useful for script
 
 ## The three-layer config
 
-![Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/illustration_2.png)
+![Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/illustration_2.png)
 
 This is the part most users never read. Claude Code merges configuration from three locations, in order of increasing precedence.
 

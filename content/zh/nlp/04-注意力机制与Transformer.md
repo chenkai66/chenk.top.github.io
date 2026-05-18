@@ -23,7 +23,7 @@ polished_by_qwen_max: true
 从“带注意力机制的 RNN”到完整的 Transformer，这条路并不算长，但每一步都至关重要。接下来，我们将一步步仔细拆解。
 
 <!-- wanx-hero -->
-![自然语言处理（四）：注意力机制与Transformer — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_1.png)
+![自然语言处理（四）：注意力机制与 Transformer — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_1.png)
 
 ---
 

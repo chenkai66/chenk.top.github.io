@@ -26,7 +26,7 @@ This article walks through those changes in the order they actually matter when 
 
 
 <!-- wanx-hero -->
-![NLP (9): Deep Dive into LLM Architecture — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/llm-architecture-deep-dive/illustration_1.png)
+![NLP (9): Deep Dive into LLM Architecture — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/llm-architecture-deep-dive/illustration_1.png)
 
 
 ---
@@ -44,7 +44,7 @@ This article walks through those changes in the order they actually matter when 
 ## Prerequisites
 
 <!-- wanx-mid -->
-![NLP (9): Deep Dive into LLM Architecture — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/llm-architecture-deep-dive/illustration_2.png)
+![NLP (9): Deep Dive into LLM Architecture — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/llm-architecture-deep-dive/illustration_2.png)
 
 
 - The base Transformer block (see [Part 4 — Attention and Transformers](/en/nlp/attention-transformer/)).

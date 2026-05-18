@@ -22,7 +22,7 @@ If BERT ([Part 5](/en/nlp/bert-pretrained-models/)) is the king of *understandin
 
 
 <!-- wanx-hero -->
-![NLP (6): GPT and Generative Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_1.png)
+![NLP (6): GPT and Generative Language Models — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_1.png)
 
 
 ---
@@ -44,7 +44,7 @@ If BERT ([Part 5](/en/nlp/bert-pretrained-models/)) is the king of *understandin
 ## The decoder-only Transformer
 
 <!-- wanx-mid -->
-![NLP (6): GPT and Generative Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_2.png)
+![NLP (6): GPT and Generative Language Models — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_2.png)
 
 
 ![Decoder-only architecture and the causal mask](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig1_decoder_only_arch.png)

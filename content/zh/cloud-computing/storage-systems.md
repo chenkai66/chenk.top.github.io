@@ -17,7 +17,7 @@ series_order: 4
 series_total: 8
 translationKey: "cloud-computing-4"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/illustration_1.png)
+![云计算（四）：云存储系统与分布式架构 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/illustration_1.png)
 
 Netflix 存储 PB 级视频，Instagram 提供数十亿张照片，量化基金几分钟内回放一年的行情数据——这些都依赖于 *分布式存储系统*。从开发者的视角看，存储简单得近乎透明（`PUT key`、`GET key`），但只要跨过单机的边界，你就接管了一整摞折磨了学术界几十年的难题：如何在磁盘故障时保障数据不丢失、如何实现线性扩展、如何提供上层应用不易误用的一致性模型，同时将每 GB 存储成本压缩至几分钱。
 

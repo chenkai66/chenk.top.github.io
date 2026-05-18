@@ -34,7 +34,7 @@ We'll start with familiar objects, build up the language (fibers, slices, unfold
 
 ---
 
-![Essence of Linear Algebra (13): Tensors and Multilinear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/13-tensors-and-multilinear-algebra/illustration_1.png)
+![Essence of Linear Algebra (13): Tensors and Multilinear Algebra — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/13-tensors-and-multilinear-algebra/illustration_1.png)
 
 ## From Scalars to Tensors: A Natural Generalization
 
@@ -232,7 +232,7 @@ The payoff: tensors let you turn a multilinear problem into a linear one, which 
 
 ## CP Decomposition: Tensor as a Sum of Simple Pieces
 
-![Essence of Linear Algebra (13): Tensors and Multilinear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/13-tensors-and-multilinear-algebra/illustration_2.png)
+![Essence of Linear Algebra (13): Tensors and Multilinear Algebra — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/13-tensors-and-multilinear-algebra/illustration_2.png)
 
 ![CP decomposition: any tensor as a sum of rank-1 outer products](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/13-tensors-and-multilinear-algebra/fig4_cp_decomposition.png)
 

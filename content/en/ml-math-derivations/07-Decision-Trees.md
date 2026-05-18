@@ -20,7 +20,7 @@ translationKey: "ml-math-derivations-7"
 ---
 > **Hook.** A decision tree mimics how humans actually decide things: ask a question, branch on the answer, ask the next question. The math under that intuition is surprisingly rich — entropy from information theory tells us *which* question to ask first, the Gini index gives a cheaper proxy that lands on essentially the same trees, and cost-complexity pruning gives a principled way to stop the tree from memorising noise. Almost every modern boosted ensemble (XGBoost, LightGBM, CatBoost) is just a clever sum of these objects, so getting the foundations right pays off many times over.
 
-![ML Math Derivations (7): Decision Trees — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/07-Decision-Trees/illustration_1.png)
+![ML Math Derivations (7): Decision Trees — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/07-Decision-Trees/illustration_1.png)
 
 ---
 
@@ -101,7 +101,7 @@ Many-valued features have large $IV$ and so are penalised. C4.5's actual heurist
 
 ## Splitting Criteria
 
-![ML Math Derivations (7): Decision Trees — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/07-Decision-Trees/illustration_2.png)
+![ML Math Derivations (7): Decision Trees — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/07-Decision-Trees/illustration_2.png)
 
 ### Gini Index
 

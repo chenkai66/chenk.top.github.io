@@ -22,7 +22,7 @@ That is exactly the question Cho et al. answered in 2014 with the **Gated Recurr
 
 GRU isn't a free lunch — there are workloads where LSTM's two separate states still win, particularly tasks that need to keep one piece of information stable for a long time *while* freely reading and writing another (machine-translation alignment is the classic example). But for the workloads most of us actually face — stock prices, demand forecasts, sensor streams — GRU's slimmer footprint is genuinely useful: fewer parameters means less overfitting, faster training means cheaper hyperparameter sweeps. This chapter skips the gating fundamentals (you got those in the LSTM chapter) and goes straight to the GRU equations, the precise differences from LSTM, and the day-to-day decision of which one to reach for.
 
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/illustration_1.png)
+![Time Series Forecasting (3): GRU — Lightweight Gates and Efficiency Trade-offs — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/illustration_1.png)
 
 
 ---

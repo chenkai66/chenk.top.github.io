@@ -20,7 +20,7 @@ translationKey: "ml-math-derivations-9"
 ---
 > **Hook:** A spam filter that trains in milliseconds, scales to a million features, has *no hyperparameters worth tuning*, and still beats much fancier models on short-text problems. Naive Bayes pulls this off by making one outrageous assumption — every feature is independent given the class — and refusing to apologise for it. The assumption is wrong on essentially every real dataset, yet the classifier works. Understanding *why* is a tour through generative modelling, MAP estimation, Dirichlet priors, and the bias–variance tradeoff. This article walks the entire path.
 
-![ML Math Derivations (9): Naive Bayes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/09-Naive-Bayes/illustration_1.png)
+![ML Math Derivations (9): Naive Bayes — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/09-Naive-Bayes/illustration_1.png)
 
 ---
 
@@ -182,7 +182,7 @@ Choosing $\alpha$ is a bias–variance dial: small $\alpha$ trusts the data (low
 
 ## Three Variants — Same Bayes Rule, Different Likelihood
 
-![ML Math Derivations (9): Naive Bayes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/09-Naive-Bayes/illustration_2.png)
+![ML Math Derivations (9): Naive Bayes — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/09-Naive-Bayes/illustration_2.png)
 
 The classification rule never changes. Only the model for $P(x^{(j)} \mid c_k)$ changes.
 

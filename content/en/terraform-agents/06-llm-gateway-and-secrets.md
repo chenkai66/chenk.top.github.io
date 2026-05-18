@@ -34,7 +34,7 @@ This article addresses that pattern by building one **LLM gateway** that:
 
 Two days of setup. Permanent operational dividend.
 
-![Terraform for AI Agents (6): LLM Gateway and Secrets Management — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/illustration_1.png)
+![Terraform for AI Agents (6): LLM Gateway and Secrets Management — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/illustration_1.png)
 
 ---
 
@@ -341,7 +341,7 @@ A note on numbers. The `schedule-agent` ceiling at 100k tokens/day and ¥40/day 
 
 ## Step 5: secret rotation flow
 
-![Terraform for AI Agents (6): LLM Gateway and Secrets Management — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/illustration_2.png)
+![Terraform for AI Agents (6): LLM Gateway and Secrets Management — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/illustration_2.png)
 
 The whole point of putting keys in KMS Secrets Manager is rotation:
 

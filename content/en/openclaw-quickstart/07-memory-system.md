@@ -20,7 +20,7 @@ translationKey: "openclaw-quickstart-7"
 
 The first six pieces got you to a working OpenClaw with a channel and a skill. This one focuses on the part everyone gets wrong on their first install: memory.
 
-![OpenClaw QuickStart (7): The Memory System, Without the Magic — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/07-memory-system/illustration_1.png)
+![OpenClaw QuickStart (7): The Memory System, Without the Magic — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/07-memory-system/illustration_1.png)
 
 ---
 
@@ -205,7 +205,7 @@ The sweet spot: 1000 for quick tasks (< 10 turns), 2000 for standard sessions (t
 
 ## ContextEngine — the v2026.3.7 shift
 
-![OpenClaw QuickStart (7): The Memory System, Without the Magic — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/07-memory-system/illustration_2.png)
+![OpenClaw QuickStart (7): The Memory System, Without the Magic — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/07-memory-system/illustration_2.png)
 
 Up to v2026.3.6, memory was an explicit tool the agent had to call. If it forgot, it operated without context. From v2026.3.7, memory moved into a hooks lifecycle the harness runs around the agent:
 

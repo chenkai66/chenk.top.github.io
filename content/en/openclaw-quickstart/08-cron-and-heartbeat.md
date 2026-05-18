@@ -22,7 +22,7 @@ The first time I deployed OpenClaw I sat there sending it messages. After two da
 
 This piece is about the two ways to make that happen.
 
-![OpenClaw QuickStart (8): Heartbeat, Cron, and Getting Pinged at 7am — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/illustration_1.png)
+![OpenClaw QuickStart (8): Heartbeat, Cron, and Getting Pinged at 7am — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/illustration_1.png)
 
 ---
 
@@ -235,7 +235,7 @@ The `1-5` means weekdays only. The memory write means tomorrow's brief can refer
 
 ## The 3am anti-pattern
 
-![OpenClaw QuickStart (8): Heartbeat, Cron, and Getting Pinged at 7am — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/illustration_2.png)
+![OpenClaw QuickStart (8): Heartbeat, Cron, and Getting Pinged at 7am — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/illustration_2.png)
 
 The mistake that wakes you up: setting `target: "all"` on a Heartbeat without `activeHours`, then writing a HEARTBEAT.md that doesn't reply `HEARTBEAT_OK` when nothing's wrong.
 

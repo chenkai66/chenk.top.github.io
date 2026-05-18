@@ -21,7 +21,7 @@ translationKey: "reinforcement-learning-6"
 策略梯度（第三部分）直接优化策略，绕开了离散的 `argmax` 操作，还能自然处理随机策略。但它存在一个致命缺陷：**一次过大的更新就可能彻底摧毁策略**。更糟的是，由于数据分布与策略紧密耦合，一旦崩溃，几乎无法恢复。
 
 **信任域方法**精准地抓住了问题核心：每次更新应限制*行为*的变化，而非参数的变化。TRPO 通过硬性的 KL 散度约束和二阶优化器实现了这一点；而 PPO 则仅用一行带裁剪（clip）的简单算术，就模拟出了类似效果。最终，这个更简单的技巧胜出了——PPO 不仅训练出了 OpenAI Five，还支撑了 ChatGPT 的 RLHF 阶段，并成为几乎所有现代机器人策略的基石，至今仍是应用深度强化学习领域的主力算法。
-![强化学习（六）：PPO与TRPO：信任域策略优化 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_1.png)
+![强化学习（六）：PPO 与 TRPO：信任域策略优化 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_1.png)
 
 
 ---
@@ -141,7 +141,7 @@ step = torch.sqrt(2 * delta / (x.dot(fisher_vector_product(x)) + 1e-8)) * x
 
 ## PPO：用两成复杂度，拿到九成收益
 
-![强化学习（六）：PPO与TRPO：信任域策略优化 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_2.png)
+![强化学习（六）：PPO 与 TRPO：信任域策略优化 — 章节小结图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_2.png)
 
 2017 年，Schulman 及其同事提出了一个问题：*能否仅用一阶优化方法，获得类似 TRPO 的稳定性？* 答案就是 PPO，自此它便主导了该领域。
 

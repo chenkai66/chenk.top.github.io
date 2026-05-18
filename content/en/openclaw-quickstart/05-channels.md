@@ -21,7 +21,7 @@ translationKey: "openclaw-quickstart-5"
 
 The point of OpenClaw is that the agent comes to you. So far ours hasn't — it's only on the TUI. Time to wire a channel.
 
-![OpenClaw QuickStart (5): Wiring Telegram, DingTalk, and the WeChat Reality — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/05-channels/illustration_1.png)
+![OpenClaw QuickStart (5): Wiring Telegram, DingTalk, and the WeChat Reality — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/05-channels/illustration_1.png)
 
 ---
 
@@ -121,7 +121,7 @@ After restart, in your DingTalk group, mention your bot: `@Lobster how are you`.
 
 ## WeChat — the honest version
 
-![OpenClaw QuickStart (5): Wiring Telegram, DingTalk, and the WeChat Reality — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/05-channels/illustration_2.png)
+![OpenClaw QuickStart (5): Wiring Telegram, DingTalk, and the WeChat Reality — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/05-channels/illustration_2.png)
 
 There are three paths and only one of them is sane.
 

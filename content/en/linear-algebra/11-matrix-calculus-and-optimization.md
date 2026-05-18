@@ -18,7 +18,7 @@ series_order: 11
 series_total: 18
 translationKey: "linear-algebra-11"
 ---
-![Essence of Linear Algebra (11): Matrix Calculus and Optimization — The Engine Behind Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_1.png)
+![Essence of Linear Algebra (11): Matrix Calculus and Optimization — The Engine Behind Machine Learning — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_1.png)
 
 ---
 
@@ -201,7 +201,7 @@ The trace appears constantly because *any* scalar function of a matrix can be wr
 
 ## The Chain Rule and Backpropagation
 
-![Essence of Linear Algebra (11): Matrix Calculus and Optimization — The Engine Behind Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_2.png)
+![Essence of Linear Algebra (11): Matrix Calculus and Optimization — The Engine Behind Machine Learning — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_2.png)
 
 ### The Chain Rule, in Matrix Form
 

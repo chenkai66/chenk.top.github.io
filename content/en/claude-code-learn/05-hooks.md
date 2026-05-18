@@ -20,7 +20,7 @@ translationKey: "claude-code-learn-5"
 
 If MCP is how Claude reaches out, hooks are how you reach in. They enforce the rules you care about, not just what you hope for.
 
-![Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/illustration_1.png)
+![Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/illustration_1.png)
 
 ---
 
@@ -879,7 +879,7 @@ You can also combine different matchers:
 
 ## The anti-pattern: relative paths
 
-![Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/illustration_2.png)
+![Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/illustration_2.png)
 
 The most common hook bug is using a relative command path:
 

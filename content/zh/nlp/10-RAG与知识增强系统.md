@@ -22,7 +22,7 @@ polished_by_qwen_max: true
 理念一句话就能说清，工程实现才是本文的重点。一个真正落地的 RAG 系统通常有十几个可调参数：分块大小、Embedding 模型、索引类型、$k$、混合权重、重排序深度、提示模板、引用格式、拒答策略……而且它们彼此耦合。接下来，我们将逐一剖析每个参数背后的数学原理、权衡取舍，并附上可运行的代码。
 
 <!-- wanx-hero -->
-![自然语言处理（十）：RAG与知识增强系统 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/illustration_1.png)
+![自然语言处理（十）：RAG 与知识增强系统 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/illustration_1.png)
 
 ---
 

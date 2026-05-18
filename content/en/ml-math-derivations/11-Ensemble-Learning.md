@@ -24,7 +24,7 @@ Why do mediocre classifiers in a committee outperform a single brilliant one? Th
 
 By the end, you should be able to look at any ensemble method and say what it reduces, why it works, and when it fails.
 
-![ML Math Derivations (11): Ensemble Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/illustration_1.png)
+![ML Math Derivations (11): Ensemble Learning — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/illustration_1.png)
 
 ---
 

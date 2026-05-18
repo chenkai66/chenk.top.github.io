@@ -19,7 +19,7 @@ translationKey: "ode-4"
 ---
 **The Laplace transform turns calculus into algebra.** Instead of grinding through integration, guessing trial solutions, and bolting on initial conditions at the end, you transform the entire ODE — equation, forcing, and initial data — into a single polynomial equation in a complex variable $s$. You solve it like a high-school problem, then transform back. Along the way, the *shape* of the solution becomes geometry: poles in the left half of the complex plane decay, poles on the right blow up, poles on the imaginary axis ring forever. This chapter develops that picture from first principles and connects it to the engineering tools — transfer functions, Bode plots, PID control — that made the Laplace transform the lingua franca of dynamics.
 
-![Ordinary Differential Equations (4): The Laplace Transform — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/04-constant-coefficients/illustration_1.png)
+![Ordinary Differential Equations (4): The Laplace Transform — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/04-constant-coefficients/illustration_1.png)
 
 ---
 
@@ -184,7 +184,7 @@ where $D = (C + \alpha B)/\beta$ after rewriting the numerator as $B(s-\alpha) +
 
 ## Transfer functions and the geometry of stability
 
-![Ordinary Differential Equations (4): The Laplace Transform — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/04-constant-coefficients/illustration_2.png)
+![Ordinary Differential Equations (4): The Laplace Transform — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/04-constant-coefficients/illustration_2.png)
 
 ### Definition
 

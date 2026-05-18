@@ -33,7 +33,7 @@ This chapter covers the algorithms used in production ML systems — PCA, LDA, S
 
 ---
 
-![Essence of Linear Algebra (15): Linear Algebra in Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/15-linear-algebra-in-machine-learning/illustration_1.png)
+![Essence of Linear Algebra (15): Linear Algebra in Machine Learning — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/15-linear-algebra-in-machine-learning/illustration_1.png)
 
 ## Vector Representations: How Data Enters the Pipeline
 
@@ -207,7 +207,7 @@ The hard cap $C-1$ is often surprising: for binary problems LDA outputs just **o
 
 ## Support Vector Machines and the Kernel Trick
 
-![Essence of Linear Algebra (15): Linear Algebra in Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/15-linear-algebra-in-machine-learning/illustration_2.png)
+![Essence of Linear Algebra (15): Linear Algebra in Machine Learning — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/15-linear-algebra-in-machine-learning/illustration_2.png)
 
 ### Why "maximum margin"?
 

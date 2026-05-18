@@ -23,7 +23,7 @@ translationKey: "openclaw-quickstart-9"
 
 Here’s the matrix I check before making any recommendations.
 
-![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/illustration_1.png)
+![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/illustration_1.png)
 
 ---
 
@@ -76,7 +76,7 @@ In practice, I usually end up with one of two stacks:
 
 ## DingTalk — the path that always works
 
-![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/illustration_2.png)
+![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/illustration_2.png)
 
 Stream mode (long-poll) is why DingTalk is quick to set up. No public IP or domain verification required—just register a bot and grab two values:
 

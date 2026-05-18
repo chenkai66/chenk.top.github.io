@@ -21,7 +21,7 @@ translationKey: "pde-ml-1"
 
 ---
 
-![PDE and ML (1): Physics-Informed Neural Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/illustration_1.png)
+![PDE and ML (1): Physics-Informed Neural Networks — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/illustration_1.png)
 
 ## Prologue: a metal rod
 
@@ -228,7 +228,7 @@ Shin, Darbon and Karniadakis (2020) [^shin2020] proved asymptotic convergence fo
 
 ## Training pathologies: the part that's actually hard
 
-![PDE and ML (1): Physics-Informed Neural Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/illustration_2.png)
+![PDE and ML (1): Physics-Informed Neural Networks — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/illustration_2.png)
 
 Anyone who has run a PINN has seen the loss drop from 1 to 0.01 and then refuse to move, or seen boundary conditions fail outright. Three diagnoses follow, with engineering fixes for each.
 

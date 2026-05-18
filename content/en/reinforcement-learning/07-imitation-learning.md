@@ -23,7 +23,7 @@ Every algorithm in the previous chapters assumed access to a reward function. In
 
 Imitation learning takes that intuition seriously: instead of optimising a hand-engineered scalar, it learns from expert demonstrations $\mathcal{D} = \{(s_t, a_t)\}$. This chapter walks the four canonical methods — behavioral cloning, DAgger, maximum-entropy IRL, and GAIL/AIRL — not as isolated tricks but as a single ladder where each rung relaxes one assumption and pays for it with new structure.
 
-![Reinforcement Learning (7): Imitation Learning and Inverse RL — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/illustration_1.png)
+![Reinforcement Learning (7): Imitation Learning and Inverse RL — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/illustration_1.png)
 
 
 ---
@@ -226,7 +226,7 @@ It does _not_ apply when the only demonstrations are a static log — e.g. a rec
 
 ## Inverse reinforcement learning
 
-![Reinforcement Learning (7): Imitation Learning and Inverse RL — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/illustration_2.png)
+![Reinforcement Learning (7): Imitation Learning and Inverse RL — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/illustration_2.png)
 
 BC and DAgger both _imitate the action_. IRL asks a deeper question: **why** is that action good? It posits that the expert is (approximately) optimising some unknown reward $r^*$, recovers a candidate $\hat r$ from the demonstrations, and then runs standard RL under $\hat r$.
 

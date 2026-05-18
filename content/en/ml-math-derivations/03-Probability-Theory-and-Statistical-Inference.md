@@ -17,7 +17,7 @@ series_order: 3
 series_total: 20
 translationKey: "ml-math-derivations-3"
 ---
-![ML Math Derivations (3): Probability Theory and Statistical Inference — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/03-Probability-Theory-and-Statistical-Inference/illustration_1.png)
+![ML Math Derivations (3): Probability Theory and Statistical Inference — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/03-Probability-Theory-and-Statistical-Inference/illustration_1.png)
 
 ---
 
@@ -147,7 +147,7 @@ Its level sets are ellipsoids whose principal axes are the eigenvectors of $\Sig
 
 ## Limit Theorems: Why ML Works at Scale
 
-![ML Math Derivations (3): Probability Theory and Statistical Inference — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/03-Probability-Theory-and-Statistical-Inference/illustration_2.png)
+![ML Math Derivations (3): Probability Theory and Statistical Inference — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/03-Probability-Theory-and-Statistical-Inference/illustration_2.png)
 
 ### Concentration Inequalities
 

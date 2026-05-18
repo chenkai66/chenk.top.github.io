@@ -21,7 +21,7 @@ translationKey: "ml-math-derivations-13"
 ---
 数据中常隐含难以观测的结构：样本所属的簇未知，某些特征的真实值缺失，文本背后的潜在主题也不明确。这些隐变量让最大似然估计变得棘手——似然函数变成“对数里面套求和”的形式，既没有闭式解，梯度方法也容易被隐变量困住。**EM 算法**用一个看似简单的思路巧妙绕开这一难题：交替进行两步操作——先基于当前参数下的隐变量后验分布计算期望（E 步），再将这些期望当作真实值来更新模型参数（M 步）。每次迭代都严格保证对数似然值不减。本文将从第一性原理出发推导 EM 算法，利用 Jensen 不等式证明其单调上升性质，并将其应用于最经典的场景——**高斯混合模型（GMM）**，即 K-means 的软化、椭球化推广。
 
-![机器学习数学推导（十三）：EM算法与GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM算法与GMM/illustration_1.png)
+![机器学习数学推导（十三）：EM 算法与 GMM — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM算法与GMM/illustration_1.png)
 
 ---
 
@@ -106,7 +106,7 @@ $$
 ---
 ## EM 是 ELBO 上的坐标上升
 
-![机器学习数学推导（十三）：EM算法与GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM算法与GMM/illustration_2.png)
+![机器学习数学推导（十三）：EM 算法与 GMM — 章节小结图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM算法与GMM/illustration_2.png)
 
 EM 算法通过交替优化 $\mathcal{L}$ 关于 $q$ 和 $\boldsymbol{\theta}$ 的两个变量，逐步提升下界。
 

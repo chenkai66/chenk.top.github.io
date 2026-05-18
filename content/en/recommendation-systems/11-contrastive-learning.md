@@ -21,7 +21,7 @@ Contrastive learning offers a different bargain. Instead of asking "what label s
 
 This article walks through the core machinery (InfoNCE, temperature, augmentations) and the four families that matter in practice for recommendations: **SimCLR-style** in-batch contrast, **MoCo-style** queue-based contrast, **SGL** graph augmentations, and **CL4SRec** sequence augmentations. We finish with **XSimGCL**, the surprising result that you can throw the augmentations away entirely and just inject noise.
 
-![Recommendation Systems (11): Contrastive Learning and Self-Supervised Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/11-contrastive-learning/illustration_1.png)
+![Recommendation Systems (11): Contrastive Learning and Self-Supervised Learning — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/11-contrastive-learning/illustration_1.png)
 
 
 ---
@@ -72,7 +72,7 @@ The figure above captures the entire intuition. The blue anchor is one user. The
 
 ## InfoNCE: the loss that does the work
 
-![Recommendation Systems (11): Contrastive Learning and Self-Supervised Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/11-contrastive-learning/illustration_2.png)
+![Recommendation Systems (11): Contrastive Learning and Self-Supervised Learning — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/11-contrastive-learning/illustration_2.png)
 
 Almost every contrastive recommender uses some variant of the **InfoNCE** loss (van den Oord et al., 2018). Given an anchor $x$, a positive $x^+$, and a set of negatives $\{x_i^-\}$, with encoder $f$ and similarity $\mathrm{sim}(\cdot,\cdot) = z\cdot z'$ on $\ell_2$-normalised embeddings:
 $$\mathcal{L}_{\text{InfoNCE}} = -\log \frac{\exp\!\big(\mathrm{sim}(f(x), f(x^+)) / \tau\big)}{\exp\!\big(\mathrm{sim}(f(x), f(x^+)) / \tau\big) + \sum_{i} \exp\!\big(\mathrm{sim}(f(x), f(x_i^-)) / \tau\big)}$$

@@ -22,7 +22,7 @@ Attention's core idea is almost embarrassingly simple: **why not let any two tim
 
 It sounds like brute force (every pair of steps now carries a relationship, blowing complexity from O(n) to O(n²)) but the payoff is enormous: long-range dependencies become trivial, training parallelizes (RNNs are forced to run step-by-step), and the attention weights themselves become a kind of self-explanation that you can visualize. This chapter starts where the field actually started — bolting attention onto an LSTM encoder/decoder — and works up to the full Query/Key/Value formulation, which is the doorway into the next chapter on Transformers. The closing case study uses attention on a stock-price forecaster and shows the weight heatmap so you can see exactly which days the model is reading.
 
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/illustration_1.png)
+![Time Series Forecasting (4): Attention Mechanisms — Direct Long-Range Dependencies — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/illustration_1.png)
 
 
 ---

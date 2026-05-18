@@ -20,7 +20,7 @@ translationKey: "openclaw-quickstart-3"
 
 You can use OpenClaw for months without reading this. But the first time you need to write a skill, debug a misrouted message, or figure out why the agent forgot something, you'll want to know what each component does.
 
-![OpenClaw QuickStart (3): The Six Layers That Make the Agent Loop Work — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/03-architecture/illustration_1.png)
+![OpenClaw QuickStart (3): The Six Layers That Make the Agent Loop Work — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/03-architecture/illustration_1.png)
 
 
 ---
@@ -61,7 +61,7 @@ If you have ever seen "the agent confused two of my conversations", that is a se
 
 ## Pi Agent — the loop
 
-![OpenClaw QuickStart (3): The Six Layers That Make the Agent Loop Work — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/03-architecture/illustration_2.png)
+![OpenClaw QuickStart (3): The Six Layers That Make the Agent Loop Work — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/03-architecture/illustration_2.png)
 
 This is the actual agent loop. It is the bit that looks like:
 

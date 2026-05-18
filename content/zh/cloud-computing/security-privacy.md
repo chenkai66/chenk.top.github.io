@@ -18,7 +18,7 @@ series_order: 6
 series_total: 8
 translationKey: "cloud-computing-6"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/illustration_1.png)
+![云计算（六）：云安全与隐私保护 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/illustration_1.png)
 
 2019 年，Capital One 泄露了一亿条客户记录。整个攻击链非常简短：一个配置错误的 WAF 允许攻击者对 EC2 元数据端点发起服务端请求伪造（SSRF），该端点随即返回了 IAM 临时凭证，而该 IAM 角色对账户内所有 S3 存储桶都拥有通配符权限 `s3:*`。一处配置失误、一个权限过宽的角色、一条安全团队漏写的防护规则——仅此而已。事件造成的直接经济损失（不含法律费用）超过 8000 万美元。
 

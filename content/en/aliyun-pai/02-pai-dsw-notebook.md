@@ -21,7 +21,7 @@ translationKey: "aliyun-pai-2"
 
 Every time I onboard a new ML engineer to PAI the first day looks the same. They start a DSW instance, `pip install` their world, train for an hour, restart the kernel for some reason, and then ask me where their model file went. The honest answer — "in `/root` on a node that no longer exists" — is the kind of lesson you only need to learn once. This article is the version of that lesson you read in advance.
 
-![Aliyun PAI (2): PAI-DSW — Notebooks That Don't Eat Your Weights — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/02-pai-dsw-notebook/illustration_1.png)
+![Aliyun PAI (2): PAI-DSW — Notebooks That Don't Eat Your Weights — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/02-pai-dsw-notebook/illustration_1.png)
 
 ---
 
@@ -168,7 +168,7 @@ For a `vllm`-heavy workflow on Qwen3, the `modelscope:1.28.0-pytorch2.6.0-gpu-py
 
 ## OSS-FUSE mount, latency profile, and when to copy instead
 
-![Aliyun PAI (2): PAI-DSW — Notebooks That Don't Eat Your Weights — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/02-pai-dsw-notebook/illustration_2.png)
+![Aliyun PAI (2): PAI-DSW — Notebooks That Don't Eat Your Weights — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/02-pai-dsw-notebook/illustration_2.png)
 
 OSS-FUSE is the default mount mechanism, and it's fine for 90% of work, but the ways it fails are subtle. The mental model: every `read()` on a mounted path is an HTTP request to OSS, every `write()` accumulates in a local buffer and flushes on `close()` or every few MB. That has implications:
 

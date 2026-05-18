@@ -15,7 +15,7 @@ description: "Master hash table patterns through four classic LeetCode problems 
 disableNunjucks: true
 translationKey: "leetcode-1"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/01-hash-table/illustration_1.png)
+![LeetCode (1): Patterns: Hash Tables — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/01-hash-table/illustration_1.png)
 
 A hash table is the cheapest superpower in your toolbox. You spend a constant amount of memory per stored item, and in return every "is *x* in here?" question costs roughly one CPU instruction. Whole families of `O(n²)` brute-force solutions collapse into a single `O(n)` pass once you reach for one.
 

@@ -25,7 +25,7 @@ polished_by_qwen_max: true
 本文将从第一性原理出发，系统重建 PEFT 的逻辑脉络。我们会先审视全量微调能回答什么问题、又遗漏了哪些关键挑战，继而推导 LoRA 的低秩假设，拆解 QLoRA 如何通过精巧的内存设计将 7B 模型塞进 6 GB 显存，并最终落脚于实践决策：选哪种方法、设多大秩、改哪些模块。
 
 <!-- wanx-hero -->
-![自然语言处理（八）：模型微调与PEFT — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/illustration_1.png)
+![自然语言处理（八）：模型微调与 PEFT — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/illustration_1.png)
 
 ---
 

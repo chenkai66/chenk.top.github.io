@@ -21,7 +21,7 @@ translationKey: "ml-math-derivations-5"
 
 This chapter develops linear regression from three independent starting points — algebra, geometry, and probability — and shows that they all land on the same equation. Then we look at what happens when the assumptions break, and how Ridge, Lasso, and robust losses repair them.
 
-![ML Math Derivations (5): Linear Regression — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/05-Linear-Regression/illustration_1.png)
+![ML Math Derivations (5): Linear Regression — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/05-Linear-Regression/illustration_1.png)
 
 ---
 
@@ -108,7 +108,7 @@ The figure makes three things visible simultaneously: the columns of $X$ spannin
 
 ## The Projection Matrix
 
-![ML Math Derivations (5): Linear Regression — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/05-Linear-Regression/illustration_2.png)
+![ML Math Derivations (5): Linear Regression — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/05-Linear-Regression/illustration_2.png)
 
 The projection itself is a linear map — the **hat matrix**:
 $$H = X(X^\top X)^{-1} X^\top, \qquad \hat y = H y.$$

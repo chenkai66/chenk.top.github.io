@@ -22,7 +22,7 @@ polished_by_qwen_max: true
 如果说 BERT（第五篇）是“理解”之王，那 GPT 就是“生成”之王。本文将带你完整走过 GPT 的演进脉络，拆解自回归解码的机制，让你真切感受到不同解码策略带来的差异，并最终教你如何在自己的笔记本电脑上跑起一个能用的聊天机器人。
 
 <!-- wanx-hero -->
-![自然语言处理（六）：GPT与生成式语言模型 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_1.png)
+![自然语言处理（六）：GPT 与生成式语言模型 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_1.png)
 
 ---
 

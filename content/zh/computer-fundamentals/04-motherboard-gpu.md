@@ -14,7 +14,7 @@ series_order: 4
 series_total: 6
 translationKey: "computer-fundamentals-4"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/04-motherboard-gpu/illustration_1.png)
+![计算机基础（四）：主板、显卡与扩展 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/04-motherboard-gpu/illustration_1.png)
 
 桌面主板是一种相当‘诚实’的产品：CPU 提供的 PCIe 通道数量、哪些插槽直连 CPU、哪些经由芯片组、为支持 250 W 处理器配置的 VRM 相数以及第二根 PCIe 长插槽为何实际仅支持 ×4——这些关键设计决策都清晰地呈现在 PCB 上；只要能读懂主板布局，你几乎就能预判用户可能遇到的每一处性能瓶颈。本系列第四篇将系统讲解这套‘读板’方法，并将同一分析视角延伸至显卡：GPU 架构设计的核心目标是让成千上万条计算通路持续获得数据供给，而缓存、调度器、Tensor Core 和 HBM 堆栈等组件均服务于这一目标。
 

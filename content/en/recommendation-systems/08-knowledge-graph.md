@@ -22,7 +22,7 @@ Why does this matter for recommendations? Pure collaborative filtering has a bli
 
 ---
 
-![Recommendation Systems (8): Knowledge Graph-Enhanced Recommendation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/08-knowledge-graph/illustration_1.png)
+![Recommendation Systems (8): Knowledge Graph-Enhanced Recommendation — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/08-knowledge-graph/illustration_1.png)
 
 ## What You Will Learn
 
@@ -213,7 +213,7 @@ The figure traces explicit paths from a user's single watch to four candidate mo
 
 ## RippleNet: Preference Propagation
 
-![Recommendation Systems (8): Knowledge Graph-Enhanced Recommendation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/08-knowledge-graph/illustration_2.png)
+![Recommendation Systems (8): Knowledge Graph-Enhanced Recommendation — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/08-knowledge-graph/illustration_2.png)
 
 
 ![RippleNet: user preferences spread outward from history items through hop-1 and hop-2 KG neighbors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/08-knowledge-graph/fig3_ripplenet_propagation.png)

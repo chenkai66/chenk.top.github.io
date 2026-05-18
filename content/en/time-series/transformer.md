@@ -22,7 +22,7 @@ Dropping a vanilla NLP Transformer onto a time-series problem runs into two imme
 
 The second complication is **cost**. Attention's O(n²) complexity is mostly fine in NLP — a sentence is at most a few hundred tokens — but a month of hourly time-series data is already 720 steps, three months is 2160, and O(n²) blows through memory fast. Around that one constraint, the field has developed four families of fixes: sparse attention (only some token pairs interact), linear attention (kernel tricks bring complexity to O(n)), patching (group adjacent steps into single tokens), and decoder-only stacks (GPT-style autoregressive). This chapter walks through each family with its flagship model — Autoformer, FEDformer, Informer, PatchTST — and ships a clean PyTorch reference you can run.
 
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.png)
+![Time Series Forecasting (5): Transformer Architecture for Time Series — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.png)
 
 
 ---

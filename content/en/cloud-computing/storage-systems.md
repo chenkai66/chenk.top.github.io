@@ -17,7 +17,7 @@ series_order: 4
 series_total: 8
 translationKey: "cloud-computing-4"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/illustration_1.png)
+![Cloud Computing (4): Cloud Storage Systems and Distributed Architecture — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/illustration_1.png)
 
 When Netflix stores petabytes of video, when Instagram serves billions of photos, when a quant fund replays a year of market data in minutes — behind every one of these workloads is a *distributed storage system*. Storage looks deceptively simple from a developer's window (`PUT key`, `GET key`), but the moment you cross the boundary of a single machine, you inherit a stack of problems that has driven decades of research: how to survive disk failures, how to scale linearly, how to provide a consistency model that does not surprise the application, and how to do all of this while paying cents per gigabyte rather than dollars.
 

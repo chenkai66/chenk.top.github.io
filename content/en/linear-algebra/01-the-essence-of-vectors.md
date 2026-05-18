@@ -16,7 +16,7 @@ series_order: 1
 series_total: 18
 translationKey: "linear-algebra-1"
 ---
-![Essence of Linear Algebra (1): The Essence of Vectors — More Than Just Arrows — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/illustration_1.png)
+![Essence of Linear Algebra (1): The Essence of Vectors — More Than Just Arrows — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/illustration_1.png)
 
 ---
 
@@ -181,7 +181,7 @@ A famous NLP example takes this even further: words become 300-dimensional vecto
 
 ## The Inner Product: Where Geometry Meets Algebra
 
-![Essence of Linear Algebra (1): The Essence of Vectors — More Than Just Arrows — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/illustration_2.png)
+![Essence of Linear Algebra (1): The Essence of Vectors — More Than Just Arrows — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/illustration_2.png)
 
 The inner product (or *dot product* in$\mathbb{R}^n$) is the deepest single operation in this chapter. It hides a small miracle: two definitions that look completely unrelated turn out to give the same number.
 

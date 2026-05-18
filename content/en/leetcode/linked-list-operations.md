@@ -15,7 +15,7 @@ description: "A complete linked list toolkit: reversal (iterative and recursive)
 disableNunjucks: true
 translationKey: "leetcode-3"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/03-linked-list/illustration_1.png)
+![LeetCode (3): Patterns: Linked List Operations — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/03-linked-list/illustration_1.png)
 
 A linked list is the simplest data structure that forces you to **think in pointers**. Arrays let you index in $O(1)$ and forget about layout; linked lists hand you a head pointer and ask, *"now what?"* That single shift — from indices to references — is what makes linked-list problems so common in interviews. They are short to state, brutal to get right, and reward exactly the habits good engineers build: drawing pictures, naming pointers, and **never dereferencing without checking for `None`**.
 

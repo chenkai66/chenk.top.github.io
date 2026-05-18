@@ -23,7 +23,7 @@ This first article in the series does two things. First, it maps out the field's
 
 
 <!-- wanx-hero -->
-![NLP (1): Introduction and Text Preprocessing — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_1.png)
+![NLP (1): Introduction and Text Preprocessing — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_1.png)
 
 
 ---
@@ -32,7 +32,7 @@ This first article in the series does two things. First, it maps out the field's
 
 
 <!-- wanx-mid -->
-![NLP (1): Introduction and Text Preprocessing — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_2.png)
+![NLP (1): Introduction and Text Preprocessing — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_2.png)
 
 - The four paradigms of NLP and the technical reason each one displaced the previous
 - A precise vocabulary for tokenization: characters, words, subwords, and why BPE won

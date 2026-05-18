@@ -18,7 +18,7 @@ series_total: 8
 translationKey: "cloud-computing-3"
 polished_by_qwen_max: true
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/cloud-native-containers/illustration_1.png)
+![云计算（三）：云原生与容器技术 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/cloud-native-containers/illustration_1.png)
 
 从单体应用转向云原生架构，是过去十年软件工程领域最具深远影响的变革之一。容器与 Kubernetes 的名字早已耳熟能详，但真正值得深挖的是：**为什么这套技术栈最终胜出？每一层究竟承担了什么职责？又有哪些关键“接缝”决定了你的平台体验是行云流水，还是步步迷宫？**
 

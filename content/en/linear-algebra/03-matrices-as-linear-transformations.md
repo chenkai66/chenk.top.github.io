@@ -17,7 +17,7 @@ series_order: 3
 series_total: 18
 translationKey: "linear-algebra-3"
 ---
-![Essence of Linear Algebra (3): Matrices as Linear Transformations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/03-matrices-as-linear-transformations/illustration_1.png)
+![Essence of Linear Algebra (3): Matrices as Linear Transformations — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/03-matrices-as-linear-transformations/illustration_1.png)
 
 
 ---
@@ -184,7 +184,7 @@ Projections are the first transformations that **lose information** — both $(1
 
 ## Matrix Multiplication = Composition of Transformations
 
-![Essence of Linear Algebra (3): Matrices as Linear Transformations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/03-matrices-as-linear-transformations/illustration_2.png)
+![Essence of Linear Algebra (3): Matrices as Linear Transformations — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/03-matrices-as-linear-transformations/illustration_2.png)
 
 We can finally explain the multiplication rule.
 

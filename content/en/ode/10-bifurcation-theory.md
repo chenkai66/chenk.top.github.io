@@ -22,7 +22,7 @@ A lake stays clear for decades, then turns murky in a single season. A power gri
 
 These are not prediction failures. The universe is doing exactly what dynamical systems theory says it must: cross a **bifurcation**. When a parameter drifts past a critical value, the topology of phase space rearranges, and what was once impossible becomes inevitable. This chapter classifies these rearrangements. There are only a few, and once you see the catalog, you'll spot them everywhere.
 
-![Ordinary Differential Equations (10): Bifurcation Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/illustration_1.png)
+![Ordinary Differential Equations (10): Bifurcation Theory — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/illustration_1.png)
 
 ---
 
@@ -140,7 +140,7 @@ In real systems higher-order terms eventually re-stabilise things: adding a$-x^5
 
 ## The Hopf bifurcation: a focus gives birth to a cycle
 
-![Ordinary Differential Equations (10): Bifurcation Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/illustration_2.png)
+![Ordinary Differential Equations (10): Bifurcation Theory — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/illustration_2.png)
 
 The bifurcations above are scalar. The first genuinely two-dimensional bifurcation is the **Hopf** (Andronov-Hopf, really). It is what allows oscillations to *appear*.
 

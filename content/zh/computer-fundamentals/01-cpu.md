@@ -14,7 +14,7 @@ series_order: 1
 series_total: 6
 translationKey: "computer-fundamentals-1"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/01-cpu/illustration_1.png)
+![计算机基础（一）：CPU 与计算核心 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/01-cpu/illustration_1.png)
 
 为什么 100 Mbps 宽带下载速度只有大约 12 MB/s？为什么标称“1 TB”的硬盘在 Windows 里只显示 931 GB？为什么 32 位系统最多只能用到约 3.2 GB 内存？当 CPU 执行你的代码时，每个时钟周期里究竟发生了什么？
 

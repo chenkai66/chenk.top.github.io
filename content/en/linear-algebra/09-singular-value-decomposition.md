@@ -18,7 +18,7 @@ series_order: 9
 series_total: 18
 translationKey: "linear-algebra-9"
 ---
-![Essence of Linear Algebra (9): Singular Value Decomposition — The Crown Jewel of Linear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_1.png)
+![Essence of Linear Algebra (9): Singular Value Decomposition — The Crown Jewel of Linear Algebra — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_1.png)
 
 ---
 
@@ -203,7 +203,7 @@ The orthonormal basis $\{v_1, \ldots, v_r\}$ of the row space is mapped onto the
 
 ## Low-Rank Approximation: the Theorem Behind Compression
 
-![Essence of Linear Algebra (9): Singular Value Decomposition — The Crown Jewel of Linear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_2.png)
+![Essence of Linear Algebra (9): Singular Value Decomposition — The Crown Jewel of Linear Algebra — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_2.png)
 
 ### The Eckart--Young theorem
 

@@ -19,7 +19,7 @@ translationKey: "claude-code-learn-2"
 
 The shortcuts are not in the help screen for a reason — they're discoverable through use, not documentation. Here they are anyway.
 
-![Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/illustration_1.png)
+![Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/illustration_1.png)
 
 ---
 
@@ -145,7 +145,7 @@ After a few weeks, state switching becomes unconscious. My typical session:
 
 ## Thinking modes — five levels
 
-![Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/illustration_2.png)
+![Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/illustration_2.png)
 
 Type one of these phrases anywhere in your prompt and Claude shifts how much it reasons before responding:
 

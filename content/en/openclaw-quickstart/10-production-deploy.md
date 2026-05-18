@@ -23,7 +23,7 @@ The local install gets you to 'it works on my machine.' The server install ensur
 
 This chapter walks through the deployment I use on a 2-core 4GB ECS box and the common failures I've documented.
 
-![OpenClaw QuickStart (10): Production Deploy and the Failure Modes Nobody Warns You About — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/illustration_1.png)
+![OpenClaw QuickStart (10): Production Deploy and the Failure Modes Nobody Warns You About — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/illustration_1.png)
 
 ---
 
@@ -125,7 +125,7 @@ Three volumes are essential:
 
 ## The eight failures
 
-![OpenClaw QuickStart (10): Production Deploy and the Failure Modes Nobody Warns You About — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/illustration_2.png)
+![OpenClaw QuickStart (10): Production Deploy and the Failure Modes Nobody Warns You About — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/illustration_2.png)
 
 ### `command not found: openclaw` after reboot
 

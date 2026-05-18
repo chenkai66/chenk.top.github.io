@@ -21,7 +21,7 @@ translationKey: "ml-math-derivations-13"
 ---
 When data has hidden structure — like an unobserved cluster label, a missing feature, or an unseen topic — maximum likelihood becomes challenging. The log of a sum has no closed form, and gradient methods get entangled with the latent variables. The **EM algorithm** sidesteps the difficulty with a deceptively simple idea: alternate between *guessing* the hidden variables under a posterior (E-step) and *fitting* the parameters as if those guesses were true (M-step). Each iteration is mathematically guaranteed to push the likelihood up. This post derives EM from first principles, proves the monotone-ascent property using Jensen's inequality, and explores its most famous application: **Gaussian Mixture Models (GMM)** — the soft, elliptical generalization of K-means.
 
-![ML Math Derivations (13): EM Algorithm and GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/illustration_1.png)
+![ML Math Derivations (13): EM Algorithm and GMM — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/illustration_1.png)
 
 ---
 
@@ -109,7 +109,7 @@ This single identity is the entire engine of EM.
 
 ## EM as coordinate ascent on the ELBO
 
-![ML Math Derivations (13): EM Algorithm and GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/illustration_2.png)
+![ML Math Derivations (13): EM Algorithm and GMM — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/illustration_2.png)
 
 EM repeatedly raises $\mathcal{L}$ by alternating in its two arguments.
 

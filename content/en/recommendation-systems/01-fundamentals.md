@@ -37,7 +37,7 @@ This article is the first in a 16-part series. Its job is to give you a complete
 
 ---
 
-![Recommendation Systems (1): Fundamentals and Core Concepts — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/01-fundamentals/illustration_1.png)
+![Recommendation Systems (1): Fundamentals and Core Concepts — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/01-fundamentals/illustration_1.png)
 
 ## Why Recommendation Systems Matter
 
@@ -197,7 +197,7 @@ def predict(user, item):
 
 ## Matrix Factorization: The Workhorse
 
-![Recommendation Systems (1): Fundamentals and Core Concepts — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/01-fundamentals/illustration_2.png)
+![Recommendation Systems (1): Fundamentals and Core Concepts — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/01-fundamentals/illustration_2.png)
 
 Neighbourhood methods like User-CF and Item-CF are intuitive, but **matrix factorization (MF)** is the technique that won the Netflix Prize and underpins much of what came after, including modern two-tower deep models.
 

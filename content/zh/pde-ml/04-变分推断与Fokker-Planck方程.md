@@ -17,7 +17,7 @@ series_order: 4
 series_total: 8
 translationKey: "pde-ml-4"
 ---
-![偏微分方程与机器学习（四）：变分推断与Fokker-Planck方程 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-Variational-Inference/illustration_1.png)
+![偏微分方程与机器学习（四）：变分推断与 Fokker-Planck 方程 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-Variational-Inference/illustration_1.png)
 
 ---
 

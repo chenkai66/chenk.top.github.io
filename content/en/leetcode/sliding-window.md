@@ -15,7 +15,7 @@ description: "Master fixed-size and variable-size sliding window patterns. Solve
 disableNunjucks: true
 translationKey: "leetcode-4"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/04-sliding-window/illustration_1.png)
+![LeetCode (4): Patterns: Sliding Window Technique — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/04-sliding-window/illustration_1.png)
 
 If you have ever caught yourself writing a double `for` loop to inspect every contiguous subarray, **sliding window** is probably the optimisation you are missing. It turns an $O(nk)$ or $O(n^2)$ scan into a single linear pass by *reusing the work* it has already done. This article walks through the technique from first principles, then drills four canonical LeetCode problems plus a monotonic-deque variant.
 

@@ -20,7 +20,7 @@ series_order: 7
 series_total: 8
 translationKey: "pde-ml-7"
 ---
-![PDE and ML (7): Diffusion Models and Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/illustration_1.png)
+![PDE and ML (7): Diffusion Models and Score Matching — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/illustration_1.png)
 
 ---
 
@@ -149,7 +149,7 @@ with terminal condition $u(T, \mathbf{x}) = g(\mathbf{x})$. The forward equation
 
 ## Score-Based Generative Models
 
-![PDE and ML (7): Diffusion Models and Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/illustration_2.png)
+![PDE and ML (7): Diffusion Models and Score Matching — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/illustration_2.png)
 
 ### The Score Function
 

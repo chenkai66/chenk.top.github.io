@@ -46,7 +46,7 @@ polished_by_qwen_max: true
 
 VPC 是云服务商在物理网络之上构建的一块软件定义网络区域，其行为**如同你专属的私有数据中心**：你可以自由选择 IP 地址空间、划分子网、部署网关，并编写防火墙规则。在底层，云厂商通过 **VXLAN**（或其专有等效技术）实现租户隔离——每个数据包都携带租户标识，因此即使两个客户同时使用 `10.0.0.0/16`，彼此的流量也完全不可见。
 
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/illustration_1.png)
+![云计算（五）：云网络架构与 SDN — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/illustration_1.png)
 
 ### 生产级 VPC 的组成结构
 

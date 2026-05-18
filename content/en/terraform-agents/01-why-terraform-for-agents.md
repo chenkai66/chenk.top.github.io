@@ -26,7 +26,7 @@ This series is the field guide for that fourth pattern: how to use Terraform to 
 
 Eight articles. One real, working stack at the end. This first one explains the why.
 
-![Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/illustration_1.png)
+![Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/illustration_1.png)
 
 ---
 

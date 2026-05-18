@@ -34,7 +34,7 @@ This last chapter does two things. First, it walks you through the frontiers —
 
 ---
 
-![Essence of Linear Algebra (18): Frontiers and Summary — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/18-frontiers-and-summary/illustration_1.png)
+![Essence of Linear Algebra (18): Frontiers and Summary — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/18-frontiers-and-summary/illustration_1.png)
 
 ## The 18-chapter dependency graph
 
@@ -102,7 +102,7 @@ with $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$ adding a self-loop. Reading 
 
 ## Large language models: attention is matrix multiplication wearing a hat
 
-![Essence of Linear Algebra (18): Frontiers and Summary — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/18-frontiers-and-summary/illustration_2.png)
+![Essence of Linear Algebra (18): Frontiers and Summary — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/18-frontiers-and-summary/illustration_2.png)
 
 ### Self-attention as soft retrieval
 

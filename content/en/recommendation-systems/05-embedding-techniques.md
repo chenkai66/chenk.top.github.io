@@ -22,7 +22,7 @@ When Netflix suggests *Inception* to someone who just finished *The Dark Knight*
 
 This article unpacks how those vectors get learned and served at production scale. We will move from the underlying intuition through five families of techniques (sequence, graph, two-tower, attention-pooled, contrastive), the engineering of negative sampling, and the millisecond-level realities of approximate nearest-neighbour search. Every section is paired with code that compiles and runs.
 
-![Recommendation Systems (5): Embedding and Representation Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/illustration_1.png)
+![Recommendation Systems (5): Embedding and Representation Learning — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/illustration_1.png)
 
 
 ---
@@ -420,7 +420,7 @@ def co_occurrence_graph(interactions, min_jaccard=0.1, max_users=None):
 
 ## Two-tower models: separate user and item encoders
 
-![Recommendation Systems (5): Embedding and Representation Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/illustration_2.png)
+![Recommendation Systems (5): Embedding and Representation Learning — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/illustration_2.png)
 
 ### Why two towers, not one
 

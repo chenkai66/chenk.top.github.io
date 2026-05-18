@@ -22,7 +22,7 @@ If you only edit one file in OpenClaw, this is it.
 
 `~/.openclaw/openclaw.json` controls models, tools, channels, memory, cron, and skill loading. The onboarding wizard wrote a default; this piece walks the parts you will actually touch.
 
-![OpenClaw QuickStart (4): Configuration, Model Providers, and the Coding Plan Trick — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/04-configuration/illustration_1.png)
+![OpenClaw QuickStart (4): Configuration, Model Providers, and the Coding Plan Trick — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/04-configuration/illustration_1.png)
 
 ---
 
@@ -175,7 +175,7 @@ You can also override at runtime by passing `--model` to the CLI, but skill-leve
 
 ## The Coding Plan trick
 
-![OpenClaw QuickStart (4): Configuration, Model Providers, and the Coding Plan Trick — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/04-configuration/illustration_2.png)
+![OpenClaw QuickStart (4): Configuration, Model Providers, and the Coding Plan Trick — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/04-configuration/illustration_2.png)
 
 Aliyun Bailian has a "Coding Plan" subscription: 200元 per month gets you eight models — Claude Sonnet 4.5, Qwen3-Max, Qwen3-Coder-Plus, DeepSeek V3.1, GLM-4.6, and more — at unmetered usage during business hours. This is wildly underpriced for an agent that loops a few hundred times per day.
 

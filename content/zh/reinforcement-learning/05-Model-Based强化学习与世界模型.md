@@ -27,7 +27,7 @@ translationKey: "reinforcement-learning-5"
 **Model-Based RL（基于模型的强化学习，MBRL）** 正是将这一思想形式化：先学习一个近似的动态模型 $\hat{P}(s'\mid s, a)$ 和奖励模型 $\hat{R}(s, a)$，再将它们作为廉价的模拟器，用于规划、策略改进或价值估计。在适用的任务上，这种方法能将真实环境交互所需的样本量减少 **10 到 100 倍**——这意味着机器人的物理训练时间可以从三个月缩短到一个下午。
 
 本文梳理了 MBRL 的现代发展脉络：Dyna（1990）→ MBPO（2019）→ World Models（2018）→ Dreamer（2020–23）→ MuZero（2020）。每种方法都围绕一个核心洞见展开，文中的七幅图将逐一可视化这些思想。
-![强化学习（五）：Model-Based强化学习与世界模型 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/illustration_1.png)
+![强化学习（五）：Model-Based 强化学习与世界模型 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/illustration_1.png)
 
 
 ---
@@ -226,7 +226,7 @@ MPC 是**高风险场景**（如真实机器人、手术、自动驾驶）的首
 
 ## 五、World Models：在潜空间里做梦
 
-![强化学习（五）：Model-Based强化学习与世界模型 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/illustration_2.png)
+![强化学习（五）：Model-Based 强化学习与世界模型 — 章节小结图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/illustration_2.png)
 
 
 ![World Model V/M/C 架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based强化学习与世界模型/fig2_world_model_vmc.png)

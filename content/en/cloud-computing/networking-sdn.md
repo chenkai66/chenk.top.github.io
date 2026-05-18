@@ -17,7 +17,7 @@ series_order: 5
 series_total: 8
 translationKey: "cloud-computing-5"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/illustration_1.png)
+![Cloud Computing (5): Cloud Network Architecture and SDN — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/illustration_1.png)
 
 A cloud platform is essentially a network with attached computers. The compute layer scales by adding servers; the storage layer scales by adding disks; the *network* layer integrates these into a single, coherent system. Get the network right, and the rest of the stack feels effortless. Get it wrong — a missing route, a 5-tuple mismatch in a security group, or an under-provisioned load balancer — and the whole platform goes dark.
 

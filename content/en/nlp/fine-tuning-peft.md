@@ -27,7 +27,7 @@ This article reconstructs PEFT from first principles. We start with the question
 
 
 <!-- wanx-hero -->
-![NLP (8): Model Fine-tuning and PEFT — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/illustration_1.png)
+![NLP (8): Model Fine-tuning and PEFT — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/illustration_1.png)
 
 
 ---
@@ -43,7 +43,7 @@ This article reconstructs PEFT from first principles. We start with the question
 ## Prerequisites
 
 <!-- wanx-mid -->
-![NLP (8): Model Fine-tuning and PEFT — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/illustration_2.png)
+![NLP (8): Model Fine-tuning and PEFT — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/illustration_2.png)
 
 
 - Transformer architecture ([Part 4](/en/nlp/attention-transformer/))

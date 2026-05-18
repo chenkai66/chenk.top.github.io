@@ -21,7 +21,7 @@ translationKey: "ode-3"
 
 This chapter builds the entire toolkit. We will derive it once, prove the structural theorems, then keep meeting the same picture in different clothing.
 
-![Ordinary Differential Equations (3): Higher-Order Linear Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/illustration_1.png)
+![Ordinary Differential Equations (3): Higher-Order Linear Theory — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/illustration_1.png)
 
 ---
 
@@ -148,7 +148,7 @@ The location of the roots in the complex plane *is* the qualitative behaviour:
 
 ## Damped oscillation: the trichotomy in pictures
 
-![Ordinary Differential Equations (3): Higher-Order Linear Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/illustration_2.png)
+![Ordinary Differential Equations (3): Higher-Order Linear Theory — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/illustration_2.png)
 
 Consider the canonical second-order homogeneous equation in normalised form:
 $$\ddot x + 2\zeta\omega_0\,\dot x + \omega_0^2\,x \;=\; 0.$$

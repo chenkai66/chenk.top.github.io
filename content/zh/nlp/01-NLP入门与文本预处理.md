@@ -23,13 +23,13 @@ polished_by_qwen_max: true
 ![NLP 应用全景图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/01-NLP入门与文本预处理/fig1_applications_landscape.png)
 
 <!-- wanx-hero -->
-![自然语言处理（一）：NLP入门与文本预处理 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_1.png)
+![自然语言处理（一）：NLP 入门与文本预处理 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_1.png)
 
 ---
 
 ## 你将学到什么
 <!-- wanx-mid -->
-![自然语言处理（一）：NLP入门与文本预处理 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_2.png)
+![自然语言处理（一）：NLP 入门与文本预处理 — 章节小结图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_2.png)
 
 - 自然语言处理（NLP）的四大范式，以及每次技术变革背后的深层原因
 - 分词领域的核心术语：字符、词、子词，以及为什么 BPE 能够脱颖而出

@@ -21,7 +21,7 @@ The entire trajectory of NLP shifted toward representation learning. This articl
 
 
 <!-- wanx-hero -->
-![NLP (2): Word Embeddings and Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/illustration_1.png)
+![NLP (2): Word Embeddings and Language Models — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/illustration_1.png)
 
 
 ---
@@ -30,7 +30,7 @@ The entire trajectory of NLP shifted toward representation learning. This articl
 
 
 <!-- wanx-mid -->
-![NLP (2): Word Embeddings and Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/illustration_2.png)
+![NLP (2): Word Embeddings and Language Models — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/illustration_2.png)
 
 - Why one-hot encoding fails and how dense embeddings fix it
 - Skip-gram and CBOW: two ways to learn from local context

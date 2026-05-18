@@ -22,7 +22,7 @@ Claude Code now has four extension mechanisms: slash commands, MCP servers, hook
 
 This is the closing chapter of the series. Let me lay out the decision tree.
 
-![Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/illustration_1.png)
+![Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/illustration_1.png)
 
 ---
 
@@ -531,7 +531,7 @@ The pattern: user-level for personal taste and universal tools, project-level fo
 
 ## The end of the series
 
-![Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/illustration_2.png)
+![Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/illustration_2.png)
 
 Ten chapters in, you have:
 

@@ -16,7 +16,7 @@ series_order: 8
 series_total: 8
 translationKey: "time-series-8"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/informer-long-sequence/illustration_1.png)
+![Time Series Forecasting (8): Informer — Efficient Long-Sequence Forecasting — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/informer-long-sequence/illustration_1.png)
 
 The Transformer is wonderful at sequence modeling — right up to the moment your sequence gets long. Vanilla self-attention costs $\mathcal{O}(L^2)$ in both compute and memory, so a one-week hourly window (168 steps) is fine, a one-month window (720 steps) is painful, and a three-month window (2160 steps) is essentially impossible on a single GPU. That is exactly the regime real-world long-horizon forecasting lives in: weather, energy, finance, IoT.
 

@@ -24,7 +24,7 @@ Safety has the worst signal-to-noise ratio of any topic in LLM engineering. Ther
 
 A note on my stance: I'm an engineer, not a policy expert. I don't have strong views on AI x-risk and won't try to give you any. I focus on what works in production, what fails embarrassingly, and what the literature says about both. The bibliography at the end does most of the heavy lifting; treat the citations as key takeaways.
 
-![LLM Engineering (11): Safety and Alignment — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/illustration_1.png)
+![LLM Engineering (11): Safety and Alignment — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/illustration_1.png)
 
 ---
 
@@ -93,7 +93,7 @@ The Arditi result generalizes (with adjustments) to closed models — instructio
 
 ## Red-teaming methodology
 
-![LLM Engineering (11): Safety and Alignment — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/illustration_2.png)
+![LLM Engineering (11): Safety and Alignment — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/illustration_2.png)
 
 
 ![fig2: jailbreak taxonomy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/fig2_jailbreak_taxonomy.png)

@@ -21,7 +21,7 @@ translationKey: "ml-math-derivations-10"
 ---
 > **Hook.** Naive Bayes assumes every feature is conditionally independent given the class. It is a convenient lie — one that lets us train in a single pass over the data, but one that classifiers based on tree structures and small graphs can systematically beat by a few accuracy points on virtually every UCI benchmark. This part walks the spectrum from "no dependencies" (Naive Bayes) to "all dependencies" (full joint), showing the three sweet spots that practitioners actually use: SPODE, TAN and AODE. The same factorisation idea, taken to its general form, is the Bayesian network.
 
-![ML Math Derivations (10): Semi-Naive Bayes and Bayesian Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/illustration_1.png)
+![ML Math Derivations (10): Semi-Naive Bayes and Bayesian Networks — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/illustration_1.png)
 
 ---
 
@@ -130,7 +130,7 @@ print("Naive Bayes 5-fold CV:",
 
 ## TAN: tree-augmented Naive Bayes
 
-![ML Math Derivations (10): Semi-Naive Bayes and Bayesian Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/illustration_2.png)
+![ML Math Derivations (10): Semi-Naive Bayes and Bayesian Networks — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/illustration_2.png)
 
 ### Each feature picks its own parent
 
@@ -251,7 +251,9 @@ The cost is exponential in the largest clique size, i.e. treewidth $+\,1$ — th
 The DAG itself can be learned. Two main families:
 
 - **Score + search.** Hill-climb over DAGs by adding/deleting/reversing edges; score each candidate with a likelihood-plus-penalty criterion. The standard one is **BIC**:
+
 $$\mathrm{BIC}(\mathcal{G}) \;=\; \log p(\mathcal{D}\mid\hat{\theta},\mathcal{G}) \;-\; \tfrac{|\theta|}{2}\log N.$$
+
 The first term rewards fit, the second penalises parameter count — BIC is consistent (selects the true graph as $N\to\infty$) under standard assumptions.
 
 - **Constraint-based** (PC algorithm, FCI). Run conditional-independence tests, build the skeleton, then orient v-structures using the collider rule.

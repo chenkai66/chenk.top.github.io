@@ -22,7 +22,7 @@ Hooks let you interact with Claude Code, while settings.json specifies what it c
 
 This chapter is the missing reference.
 
-![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/illustration_1.png)
+![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/illustration_1.png)
 
 ---
 
@@ -189,7 +189,7 @@ Here is the complete list of tool names you can use in permission rules:
 
 ## Why deny wins
 
-![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/illustration_2.png)
+![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/illustration_2.png)
 
 Once the merged config denies an action, nothing can re-allow it. This is the control you need.
 ![Figure 6: A deny list, organized by what category of damage it prevents.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig6.png)

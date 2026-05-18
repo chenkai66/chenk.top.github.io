@@ -17,7 +17,7 @@ translationKey: "recommendation-systems-15"
 ---
 > A user opens your app at 14:02 and searches for 'trail running shoes'. By 15:30, they've moved on to reading kitchen reviews. A model that retrains nightly still shows them Salomon ads at 16:00 — and that gap is exactly the bug a real-time system fixes. The interesting part isn't 'make it faster' but 'what *should* be fast' — most features add nothing to AUC even when made real-time, and the wrong design point wastes money without improving performance.
 
-![Recommendation Systems (15): Real-Time Recommendation and Online Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/illustration_1.png)
+![Recommendation Systems (15): Real-Time Recommendation and Online Learning — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/illustration_1.png)
 
 
 ---
@@ -203,7 +203,7 @@ The watermark is the part most people get wrong. It says "I will not see any eve
 
 ## Online learning: from SGD to FTRL
 
-![Recommendation Systems (15): Real-Time Recommendation and Online Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/illustration_2.png)
+![Recommendation Systems (15): Real-Time Recommendation and Online Learning — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/illustration_2.png)
 
 ![Online learning vs batch retraining — left: convergence on a stationary task; right: behavior under concept drift](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/fig3_online_vs_batch.png)
 

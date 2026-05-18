@@ -21,7 +21,7 @@ translationKey: "openclaw-quickstart-6"
 
 After five pieces, you have a working OpenClaw with a chat channel. This is where it stops being a demo.
 
-![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
+![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
 
 
 ---
@@ -289,7 +289,7 @@ The `exec` tool has `dangerous` permission level for a reason. When a skill uses
 
 ## Step 4: A composing skill
 
-![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/06-skills-and-mcp/illustration_2.png)
+![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/06-skills-and-mcp/illustration_2.png)
 
 This is where skills become powerful. A composing skill orchestrates other skills and tools into a multi-step workflow:
 

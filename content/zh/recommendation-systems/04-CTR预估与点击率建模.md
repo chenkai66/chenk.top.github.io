@@ -33,7 +33,7 @@ translationKey: "recommendation-systems-4"
 
 ---
 
-![wanxiang illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/illustration_1.png)
+![推荐系统（四）—— CTR 预估与点击率建模 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/illustration_1.png)
 
 ## 你将学到什么
 
@@ -175,7 +175,7 @@ def train_lr(X_train, y_train, X_val, y_val, epochs=100, lr=0.01):
 
 ---
 
-![wanxiang illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/illustration_2.png)
+![推荐系统（四）—— CTR 预估与点击率建模 — 章节小结图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/illustration_2.png)
 
 ## Factorization Machines（FM）：自动二阶交互
 

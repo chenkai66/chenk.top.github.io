@@ -22,7 +22,7 @@ translationKey: "time-series-5"
 
 第二个是**复杂度**。注意力的 O(n²) 在 NLP 里影响有限——一句话顶多几百个 token——但在时序里，一个月的小时数据就 720 步，三个月 2160 步，O(n²) 直接吃光显存。围绕这一点，研究界发展出了四条路线：稀疏注意力（只让一部分 token 对齐）、线性注意力（用核方法降复杂度）、分块（patching，把多个时间步合并成一个 token）、以及只用解码器（decoder-only，类似 GPT）。这一章我会把每条路线和它的代表模型——Autoformer、FEDformer、Informer、PatchTST——一次讲清楚，并配一份可以直接跑的 PyTorch 参考实现。
 
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.png)
+![时间序列模型（五）：时间序列的 Transformer 架构 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.png)
 
 ---
 

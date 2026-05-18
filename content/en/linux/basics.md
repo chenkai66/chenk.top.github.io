@@ -15,7 +15,7 @@ description: "Your entry guide to Linux: the multi-user permission model, the FH
 disableNunjucks: true
 translationKey: "linux-1"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/basics/illustration_1.png)
+![Linux (1): Basics: Core Concepts and Essential Commands — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/basics/illustration_1.png)
 
 The difficulty with Linux rarely lies in the commands themselves. The hard part is having a clear *map* of the system: why it dominates servers, what multi-user and per-file permissions offer, what changes when switching between Debian and Red Hat lineages, and what to do in the first ten minutes after an SSH prompt opens. This post is the **entry guide** for the entire Linux series. It first builds the mental model — philosophy, distributions, the FHS tree — and then walks you through the commands you will use ten times an hour: `cd ls pwd`, `cp mv rm mkdir`, `cat less head tail`, `find grep`, plus pipelines, redirection, SSH, and a quick taste of permissions and processes. Each topic is intentionally **kept short**; deeper details are in the dedicated articles (File Permissions, Disk Management, User Management, Service Management, Process Management, Package Management, Advanced File Operations).
 

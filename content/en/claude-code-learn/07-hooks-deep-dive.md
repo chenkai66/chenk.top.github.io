@@ -57,7 +57,7 @@ I will skip that preamble in some listings below for brevity, but every real hoo
 ![Hook I/O contract: stdin payload in, exit code plus stderr out](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig3.png)
 *Each hook is a script that reads a JSON payload from stdin and signals back with an exit code (verdict) and stderr (explanation). The matcher in settings.json determines which hooks handle each tool call.*
 
-![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_1.png)
+![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_1.png)
 
 ---
 
@@ -159,7 +159,7 @@ The model recovers gracefully because the stderr message tells it *what to do in
 
 ## bash-blacklist — stop `rm -rf /`
 
-![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_2.png)
+![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_2.png)
 
 The most common foot-gun. PreToolUse on `Bash`.
 

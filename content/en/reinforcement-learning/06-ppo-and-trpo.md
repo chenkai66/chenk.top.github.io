@@ -22,7 +22,7 @@ Policy gradients ([Part 3](/en/reinforcement-learning/03-policy-gradient-and-act
 
 **Trust-region methods** make this concrete: bound the change in *behaviour*, not in parameters, at every update. TRPO does this with a hard KL constraint and a second-order solver. PPO mimics the same effect with one line of clipped arithmetic. The simpler trick won: PPO trains OpenAI Five, ChatGPT's RLHF stage, and almost every modern robotics policy, remaining the workhorse of applied deep RL.
 
-![Reinforcement Learning (6): PPO and TRPO — Trust Region Policy Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_1.png)
+![Reinforcement Learning (6): PPO and TRPO — Trust Region Policy Optimization — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_1.png)
 
 
 ---
@@ -142,7 +142,7 @@ step = torch.sqrt(2 * delta / (x.dot(fisher_vector_product(x)) + 1e-8)) * x
 
 ## PPO: keeping 90% of the benefit at 20% of the complexity
 
-![Reinforcement Learning (6): PPO and TRPO — Trust Region Policy Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_2.png)
+![Reinforcement Learning (6): PPO and TRPO — Trust Region Policy Optimization — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_2.png)
 
 In 2017 Schulman and colleagues asked: *can we get TRPO-like stability using only first-order optimisation?* The answer was PPO, and it has dominated the field ever since.
 

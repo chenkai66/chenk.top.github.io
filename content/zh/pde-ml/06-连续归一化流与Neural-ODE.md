@@ -19,7 +19,7 @@ series_order: 6
 series_total: 8
 translationKey: "pde-ml-6"
 ---
-![偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png)
+![偏微分方程与机器学习（六）：连续归一化流与 Neural ODE — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png)
 
 ---
 
@@ -315,7 +315,7 @@ for step in range(5000):
 
 ## 最优传输与 Flow Matching
 
-![偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_2.png)
+![偏微分方程与机器学习（六）：连续归一化流与 Neural ODE — 章节小结图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_2.png)
 
 ### Benamou-Brenier 联系
 

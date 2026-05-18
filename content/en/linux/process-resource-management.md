@@ -15,7 +15,7 @@ description: "How processes are born and die on Linux: the fork/exec model, the 
 disableNunjucks: true
 translationKey: "linux-7"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/process-resource-management/illustration_1.png)
+![Linux (7): Process and Resource Management: From `top` to cgroups — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/process-resource-management/illustration_1.png)
 
 The job of a Linux operator is rarely "memorise more commands". It is to take a fuzzy symptom — *the site feels slow, the API timed out, the box is unresponsive* — and quickly **map it to the right axis**: is the CPU saturated, is memory being eaten by cache (which is fine) or by a runaway process (which is not), is the disk queue full, is some socket leaking? Once the axis is named, the tool follows almost mechanically.
 

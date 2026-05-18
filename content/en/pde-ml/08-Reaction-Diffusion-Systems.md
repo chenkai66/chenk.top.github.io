@@ -19,7 +19,7 @@ series_order: 8
 series_total: 8
 translationKey: "pde-ml-8"
 ---
-![PDE and ML (8): Reaction-Diffusion Systems and Graph Neural Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/illustration_1.png)
+![PDE and ML (8): Reaction-Diffusion Systems and Graph Neural Networks — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/illustration_1.png)
 
 ---
 
@@ -262,7 +262,7 @@ This is **over-smoothing in its purest form**, and we have not even mentioned ne
 
 ## GCN Is the Heat Equation
 
-![PDE and ML (8): Reaction-Diffusion Systems and Graph Neural Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/illustration_2.png)
+![PDE and ML (8): Reaction-Diffusion Systems and Graph Neural Networks — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/illustration_2.png)
 
 ### The Identification
 

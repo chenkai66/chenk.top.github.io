@@ -17,7 +17,7 @@ series_order: 4
 series_total: 20
 translationKey: "ml-math-derivations-4"
 ---
-![ML Math Derivations (4): Convex Optimization Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/illustration_1.png)
+![ML Math Derivations (4): Convex Optimization Theory — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/illustration_1.png)
 
 ---
 
@@ -241,7 +241,7 @@ For large $n$, even storing $H$ is impractical, so **L-BFGS** keeps only the las
 
 ## Constrained Optimization and Duality
 
-![ML Math Derivations (4): Convex Optimization Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/illustration_2.png)
+![ML Math Derivations (4): Convex Optimization Theory — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/illustration_2.png)
 
 ### Problem Setup
 
@@ -306,7 +306,9 @@ ADMM is not the fastest algorithm in any single regime, but it is remarkably *ro
 
 - the $\beta$-update is a **ridge regression** with closed form,
 - the $z$-update is the **soft-thresholding** operator, applied coordinate-wise:
+
 $$S_\kappa(a) = \mathrm{sign}(a) \cdot \max(|a| - \kappa, 0). \tag{28}$$
+
 Both subproblems are essentially free, and the iteration produces the exact Lasso solution. The same recipe works for nuclear-norm minimization, total-variation denoising, consensus optimization across many machines, and more.
 
 ---

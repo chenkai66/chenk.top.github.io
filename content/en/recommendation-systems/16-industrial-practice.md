@@ -17,7 +17,7 @@ translationKey: "recommendation-systems-16"
 ---
 > The hardest part of a production recommendation system isn't the model. It's the **system around the model**: the feature store that prevents training/serving skew, the canary deployment that catches regressions before they hit 100M users, and the orchestration that meets a 100ms p95 latency budget while running four ML models in sequence. This final article describes the architecture that every major tech company has converged on — and the trade-offs within each layer.
 
-![Recommendation Systems (16): Industrial Architecture and Best Practices — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/16-industrial-practice/illustration_1.png)
+![Recommendation Systems (16): Industrial Architecture and Best Practices — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/16-industrial-practice/illustration_1.png)
 
 
 ---
@@ -130,7 +130,7 @@ The funnel above shows the order-of-magnitude reduction at each stage. Two desig
 
 ## Multi-Channel Recall
 
-![Recommendation Systems (16): Industrial Architecture and Best Practices — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/16-industrial-practice/illustration_2.png)
+![Recommendation Systems (16): Industrial Architecture and Best Practices — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/16-industrial-practice/illustration_2.png)
 
 A single recall strategy will always miss something. Collaborative filtering misses cold items, content recall misses serendipitous discoveries, and real-time signals miss the user's longer-term interests. Therefore, production systems run **3-5 recall channels in parallel** and merge the results.
 

@@ -15,7 +15,7 @@ description: "A deep tour of the two-pointer family: collision, fast/slow, slidi
 disableNunjucks: true
 translationKey: "leetcode-2"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/02-two-pointers/illustration_1.png)
+![LeetCode (2): Patterns: Two Pointers — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/02-two-pointers/illustration_1.png)
 
 Hash tables buy you speed by spending memory. Two pointers is the opposite trade: spend a little structural assumption — the array is sorted, the list might have a cycle, the answer lives in a contiguous window — and you get $O(n)$ time with $O(1)$ extra space. The pattern looks trivial in code (two indices and a `while` loop) but it has more failure modes than any other beginner technique: off-by-one indices, infinite loops, missed duplicates, wrong pointer moved on tie. The cure is to think in **invariants** rather than in moves.
 

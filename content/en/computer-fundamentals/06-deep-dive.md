@@ -14,7 +14,7 @@ description: "Series finale. We zoom out from individual components to the whole
 disableNunjucks: true
 translationKey: "computer-fundamentals-6"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/illustration_1.png)
+![Computer Fundamentals (6): Deep Dive and System Integration — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/illustration_1.png)
 
 We've spent five chapters exploring one component at a time — the CPU, cache hierarchy, storage, motherboard and GPU, network, and power supply. Each part is interesting on its own, but a computer is more than just its components. It's about how these parts must agree, every nanosecond, on what to do next.
 

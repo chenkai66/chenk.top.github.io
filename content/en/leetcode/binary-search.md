@@ -15,7 +15,7 @@ description: "A working coder's guide to binary search: three templates, rotated
 disableNunjucks: true
 translationKey: "leetcode-5"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/05-binary-search/illustration_1.png)
+![LeetCode (5): Patterns: Binary Search — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/05-binary-search/illustration_1.png)
 
 Binary search is the algorithm everyone thinks they understand until they have to write it under interview pressure. The idea is one sentence — *halve the search space at every step* — but the implementation is a minefield of off-by-one errors, infinite loops, and subtly wrong return values. The goal of this article is not to give you yet another recitation of the standard template. Instead, it aims to provide a **mental model** that explains why each template looks the way it does, along with a small toolkit (three templates plus the answer-space pattern) that covers the vast majority of LeetCode problems.
 

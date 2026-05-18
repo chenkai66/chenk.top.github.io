@@ -29,7 +29,7 @@ A million i.i.d. coin flips, arranged into a thousand-by-thousand symmetric matr
 
 ---
 
-![Essence of Linear Algebra (14): Random Matrix Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/14-random-matrix-theory/illustration_1.png)
+![Essence of Linear Algebra (14): Random Matrix Theory — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/14-random-matrix-theory/illustration_1.png)
 
 ## The Big Surprise: Why Random Matrices Are Not "Random"
 
@@ -120,7 +120,7 @@ The fit is essentially perfect already at $n = 200$.
 
 ## The Marchenko-Pastur Law
 
-![Essence of Linear Algebra (14): Random Matrix Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/14-random-matrix-theory/illustration_2.png)
+![Essence of Linear Algebra (14): Random Matrix Theory — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/14-random-matrix-theory/illustration_2.png)
 
 ### Statement
 

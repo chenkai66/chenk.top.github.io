@@ -22,7 +22,7 @@ Traditional time-series models exist to put that information back in. They don't
 
 This chapter walks through that toolkit. The goal isn't to memorize formulas; it's to build a working sense of judgment. When you see a new dataset, do you difference first or look at the ACF? When you see a slow tail, is it AR or ARMA? When is a classical model enough, and when do you graduate to deep learning? Those questions don't have one right answer, but there is a reusable diagnostic flow, and the rest of the chapter unpacks it.
 
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/illustration_1.png)
+![Time Series Forecasting (1): Traditional Statistical Models — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/illustration_1.png)
 
 ---
 

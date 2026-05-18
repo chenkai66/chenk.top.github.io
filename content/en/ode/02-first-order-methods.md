@@ -19,7 +19,7 @@ translationKey: "ode-2"
 ---
 A bank account, a drug clearing the bloodstream, a tank of brine, a charging capacitor — they all obey the same kind of equation: a first-order ODE. The trick is recognising which of four shapes you are looking at, because each shape has a closed-form move that solves it cleanly. By the end of this chapter you will pattern-match an unfamiliar first-order equation in seconds and know exactly which lever to pull.
 
-![Ordinary Differential Equations (2): First-Order Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/02-first-order-methods/illustration_1.png)
+![Ordinary Differential Equations (2): First-Order Methods — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/02-first-order-methods/illustration_1.png)
 
 ---
 
@@ -228,7 +228,7 @@ The same substitution trick recovers the **logistic equation**: it is Bernoulli 
 
 ## A worked application: salt in a tank
 
-![Ordinary Differential Equations (2): First-Order Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/02-first-order-methods/illustration_2.png)
+![Ordinary Differential Equations (2): First-Order Methods — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/02-first-order-methods/illustration_2.png)
 
 This is the classic "compartment model" — the same skeleton you will meet again in epidemiology, pharmacokinetics and chemical engineering.
 

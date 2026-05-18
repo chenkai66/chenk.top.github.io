@@ -19,7 +19,7 @@ series_total: 8
 translationKey: "cloud-computing-7"
 polished_by_qwen_max: true
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/illustration_1.png)
+![云计算（七）：运维与 DevOps 实践 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/illustration_1.png)
 
 2017 年，GitLab 丢失了六个小时的数据库状态。一位疲惫不堪的工程师在处理事故时，误对生产服务器执行了 `rm -rf` 命令。更糟的是，备份流程其实早已静默失效数月之久，却无人察觉——因为从来没人真正尝试过从备份恢复数据。这次事件的教训绝非“用 `rm` 要小心”，而是：**运维是一个系统**——它由工具、运行手册、监控、自动化以及围绕它们建立的协作仪式共同构成。当这个系统健康运转时，再疲惫的工程师也无法单枪匹马搞垮生产环境；而一旦系统腐朽，每一次深夜救火都可能因一次误操作滑向深渊。
 

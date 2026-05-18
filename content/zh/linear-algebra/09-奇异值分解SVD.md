@@ -19,7 +19,7 @@ series_total: 18
 translationKey: "linear-algebra-9"
 polished_by_qwen_max: true
 ---
-![线性代数（九）：奇异值分解 SVD — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/09-奇异值分解SVD/illustration_1.png)
+![线性代数（九）：奇异值分解 SVD — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/09-奇异值分解SVD/illustration_1.png)
 
 ---
 
@@ -191,7 +191,7 @@ SVD 为矩阵结构提供了最清晰的刻画。设 $A \in \mathbb{R}^{m \times
 
 ## 五、低秩逼近：压缩背后的定理
 
-![线性代数（九）：奇异值分解 SVD — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/09-奇异值分解SVD/illustration_2.png)
+![线性代数（九）：奇异值分解 SVD — 章节小结图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/09-奇异值分解SVD/illustration_2.png)
 
 ### Eckart–Young 定理
 

@@ -24,7 +24,7 @@ This article is an intuition-first walk through the landscape. We start from the
 
 ---
 
-![Recommendation Systems (7): Graph Neural Networks and Social Recommendation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/07-graph-neural-networks/illustration_1.png)
+![Recommendation Systems (7): Graph Neural Networks and Social Recommendation — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/07-graph-neural-networks/illustration_1.png)
 
 ## What You Will Learn
 
@@ -113,7 +113,7 @@ In plain English: *"Look at what your neighbours know, summarise it, then blend 
 
 ## Graph Convolutional Networks (GCN)
 
-![Recommendation Systems (7): Graph Neural Networks and Social Recommendation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/07-graph-neural-networks/illustration_2.png)
+![Recommendation Systems (7): Graph Neural Networks and Social Recommendation — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/07-graph-neural-networks/illustration_2.png)
 
 ### The Key Idea
 

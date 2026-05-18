@@ -14,7 +14,7 @@ series_order: 2
 series_total: 6
 translationKey: "computer-fundamentals-2"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/02-memory/illustration_1.png)
+![计算机基础（二）：内存与高速缓存系统 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/02-memory/illustration_1.png)
 
 CPU 完成一次乘法运算大约只需 **0.3 纳秒**，而一块机械硬盘将磁头定位到目标扇区却需要 **10 毫秒**——两者相差约 **3000 万倍**。从多级缓存、DRAM 单元、页表、TLB、ECC、NUMA 到内存通道，整套内存子系统的设计，本质上都是对这一残酷不对称性的协同回应。
 

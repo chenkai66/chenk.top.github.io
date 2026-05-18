@@ -25,7 +25,7 @@ The idea is one paragraph. The engineering is the rest of this article. A real R
 
 
 <!-- wanx-hero -->
-![NLP (10): RAG and Knowledge Enhancement Systems — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/illustration_1.png)
+![NLP (10): RAG and Knowledge Enhancement Systems — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/illustration_1.png)
 
 
 ---
@@ -44,7 +44,7 @@ The idea is one paragraph. The engineering is the rest of this article. A real R
 ## Prerequisites
 
 <!-- wanx-mid -->
-![NLP (10): RAG and Knowledge Enhancement Systems — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/illustration_2.png)
+![NLP (10): RAG and Knowledge Enhancement Systems — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/illustration_2.png)
 
 
 - Embeddings and the cosine geometry of meaning ([Part 2: Word Embeddings](/en/nlp/word-embeddings-lm/))

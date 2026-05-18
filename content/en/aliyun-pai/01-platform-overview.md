@@ -23,7 +23,7 @@ If your team trains or serves models on Alibaba Cloud, you'll eventually use the
 
 This first article is the lay of the land. It is deliberately short on code — articles 2 to 5 are the deep dives. The goal is to help you understand what "DLC job" and "EAS endpoint" mean.
 
-![Aliyun PAI (1): Platform Overview and the Product Family Map — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/01-platform-overview/illustration_1.png)
+![Aliyun PAI (1): Platform Overview and the Product Family Map — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/01-platform-overview/illustration_1.png)
 
 ---
 
@@ -121,7 +121,7 @@ The docs list five billing methods: **pay-as-you-go**, **subscription** (monthly
 
 ## What a Designer workflow really looks like under the hood
 
-![Aliyun PAI (1): Platform Overview and the Product Family Map — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/01-platform-overview/illustration_2.png)
+![Aliyun PAI (1): Platform Overview and the Product Family Map — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/01-platform-overview/illustration_2.png)
 
 Designer feels like Lego on the canvas, but the export is a flat JSON document the platform can replay. The first time I had to debug a stuck pipeline I exported the JSON from the canvas (`...` menu → *Export workflow*) and it stopped looking like magic. Roughly the structure:
 

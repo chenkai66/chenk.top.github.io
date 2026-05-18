@@ -22,7 +22,7 @@ An initial value problem hands you a starting state and asks you to march forwar
 
 This is also where ODE methods quietly become PDE methods. The discretization, eigenvalue, and collocation ideas you meet here scale directly to elliptic PDEs in higher dimensions.
 
-![Ordinary Differential Equations (12): Boundary Value Problems — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/12-boundary-value-problems/illustration_1.png)
+![Ordinary Differential Equations (12): Boundary Value Problems — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/12-boundary-value-problems/illustration_1.png)
 
 ---
 
@@ -111,7 +111,7 @@ The standard cure is **multiple shooting**: divide$[a, b]$into$M$panels, shoot i
 
 ## The finite-difference method
 
-![Ordinary Differential Equations (12): Boundary Value Problems — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/12-boundary-value-problems/illustration_2.png)
+![Ordinary Differential Equations (12): Boundary Value Problems — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/12-boundary-value-problems/illustration_2.png)
 
 A different philosophy: discretize the operator first, then solve. On a uniform grid$x_i = a + ih,\;i=0,\ldots,N,\;h = (b-a)/N$, central differences give$y'(x_i) \approx \frac{y_{i+1} - y_{i-1}}{2h}, \qquad y''(x_i) \approx \frac{y_{i+1} - 2y_i + y_{i-1}}{h^2}.$Substituting into the BVP at every interior node$i = 1,\ldots,N-1$turns it into a system of$N-1$equations in$N-1$unknowns$y_1, \ldots, y_{N-1}$(with$y_0 = \alpha$and$y_N = \beta$absorbed into the right-hand side).
 

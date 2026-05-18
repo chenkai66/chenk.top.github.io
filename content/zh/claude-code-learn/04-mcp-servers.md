@@ -19,7 +19,7 @@ translationKey: "claude-code-learn-4"
 ---
 如果你在 Claude Code 中只学一种扩展机制，那就学 MCP。这是自动补全和平台之间的区别。
 
-![Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_1.png)
+![Claude Code 实战（四）：MCP 服务器连接万物 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_1.png)
 
 ---
 
@@ -311,7 +311,7 @@ MCP 服务器可以在三个级别注册：
 
 ## 权限——你绝不能跳过的部分
 
-![Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_2.png)
+![Claude Code 实战（四）：MCP 服务器连接万物 — 章节小结图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_2.png)
 
 每个 MCP 工具都有一个权限级别。模型首次调用时，你会收到确认对话框。你有三个选项：
 

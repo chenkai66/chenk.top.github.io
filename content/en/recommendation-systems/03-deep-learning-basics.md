@@ -29,7 +29,7 @@ What changed? Multi-layer neural networks brought four capabilities classical me
 
 This article walks the path that took the field from `dot(p_u, q_i)` to NeuMF, YouTube DNN, and Wide & Deep — with the architectures verified against the original papers, and runnable PyTorch code at every step.
 
-![Recommendation Systems (3): Deep Learning Foundations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/03-deep-learning-basics/illustration_1.png)
+![Recommendation Systems (3): Deep Learning Foundations — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/03-deep-learning-basics/illustration_1.png)
 
 
 ---
@@ -100,7 +100,7 @@ This single substitution — replace dot product with MLP — is the seed from w
 
 ## Embeddings: the bridge from sparse IDs to learned semantics
 
-![Recommendation Systems (3): Deep Learning Foundations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/03-deep-learning-basics/illustration_2.png)
+![Recommendation Systems (3): Deep Learning Foundations — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/03-deep-learning-basics/illustration_2.png)
 
 ### One-hot is the enemy
 

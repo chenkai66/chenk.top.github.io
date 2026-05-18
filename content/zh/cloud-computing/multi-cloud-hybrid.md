@@ -18,7 +18,7 @@ series_total: 8
 translationKey: "cloud-computing-8"
 polished_by_qwen_max: true
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/multi-cloud-hybrid/illustration_1.png)
+![云计算（八）：多云管理与混合云架构 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/multi-cloud-hybrid/illustration_1.png)
 
 本系列开篇曾问：“什么是云？它为何重要？”八篇文章之后，问题已演变为更务实的版本：**该用哪些云？如何组合？又该如何管理这套组合而不至于崩溃？** 多云与混合架构，正是成熟组织对这一问题的回答。它们将工作负载分散部署在多个公有云和本地基础设施上，以换取韧性、成本优化与战略灵活性——但同时也引入了单云架构从未面对过的全新挑战。
 

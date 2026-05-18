@@ -21,7 +21,7 @@ translationKey: "aliyun-bailian-3"
 
 Of all the Bailian models, Qwen-Omni has saved me the most from product-roadmap issues. "Can you tell me what's happening in this 2-minute promo video?" used to take 3 weeks, involving frame extraction, captioning each frame, and stitching them together. With Qwen-Omni, it's just one HTTP request. However, the documentation lacks details on some pitfalls, such as the requirement for streaming, which has cost more than one team a half-day. Let's avoid that for you.
 
-![Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/illustration_1.png)
+![Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/illustration_1.png)
 
 ---
 
@@ -201,7 +201,7 @@ Run this on every upload before the API call. The 200ms transcode cost is neglig
 
 ## Video frame sampling: 1 fps for talking heads vs 8 fps for action
 
-![Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/illustration_2.png)
+![Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/illustration_2.png)
 
 The default video processing path inside Qwen-Omni samples frames at a model-internal rate, then encodes each frame as a vision token block. Token cost scales linearly with frame count, so frame rate is the single biggest cost knob you have on video.
 

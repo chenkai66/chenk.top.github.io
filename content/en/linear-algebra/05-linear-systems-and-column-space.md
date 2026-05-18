@@ -17,7 +17,7 @@ series_order: 5
 series_total: 18
 translationKey: "linear-algebra-5"
 ---
-![Essence of Linear Algebra (5): Linear Systems and Column Space — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/illustration_1.png)
+![Essence of Linear Algebra (5): Linear Systems and Column Space — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/illustration_1.png)
 
 ---
 
@@ -185,7 +185,7 @@ The pattern generalises: for an $m \times n$ matrix, the column space is some $r
 
 ## Null Space: What Gets Crushed
 
-![Essence of Linear Algebra (5): Linear Systems and Column Space — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/illustration_2.png)
+![Essence of Linear Algebra (5): Linear Systems and Column Space — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/illustration_2.png)
 
 ### Definition
 

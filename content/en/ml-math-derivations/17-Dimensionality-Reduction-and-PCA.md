@@ -21,7 +21,7 @@ series_order: 17
 series_total: 20
 translationKey: "ml-math-derivations-17"
 ---
-![ML Math Derivations (17): Dimensionality Reduction and PCA — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/illustration_1.png)
+![ML Math Derivations (17): Dimensionality Reduction and PCA — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/illustration_1.png)
 
 ---
 
@@ -210,7 +210,7 @@ Solve $\mathbf{S}_B \mathbf{w} = \lambda\, \mathbf{S}_W \mathbf{w}$ for the top 
 
 ## t-SNE: Neighbour-Preserving Visualisation
 
-![ML Math Derivations (17): Dimensionality Reduction and PCA — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/illustration_2.png)
+![ML Math Derivations (17): Dimensionality Reduction and PCA — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/illustration_2.png)
 
 PCA preserves *global* structure (variance, distances); for $2$D visualisation that is often the wrong objective. A user looking at a scatter plot wants to see **clusters** — which usually means preserving local neighbourhoods. **t-SNE** does exactly this with a probabilistic formulation.
 

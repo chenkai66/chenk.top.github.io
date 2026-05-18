@@ -15,7 +15,7 @@ series_order: 7
 series_total: 8
 translationKey: "time-series-7"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/n-beats/illustration_1.png)
+![Time Series Forecasting (7): N-BEATS — Interpretable Deep Architecture — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/n-beats/illustration_1.png)
 
 The 2018 M4 forecasting competition served 100,000 series across six frequencies as a single benchmark. The leaderboard was dominated by hand-tuned ensembles built from decades of statistical-forecasting craft. Then a **pure neural network** with no statistical preprocessing, no feature engineering, and no recurrence won outright. That network was **N-BEATS** by Oreshkin et al. — a stack of fully-connected blocks with two residual paths. Its interpretable variant additionally split the forecast into a polynomial trend and a Fourier seasonality, so the very thing classical statisticians wanted (a readable decomposition) came for free.
 

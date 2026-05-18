@@ -17,7 +17,7 @@ series_order: 10
 series_total: 18
 translationKey: "linear-algebra-10"
 ---
-![Essence of Linear Algebra (10): Matrix Norms and Condition Numbers — Is Your Linear System Healthy? — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/10-matrix-norms-and-condition-numbers/illustration_1.png)
+![Essence of Linear Algebra (10): Matrix Norms and Condition Numbers — Is Your Linear System Healthy? — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/10-matrix-norms-and-condition-numbers/illustration_1.png)
 
 
 ---
@@ -197,7 +197,7 @@ $\kappa = 1$ means the ellipse is a circle; $\kappa = \infty$ means it has colla
 
 ## Ill-Conditioned Matrices: The Nightmare
 
-![Essence of Linear Algebra (10): Matrix Norms and Condition Numbers — Is Your Linear System Healthy? — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/10-matrix-norms-and-condition-numbers/illustration_2.png)
+![Essence of Linear Algebra (10): Matrix Norms and Condition Numbers — Is Your Linear System Healthy? — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/10-matrix-norms-and-condition-numbers/illustration_2.png)
 
 ### The Hilbert matrix
 

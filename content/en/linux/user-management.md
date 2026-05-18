@@ -15,7 +15,7 @@ description: "A working mental model for Linux accounts: how /etc/passwd and /et
 disableNunjucks: true
 translationKey: "linux-5"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/user-management/illustration_1.png)
+![Linux (5): User Management: Users, Groups, sudo, and Security — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/user-management/illustration_1.png)
 
 If you only ever ran `useradd` and `passwd` on a single laptop, you can probably get away without thinking about any of this. The moment more than one human (or more than one service) shares a host, "user management" stops being paperwork and starts being the security model: it decides who can log in, which UID owns the files a process writes, which commands `sudo` will lift to root, and how long a stolen password remains useful.
 

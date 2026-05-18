@@ -23,7 +23,7 @@ RAG is the most over-deployed and under-engineered pattern in LLM applications. 
 
 The original RAG paper ([Lewis et al., 2020][lewis-rag]) framed retrieval-augmented generation as a hybrid model: a dense retriever (DPR) trained jointly with a generator (BART) so the retrieval objective optimized end-task accuracy. Production RAG in 2026 doesn't look much like Lewis's RAG — modern systems use frozen pre-trained embedders, separate rerankers, and decoder-only generators that don't train against the retriever. But the core insight (parameterize knowledge separately from reasoning) survived and became the dominant paradigm. The [Gao et al. (2023) RAG survey][gao-survey] is the best comprehensive overview of the post-2020 evolution into "Naive RAG → Advanced RAG → Modular RAG."
 
-![LLM Engineering (8): Retrieval-Augmented Generation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/08-rag/illustration_1.png)
+![LLM Engineering (8): Retrieval-Augmented Generation — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/08-rag/illustration_1.png)
 
 ---
 
@@ -152,7 +152,7 @@ Why RRF works: it operates on ranks rather than scores, so it doesn't care that 
 
 ## Reranking is the unsung hero
 
-![LLM Engineering (8): Retrieval-Augmented Generation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/08-rag/illustration_2.png)
+![LLM Engineering (8): Retrieval-Augmented Generation — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/08-rag/illustration_2.png)
 
 
 ![fig4: reranker pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/08-rag/fig4_reranker_pipeline.png)

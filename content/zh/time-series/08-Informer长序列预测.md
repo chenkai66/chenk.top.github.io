@@ -16,7 +16,7 @@ series_order: 8
 series_total: 8
 translationKey: "time-series-8"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/illustration_1.png)
+![时间序列模型（八）：Informer——高效长序列预测 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/illustration_1.png)
 
 Transformer 在序列建模上确实很强大，但只要序列一变长，问题就来了。普通自注意力机制在计算和显存上的开销都是 $\mathcal{O}(L^2)$ 级别——一周的小时级窗口（168 步）还能轻松处理，一个月窗口（720 步）就已经吃力，而三个月窗口（2160 步）在单张 GPU 上基本无法运行。偏偏现实世界中的长 horizon 预测任务，比如气象、能源、金融和 IoT，恰恰就落在这个区间。
 

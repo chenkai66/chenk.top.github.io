@@ -23,7 +23,7 @@ Evaluation is the part of the LLM stack where everyone has opinions but no one i
 
 The chapter has a slightly different flavor from the others in this series. Most evaluation problems are not technical — they are *epistemic*. The question "is model A better than model B" is a hypothesis-testing question, and the field's collective track record at running clean experiments is poor. The literature I cite below is not a leaderboard; it's a collection of failure-mode papers that should make any practitioner more cautious.
 
-![LLM Engineering (10): Evaluation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/10-evaluation/illustration_1.png)
+![LLM Engineering (10): Evaluation — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/10-evaluation/illustration_1.png)
 
 ---
 
@@ -97,7 +97,7 @@ A subtle point: **how you split the eval set matters as much as what's in it**. 
 
 ## LLM-as-judge: the dominant pattern and its failure modes
 
-![LLM Engineering (10): Evaluation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/10-evaluation/illustration_2.png)
+![LLM Engineering (10): Evaluation — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/10-evaluation/illustration_2.png)
 
 
 ![fig5: human vs auto-eval correlation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/10-evaluation/fig5_human_vs_auto.png)

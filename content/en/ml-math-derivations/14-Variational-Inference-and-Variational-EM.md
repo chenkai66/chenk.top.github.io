@@ -23,7 +23,7 @@ When the posterior $p(\mathbf{z}\mid\mathbf{x})$ is intractable, you have two ro
 
 This post derives VI from a single identity, builds the mean-field algorithm and CAVI from that identity, connects EM and variational EM as special cases, and ends with the reparameterization trick that turns the ELBO into a stochastic objective compatible with autodiff — the engine inside every VAE.
 
-![ML Math Derivations (14): Variational Inference and Variational EM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/illustration_1.png)
+![ML Math Derivations (14): Variational Inference and Variational EM — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/illustration_1.png)
 
 ---
 
@@ -89,7 +89,7 @@ It is worth pausing on what we have done. We replaced an intractable integral (t
 
 ## Mean-Field Approximation
 
-![ML Math Derivations (14): Variational Inference and Variational EM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/illustration_2.png)
+![ML Math Derivations (14): Variational Inference and Variational EM — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/illustration_2.png)
 
 The optimization is still infinite-dimensional. The simplest restriction — and the one Jordan, Ghahramani, Jaakkola and Saul popularized in the 90s — is the **mean-field** assumption: $q$ factorizes across coordinates,
 $$q(\mathbf{z}) \;=\; \prod_{j=1}^{M} q_j(z_j).$$

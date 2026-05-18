@@ -15,7 +15,7 @@ series_order: 6
 series_total: 8
 translationKey: "time-series-6"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/06-时序卷积网络TCN/illustration_1.png)
+![时间序列模型（六）：时序卷积网络 (TCN) — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/06-时序卷积网络TCN/illustration_1.png)
 
 在 2010 年代的大部分时间里，提到“深度学习用于时间序列”，默认就是 LSTM。这一局面在 2018 年被 Bai、Kolter 和 Koltun 发表的论文 *An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling* 所改变。他们的结论出人意料地简洁：堆叠若干一维卷积，确保其因果性（不窥探未来）、让卷积核间隔呈指数扩张（dilation），再用残差连接包裹整个结构，直接训练即可。结果表明，这种 **时序卷积网络**（Temporal Convolutional Network, TCN）在各类任务中表现与 LSTM/GRU 相当甚至更优——而且训练速度快数倍，因为前向传播中的每个时间步均可并行计算。
 

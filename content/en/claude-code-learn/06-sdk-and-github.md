@@ -20,7 +20,7 @@ translationKey: "claude-code-learn-6"
 
 The CLI is the obvious surface. The SDK is the interesting one. The GitHub integration is where it pays off.
 
-![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.png)
+![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.png)
 
 ---
 
@@ -502,7 +502,7 @@ The key insight: the SDK and CLI share the same engine. The difference is the in
 
 ## The GitHub Action
 
-![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_2.png)
+![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_2.png)
 
 Anthropic ships an official Action: `anthropic/claude-code-action@v1`. Add it to a workflow:
 
@@ -659,6 +659,58 @@ A developer opens a PR. The auto-review job triggers:
 
 ```markdown
 Claude Code reviews PR #42: "Add user authentication middleware"
+
+---
+
+## Review Summary
+
+### Critical Issues
+
+**1. Missing rate limiting (src/middleware/auth.ts:45)**
+The authentication middleware doesn't rate-limit failed attempts.
+An attacker could brute-force tokens. Consider adding:
+
+    import rateLimit from 'express-rate-limit';
+    const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 100 });
+
+**2. Token stored in localStorage (src/utils/auth.ts:12)**
+localStorage is vulnerable to XSS. Consider httpOnly cookies instead.
+
+### Suggestions
+
+- Add tests for the token refresh flow (currently untested)
+- The `validateToken` function swallows errors silently — log them
+- Consider extracting the JWT config to environment variables
+
+### What looks good
+- Clean separation of auth middleware from business logic
+- Good use of TypeScript generics in the token types
+- Test coverage for the happy path is solid
+```
+
+The reviewer reads Claude's analysis, addresses the critical issues, and replies:
+
+```text
+@claude good catches. Please fix the rate limiting issue — add express-rate-limit
+to the auth middleware with a 100 requests per 15 minute window. Also add a test
+for it.
+```
+
+Claude reads the comment, checks out the branch, makes the changes, runs tests, and pushes a commit:
+
+```text
+I've made the following changes:
+
+1. Added `express-rate-limit` dependency
+2. Applied rate limiting to the auth middleware (100 req / 15 min window)
+3. Added test in `tests/middleware/auth.test.ts` for rate limiting behavior
+
+Commit: abc1234 "Add rate limiting to auth middleware"
+
+All tests pass (47 passed, 0 failed).
+```
+
+This loop — review, request changes, Claude implements — can repeat as many times as needed. The PR conversation becomes the interface.
 
 ---
 
@@ -1002,53 +1054,3 @@ Each piece on its own buys you something concrete. Together they turn Claude Cod
 The single trait that distinguishes power users I've watched: they treat `.claude/` as part of the codebase. Settings, commands, hooks all committed, all reviewed in PRs, all evolving with the project. That's the muscle memory worth building.
 
 Happy shipping.
-
-## Review Summary
-
-### Critical Issues
-
-**1. Missing rate limiting (src/middleware/auth.ts:45)**
-The authentication middleware doesn't rate-limit failed attempts.
-An attacker could brute-force tokens. Consider adding:
-
-    import rateLimit from 'express-rate-limit';
-    const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 100 });
-
-**2. Token stored in localStorage (src/utils/auth.ts:12)**
-localStorage is vulnerable to XSS. Consider httpOnly cookies instead.
-
-### Suggestions
-
-- Add tests for the token refresh flow (currently untested)
-- The `validateToken` function swallows errors silently — log them
-- Consider extracting the JWT config to environment variables
-
-### What looks good
-- Clean separation of auth middleware from business logic
-- Good use of TypeScript generics in the token types
-- Test coverage for the happy path is solid
-```
-
-The reviewer reads Claude's analysis, addresses the critical issues, and replies:
-
-```text
-@claude good catches. Please fix the rate limiting issue — add express-rate-limit
-to the auth middleware with a 100 requests per 15 minute window. Also add a test
-for it.
-```
-
-Claude reads the comment, checks out the branch, makes the changes, runs tests, and pushes a commit:
-
-```text
-I've made the following changes:
-
-1. Added `express-rate-limit` dependency
-2. Applied rate limiting to the auth middleware (100 req / 15 min window)
-3. Added test in `tests/middleware/auth.test.ts` for rate limiting behavior
-
-Commit: abc1234 "Add rate limiting to auth middleware"
-
-All tests pass (47 passed, 0 failed).
-```
-
-This loop — review, request changes, Claude implements — can repeat as many times as needed. The PR conversation becomes the interface.

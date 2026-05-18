@@ -19,7 +19,7 @@ translationKey: "claude-code-learn-3"
 
 Built-in slash commands like `/clear` and `/init` are the visible part of the iceberg. The main point of the system is for you to write your own commands, which live in your repo.
 
-![Claude Code Hands-On (3): Custom Slash Commands and Conversation Control — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_1.png)
+![Claude Code Hands-On (3): Custom Slash Commands and Conversation Control — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_1.png)
 
 ---
 
@@ -123,7 +123,7 @@ Avoid versioning in names (`/review-v2`, `/test-new`). If you need a better vers
 
 ## `$ARGUMENTS` — parameterization
 
-![Claude Code Hands-On (3): Custom Slash Commands and Conversation Control — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_2.png)
+![Claude Code Hands-On (3): Custom Slash Commands and Conversation Control — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_2.png)
 
 Slash commands get a magic `$ARGUMENTS` token that's replaced with whatever you typed after the command name. Example — `.claude/commands/explain.md`:
 

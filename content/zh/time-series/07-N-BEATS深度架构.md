@@ -15,7 +15,7 @@ series_order: 7
 series_total: 8
 translationKey: "time-series-7"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/07-N-BEATS深度架构/illustration_1.png)
+![时间序列模型（七）：N-BEATS——可解释的深度架构 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/07-N-BEATS深度架构/illustration_1.png)
 
 2018 年 M4 预测竞赛提供了覆盖六种频率的 10 万条时间序列作为统一基准。排行榜一度被基于数十年统计预测经验手工调优的集成模型所主导，但最终胜出的却是一个**纯神经网络**——它无需任何统计预处理、特征工程或循环结构。这个模型正是 Oreshkin 等人提出的 **N-BEATS**：一个由全连接块堆叠而成、带有两条残差路径的架构。其可解释变体进一步将预测显式分解为多项式趋势与傅里叶季节性分量，使得经典统计学家梦寐以求的“可读分解”变得唾手可得。
 

@@ -17,7 +17,7 @@ series_order: 1
 series_total: 8
 translationKey: "cloud-computing-1"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/fundamentals/illustration_1.png)
+![云计算（一）：云计算基础与架构体系 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/fundamentals/illustration_1.png)
 
 2025 年，每个开发软件的团队都会面临一个老问题：买服务器还是租服务器？只不过答案早已反转。二十年前，我们把硬件塞进机房；如今，只需用 YAML 描述所需资源，全球云厂商便能在几秒内将其部署到位，按秒计费，一旦停付就立即回收。云计算远不止是“别人的电脑”——它是一套可编程、可计量、支持多租户的计算、存储与网络抽象层，从根本上重塑了企业的构建方式和工程师的日常工作。
 

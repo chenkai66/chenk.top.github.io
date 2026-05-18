@@ -14,7 +14,7 @@ series_order: 6
 series_total: 6
 translationKey: "computer-fundamentals-6"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/illustration_1.png)
+![计算机基础（六）：深度解析与系统协作 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/illustration_1.png)
 
 前五章里，我们逐一拆解了 CPU、缓存层级、存储、主板与显卡、网络和电源——每一部分单独看都很有意思，但计算机远不止是这些零件的简单堆叠。它是一个每纳秒都在协调“下一步该做什么”的精密系统。
 

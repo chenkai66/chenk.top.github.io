@@ -20,7 +20,7 @@ series_order: 7
 series_total: 8
 translationKey: "pde-ml-7"
 ---
-![偏微分方程与机器学习（七）：扩散模型与Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-Diffusion-Models/illustration_1.png)
+![偏微分方程与机器学习（七）：扩散模型与 Score Matching — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-Diffusion-Models/illustration_1.png)
 
 ---
 
@@ -168,7 +168,7 @@ $$
 
 ## 基于 Score 的生成模型
 
-![偏微分方程与机器学习（七）：扩散模型与Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-Diffusion-Models/illustration_2.png)
+![偏微分方程与机器学习（七）：扩散模型与 Score Matching — 章节小结图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-Diffusion-Models/illustration_2.png)
 
 ### Score 函数
 

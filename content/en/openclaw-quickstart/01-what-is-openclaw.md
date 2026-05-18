@@ -21,7 +21,7 @@ I keep getting asked, "Is OpenClaw just another wrapper around an LLM?" The shor
 
 This is the first part of a ten-part series. By the end, you should have a working OpenClaw on your machine, communicating with a model, listening on at least one chat channel, and performing tasks that survive a reboot.
 
-![OpenClaw QuickStart (1): What This Thing Actually Is — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/01-what-is-openclaw/illustration_1.png)
+![OpenClaw QuickStart (1): What This Thing Actually Is — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/01-what-is-openclaw/illustration_1.png)
 
 
 ---
@@ -85,7 +85,7 @@ OpenClaw is the most polished solution I've found for that cell in 2026.
 
 ## Three things it earns its keep on
 
-![OpenClaw QuickStart (1): What This Thing Actually Is — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/01-what-is-openclaw/illustration_2.png)
+![OpenClaw QuickStart (1): What This Thing Actually Is — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/01-what-is-openclaw/illustration_2.png)
 
 I want to be honest about the things a wrapper would *not* solve and OpenClaw does.
 

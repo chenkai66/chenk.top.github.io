@@ -23,7 +23,7 @@ You hear footsteps behind you in the fog. You can't see the walker, only the sou
 
 These are the **three problems of HMMs**, and the surprise is that all three reduce to one trick: write the joint $P(\mathbf{O}, \mathbf{I})$ as a product of local factors along time, then **share sub-computations across time** with dynamic programming. Brute force costs $O(N^T)$. Forward-Backward, Viterbi, and Baum-Welch all cost $O(N^2 T)$. The exponent collapses because the Markov assumption makes the future conditionally independent of the past given the present.
 
-![ML Math Derivations (15): Hidden Markov Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/illustration_1.png)
+![ML Math Derivations (15): Hidden Markov Models — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/illustration_1.png)
 
 ---
 

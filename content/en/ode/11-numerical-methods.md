@@ -19,7 +19,7 @@ translationKey: "ode-11"
 ---
 Almost every interesting differential equation in science and engineering resists a closed-form solution. Nonlinear vector fields, variable coefficients, and thousands of coupled state variables — pen and paper fail long before the problem does. Numerical integration is the key. This chapter builds, evaluates, and compares a small set of algorithms that can solve almost any ODE you'll encounter and provides diagnostics to spot when an integrator is misleading you.
 
-![Ordinary Differential Equations (11): Numerical Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/illustration_1.png)
+![Ordinary Differential Equations (11): Numerical Methods — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/illustration_1.png)
 
 ---
 
@@ -157,7 +157,7 @@ The standard mechanism is **embedded Runge-Kutta**. Two methods of orders$p$and$
 
 ## Stiffness: the failure mode of explicit methods
 
-![Ordinary Differential Equations (11): Numerical Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/illustration_2.png)
+![Ordinary Differential Equations (11): Numerical Methods — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/illustration_2.png)
 
 Some equations have a small amount of fast dynamics living on top of a slow evolution. Once the fast part has decayed, you would *like* to take big steps — but explicit methods will not let you. They demand$h \lesssim 1/|\lambda_{\max}|$forever, just to stay numerically stable. Such problems are called **stiff**.
 

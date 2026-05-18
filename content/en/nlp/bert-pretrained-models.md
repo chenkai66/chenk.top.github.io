@@ -22,7 +22,7 @@ If you have used a sentiment-analysis API, a search engine that understands inte
 
 
 <!-- wanx-hero -->
-![NLP (5): BERT and Pretrained Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/illustration_1.png)
+![NLP (5): BERT and Pretrained Models — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/illustration_1.png)
 
 
 ---
@@ -44,7 +44,7 @@ If you have used a sentiment-analysis API, a search engine that understands inte
 ## The rise of pretrain-then-finetune
 
 <!-- wanx-mid -->
-![NLP (5): BERT and Pretrained Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/illustration_2.png)
+![NLP (5): BERT and Pretrained Models — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/illustration_2.png)
 
 
 Before BERT, every NLP task started from a freshly initialized model trained on its own labeled dataset. That was expensive (compute), wasteful (no knowledge sharing across tasks), and brittle (small datasets gave shaky models). The story of how the field escaped this trap runs through four landmark systems.

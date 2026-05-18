@@ -21,7 +21,7 @@ translationKey: "aliyun-bailian-5"
 
 Every Chinese-language product I've worked on uses Qwen-TTS-Flash, not because it's the cheapest TTS API, but because it's the only one that handles **mainland Chinese dialects** (Cantonese, Sichuanese, Wu) and English in the same SDK, with voices that don't sound like a 2019 customs announcement. After six months of using it for a marketing video voice-over pipeline, this is what I wish someone had told me on day one.
 
-![Aliyun Bailian (5): Qwen-TTS for Multilingual Voice — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/illustration_1.png)
+![Aliyun Bailian (5): Qwen-TTS for Multilingual Voice — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/illustration_1.png)
 
 ---
 
@@ -172,7 +172,7 @@ The decision tree:
 
 ## Latency budget: streaming chunks, mouth-shape sync window
 
-![Aliyun Bailian (5): Qwen-TTS for Multilingual Voice — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/illustration_2.png)
+![Aliyun Bailian (5): Qwen-TTS for Multilingual Voice — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/illustration_2.png)
 
 For interactive voice products (voice bots, real-time avatars), latency matters more than quality at the margin. The latency breakdown for streaming TTS:
 

@@ -26,7 +26,7 @@ This article assembles that picture from the ground up. We start with classical 
 ![Candidate descent paths and their functional values: the cycloid minimises the brachistochrone time.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig1_functional_minimization.png)
 *Figure 1. Several admissible curves between two fixed points, ranked by the descent-time functional $T[y] = \int \sqrt{(1+y'^2)/(2gy)}\,dx$. The cycloid is the unique minimizer — the prototypical variational problem.*
 
-![PDE and ML (3): Variational Principles and Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/illustration_1.png)
+![PDE and ML (3): Variational Principles and Optimization — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/illustration_1.png)
 
 ---
 
@@ -288,7 +288,7 @@ The same machine produces other classical PDEs. With the free-energy $\mathcal{F
 
 ## Mean-Field Theory of Neural-Network Training
 
-![PDE and ML (3): Variational Principles and Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/illustration_2.png)
+![PDE and ML (3): Variational Principles and Optimization — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/illustration_2.png)
 
 ### From Finite to Infinite Width
 

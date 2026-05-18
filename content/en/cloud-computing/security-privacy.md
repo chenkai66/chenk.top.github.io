@@ -18,7 +18,7 @@ series_order: 6
 series_total: 8
 translationKey: "cloud-computing-6"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/illustration_1.png)
+![Cloud Computing (6): Cloud Security and Privacy Protection — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/illustration_1.png)
 
 In 2019 Capital One lost a hundred million customer records. The exploit chain was small: a misconfigured WAF allowed server-side request forgery against the EC2 metadata endpoint, that endpoint handed back IAM credentials, and the IAM role those credentials belonged to had wildcard `s3:*` on every bucket in the account. One misconfiguration, one over-broad role, one rule the security team had not written. The bill, before legal: more than 80 million dollars.
 

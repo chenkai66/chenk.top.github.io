@@ -22,7 +22,7 @@ This article builds up the family of recurrent architectures from scratch. We st
 
 
 <!-- wanx-hero -->
-![NLP (3): RNN and Sequence Modeling — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/illustration_1.png)
+![NLP (3): RNN and Sequence Modeling — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/illustration_1.png)
 
 
 ---
@@ -44,7 +44,7 @@ This article builds up the family of recurrent architectures from scratch. We st
 ## The core idea: recurrence and parameter sharing
 
 <!-- wanx-mid -->
-![NLP (3): RNN and Sequence Modeling — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/illustration_2.png)
+![NLP (3): RNN and Sequence Modeling — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/illustration_2.png)
 
 
 ![Vanilla RNN unrolled across five time steps, showing recurrent weight sharing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig1_unrolled_rnn.png)

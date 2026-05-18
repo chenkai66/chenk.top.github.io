@@ -24,7 +24,7 @@ polished_by_qwen_max: true
 本文是 NLP 系列的第七篇，假设你已经对 Transformer 解码器逐 token 生成的过程（第四篇）及自回归语言模型（第六篇）有所了解。内容基于已发表的研究成果，但需注意，提示工程领域的研究噪声较大，数据和结论高度依赖具体模型和数据集，因此图中的柱状图仅作示意参考，不应视为基准测试的绝对结果。
 
 <!-- wanx-hero -->
-![自然语言处理（七）：提示工程与In-Context Learning — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/illustration_1.png)
+![自然语言处理（七）：提示工程与 In-Context Learning — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/illustration_1.png)
 
 ---
 

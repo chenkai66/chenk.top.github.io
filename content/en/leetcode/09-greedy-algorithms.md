@@ -15,7 +15,7 @@ description: "When does picking the locally best option give the global optimum?
 disableNunjucks: true
 translationKey: "leetcode-9"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/09-greedy/illustration_1.png)
+![LeetCode (9): Patterns: Greedy Algorithms — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/09-greedy/illustration_1.png)
 
 The greedy algorithm paradigm seems too good to be true: at every step, choose the option that looks best right now, never look back, and somehow reach the global optimum. When it works, the code is almost embarrassingly short. When it doesn't, it produces confidently wrong answers — which is why the real skill is recognizing when greedy is allowed.
 

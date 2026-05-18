@@ -22,7 +22,7 @@ What I'd run into were the two textbook failure modes of vanilla RNNs: **vanishi
 
 LSTM's idea isn't to tune the RNN better; it's to change the structure. Alongside the hidden state it carries a **cell state** — an extra channel that information can ride almost untouched for hundreds of steps. Three **gates** (forget, input, output) read and write to that channel selectively. "Gating" sounds fancy but it's just a sigmoid that outputs a number between 0 and 1: zero means "drop it entirely," one means "keep it all," 0.7 means "keep about 70%." That single change is what made stable training over hundreds of steps possible, and it's why LSTM was the de-facto deep-learning model for sequences from roughly 2015 to 2018. This chapter takes each gate apart and ends with a working sales forecaster in PyTorch.
 
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/illustration_1.png)
+![Time Series Forecasting (2): LSTM — Gate Mechanisms and Long-Term Dependencies — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/illustration_1.png)
 
 
 ---

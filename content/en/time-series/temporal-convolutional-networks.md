@@ -15,7 +15,7 @@ series_order: 6
 series_total: 8
 translationKey: "time-series-6"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/temporal-convolutional-networks/illustration_1.png)
+![Time Series Forecasting (6): Temporal Convolutional Networks (TCN) — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/temporal-convolutional-networks/illustration_1.png)
 
 For most of the 2010s, saying "deep learning for time series" meant using LSTM. The story changed in 2018 when Bai, Kolter, and Koltun published *An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling*. Their result was surprisingly simple: use a stack of 1-D convolutions, make them causal (no peeking at the future), space the filter taps exponentially (dilation), wrap the whole thing in residual connections, and train. Task after task, the resulting **Temporal Convolutional Network** (TCN) matched or beat LSTM/GRU — while training several times faster because every time step in the forward pass runs in parallel.
 

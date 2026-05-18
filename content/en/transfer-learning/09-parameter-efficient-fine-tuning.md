@@ -20,7 +20,7 @@ translationKey: "transfer-learning-9"
 ---
 How do you fine-tune a 175B-parameter model on a single GPU? Update only 0.1% of the parameters. Parameter-Efficient Fine-Tuning (PEFT) makes this possible — and on most benchmarks it matches full fine-tuning. This post derives the math behind LoRA, Adapter, Prefix-Tuning, Prompt-Tuning, BitFit and QLoRA, and gives you a single picture for choosing among them.
 
-![Transfer Learning (9): Parameter-Efficient Fine-Tuning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/09-parameter-efficient-fine-tuning/illustration_1.png)
+![Transfer Learning (9): Parameter-Efficient Fine-Tuning — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/09-parameter-efficient-fine-tuning/illustration_1.png)
 
 
 ---
@@ -65,7 +65,7 @@ Freeze $\boldsymbol{\theta}_0$, ship a tiny task-specific $\Delta\boldsymbol{\th
 
 ## LoRA: Low-Rank Adaptation
 
-![Transfer Learning (9): Parameter-Efficient Fine-Tuning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/09-parameter-efficient-fine-tuning/illustration_2.png)
+![Transfer Learning (9): Parameter-Efficient Fine-Tuning — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/09-parameter-efficient-fine-tuning/illustration_2.png)
 
 
 ![LoRA: W = W_0 + (alpha/r) * B * A](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/09-parameter-efficient-fine-tuning/fig1_lora_decomposition.png)

@@ -26,7 +26,7 @@ A textbook DQN with $\varepsilon=0.1$ exploration has, by a generous estimate, a
 
 This is the **sparse-reward problem**, and it exposes an uncomfortable truth: a deep RL algorithm is only as good as its exploration strategy. Even the finest Bellman backup is useless if the agent never observes a non-zero reward. This chapter explores the path from blind random exploration to **curiosity-driven learning** — algorithms that generate their own rewards for discovering new things.
 
-![Reinforcement Learning (4): Exploration Strategies and Curiosity-Driven Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/illustration_1.png)
+![Reinforcement Learning (4): Exploration Strategies and Curiosity-Driven Learning — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/illustration_1.png)
 
 
 ---
@@ -112,7 +112,7 @@ The conceptual leap of the modern era is to stop computing exploration as a *fun
 
 ## The curiosity blueprint: intrinsic rewards
 
-![Reinforcement Learning (4): Exploration Strategies and Curiosity-Driven Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/illustration_2.png)
+![Reinforcement Learning (4): Exploration Strategies and Curiosity-Driven Learning — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/illustration_2.png)
 
 Every modern method we will discuss adds a **intrinsic reward** $r^{\text{int}}_t$ on top of the environment's external reward:
 $$r^{\text{total}}_t = r^{\text{ext}}_t + \beta \cdot r^{\text{int}}_t.$$

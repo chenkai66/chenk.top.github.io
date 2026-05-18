@@ -23,7 +23,7 @@ Function calling connects an LLM to the world outside its weights. It combines c
 
 The intellectual lineage matters. Tool use as an LLM capability traces back to two near-simultaneous papers in 2022: **MRKL Systems** (Karpas et al., AI21) which proposed expert-routing among neuro-symbolic modules, and **ReAct** ([Yao et al., 2022][yao-react]) which interleaved chain-of-thought reasoning with tool actions. **Toolformer** ([Schick et al., 2023][schick-toolformer]) showed self-supervised teaching of tool use, generating training data by having a model insert tool-call markers into existing text. By 2024 every frontier model had post-training data structured around the tool-use format, and tool calling moved from "research demo" to "API feature."
 
-![LLM Engineering (7): Function Calling and Tool Use — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/07-function-calling/illustration_1.png)
+![LLM Engineering (7): Function Calling and Tool Use — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/07-function-calling/illustration_1.png)
 
 ---
 
@@ -251,7 +251,7 @@ The model sees the error in context and can decide to retry, switch to a differe
 
 ## The agent loop
 
-![LLM Engineering (7): Function Calling and Tool Use — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/07-function-calling/illustration_2.png)
+![LLM Engineering (7): Function Calling and Tool Use — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/07-function-calling/illustration_2.png)
 
 
 ![fig5: agent loop control flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/07-function-calling/fig5_agent_loop.png)

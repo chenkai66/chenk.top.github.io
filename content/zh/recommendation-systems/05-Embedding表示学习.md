@@ -22,7 +22,7 @@ translationKey: "recommendation-systems-5"
 
 ---
 
-![wanxiang illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/illustration_1.png)
+![推荐系统（五）—— Embedding 表示学习 — 章节概览图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/illustration_1.png)
 
 ## 你将学到什么
 
@@ -415,7 +415,7 @@ def co_occurrence_graph(interactions, min_jaccard=0.1, max_users=None):
 
 ---
 
-![wanxiang illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/illustration_2.png)
+![推荐系统（五）—— Embedding 表示学习 — 章节小结图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/illustration_2.png)
 
 ## 双塔模型：用户和物品分开编码
 

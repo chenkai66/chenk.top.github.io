@@ -17,7 +17,7 @@ series_order: 4
 series_total: 18
 translationKey: "linear-algebra-4"
 ---
-![Essence of Linear Algebra (4): The Secrets of Determinants — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/04-the-secrets-of-determinants/illustration_1.png)
+![Essence of Linear Algebra (4): The Secrets of Determinants — Chapter overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/04-the-secrets-of-determinants/illustration_1.png)
 
 
 ---
@@ -133,7 +133,7 @@ It also gives a fast practical test for linear dependence: just compute the dete
 
 ## 3D Determinants: A Volume Scaling Factor
 
-![Essence of Linear Algebra (4): The Secrets of Determinants — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/04-the-secrets-of-determinants/illustration_2.png)
+![Essence of Linear Algebra (4): The Secrets of Determinants — Chapter summary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/04-the-secrets-of-determinants/illustration_2.png)
 
 Everything we said in 2D lifts cleanly to 3D. The unit cube is built from $\vec{e}_1, \vec{e}_2, \vec{e}_3$, and a $3 \times 3$ matrix sends it to a slanted box — a **parallelepiped**. The determinant gives the (signed) volume of that box.
 
