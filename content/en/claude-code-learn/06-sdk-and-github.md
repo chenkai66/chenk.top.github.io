@@ -22,13 +22,11 @@ The CLI is the obvious surface. The SDK is the interesting one. The GitHub integ
 
 ![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.png)
 
-
 ---
 
 ## The SDK in one paragraph
 
 `@anthropic-ai/claude-code` is the npm package. It exposes the same Claude Code engine the CLI uses, with the same tools and permissions, as a programmatic interface. You give it a prompt; you get an async iterable of conversation events. Plug it into anything — a script, a service, a CI step.
-
 
 ![SDK and CLI share the same agent engine, tools, and permissions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig3_sdk_arch.png)
 *Figure: SDK and CLI share the same agent engine, tools, and permissions*
@@ -182,7 +180,6 @@ This is the bit you have to get right. The CLI defaults to "ask the human." A sc
 | `acceptEdits` | Auto-accepts file edits, asks for shell commands | Automated refactoring |
 | `bypassPermissions` | Auto-accepts everything | CI with full trust (dangerous) |
 | Custom callback | You decide per call | Production scripts |
-
 
 ![SDK permission modes form a spectrum from safest to most autonomous](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig6_permission_modes.png)
 *Figure: SDK permission modes form a spectrum from safest to most autonomous*
@@ -509,7 +506,6 @@ The key insight: the SDK and CLI share the same engine. The difference is the in
 
 Anthropic ships an official Action: `anthropic/claude-code-action@v1`. Add it to a workflow:
 
-
 ![GitHub Action lifecycle: from @claude mention to PR reply](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig4_action_flow.png)
 *Figure: GitHub Action lifecycle: from @claude mention to PR reply*
 
@@ -648,7 +644,6 @@ The Action respects `.claude/settings.json` from the repo. The hooks you wrote i
 
 Let me walk through a complete PR review workflow from start to finish.
 
-
 ![Sequence of a PR review loop: developer, GitHub, and Claude Action](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig7_pr_sequence.png)
 *Figure: Sequence of a PR review loop: developer, GitHub, and Claude Action*
 
@@ -676,7 +671,6 @@ Beyond the GitHub Action, there are patterns for integrating Claude into your ex
 Run Claude as a check before merging:
 
 ```yaml
-# .github/workflows/claude-check.yml
 name: Claude Pre-merge Check
 
 on:
@@ -718,7 +712,6 @@ jobs:
 When API files change, update docs automatically:
 
 ```yaml
-# .github/workflows/claude-docs.yml
 name: Auto-update Docs
 
 on:
@@ -752,7 +745,6 @@ jobs:
 ### Pattern 3: Release notes generation
 
 ```yaml
-# .github/workflows/release-notes.yml
 name: Generate Release Notes
 
 on:
@@ -786,7 +778,6 @@ jobs:
 If the GitHub Action doesn't fit your workflow, use the SDK directly:
 
 ```yaml
-# .github/workflows/custom-claude.yml
 name: Custom Claude Check
 
 on: [push]
@@ -960,13 +951,10 @@ console.log('\n\nOutput saved to analysis-output.md');
 ### Debugging workflow runs
 
 ```bash
-# Check recent workflow runs
 gh run list --limit 5
 
-# View a specific run's logs
 gh run view RUN_ID --log
 
-# Re-run a failed workflow
 gh run rerun RUN_ID
 ```
 

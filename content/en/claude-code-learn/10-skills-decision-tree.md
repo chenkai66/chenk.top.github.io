@@ -199,16 +199,12 @@ description: Use when deploying to the staging environment, preparing a staging 
 # Deploy command
 
 ```bash
-# Build the Docker image
 docker build -t acme-api:staging -f Dockerfile.staging .
 
-# Tag for ECR
 docker tag acme-api:staging 123456789.dkr.ecr.us-east-1.amazonaws.com/acme-api:staging
 
-# Push to ECR
 docker push 123456789.dkr.ecr.us-east-1.amazonaws.com/acme-api:staging
 
-# Update ECS service
 aws ecs update-service \
   --cluster acme-staging-ecs \
   --service acme-api \
@@ -221,7 +217,6 @@ After deploy, wait 60 seconds, then verify:
 
 ```bash
 curl -s https://staging.acme.dev/health | jq .
-# Expected: {"status":"ok","version":"<new-version>"}
 ```bash
 
 # Rollback
@@ -229,11 +224,9 @@ curl -s https://staging.acme.dev/health | jq .
 If the deploy is bad:
 
 ```bash
-# Find the previous task definition
 aws ecs describe-services --cluster acme-staging-ecs --services acme-api \
   | jq '.services[0].deployments[] | select(.status == "PRIMARY") | .taskDefinition'
 
-# Roll back to previous revision
 aws ecs update-service \
   --cluster acme-staging-ecs \
   --service acme-api \
