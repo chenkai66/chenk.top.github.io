@@ -1,5 +1,5 @@
 ---
-title: "泛函分析 (11)：分布与Sobolev空间 — 广义解"
+title: "泛函分析（十一）：分布与Sobolev空间 — 广义解"
 date: 2021-10-21 09:00:00
 tags:
   - functional-analysis

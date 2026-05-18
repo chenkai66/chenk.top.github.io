@@ -1,5 +1,5 @@
 ---
-title: "泛函分析 (3)：Hilbert 空间 —— 无限维空间中的几何"
+title: "泛函分析（三）：Hilbert 空间 —— 无限维空间中的几何"
 date: 2021-10-05 09:00:00
 tags:
   - functional-analysis

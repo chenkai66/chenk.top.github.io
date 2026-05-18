@@ -1,5 +1,5 @@
 ---
-title: "抽象代数 (8)：Galois 理论 —— 域与群之间的桥梁"
+title: "抽象代数（八）：Galois 理论 —— 域与群之间的桥梁"
 date: 2021-09-15 09:00:00
 tags:
   - abstract-algebra

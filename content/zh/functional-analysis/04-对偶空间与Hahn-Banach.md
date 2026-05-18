@@ -1,5 +1,5 @@
 ---
-title: "泛函分析 (4)：对偶空间与 Hahn-Banach 定理 —— 线性泛函的驯服"
+title: "泛函分析（四）：对偶空间与 Hahn-Banach 定理 —— 线性泛函的驯服"
 date: 2021-10-07 09:00:00
 tags:
   - functional-analysis
