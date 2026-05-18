@@ -369,6 +369,56 @@ $$\langle (12345), (ij) \rangle = S_5 \implies \mathrm{Gal}(f) \cong S_5.$$
 
 ![Solvable group: chain of normal subgroups with abelian quotients](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/abstract-algebra/08-galois-theory/aa_v2_08_4_solvable_chain.png)
 
+## 一般五次方程的不可解性
+
+Abel-Ruffini 定理的现代证明只需把前面几节的工具串起来。一般五次方程 $f(x) = x^5 + a_4 x^4 + a_3 x^3 + a_2 x^2 + a_1 x + a_0$ 把系数当作不定元，构造分裂域 $L = \mathbb{Q}(a_0, \dots, a_4)(\alpha_1, \dots, \alpha_5)$，其中 $\alpha_i$ 是 $f$ 的根。基本对称多项式定理告诉我们 $\mathbb{Q}(a_0, \dots, a_4) = \mathbb{Q}(e_1, \dots, e_5)^{S_5} \subseteq \mathbb{Q}(\alpha_1, \dots, \alpha_5)$，置换根的所有方式都给出自同构，所以 $\mathrm{Gal}(L/K) \cong S_5$。
+
+剩下的是纯群论：$S_5$ 不可解。证明很短：$S_5$ 的换位子群是 $A_5$，而 $A_5$ 单且非阿贝尔（60 阶最小非阿贝尔单群），所以 $A_5$ 自身的换位子是 $A_5$，导出列卡死在 $A_5$ 不下降，$S_5$ 不可解。配合上一节的根式可解性 $\Leftrightarrow$ Galois 群可解，一般五次方程没有根式解。
+
+我希望你注意一个细节：这是“一般”五次方程不可解，不是“所有”五次方程不可解。$x^5 - 1 = 0$ 当然可解（分圆扩张，循环群），$x^5 - 32 = 0$ 也可解（根号 32 显然就是 2）。Galois 理论给出的是个体诊断：把具体方程的 Galois 群算出来，看可解不可解。这种“先算群再判结构”的思路，是后面整个抽象代数的工作模式。计算一个具体的 $f \in \mathbb{Q}[x]$ 的 Galois 群是 $S_5$ 还是更小的群，本身是个有意思的问题——存在算法（用 resolvent 多项式），但实操起来很复杂。
+
+## 深入：Galois 理论里的具体计算
+
+把 $\mathbb{Q}(\sqrt{2}, \sqrt{3})$ 的 Galois 群从头算到尾，这是理解整个理论最干净的入口。第一步定 $L = \mathbb{Q}(\sqrt{2}, \sqrt{3})$，由前一篇 $[L : \mathbb{Q}] = 4$，基底 $\{1, \sqrt{2}, \sqrt{3}, \sqrt{6}\}$。
+
+第二步识别自同构。任一 $\sigma \in \mathrm{Gal}(L/\mathbb{Q})$ 必须固定 $\mathbb{Q}$，并把根映到根。$\sqrt{2}$ 满足 $x^2 - 2$，根是 $\pm\sqrt{2}$，所以 $\sigma(\sqrt{2}) \in \{\sqrt{2}, -\sqrt{2}\}$。同理 $\sigma(\sqrt{3}) \in \{\sqrt{3}, -\sqrt{3}\}$。两个独立的二选一给出至多 4 个自同构。
+
+第三步验证这 4 个组合都是合法自同构。定义 $\sigma_{\epsilon_1, \epsilon_2}(\sqrt{2}) = \epsilon_1\sqrt{2}$、$\sigma_{\epsilon_1, \epsilon_2}(\sqrt{3}) = \epsilon_2\sqrt{3}$，$\epsilon_i \in \{+1, -1\}$。逐个验证乘法封闭：$\sigma(\sqrt{6}) = \sigma(\sqrt{2})\sigma(\sqrt{3}) = \epsilon_1 \epsilon_2 \sqrt{6}$，自动一致。所以 $|\mathrm{Gal}(L/\mathbb{Q})| = 4$。
+
+第四步定群结构。任意 $\sigma$ 满足 $\sigma^2 = \mathrm{id}$（两次 $\pm$ 翻转回原值），且 $\sigma_{-1,1} \circ \sigma_{1,-1} = \sigma_{-1,-1} = \sigma_{1,-1} \circ \sigma_{-1,1}$（交换）。所以 $\mathrm{Gal}(L/\mathbb{Q}) \cong \mathbb{Z}/2 \times \mathbb{Z}/2$，Klein 四元群 $V_4$。
+
+第五步用 Galois 对应读子域。三个 2 阶子群 $\langle\sigma_{-1,1}\rangle$、$\langle\sigma_{1,-1}\rangle$、$\langle\sigma_{-1,-1}\rangle$ 分别固定 $\mathbb{Q}(\sqrt{3})$、$\mathbb{Q}(\sqrt{2})$、$\mathbb{Q}(\sqrt{6})$。三个中间域恰好是 $L$ 和 $\mathbb{Q}$ 之间所有可能。这就是“群子格 $\Leftrightarrow$ 子域格”的完美样本。
+
+## 初学者常见陷阱
+
+第一个坑：以为任何域扩张都有 Galois 群可算。Galois 理论只对 Galois 扩张（正规 + 可分）成立。$\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q}$ 不是 Galois 扩张——它包含 $\sqrt[3]{2}$ 但不包含其他两个复数根，正规性失败。自同构群只有 $\{e\}$（恒等），但扩张次数是 3，自同构群完全没法描述这个扩张。要补全得加 $\zeta_3$，扩到 $\mathbb{Q}(\sqrt[3]{2}, \zeta_3)$，6 阶 $S_3$ Galois 群才浮现。
+
+第二个坑：把 Galois 对应的反向关系忘了。子群越大，对应的固定域越小。$\{e\}$ 对应整个 $L$，全群 $G$ 对应基域 $K$。这跟“包含关系”的直觉相反，初学时容易写反。
+
+第三个坑：以为正规扩张和正规子群是一回事。中间域 $F$ 对应正规子群 $H \trianglelefteq G$ 当且仅当 $F/K$ 是正规扩张——这是基本定理的关键内容，不是定义。这句话的方向必须背熟：正规子群 $\Leftrightarrow$ 中间域是正规扩张 $\Leftrightarrow$ 中间域对应的 Galois 群是商群 $G/H$。三件事一起记。
+
+## 这些概念在哪里冒头
+
+Galois 理论是数论的发动机。代数数域 $K/\mathbb{Q}$ 的 Galois 群直接控制素数在 $\mathcal{O}_K$ 中的分裂方式（Frobenius 元素、Chebotarev 密度定理）。类域论本质上是阿贝尔扩张的 Galois 群和理想类群之间的对偶。Langlands 纲领把数域 Galois 群表示和自守表示对应起来——Fermat 大定理就是 $\mathrm{Gal}(\overline{\mathbb{Q}}/\mathbb{Q})$ 在椭圆曲线 Tate 模上的作用和某个模形式对应的特例。
+
+物理学里，规范理论的对称性用李群描述，但有限对称的部分（如晶体的点群、分子的对称群）依然用群作用语言。计算机代数系统（Sage、Magma、PARI）实现了 Galois 群算法，能自动判定一个多项式的可解性。在密码学的某些代数攻击里，攻击者会试图在某个有限域扩张里找零点，本质就是在分裂域里搜索。
+
+## 我希望你带走的东西
+
+一句话总结这一篇：**Galois 理论是把多项式的对称性翻译成群结构的字典**。多项式的根之间满足什么代数关系，决定了 Galois 群的结构；Galois 群的结构反过来决定了哪些中间域存在、根能不能用根号写出来、几何作图能不能完成。
+
+第二件事，是养成“先算 Galois 群”的直觉。看到一个具体扩张，不要直接想次数，先问“是不是 Galois 扩张？群是什么？”；这两步定下来，所有性质都被锁死。第三件事，记住根式可解性的等价：$f$ 根式可解 $\Leftrightarrow$ Galois 群可解。这条等价把代数史上三百年的“求根公式”问题压缩成一个群论判定。
+
+最后一点：Galois 对应不只是一个定理，是一种思维模式。每当你看到“两个看起来无关的结构之间有完美一一对应”——比如代数拓扑里覆盖空间和基本群的子群、代数几何里仿射簇和坐标环的根理想——背后都是“某种 Galois 对应”的同构母题在重复。下一篇模理论里，你会再次遇到这种对应感：模子结构和环理想结构之间的相互翻译。
+
+## 补充例子
+
+下面把 $x^4 - 2$ 在 $\mathbb{Q}$ 上的 Galois 群算法走一遍，作为 $V_4$ 例子的进阶版。$f(x) = x^4 - 2$ 的根是 $\sqrt[4]{2}, i\sqrt[4]{2}, -\sqrt[4]{2}, -i\sqrt[4]{2}$，分裂域 $L = \mathbb{Q}(\sqrt[4]{2}, i)$。次数 $[L:\mathbb{Q}] = [\mathbb{Q}(\sqrt[4]{2}):\mathbb{Q}] \cdot [\mathbb{Q}(\sqrt[4]{2}, i) : \mathbb{Q}(\sqrt[4]{2})] = 4 \cdot 2 = 8$。
+
+自同构由 $\sqrt[4]{2} \mapsto i^k \sqrt[4]{2}$（$k = 0,1,2,3$）和 $i \mapsto \pm i$ 两个独立选择决定，共 8 个。设 $\sigma$ 是 $\sqrt[4]{2} \mapsto i\sqrt[4]{2}, i \mapsto i$（4 阶旋转），$\tau$ 是 $\sqrt[4]{2} \mapsto \sqrt[4]{2}, i \mapsto -i$（共轭，2 阶）。验证 $\tau\sigma\tau^{-1} = \sigma^{-1}$（共轭把 $i\sqrt[4]{2}$ 翻成 $-i\sqrt[4]{2}$，即 $\sigma^{-1}$ 的作用），所以 $\sigma$ 和 $\tau$ 满足二面体关系。$\mathrm{Gal}(L/\mathbb{Q}) \cong D_4$。
+
+$D_4$ 有 10 个子群（含平凡和全群），对应 10 个中间域，包括 $\mathbb{Q}(i)$、$\mathbb{Q}(\sqrt{2})$、$\mathbb{Q}(\sqrt{-2})$、$\mathbb{Q}(\sqrt[4]{2})$、$\mathbb{Q}(i\sqrt[4]{2})$ 等等。具体子群格画出来是个金字塔，很值得自己手画一遍——画完一次，Galois 对应就再也忘不掉了。
+
 ## 下一步
 
 Galois 理论把“多项式有没有根式解”换成了“它的 Galois 群是不是可解”，把“求出所有中间域”换成了“列出 Galois 群的子群格”，把“三等分角、化圆为方”换成了“扩张次数能不能凑出 $2^k$”。它用对称性这把手术刀，把三百年的代数难题解剖得清清楚楚。但这只是抽象代数结构观的起点。下一篇，我们要走出“系数必须能除”的舒适区，进入**模（module）**的世界：把向量空间定义里的“域”换成“环”。这个看似只改了一个词的推广，会同时把 Abel 群分类、$\mathbb{Z}$-模结构、线性算子的 Jordan 标准形、群表示论全部装进同一个框架里。在 Galois 理论里，我们看到群作用在域上；在模理论里，我们会看到环作用在 Abel 群上。“作用”这条线索将贯穿始终。当你发现矩阵对角化和整数分解其实是同一套语言的不同方言时，抽象代数的第二层大门就真正打开了。准备好纸笔，我们下一篇见。
