@@ -2024,14 +2024,14 @@ ecs_instance_type = "ecs.g7.small"  # was: ecs.g7.large
 
 | Resource | Before (Pay-as-you-go) | After (Optimized) | Savings |
 |---|---|---|---|
-| ECS (app server) | $86.14/mo | $43.07/mo (right-sized) | 50% |
-| RDS Primary | $142.35/mo | $85.41/mo (1yr subscription) | 40% |
-| RDS Replica | $142.35/mo | $85.41/mo (1yr subscription) | 40% |
-| NAT Gateway | $13.14/mo | $13.14/mo | 0% |
-| EIPs (x2) | $6.72/mo | $6.72/mo | 0% |
-| OSS | $1.20/mo | $1.20/mo | 0% |
-| SLS + FC | $0.00/mo | $0.00/mo (free tier) | 0% |
-| **Total** | **$412.90/mo** | **$234.95/mo** | **43%** |
+| ECS (app server) | $86.14/mo \| $43.07/mo (right-sized) | 50% |
+| RDS Primary | $142.35/mo \| $85.41/mo (1yr subscription) | 40% |
+| RDS Replica | $142.35/mo \| $85.41/mo (1yr subscription) | 40% |
+| NAT Gateway | $13.14/mo \| $13.14/mo | 0% |
+| EIPs (x2) | $6.72/mo \| $6.72/mo | 0% |
+| OSS | $1.20/mo \| $1.20/mo | 0% |
+| SLS + FC | $0.00/mo \| $0.00/mo (free tier) | 0% |
+| **Total** | **$412.90/mo** \| **$234.95/mo** | **43%** |
 
 That is nearly $2,200 saved per year just from right-sizing and switching to subscriptions. And because the changes are in version-controlled `.tfvars` files, you have a clear audit trail of when and why you made each optimization decision.
 

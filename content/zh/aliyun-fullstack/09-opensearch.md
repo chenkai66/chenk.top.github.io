@@ -1401,9 +1401,9 @@ curl http://localhost:5000/api/health
 
 | 组件 | 规格 | 月费用（估算） |
 |---|---|---|
-| OpenSearch | 2 LCU, 50GB storage | ~800 RMB ($110) \mid\lvert  DashScope 嵌入 \rvert 10 万文档 x 50 个令牌，每周重新嵌入 | ~15 RMB ($2) \|
-| DashScope LLM (查询理解) | 每天 1 万次查询 x 200 个令牌 | ~300 RMB ($42) \mid\lvert  DTS 从 RDS 同步 \rvert 小实例，持续同步 | ~200 RMB ($28) \|
-| ECS for Flask API | ecs.c6.large (2C 4G) | ~300 RMB ($42) \mid\lvert  **Total** \rvert | **~1,615 RMB ($224/month)** \|
+| OpenSearch | 2 LCU, 50GB storage | ~800 RMB ($110) \mid\lvert  DashScope 嵌入 \rvert 10 万文档 x 50 个令牌，每周重新嵌入 \| ~15 RMB ($2) \|
+| DashScope LLM (查询理解) | 每天 1 万次查询 x 200 个令牌 | ~300 RMB ($42) \mid\lvert  DTS 从 RDS 同步 \rvert 小实例，持续同步 \| ~200 RMB ($28) \|
+| ECS for Flask API | ecs.c6.large (2C 4G) | ~300 RMB ($42) \mid\lvert  **Total** \rvert \| **~1,615 RMB ($224/month)** \|
 
 ![成本按组件分解，以及 LLM 调用份额如何随"每个查询都启用 AI"策略变化。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_cost_breakdown.png)
 

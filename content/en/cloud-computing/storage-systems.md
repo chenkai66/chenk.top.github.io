@@ -188,11 +188,11 @@ A `PUT` for `s3://my-bucket/users/42.jpg`:
 |-------|------------------------|-------------------|-------------|----------------|
 | Standard | ~$0.023 | ms | none | none |
 | Intelligent-Tiering | $0.023 high tier, $0.0125 IA tier | ms | 30 d (auto) | none |
-| Standard-IA | $0.0125 | ms | 30 d | $0.01 / GB |
-| One Zone-IA | $0.01 | ms | 30 d | $0.01 / GB |
-| Glacier Instant | $0.004 | ms | 90 d | $0.03 / GB |
-| Glacier Flexible | $0.0036 | 1 min - 12 h | 90 d | $0.01 / GB (std) |
-| Glacier Deep Archive | $0.00099 | 12 - 48 h | 180 d | $0.02 / GB |
+| Standard-IA | $0.0125 \| ms \| 30 d \| $0.01 / GB |
+| One Zone-IA | $0.01 \| ms \| 30 d \| $0.01 / GB |
+| Glacier Instant | $0.004 \| ms \| 90 d \| $0.03 / GB |
+| Glacier Flexible | $0.0036 \| 1 min - 12 h \| 90 d \| $0.01 / GB (std) |
+| Glacier Deep Archive | $0.00099 \| 12 - 48 h \| 180 d \| $0.02 / GB |
 
 Two practical implications:
 

@@ -326,19 +326,19 @@ Skipping shadow + canary is the most common cause of "we shipped a new model and
 
 ## Cost by deployment shape (rough numbers, late 2025)
 
-| Setup | $/Mtok input | $/Mtok output | Notes |
+| Setup | $/Mtok input \| $/Mtok output | Notes |
 |---|---|---|---|
-| Claude-4.5-Sonnet API | $3 | $15 | Strong quality |
-| GPT-4o API | $2.50 | $10 | Strong quality |
-| Qwen3-Max API | $1.40 | $5.60 | Strong, cheaper |
-| Gemini-2.5-Pro API | $2.50 | $10 | Strong, long context |
-| DeepSeek-V3 API | $0.14 | $0.28 | Cheap, strong on math/code |
-| Self-host Qwen3-32B FP8 (1xH100) | $0.10 | $0.30 | At 70 % util |
-| Self-host LLaMA-3.3-70B FP8 (2xH100) | $0.30 | $0.90 | At 70 % util |
-| Self-host Qwen3-235B-A22B (8xH100) | $0.50 | $1.50 | At 70 % util |
-| Open-router pooled small models | $0.15 | $0.50 | Cheapest |
-| Anthropic Batch API (50 % discount) | $1.50 | $7.50 | 24h SLA |
-| OpenAI Batch API (50 % discount) | $1.25 | $5 | 24h SLA |
+| Claude-4.5-Sonnet API | $3 \| $15 | Strong quality |
+| GPT-4o API | $2.50 \| $10 | Strong quality |
+| Qwen3-Max API | $1.40 \| $5.60 | Strong, cheaper |
+| Gemini-2.5-Pro API | $2.50 \| $10 | Strong, long context |
+| DeepSeek-V3 API | $0.14 \| $0.28 | Cheap, strong on math/code |
+| Self-host Qwen3-32B FP8 (1xH100) | $0.10 \| $0.30 | At 70 % util |
+| Self-host LLaMA-3.3-70B FP8 (2xH100) | $0.30 \| $0.90 | At 70 % util |
+| Self-host Qwen3-235B-A22B (8xH100) | $0.50 \| $1.50 | At 70 % util |
+| Open-router pooled small models | $0.15 \| $0.50 | Cheapest |
+| Anthropic Batch API (50 % discount) | $1.50 \| $7.50 | 24h SLA |
+| OpenAI Batch API (50 % discount) | $1.25 \| $5 | 24h SLA |
 
 Output is consistently 3-5x more expensive than input because output is sequential decode (memory-bound). For applications that produce long outputs (summaries, reports, code), shifting to a model with cheaper output economics often beats optimizing the model itself.
 

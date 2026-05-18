@@ -209,7 +209,7 @@ Two 2024 advances pushed RAG quality further on production-scale corpora.
 |---|---|---|
 | Corpus size | Big (>1M tokens) | Small (<200K tokens) |
 | Query latency budget | <2s | 5-30s ok |
-| Cost per query | $0.001-0.05 | $0.10-2.00 |
+| Cost per query | $0.001-0.05 \| $0.10-2.00 |
 | Source attribution | Important | Not needed |
 | Question is local | Yes (find one fact) | No (synthesize across whole doc) |
 | Updates frequent | Yes | No (re-prefill on every change) |

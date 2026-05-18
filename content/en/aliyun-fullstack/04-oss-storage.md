@@ -628,9 +628,9 @@ Here is a real example from a production bucket I manage. 2 TB of log data, grow
 
 | Strategy | Monthly cost | Annual cost |
 |---|---|---|
-| All Standard, no lifecycle | ~$40 | ~$480 |
-| Lifecycle: IA at 30d, Archive at 90d | ~$18 | ~$216 |
-| Lifecycle: IA at 30d, Archive at 90d, delete at 365d | ~$14 | ~$168 |
+| All Standard, no lifecycle | ~$40 \| ~$480 |
+| Lifecycle: IA at 30d, Archive at 90d | ~$18 \| ~$216 |
+| Lifecycle: IA at 30d, Archive at 90d, delete at 365d | ~$14 \| ~$168 |
 
 That is a 65% reduction by adding a single JSON file. Multiply by 20 buckets across an organization and you are saving thousands of dollars a year for ten minutes of work.
 
