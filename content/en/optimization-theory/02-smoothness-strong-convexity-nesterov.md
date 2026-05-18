@@ -329,7 +329,7 @@ When a fresh objective lands on your desk, walk this loop:
 - **Acceleration with noise.** Vanilla Nesterov is not robust to stochastic gradients. SAG / SVRG / Katyusha pull the strongly-convex stochastic rate back to the $\sqrt{\kappa}$ regime through variance reduction.
 - **Second-order acceleration.** Sophia and Shampoo precondition by a (block-)diagonal Hessian, effectively rewriting the condition number — an active 2024 frontier in large-scale pretraining.
 
-**References**
+## References
 
 1. Nesterov, Y. (1983). *A method of solving a convex programming problem with convergence rate $\mathcal O(1/k^2)$.* Soviet Mathematics Doklady, 27(2), 372–376.
 2. Boyd, S., & Vandenberghe, L. (2004). *Convex Optimization.* Cambridge University Press.

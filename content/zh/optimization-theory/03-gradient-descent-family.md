@@ -282,14 +282,14 @@ bf16 略有不同：其动态范围足够宽，有时可全程保留 bf16 梯度
 
 这是我启动 Transformer 类任务时首先尝试的区间。将其视为贝叶斯先验，而非最终值。
 
-| Optimizer | LR range | Notes |
+| 优化器 | 学习率区间 | 备注 |
 |---|---|---|
-| SGD + momentum | 0.01 – 0.5 | Linear warmup ~5 % of total steps |
-| AdamW | 1e-4 – 6e-4 | Most LLMs land at 3e-4 ± 1.5x |
-| Lion | 1e-5 – 6e-5 | Roughly 10× smaller than AdamW |
-| Sophia | 1e-4 – 4e-4 | Also lower than AdamW |
-| Schedule-Free AdamW | 1e-4 – 6e-4 | Same as AdamW; the *schedule* is what changes |
-| Adafactor | rel. step 0.01 – 0.05 | Uses relative step; literal LR is meaningless |
+| SGD + momentum | 0.01 – 0.5 | 线性 warmup 约占总步数 5% |
+| AdamW | 1e-4 – 6e-4 | 多数 LLM 落在 3e-4 ± 1.5× |
+| Lion | 1e-5 – 6e-5 | 大约比 AdamW 小 10× |
+| Sophia | 1e-4 – 4e-4 | 比 AdamW 略低 |
+| Schedule-Free AdamW | 1e-4 – 6e-4 | 与 AdamW 同；变的是*调度*本身 |
+| Adafactor | 相对步长 0.01 – 0.05 | 使用相对步长；字面 LR 没有意义 |
 
 这些只是初试先验。实际数值取决于 batch size（SGD 遵循线性缩放规则，Adam 遵循类似 $\sqrt{}$ 的缩放规则）、预热长度和数据集噪声。但若初始值超出这些区间，几乎总是配置错误，而非新发现。
 

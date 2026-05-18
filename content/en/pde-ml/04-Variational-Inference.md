@@ -28,7 +28,6 @@ That is the heart of this article. In continuous time, they are **two faces of t
 
 If you've worked with VI or with Langevin samplers but always felt they lived in different worlds, this article is the bridge.
 
-## The seven dimensions of this article
 ## Seven Dimensions of This Article
 
 1. **Motivation**: why VI and MCMC look different but solve the same PDE.

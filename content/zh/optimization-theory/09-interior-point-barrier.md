@@ -289,7 +289,7 @@ $$
 ## 参考文献
 
 - Nesterov & Nemirovski，《Convex Programming 中的内点多项式算法》（*Interior-Point Polynomial Algorithms in Convex Programming*），SIAM，1994 —— 奠基性专著。  
-- Boyd & Vandenberghe，《凸优化》（*Convex Optimization*），[第 11 章](/zh/optimization-theory/11-nonconvex-saddle-escape/) —— 面向工程师最清晰的讲解。  
+- Boyd & Vandenberghe，《凸优化》（*Convex Optimization*），第 11 章 —— 面向工程师最清晰的讲解。  
 - Renegar，《内点方法的数学视角》（*A Mathematical View of Interior-Point Methods*），SIAM，2001 —— 从几何角度阐释自和谐性。  
 - Wright，《原-对偶内点法》（*Primal-Dual Interior-Point Methods*），SIAM，1997 —— 面向实际算法的系统论述。  
 - Mehrotra，《原-对偶内点法的实现》（*On the Implementation of a Primal-Dual Interior Point Method*），SIOPT 2, 1992 —— 所有现代求解器所采用的预估-校正（predictor-corrector）方案。

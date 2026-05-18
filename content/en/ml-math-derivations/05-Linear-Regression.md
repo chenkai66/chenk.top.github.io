@@ -200,6 +200,17 @@ Per-iteration cost: $\mathcal{O}(md)$. Converges *linearly* for strongly convex 
 $$L(w^{(t)}) - L(w^\*) \le \left(\frac{\kappa - 1}{\kappa + 1}\right)^{2t} \bigl(L(w^{(0)}) - L(w^\*)\bigr),$$
 where $\kappa = \lambda_{\max}(X^\top X) / \lambda_{\min}(X^\top X)$ is the condition number. Ill-conditioned problems (large $\kappa$) crawl; this is why people standardise features before running gradient descent.
 
+### Worked Numerical Example: one BGD step on a 3-point fit
+
+Take three points $(x_i, y_i) = (1, 2), (2, 2), (3, 4)$ and fit $\hat y = wx$ (no intercept) by minimising $L(w) = \tfrac{1}{2m}\sum (wx_i - y_i)^2$. The gradient is $\nabla L = \tfrac{1}{m}\sum (w x_i - y_i) x_i$.
+
+Start from $w^{(0)} = 0$. Predictions are $(0, 0, 0)$, residuals $(0-2, 0-2, 0-4) = (-2, -2, -4)$, gradient $\tfrac{1}{3}((-2)\cdot 1 + (-2)\cdot 2 + (-4)\cdot 3) = \tfrac{1}{3}(-2 - 4 - 12) = -6$.
+
+Pick step size $\eta = 0.1$. Update: $w^{(1)} = 0 - 0.1 \cdot (-6) = 0.6$. New residuals $(0.6-2, 1.2-2, 1.8-4) = (-1.4, -0.8, -2.2)$, gradient $\tfrac{1}{3}((-1.4) + (-0.8)\cdot 2 + (-2.2)\cdot 3) = \tfrac{1}{3}(-1.4 - 1.6 - 6.6) = -3.2$. Then $w^{(2)} = 0.6 + 0.32 = 0.92$. Continue: $w^{(3)} \approx 1.09$, $w^{(4)} \approx 1.18$, converging to the closed-form $w^\star = \sum x_i y_i / \sum x_i^2 = 16/14 \approx 1.143$. The error halves roughly every two steps because the eigenvalue of $\tfrac{1}{m} X^\top X$ here is $14/3 \approx 4.67$ and $\eta \cdot 4.67 \approx 0.47$, so the contraction factor is $|1 - 0.47| = 0.53$ per step.
+
+Now try $\eta = 0.5$: $w^{(1)} = 3.0$, $w^{(2)} \approx -2.3$, $w^{(3)} \approx 7.4$ — the iterates oscillate with growing amplitude. The threshold for divergence is $\eta > 2/\lambda_{\max} = 2/4.67 \approx 0.43$. Above that, BGD blows up; below that, it contracts. Step size is not a free hyperparameter — it has a sharp ceiling set by the Hessian's largest eigenvalue, and "tune $\eta$" in practice means "stay safely under that ceiling."
+
+
 ## Stochastic Gradient Descent (SGD)
 
 Each step uses a single sample $(x_i, y_i)$:

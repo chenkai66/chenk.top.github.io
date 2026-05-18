@@ -285,7 +285,7 @@ $$
 
 ## 参考文献
 
-- Nocedal & Wright，《数值优化》（第 2 版），[第 3 章](/zh/optimization-theory/03-gradient-descent-family/)（线搜索）、[第 4 章](/zh/optimization-theory/04-learning-rate-schedules/)（信赖域）、[第 6 章](/zh/optimization-theory/06-composite-proximal-methods/)（BFGS）、第 7 章（L-BFGS）——该领域的标准参考；
+- Nocedal & Wright，《数值优化》（第 2 版），第 3 章（线搜索）、第 4 章（信赖域）、第 6 章（BFGS）、第 7 章（L-BFGS）——该领域的标准参考；
 - Boyd & Vandenberghe，《凸优化》，§9.5 （阻尼牛顿法）与 §9.6 （自协调函数）；
 - Nesterov & Polyak，《牛顿法的三次正则化及其全局性能》，*Mathematical Programming* 108, 2006 —— 面向非凸问题的现代牛顿变体；
 - Liu & Nocedal，《面向大规模优化的有限内存 BFGS 方法》，*Mathematical Programming* 45, 1989 —— L-BFGS 的奠基性论文。

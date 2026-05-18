@@ -25,7 +25,7 @@ This article is a deep dive into how that is possible. We start from the functio
 ![Operator learning maps an entire function space of inputs to an entire function space of outputs.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/fig1_operator_concept.png)
 *Figure 1. Neural operators learn a map between two infinite-dimensional function spaces. Each blue curve on the left is one input (e.g. an initial condition); each green curve on the right is the corresponding output (e.g. the solution at time T). The operator $\mathcal{G}_\theta$ is trained once and reused for every new input.*
 
-![PDE and ML (2): and Machine Learning (2) — Neural Operator Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/illustration_1.png)
+![PDE and ML (2): Neural Operator Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/illustration_1.png)
 
 ---
 
@@ -169,7 +169,7 @@ DeepONet's key advantage: it naturally handles **irregular sensor locations** an
 
 ## The Fourier Neural Operator
 
-![PDE and ML (2): and Machine Learning (2) — Neural Operator Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/illustration_2.png)
+![PDE and ML (2): Neural Operator Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/illustration_2.png)
 
 Where DeepONet decomposes the operator as a sum of rank-one terms in the spatial domain, FNO (Li et al., 2020) operates in the *spectral* domain. The motivation is the convolution theorem.
 

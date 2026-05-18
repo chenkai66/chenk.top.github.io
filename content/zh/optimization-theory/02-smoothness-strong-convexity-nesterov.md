@@ -361,7 +361,7 @@ $\kappa > 10^4$：考虑预条件或二阶方法。
 - **含噪声的加速**。原始 Nesterov 对随机梯度不鲁棒。SAG / SVRG / Katyusha 通过方差缩减将强凸随机速率拉回 $\sqrt{\kappa}$ 区间。
 - **二阶加速**。Sophia 和 Shampoo 通过（块）对角 Hessian 预条件，有效重写条件数 —— 这是 2024 年大规模预训练的活跃前沿。
 
-**References**
+## 参考文献
 
 1. Nesterov, Y. (1983). *A method of solving a convex programming problem with convergence rate $\mathcal O(1/k^2)$.* Soviet Mathematics Doklady, 27(2), 372–376.
 2. Boyd, S., & Vandenberghe, L. (2004). *Convex Optimization.* Cambridge University Press.

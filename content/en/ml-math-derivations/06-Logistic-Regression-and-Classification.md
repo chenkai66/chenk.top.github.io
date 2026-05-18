@@ -234,6 +234,21 @@ For $K \geq 3$ we learn one weight vector $\mathbf{w}_k$ per class. The class-$k
 $$P(y = k \mid \mathbf{x}) = \frac{e^{z_k}}{\sum_{j=1}^K e^{z_j}}.$$
 Softmax is a *soft argmax*: it exponentiates each score (so they are positive) and normalises (so they sum to one). The biggest score wins the most mass, but every class still gets a non-zero share.
 
+### Worked Numerical Example: softmax + cross-entropy on $K=3$ classes
+
+Take logits $\mathbf{z} = (2, 1, 0)$ and the true class $c = 0$ (one-hot $\mathbf{t} = (1, 0, 0)$).
+
+**Numerical stabilisation.** Subtract $\max_j z_j = 2$ first: $\mathbf{z}' = (0, -1, -2)$. Same softmax, no overflow.
+
+**Exponentiate.** $e^{0} = 1$, $e^{-1} \approx 0.3679$, $e^{-2} \approx 0.1353$. Sum $Z = 1 + 0.3679 + 0.1353 = 1.5032$.
+
+**Normalise.** $P_0 = 1/1.5032 \approx 0.6652$, $P_1 = 0.3679/1.5032 \approx 0.2447$, $P_2 = 0.1353/1.5032 \approx 0.0900$. They sum to $1.0$ (round-off aside).
+
+**Cross-entropy.** $\mathcal{L} = -\ln P_0 = -\ln 0.6652 \approx 0.4076$ nats. Equivalently, $\mathcal{L} = -z_0 + \ln \sum_j e^{z_j} = -2 + \ln(7.389 + 2.718 + 1.000) = -2 + \ln 11.107 = -2 + 2.408 = 0.408$.
+
+**Gradient.** $\partial \mathcal{L}/\partial \mathbf{z} = \mathbf{P} - \mathbf{t} = (0.6652 - 1,\, 0.2447 - 0,\, 0.0900 - 0) = (-0.3348,\, 0.2447,\, 0.0900)$. Three things are visible from this single number: the gradient on the *correct* class is negative (push $z_0$ up), the gradients on the other two are positive (push $z_1, z_2$ down), and the magnitudes sum to zero (because $\sum_k P_k = \sum_k t_k = 1$ — the gradient never moves probability mass off the simplex). If the model were already confident — say $\mathbf{z} = (10, 1, 0)$ giving $P_0 \approx 0.9999$ — the gradient would shrink to $\approx (-10^{-4}, 7 \cdot 10^{-5}, 3 \cdot 10^{-5})$ and learning would stall on this example, which is exactly the desired behaviour: don't waste capacity on points already classified correctly.
+
+
 ![Softmax probability simplex for K=3 with sample logits](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/fig4_softmax_simplex.png)
 
 Geometrically, every softmax output is a point in the **probability simplex** — the triangle above for $K = 3$. Vertices are deterministic predictions; the centre is maximal uncertainty $(1/3, 1/3, 1/3)$; example logits are projected to show how concentrated mass corresponds to clearer decisions.

@@ -24,6 +24,8 @@ translationKey: "ml-math-derivations-19"
 
 ---
 
+> **Hook.** In 1969 Minsky and Papert proved that a single perceptron could not learn XOR, and connectionist research went into a fifteen-year freeze. The thaw came when Rumelhart, Hinton and Williams realised that *stacking* perceptrons makes the problem disappear — and that the same chain rule everyone learns in calculus, applied carefully, computes every gradient in a multilayer network for the cost of a single extra forward pass. That algorithm is backpropagation. Every gradient in every Transformer, every diffusion model, every GPT trained today still runs on it.
+
 ## What You Will Learn
 
 A single perceptron cannot solve XOR. Stack enough of them with nonlinear activations and you obtain a *universal function approximator*. The remaining question is how such a network learns from data. The answer — **backpropagation**, an efficient application of the chain rule that recycles intermediate results during a single backward sweep — is the engine behind every deep learning library written in the last forty years. Understanding it mathematically reveals two further truths: why deep networks suffer from vanishing or exploding gradients, and why the choice of weight initialization is much less arbitrary than it first appears.
@@ -150,6 +152,58 @@ $$\frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(l)}} \;=\; \boldsymbol{\delt
 
 $$\frac{\partial \mathcal{L}}{\partial \mathbf{b}^{(l)}} \;=\; \boldsymbol{\delta}^{(l)}. \tag{7}$$
 Each weight gradient is the **outer product** of the error signal at the layer's output with the activations that arrived at its input — a quantity we already cached during the forward pass.
+
+### Worked Numerical Example: backprop on a 2-layer MLP, by hand
+
+Take the smallest network that exhibits every step: input $x \in \mathbb{R}$, one hidden unit with sigmoid, one linear output, MSE loss against target $y$. Concrete numbers:
+
+- $w_1 = 0.5$, $b_1 = 0$, $w_2 = -1.0$, $b_2 = 0.1$.
+- Single training point $(x, y) = (1.0, 0.0)$.
+
+**Forward pass.**
+
+$z_1 = w_1 x + b_1 = 0.5 \cdot 1.0 + 0 = 0.5$.
+
+$h_1 = \sigma(z_1) = 1 / (1 + e^{-0.5}) \approx 0.6225$.
+
+$z_2 = w_2 h_1 + b_2 = -1.0 \cdot 0.6225 + 0.1 = -0.5225$.
+
+$\hat y = z_2 = -0.5225$ (linear output).
+
+$\mathcal{L} = \tfrac{1}{2}(\hat y - y)^2 = \tfrac{1}{2}(-0.5225)^2 \approx 0.1365$.
+
+**Backward pass.**
+
+Output error: $\delta_2 = \partial \mathcal{L}/\partial z_2 = \hat y - y = -0.5225$.
+
+Output-layer gradients (use $h_1$ from cache):
+
+$\partial \mathcal{L}/\partial w_2 = \delta_2 \cdot h_1 = -0.5225 \cdot 0.6225 \approx -0.3253$.
+
+$\partial \mathcal{L}/\partial b_2 = \delta_2 = -0.5225$.
+
+Push the error back through $w_2$ and gate by the sigmoid derivative. Sigmoid derivative: $\sigma'(z_1) = h_1 (1 - h_1) = 0.6225 \cdot 0.3775 \approx 0.2350$.
+
+Hidden error: $\delta_1 = (w_2 \cdot \delta_2) \cdot \sigma'(z_1) = (-1.0 \cdot -0.5225) \cdot 0.2350 = 0.5225 \cdot 0.2350 \approx 0.1228$.
+
+Hidden-layer gradients (use $x$ from cache):
+
+$\partial \mathcal{L}/\partial w_1 = \delta_1 \cdot x = 0.1228 \cdot 1.0 \approx 0.1228$.
+
+$\partial \mathcal{L}/\partial b_1 = \delta_1 \approx 0.1228$.
+
+**SGD step with $\eta = 0.5$.**
+
+$w_2 \leftarrow -1.0 - 0.5 \cdot (-0.3253) = -0.8374$.
+
+$b_2 \leftarrow 0.1 - 0.5 \cdot (-0.5225) = 0.3613$.
+
+$w_1 \leftarrow 0.5 - 0.5 \cdot 0.1228 = 0.4386$.
+
+$b_1 \leftarrow 0 - 0.5 \cdot 0.1228 = -0.0614$.
+
+Recomputing the forward pass with the updated weights gives $\hat y \approx -0.236$, $\mathcal{L} \approx 0.0279$ — the loss dropped by a factor of $\approx 4.9$ in one step. Two structural facts are visible. The hidden-layer gradient is *attenuated* by $\sigma'(z_1) \approx 0.235$ on the way back: with a deeper network this factor compounds and produces vanishing gradients, exactly the problem analysed in the next section. And the gradients at every layer are products of three things that were already computed during the forward pass (an upstream error, a local Jacobian, a cached activation) — no Jacobian matrix is ever materialised, and the per-parameter cost is $\mathcal{O}(1)$.
+
 
 ```python
 def backprop(X, y, weights, biases, activations):

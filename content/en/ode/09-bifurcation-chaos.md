@@ -72,6 +72,14 @@ $$\dot x = \sigma(y - x), \quad \dot y = x(\rho - z) - y, \quad \dot z = xy - \b
 - $z$: vertical temperature deviation
 - Classic parameters: $\sigma = 10,\ \rho = 28,\ \beta = 8/3$
 
+**Where the three numbers come from.** Each parameter is a dimensionless ratio that survives Lorenz's truncation of the full Boussinesq convection equations:
+
+- $\sigma = \nu/\kappa$ is the **Prandtl number** — kinematic viscosity over thermal diffusivity. For air it sits near $0.7$, for water near $7$; Lorenz picked $\sigma = 10$ as a convenient round value that exhibits the chaotic regime. It is the only parameter that controls the *velocity* equation in isolation.
+- $\rho = \mathrm{Ra}/\mathrm{Ra}_c$ is the normalised **Rayleigh number** — driving (buoyancy) divided by dissipation, scaled so that convection turns on at $\rho = 1$. At $\rho = 28$ the system is well past the convective threshold and just past the second instability ($\rho \approx 24.74$) where $C_\pm$ lose stability via subcritical Hopf, which is why the chaos is sustained rather than transient.
+- $\beta = 8/3$ comes from the *geometry* of the convection rolls — specifically the horizontal-to-vertical wavenumber ratio of the most unstable Fourier mode in a thin layer. It is forced on you, not chosen.
+
+So the canonical $(\sigma, \rho, \beta) = (10,\ 28,\ 8/3)$ is not arbitrary: $\beta$ is geometry, $\rho$ places you in the chaotic window, and $\sigma$ is a fluid choice that happens to make the window wide. Vary any of them and the topology of the attractor changes — for $\rho \lesssim 24.06$ the system has stable equilibria and *transient* chaos; far above $\rho = 28$ it eventually re-stabilises onto periodic orbits before chaos returns.
+
 ### The strange attractor
 
 ![Lorenz attractor in 3D, two viewpoints, color-graded by time, showing the two wings.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/09-bifurcation-chaos/fig1_lorenz_attractor.png)
