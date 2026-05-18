@@ -1,5 +1,5 @@
 ---
-title: "Claude Code 实战指南（三）：自定义斜杠命令与对话控制"
+title: "Claude Code 实战（三）：自定义斜杠命令与对话控制"
 date: 2026-04-20 09:00:00
 tags:
   - claude-code

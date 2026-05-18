@@ -1,5 +1,5 @@
 ---
-title: "LeetCode (9): Patterns: Greedy Algorithms"
+title: "LeetCode (9): Patterns — Greedy Algorithms"
 date: 2022-08-29 09:00:00
 tags:
   - LeetCode

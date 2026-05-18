@@ -1,5 +1,5 @@
 ---
-title: "Linux (6): Service Management: systemd, systemctl, and journald"
+title: "Linux (6): Service Management — systemd, systemctl, and journald"
 date: 2022-03-07 09:00:00
 tags:
   - Linux

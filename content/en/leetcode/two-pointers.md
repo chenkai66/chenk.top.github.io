@@ -1,5 +1,5 @@
 ---
-title: "LeetCode (2): Patterns: Two Pointers"
+title: "LeetCode (2): Patterns — Two Pointers"
 date: 2022-05-16 09:00:00
 tags:
   - LeetCode

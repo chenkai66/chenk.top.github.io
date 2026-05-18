@@ -1,5 +1,5 @@
 ---
-title: "Groups: Your First Encounter with Algebraic Structure"
+title: "Abstract Algebra (1): Groups — Your First Encounter with Algebraic Structure"
 date: 2021-09-01 09:00:00
 tags:
   - abstract-algebra

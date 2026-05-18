@@ -1,5 +1,5 @@
 ---
-title: "Normed Spaces and Banach Spaces"
+title: "Functional Analysis (2): Normed Spaces and Banach Spaces"
 date: 2021-10-03 09:00:00
 tags:
   - functional-analysis

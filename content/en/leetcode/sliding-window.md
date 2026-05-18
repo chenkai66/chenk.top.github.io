@@ -1,5 +1,5 @@
 ---
-title: "LeetCode (4): Patterns: Sliding Window Technique"
+title: "LeetCode (4): Patterns — Sliding Window Technique"
 date: 2022-06-15 09:00:00
 tags:
   - LeetCode

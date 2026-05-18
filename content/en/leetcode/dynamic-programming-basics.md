@@ -1,5 +1,5 @@
 ---
-title: "LeetCode (7): Patterns: Dynamic Programming Basics"
+title: "LeetCode (7): Patterns — Dynamic Programming Basics"
 date: 2022-07-30 09:00:00
 tags:
   - LeetCode

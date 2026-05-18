@@ -1,5 +1,5 @@
 ---
-title: "LeetCode (3): Patterns: Linked List Operations"
+title: "LeetCode (3): Patterns — Linked List Operations"
 date: 2022-05-31 09:00:00
 tags:
   - LeetCode

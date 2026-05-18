@@ -1,5 +1,5 @@
 ---
-title: "Sylow Theorems: Dissecting Finite Groups"
+title: "Abstract Algebra (4): Sylow Theorems — Dissecting Finite Groups"
 date: 2021-09-07 09:00:00
 tags:
   - abstract-algebra

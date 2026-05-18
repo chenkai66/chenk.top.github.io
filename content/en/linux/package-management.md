@@ -1,5 +1,5 @@
 ---
-title: "Linux (4): Package Management: apt, dnf, pacman, and Building from Source"
+title: "Linux (4): Package Management — apt, dnf, pacman, and Building from Source"
 date: 2022-02-09 09:00:00
 tags:
   - Linux

@@ -1,5 +1,5 @@
 ---
-title: "Vector Fields, Flows, and the Lie Bracket"
+title: "Differential Geometry (7): Vector Fields, Flows, and the Lie Bracket"
 date: 2021-11-13 09:00:00
 tags:
   - differential-geometry

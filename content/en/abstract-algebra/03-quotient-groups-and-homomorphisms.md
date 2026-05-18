@@ -1,5 +1,5 @@
 ---
-title: "Quotient Groups and Homomorphisms: The Art of Collapsing Structure"
+title: "Abstract Algebra (3): Quotient Groups and Homomorphisms: The Art of Collapsing Structure"
 date: 2021-09-05 09:00:00
 tags:
   - abstract-algebra

@@ -1,5 +1,5 @@
 ---
-title: "LeetCode (5): Patterns: Binary Search"
+title: "LeetCode (5): Patterns — Binary Search"
 date: 2022-06-30 09:00:00
 tags:
   - LeetCode

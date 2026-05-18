@@ -1,5 +1,5 @@
 ---
-title: "LeetCode (6): Patterns: Binary Tree Traversal and Construction"
+title: "LeetCode (6): Patterns — Binary Tree Traversal and Construction"
 date: 2022-07-15 09:00:00
 tags:
   - LeetCode

@@ -1,5 +1,5 @@
 ---
-title: "Metric Spaces: Distance, Convergence, and Completeness"
+title: "Functional Analysis (1): Metric Spaces — Distance, Convergence, and Completeness"
 date: 2021-10-01 09:00:00
 tags:
   - functional-analysis

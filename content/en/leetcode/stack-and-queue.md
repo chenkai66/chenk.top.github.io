@@ -1,5 +1,5 @@
 ---
-title: "LeetCode (10): Patterns: Stack and Queue"
+title: "LeetCode (10): Patterns — Stack and Queue"
 date: 2022-09-13 09:00:00
 tags:
   - LeetCode

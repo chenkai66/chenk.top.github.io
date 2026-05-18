@@ -1,5 +1,5 @@
 ---
-title: "Smooth Manifolds: Geometry Beyond Embedded Surfaces"
+title: "Differential Geometry (6): Smooth Manifolds — Geometry Beyond Embedded Surfaces"
 date: 2021-11-11 09:00:00
 tags:
   - differential-geometry

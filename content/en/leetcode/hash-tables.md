@@ -1,5 +1,5 @@
 ---
-title: "LeetCode (1): Patterns: Hash Tables"
+title: "LeetCode (1): Patterns — Hash Tables"
 date: 2022-05-01 09:00:00
 tags:
   - LeetCode

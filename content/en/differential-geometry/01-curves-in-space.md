@@ -1,5 +1,5 @@
 ---
-title: "Curves in Space: Curvature, Torsion, and the Frenet Frame"
+title: "Differential Geometry (1): Curves in Space — Curvature, Torsion, and the Frenet Frame"
 date: 2021-11-01 09:00:00
 tags:
   - differential-geometry

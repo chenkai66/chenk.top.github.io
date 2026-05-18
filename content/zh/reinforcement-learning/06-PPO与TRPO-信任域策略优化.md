@@ -1,5 +1,5 @@
 ---
-title: "强化学习（六）：PPO 与 TRPO：信任域策略优化"
+title: "强化学习（六）：PPO 与 TRPO —— 信任域策略优化"
 date: 2025-08-26 09:00:00
 tags:
   - Reinforcement Learning

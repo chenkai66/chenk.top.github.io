@@ -1,5 +1,5 @@
 ---
-title: "Linux (2): File Permissions: rwx, chmod, chown, and Beyond"
+title: "Linux (2): File Permissions — rwx, chmod, chown, and Beyond"
 date: 2022-01-14 09:00:00
 tags:
   - Linux

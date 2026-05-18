@@ -1,5 +1,5 @@
 ---
-title: "Linux (8): Pipelines and File Operations: Composing Tools into Data Flows"
+title: "Linux (8): Pipelines and File Operations — Composing Tools into Data Flows"
 date: 2022-04-02 09:00:00
 tags:
   - Linux

@@ -1,5 +1,5 @@
 ---
-title: "Unbounded Operators: When Boundedness Fails"
+title: "Functional Analysis (9): Unbounded Operators — When Boundedness Fails"
 date: 2021-10-17 09:00:00
 tags:
   - functional-analysis

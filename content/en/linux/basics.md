@@ -1,5 +1,5 @@
 ---
-title: "Linux (1): Basics: Core Concepts and Essential Commands"
+title: "Linux (1): Basics — Core Concepts and Essential Commands"
 date: 2022-01-01 09:00:00
 tags:
   - Linux

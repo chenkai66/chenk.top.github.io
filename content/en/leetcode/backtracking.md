@@ -1,5 +1,5 @@
 ---
-title: "LeetCode (8): Patterns: Backtracking Algorithms"
+title: "LeetCode (8): Patterns — Backtracking Algorithms"
 date: 2022-08-14 09:00:00
 tags:
   - LeetCode

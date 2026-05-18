@@ -1,5 +1,5 @@
 ---
-title: "Group Actions: How Groups Move Things Around"
+title: "Abstract Algebra (2): Group Actions — How Groups Move Things Around"
 date: 2021-09-03 09:00:00
 tags:
   - abstract-algebra

@@ -1,5 +1,5 @@
 ---
-title: "Differential Forms: The Natural Language of Integration on Manifolds"
+title: "Differential Geometry (8): Differential Forms — The Natural Language of Integration on Manifolds"
 date: 2021-11-15 09:00:00
 tags:
   - differential-geometry

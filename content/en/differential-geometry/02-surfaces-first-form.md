@@ -1,5 +1,5 @@
 ---
-title: "Surfaces and the First Fundamental Form: Intrinsic Measurements"
+title: "Differential Geometry (2): Surfaces and the First Fundamental Form: Intrinsic Measurements"
 date: 2021-11-03 09:00:00
 tags:
   - differential-geometry
