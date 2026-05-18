@@ -362,6 +362,12 @@ This is why mini-batch K-means and Nyström-approximated spectral clustering exi
 
 ---
 
+## What's next
+
+The core algorithms of classical machine learning are now covered — linear, tree, kernel, Bayesian, latent-variable, sequence, dimensionality reduction, clustering. They share one limitation: their expressivity is bounded by hand-crafted features or kernels. The next chapter breaks that limitation outright — **neural networks and backpropagation**.
+
+Neural networks turn "features" into things learned jointly with parameters: each layer is a nonlinear transform of the previous, and training optimizes all the layer weights simultaneously by gradient descent. Backpropagation is the chain rule run efficiently on a computation graph — nothing mysterious about it on its own, but it is what makes end-to-end learning possible. I derive the universal approximation theorem, the Jacobian form of backprop, the exponential expressivity advantage of depth, and why the loss landscape "looks non-convex but is in practice optimizable". Modern deep learning is, almost entirely, the engineering extrapolation of this chapter.
+
 ## References
 
 [1] Lloyd, S. (1982). Least squares quantization in PCM. *IEEE Trans. Info. Theory*, 28(2), 129-137.

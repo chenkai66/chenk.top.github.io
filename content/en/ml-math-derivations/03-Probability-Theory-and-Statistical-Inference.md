@@ -349,6 +349,12 @@ Memorize these five and the rest is interpolation:
 
 ---
 
+## What's next
+
+Probability tells me what data should look like *given* a model. Going the other way — finding the parameters that maximize likelihood given data — is an **optimization** problem. The next chapter is convex optimization.
+
+I put convex optimization before any concrete algorithm because linear regression, ridge, Lasso, logistic regression, SVMs, and the logistic loss are *all* convex problems. Convexity gives a very hard guarantee: local optima are global, gradient descent converges, duality is strong. Every time I write "solve" later, the engine underneath is some convex-optimization routine. The next chapter lays the toolkit — gradient descent, Newton's method, duality, KKT, ADMM — onto a single map and labels which tool fits which algorithm.
+
 ## References
 
 1. Casella, G. & Berger, R. L. (2002). *Statistical Inference* (2nd ed.). Duxbury.

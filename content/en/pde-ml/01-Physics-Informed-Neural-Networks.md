@@ -611,6 +611,13 @@ After this chapter, you should be able to give the one-sentence answer:
 
 ---
 
+## What's next
+
+The handful of core ideas in this chapter (PDE residual as loss, operators on function spaces, Wasserstein geometry, symplectic structure, scores, diffusion) recur throughout the rest of the series. If a section stalls you, jot the question down and keep reading — the next chapter usually re-explains it from a different angle.
+
+The fastest sanity check on your own understanding is to run this chapter's equation on a minimal example: a 1-D heat equation, a single pendulum, a 2-D Gaussian mixture. The code is short, but it converts "looks right" into "it's right on my machine."
+
+
 ## References
 
 [^raissi2019]: M. Raissi, P. Perdikaris, G. E. Karniadakis. *Physics-Informed Neural Networks: A Deep Learning Framework for Solving Forward and Inverse Problems Involving Nonlinear Partial Differential Equations.* J. Comput. Phys., 378:686–707, 2019. [doi:10.1016/j.jcp.2018.10.045](https://doi.org/10.1016/j.jcp.2018.10.045)

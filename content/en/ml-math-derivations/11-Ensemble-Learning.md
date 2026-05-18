@@ -480,6 +480,12 @@ A Random Forest with $m = d$ (i.e. consider all features at every split) is just
 
 ---
 
+## What's next
+
+The algebraic skeleton of Bagging and Boosting ends here. What actually wins on tabular data in industry, though, are two engineering culminations of the Boosting line — XGBoost and LightGBM. The next chapter reads them as "Boosting + system optimization" rather than as two new algorithms.
+
+XGBoost's second-order Taylor expansion turns "find the optimal leaf weight" into a closed form, and the regularization term enters the split-gain formula directly; LightGBM's histograms, GOSS sampling, and leaf-wise growth shave training time by an order of magnitude. The math under both libraries is not deep — the core idea is still "add one tree that maximizes second-order loss decrease" — but they push that simple idea to the systems, memory, and concurrency limit. The gap between "the math of gradient boosting" and "XGBoost in production" is not new theory; it is having polished every line of the loop.
+
 ## References
 
 - Breiman, L. (1996). Bagging predictors. *Machine Learning*, 24(2), 123--140.

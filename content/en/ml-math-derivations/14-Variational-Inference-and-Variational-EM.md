@@ -346,6 +346,12 @@ If you need uncertainty in $\boldsymbol{\theta}$ (small data, model selection, d
 
 ---
 
+## What's next
+
+EM and variational EM both deal with "i.i.d. data + latent variables". But there is a class of data that comes with a built-in temporal order — speech, text, action sequences, biological sequences — where the observation at time $t$ depends on the latent state at time $t-1$. Bolting variational EM onto that throws the temporal structure away. The next chapter is the classical model for this regime: **hidden Markov models (HMMs)**.
+
+HMMs string the latent variables into a Markov chain: the current latent depends only on the previous latent, the current observation only on the current latent. That seemingly rigid assumption buys three remarkably powerful exact-inference algorithms — the forward algorithm (marginal likelihood), Viterbi (most likely path), and Baum-Welch (EM specialized to HMMs). I derive them as "dynamic programming on a probabilistic graphical model" rather than as three independent formulas. Once HMM exact inference is in your hands, CRF's discriminative twin, the continuous versions in RNNs/Transformers, and the modern revival of state-space models all become much easier to see through.
+
 ## References
 
 - Jordan, M. I., Ghahramani, Z., Jaakkola, T. S., & Saul, L. K. (1999). An introduction to variational methods for graphical models. *Machine Learning*, 37(2), 183–233.

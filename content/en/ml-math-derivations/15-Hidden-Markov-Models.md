@@ -336,6 +336,12 @@ The same trellis as Forward (cost $O(N^2 T)$) plus an integer back-pointer per (
 
 ---
 
+## What's next
+
+HMMs are generative — they model $P(x, z)$ and invert to $P(z\mid x)$. On supervised sequence labelling (named-entity recognition, POS tagging) this wastes effort: I only care about $P(z\mid x)$, but I am forced to model $P(x)$ as well, often under feature-independence and Markov assumptions that conflict with real data. The next chapter is the discriminative answer: **conditional random fields (CRFs)**.
+
+CRFs model $P(z\mid x)$ directly, make no distributional assumption on $x$, and therefore allow arbitrary feature functions (windowed context, word shape, gazetteers). The training objective is the conditional log-likelihood, convex; inference is still forward-backward and Viterbi, almost identical dynamic programming to HMMs. The HMM-to-CRF transition is the same "generative → discriminative" shift the supervised line went through, replayed on sequences — and it is the key to understanding what the CRF head is actually doing inside BiLSTM-CRF, Transformer-CRF, and similar deep architectures.
+
 ## References
 
 1. Rabiner, L. R. (1989). *A Tutorial on Hidden Markov Models and Selected Applications in Speech Recognition*. Proc. IEEE 77(2), 257-286.

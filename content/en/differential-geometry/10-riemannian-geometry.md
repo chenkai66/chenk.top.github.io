@@ -262,6 +262,120 @@ The ideal triangle has area exactly $\pi$, matching the angle-deficit formula si
 
 ---
 
+## Deeper Examples and Common Pitfalls
+
+The earlier sections introduced Riemannian metrics, musical isomorphisms, affine connections, the Levi-Civita connection, parallel transport, geodesics, the exponential map, holonomy, and the Hopf-Rinow theorem. This section computes specific connections in detail, points out beginner mistakes, and connects the machinery to applications.
+
+### A worked numerical example: Christoffel symbols on the hyperbolic plane
+
+The Poincaré upper half-plane $\mathbb{H}$ with metric $g = (dx^2 + dy^2)/y^2$ has $g_{xx} = g_{yy} = 1/y^2$, $g_{xy} = 0$. Inverse: $g^{xx} = g^{yy} = y^2$. From the formula
+$$\Gamma^k_{ij} = \tfrac{1}{2}g^{kl}(\partial_i g_{jl} + \partial_j g_{il} - \partial_l g_{ij}),$$
+compute:
+$\Gamma^x_{xy} = \Gamma^x_{yx} = \tfrac{1}{2} g^{xx}\partial_y g_{xx} = \tfrac{1}{2} y^2 \cdot (-2/y^3) = -1/y$.
+$\Gamma^y_{xx} = -\tfrac{1}{2}g^{yy}\partial_y g_{xx} = -\tfrac{1}{2} y^2 \cdot (-2/y^3) = 1/y$.
+$\Gamma^y_{yy} = \tfrac{1}{2}g^{yy}\partial_y g_{yy} = \tfrac{1}{2} y^2 \cdot (-2/y^3) = -1/y$.
+All others vanish.
+
+Geodesic equation:
+$\ddot x - \tfrac{2}{y}\dot x \dot y = 0$.
+$\ddot y + \tfrac{1}{y}(\dot x^2 - \dot y^2) = 0$.
+
+A vertical line $x = $ const, $y(t) = e^t$: $\dot x = 0$, $\dot y = e^t = y$, $\ddot y = y$. First equation: $0 - 0 = 0$. Second: $y + (1/y)(0 - y^2) = y - y = 0$. Confirmed — vertical lines are geodesics.
+
+Compute the length of a vertical segment from $y = 1$ to $y = 2$: $\int_1^2 \sqrt{1/y^2}\, dy = \int_1^2 dy/y = \ln 2 \approx 0.693$. The hyperbolic distance is logarithmic in the Euclidean distance, which is what makes the Poincaré model represent infinite hyperbolic distance in finite Euclidean space.
+
+### A worked numerical example: parallel transport on the sphere along a non-geodesic
+
+Take the unit sphere with the standard metric $d\phi^2 + \sin^2\phi\, d\theta^2$. Parallel-transport a tangent vector $V$ along a circle of constant latitude $\phi = \pi/3$ (not a great circle, hence not a geodesic). The transport equation $\nabla_{\dot\gamma} V = 0$ for $V = V^\phi \partial_\phi + V^\theta \partial_\theta$ with $\dot\gamma = \partial_\theta$ gives:
+$\dot V^\phi - \sin\phi\cos\phi \cdot V^\theta = 0$.
+$\dot V^\theta + \cot\phi \cdot V^\phi = 0$.
+
+At $\phi = \pi/3$: $\sin\phi\cos\phi = (\sqrt{3}/2)(1/2) = \sqrt{3}/4$, $\cot\phi = 1/\sqrt{3}$. So
+$\dot V^\phi = (\sqrt{3}/4) V^\theta$, $\dot V^\theta = -(1/\sqrt{3}) V^\phi$.
+
+Plug $V^\theta = c$ initially. Then $\dot V^\theta = -V^\phi/\sqrt{3}$, $\ddot V^\theta = -\dot V^\phi/\sqrt{3} = -(\sqrt{3}/4)V^\theta/\sqrt{3} = -V^\theta/4$. So $V^\theta$ oscillates as $\cos(t/2)$. After traversing the full circle ($\theta$ from $0$ to $2\pi$), $V^\theta$ has oscillated by $\pi$ — so the vector has rotated. Specifically, the holonomy after one trip around the latitude $\phi$ is $2\pi(1 - \cos\phi) = 2\pi(1 - 1/2) = \pi$ at $\phi = \pi/3$. The vector returns rotated by exactly $\pi$.
+
+This matches the integral of the Gaussian curvature over the spherical cap above the latitude: $\int K\, dA = \int_0^{\pi/3}\int_0^{2\pi} \sin\phi\, d\theta\, d\phi = 2\pi(1 - \cos\pi/3) = \pi$. The holonomy equals the enclosed curvature integral, the local-to-global holonomy formula.
+
+### Intuition + counterexample: why Levi-Civita is unique
+
+A connection $\nabla$ is *metric-compatible* if $X\langle Y, Z\rangle = \langle \nabla_X Y, Z\rangle + \langle Y, \nabla_X Z\rangle$. It is *torsion-free* if $\nabla_X Y - \nabla_Y X = [X, Y]$. The Levi-Civita theorem: there is exactly one connection satisfying both.
+
+Why uniqueness? The two conditions give six equations (three from the metric-compatibility cyclic permutations, three from torsion-freeness), enough to solve for the Christoffel symbols algebraically — exactly the formula above.
+
+Counterexample to "any reasonable connection is Levi-Civita": the Weitzenböck connection on a Lie group, defined by $\nabla_X Y = 0$ for left-invariant fields, is metric-compatible but has *torsion* equal to $-[X, Y]$. So torsion-freeness is a real restriction, not automatic. On a non-abelian Lie group, the Weitzenböck and Levi-Civita connections genuinely differ. Every Riemannian manifold has both, and theorems about which to use are part of the working knowledge of differential geometers.
+
+### A third worked example: geodesics on a flat torus vs round sphere
+
+The flat torus $\mathbb{R}^2 / \mathbb{Z}^2$ has constant zero curvature. Christoffel symbols all vanish in the standard coordinates. Geodesics are straight lines projected onto the torus. The geodesic from $(0, 0)$ in direction $(1, 0)$ closes up after time $1$ (period of the first circle). The geodesic from $(0, 0)$ in direction $(1, \sqrt{2})$ never closes — it densely covers the torus, by the equidistribution theorem on irrational slopes.
+
+Compare to the unit sphere: every geodesic is a great circle, closing up after time $2\pi$. The sphere has *no* dense geodesics; the torus has uncountably many. This is a manifestation of dynamical systems theory on geometric manifolds: positively curved spaces have rigid geodesic structure, flat spaces with nontrivial topology have rich orbit structure.
+
+A specific computation: on the round sphere, the geodesic with initial direction making angle $\alpha$ with the $\theta$-axis has constant Clairaut constant $\sin\phi \cos\alpha$. For a geodesic that grazes the latitude $\phi_0 = \pi/4$ horizontally (so $\alpha = 0$ at $\phi_0$), the Clairaut constant is $\sin\pi/4 = \sqrt{2}/2$. The geodesic stays at latitudes between $\pi/4$ and $\pi - \pi/4 = 3\pi/4$, oscillating like a hammock. This is the Clairaut relation, a first integral of the geodesic ODE on rotationally symmetric surfaces.
+
+### A second counterexample: incomplete metrics
+
+The flat punctured plane $\mathbb{R}^2 \setminus \{0\}$ with the standard metric is *not* geodesically complete: a straight line aimed at the origin runs out of space in finite time. Hopf-Rinow says: complete iff every geodesic extends for all time iff distance is achieved by some geodesic iff the manifold is metrically complete as a metric space. The punctured plane fails all four equivalent conditions.
+
+A more dramatic example: the hyperbolic plane in the Poincaré disk model, $g = 4(dx^2 + dy^2)/(1 - x^2 - y^2)^2$ on the open unit disk. This is geodesically complete despite living inside a bounded region. The metric blows up near the boundary, putting it at infinite distance. So geodesic completeness is not about size in any embedding; it is about whether geodesics can be extended within the intrinsic metric.
+
+### Common pitfall for beginners
+
+Beginners often think the Christoffel symbols form a tensor. They do not. Under a coordinate change, they transform as
+$$\tilde\Gamma^k_{ij} = \frac{\partial \tilde x^k}{\partial x^l} \frac{\partial x^m}{\partial \tilde x^i} \frac{\partial x^n}{\partial \tilde x^j} \Gamma^l_{mn} + \frac{\partial \tilde x^k}{\partial x^l} \frac{\partial^2 x^l}{\partial \tilde x^i \partial \tilde x^j}.$$
+The first piece is tensorial, the second is the inhomogeneous correction that distinguishes Christoffel symbols from genuine tensors. This is why $\Gamma$ can vanish in some coordinates (locally inertial frames in GR) and not others.
+
+A second pitfall: confusing the geodesic equation with the Euler-Lagrange equation for $\int \sqrt{g(\dot\gamma, \dot\gamma)}\, dt$. They give the same geodesics but the EL equation is reparametrization-invariant (any parametrization gives a critical point), while the geodesic equation as stated requires *affine* parameter (constant-speed). The two views agree on the orbits, differ on parametrization.
+
+### A third counterexample: musical isomorphisms and the wrong-index trap
+
+The musical isomorphism $\flat: TM \to T^*M$ sends a vector $X^i \partial_i$ to the 1-form $X_i dx^i = g_{ij} X^j dx^i$. The sharp $\sharp$ goes the other way using the inverse metric. These are inverses, but only after lowering or raising the right index.
+
+A common bug: writing $X_i = X^i$ when the metric is $\delta_{ij}$. In Cartesian coordinates on flat space, $g_{ij} = \delta_{ij}$ so the components do match — but in spherical coordinates on the same flat space, the metric has nontrivial off-diagonal-but-diagonal entries ($g_{\phi\phi} = 1$, $g_{\theta\theta} = r^2 \sin^2\phi$), so $X_\phi \neq X^\phi$ in general. Coordinate-component arithmetic in physics and machine-learning code often dies on this distinction; tensors need their indices tracked.
+
+### Where this matters in physics, computing, and engineering
+
+In **general relativity**, the Levi-Civita connection of the spacetime metric $g_{\mu\nu}$ defines the covariant derivative $\nabla_\mu$ used in Einstein's equations. Particles in free fall follow geodesics; the apparent "gravitational force" is geometric, encoded in the Christoffel symbols. Spacecraft trajectories around massive bodies are computed by integrating the geodesic equation in the Schwarzschild metric.
+
+In **machine learning**, the Fisher information metric on a statistical manifold gives a natural-gradient algorithm. The "natural gradient" $g^{ij}\partial_j L$ is the gradient with respect to the metric, and using it instead of the coordinate gradient often dramatically accelerates training. The Levi-Civita connection of the Fisher metric appears in second-order methods like K-FAC (Kronecker-factored approximate curvature) used in training large-scale neural networks.
+
+In **shape analysis**, the space of curves modulo reparametrization is an infinite-dimensional manifold. The geodesic distance under a Riemannian metric on this space gives a shape-comparison metric that is invariant to translation, rotation, and reparametrization. Medical imaging applications use this for atlas construction (averaging anatomical shapes).
+
+### Revisiting "what's next" with sharper questions
+
+Article 11 will introduce the Riemann curvature tensor and its symmetries. To prepare:
+
+(1) The Riemann tensor measures the failure of parallel transport around small loops to be the identity. Why is it a *tensor*, given that holonomy is a global object?
+(2) The symmetries of the Riemann tensor cut down the number of independent components from $n^4$ to $n^2(n^2-1)/12$. For $n=4$ (spacetime), that's 20. Where do these symmetries come from?
+(3) The sectional curvature is a function on 2-planes in the tangent space, and it determines the Riemann tensor. The Ricci tensor is a trace of the Riemann tensor; the scalar curvature is a trace of Ricci. Each step loses information; why are these reduced quantities still useful?
+
+You now have parallel transport. Article 11 turns it into a tensor that lives at every point. Read it asking "what is the right way to extract a finite-dimensional algebraic gadget from the global holonomy?" The answer — the Riemann tensor — is the heart of curved-space geometry.
+
+
+### One last worked example: holonomy as Lie-algebra-valued integral
+
+Take the unit sphere $S^2$ and a small geodesic triangle of side $\epsilon$ near the north pole. Parallel-transport a tangent vector around the triangle. The holonomy is a rotation in $SO(2) \cong U(1)$, parametrized by an angle. By Gauss-Bonnet, this angle equals the area of the triangle times $K = 1$, so it is $O(\epsilon^2)$.
+
+Quantitatively: a triangle with vertices at $(\phi=\epsilon, \theta=0), (\phi=\epsilon, \theta=2\pi/3), (\phi=\epsilon, \theta=4\pi/3)$ has area approximately $\pi \epsilon^2 \cdot (1 - \cos\epsilon)/(\pi(1-\cos\epsilon)) \cdot$ — the spherical-cap area minus three thin slivers. For $\epsilon = 0.1$, the cap has area $2\pi(1 - \cos 0.1) \approx 2\pi \cdot 0.005 \approx 0.0314$. Each thin sliver subtracted is small. The triangle area is approximately $0.027$ in this scale. So the holonomy angle is approximately $0.027$ rad.
+
+Verify by direct computation: parallel transport along the latitude circle $\phi = \epsilon$, going $2\pi/3$ in $\theta$, rotates the vector by approximately $(2\pi/3)(1 - \cos\epsilon) \approx (2\pi/3) \cdot \epsilon^2/2$. After three such legs: $3 \cdot (2\pi/3)(\epsilon^2/2) = \pi \epsilon^2$. With $\epsilon = 0.1$: $\pi \cdot 0.01 = 0.0314$. Match (approximately, ignoring corrections from the corner turning).
+
+For the curvature 2-form picture (next article), this is the integral of $R$ over the triangle, equal to the holonomy at this order. The relationship $\text{holonomy} = \int F$ for small loops, via the Stokes-like formula, is the Ambrose-Singer theorem in action.
+
+### One more practical example: geodesic distance on the sphere
+
+The great-circle distance between two points on a sphere of radius $R$ at latitudes $\phi_1, \phi_2$ and longitudes $\lambda_1, \lambda_2$ is given by the spherical law of cosines:
+$d = R \arccos(\sin\phi_1 \sin\phi_2 + \cos\phi_1 \cos\phi_2 \cos(\lambda_2 - \lambda_1))$.
+
+Concrete example: distance from New York ($40.7°N, 74.0°W$) to London ($51.5°N, 0.1°W$). With $R = 6371$ km:
+$\sin(40.7°)\sin(51.5°) + \cos(40.7°)\cos(51.5°)\cos(73.9°) = 0.652 \cdot 0.783 + 0.758 \cdot 0.622 \cdot 0.276 = 0.510 + 0.130 = 0.640$.
+$\arccos(0.640) = 0.876$ rad. Distance: $6371 \cdot 0.876 \approx 5580$ km. Match to within $1\%$ of the actual flight distance.
+
+This is exactly the geodesic equation solved in closed form for the constant-curvature sphere — possible because of the high symmetry. For non-symmetric Riemannian manifolds, the geodesic ODE must be integrated numerically. Fast geodesic-distance algorithms (fast marching, heat method) are central to mesh processing and computer graphics, where one needs distances on a triangulated surface in O(n log n) time. The mathematical content is unchanged: solve $\nabla_{\dot\gamma}\dot\gamma = 0$, integrate length. The engineering content is: do it on a mesh, with precision constraints.
+
+A second numerical example: the exponential map $\exp_p: T_pM \to M$ and the cut locus on the sphere. On the unit sphere, the exponential map at the north pole sends a tangent vector $v \in T_N S^2$ of length $|v|$ to the point at angular distance $|v|$ along the geodesic in direction $v/|v|$. The map is a diffeomorphism on the open ball of radius $\pi$ in $T_N S^2$, but at $|v| = \pi$ everything maps to the south pole (the entire boundary circle collapses to one point). The cut locus of the north pole is the single point at the south pole, where geodesics first stop being shortest. The injectivity radius is $\pi$. For Riemannian manifolds in general, the injectivity radius is a fundamental invariant — Bishop-Gromov volume comparison theorems use it to bound volume growth. Computing it numerically on a complicated manifold is a research-grade problem; on the sphere it is exact.
+
+
 ## What's Next
 
 We have built the apparatus of Riemannian geometry: metrics, the Levi-Civita connection, parallel transport, geodesics, the exponential map, holonomy, Hopf-Rinow. The next article studies **curvature** in detail: the Riemann tensor, sectional, Ricci, and scalar curvatures, and the model spaces of constant curvature. Curvature is the obstruction to a manifold being locally Euclidean, and it is the geometric quantity that enters Einstein's equations.

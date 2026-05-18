@@ -296,6 +296,12 @@ A reasonable default workflow when you meet new tabular data: **standardise -> P
 
 ---
 
+## What's next
+
+Dimensionality reduction compresses data onto a low-dimensional manifold, but it does not yet answer the key question: **does the data, in that low-dimensional space, naturally fall into groups?** That is what clustering does. The next chapter switches from "projection" to "grouping".
+
+Clustering has no labels, so each algorithm corresponds to an assumption about "what counts as the same group": K-means assumes spherical clusters with equal variance, GMM assumes ellipsoidal clusters as a probabilistic mixture, DBSCAN assumes density connectivity, spectral clustering assumes a low-conductance cut on a graph, hierarchical clustering assumes a nested structure. I walk through all five — not to memorize algorithms, but so that when you face a new dataset, you can reason from "what do my clusters look like" back to "which algorithm fits". That meta-skill is the most-overlooked piece of unsupervised learning.
+
 ## References
 
 [1] Pearson, K. (1901). *On lines and planes of closest fit to systems of points in space.* Philosophical Magazine, 2(11), 559-572.

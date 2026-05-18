@@ -25,6 +25,14 @@ This article gives the convergence proofs, derives the BFGS update from the seca
 
 ---
 
+Last article ended at the wall first-order methods cannot break through: $O(\sqrt{\kappa})$ iterations to reach $\epsilon$-accuracy, and that's it.
+
+Second-order methods take the obvious next step: **spend more compute per iteration, but make each iteration count**. Newton's method is the headline result — locally quadratic convergence, meaning every iteration roughly *doubles* your number of correct digits. No first-order method can touch that.
+
+The price is also concrete: Newton solves an $n \times n$ system ($O(n^3)$) per step. BFGS keeps an $n \times n$ matrix ($O(n^2)$). L-BFGS keeps only the last $m$ updates and gets memory down to $O(mn)$.
+
+I'll walk this expensive-to-cheap ladder in order: Newton's geometry first, then BFGS from the secant condition, then the L-BFGS two-loop recursion line by line, and finally trust regions — which use the same Hessian information but a different globalization strategy.
+
 ## What You Will Learn
 
 1. Newton's method: derivation from second-order Taylor approximation, proof of local quadratic convergence under standard assumptions.

@@ -30,6 +30,14 @@ This article assembles that picture from the ground up. We start with classical 
 
 ---
 
+What are we actually doing when we train a neural network?
+
+We run gradient descent in a high-dimensional parameter space — but is there a deeper continuous-time dynamics behind it? When the network width tends to infinity, do those discrete parameter updates converge to some elegant partial differential equation? These questions sound philosophical, but they have very concrete mathematical answers, sitting at the intersection of the calculus of variations, optimal transport, and PDE theory.
+
+The last decade of deep learning ran on engineering intuition. More recently, mathematicians have offered a striking lens: **view a neural network as a particle system on the space of probability measures** and study its evolution under the Wasserstein geometry. This lens delivers convergence guarantees, an account of why over-parameterization helps, and a principled view of what initialization is doing. The tool that makes the lens work is the **variational principle** — from the principle of least action in physics, through the JKO scheme in modern optimal transport, to the mean-field limit of neural networks. One thread, three lengths.
+
+I'll go classical-then-modern: first the calculus of variations (functionals, the first variation, Euler–Lagrange); then Wasserstein geometry and gradient flows (you'll see the heat equation is literally the gradient flow of entropy); finally the mean-field equation for two-layer networks, and what its global convergence behavior tells us.
+
 ## Foundations of the Calculus of Variations
 
 ### Functionals and the First Variation

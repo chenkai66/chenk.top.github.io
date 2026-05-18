@@ -29,6 +29,18 @@ Each is rigorous in its setting. The article also discusses what is **not** know
 
 ---
 
+For ten articles we've stayed inside the safe convex world: gradient zero means optimal. But the moment we sit down to train a neural network, the loss surface is full of local minima, saddle points, plateaus. **Why does SGD work at all?**
+
+This article tries to answer that honestly. For a general non-convex $f$, the only thing gradient descent guarantees is $\nabla f(x_t) \to 0$ — convergence to *some* stationary point, possibly a local minimum, possibly a saddle, possibly a local maximum. We want to know: under what extra structure can we say more?
+
+Three positive results are known:
+
+1. **You can escape saddle points.** Under a "strict saddle" assumption, perturbed gradient descent reaches a local minimum in polynomial time. Saddles are *unstable*; a tiny bit of noise is all you need.
+2. **The PL condition.** A weaker cousin of strong convexity that often holds for over-parameterized networks. Under PL, plain GD converges linearly even though $f$ is not convex.
+3. **The loss landscape itself.** For wide enough networks, *every local minimum is a global minimum*; and SGD's noise has an **implicit bias** toward flatter minima, which generalize better.
+
+Those are the three threads we'll pull on.
+
 ## What You Will Learn
 
 1. Stationary points and the saddle-point classification ($\nabla^2 f$ eigenvalue signs).

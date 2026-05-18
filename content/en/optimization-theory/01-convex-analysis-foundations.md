@@ -27,6 +27,17 @@ If you only remember three things from this article, make it these:
 
 ---
 
+The first time I tried to prove a gradient-descent convergence rate on my own, I got stuck not on the inequalities but on a wall of innocent-looking words: convex set, epigraph, conjugate, subgradient. None of them is mysterious; together they felt like jargon for jargon's sake.
+
+This article is what I wish someone had written for me back then. We start with a few mental pictures — a line segment, a bowl, a pair of tangent lines — and only then do we start gluing names onto them. By the time we are deriving step-size bounds or Lagrangian duality, you will see that all of these tools are just a small handful of geometric moves coming back in different costumes.
+
+If you only remember three things:
+- A set is **convex** iff it contains every line segment between its points; a function is convex iff its **epigraph** (the region above its graph) is convex. Every other definition reduces to this.
+- The **conjugate** $f^*$ converts pointwise inequalities into linear ones — it is the bridge under every duality argument later in the series.
+- The **subdifferential** $\partial f(x)$ extends "gradient" to convex functions with corners; it is non-empty as long as $x$ sits comfortably inside the domain.
+
+Below I build all of this up from the most ordinary 2-D pictures, asking "what real shape is this describing?" before writing any formula.
+
 ## What You Will Learn
 
 1. Convex sets, convex hulls, the projection theorem (with proof).

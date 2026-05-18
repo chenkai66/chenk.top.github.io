@@ -350,6 +350,12 @@ Modern latent-variable models (VAE, normalising flows, autoregressive models lik
 
 ---
 
+## What's next
+
+Bayesian networks let me draw the dependence structure explicitly, but they expose a new problem: however accurate one model is, it can still have high variance from data noise, initialization, feature sampling. The next chapter switches strategy entirely — **ensemble learning**.
+
+The ensemble bet is: rather than tune one model to perfection, train a *crowd* of base learners and cancel their errors out by voting (Bagging) or weighting (Boosting). Bagging cuts variance by resampling; random forests further decorrelate by feature subsampling; Boosting stacks weak learners along the gradient direction to eat away the bias. Both lines rest on a single algebraic fact — the variance of a weighted average is controlled by the correlation $\rho$ between members. Internalising that is more important than memorising any specific algorithm.
+
 ## References
 
 - Friedman, N., Geiger, D. & Goldszmidt, M. (1997). *Bayesian network classifiers.* Machine Learning, 29(2-3), 131-163.

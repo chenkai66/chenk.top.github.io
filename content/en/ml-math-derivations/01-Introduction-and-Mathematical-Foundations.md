@@ -501,6 +501,12 @@ It is a sub-Gaussian concentration bound for sums of bounded independent random 
 
 ---
 
+## What's next
+
+So far I have one vocabulary on the table: risk, loss, capacity, bias-variance. It tells me whether learning is possible at all, but it does not tell me what a learner concretely looks like. The next chapter spreads these abstract tools onto reals and vectors — linear algebra and matrix theory.
+
+The reason I put it second rather than in an appendix is that almost every "model" in machine learning eventually reduces to linear-algebra operations: gradients are vectors, parameters are matrices, backpropagation is Jacobian chains, PCA is the eigendecomposition of a covariance matrix. If this chapter handed me a measuring stick, the next one wires that stick into the actual computational machinery. By the end of it, "the gradient of a quadratic form is $2Ax$" should stop being a formula and start being a reflex — that reflex is the hard floor on which every later derivation stands.
+
 ## References
 
 1. Valiant, L. G. (1984). *A theory of the learnable.* Communications of the ACM, 27(11), 1134-1142.

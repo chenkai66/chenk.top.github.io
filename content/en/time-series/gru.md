@@ -15,6 +15,13 @@ series_order: 3
 series_total: 8
 translationKey: "time-series-3"
 ---
+
+After you've used LSTM for a while, an obvious question shows up: aren't three gates a bit much? The forget and input gates seem to do related work — one decides what to drop, the other decides what to add — couldn't they be merged? And does the cell state really need to be a separate vector from the hidden state, or could the hidden state do double duty?
+
+That is exactly the question Cho et al. answered in 2014 with the **Gated Recurrent Unit**. They collapsed three gates into two: an **update gate** that controls how much of the old state to keep versus how much new content to absorb, and a **reset gate** that decides whether to ignore the old state entirely when computing a fresh candidate. The cell state is folded back into the hidden state. The result is roughly 25% fewer parameters, training that runs 10-15% faster, and accuracy on most time-series tasks that is statistically indistinguishable from LSTM.
+
+GRU isn't a free lunch — there are workloads where LSTM's two separate states still win, particularly tasks that need to keep one piece of information stable for a long time *while* freely reading and writing another (machine-translation alignment is the classic example). But for the workloads most of us actually face — stock prices, demand forecasts, sensor streams — GRU's slimmer footprint is genuinely useful: fewer parameters means less overfitting, faster training means cheaper hyperparameter sweeps. This chapter skips the gating fundamentals (you got those in the LSTM chapter) and goes straight to the GRU equations, the precise differences from LSTM, and the day-to-day decision of which one to reach for.
+
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/illustration_1.png)
 
 
@@ -347,3 +354,12 @@ The four numbers to remember:
 - **0** measurable accuracy loss on most short-to-medium sequence tasks.
 
 Start with GRU. Escalate to LSTM only when you have measured a reason to.
+
+
+## What's next
+
+GRU lands in a very comfortable spot — fewer parameters, faster training, accuracy that's effectively the same as LSTM. For most time-series workloads it's a great default. But GRU shares LSTM's one fundamental limitation: information has to travel **step by step** through time. For step 100 to see step 1, the gradient still has to crawl through 99 hidden states, getting squeezed at every stop.
+
+The next chapter on [attention](/en/time-series/attention-mechanism/) breaks that constraint head-on. Any two time steps talk **directly** — no intermediate relays. Step 100 can read step 1 in a single hop, and gradients flow back just as directly. That single change turns long-range dependencies from a hard problem into a nearly free one, and it's the architectural foundation for the Transformer chapter that follows.
+
+Before you jump into attention, run this chapter's GRU end-to-end with a **sequence-length sweep**: train on 50 steps, then 100, 200, 500, and plot how accuracy decays at each length. You'll see RNN-style "memory decay" with painful clarity — and that's exactly the pain attention was invented to remove. The contrast in the next chapter will land much harder if you've felt this one yourself first.

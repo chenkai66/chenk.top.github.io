@@ -36,6 +36,18 @@ This article:
 
 ---
 
+Stochastic gradient descent (SGD) only looks at one sample's gradient per step. That's obviously cheap — but what's the cost? And is there a way to keep "one sample per step" while recovering the fast convergence of the full-gradient method?
+
+That is the question this article answers. I'll frame it through a **noise budget**: every stochastic gradient is the true gradient plus a burst of noise, and the faster you want to converge, the less noise you can tolerate.
+
+For a finite-sum problem
+$$
+\min_x f(x) := \frac{1}{n} \sum_{i=1}^n f_i(x),
+$$
+full gradient descent costs $O(n)$ per step but only needs $O(\kappa \log(1/\epsilon))$ steps. SGD costs $O(1)$ per step but needs $O(1/\epsilon^2)$ steps in the convex case. Which is the better deal depends on $n$, $\kappa$, $\epsilon$.
+
+**Variance-reduced** methods (SVRG, SAGA, Katyusha) close the gap: $O((n+\kappa)\log(1/\epsilon))$ using only stochastic samples — strictly better than full GD. This article walks that ladder.
+
 ## What You Will Learn
 
 1. The two SGD regimes: convex ($O(1/\sqrt{T})$ rate) and strongly convex ($O(1/T)$ rate).

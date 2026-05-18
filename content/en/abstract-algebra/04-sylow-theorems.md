@@ -199,4 +199,54 @@ The next article moves from internal subgroup structure to the relationship betw
 ![Animation: counting Sylow subgroups](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/04_sylow_counting.gif)
 
 
+
+## Deeper Dive: Sylow in Concrete Numbers
+
+Sylow theorems become much less mysterious once you have done two or three classifications by hand. The recipe is always the same: count Sylow $p$-subgroups, use the constraints, eliminate cases.
+
+**Computation A: groups of order $15$ are cyclic.** Let $|G| = 15 = 3 \cdot 5$. By Sylow III, the number $n_5$ of Sylow $5$-subgroups satisfies $n_5 \equiv 1 \pmod 5$ and $n_5 \mid 3$. So $n_5 \in \{1\}$ — only $1$ works. Similarly $n_3 \equiv 1 \pmod 3$ and $n_3 \mid 5$, giving $n_3 \in \{1\}$. Both Sylow subgroups are unique, hence normal. Call them $P_5$ (order $5$) and $P_3$ (order $3$). They intersect trivially (different prime orders), so $P_3 P_5$ has order $15$, equal to $|G|$. Thus $G = P_3 \times P_5 \cong \mathbb{Z}/3 \times \mathbb{Z}/5 \cong \mathbb{Z}/15$. The cyclic group of order $15$ is the *only* group of order $15$, up to isomorphism.
+
+**Computation B: groups of order $21$.** $|G| = 21 = 3 \cdot 7$. Sylow: $n_7 \equiv 1 \pmod 7$ and $n_7 \mid 3$, so $n_7 = 1$. The Sylow $7$-subgroup is normal. But $n_3 \equiv 1 \pmod 3$ and $n_3 \mid 7$, so $n_3 \in \{1, 7\}$. Two cases. If $n_3 = 1$, both are normal and we get $\mathbb{Z}/21 \cong \mathbb{Z}/3 \times \mathbb{Z}/7$. If $n_3 = 7$, the Sylow $3$-subgroups are not normal, and the structure is a non-trivial semidirect product $\mathbb{Z}/7 \rtimes \mathbb{Z}/3$ with the generator of $\mathbb{Z}/3$ acting on $\mathbb{Z}/7$ by multiplication by some element of order $3$ in $(\mathbb{Z}/7)^*$. Since $(\mathbb{Z}/7)^* \cong \mathbb{Z}/6$ has elements of order $3$ (namely $\{2, 4\}$), this action exists. So there are exactly *two* groups of order $21$: the cyclic and a Frobenius-type non-abelian.
+
+This is the key point that separates $|G| = 15$ from $|G| = 21$: when the smaller prime $p$ does *not* divide $q - 1$ (here $3 \nmid 5 - 1 = 4$), only the cyclic group exists. When $p \mid q - 1$ (here $3 \mid 7 - 1 = 6$), a non-abelian semidirect product also exists.
+
+**Computation C: $A_4$ has no subgroup of order $6$.** $A_4$ has order $12 = 2^2 \cdot 3$. By Lagrange, a subgroup of order $6$ is conceivable. But suppose $H \leq A_4$ with $|H| = 6$. Then $[A_4 : H] = 2$, so $H$ is normal (any index-$2$ subgroup is normal). The quotient $A_4 / H$ has order $2$, so for any $g \in A_4$, $g^2 \in H$. In particular, every $3$-cycle, squared, lies in $H$. The square of $(1\ 2\ 3)$ is $(1\ 3\ 2)$, which is also a $3$-cycle, and $A_4$ has eight $3$-cycles in total. So $H$ would contain at least eight $3$-cycles — but $|H| = 6$. Contradiction. So $A_4$ has no subgroup of order $6$, despite $6 \mid 12$. *Lagrange does not have a converse.* The example is the canonical demonstration of why "divides" is a necessary but not sufficient condition.
+
+**Computation D: counting Sylow $2$-subgroups in $S_4$.** $|S_4| = 24 = 2^3 \cdot 3$. Sylow III says $n_2 \equiv 1 \pmod 2$ (odd) and $n_2 \mid 3$. So $n_2 \in \{1, 3\}$. Are the Sylow $2$-subgroups normal (i.e. is $n_2 = 1$)? A Sylow $2$-subgroup of $S_4$ has order $8$ and is isomorphic to $D_4$. The dihedral subgroups $D_4 \subset S_4$ are: the symmetries of a square with corners labelled $1, 2, 3, 4$. There are three ways to label the corners up to the symmetric group $S_4$ — wait, more precisely, three distinct $D_4$ subgroups, corresponding to the three ways to pair up $\{1, 2, 3, 4\}$ into two pairs of opposite corners: $\{1,3\}|\{2,4\}$, $\{1,2\}|\{3,4\}$, $\{1,4\}|\{2,3\}$. So $n_2 = 3$, none of them is normal, and they are all conjugate (by Sylow II). The intersection of all three Sylow $2$-subgroups is the Klein four-group $V_4$, which *is* normal in $S_4$.
+
+**Computation E: groups of order $p^2$ are abelian.** Let $|G| = p^2$. By the class equation, $|G| = |Z(G)| + \sum [G : C_G(g)]$ where the sum is over conjugacy classes of size $> 1$. Each $[G : C_G(g)]$ for non-central $g$ is a non-trivial divisor of $p^2$, hence $p$ or $p^2$. Since $|Z(G)|$ and $|G|$ are both divisible by $p$, the sum of $[G : C_G(g)]$ must be divisible by $p$, which means $|Z(G)| \equiv 0 \pmod p$. So $|Z(G)| \in \{p, p^2\}$. If $|Z(G)| = p$, then $G/Z(G)$ is cyclic of order $p$, but "$G/Z(G)$ cyclic implies $G$ abelian" forces $|Z(G)| = |G| = p^2$, contradicting $|Z(G)| = p$. So $|Z(G)| = p^2$, i.e., $G$ is abelian. The two abelian groups of order $p^2$ are $\mathbb{Z}/p^2$ and $\mathbb{Z}/p \times \mathbb{Z}/p$. (Concretely for $p = 2$: $\mathbb{Z}/4$ and the Klein four-group.)
+
+## Counterexamples That Sharpen the Sylow Picture
+
+**Sylow does not classify; it constrains.** Even in cases where Sylow forces both Sylow subgroups to be normal, you still need to check whether the resulting product is a direct product or a semidirect product. For order $pq$ with $p < q$ and $p \mid q - 1$, the constraint $n_p \in \{1, q\}$ leaves two possibilities, and *both* can occur. Sylow gives the menu; you still need to read it.
+
+**The converse of Lagrange is selective.** While groups of *prime power* order have subgroups of every dividing order (Cauchy + iteration), general groups do not. $A_4$ at order $12$ has no subgroup of order $6$. $A_5$ at order $60$ has no subgroup of order $30$ or $20$ or $15$ — only $1, 2, 3, 4, 5, 6, 10, 12, 60$. The lattice of subgroups of $A_5$ is one of the prettiest small lattices in algebra, exactly because the simplicity of $A_5$ forbids most divisor orders.
+
+## Common Pitfalls for Beginners
+
+The first pitfall: forgetting that Sylow's number-of-subgroups is *exact*, not "at most." Sylow III says $n_p \equiv 1 \pmod p$ and $n_p \mid [G : P]$, where the second condition is the index of any Sylow $p$-subgroup. Both must hold, simultaneously, with $n_p$ a positive integer. Cases like $|G| = 30$ become tractable only because $n_5 \in \{1, 6\}$ and $n_3 \in \{1, 10\}$, and one can rule out $n_5 = 6$ by counting elements: six Sylow $5$-subgroups would contribute $6 \cdot 4 = 24$ elements of order $5$, leaving $|G| - 24 = 6$ elements for everything else, including ten elements of order $3$ if $n_3 = 10$. Contradiction.
+
+The second pitfall: confusing "Sylow $p$-subgroup" with "subgroup of order $p$." A Sylow $p$-subgroup has order $p^k$ where $p^k$ is the largest power of $p$ dividing $|G|$. For $|G| = 24 = 2^3 \cdot 3$, a Sylow $2$-subgroup has order $8$, not $2$.
+
+The third pitfall: assuming that every group with a non-trivial centre is abelian. Having $|Z(G)| > 1$ is a useful structural fact (often forced by being a $p$-group), but it does not preclude non-trivial conjugation outside the centre. $D_4$ has $|Z(D_4)| = 2$ but is non-abelian.
+
+## Where This Shows Up
+
+*Classification of small groups.* The number of groups of each order up to $30$ is famously: $1, 1, 1, 2, 1, 2, 1, 5, 2, 2, 1, 5, 1, 2, 1, 14, 1, 5, 1, 5, 2, 2, 1, 15, 2, 2, 5, 4, 1, 4$. These counts come almost entirely from Sylow analysis plus a finite combinatorial check on which semidirect products are isomorphic. Sylow is the engine that turns a vague "find all groups of order $n$" question into a finite tractable problem.
+
+*Cryptanalysis of Diffie-Hellman.* Pohlig–Hellman reduces the discrete logarithm problem in a cyclic group of order $n = \prod p_i^{e_i}$ to discrete logarithms in the Sylow subgroups (orders $p_i^{e_i}$) via the Chinese remainder theorem. This is exactly why cryptographic protocols insist on $n$ having a large prime factor: otherwise Sylow decomposition cracks the problem in time proportional to the largest prime factor.
+
+*Burnside's $p^a q^b$ theorem.* Every group of order $p^a q^b$ (two prime factors) is solvable. The proof, due to Burnside (1904), uses character theory but ultimately rests on Sylow-style induction. The result was the original motivation for representation theory of finite groups, which we will see in Part 10.
+
+## What I Want You to Carry Forward
+
+Four questions for Part 5, on rings and ideals:
+
+1. *What is the analogue of "normal subgroup" for rings?* It will be the *ideal*, which absorbs multiplication on both sides — exactly the condition that makes the quotient ring well-defined.
+2. *What is the analogue of "Sylow theorem" for rings?* There is no clean analogue at the level of ideals, but for modules over a PID we will get a structure theorem (Part 9) that plays a similar role.
+3. *Why does $\mathbb{Z}/p\mathbb{Z}$ have such different behaviour from $\mathbb{Z}/4\mathbb{Z}$ — one is a field, the other has zero divisors?* This is exactly the prime ideal versus general ideal distinction.
+4. *Are there finite simple rings, the way there are finite simple groups?* Yes: matrix algebras over division rings, classified by Wedderburn.
+
+If the Sylow computations above feel mechanical, you have the technique. The next time you see a group of order $\leq 100$, your first move should be: factor $|G|$, write down the Sylow constraints, see which Sylow subgroups are forced normal, and read off the structure. This is the bread and butter of finite group theory, and you have just earned the right to call it that.
+
 ---

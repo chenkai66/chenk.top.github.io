@@ -385,6 +385,12 @@ Variational EM relaxes the E-step from the exact posterior to a tractable family
 
 ---
 
+## What's next
+
+EM is smooth on models like GMM where the E-step has a closed form, but it has a hidden prerequisite: the posterior $p(z\mid x,\theta)$ has to be computable exactly. As soon as the model gets slightly more complicated — LDA, deep Bayesian networks, Bayesian neural nets — that posterior becomes intractable. The next chapter swaps in a far more general tool: **variational inference**.
+
+The VI idea is: if the true posterior cannot be computed, pick the closest member $q^\star$ from a tractable family $\mathcal{Q}$ and turn inference into optimization. ELBO is the workhorse objective, mean field is the most common family, CAVI is the most direct solver. Reread EM as "E-step with the true posterior, M-step over $\theta$"; variational EM then becomes "E-step with an approximate posterior, M-step over $\theta$" — the single most important step between classical EM and modern deep generative models, of which the VAE is just amortised variational EM.
+
 ## References
 
 - Dempster, A. P., Laird, N. M., & Rubin, D. B. (1977). Maximum likelihood from incomplete data via the EM algorithm. *Journal of the Royal Statistical Society: Series B*, 39(1), 1-22.

@@ -201,6 +201,90 @@ The Gauss map provides one more beautiful perspective before we close. The *area
 
 ---
 
+## Deeper Examples and Common Pitfalls
+
+The earlier sections introduced the shape operator, the second fundamental form, principal curvatures, and Gaussian and mean curvature. This section computes them on three concrete surfaces in detail, points out the slip-ups beginners reliably make, and connects the second fundamental form to applications outside pure math.
+
+### A worked numerical example: the saddle $z = xy$
+
+Take the saddle surface $X(u, v) = (u, v, uv)$. Compute the partials:
+$X_u = (1, 0, v)$, $X_v = (0, 1, u)$. The unit normal is
+$N = (X_u \times X_v) / |X_u \times X_v| = (-v, -u, 1)/\sqrt{1 + u^2 + v^2}$.
+
+Second derivatives: $X_{uu} = (0,0,0)$, $X_{uv} = (0,0,1)$, $X_{vv} = (0,0,0)$. The second fundamental form coefficients:
+$L = X_{uu} \cdot N = 0$.
+$M = X_{uv} \cdot N = 1 / \sqrt{1+u^2+v^2}$.
+$N_{II} = X_{vv} \cdot N = 0$.
+(I rename $N$ to $N_{II}$ to avoid clashing with the unit normal.)
+
+First fundamental form: $E = 1 + v^2$, $F = uv$, $G = 1 + u^2$. So $EG - F^2 = 1 + u^2 + v^2$.
+
+Gaussian curvature: $K = (LN_{II} - M^2)/(EG - F^2) = (0 - 1/(1+u^2+v^2))/(1+u^2+v^2) = -1/(1+u^2+v^2)^2$. Negative everywhere — the saddle is hyperbolic at every point, as expected. At the origin, $K = -1$. Far from the origin, $K \to 0$, meaning the surface flattens out as you move away. This is a feature, not a bug: at infinity the saddle locally looks like a plane.
+
+Mean curvature: $H = (EN_{II} - 2FM + GL)/(2(EG - F^2)) = (0 - 2uv/\sqrt{1+u^2+v^2} + 0) / (2(1+u^2+v^2)) = -uv / (1+u^2+v^2)^{3/2}$. At the origin $H = 0$, so the origin is a *minimal* point. The saddle is in fact a minimal surface near the origin in a weak sense, although it is not globally minimal. The graph $z = xy$ is also known as Scherk's first surface restricted to a fundamental domain — it appears in soap-film experiments.
+
+### A worked numerical example: principal curvatures on the torus
+
+The torus $X(u, v) = ((R + r\cos u)\cos v, (R + r\cos u)\sin v, r\sin u)$ with $R > r$ is the cleanest place to feel signs of $K$. Computing the second fundamental form (a slog but worth doing once):
+$L = -r$, $M = 0$, $N_{II} = -\cos u (R + r\cos u)$.
+First fundamental form: $E = r^2$, $F = 0$, $G = (R + r\cos u)^2$.
+
+Gaussian curvature: $K = (LN_{II} - M^2)/(EG - F^2) = (r \cos u (R + r \cos u))/(r^2 (R+r\cos u)^2) = \cos u / (r (R + r \cos u))$.
+
+The sign of $K$ is the sign of $\cos u$:
+- On the *outer* equator ($u = 0$): $K = 1/(r(R+r)) > 0$ — elliptic, like the surface of a balloon.
+- On the *inner* equator ($u = \pi$): $K = -1/(r(R-r)) < 0$ — hyperbolic, saddle-shaped.
+- On the *top* and *bottom* circles ($u = \pm\pi/2$): $K = 0$ — parabolic.
+
+So the torus has all three types of points, neatly demarcated by latitude. Total curvature: $\int_T K\, dA = 0$, consistent with Gauss-Bonnet (the torus has Euler characteristic 0). Numerically, with $R = 2, r = 1$: at $u = 0$, $K = 1/6 \approx 0.167$; at $u = \pi$, $K = -1/2$; at $u = \pi/2$, $K = 0$. Integrating $K\, dA$ over the elliptic strip and over the hyperbolic strip, the contributions cancel exactly. This is the simplest visualization of why $\chi$, an integer that ignores everything geometric, can equal an integral of something as fluid as Gaussian curvature.
+
+### A third worked example: the unit sphere as a calibration
+
+Run the same machinery on the unit sphere $X(\phi, \theta) = (\sin\phi \cos\theta, \sin\phi \sin\theta, \cos\phi)$ as a sanity check. Outward normal: $N = X$. Second derivatives: $X_{\phi\phi} = -X$, $X_{\phi\theta} = (-\cos\phi \sin\theta, \cos\phi \cos\theta, 0)$, $X_{\theta\theta} = (-\sin\phi \cos\theta, -\sin\phi \sin\theta, 0)$. Compute $L = X_{\phi\phi} \cdot N = -1$, $M = 0$, $N_{II} = -\sin^2\phi$. With $E = 1$, $F = 0$, $G = \sin^2\phi$, the Gaussian curvature is $K = (LN_{II} - M^2)/(EG - F^2) = (\sin^2\phi - 0)/\sin^2\phi = 1$. Constant, equal to $1/r^2$ on a sphere of radius $r$. Mean curvature: $H = (E N_{II} - 2FM + GL)/(2(EG-F^2)) = (-\sin^2\phi - \sin^2\phi)/(2\sin^2\phi) = -1$ (with sign depending on the choice of normal). Both principal curvatures equal $-1$, so every point is *umbilic* — the shape operator is a multiple of the identity. The sphere is the unique closed surface where every point is umbilic, a fact known as Hilbert-Liebmann theorem. The same eigenvalue in every direction is what makes a ball look the same from every angle — a uniqueness statement at the level of the second fundamental form.
+
+### Counterexample: a flat surface that is not a plane
+
+The cylinder $X(u, v) = (\cos u, \sin u, v)$ has first fundamental form identical to the plane: $E = G = 1$, $F = 0$. Compute the second fundamental form: $L = -1$, $M = 0$, $N_{II} = 0$ (with respect to inward normal). Principal curvatures: $\kappa_1 = -1, \kappa_2 = 0$. Gaussian curvature: $K = \kappa_1 \kappa_2 = 0$. Mean curvature: $H = (\kappa_1 + \kappa_2)/2 = -1/2 \neq 0$.
+
+So $K = 0$ everywhere on the cylinder, yet the cylinder is not a plane. The intrinsic geometry of the cylinder is flat — locally indistinguishable from the plane — but the extrinsic geometry knows about its curling, which the second fundamental form captures and the first does not. This is the cleanest counterexample to the wrong intuition "$K = 0$ means flat as a pancake." A surface is *intrinsically* flat when $K = 0$, which is a much weaker condition than being globally a plane.
+
+The general fact behind this counterexample: the second fundamental form measures how the surface bends *into* the ambient space, and that information is genuinely independent of the intrinsic metric. The shocking thing — and the subject of article 4 — is that *one combination* of second-fundamental-form quantities (the Gaussian curvature $K$) is *not* extra information: it is determined by the intrinsic metric alone.
+
+### Common pitfall for beginners
+
+The shape operator $S$ is a self-adjoint linear map on the tangent plane *with respect to the first fundamental form*, not the Euclidean inner product. In matrix terms, $S = G^{-1} II$, where $G$ is the matrix of the first fundamental form and $II$ the matrix of the second. Beginners often write down $II$ and immediately diagonalize it, finding "principal curvatures" that turn out to be wrong because they forgot the $G^{-1}$. The principal curvatures are the eigenvalues of $G^{-1} II$, not the eigenvalues of $II$ itself.
+
+A second pitfall: the *sign* of the unit normal is a choice, and flipping it flips the sign of $L$, $M$, $N_{II}$, $H$, but not $K$ (since $K$ involves the determinant, which is sign-quadratic). For closed surfaces, the convention is "outward normal." For an embedded patch, you have to keep track of the choice; if you compute mean curvature for a soap film and get the wrong sign, the film will bulge instead of contracting in your simulation. This is a common bug in geometric processing code.
+
+### Where this matters in physics and engineering
+
+In **soap-film physics**, a stable soap film between wires is a minimal surface, $H \equiv 0$. The classical proof (Plateau's problem) uses the second fundamental form: a film with nonzero $H$ has a clear direction it can decrease its area, and the variation formula for area involves exactly $H$. The catenoid is the only minimal surface of revolution other than the plane; the helicoid is the only ruled minimal surface. These were classified using exactly the second-fundamental-form machinery in this article.
+
+In **architectural engineering**, doubly-curved roofs (like the saddle-shaped Scotiabank Saddledome in Calgary) are designed to be locally minimal or locally constant-mean-curvature for structural reasons: at $K < 0$, a thin shell carries loads through tension/compression along the principal directions, distributing weight without bending moments. Engineers compute principal curvatures explicitly to align reinforcing rebar with the principal directions, exploiting the diagonalization of the shape operator.
+
+In **medical imaging**, when reconstructing a 3D surface from MRI data (a brain cortex, a bone), the principal curvatures are used to detect ridges, valleys, and umbilic points. Sulci (folds) on the cortex are precisely curves where one principal curvature is large and negative; gyri are where it is large and positive. The curvature map of a brain surface is a fingerprint used for inter-subject registration in neuroscience.
+
+### Revisiting "what's next" with sharper questions
+
+Article 4 will prove the Theorema Egregium: the Gaussian curvature, defined here in terms of the second fundamental form, is *intrinsic*. To prepare, three questions to keep in mind:
+
+(1) The mean curvature $H$ depends on the embedding (the cylinder has $H \neq 0$, the plane has $H = 0$, but they are intrinsically isometric). Why does $K$ behave differently?
+(2) The Gauss-Codazzi-Mainardi equations are a system of compatibility conditions linking $E, F, G$ to $L, M, N$. They look like notation soup, but they are exactly the integrability conditions that say: given functions of two variables $E, F, G, L, M, N$, when does there exist a surface in $\mathbb{R}^3$ realizing them? Why should there be such conditions, and why exactly these?
+(3) "Intrinsic" so far has meant "computable from $E, F, G$." Article 4 will give a formula for $K$ in terms of $E, F, G$ alone (no $L, M, N$). What does the formula look like, and how could two so-different forms ever produce the same number?
+
+You now have both fundamental forms. Article 4 shows they are not as independent as they look. Read it asking "what is the algebraic identity that lets me eliminate $L, M, N$ from the formula for $K$?" The answer (Brioschi's formula) is one of the most surprising calculations in classical geometry.
+
+
+### One last worked example: catenoid mean curvature and the soap-film equation
+
+The catenoid $X(u, v) = (\cosh u \cos v, \cosh u \sin v, u)$ is the unique nontrivial minimal surface of revolution. Compute its second fundamental form. Outward normal: $N = (-\cos v / \cosh u, -\sin v / \cosh u, \sinh u / \cosh u)$ (after normalization, since $|X_u \times X_v| = \cosh^2 u$). Second derivatives: $X_{uu} = (\cosh u \cos v, \cosh u \sin v, 0)$, $X_{uv} = (-\sinh u \sin v, \sinh u \cos v, 0)$, $X_{vv} = (-\cosh u \cos v, -\cosh u \sin v, 0)$.
+
+Coefficients: $L = X_{uu} \cdot N = -\cos^2 v - \sin^2 v + 0 = -1$. $M = X_{uv} \cdot N = \sinh u \sin v \cos v / \cosh u - \sinh u \sin v \cos v / \cosh u = 0$. $N_{II} = X_{vv} \cdot N = \cos^2 v + \sin^2 v + 0 = 1$.
+
+First fundamental form: $E = \cosh^2 u$, $F = 0$, $G = \cosh^2 u$. Mean curvature: $H = (EN_{II} - 2FM + GL)/(2(EG - F^2)) = (\cosh^2 u \cdot 1 + \cosh^2 u \cdot (-1))/(2 \cosh^4 u) = 0$. Confirmed: the catenoid is minimal.
+
+Gaussian curvature: $K = (LN_{II} - M^2)/(EG - F^2) = -1/\cosh^4 u$. Negative everywhere, $K \to 0$ as $|u| \to \infty$. So the catenoid is everywhere hyperbolic (saddle-shaped), and flattens out at infinity. This is the geometry behind the soap film stretched between two coaxial rings: nature minimizes area, and minimal surfaces of revolution all turn out to be catenoids (or planes, the degenerate case).
+
 ## What's next
 
 The next chapter proves the Theorema Egregium and develops the intrinsic apparatus: Christoffel symbols, geodesics, and parallel transport. The central revelation is that $K$ depends only on $\mathrm{I}$, opening the door to intrinsic geometry — geometry without an ambient space.

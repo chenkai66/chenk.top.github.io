@@ -347,4 +347,57 @@ The reader who has worked through the examples in this article --- computing pro
 
 **A remark on the road ahead.** The next eleven articles will revisit every concept introduced here from a more powerful angle. Group actions will subsume the Cayley-table viewpoint. Quotient groups will replace ad hoc coset arguments. Sylow theory will give us the divisibility tools we need to actually classify groups of small order. Field and Galois theory will explain why all of this was originally invented. None of that will make sense, however, unless the foundations laid down here --- four axioms, cosets, Lagrange --- are absolutely solid. Spend the time.
 
+
+## Deeper Dive: Worked Computations
+
+The fastest way to build intuition for groups is to compute inside several small ones until the patterns stop surprising you. Here are five computations I keep returning to whenever a definition starts to feel hollow.
+
+**Computation A: $S_4$ acting on the four corners of a tetrahedron.** Take $G = S_4$, the symmetric group on $\{1, 2, 3, 4\}$. As a sanity check that the group law is doing what I think it is doing, pick $\sigma = (1\ 2\ 3)$ and $\tau = (1\ 4)$. Composing right-to-left: $\sigma\tau$ sends $1 \mapsto \tau(1) = 4 \mapsto \sigma(4) = 4$, $2 \mapsto 2 \mapsto 3$, $3 \mapsto 3 \mapsto 1$, $4 \mapsto 1 \mapsto 2$. So $\sigma\tau = (1\ 4\ 2\ 3)$, a $4$-cycle. Now $\tau\sigma$: $1 \mapsto 2 \mapsto 2$, $2 \mapsto 3 \mapsto 3$, $3 \mapsto 1 \mapsto 4$, $4 \mapsto 4 \mapsto 1$. So $\tau\sigma = (1\ 2\ 3\ 4)$, also a $4$-cycle but a different one. The two products differ — non-abelian, on a single computation. Cycle types match (both are $(4)$), which they must, because conjugation preserves cycle type and $\tau\sigma = \tau \cdot \sigma\tau \cdot \tau^{-1}$ when $\tau$ is an involution.
+
+**Computation B: powers of an element in $(\mathbb{Z}/13\mathbb{Z})^*$.** The group has order $12$. Take $a = 2$ and compute powers mod $13$: $2, 4, 8, 16 \equiv 3, 6, 12, 24 \equiv 11, 22 \equiv 9, 18 \equiv 5, 10, 20 \equiv 7, 14 \equiv 1$. That is $12$ distinct residues, so $2$ has order $12$ and generates the group. Now take $a = 3$: $3, 9, 27 \equiv 1$. Order $3$. By Lagrange the order of an element divides $12$, and indeed $3 \mid 12$. The element-order census of $(\mathbb{Z}/13\mathbb{Z})^*$, by $\varphi(d)$ count for each $d \mid 12$: orders $1, 2, 3, 4, 6, 12$ appear with multiplicities $1, 1, 2, 2, 2, 4$, summing to $12$. ✓
+
+**Computation C: the centre of $D_4$.** $D_4 = \{e, r, r^2, r^3, s, rs, r^2 s, r^3 s\}$ with $r^4 = e$, $s^2 = e$, $srs = r^{-1}$. Which elements commute with everything? Clearly $e$ does. Does $r$? $rs = r \cdot s$ but $s \cdot r = sr = r^{-1} s = r^3 s$, so $rs \neq sr$ — $r$ is not central. By the same argument, $r^3$ is not central. What about $r^2$? Compute $sr^2 = (sr)r = r^{-1}sr = r^{-1}(sr) = r^{-1} r^{-1} s = r^{-2} s = r^2 s$. So $sr^2 = r^2 s$ and $r^2$ commutes with $s$; it also commutes with all powers of $r$ (the rotation subgroup is abelian). So $r^2$ is central. Reflections like $s$: $rs \neq sr$ already shows $s$ is not central. Conclusion: $Z(D_4) = \{e, r^2\}$, a subgroup of order $2$.
+
+**Computation D: the dihedral relation in matrices.** Realize $D_4$ as $2\times 2$ real matrices: $r = \begin{pmatrix} 0 & -1 \\ 1 & 0 \end{pmatrix}$ and $s = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix}$. Then $r^2 = \begin{pmatrix} -1 & 0 \\ 0 & -1 \end{pmatrix} = -I$, $s^2 = I$, and $srs = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix}\begin{pmatrix} 0 & -1 \\ 1 & 0 \end{pmatrix}\begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix} = \begin{pmatrix} 0 & -1 \\ -1 & 0 \end{pmatrix}\begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix} = \begin{pmatrix} 0 & 1 \\ -1 & 0 \end{pmatrix} = r^{-1}$. The abstract relations check out against an explicit faithful representation. This is also a foretaste of representation theory: every finite group can be realized as matrices.
+
+**Computation E: order of a product is not the product of orders.** Inside $S_5$, the element $\sigma = (1\ 2)$ has order $2$ and $\tau = (3\ 4\ 5)$ has order $3$. They are disjoint and commute, so $\sigma\tau$ has order $\text{lcm}(2, 3) = 6$. But take instead $\sigma = (1\ 2)$ and $\tau = (1\ 2\ 3)$ in $S_3$: both have orders $2$ and $3$ respectively, but $\sigma\tau = (1\ 3)$, which has order $2$, not $6$. The slogan "$|gh|$ divides $\text{lcm}(|g|, |h|)$" is *false* in general; commutativity is essential.
+
+## Counterexamples That Sharpen the Definitions
+
+A cleaner way to internalize the group axioms is to look at structures that satisfy three out of four and watch what breaks.
+
+**Without inverses: monoid.** Take $(\mathbb{N}, +)$, the natural numbers under addition. Associative, identity ($0$), but only $0$ has an additive inverse. Cancellation still works ($a + b = a + c \Rightarrow b = c$), so the structure is well-behaved as a *monoid*, but you cannot solve $a + x = b$ for arbitrary $a, b$. The whole machinery of cosets, quotients, and homomorphism theorems collapses without inverses, because cosets stop partitioning and the kernel-image diagram develops holes.
+
+**Without associativity: quasi-group.** Loosely, a Latin square gives a binary operation in which every row and column is a permutation, but associativity may fail. The smallest non-trivial example is $\mathbb{Z}/5\mathbb{Z}$ under the operation $a \star b = 2a + 3b \pmod 5$. Check $(1 \star 1) \star 1$ vs $1 \star (1 \star 1)$: $1 \star 1 = 2 + 3 = 5 \equiv 0$; $0 \star 1 = 0 + 3 = 3$. And $1 \star (1 \star 1) = 1 \star 0 = 2 + 0 = 2$. So $3 \neq 2$, associativity fails. Without associativity, you cannot even unambiguously write $abc$, and the whole edifice of group theory dissolves.
+
+**Without symmetry of inverses: skew structures.** If you only require *left* inverses ($\exists a': a'a = e$), you do not automatically get right inverses unless you also have associativity. The two-axiom shortcut "$ea = a$ and $a'a = e$ imply group" is a classic exam question — it does work, but only with associativity holding the argument together.
+
+## Common Pitfalls for Beginners
+
+The single most common error I see is conflating the abstract group with one of its representations. The cyclic group of order $4$ has many presentations: $\mathbb{Z}/4\mathbb{Z}$, the fourth roots of unity in $\mathbb{C}$, the rotations of a square, the powers of $i = \sqrt{-1}$, the matrices $\{I, R, R^2, R^3\}$ for $R$ a $90°$ rotation. All five are *the same group*, isomorphic by relabelling. A beginner who has only seen $\mathbb{Z}/4\mathbb{Z}$ as integers mod $4$ may insist that "the group operation is addition" and refuse to recognize the same group when written multiplicatively. Train yourself out of this: a group is its multiplication table up to relabelling, nothing more.
+
+A second pitfall is the assumption that $g^n = e$ implies $|g| = n$. It only implies that $|g|$ *divides* $n$. In $\mathbb{Z}/12\mathbb{Z}$, the element $4$ satisfies $4 \cdot 6 = 24 \equiv 0$, so $6 \cdot 4 = 0$ in additive notation. But also $4 \cdot 3 = 12 \equiv 0$, so the order of $4$ is $3$, not $6$. The order is the *smallest* positive $n$ with $g^n = e$.
+
+A third pitfall: writing $g^{-1} h g$ and thinking of it as "the same as $h$ with $g$'s in front and behind." It is not the same as $h$ unless $g$ commutes with $h$. The whole point of conjugation is that it is a non-trivial operation that captures internal symmetry.
+
+## Where This Shows Up
+
+Group theory is the language of every kind of symmetry, from molecular vibration modes to the Standard Model gauge group $SU(3) \times SU(2) \times U(1)$. Three concrete payoffs:
+
+*Crystallography.* The $230$ space groups classify all possible crystal symmetries in three dimensions. Every textbook table of crystal types (cubic, tetragonal, orthorhombic, ...) is a coarsening of this group-theoretic classification. The reason X-ray diffraction patterns have the symmetries they do is that the underlying atomic arrangement is invariant under one of these groups.
+
+*Public-key cryptography.* RSA, Diffie-Hellman, and elliptic-curve schemes are built on the difficulty of inverting an exponentiation map in a finite cyclic group. The security parameter $|G|$ is exactly what makes these schemes work: the discrete logarithm in $(\mathbb{Z}/p\mathbb{Z})^*$ for $p$ a $2048$-bit prime is computationally hard precisely because the group is huge and structureless from a "shortcut" point of view. We will return to this in Part 12.
+
+*Rubik's cube.* The cube group has order $43{,}252{,}003{,}274{,}489{,}856{,}000$, and every move you can make is a group element. The mathematical theory of solving the cube — including "God's number," the diameter of the Cayley graph — is pure group theory. A solver is, formally, an algorithm that expresses an arbitrary element as a short product of generators.
+
+## What I Want You to Carry Forward
+
+Three questions to keep in your head as you move to Part 2:
+
+1. *If a group $G$ acts on a set $X$, what does the orbit decomposition look like, and how is it constrained by $|G|$?* The orbit-stabilizer theorem will give a clean answer that subsumes Lagrange.
+2. *Why is the conjugacy structure of $S_n$ so much richer than that of cyclic groups?* The class equation will quantify exactly how the centre interacts with the orbit decomposition under conjugation.
+3. *How can we count colourings of a necklace under rotation?* Burnside's lemma will produce the answer in one line, and the proof is a direct application of orbit-stabilizer.
+
+If you have worked the five computations above and traced through the counterexamples, you are ready. If any of those still feel like incantations, pick the one that is shakiest and do it again with different numbers — a different prime $p$, a different $n$ for $S_n$, a different cyclic group. The reflex of "compute, do not just read" is the only thing that will get you through the next eleven articles.
+
 ---

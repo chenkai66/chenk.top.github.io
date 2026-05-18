@@ -541,6 +541,12 @@ The Hessian $\nabla^2 \mathcal{L} = \tfrac{1}{N}\mathbf{X}^\top \mathbf{S}\,\mat
 
 ---
 
+## What's next
+
+Logistic regression turns classification into a convex problem, but its inductive bias is rigid: the decision boundary is linear, and any nonlinear interaction between features has to be smuggled in via hand-crafted features or kernel tricks. When the problem is genuinely nonlinear, when features interact, when the data is tabular rather than vectorial, jamming it into logistic regression is uphill work.
+
+The next chapter switches to a completely different inductive bias — decision trees. Trees do not assume linearity, do not assume differentiability, do not even assume features live on the same scale: each feature is split independently along an axis, growing greedily by information gain (or Gini). That "recursively cut the space into rectangles" strategy turns out to be near-optimal prior for tabular data. Understanding entropy, Gini, pruning, and why trees are insensitive to monotone transforms of inputs is the entry ticket for everything that comes next — random forests, GBDT, XGBoost, LightGBM all stack variance reduction or gradient boosting *on top of* the tree.
+
 ## References
 
 - Bishop, C. M. (2006). *Pattern Recognition and Machine Learning*. Springer. [Chapter 4](/en/ml-math-derivations/04-convex-optimization-theory/).

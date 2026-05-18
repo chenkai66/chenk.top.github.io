@@ -337,6 +337,12 @@ Then we addressed three failures of vanilla OLS: instability under collinearity 
 
 **Next chapter.** We'll generalise to *classification* — the output space becomes discrete. The sigmoid function, cross-entropy loss, and the geometric meaning of decision boundaries all fall out of asking "what's the linear-Gaussian model for binary outputs?"
 
+## What's next
+
+Linear regression bundles continuous outputs with Gaussian noise into a clean "linear + MLE = least squares" identity. But many real tasks have outputs that are not continuous at all — they are 0/1, categories, click-or-not. Forcing classification into a Gaussian likelihood gives an uncalibrated, geometrically awkward object.
+
+The next chapter swaps the likelihood — Bernoulli for Gaussian. Once that single substitution is made, the same derivation chain hands me three new objects for free: the sigmoid (because the natural parameter of a Bernoulli is the logit), cross-entropy (because that is what the log-Bernoulli likelihood looks like), and a linear decision boundary (because the log-odds are linear). That is logistic regression. The geometry stays linear; the statistical soul changes completely. Internalising "swap the likelihood and you swap the algorithm" matters far more than memorising the sigmoid — it is the shared template behind every generalized linear model and every exponential-family extension that follows.
+
 ## References
 
 - Hastie, T., Tibshirani, R., & Friedman, J. (2009). *The Elements of Statistical Learning* (2nd ed.). Springer.

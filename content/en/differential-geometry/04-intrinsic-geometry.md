@@ -218,6 +218,94 @@ This is the local form of the Gauss-Bonnet theorem, and it encapsulates the enti
 
 ---
 
+## Deeper Examples and Common Pitfalls
+
+The earlier sections established Christoffel symbols, the Theorema Egregium, geodesics, parallel transport, and constant-curvature model geometries. This section computes them on concrete surfaces in detail, points out the slip-ups beginners make, and shows where these objects do real work outside pure mathematics.
+
+### A worked numerical example: Christoffel symbols on the sphere
+
+For the unit sphere with metric $ds^2 = d\phi^2 + \sin^2\phi\, d\theta^2$, compute every Christoffel symbol from the formula
+$$\Gamma^k_{ij} = \tfrac{1}{2} g^{kl}(\partial_i g_{jl} + \partial_j g_{il} - \partial_l g_{ij}).$$
+Here $g_{\phi\phi} = 1$, $g_{\theta\theta} = \sin^2\phi$, off-diagonal $g_{\phi\theta} = 0$. Inverse: $g^{\phi\phi} = 1$, $g^{\theta\theta} = 1/\sin^2\phi$.
+
+$\Gamma^\phi_{\theta\theta} = \tfrac{1}{2} g^{\phi\phi} (-\partial_\phi g_{\theta\theta}) = -\tfrac{1}{2} \cdot 2\sin\phi \cos\phi = -\sin\phi\cos\phi$.
+
+$\Gamma^\theta_{\phi\theta} = \Gamma^\theta_{\theta\phi} = \tfrac{1}{2} g^{\theta\theta} \partial_\phi g_{\theta\theta} = \tfrac{1}{2 \sin^2\phi} \cdot 2 \sin\phi\cos\phi = \cot\phi$.
+
+All others vanish. Check: at $\phi = \pi/2$ (equator), $\Gamma^\phi_{\theta\theta} = 0$ and $\Gamma^\theta_{\phi\theta} = 0$ — the metric is locally Euclidean to first order at the equator (in these coordinates, anyway). At $\phi = \pi/4$, $\Gamma^\phi_{\theta\theta} = -1/2$ and $\Gamma^\theta_{\phi\theta} = 1$. These specific numbers determine the geodesic equation: $\ddot{\phi} - \sin\phi\cos\phi\, \dot\theta^2 = 0$ and $\ddot\theta + 2\cot\phi\, \dot\phi\, \dot\theta = 0$. Plug in $\phi(t) = \pi/2$ (constant), $\theta(t) = t$ (uniform). The first equation: $0 - \sin(\pi/2)\cos(\pi/2) \cdot 1 = 0$, satisfied. The second: $0 + 2\cot(\pi/2) \cdot 0 \cdot 1 = 0$, satisfied. So the equator is a geodesic, as it should be.
+
+Now try $\phi = \pi/4$ (a non-great circle): the first equation gives $0 - (1/\sqrt{2})(1/\sqrt{2}) \cdot 1 = -1/2 \neq 0$. Not a geodesic. Numerically, this is exactly the centripetal acceleration the curve fails to provide intrinsically — it would need to deflect downward, but constant-$\phi$ does not. Good: only great circles are geodesics on a sphere.
+
+### A worked numerical example: parallel transport around a triangle
+
+Take the spherical triangle with vertices at the north pole, $(\phi=\pi/2, \theta=0)$, and $(\phi=\pi/2, \theta=\pi/2)$ — three right angles, area $\pi/2$ on a unit sphere. Start at the north pole with a tangent vector $V_0 = \partial_\phi|_{\theta=0}$. Parallel-transport along the $\theta=0$ meridian to the equator: $V$ stays equal to $\partial_\phi$ (since the meridian is a geodesic and $V$ is tangent to it). At the equator, $V = \partial_\phi|_{\phi=\pi/2, \theta=0}$, which points "south."
+
+Now parallel-transport along the equator from $\theta=0$ to $\theta=\pi/2$. On the equator, $V$ is perpendicular to the direction of motion (it points south, the motion is east). Parallel transport keeps $V$ pointing south, so at the second vertex $V = \partial_\phi|_{\phi=\pi/2, \theta=\pi/2}$.
+
+Finally, parallel-transport up the meridian $\theta = \pi/2$ back to the north pole. Going up the meridian, $V$ stays tangent to it, but at the pole the meridian $\theta=\pi/2$ corresponds to a direction *rotated by $\pi/2$* relative to the original meridian $\theta=0$. So $V$ has rotated by exactly $\pi/2$ after a full traverse of the triangle. The holonomy is $\pi/2$, equal to the area $\pi/2$ times the curvature $K = 1$. This is Gauss-Bonnet at the local-holonomy level, and it generalizes to: holonomy around a small loop equals the integral of $K$ over the enclosed region.
+
+### Intuition + counterexample: why curvature is intrinsic
+
+The Theorema Egregium says $K$ is computable from the metric alone. Beginners often try the wrong intuition: "But Gaussian curvature is a determinant of second derivatives in $\mathbb{R}^3$ — surely it depends on the embedding?" The resolution is that $K$ is also expressible as a function of $E, F, G$ and their first and second derivatives. Brioschi's formula is the explicit expression — a 3x3 determinant of partials of $E, F, G$.
+
+Counterexample to the wrong intuition: take a piece of paper and a cylinder. Both have $K = 0$ everywhere. They have the same first fundamental form. They have *different* second fundamental forms. Yet the function $K$ computed either way (from second fundamental form, or from first via Brioschi) gives the same answer 0 in both cases. The Theorema Egregium is the assertion that this is no coincidence: $K$ is determined by the first fundamental form alone, and the second fundamental form contributes no extra information to it. The second fundamental form contributes the *mean* curvature $H$, which does differ between plane and cylinder.
+
+### A third worked example: geodesics on the hyperbolic upper half-plane
+
+The upper half-plane $\mathbb{H} = \{(x, y) : y > 0\}$ with metric $ds^2 = (dx^2 + dy^2)/y^2$ has Christoffel symbols $\Gamma^x_{xy} = \Gamma^x_{yx} = -1/y$, $\Gamma^y_{xx} = 1/y$, $\Gamma^y_{yy} = -1/y$. The geodesic equations become
+$$\ddot x - \tfrac{2}{y} \dot x \dot y = 0, \quad \ddot y + \tfrac{1}{y}(\dot x^2 - \dot y^2) = 0.$$
+A vertical line $x = $ const, $y(t) = e^t$ satisfies both: $\dot x = 0$, $\ddot x = 0$, $\dot y = e^t$, $\ddot y = e^t$, so the second equation reads $e^t + (1/e^t)(0 - e^{2t}) = e^t - e^t = 0$. Confirmed.
+
+A semicircle centered on the real axis, $(x(t), y(t)) = (a + r\tanh t, r/\cosh t)$, also satisfies them (verify by direct substitution; the algebra is tedious but mechanical). So the geodesics in $\mathbb{H}$ are vertical lines and semicircles meeting the $x$-axis perpendicularly. This is the Poincaré model of hyperbolic geometry, and the Christoffel symbols you computed give a complete description of straight lines in this model. Distances are infinite as $y \to 0$ (the boundary is at infinite distance), so a hyperbolic plane is *complete* even though it looks bounded in the embedding.
+
+### Counterexample: when isometries fail to exist globally
+
+Two surfaces with the same Gaussian curvature need not be globally isometric. Take the unit sphere and the surface obtained by gluing two unit hemispheres along their equators — a pinched sphere. Both have $K = 1$ everywhere away from the pinch. But the pinched sphere has different topology and no global isometry to the round sphere exists. The local-to-global gap is important: the Theorema Egregium gives a necessary condition for isometry (matching $K$), not a sufficient one. The Cohn-Vossen rigidity theorem partially addresses this: closed convex surfaces with the same intrinsic metric are congruent in $\mathbb{R}^3$. But for non-convex or non-closed surfaces, the rigidity fails — there exist isospectral but non-isometric closed surfaces (Sunada's construction).
+
+### Common pitfall for beginners
+
+Beginners often think Gaussian curvature is extrinsic — after all, we computed it from the shape operator, an extrinsic gadget. The whole point of the Theorema Egregium is that it is intrinsic. Here is a way to feel why: take a flat sheet of paper and try to wrap it around a sphere without cuts, folds, or stretches. You cannot — the paper buckles. Empirically, this is because the paper has $K = 0$ and the sphere has $K = 1/r^2$, and any *isometry* (length-preserving map) preserves $K$. Conversely, the paper *can* be wrapped around a cylinder or a cone, because those have $K = 0$. The presence or absence of buckling is an intrinsic property of the target surface, not an aesthetic one — it is the Gaussian curvature voting on whether a map exists.
+
+A second pitfall: confusing geodesics with shortest paths. Geodesics are *locally* shortest, not globally. On a sphere, the great-circle arc from the north pole to the south pole going east-around is a geodesic, but it is twice as long as the one going west-around, which is also a geodesic. Both satisfy the geodesic equation. The variational principle ($\delta \int ds = 0$) selects critical points of arc length, not necessarily minima.
+
+### Where this matters in physics and engineering
+
+In **general relativity**, the Theorema Egregium generalizes to: the Riemann curvature tensor is intrinsic, computable from the metric alone. Einstein's field equations relate this intrinsic curvature to matter distribution. The fact that Einstein could write $R_{\mu\nu} - \tfrac{1}{2} R g_{\mu\nu} = 8\pi G T_{\mu\nu}$ depends on the left side being computable from the metric — i.e., a generalized Theorema Egregium. Without it, "spacetime curvature" would require an embedding into a higher-dimensional flat space, and physics would degenerate into bookkeeping about the embedding.
+
+In **robotics**, the configuration space of a robot arm is a manifold (usually a torus, since each joint angle lives on a circle). Path planning uses geodesics on this manifold with respect to a metric encoding actuator energy. The Christoffel symbols are computed once at startup; the geodesic equation becomes the optimal trajectory ODE. Industrial pick-and-place robots solve this in real time using the same machinery you learned in this article.
+
+In **deep learning**, the loss landscape of a neural network is a Riemannian manifold (with the Fisher information metric, or natural-gradient metric). Natural-gradient descent — used in advanced optimizers — is gradient descent in the metric, which involves Christoffel-like correction terms. Empirically it converges faster than vanilla SGD because it respects the curvature of the parameter space rather than treating it as flat.
+
+### Revisiting "what's next" with sharper questions
+
+Article 5 will state and prove the Gauss-Bonnet theorem, which says that for a closed surface, $\int_M K\, dA = 2\pi \chi(M)$. To prepare:
+
+(1) The Theorema Egregium says $K$ is intrinsic. The Euler characteristic $\chi$ is topological. The Gauss-Bonnet theorem links them. Why should an intrinsic geometric quantity equal a topological one?
+(2) For a triangle on a sphere, the angle sum exceeds $\pi$ by exactly the area times $K$. How does this local fact integrate up to the global statement?
+(3) The proof uses parallel transport and the local Gauss-Bonnet for a single triangle. What is the right notion of triangulation, and why does the global integral not depend on the triangulation chosen?
+
+You now have all the local intrinsic geometry. Article 5 packages it into a global theorem. Read it asking "where does the topological invariant $\chi$ enter the proof?" The answer — Euler's formula $V - E + F = \chi$ — comes in via combinatorics of triangulations, and the magic is how the geometric integral exactly recovers it.
+
+
+### One last worked example: Brioschi's intrinsic formula on the sphere
+
+Brioschi's formula expresses Gaussian curvature in terms of $E$, $F$, $G$ alone. For an orthogonal parametrization ($F = 0$):
+$$K = -\frac{1}{2\sqrt{EG}}\left(\partial_u\left(\frac{G_u}{\sqrt{EG}}\right) + \partial_v\left(\frac{E_v}{\sqrt{EG}}\right)\right).$$
+Apply this to the unit sphere with $E = 1$, $G = \sin^2 \phi$, where $\phi$ plays the role of $u$ and $\theta$ plays the role of $v$. Then $\sqrt{EG} = \sin\phi$. $G_\phi = 2\sin\phi\cos\phi$, so $G_\phi / \sqrt{EG} = 2\cos\phi$. $\partial_\phi(2\cos\phi) = -2\sin\phi$. $E_\theta = 0$, so the second term vanishes. Plug in: $K = -(1/(2\sin\phi)) \cdot (-2\sin\phi) = 1$. Confirmed: $K = 1$ on the unit sphere, computed entirely from $E, G$ — without ever invoking the second fundamental form.
+
+This is exactly the Theorema Egregium in action: $K$ has been extracted from the metric alone, giving the same answer as the second-fundamental-form computation. The formula is ugly but it is the one that survives the move to abstract Riemannian manifolds, where there is no embedding into $\mathbb{R}^3$ and therefore no second fundamental form. On a general 2D Riemannian manifold, $K$ is *defined* by Brioschi's formula (or its non-orthogonal generalization). The intrinsic-extrinsic equivalence on embedded surfaces is what makes the abstract definition consistent with the classical one.
+
+### One more quantitative example: spherical excess at scale
+
+To feel how curvature emerges quantitatively, compute the geodesic triangle excess on a sphere of radius $R$ at varying scales. Take an equilateral spherical triangle with side length $s$ (along great circles) on a sphere of radius $R = 6371$ km (Earth-sized). The excess satisfies $E = \text{area}/R^2 = (\sqrt{3}/4 \cdot s^2)/R^2$ in the small-triangle limit, by the spherical-trigonometry formula. For $s = 100$ km: $E \approx (\sqrt{3}/4)(10^4)/(6371)^2 \approx 1.1 \times 10^{-4}$ rad $\approx 0.006°$. Tiny but measurable: classical geodesy used precisely this excess to determine the Earth's radius from triangulated surveys before satellites existed.
+
+Now scale up. For $s = 1000$ km: $E \approx 0.55°$, a meaningful angular discrepancy that must be corrected for in continental-scale surveys. For $s = 10000$ km (close to the maximum where the spherical-triangle approximation holds): $E \approx 55°$ — comparable to the three angles themselves, and the small-triangle approximation breaks down entirely. The curvature term becomes the dominant feature of the geometry.
+
+This scaling — "curvature effects are quadratic in length scale, divided by curvature radius squared" — is the universal heuristic for when curvature matters. In GR, near a black hole of Schwarzschild radius $r_s$, deviations from flat spacetime become $O(1)$ at distances $\sim r_s$. In differential geometry, the same heuristic governs everything from cartographic projection error to gravitational lensing.
+
+A second numerical anchor: the holonomy of parallel transport around a small geodesic loop of area $A$ on a surface of Gaussian curvature $K$ is approximately $K \cdot A$ rad — exactly the Gauss-Bonnet relationship at infinitesimal scale. For a $1$-meter loop on Earth's surface (treating Earth as a sphere), $K \approx 1/R^2 \approx 2.5 \times 10^{-14}$ m$^{-2}$, area $\approx 1$ m$^2$, so holonomy $\approx 2.5 \times 10^{-14}$ rad — utterly negligible at human scale. For a $1000$-km-radius region, holonomy reaches $0.05$ rad $\approx 3°$ — easily measurable, and the basis for precision navigation systems that account for Earth's curvature.
+
+
 ## What's next
 
 The Gauss-Bonnet theorem takes the local formula above and applies it globally: integrating $K$ over an entire closed surface yields $2\pi\chi(S)$, where $\chi$ is the Euler characteristic — a topological invariant. It is the most beautiful theorem in classical differential geometry, connecting analysis to topology.

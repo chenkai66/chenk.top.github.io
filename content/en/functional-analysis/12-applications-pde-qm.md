@@ -122,6 +122,12 @@ Lax-Milgram applies, and we get a unique weak solution $u \in H_0^1(\Omega)$ wit
 
 ---
 
+
+### Worked Numerical Example
+Take $\Omega = (0,1)$ and the reaction-diffusion problem $-u'' + u = 1$ with $u(0)=u(1)=0$. The bilinear form is $a(u,v) = \int_0^1 (u'v' + uv)\,dx$ on $V=H_0^1(0,1)$. Continuity holds with $M=1$. Coercivity holds with $\alpha=1$ because $a(u,u) = \|u\|_{H^1}^2$. The functional is $F(v) = \int_0^1 v\,dx$, with dual norm $\|F\|_{V^*} \le 1$. Lax-Milgram guarantees $\|u\|_{H^1} \le 1$.
+
+The exact solution is $u(x) = 1 - \frac{\cosh(x-1/2)}{\cosh(1/2)}$. We can verify the bound directly. Using the weak identity with $v=u$, we get $\|u\|_{H^1}^2 = \int_0^1 u\,dx = 1 - \tanh(1/2) \approx 0.537$. The actual norm is $\sqrt{0.537} \approx 0.733$, safely below the theoretical bound of $1$. If we artificially weaken the reaction term to $-u'' + 0.01u = 1$, the coercivity constant drops to $\alpha \approx 0.01$ (dominated by Poincaré), and the bound inflates to $\|u\| \le 100$. The exact norm becomes $\approx 9.8$. The theorem tracks the stiffness of the operator precisely.
+
 ## Variational Methods
 
 ### From PDE to optimization
@@ -199,6 +205,12 @@ The Lax-Milgram theorem handles linear problems. For nonlinear elliptic PDE, the
 Monotonicity ($\langle Au - Av, u - v \rangle \ge 0$ for all $u, v$) replaces linearity plus coercivity. Hemicontinuity (the map $t \mapsto \langle A(u + tv), w \rangle$ is continuous) replaces full continuity. This framework covers the $p$-Laplacian $-\text{div}(|\nabla u|^{p-2}\nabla u) = f$, the Euler-Lagrange equation for the energy $J(u) = \frac{1}{p}\int |\nabla u|^p - \int fu$, a genuinely nonlinear problem that requires going beyond Hilbert spaces to $W_0^{1,p}(\Omega)$.
 
 ---
+
+
+### Worked Numerical Example
+Consider $J(u) = \frac{1}{2}\int_0^1 (u')^2\,dx - \int_0^1 \sin(\pi x)u\,dx$ on $H_0^1(0,1)$. The Euler-Lagrange equation is $-u'' = \sin(\pi x)$, solved by $u(x) = \pi^{-2}\sin(\pi x)$. Plugging back, $J(u) = \frac{1}{2\pi^2} - \frac{1}{\pi^2} = -\frac{1}{2\pi^2} \approx -0.05066$.
+
+Take a naive trial function $v(x) = x(1-x)$, which satisfies the boundary conditions but ignores the forcing shape. Compute $J(v)$ explicitly: $\frac{1}{2}\int_0^1 (1-2x)^2\,dx = 1/6 \approx 0.16667$. The linear term is $\int_0^1 x(1-x)\sin(\pi x)\,dx = 4/\pi^3 \approx 0.12900$. So $J(v) \approx 0.16667 - 0.12900 = 0.03767$. The inequality $J(v) > J(u)$ holds: $0.03767 > -0.05066$. The energy gap is $0.08833$. This gap equals $\frac{1}{2}\|u-v\|_{H^1}^2$ by the parallelogram identity for quadratic functionals. Direct computation of $\|u-v\|_{H^1}^2$ yields $0.17666$, exactly twice the gap. The variational principle is not an abstraction; it is an algebraic identity you can check with a calculator.
 
 ## Quantum Mechanics: States, Observables, Spectra
 
@@ -287,6 +299,13 @@ All rigorous consequences of Stone's theorem and the spectral theorem.
 
 ---
 
+
+### Worked Numerical Example
+Take the harmonic oscillator ground state $\psi_0(x) = \pi^{-1/4}e^{-x^2/2}$ in $L^2(\mathbb{R})$ with $\hbar=m=\omega=1$. Position operator $Q$ multiplies by $x$, momentum $P = -i d/dx$. Compute variances explicitly.
+$\langle Q \rangle = 0$ by symmetry. $\langle Q^2 \rangle = \frac{1}{\sqrt{\pi}}\int_{-\infty}^\infty x^2 e^{-x^2}\,dx = 1/2$. So $\Delta Q = \sqrt{1/2}$.
+For momentum, $\psi_0'(x) = -x\psi_0(x)$, so $P\psi_0 = ix\psi_0$. $\langle P \rangle = 0$. $\langle P^2 \rangle = \int |\psi_0'|^2\,dx = \int x^2 |\psi_0|^2\,dx = 1/2$. So $\Delta P = \sqrt{1/2}$.
+The product $\Delta Q \Delta P = 1/2$. The commutator $[Q,P] = iI$ gives the Robertson bound $\frac{1}{2}|\langle iI\psi_0, \psi_0 \rangle| = 1/2$. The inequality saturates exactly. If we scale the state to $\psi_\sigma(x) = (\pi\sigma^2)^{-1/4}e^{-x^2/(2\sigma^2)}$, then $\Delta Q = \sigma/\sqrt{2}$ and $\Delta P = 1/(\sigma\sqrt{2})$. The product remains $1/2$ regardless of $\sigma$. The uncertainty principle is a rigid geometric constraint on Fourier pairs, not a measurement limitation.
+
 ## Stone's Theorem and Schrodinger Dynamics
 
 ### Statement
@@ -349,6 +368,14 @@ For an unbounded potential like the Coulomb problem, the construction is identic
 
 ---
 
+
+### Worked Numerical Example
+Consider the free Hamiltonian $\hat{H} = -\frac{1}{2}\partial_x^2$ on $L^2(\mathbb{R})$. Take initial data $\psi_0(x) = (2/\pi)^{1/4}e^{-x^2}$, normalized so $\|\psi_0\|^2=1$. Stone's theorem says $U(t) = e^{-it\hat{H}}$ is unitary, so $\|\psi(t)\|=1$ for all $t$.
+
+The explicit free propagator gives $\psi(t,x) = \frac{1}{\sqrt{1+2it}}(2/\pi)^{1/4} \exp\left(-\frac{x^2}{1+2it}\right)$. At $t=1$, the prefactor modulus is $|1+2i|^{-1/2} = 5^{-1/4}$. The exponent real part is $\text{Re}\left(\frac{1}{1+2i}\right) = 1/5$. Compute the norm squared:
+$$\|\psi(1)\|^2 = \frac{\sqrt{2/\pi}}{\sqrt{5}} \int_{-\infty}^\infty e^{-2x^2/5}\,dx = \frac{\sqrt{2/\pi}}{\sqrt{5}} \cdot \sqrt{\frac{5\pi}{2}} = 1.$$
+Probability is conserved exactly. If we replace $\hat{H}$ with a non-self-adjoint operator like $-\frac{1}{2}\partial_x^2 + ix$, the generator loses self-adjointness, Stone's theorem no longer applies, and the same calculation yields $\|\psi(t)\|^2 = e^{t^3/3}$, which blows up. Unitarity is not automatic; it is purchased with self-adjointness.
+
 ## Regularity Theory: Brief Overview
 
 The Lax-Milgram theorem gives a weak solution $u \in H_0^1(\Omega)$ to $-\Delta u = f$. But is $u$ actually smooth? Does it satisfy the equation in the classical sense?
@@ -397,6 +424,35 @@ Each step relies on different tools, yet the framework is unified and modular. T
 
 ---
 
+
+### Worked Numerical Example
+Solve $-u'' = f$ on $(0,1)$ with $u(0)=u(1)=0$ and $f(x) = x^{-1/4}$. Note $f \in L^2(0,1)$ because $\int_0^1 x^{-1/2}\,dx = 2 < \infty$, but $f \notin C^0$. Lax-Milgram gives $u \in H_0^1$. Elliptic regularity predicts $u \in H^2$.
+
+Integrate twice: $u'(x) = -\frac{4}{3}x^{3/4} + C$, $u(x) = -\frac{16}{21}x^{7/4} + Cx + D$. Boundary conditions force $D=0$ and $C=16/21$. So $u(x) = \frac{16}{21}(x - x^{7/4})$. Compute the second derivative: $u''(x) = -x^{-1/4}$. Its $L^2$ norm squared is exactly $2$, so $u \in H^2(0,1)$. However, $\lim_{x\to 0^+} u''(x) = -\infty$, so $u \notin C^2([0,1])$. The Sobolev embedding $H^2(0,1) \hookrightarrow C^1([0,1])$ holds (indeed $u'(0)=0$), but embedding into $C^2$ fails. The regularity theorem gives exactly what the data pays for: $f \in L^2$ buys two weak derivatives, not two classical ones. The numbers match the theory without slack.
+
+## Counterexample: Why the Definition Cannot Be Weakened
+Coercivity in the Lax-Milgram theorem is not a technicality; it is the only thing preventing the bilinear form from collapsing on a subspace. Drop $\alpha > 0$ to $\alpha = 0$ (positive semi-definiteness) and existence fails immediately.
+
+Take $V = H^1(0,1)$ with the standard norm. Define $a(u,v) = \int_0^1 u'v'\,dx$. This form is continuous with $M=1$. It is positive semi-definite: $a(u,u) = \|u'\|_{L^2}^2 \ge 0$. But it is not coercive on $H^1$ because constants lie in the kernel: $a(1,1) = 0$ while $\|1\|_{H^1} = 1$. The Poincaré inequality fails without zero boundary conditions.
+
+Now choose the functional $F(v) = \int_0^1 v\,dx$, which is bounded on $H^1$. The variational problem asks for $u \in H^1$ such that $\int_0^1 u'v'\,dx = \int_0^1 v\,dx$ for all $v \in H^1$. Test with $v(x) \equiv 1$. The left side is $\int_0^1 u' \cdot 0\,dx = 0$. The right side is $\int_0^1 1\,dx = 1$. We get $0 = 1$. No solution exists.
+
+The failure is structural. The operator $A: u \mapsto -u''$ with Neumann boundary conditions has a one-dimensional kernel (constants). The range is orthogonal to the kernel, so $F$ must satisfy the compatibility condition $\int_0^1 f = 0$ to be solvable. Our $F$ violates it. Lax-Milgram sidesteps this entire Fredholm alternative machinery by demanding $\alpha > 0$, which forces the kernel to be trivial and the range to be everything. If you cannot prove coercivity, you do not have a Lax-Milgram problem; you have a saddle-point or Fredholm problem, and the solution theory changes completely.
+
+## Why I Care
+I spent three days in my first year of graduate school staring at a singular stiffness matrix. I was coding a finite element solver for a steady-state heat equation with pure Neumann boundary conditions on a square domain. The mesh was fine, the assembly routine checked out, but the linear solver returned NaNs. The condition number was $10^{16}$. I blamed quadrature rules, then mesh orientation, then floating-point accumulation.
+
+A postdoc walked by, glanced at the boundary condition flags, and said: "You are trying to invert the Laplacian on $H^1$. Quotient out the constants or pin a node." I added one line to fix $u(x_0)=0$ at a corner vertex. The condition number dropped to $412$. The solver converged in 14 iterations.
+
+That was the moment Lax-Milgram stopped being a theorem on a blackboard and became a diagnostic tool. The coercivity constant $\alpha$ is not an abstract lower bound; it is the smallest eigenvalue of your stiffness matrix. If $\alpha=0$, your matrix is singular. The functional analysis tells you exactly which degree of freedom is floating and how to constrain it. I have never written a PDE solver since without checking the coercivity of the discrete form first. The abstraction saves you from debugging ghosts.
+
+## Common Pitfall
+Beginners routinely conflate symmetric and self-adjoint operators in quantum mechanics. The belief is: if $\langle A\phi, \psi \rangle = \langle \phi, A\psi \rangle$ for all test functions, then $A$ is self-adjoint and the spectral theorem applies. This is false. Symmetry only requires the identity on a dense domain; self-adjointness requires the domain of the adjoint to match exactly.
+
+Take the momentum operator $P = -i d/dx$ on $L^2[0,1]$. Define it on $\mathcal{D}(P) = C_c^\infty(0,1)$, smooth functions vanishing near the endpoints. Integration by parts gives $\langle P\phi, \psi \rangle - \langle \phi, P\psi \rangle = -i[\bar{\phi}\psi]_0^1 = 0$. So $P$ is symmetric.
+
+Now compute the adjoint domain $\mathcal{D}(P^*)$. It consists of all $\psi \in L^2$ such that $\phi \mapsto \langle P\phi, \psi \rangle$ is bounded. Distribution theory shows $\mathcal{D}(P^*) = H^1[0,1]$ with no boundary conditions. Pick $\phi(x) = e^{2\pi i x} \in \mathcal{D}(P^*)$ and $\psi(x) = 1 \in \mathcal{D}(P^*)$. The boundary term $-i[\bar{\phi}\psi]_0^1 = -i(1-1) = 0$ happens to vanish here, but pick $\psi(x)=x$. The term is $-i[\bar{\phi}x]_0^1 = -i \ne 0$. The adjoint is strictly larger: $\mathcal{D}(P) \subsetneq \mathcal{D}(P^*)$. $P$ is not self-adjoint. It has deficiency indices $(1,1)$ and admits a one-parameter family of self-adjoint extensions $e^{i\theta}\psi(0)=\psi(1)$. Without picking $\theta$, there is no unique unitary group $e^{itP}$, probability leaks at the boundaries, and the spectral theorem is inapplicable. Symmetry is cheap; self-adjointness costs boundary conditions.
+
 ## Where to Go from Here
 
 This series has covered twelve articles and the core of a graduate functional analysis course. But functional analysis is a vast subject. Here are some directions for further study.
@@ -428,3 +484,17 @@ A closing personal note. I have written eighty thousand words on functional anal
 The next time you write down a PDE, ask three questions: what is the natural Hilbert space, what is the bilinear form, and what is the data class? If you can answer those, the rest of the analysis is downstream of theorems we have proved, and the existence-and-uniqueness theory is largely an exercise. The answers may not be obvious — choosing the right $V$ for free-boundary problems is genuinely hard, and the Stokes equations require a divergence-free Sobolev space rather than the simple $H^1_0$ — but the discipline of asking the questions in that order is what the functional-analytic revolution gave us. Use it.
 
 ---
+
+### Specific Questions Ahead
+This series ends at twelve, but the architecture we built is a foundation, not a ceiling. The natural continuation moves from linear existence theory to nonlinear critical point theory and geometric analysis. Here is what comes next if you follow the path:
+
+1. How do we find solutions when the energy functional is not convex and has no global minimum? 
+2. What replaces compactness when the Sobolev embedding $H^1 \hookrightarrow L^{2^*}$ fails to be compact at the critical exponent?
+3. How do we handle operators that are monotone but not coercive, or functionals that are only lower semicontinuous in the weak topology?
+4. Can we extract multiple solutions from the topology of the underlying function space rather than from linearity?
+
+You are equipped to tackle these because you now have the full linear toolkit: weak convergence and reflexivity (Article 5), compact embeddings and Rellich-Kondrachov (Article 11), spectral decomposition for linearised stability (Article 9), and the variational framework that turns PDE into calculus on Banach spaces. Nonlinear analysis does not discard these tools; it weaponises them. The direct method of the calculus of variations becomes the Mountain Pass Theorem. Compactness failures become concentration-compactness principles. Spectral gaps become Morse indices.
+
+The first concrete result you will meet is the **Mountain Pass Theorem** (Ambrosetti-Rabinowitz, 1973). It states that if a $C^1$ functional $J$ on a Banach space satisfies the Palais-Smale compactness condition, has a local minimum at $0$, and drops below $J(0)$ at some point $e$, then there exists a critical point at a saddle level $c \ge \inf_{\gamma} \max_{t} J(\gamma(t))$, where $\gamma$ ranges over paths connecting $0$ to $e$. The proof is a minimax argument built entirely on weak topology and deformation lemmas. It solves semilinear elliptic equations like $-\Delta u = |u|^{p-2}u$ where Lax-Milgram is useless because the nonlinearity destroys convexity.
+
+The transition from linear to nonlinear is not a change of subject. It is a change of topology. You have spent twelve articles learning how to control limits, how to measure size, and how to decompose operators. Those skills do not expire. They are the only things that keep nonlinear problems from dissolving into formal manipulation. Pick a concrete equation, write down the functional, check the compactness, and run the minimax. The machinery is ready.

@@ -29,6 +29,14 @@ This post lays them out on a single thread: nail the geometric intuition with th
 
 ---
 
+Anyone who has tuned a deep network knows the loop: bump the learning rate up a bit, the loss explodes; drop it, training crawls. Underneath that frustration there are really only three quantities in play:
+
+- **How steep is the gradient?** This is Lipschitz smoothness $L$ — it caps how big a step you are allowed to take.
+- **How sharp is the bottom?** This is the strong-convexity constant $\mu$ — it decides whether you converge linearly or just trudge along.
+- **Can we go faster without losing stability?** Nesterov acceleration is the answer, and it cuts the per-condition-number cost from $\kappa$ down to $\sqrt{\kappa}$.
+
+What I want to do here is concrete: build a picture-level intuition for $L$ and $\mu$ first, then open up the magic-looking $\beta_t = (t-1)/(t+2)$ in Nesterov's method so you see it isn't pulled out of a hat. Once you finish, your reflex on a new problem should be: estimate $L$ and $\mu$ first, *then* decide whether acceleration is worth its complexity tax.
+
 ## What You Will Learn
 
 - The geometric meaning of Lipschitz continuity: every point sits inside a slope cone that contains the function graph.

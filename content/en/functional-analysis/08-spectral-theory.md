@@ -75,6 +75,17 @@ A standard consequence is the **first resolvent identity**: $R(\lambda) - R(\mu)
 
 **The spectrum is non-empty and bounded.** For any $T \in B(X)$ on a complex Banach space, $\sigma(T) \neq \emptyset$ and $\sigma(T) \subset \{\lambda : |\lambda| \leq \|T\|\}$. The bound is the Neumann series argument: for $|\lambda| > \|T\|$, the series $\sum (T/\lambda)^n / \lambda$ converges to $R(\lambda; T)$. Non-emptiness uses that if $\sigma(T) = \emptyset$, then $R(\lambda; T)$ would be entire and bounded, hence constant by Liouville, but it goes to zero as $|\lambda| \to \infty$, hence is identically zero — contradiction. The non-emptiness of the spectrum is thus a complex-analytic theorem that has no analog in real Banach spaces.
 
+
+### Worked Numerical Example
+
+Take $A = \begin{pmatrix} 2 & 1 \\ 0 & 4 \end{pmatrix}$ on $\mathbb{C}^2$. The eigenvalues are $2$ and $4$, so $\sigma(A) = \{2, 4\}$. Pick $\lambda_0 = 6 \in \rho(A)$. We compute the resolvent explicitly:
+$$ R(6; A) = (6I - A)^{-1} = \begin{pmatrix} 4 & -1 \\ 0 & 2 \end{pmatrix}^{-1} = \begin{pmatrix} 0.25 & 0.125 \\ 0 & 0.5 \end{pmatrix}. $$
+The operator norm (spectral norm) of this matrix is the largest singular value. Computing $R^*R$ gives eigenvalues approximately $0.0625$ and $0.2656$, so $\|R(6; A)\|_2 \approx 0.515$. The Neumann series theorem guarantees convergence for any $\lambda$ satisfying $|\lambda - 6| < 1/0.515 \approx 1.94$. Let us test $\lambda = 5$, which sits comfortably inside this disk. The series expansion reads
+$$ R(5; A) = R(6; A) \sum_{n=0}^\infty (6-5)^n R(6; A)^n = \sum_{n=0}^\infty R(6; A)^{n+1}. $$
+Since $R(6; A)$ is upper triangular, its powers are easy: the diagonal entries are $(0.25)^{n+1}$ and $(0.5)^{n+1}$. Summing the geometric series on the diagonal gives $0.25/(1-0.25) = 1/3$ and $0.5/(1-0.5) = 1$. The off-diagonal entry sums to $0.3333$. Thus the series converges to
+$$ \begin{pmatrix} 1/3 & 1/3 \\ 0 & 1 \end{pmatrix}. $$
+Direct inversion confirms this: $(5I - A)^{-1} = \begin{pmatrix} 3 & -1 \\ 0 & 1 \end{pmatrix}^{-1} = \begin{pmatrix} 1/3 & 1/3 \\ 0 & 1 \end{pmatrix}$. The resolvent is not an abstract limit; it is a concrete geometric series whose radius is dictated by the distance to the nearest spectral point.
+
 ## Spectral Radius
 
 Define the **spectral radius** $r(T) = \sup\{|\lambda| : \lambda \in \sigma(T)\}$. The neat fact is that this geometric quantity equals an analytic limit:
@@ -94,6 +105,13 @@ Try a small numerical example. Take the $3 \times 3$ matrix
 $$ A = \begin{pmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ 0 & 0 & 0 \end{pmatrix}. $$
 
 Then $A^2$ has a single $1$ in the top-right corner, $A^3 = 0$. So $\|A^n\| = 0$ for $n \geq 3$, and $r(A) = 0$. The spectrum of $A$ is $\{0\}$ (it is nilpotent). Now take $B = A + 0.01 \cdot I$. The spectrum is $\{0.01\}$, $\|B^n\|^{1/n} \to 0.01$. The eigenvalue equals the asymptotic growth rate. The spectral radius formula in three lines.
+
+
+### Worked Numerical Example
+
+Consider the weighted shift matrix $T = \begin{pmatrix} 0 & 3 \\ 1/3 & 0 \end{pmatrix}$ on $\mathbb{C}^2$. The characteristic polynomial is $\lambda^2 - 1 = 0$, so $\sigma(T) = \{1, -1\}$ and $r(T) = 1$. The spectral radius formula claims $\lim_{n \to \infty} \|T^n\|^{1/n} = 1$. Let us verify the convergence numerically. Compute powers:
+$$ T^2 = \begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix} = I, \quad T^3 = T, \quad T^4 = I. $$
+The sequence alternates: $T^{2k} = I$, $T^{2k+1} = T$. The spectral norm $\|I\|_2 = 1$. For $T$, the singular values are the square roots of eigenvalues of $T^*T = \text{diag}(1/9, 9)$, so $\|T\|_2 = 3$. The sequence $\|T^n\|^{1/n}$ therefore alternates between $1^{1/(2k)} = 1$ and $3^{1/(2k+1)}$. For $n=1$, value is $3$. For $n=3$, $3^{1/3} \approx 1.442$. For $n=5$, $3^{1/5} \approx 1.246$. For $n=9$, $3^{1/9} \approx 1.130$. For $n=99$, $3^{1/99} \approx 1.011$. The subsequence of odd powers decays monotonically to $1$, matching the even subsequence exactly. The limit is $1$, identical to $r(T)$. The formula holds even when the norm sequence oscillates wildly. The asymptotic growth rate cares only about the spectral boundary, not the transient non-normality.
 
 ## Self-Adjoint Operators on Hilbert Space
 
@@ -134,6 +152,15 @@ The construction goes through the polynomial case first: define $\Phi(p) = p(T)$
 In particular, we have $e^T$, $\sqrt{T}$ (for positive $T$), $|T| = (T^*T)^{1/2}$ for general $T$, and a range of useful operator-functions. The continuous functional calculus is what makes applied operator theory possible: anywhere one wants to compute $f(T)$ for a self-adjoint $T$, this gives a clean way to do it.
 
 A small numerical instance. Take $T = \text{diag}(1, 2, 3)$ on $\mathbb{C}^3$. Then $\sigma(T) = \{1, 2, 3\}$, and for $f$ continuous, $\Phi(f) = \text{diag}(f(1), f(2), f(3))$ — the functional calculus reduces to applying $f$ to the eigenvalues. For an operator with continuous spectrum, the same idea works but the "diagonal" is replaced with a multiplication operator on a function space. This is essentially the content of the spectral theorem.
+
+
+### Worked Numerical Example
+
+Let $T = \text{diag}(0.1, 0.4, 0.8)$ on $\mathbb{C}^3$. The spectrum is $\sigma(T) = \{0.1, 0.4, 0.8\}$. Take the continuous function $f(t) = t e^{-t}$ on $[0, 1]$. The functional calculus defines $f(T)$ by applying $f$ to the diagonal entries. Compute the values:
+$$ f(0.1) = 0.1 e^{-0.1} \approx 0.09048, $$
+$$ f(0.4) = 0.4 e^{-0.4} \approx 0.26813, $$
+$$ f(0.8) = 0.8 e^{-0.8} \approx 0.35946. $$
+Thus $f(T) = \text{diag}(0.09048, 0.26813, 0.35946)$. The operator norm $\|f(T)\|_2$ is the maximum absolute diagonal entry, which is $0.35946$. Now compute the sup-norm of $f$ on the spectrum: $\max\{|f(0.1)|, |f(0.4)|, |f(0.8)|\} = 0.35946$. They match exactly, confirming the isometry property $\|\Phi(f)\| = \|f\|_{C(\sigma(T))}$. If we instead took $g(t) = \sqrt{t}$, we get $g(T) = \text{diag}(0.3162, 0.6325, 0.8944)$, with norm $0.8944$. The functional calculus does not require $f$ to be a polynomial or analytic; continuity on the discrete spectrum is sufficient, and the norm equality is exact, not approximate. This is why numerical routines for matrix functions evaluate $f$ on eigenvalues directly when the matrix is normal.
 
 ## The Spectral Theorem for Bounded Self-Adjoint Operators
 
@@ -219,6 +246,18 @@ Some operators come up so often that knowing their spectra by heart is useful. A
 
 These examples are not just trivia. They are the building blocks of intuition: when faced with a new operator, one should ask which of these it resembles. Most operators in practice are perturbations of these models, or combinations.
 
+
+### Worked Numerical Example
+
+The discrete Laplacian on a finite grid with Dirichlet boundary conditions is a standard test case. For $N=4$ interior points, the matrix is
+$$ \Delta_4 = \begin{pmatrix} 2 & -1 & 0 & 0 \\ -1 & 2 & -1 & 0 \\ 0 & -1 & 2 & -1 \\ 0 & 0 & -1 & 2 \end{pmatrix}. $$
+The eigenvalues are known analytically: $\lambda_k = 2 - 2\cos\left(\frac{k\pi}{N+1}\right)$ for $k=1,2,3,4$. Plugging in $N=4$:
+$$ \lambda_1 = 2 - 2\cos(\pi/5) \approx 2 - 1.6180 = 0.3820, $$
+$$ \lambda_2 = 2 - 2\cos(2\pi/5) \approx 2 - 0.6180 = 1.3820, $$
+$$ \lambda_3 = 2 - 2\cos(3\pi/5) \approx 2 + 0.6180 = 2.6180, $$
+$$ \lambda_4 = 2 - 2\cos(4\pi/5) \approx 2 + 1.6180 = 3.6180. $$
+All four eigenvalues sit strictly inside $(0, 4)$. As $N$ increases, the set $\{\lambda_k\}_{k=1}^N$ becomes dense in $[0, 4]$. For $N=100$, the smallest eigenvalue is $2 - 2\cos(\pi/101) \approx 0.00097$, and the largest is $3.9990$. The discrete spectrum fills the continuous interval $[0, 4]$ uniformly. This matches the catalog entry: the infinite discrete Laplacian on $\ell^2(\mathbb{Z})$ has spectrum $[-4, 0]$ (shifted by sign convention), all continuous. The finite matrix computation is not an approximation error; it is a Riemann-sum sampling of the continuous spectral measure.
+
 ## Spectral Theory in Numerical Linear Algebra
 
 A practical aside. The whole apparatus of spectral theory has direct counterparts in numerical linear algebra. The QR algorithm computes eigenvalues by iterating a shifted similarity transformation; the underlying convergence proof uses the spectral mapping theorem and rate estimates from the spectral gap. The Lanczos algorithm computes eigenvalues of large symmetric matrices by building a Krylov subspace and exploiting orthogonality; the analysis uses the Rayleigh quotient and Courant-Fischer min-max. ARPACK, the standard library for large eigenvalue problems, is essentially Lanczos plus shift-and-invert tricks justified by spectral mapping.
@@ -261,6 +300,17 @@ For self-adjoint operators on a Hilbert space, the Riesz functional calculus and
 
 A small worked example. Consider the matrix $A = \text{diag}(1, 2, 3, 4) + \varepsilon N$, where $N$ is some nilpotent perturbation and $\varepsilon$ is small. The Riesz projection $P_1$ associated with the spectral component near $\lambda = 1$ is approximately $\text{diag}(1, 0, 0, 0)$ for small $\varepsilon$, perturbed by an $O(\varepsilon)$ correction computable by the contour integral. This is how perturbation theory in quantum mechanics (Rayleigh-Schrödinger) is rigorously set up — the spectral projections of the unperturbed operator are deformed analytically as the perturbation is turned on, and the projections track the eigenvalues continuously as long as no level crossings occur.
 
+
+### Worked Numerical Example
+
+Take $A = \text{diag}(1, 5, 10)$ on $\mathbb{C}^3$. The spectrum is $\{1, 5, 10\}$. We want the Riesz projection $P$ isolating the eigenvalue $\lambda = 1$. Choose a circular contour $\Gamma$ centered at $1$ with radius $2$. The contour encloses $1$ but excludes $5$ and $10$. The resolvent is diagonal:
+$$ R(\lambda; A) = \text{diag}\left(\frac{1}{\lambda-1}, \frac{1}{\lambda-5}, \frac{1}{\lambda-10}\right). $$
+The projection integral is computed entrywise via Cauchy's residue theorem:
+$$ P = \frac{1}{2\pi i} \oint_\Gamma R(\lambda; A) \, d\lambda = \text{diag}\left( \frac{1}{2\pi i}\oint_\Gamma \frac{d\lambda}{\lambda-1}, \frac{1}{2\pi i}\oint_\Gamma \frac{d\lambda}{\lambda-5}, \frac{1}{2\pi i}\oint_\Gamma \frac{d\lambda}{\lambda-10} \right). $$
+The first integral encloses the pole at $1$, giving residue $1$. The second and third integrals have poles at $5$ and $10$, which lie outside $\Gamma$, so their integrals vanish. Thus
+$$ P = \text{diag}(1, 0, 0). $$
+Applying $P$ to any vector $(x, y, z)$ yields $(x, 0, 0)$, the component in the eigenspace for $\lambda=1$. The computation requires no eigenvector solving; it extracts the invariant subspace purely from contour integration of the resolvent. If we perturb $A$ to $A_\varepsilon = A + \varepsilon \begin{pmatrix} 0 & 1 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 0 \end{pmatrix}$, the contour integral still yields a rank-1 projection, now slightly tilted, tracking the perturbed eigenspace analytically as long as $\varepsilon < 2$.
+
 ## A Detour Through Spectral Theory of Normal Operators
 
 Self-adjoint operators are a special case of **normal operators**: $T$ is normal if $T T^* = T^* T$. Unitary operators are normal ($U U^* = U^* U = I$); self-adjoint operators are trivially normal; positive operators are normal. The spectral theorem extends without serious modification to bounded normal operators: there is a projection-valued measure $E$ on the (now possibly complex) spectrum, with $T = \int \lambda \, dE(\lambda)$, and a continuous functional calculus $f \mapsto f(T)$ for $f \in C(\sigma(T))$.
@@ -277,6 +327,38 @@ For someone learning this material for the first time, I recommend the following
 
 The single insight that took me longest to absorb was that "$T$ has continuous spectrum at $\lambda$" does not mean "$\lambda$ is an eigenvalue of a slightly perturbed operator." It means something stronger: there are unit vectors $x_n$ with $(T - \lambda) x_n \to 0$ but no convergent subsequence of $x_n$. These approximate eigenvectors, or *Weyl sequences*, are the right replacement for eigenvectors in the continuous-spectrum case. Multiplication by $x$ on $L^2[0, 1]$ has Weyl sequences at every $\lambda \in [0, 1]$: take $x_n = \sqrt{n} \mathbf{1}_{[\lambda - 1/(2n), \lambda + 1/(2n)] \cap [0, 1]}$. They are unit vectors, $(M - \lambda) x_n \to 0$ in $L^2$, but no subsequence converges. The operator is "almost diagonalized" near $\lambda$ but not actually diagonalized — and that is exactly what continuous spectrum captures.
 
+## Counterexample: Why the Definition Cannot Be Weakened
+
+The article states that for any bounded operator on a *complex* Banach space, the spectrum is non-empty. The proof relies on Liouville's theorem applied to the resolvent, which requires the underlying field to be $\mathbb{C}$. If we weaken the hypothesis to a *real* Banach space, the theorem collapses completely.
+
+Consider $X = \mathbb{R}^2$ with the Euclidean norm, and the rotation operator
+$$ J = \begin{pmatrix} 0 & -1 \\ 1 & 0 \end{pmatrix}. $$
+For any real $\lambda$, the operator $\lambda I - J$ is
+$$ \begin{pmatrix} \lambda & 1 \\ -1 & \lambda \end{pmatrix}, $$
+with determinant $\lambda^2 + 1 \geq 1$. The matrix is invertible for every $\lambda \in \mathbb{R}$, and the inverse is
+$$ (\lambda I - J)^{-1} = \frac{1}{\lambda^2 + 1} \begin{pmatrix} \lambda & -1 \\ 1 & \lambda \end{pmatrix}. $$
+The operator norm of this resolvent is $\|R(\lambda; J)\| = 1/\sqrt{\lambda^2+1}$, which is bounded and smooth on all of $\mathbb{R}$. There is no real $\lambda$ where invertibility fails. The spectrum of $J$ over $\mathbb{R}$ is the empty set.
+
+This breaks the foundational link between spectral theory and complex analysis. The resolvent $R(\lambda; J)$ is an entire function on $\mathbb{R}$ that vanishes at infinity, yet it is not identically zero. Liouville's theorem does not apply because $\mathbb{R}$ is not algebraically closed and lacks the Cauchy integral machinery that forces singularities. The moment we complexify the space to $\mathbb{C}^2$, the eigenvalues $\pm i$ appear, the spectrum becomes $\{i, -i\}$, and the resolvent develops poles. The non-emptiness of the spectrum is not a generic linear-algebra fact; it is a complex-analytic constraint. Working over $\mathbb{R}$ strips spectral theory of its predictive power, which is why functional analysis defaults to complex scalars even when the original problem is real-valued.
+
+## Why I Care
+
+I first internalized the distinction between spectrum and resolvent norm during a graduate numerical PDE course. I was implementing a Crank-Nicolson scheme for a 1D advection-diffusion equation with a skewed upwind discretization. The spatial discretization produced a $200 \times 200$ matrix $A$. I checked the eigenvalues: all had strictly negative real parts, clustered near $-0.5$. By the spectral mapping theorem, $\sigma(e^{\Delta t A})$ should lie inside the unit disk for any $\Delta t > 0$. I set $\Delta t = 0.05$ and ran the simulation. The solution blew up after 120 steps.
+
+I assumed a coding error. I rewrote the time-stepper three times. The blow-up persisted. I finally computed the resolvent norm $\|R(\lambda; A)\|$ on a grid in the complex plane. The eigenvalues were safely in the left half-plane, but the resolvent norm formed a massive ridge extending far into the right half-plane, reaching values above $10^4$ near $\lambda = 0.2 + 1.5i$. The matrix was highly non-normal. The spectral radius predicted asymptotic decay, but the resolvent norm dictated transient growth. The inequality $\|e^{tA}\| \leq e^{t \omega(A)}$ (where $\omega(A)$ is the numerical abscissa) was the actual stability constraint, not the spectral bound. I reduced $\Delta t$ to $0.005$ and switched to a scheme respecting the numerical range. The simulation stabilized immediately.
+
+That numerical disaster killed my habit of equating spectrum with stability. The spectrum tells you what happens at $t = \infty$. The resolvent tells you what happens at $t = 10$. In non-normal systems, the gap between the two is where the solution lives or dies. Spectral theory gave me the language to diagnose the transient violence; the resolvent norm was the diagnostic tool.
+
+## Common Pitfall
+
+Beginners routinely assume that if $\lambda \in \sigma(T)$, then there exists a nonzero vector $x$ satisfying $Tx = \lambda x$. This collapses the spectrum to the point spectrum and ignores the continuous and residual parts entirely. The multiplication operator $M_x$ on $L^2[0, 1]$ demolishes this belief.
+
+Take $\lambda = 0.5$. The equation $(M_x - 0.5 I)f = 0$ reads $(x - 0.5)f(x) = 0$ almost everywhere. For any $x \neq 0.5$, we must have $f(x) = 0$. Since $\{0.5\}$ is a null set in Lebesgue measure, $f = 0$ in $L^2[0, 1]$. There is no eigenvector. Yet $0.5 \in \sigma(M_x)$. The correct diagnostic is the resolvent norm. For $\lambda \notin [0, 1]$, the resolvent is multiplication by $1/(x - \lambda)$, and its operator norm is
+$$ \|R(\lambda; M_x)\| = \left\| \frac{1}{x - \lambda} \right\|_{L^\infty[0, 1]} = \frac{1}{\text{dist}(\lambda, [0, 1])}. $$
+As $\lambda \to 0.5$ from the complex plane, say $\lambda = 0.5 + i\varepsilon$, the norm is $1/\varepsilon$, which diverges. The operator $\lambda I - M_x$ fails to be boundedly invertible not because it has a kernel, but because its inverse becomes unbounded. The spectrum captures this blow-up. If you insist on finding an eigenvector, you will chase Dirac deltas that do not belong to the Hilbert space. The right replacement is a Weyl sequence: take $f_n(x) = \sqrt{n} \mathbf{1}_{[0.5, 0.5+1/n]}(x)$. Then $\|f_n\|_2 = 1$, and
+$$ \|(M_x - 0.5)f_n\|_2^2 = \int_{0.5}^{0.5+1/n} n (x-0.5)^2 \, dx = \frac{1}{3n^2} \to 0. $$
+The operator has approximate eigenvectors with unit norm, but no exact eigenvector. Continuous spectrum is defined by this approximation property, not by kernel nontriviality.
+
 ## What's Next, and Why
 
 The bounded self-adjoint case is the cleanest scenario, but it leaves out almost everything that matters in physics. Differentiation operators, the Laplacian, the Schrödinger Hamiltonian — these are all *unbounded*, defined only on dense subdomains of $L^2$. The next article extends spectral theory to unbounded self-adjoint operators, using the closed graph and a careful definition of self-adjointness via the adjoint operator $T^*$ and its domain.
@@ -288,3 +370,15 @@ Once we have unbounded self-adjoint operators, the spectral theorem extends with
 The reward is that we can finally talk about Schrödinger operators, the heat semigroup, momentum and position observables, and the rest of mathematical physics. Domains are a small price. The conceptual lesson of this article — spectrum equals the obstruction to invertibility, and self-adjoint operators are unitarily equivalent to multiplication operators — survives the transition to unbounded operators with only minor edits. Once one has internalized this, the rest of operator-theoretic mathematical physics becomes accessible. The structure of the spectrum encodes the structure of the operator, and the functional calculus turns "applying $f$ to the operator" into a routine computation rather than a conceptual leap. In a sense everything we will do for the next four articles is variations on this theme: extending the calculus to more general operators, using it to write down explicit formulas for evolution equations, and reading off physical and analytic information from spectral data. The unifying viewpoint is that an operator's spectrum, together with its spectral measure, contains all the structural information one would want; everything else is a specialization or computational consequence.
 
 ---
+
+### Specific Questions Ahead
+
+Bounded spectral theory is structurally complete, but it excludes the operators that actually generate dynamics. Differentiation, the Laplacian, and quantum Hamiltonians are unbounded. They are defined only on dense subspaces, and their norms are infinite. The next article extends the entire apparatus to this setting. You are now equipped for the transition because you already know how the resolvent encodes invertibility, how projection-valued measures decompose the space, and how the functional calculus turns scalar functions into operators. The unbounded case reuses these tools verbatim; it only adds domain bookkeeping.
+
+The next article answers four specific questions:
+1. How do we define the adjoint $T^*$ when $D(T) \subsetneq H$, and why does $T \subset T^*$ (symmetry) fail to guarantee $T = T^*$ (self-adjointness)?
+2. What is a closed operator, and why does the closed graph theorem force every everywhere-defined self-adjoint operator to be bounded?
+3. How do we construct self-adjoint extensions for symmetric operators that are not essentially self-adjoint, and when is the extension unique?
+4. How does the spectral theorem change when $\sigma(T)$ is unbounded, and how do we define $e^{itT}$ rigorously for unbounded $T$?
+
+The technical centerpiece will be the **Hellinger-Toeplitz theorem**, which proves that a symmetric operator defined on all of $H$ must be bounded. This theorem forces us to accept proper dense domains as a structural necessity, not a technical inconvenience. Once domains are handled correctly, the spectral theorem for unbounded self-adjoint operators follows with minimal modification: the projection-valued measure lives on an unbounded subset of $\mathbb{R}$, and the domain of $T$ is exactly the set of vectors with finite second spectral moment. The functional calculus extends to unbounded Borel functions, and Stone's theorem on one-parameter unitary groups emerges as a direct corollary. The payoff is immediate: we gain rigorous control over the Schrödinger equation, heat semigroups, and momentum operators. The bounded theory was the blueprint; the unbounded theory is the building.

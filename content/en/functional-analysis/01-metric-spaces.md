@@ -80,6 +80,10 @@ What changes is the *shape* of the balls. In $\mathbb{R}^2$, the unit ball under
 
 A continuous map between metric spaces $f: (X, d_X) \to (Y, d_Y)$ is one for which preimages of open sets are open, equivalently: for every $\varepsilon > 0$ and every $x \in X$ there exists $\delta > 0$ such that $d_X(x, x') < \delta$ implies $d_Y(f(x), f(x')) < \varepsilon$. Continuity in the metric sense is automatically continuity in the topological sense, but the metric formulation buys me **uniform continuity** ($\delta$ depending only on $\varepsilon$, not on $x$) and **Lipschitz continuity** ($d_Y(f(x), f(x')) \leq L \cdot d_X(x, x')$). These are quantitative notions absent from pure topology, and they are what let me prove rate-of-convergence theorems.
 
+
+### Worked Numerical Example
+Take $f_n(t) = t^n$ on $[0,1]$. Under the supremum metric $d_\infty(f,g) = \sup_t |f(t)-g(t)|$, the distance to the zero function is $d_\infty(f_n, 0) = 1$ for every $n$. The sequence does not converge to $0$. Switch to the integral metric $d_1(f,g) = \int_0^1 |f-g|\,dt$. Compute $d_1(f_n, 0) = \int_0^1 t^n\,dt = 1/(n+1)$. For $n=9$, $d_1 = 0.1$. For $n=99$, $d_1 = 0.01$. For $n=999$, $d_1 = 0.001$. The numbers shrink to zero linearly in $1/n$. The sequence converges to $0$ in $(C[0,1], d_1)$ but stays exactly distance $1$ away in $(C[0,1], d_\infty)$. The open ball $B_{d_1}(0, 0.05)$ contains $f_{99}$, while $B_{d_\infty}(0, 0.5)$ contains none of them. Convergence is not a property of the sequence alone; it is a property of the pair (sequence, metric).
+
 ## Cauchy Sequences and the Hidden Hypothesis
 
 A sequence $(x_n)$ is **Cauchy** if for every $\varepsilon > 0$ there exists $N$ such that $d(x_m, x_n) < \varepsilon$ for all $m, n \geq N$. The eyes-glaze-over phrasing hides the actual content: the terms get arbitrarily close *to each other*, with no reference to a candidate limit.
@@ -110,6 +114,10 @@ Completeness is the algebraic license to do limit-based arguments. Want to defin
 
 The completeness of a space is *metric-dependent*, not just space-dependent. The space $C[0,1]$ is complete under the supremum metric $d_\infty(f,g) = \sup_t |f-g|$ (the sequence above does not converge uniformly, so it is not Cauchy in $d_\infty$), but incomplete under $d_1$. The question is never just "is this complete?" — it is "is this complete under that metric?"
 
+
+### Worked Numerical Example
+Work in $X = (0, 1)$ with the standard metric $d(x,y) = |x-y|$. Define $x_n = 1/n$. Compute pairwise distances: $d(x_{10}, x_{20}) = |0.1 - 0.05| = 0.05$. $d(x_{100}, x_{200}) = |0.01 - 0.005| = 0.005$. $d(x_{1000}, x_{2000}) = 0.0005$. For any $\varepsilon = 10^{-k}$, choosing $N = 10^k$ guarantees $d(x_m, x_n) < \varepsilon$ for all $m,n \geq N$. The sequence is Cauchy by direct arithmetic. The candidate limit is $0$, but $0 \notin (0,1)$. The distances between terms collapse to zero while the sequence drifts toward a hole in the space. The Cauchy condition detects internal coherence; it cannot detect whether the destination exists inside $X$.
+
 ## The Completion of a Metric Space
 
 The good news: every metric space $(X, d)$ has a **completion** $(\widehat X, \widehat d)$ — a complete metric space containing an isometric, dense copy of $X$. The construction is canonical. Take all Cauchy sequences in $X$, declare two of them equivalent if their pointwise distance tends to zero, and define the distance between equivalence classes as the limit of pointwise distances. This is essentially how Cantor builds $\mathbb{R}$ from $\mathbb{Q}$.
@@ -133,6 +141,10 @@ Take the sequence $(f_n)$ from above. It is Cauchy in $(C[0,1], d_1)$. Its equiv
 A subtler point: the elements of $L^1[0,1]$ are *equivalence classes*, not functions. You cannot ask for the value of an $L^1$ function at a point — that question is not even well-posed, because two equivalent functions can disagree on any prescribed measure-zero set. This is the price of completeness in the $L^1$ norm: I gain a complete space at the cost of pointwise evaluation. In Article 3 we will see Hilbert spaces ($L^2$ in particular) inherit the same trade-off.
 
 The lesson: every reasonable function space you have ever met — the $L^p$ spaces, the Sobolev spaces, the Hardy spaces — is the completion of a more concrete space (continuous functions, or smooth compactly supported functions) in some specific norm. Completeness is not optional decoration; it is the price of admission for limits.
+
+
+### Worked Numerical Example
+Take $\mathbb{Q}$ with $d(x,y)=|x-y|$. Consider two Cauchy sequences approximating $\sqrt{2}$: $a_n$ from Newton's method ($1, 1.5, 1.41666..., 1.414215...$) and $b_n$ from decimal truncation ($1, 1.4, 1.41, 1.414, 1.4142$). Compute termwise distances: $|a_1-b_1|=0$, $|a_2-b_2|=0.1$, $|a_3-b_3| \approx 0.00666$, $|a_4-b_4| \approx 0.000215$, $|a_5-b_5| \approx 0.000013$. The distance sequence tends to $0$. By the completion construction, $[(a_n)] = [(b_n)]$ in $\widehat{\mathbb{Q}}$. They define the same point. Now take $c_n = 1.5, 1.42, 1.415, 1.4143, ...$ (rounding up). $|a_n - c_n|$ also tends to $0$. All three sequences belong to the same equivalence class. The real number $\sqrt{2}$ is not a single sequence; it is the entire class of rational sequences whose mutual distances vanish. The completion turns this vanishing distance into an actual point.
 
 ## The Baire Category Theorem
 
@@ -187,6 +199,10 @@ For $h$ small enough, $T$ is a contraction in the supremum metric on $C[t_0, t_0
 
 The fixed-point theorem is how I solve almost every existence problem in this series. The Picard-Lindelöf theorem on existence of solutions to ODEs is a fixed-point argument in $C[a, b]$. The implicit function theorem in Banach spaces is a fixed-point argument. Solutions of integral equations of the form $f = g + Kf$ exist as fixed points of $T f = g + K f$ whenever $K$ is contractive. The Hartman-Grobman theorem on linearization of dynamical systems uses a fixed-point argument in a function space. Every time I solve $T x = x$ by iteration and bound the rate of convergence, I am cashing in the same theorem.
 
+
+### Worked Numerical Example
+Let $X = [0, 1]$ and $T(x) = \cos(x)$. The derivative is $T'(x) = -\sin(x)$. On $[0,1]$, $|T'(x)| \leq \sin(1) \approx 0.84147$. So $T$ is a contraction with $\lambda = 0.84147$. Start at $x_0 = 0.5$. Iterate: $x_1 = \cos(0.5) \approx 0.87758$, $x_2 = \cos(0.87758) \approx 0.63901$, $x_3 = \cos(0.63901) \approx 0.80269$, $x_4 \approx 0.69478$. The theoretical error bound after $n=4$ steps is $d(x_4, x^*) \leq \frac{\lambda^4}{1-\lambda} d(x_1, x_0) \approx \frac{0.501}{0.15853} \times 0.37758 \approx 1.19$. The actual fixed point is $x^* \approx 0.739085$. The true error is $|0.69478 - 0.739085| \approx 0.0443$. The bound is loose but valid. The contraction constant $\lambda < 1$ forces the error envelope to shrink geometrically, and completeness guarantees the envelope closes on a point inside $[0,1]$.
+
 ## Compactness in Metric Spaces
 
 The last piece I need before moving to normed spaces is **compactness**. A subset $K \subseteq X$ is compact if every open cover has a finite subcover. In a metric space this turns out to be equivalent to several other conditions, and that equivalence is what makes compactness so powerful.
@@ -220,6 +236,10 @@ Total boundedness is the abstract notion; equicontinuity plus pointwise boundedn
 ### Why this matters
 
 Compactness is the topological substitute for "finite." Continuous functions on compact sets attain their extrema (Weierstrass), are uniformly continuous, and are bounded. Compactness lets me extract convergent subsequences and so converts existence questions ("does some maximizer exist?") into routine arguments. The whole calculus of variations, the whole theory of weak solutions of PDEs, and most of operator spectral theory cash in compactness at some critical step.
+
+
+### Worked Numerical Example
+Test total boundedness with $\varepsilon = 0.2$. In $[0,1] \subset \mathbb{R}$, place balls of radius $0.2$ at centers $0.1, 0.3, 0.5, 0.7, 0.9$. Five balls cover the interval exactly. The covering number $N(0.2) = 5$ is finite. Now take the closed unit ball $B$ in $\ell^2$. Consider the standard basis vectors $e_1, e_2, e_3, e_4, e_5$. Pairwise distances are $\|e_i - e_j\|_2 = \sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$. A ball of radius $0.2$ has diameter $0.4$. It can contain at most one $e_k$. To cover just these five points requires five disjoint balls. Since $\ell^2$ contains infinitely many such vectors, $N(0.2)$ is infinite. The unit ball is bounded (radius $1$) but fails total boundedness at $\varepsilon = 0.2$. Compactness collapses in infinite dimensions because boundedness no longer controls the covering number.
 
 ## Separability and Density
 
@@ -278,6 +298,36 @@ One last meta-point. Notice how each tool in this article cashed in completeness
 
 ---
 
+## Counterexample: Why the Definition Cannot Be Weakened
+The Banach Fixed-Point Theorem requires a uniform contraction constant $\lambda < 1$. A natural weakening is to demand only strict contractivity: $d(Tx, Ty) < d(x, y)$ for all $x \neq y$, without a global $\lambda$. This breaks the theorem completely.
+
+Take $X = [0, \infty)$ with the Euclidean metric (complete). Define $T(x) = \sqrt{x^2 + 1}$. The derivative is $T'(x) = x / \sqrt{x^2 + 1}$. For every $x \geq 0$, $0 \leq T'(x) < 1$. By the mean value theorem, $|T(x) - T(y)| < |x - y|$ for all distinct $x, y$. The map strictly shrinks every distance. Yet $T$ has no fixed point: solving $\sqrt{x^2+1} = x$ gives $x^2+1 = x^2$, which is $1=0$. 
+
+Run the iteration from $x_0 = 0$: $x_1 = 1$, $x_2 = \sqrt{2} \approx 1.414$, $x_3 = \sqrt{3} \approx 1.732$, $x_4 = 2$, $x_n = \sqrt{n}$. The distances between successive terms shrink: $d(x_n, x_{n+1}) = \sqrt{n+1} - \sqrt{n} = 1/(\sqrt{n+1} + \sqrt{n})$, which tends to $0$. But the sequence drifts to infinity. The local contraction rate $T'(x)$ approaches $1$ as $x \to \infty$, so there is no uniform $\lambda$ bounding the shrinkage globally. Without that uniform bound, the geometric series argument in the proof diverges, the Cauchy estimate fails, and completeness has nothing to catch. The hypothesis $\lambda < 1$ is not a technical convenience; it is the brake that stops the iterates from sliding off to infinity.
+
+## Why I Care
+I first met completeness as a topology exercise and filed it away as abstract bookkeeping. It stopped being abstract during a numerical analysis project in my third year. I was coding a Picard iteration to solve $y'(t) = -y(t)^2$ with $y(0)=1$. I discretized the function space by truncating to polynomials of degree $5$, reasoning that smooth solutions should live there. The first three iterates looked perfect. By step six, the coefficients blew up to $10^4$ and the plot oscillated wildly. I spent two days halving step sizes and checking quadrature rules.
+
+My advisor looked at the divergence, then at my basis truncation, and said: "You are iterating in an incomplete subspace. The exact solution is $1/(1+t)$, a rational function. Your polynomial space has a hole exactly where the limit wants to sit. The iteration is trying to converge to something your basis cannot represent, so it compensates by exploding the coefficients." I switched to a Chebyshev spectral discretization, which effectively works in the $L^2$ completion. The same iteration converged in eight steps to machine precision. Completeness ceased to be a definition and became a numerical stability requirement. If your space leaks, your code diverges.
+
+## Common Pitfall
+Beginners routinely assume that "Cauchy in $C[0,1]$ implies the limit is continuous." This confuses the space with the metric. The statement is true under $d_\infty$, but false under $d_1(f,g) = \int_0^1 |f-g|\,dt$.
+
+Take $f_n(t) = \min(1, nt)$ on $[0,1]$. Each $f_n$ is continuous, rising linearly from $0$ to $1$ on $[0, 1/n]$ and staying at $1$ thereafter. Compute the $L^1$ distance between terms for $m > n$: the functions differ only on $[0, 1/n]$, and the area between them is exactly $\frac{1}{2}(1/n - 1/m)$. For $n=100, m=200$, $d_1(f_n, f_m) = 0.0025$. For $n=1000, m=2000$, $d_1 = 0.00025$. The sequence is Cauchy in $(C[0,1], d_1)$. 
+
+The pointwise limit is the step function $\mathbb{1}_{(0,1]}$, which jumps at $0$. The $L^1$ limit is the same step function. It is not continuous. The sequence has no limit inside $C[0,1]$ when measured by $d_1$. The pitfall is treating "Cauchy" as a property of the sequence alone. It is a property of the pair $(X, d)$. If you change the metric, you change which sequences are Cauchy and which limits exist. Always specify the metric before claiming convergence or completeness.
+
 ## What's next
 
 With metric spaces providing the foundation of distance and convergence, we are ready to add algebraic structure. In the next article, we equip our spaces with a norm — a single function that simultaneously gives us distance and a vector space structure — and discover Banach spaces, where completeness and linearity combine to produce the powerful theorems that make functional analysis tick.
+
+### Specific Questions Ahead
+Metric spaces give us distance and convergence, but they lack algebraic structure. I can measure how far two functions are, but I cannot add them, scale them, or talk about linear operators. The next article adds a vector space structure compatible with the metric. This produces normed spaces, and when completeness is present, Banach spaces. You are now equipped to read it because you already know how to handle Cauchy sequences, how completions plug holes, and why convergence depends on the chosen metric. Those are the exact mechanisms that make normed spaces work.
+
+The next article answers four concrete questions:
+1. How do we define a norm so that the induced metric $d(x,y) = \|x-y\|$ automatically respects vector addition and scalar multiplication?
+2. Why are all norms on $\mathbb{R}^n$ equivalent, and exactly where does the proof break when the dimension becomes infinite?
+3. How do we construct the dual space $X^*$ of bounded linear functionals, and why does completeness of $X$ guarantee completeness of $X^*$ regardless of whether $X$ is complete?
+4. When can we extend a bounded linear functional from a subspace to the whole space without increasing its norm?
+
+We will answer the last question with the Hahn-Banach Theorem. It is the first major result that requires the norm structure rather than just the metric. The theorem guarantees that dual spaces are never trivial, which in turn lets us separate convex sets, characterize weak convergence, and build the entire machinery of duality. The proof uses Zorn's Lemma to push a functional outward one dimension at a time while preserving the norm bound. You will see exactly why the triangle inequality and absolute homogeneity of the norm are the constraints that make the extension possible. Once Hahn-Banach is in place, the geometry of the unit ball stops being a picture and becomes a computational tool.

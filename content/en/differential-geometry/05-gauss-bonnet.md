@@ -226,6 +226,88 @@ For a torus with major radius $R = 3$ and minor radius $r = 1$: the curvature $K
 
 ---
 
+## Deeper Examples and Common Pitfalls
+
+The earlier sections introduced the local and global Gauss-Bonnet theorems, the Euler characteristic, the Gauss-map degree, and the road to higher dimensions. This section computes specific cases in detail, points out where beginners go wrong, and connects Gauss-Bonnet to applications outside pure mathematics.
+
+### A worked numerical example: the sphere and the torus, integrated explicitly
+
+For the unit sphere, $K = 1$ everywhere and the area is $4\pi$. So $\int_{S^2} K\, dA = 4\pi$. Gauss-Bonnet says this equals $2\pi \chi(S^2) = 2\pi \cdot 2 = 4\pi$. Verified. The Euler characteristic $\chi(S^2) = 2$ comes from any triangulation: the tetrahedral triangulation gives $V = 4, E = 6, F = 4$, so $V - E + F = 2$.
+
+For the unit torus $T^2$ embedded as $X(u, v) = ((R + r\cos u) \cos v, (R + r\cos u)\sin v, r \sin u)$ with $R = 2, r = 1$, the Gaussian curvature was computed in article 3: $K = \cos u / (r(R + r\cos u))$. The area element is $dA = r(R + r\cos u)\, du\, dv$. So
+$$\int_T K\, dA = \int_0^{2\pi}\int_0^{2\pi} \frac{\cos u}{r(R + r\cos u)} \cdot r(R + r\cos u)\, du\, dv = \int_0^{2\pi}\int_0^{2\pi} \cos u\, du\, dv = 0.$$
+Gauss-Bonnet says this should equal $2\pi \chi(T^2) = 0$. Verified — the cancellation between the elliptic outer half ($K > 0$) and the hyperbolic inner half ($K < 0$) is forced by topology.
+
+### A worked numerical example: a polygon on a sphere
+
+Take a spherical polygon: the triangle on the unit sphere with vertices at the north pole, the equator at $\theta = 0$, and the equator at $\theta = \pi/3$. The interior angles are $\pi/3$ at the north pole (the angle between the two meridians) and $\pi/2$ at each of the two equator vertices (meridians meet the equator at right angles). Sum of interior angles: $\pi/3 + \pi/2 + \pi/2 = 4\pi/3$. Excess over $\pi$: $4\pi/3 - \pi = \pi/3$.
+
+Area of the triangle: a quick way is the spherical excess formula $A = R^2 \cdot E$ where $E$ is the excess and $R = 1$. So $A = \pi/3$. Verify by direct integration: the triangle covers $\theta \in [0, \pi/3]$ over the upper hemisphere, $A = \int_0^{\pi/3} \int_0^{\pi/2} \sin\phi\, d\phi\, d\theta = \int_0^{\pi/3} 1\, d\theta = \pi/3$. Match.
+
+Gauss-Bonnet for this polygon: $\int K\, dA + \sum (\pi - \alpha_i) = 2\pi$, where $\alpha_i$ are interior angles. Compute: $\int K\, dA = 1 \cdot \pi/3 = \pi/3$. Sum of exterior angles: $(\pi - \pi/3) + (\pi - \pi/2) + (\pi - \pi/2) = 2\pi/3 + \pi/2 + \pi/2 = 5\pi/3$. Total: $\pi/3 + 5\pi/3 = 2\pi$. Verified.
+
+### Intuition + counterexample: why $\chi$ is so robust
+
+The Euler characteristic looks like a fragile combinatorial gadget — count vertices, edges, faces. But changing the triangulation by adding or removing simplices preserves $V - E + F$: each subdivision adds equal numbers of $V$ and $F$ and corresponding edges in a way that exactly cancels. This combinatorial invariance is what lets Gauss-Bonnet work. Without it, the right side of the theorem would depend on a choice of triangulation, which the left side (a smooth integral) cannot see.
+
+Counterexample to fragile-looking robustness: a *non-orientable* surface. The Klein bottle has $\chi = 0$, like the torus, but no global integral of $K$ matches it because the Klein bottle does not embed in $\mathbb{R}^3$. The right setup for Gauss-Bonnet on non-orientable surfaces is via the orientation double cover. The integral on the cover divided by 2 gives $2\pi \chi$, but you cannot pull the integral down to the Klein bottle directly. This is the cleanest counterexample to "Gauss-Bonnet works on any compact surface as stated" — orientability is silently assumed.
+
+### A third worked example: a square pillow as a piecewise surface
+
+Take a square cushion — four flat triangles glued into a closed surface. There is no smooth Riemannian metric (the corners are singular), but Gauss-Bonnet still works in the discrete sense. Each face has $K = 0$ (flat), so the smooth-curvature integral over the smooth part is 0. The angle defects are concentrated at the vertices: at each vertex of the cushion (four of them), the surrounding angles in adjacent triangles sum to less than $2\pi$. For a tetrahedron made of four equilateral triangles, each vertex has three triangles meeting, contributing total angle $3 \cdot \pi/3 = \pi$, so the defect is $2\pi - \pi = \pi$ per vertex. Total: $4 \pi$. By discrete Gauss-Bonnet, $4\pi = 2\pi \chi$, so $\chi = 2$. Match: the tetrahedron is topologically a sphere. The same calculation for a cube: each of 8 vertices has three squares meeting, total angle $3 \pi/2$, defect $\pi/2$. Total: $8 \cdot \pi/2 = 4\pi$. Match again.
+
+This is how 3D mesh software computes the topology of a model in O(V) time, no triangulation refinement needed: sum the angle defects, divide by $2\pi$, get $\chi$, derive the genus. A bug-detection workflow that takes microseconds.
+
+### A fourth worked example: angle excess on the sphere as a function of triangle size
+
+Take spherical triangles of varying size on the unit sphere, all centered at the north pole, with three meridians evenly spaced at $2\pi/3$ apart cut at colatitude $\phi_0$. The interior angles at the equatorward vertices are $\pi/2$ each (angle between meridian and parallel circle is not $\pi/2$ unless the parallel is a great circle, but we're working with great-circle arcs from those vertices to each other; for small $\phi_0$ the geometry is nearly flat). For a tiny triangle ($\phi_0$ small), the angle excess is small, scaling like the triangle's area, since $K = 1$ on the unit sphere. For a triangle covering the entire upper hemisphere ($\phi_0 = \pi/2$), angle excess equals $2\pi$ — a full great-circle "wedge" with three right angles plus an apex angle that approaches $2\pi/3$, so total $2\pi/3 + 3\pi/2 - \pi = 2\pi/3 + \pi/2$, area is $2\pi$ (full hemisphere), and Gauss-Bonnet checks out. The exercise of plotting "angle excess vs area" gives a perfect line of slope $K = 1$, and this is how astronomers historically measured the Earth's curvature without ever leaving its surface.
+
+### Common pitfall for beginners
+
+Beginners frequently misapply Gauss-Bonnet to surfaces with boundary or to surfaces that are not closed. The full statement is: $\int_M K\, dA + \int_{\partial M} \kappa_g\, ds + \sum (\pi - \alpha_i) = 2\pi \chi(M)$, where the sum is over corner points of the boundary. Skipping the geodesic-curvature term or the corner term gives the wrong answer.
+
+A specific trap: a hemisphere of the unit sphere. The boundary is the equator, a geodesic, so $\kappa_g = 0$. No corners. Compute: $\int K\, dA = 2\pi$ (area $2\pi$, $K = 1$). $\chi$(hemisphere) $= 1$ (it deformation-retracts to a point). Gauss-Bonnet: $2\pi + 0 + 0 = 2\pi \cdot 1$. Match. If you forgot $\chi = 1$ and used $\chi = 2$ (sphere), the equation would fail.
+
+A second trap: the boundary geodesic-curvature integral has a sign that depends on orientation. The convention is that the boundary is traversed so that $M$ lies to the left. Reversing the orientation flips the sign of the integral and breaks Gauss-Bonnet. This is the most common bug in computational implementations.
+
+### Where this matters in physics, computing, and engineering
+
+In **discrete differential geometry**, Gauss-Bonnet survives the move to triangle meshes via *angle defect*: at each vertex of a polyhedral surface, the angle defect is $2\pi - \sum \alpha_i$ over the angles meeting at that vertex. Summing over all vertices reproduces $2\pi \chi$. Mesh processing software (libigl, OpenMesh) uses this to detect topology-changing edits (handle-creation, hole-filling) by tracking the global angle defect.
+
+In **general relativity**, the four-dimensional analog of Gauss-Bonnet (the Chern-Gauss-Bonnet theorem in dimension 4) connects the integral of a specific curvature scalar (the Pfaffian) to the Euler characteristic of spacetime. In black-hole entropy calculations, this term appears as a topological correction to the Bekenstein-Hawking formula in higher-derivative gravity. The "Gauss-Bonnet term" in modified gravity literature is exactly this.
+
+In **computer graphics**, the genus of a 3D-printed model is computed via Gauss-Bonnet on the discretized mesh: $\chi = \sum$ angle defects $/ 2\pi$, then $g = (2 - \chi)/2$. Slicing software uses this to detect models with unintended handles before printing — a real-world QA check that costs essentially nothing.
+
+In **molecular biology**, the genus of a protein's surface (defined via solvent-accessible surface) correlates with binding-site complexity. Computational biology pipelines compute genus via Gauss-Bonnet on triangulated isosurfaces of electron density.
+
+### Revisiting "what's next" with sharper questions
+
+Article 6 introduces smooth manifolds, the abstract framework that lets us do calculus without an embedding. To prepare:
+
+(1) Articles 1-5 worked with surfaces in $\mathbb{R}^3$. The Gauss-Bonnet theorem and the Theorema Egregium suggest that intrinsic geometry is the real subject. What is the right abstract setting to formulate "intrinsic geometry" without ever mentioning an ambient $\mathbb{R}^N$?
+(2) Tangent vectors so far were arrows in $\mathbb{R}^3$. On an abstract manifold, there is no ambient space, so what *is* a tangent vector? The answer (a derivation of smooth functions) is one of the deepest reframings in this series.
+(3) The Whitney embedding theorem says every $n$-manifold embeds in $\mathbb{R}^{2n}$. So abstract manifolds are not strictly more general than embedded ones — but the abstract viewpoint is much cleaner. Why bother with abstraction if everything embeds anyway?
+
+You now have a complete classical theory of surfaces. Article 6 is the conceptual hinge of the series: the move from "surface in $\mathbb{R}^3$" to "manifold." Read it asking "what is the cleanest definition that recovers all of the above without ever using an embedding?" The answer — charts, atlases, smooth structures — is one of the great mathematical inventions of the 20th century.
+
+
+### One last worked example: Gauss-Bonnet on a square pillow
+
+A "pillow" is two unit squares glued along their boundaries to form a closed polyhedral surface — topologically a sphere, four corners. Each square contributes flat interior ($K = 0$), so the smooth-curvature integral is $0$. The four corners each have angle defect: at each corner, two squares meet, contributing total interior angle $2 \cdot \pi/2 = \pi$, so defect $2\pi - \pi = \pi$ per corner. Total angle defect: $4\pi$.
+
+Discrete Gauss-Bonnet: total angle defect = $2\pi \chi$. So $4\pi = 2\pi \chi$, giving $\chi = 2$. Confirmed: the pillow is topologically $S^2$ ($\chi = 2$), as you would guess from the gluing pattern.
+
+Compare to a tetrahedron: 4 vertices, each with three equilateral triangles meeting, total interior angle $3 \cdot \pi/3 = \pi$, defect $\pi$. Total: $4\pi$. Same answer — both are spheres. Now a cube: 8 vertices, three squares meeting, interior angle $3 \cdot \pi/2 = 3\pi/2$, defect $\pi/2$. Total: $8 \cdot \pi/2 = 4\pi$. All three closed convex polyhedra (pillow, tetrahedron, cube) yield the same total angle defect $4\pi$, as Gauss-Bonnet demands. This is *Descartes' theorem on total angular defect*, which predates Euler's formula by over a century — Descartes proved it directly without going through $V - E + F$, an alternative path to the same topological invariant. Numerical check on a soccer ball (truncated icosahedron): 60 vertices, each with two pentagons + one hexagon meeting, angles $2(108°) + 120° = 336°$, defect $24°$. Total: $60 \cdot 24° = 1440° = 4\pi$ radians. Match.
+
+### One more topological example: surfaces of higher genus
+
+Beyond sphere ($\chi = 2$) and torus ($\chi = 0$), the genus-$g$ closed orientable surface has $\chi = 2 - 2g$. Numerically: genus 2 (double torus) has $\chi = -2$, genus 3 has $\chi = -4$, etc. Gauss-Bonnet $\int K\, dA = 2\pi(2 - 2g)$ implies that any genus-$\geq 2$ surface admits no constant-positive-curvature metric (the integral would be positive but $\chi < 0$). It also forbids constant-zero-curvature metrics for $g \geq 2$ (would require $\chi = 0$, only the torus). What remains is constant-negative-curvature: every closed orientable surface of genus $\geq 2$ admits a hyperbolic metric ($K = -1$), unique up to isometry by the Poincaré uniformization theorem.
+
+So Gauss-Bonnet, combined with uniformization, gives a complete classification: spheres are positively curved, tori are flat, higher-genus surfaces are hyperbolic. Three model geometries, three kinds of topology. This is the simplest non-trivial example of the Thurston geometrization program, which generalizes the picture to 3-manifolds (eight model geometries instead of three; resolved by Perelman in 2003).
+
+Verify Gauss-Bonnet on a genus-2 hyperbolic surface: total area is $\int dA = -2\pi \chi/K = -2\pi(-2)/(-1) = 4\pi$. So every genus-2 hyperbolic surface has area exactly $4\pi$ — independent of which hyperbolic metric you choose. The topology fixes the area.
+
+
 ## What's next
 
 With the classical theory of surfaces complete — first form, second form, intrinsic curvature, Gauss-Bonnet — we shift gears entirely. Chapter 6 introduces *smooth manifolds*: abstract spaces that locally resemble $\mathbb{R}^n$ but need not embed in any ambient space. This is where modern differential geometry begins, and it is the framework for everything from general relativity to gauge theory.

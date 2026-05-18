@@ -496,6 +496,15 @@ N-BEATS 是个“架构平淡无奇”的模型，却靠将合适模块按正确
 
 ---
 
+
+## 下一步
+
+N-BEATS 给我们的核心 lesson 是：在时间序列领域，**架构设计比模型容量更重要**。它没有用 RNN、没有用 attention、参数也不算特别多，仅凭"双重残差堆叠 + 基函数展开"这一个结构性想法，就在 M4 上击败了几十年精心调过的统计集成。这件事也告诉你，盲目堆 Transformer 不一定是对的——很多时序任务，对的归纳偏置（inductive bias）比模型容量更值钱。
+
+不过 N-BEATS 也有它的边界：它本质是 MLP，对**特别长的输入序列**会有点吃力（参数量跟着 lookback 长度线性涨）。如果你的任务是"基于过去 720 步预测未来 168 步"——能源、气象、长程 IoT 这一类——N-BEATS 就开始力不从心了，这时候你需要专门为长序列设计的架构。
+
+下一篇 [Informer](/zh/time-series/08-informer长序列预测) 正是为这个场景设计的。它用三个独立的技巧联合发力：ProbSparse 注意力把 O(n²) 降到 O(n log n)、编码器蒸馏让序列每层减半、生成式解码器一次预测整个 horizon。综合下来比朴素 Transformer 快 6-10 倍、精度还更好。这是本系列的收尾篇，我会同时给一份"该选哪个模型"的总览决策表，帮你在新项目上从这八种架构里挑出最合适的那个。
+
 ## 参考文献
 
 - Oreshkin, B. N., Carpov, D., Chapados, N., & Bengio, Y. (2020). *N-BEATS: Neural Basis Expansion Analysis for Interpretable Time Series Forecasting.* ICLR.

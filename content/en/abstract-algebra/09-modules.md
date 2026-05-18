@@ -341,4 +341,69 @@ Some forward references for context. Group representations split (Maschke, Part 
 
 In Part 11 we go up another level of abstraction to category theory, where modules become an example rather than the subject. By Part 12 we will see modules show up in cryptography and physics, providing the algebraic substrate for both abstract and applied results. The PID structure theorem is, in a real sense, the technical engine that drives all of this.
 
+
+## Deeper Dive: Computations with Modules
+
+Modules are the bridge between linear algebra and ring theory, and they live or die on the structure theorem over a PID. Five computations:
+
+**Computation A: $\mathbb{Z}$-modules are abelian groups.** A $\mathbb{Z}$-module is exactly an abelian group $(M, +)$, with the action $n \cdot m = m + m + \cdots + m$ ($n$ times). The structure theorem for finitely generated modules over $\mathbb{Z}$ specializes to the classification of finitely generated abelian groups: every such group is $\mathbb{Z}^r \oplus \mathbb{Z}/n_1 \oplus \cdots \oplus \mathbb{Z}/n_k$ with $n_1 \mid n_2 \mid \cdots \mid n_k$. Concrete: an abelian group of order $360 = 2^3 \cdot 3^2 \cdot 5$ has invariant factors that are a list of integers each dividing the next, with product $360$. Possibilities: $(360)$, $(2, 180)$, $(2, 2, 90)$, $(2, 6, 30)$, $(6, 60)$, and so on. By systematic enumeration, the number of abelian groups of order $360$ is $p(3) \cdot p(2) \cdot p(1) = 3 \cdot 2 \cdot 1 = 6$ (where $p(k)$ is the partition function — partitions of $3$, $2$, $1$ for the prime factor exponents).
+
+**Computation B: $k[x]$-modules are linear maps with a vector-space domain.** Let $V$ be a $k$-vector space and $T : V \to V$ a $k$-linear map. Then $V$ becomes a $k[x]$-module via $f(x) \cdot v = f(T)(v)$. The structure theorem for modules over the PID $k[x]$ classifies finite-dimensional $V$ with given $T$: $V \cong k[x]/(p_1) \oplus \cdots \oplus k[x]/(p_r)$ where $p_1 \mid p_2 \mid \cdots \mid p_r$. The polynomial $p_r$ is the *minimal polynomial* of $T$, and the product $\prod p_i$ is the *characteristic polynomial*. This is the structural origin of rational canonical form and (when $k$ is algebraically closed) Jordan canonical form.
+
+Concrete: take $T = \begin{pmatrix} 2 & 1 \\ 0 & 2 \end{pmatrix}$ on $k^2$. The minimal polynomial is $(x - 2)^2$, the characteristic polynomial is also $(x - 2)^2$, so the module is cyclic: $V \cong k[x] / (x-2)^2$. This is exactly the Jordan block of size $2$ at eigenvalue $2$.
+
+**Computation C: free vs. non-free modules.** The $\mathbb{Z}$-module $\mathbb{Z}/2$ is not free (it has torsion: $2 \cdot \bar 1 = 0$ but $\bar 1 \neq 0$, so $\bar 1$ is not part of any basis). The module $\mathbb{Z}^2$ is free of rank $2$, with basis $(1, 0), (0, 1)$. The submodule $\{(a, b) : a + b \equiv 0 \pmod 2\}$ is also free of rank $2$, with basis $(2, 0), (1, 1)$. Submodules of free modules over a PID are free — but this is special to PIDs. Over $\mathbb{Z}[x]$, submodules of free modules can fail to be free.
+
+**Computation D: tensor products in practice.** Compute $\mathbb{Z}/2 \otimes_\mathbb{Z} \mathbb{Z}/3$. The relations: $2(\bar a \otimes \bar b) = 0 = 3(\bar a \otimes \bar b)$, so $(\bar a \otimes \bar b) = 0$ for any generators (since $\gcd(2, 3) = 1$ and $1 = 3 - 2$ implies $\bar a \otimes \bar b = (3 - 2)(\bar a \otimes \bar b) = 0$). So the tensor product is $0$. More generally, $\mathbb{Z}/m \otimes_\mathbb{Z} \mathbb{Z}/n = \mathbb{Z}/\gcd(m, n)$. Tensor product detects common torsion; coprime torsion vanishes.
+
+Compute $\mathbb{Q} \otimes_\mathbb{Z} \mathbb{Z}/2$. Any element is $q \otimes \bar a$ for $q \in \mathbb{Q}$, $\bar a \in \mathbb{Z}/2$. But $q = 2 \cdot (q/2)$, so $q \otimes \bar a = (q/2) \otimes 2\bar a = (q/2) \otimes 0 = 0$. So $\mathbb{Q} \otimes_\mathbb{Z} \mathbb{Z}/2 = 0$. Tensoring with $\mathbb{Q}$ kills all torsion. This is the structural reason that "$\mathbb{Q}$-vector space is the torsion-free part."
+
+**Computation E: localization.** The localization $\mathbb{Z}_{(p)}$ of $\mathbb{Z}$ at the prime ideal $(p)$ is the ring of fractions $a/b$ with $b$ coprime to $p$. So $\mathbb{Z}_{(2)} = \{a/b : b \text{ odd}\}$. Every element of $\mathbb{Z}_{(2)}$ that is *not* in the maximal ideal $(2)$ is a unit (the fraction $a/b$ with $a$ odd has $b/a$ as inverse). So $\mathbb{Z}_{(2)}$ is a *local ring*: a ring with a unique maximal ideal. Localization is a ring-theoretic analogue of "zooming in" on a single prime, and most modern commutative algebra does its work by localizing first and then transferring back.
+
+## The Structure Theorem in Detail
+
+The classification statement: every finitely generated module over a PID $R$ decomposes as $R^r \oplus R/(d_1) \oplus \cdots \oplus R/(d_k)$ with $d_1 \mid d_2 \mid \cdots \mid d_k$ all non-zero non-units. The numbers $r$ (free rank) and $(d_1, \ldots, d_k)$ (invariant factors) are uniquely determined.
+
+The proof has two parts. Existence: present the module as a quotient of $R^n$ by the row space of a matrix $A$, then perform row and column operations to bring $A$ into Smith normal form (a diagonal matrix with the $d_i$ on the diagonal, padded with zeros). Smith normal form exists over any PID, by repeated application of the Euclidean algorithm or its analogue. Uniqueness: the $d_i$ are invariants of the module — they can be computed as $d_i = \mathrm{ann}(M^{(i)})$ for a chain of submodules, and this is intrinsic.
+
+A worked example. The module $M = \mathbb{Z}^3 / \langle (2, 4, 6), (3, 6, 9) \rangle$. The presentation matrix is $\begin{pmatrix} 2 & 4 & 6 \\ 3 & 6 & 9 \end{pmatrix}$. Row-reduce: $R_2 \leftarrow R_2 - R_1 = (1, 2, 3)$, then swap and reduce: $\begin{pmatrix} 1 & 2 & 3 \\ 2 & 4 & 6 \end{pmatrix} \to \begin{pmatrix} 1 & 2 & 3 \\ 0 & 0 & 0 \end{pmatrix}$. Column-reduce: $C_2 \leftarrow C_2 - 2 C_1$, $C_3 \leftarrow C_3 - 3 C_1$: $\begin{pmatrix} 1 & 0 & 0 \\ 0 & 0 & 0 \end{pmatrix}$. Smith normal form. The first invariant factor is $1$ (the $\mathbb{Z}/1 = 0$ contributes nothing), and there are no other diagonal entries in the relation. Free rank $= 3 - \text{rank}(A) = 3 - 1 = 2$. So $M \cong \mathbb{Z}^2$, free of rank $2$.
+
+## Common Pitfalls for Beginners
+
+The first pitfall: assuming every module has a basis. Free modules do, by definition. General modules do not — torsion elements obstruct any basis. Even for a free module over a non-commutative ring, "basis" can be subtle: there exist rings $R$ where $R \cong R^2$ as left $R$-modules (the so-called IBN-failing rings), so "rank" is not well-defined.
+
+The second pitfall: thinking of "submodule" as "subset closed under addition." The correct definition requires closure under multiplication by the ring as well. Over $\mathbb{Z}$, this is automatic for an additive subgroup. Over a polynomial ring, it is not: a $k$-vector subspace of a $k[x]$-module is a submodule only if it is also closed under the action of $x$, i.e., is $T$-invariant.
+
+The third pitfall: the structure theorem requires the ring to be a PID. For modules over $\mathbb{Z}[x]$ or $k[x, y]$ (not PIDs), no such clean classification exists. The closest analogue — for finitely generated modules over a Noetherian ring — is the existence of a primary decomposition, which is much weaker.
+
+## Where This Shows Up
+
+*Jordan and rational canonical forms.* As noted, the $k[x]$-module structure of $(V, T)$ gives the canonical forms of linear algebra. This is how computer algebra systems compute the Jordan form: present the module, compute Smith normal form of $xI - A$, read off the invariant factors.
+
+*Algebraic topology.* The homology groups $H_n(X; \mathbb{Z})$ of a topological space are finitely generated $\mathbb{Z}$-modules (under nice conditions). The structure theorem decomposes them as $\mathbb{Z}^{b_n} \oplus T_n$ where $b_n$ is the *Betti number* and $T_n$ is the torsion. The Euler characteristic, the Betti numbers, the torsion subgroups — all computable from the structure theorem.
+
+*Algebraic number theory.* The unit group of the ring of integers $\mathcal{O}_K$ of a number field is, by Dirichlet's unit theorem, $\mathbb{Z}^{r_1 + r_2 - 1} \oplus \mu(K)$ where $\mu(K)$ is the finite cyclic group of roots of unity in $K$. This is exactly the structure theorem for $\mathcal{O}_K^*$ as an abelian group.
+
+## What I Want You to Carry Forward
+
+Three questions for Part 10, on representation theory:
+
+1. *How can we make a group act linearly on a vector space?* That is the definition of a representation. The whole subject is about the structure of these actions.
+2. *Why are representations of finite groups completely reducible?* (Maschke's theorem.) This will reduce all questions to irreducible representations.
+3. *What does the character of a representation tell us?* Almost everything: characters determine representations up to isomorphism, they form an orthonormal basis under a natural inner product, and they encode arithmetic information about the group.
+
+In Part 11 we go up another level of abstraction to category theory, where modules become an example rather than the subject. By Part 12 we will see modules show up in cryptography and physics, providing the algebraic substrate for both abstract and applied results. The PID structure theorem is, in a real sense, the technical engine that drives all of this.
+
+
+## Supplementary Notes
+
+**Smith normal form, in detail.** The algorithm to compute SNF of a matrix over a PID: by row and column operations, bring the upper-left entry to be a gcd of all entries, then use it to clear its row and column, then recurse on the lower-right submatrix. The diagonal entries that emerge are the *invariant factors* of the module presented by the original matrix, with each dividing the next.
+
+A worked instance. The matrix $A = \begin{pmatrix} 6 & 4 \\ 4 & 6 \end{pmatrix}$ over $\mathbb{Z}$. Compute $\gcd(6, 4) = 2 = 6 - 4$. Replace $R_1 \leftarrow R_1 - R_2$: $A \to \begin{pmatrix} 2 & -2 \\ 4 & 6 \end{pmatrix}$. Use upper-left $2$ to clear row and column: $C_2 \leftarrow C_2 + C_1$ gives $\begin{pmatrix} 2 & 0 \\ 4 & 10 \end{pmatrix}$, then $R_2 \leftarrow R_2 - 2 R_1$ gives $\begin{pmatrix} 2 & 0 \\ 0 & 10 \end{pmatrix}$. SNF: invariants $(2, 10)$, with $2 \mid 10$. ✓ The module $\mathbb{Z}^2 / \mathrm{rowspan}(A) \cong \mathbb{Z}/2 \oplus \mathbb{Z}/10$.
+
+**Modules over a non-commutative ring.** The theory becomes more delicate: left modules and right modules differ, and bimodules (left over $R$, right over $S$) appear. The classical examples are bimodules $R$-$S$ for $R, S$ matrix algebras, which encode Morita equivalences. Two rings $R$ and $S$ are *Morita equivalent* if their categories of left modules are equivalent — for instance, $R$ and $M_n(R)$ are always Morita equivalent. This is a deep refinement of the notion of "same algebraic structure."
+
+**Projective and injective modules.** A module $P$ is *projective* if every surjection $M \twoheadrightarrow P$ splits, equivalently if $\mathrm{Hom}(P, -)$ is exact. Free modules are projective, but not conversely (over $\mathbb{Z}/6$, the modules $\mathbb{Z}/2$ and $\mathbb{Z}/3$ are projective without being free). *Injective* modules are dual: $\mathrm{Hom}(-, I)$ is exact. Injective hulls and projective covers are central in homological algebra and the theory of derived functors.
+
+**Tor and Ext.** Tensor product is not exact in general; its derived functors are $\mathrm{Tor}^R_n(M, N)$. Hom is not exact either; its derived functors are $\mathrm{Ext}^n_R(M, N)$. These groups measure how far the original functors are from being exact, and they encode deep arithmetic and topological invariants. Group cohomology $H^n(G; M) = \mathrm{Ext}^n_{\mathbb{Z}[G]}(\mathbb{Z}, M)$ — central to number theory and topology — is a special case.
 ---

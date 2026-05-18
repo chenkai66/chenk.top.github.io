@@ -443,6 +443,12 @@ Convex optimization is the core that the rest of this series will build on: line
 
 ---
 
+## What's next
+
+Four chapters of scaffolding, done: the language of analysis, of vectors, of probability, of optimization. From the next chapter onward I start stacking all four **on the same concrete algorithm** — linear regression.
+
+Linear regression looks simple, but it is the "microscope slide" of supervised learning: its parameters are vectors (linear algebra), its loss is a Gaussian likelihood (probability), its solution is convex optimization (this chapter), and its generalization decomposes as bias-variance (chapter one). I will keep returning to this four-language stacking — not for show, but because it is only when each algorithm is dissected into these four layers that you can see why "swapping the loss to Huber only touches one layer" or why "adding L1 touches both the prior and the optimizer". Linear regression is the first full rehearsal of that habit.
+
 ## References
 
 1. Boyd, S. & Vandenberghe, L. (2004). *Convex Optimization.* Cambridge University Press.

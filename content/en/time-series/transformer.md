@@ -15,6 +15,13 @@ series_order: 5
 series_total: 8
 translationKey: "time-series-5"
 ---
+
+The 2017 *Attention Is All You Need* paper took the attention mechanism from the previous chapter to its logical extreme: **drop the RNN entirely**. Transformers stack pure attention into a full sequence model — no recurrence, no hidden state propagating over time. Originally designed for machine translation, the architecture was quickly adapted to every other sequence task, time series included.
+
+Dropping a vanilla NLP Transformer onto a time-series problem runs into two immediate complications. The first is **position**. Attention is a set operation — shuffle the input order and the output is unchanged. For a time series, order is everything: a temperature curve that goes up-then-down and one that goes down-then-up are entirely different signals. NLP solves this with sinusoidal position encodings; do those still make sense for time series, or should we use learned encodings, or just concatenate calendar features (hour-of-day, day-of-week) directly into the input?
+
+The second complication is **cost**. Attention's O(n²) complexity is mostly fine in NLP — a sentence is at most a few hundred tokens — but a month of hourly time-series data is already 720 steps, three months is 2160, and O(n²) blows through memory fast. Around that one constraint, the field has developed four families of fixes: sparse attention (only some token pairs interact), linear attention (kernel tricks bring complexity to O(n)), patching (group adjacent steps into single tokens), and decoder-only stacks (GPT-style autoregressive). This chapter walks through each family with its flagship model — Autoformer, FEDformer, Informer, PatchTST — and ships a clean PyTorch reference you can run.
+
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.png)
 
 
@@ -429,3 +436,12 @@ time series, three things matter:
 The fundamental attention formula stays the same throughout:
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.$$
 Everything in this article is just engineering on top of that.
+
+
+## What's next
+
+The Transformer pushes attention to its conclusion — no recurrence, just attention and feed-forward layers stacked all the way. After it dominated NLP, the time-series community spent a few years localizing it: position-encoding schemes, O(n²) complexity workarounds, and seasonality/trend-aware inductive biases. Out of that work came Autoformer, FEDformer, PatchTST, and a small zoo of variants.
+
+One sharp problem none of those generic variants fully solved: **long-horizon forecasting**. When you need to predict 168 future steps from 720 past steps — common in energy, weather, IoT — vanilla Transformer's O(n²) makes both training and deployment impractical. The chapter on [Informer](/en/time-series/informer-long-sequence/), the AAAI 2021 best paper, attacks the problem with three coordinated changes: ProbSparse attention (O(n²) to O(n log n)), encoder distilling (each layer halves the sequence), and a generative decoder (predict the whole horizon in one pass instead of autoregressively). Together they deliver 6-10x speedup and better accuracy than vanilla Transformer on long-horizon benchmarks.
+
+Before you jump to Informer, two intermediate architectures are worth your time: [TCN](/en/time-series/temporal-convolutional-networks/) trades attention for causal dilated convolutions and gets parallel training out of the deal, and [N-BEATS](/en/time-series/n-beats/) uses a pure MLP stack for an interpretable trend/seasonality decomposition. Both are proof that "non-attention deep architectures" can be cheaper, more interpretable, and sometimes better on specific time-series workloads.

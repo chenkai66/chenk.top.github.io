@@ -24,6 +24,16 @@ This guide builds the minimum convex-analysis toolkit, derives the Moreau envelo
 
 ---
 
+The moment your objective grows a non-smooth piece — an L1 penalty, a TV term, the indicator of a constraint set — plain gradient descent starts to choke: either there's no gradient at the kink, or each step blows the constraint.
+
+The standard fix is the **proximal operator**, but the first time you meet it the vocabulary alone is intimidating: Moreau envelope, conjugate, ISTA, ADMM…
+
+Here is what I want to convey first, before any of the technicalities:
+
+> *Take a small step on the smooth part, then run a tiny quadratic-penalized optimization to pull yourself back into the structured region you actually want to live in.*
+
+Once you internalize that, ISTA, FISTA, and ADMM stop being three different algorithms and start looking like the same move dressed up differently. The rest of this article makes that picture rigorous.
+
 ## What You Will Learn
 
 - Minimum convex-analysis toolkit: convex sets, convex functions, subgradients

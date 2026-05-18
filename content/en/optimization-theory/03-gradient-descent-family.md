@@ -26,6 +26,12 @@ This post walks the lineage end-to-end on a single thread: each step exists beca
 
 ---
 
+Why is "learning-rate tuning is an art" a meme around ResNet, while practically every modern LLM paper just shrugs and writes "AdamW with $\beta_1{=}0.9, \beta_2{=}0.95, \mathrm{wd}{=}0.1$" before moving on? It isn't an accident. It is **the endpoint of thirty-plus years of optimizer evolution**.
+
+I walked this lineage once myself, and what made it click was always the same thing: every new optimizer arrived because the previous one tripped over a *specific* failure mode in a real training run. This article walks the chain end to end, from plain gradient descent all the way to the post-2023 contenders that actually showed up in big-model toolkits — Lion, Sophia, Schedule-Free.
+
+You don't need to memorize Adam's update rule to read this. You only need to be willing to keep asking, at each step, "what was wrong with the previous version?"
+
 ## What You Will Learn
 
 - Why GD zig-zags on ill-conditioned losses, and how momentum fixes it physically

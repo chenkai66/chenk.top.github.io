@@ -19,6 +19,8 @@ translationKey: "functional-analysis-11"
 
 我想从一个坦白开始。多年来，我像一个本科生物理学家那样对待Dirac delta：它在原点以外处处为零，在原点处无穷大，并且其积分等于一。这种描述当然是数学上的无稽之谈。没有可测函数具有这些性质。然而，每本量子力学教科书都在第一页使用$\delta$，每个信号处理课程都用$\delta(t)$表示脉冲，每本PDE书都调用满足$\Delta E = \delta$的Green函数$E$。要么整个科学界在过去一个世纪里犯了一个根本性的错误，要么有一种方法可以使这个对象变得严格。显然是后者——而这种方法就是分布理论。
 
+让我具体说说这个尴尬到底有多大。我教过一个本科生求线上 $-u'' = \delta$ 的解，他写下 $u(x) = -|x|/2 + Ax + B$，然后向我求证。这个答案是对的——它出现在每本电动力学的教科书里。但如果我把 $u'' = -\delta$ 当成普通微分方程，它根本没有“点态”意义：在 $x \neq 0$ 处 $u''(x) = 0$，在 $x = 0$ 处 $u''$ 不存在，整个等式形式上不成立。然而我们日常用这条方程做计算。这中间一定有某种数学机制，让“分布意义下的导数”和经典导数能在它们都有意义时一致，而在经典导数失效的地方依然能给出可预测的答案。
+
 这个问题比$\delta$本身还要古老。考虑线上的波动方程$u_{tt} = c^2 u_{xx}$。任何二阶可微的轮廓$f$给出一个行波解$u(x,t) = f(x - ct)$。但物理波携带冲击波：浅水方程的解可以发展成一个台阶，声波可以有尖锐的前沿，光脉冲可以是方形包络。“函数”$f$在这种情况下甚至不连续。称这样的不连续$u$为$u_{tt} = c^2 u_{xx}$的“解”要求我们对它求两次导数，而经典的二阶导数在冲击波处或其两侧都不存在，因为对指示函数求导会得到一个delta。
 
 ![Delta 分布作为凸函数的极限](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fig11_delta_distribution.png)
@@ -67,6 +69,10 @@ $$
 
 ### 测试函数空间
 
+我刚开始读分布理论时被一个问题困扰：为什么测试函数偏要选 $C_c^\infty$（光滑且紧支撑），不能用 $C^\infty$ 或 $C_c^k$？答案分两块。**支撑紧**让分布意义下的分部积分可以无忧无虑地把导数搬到测试函数上——边界项消失，所以 $\langle \partial^\alpha u, \varphi\rangle = (-1)^{|\alpha|}\langle u, \partial^\alpha \varphi\rangle$ 这条定义在整个 $\mathcal{D}'$ 上没有歧义。**$C^\infty$ 光滑**让“分布有任意阶导数”成立——只要测试函数能任意求导，分布在对偶意义下就可以被任意求导。这两条性质合起来让测试函数空间“尽可能小、性质尽可能多”，从而对偶空间 $\mathcal{D}'$ 尽可能大。
+
+实际写下一个具体的测试函数也并不平凡。$C^\infty$ 光滑加紧支撑听起来矛盾——多项式光滑但不紧支撑，指示函数紧支撑但不光滑。经典构造是 $\rho(x) = \exp(-1/(1-|x|^2)) \cdot \mathbf{1}_{|x|<1}$：在 $|x|<1$ 时是 $\exp$ 复合多项式，光滑；在 $|x|=1$ 时所有导数都从两侧匹配为零（因为 $\exp(-1/0^+) = 0$ 比任何多项式衰减得快）；在 $|x|>1$ 时恒为零。这个看似魔术的拼接是分布理论一切构造的起点：磨光器、单位分解、cut-off 函数都是这个 bump 的变形。
+
 ![试验函数：光滑且紧支](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fig11_test_functions.png)
 
 设$\Omega \subseteq \mathbb{R}^n$是开集。**测试函数**空间是
@@ -86,6 +92,10 @@ $$
 ### 分布
 
 $\Omega$上的**分布**是连续线性泛函$u: \mathcal{D}(\Omega) \to \mathbb{C}$——等价地，线性$u$使得对于每个紧集$K \subset \Omega$，存在$C, N \ge 0$使得
+
+“分布是连续线性泛函”这一定义看似抽象，但它实际上把分布完全刻画了：分布就是“可以与测试函数配对得出一个数”的对象。任何具体分布都可以通过指定它如何作用在每个测试函数上来定义——比如 $\delta$ 通过 $\langle\delta,\varphi\rangle = \varphi(0)$ 定义，$\delta'$ 通过 $\langle\delta',\varphi\rangle = -\varphi'(0)$ 定义。分布之间的运算也通过对偶性继承：每个测试函数上的连续线性运算都自动诱导分布上的运算。
+
+这种“通过测试函数定义”的方法是泛函分析的核心模式。第四篇里的对偶空间是同样的思路——通过线性泛函刻画向量；第五篇里的弱拓扑是同样的思路——通过对偶配对定义收敛；这里的分布是把这种思路推到极致：把广义函数完全用它们对测试函数的作用来定义。一旦适应这种思路，$\delta$ 就不再是“无穷大点函数”这种数学谎言，而是一个良定义的对偶对象。
 
 $$
 |\langle u, \varphi \rangle| \le C \sum_{|\alpha| \le N} \sup_K |\partial^\alpha \varphi| \quad \text{对于所有 } \varphi \in C_c^\infty(K).
@@ -108,6 +118,10 @@ $$
 ### 分布上的运算
 
 统一原则：通过形式对偶定义每个运算。如果$T$是测试函数上的连续线性映射，伴随为$T^*$，则通过$\langle Tu, \varphi \rangle = \langle u, T^*\varphi \rangle$定义$Tu$在分布上的作用。
+
+这条“通过对偶定义运算”的原则是分布理论里最简洁的设计选择。看似抽象，但它把所有想要的运算自动给出了具体定义：导数 $\partial^\alpha$、与光滑函数的乘法、平移、缩放、Fourier 变换——每一个都是把测试函数上对应的伴随运算搬到分布上。这种设计的好处是“向后兼容”：在测试函数本身就是合法的分布（通过 $\varphi \mapsto \int \varphi \psi$）这一身份下，新定义的运算与经典运算一致——所以分布意义下的导数对 $C^1$ 函数等于经典导数，分布意义下的 Fourier 变换对 $L^1$ 函数等于经典 Fourier 变换。
+
+代价是某些经典运算无法搬过来。两个分布的乘法没有典范定义——$\delta \cdot \delta$ 没意义、$1/x \cdot \delta$ 没意义、一般两个非零分布的乘积都没有典范定义。这是 Schwartz 不可能性定理的内容：在 $\mathcal{D}'$ 上不存在结合的、交换的、扩展点态乘法且满足 Leibniz 法则的乘法。这个否定性结果是非线性 PDE 困难的来源——非线性 PDE 形式上要把分布的乘积取意义，但这件事一般做不到，必须依赖额外的正则性（比如解在某些 Sobolev 空间中）才能让乘积合法。所以非线性 PDE 的弱解理论本质上是“在哪些情形下可以定义乘积”这个问题。
 
 $\langle \partial^\alpha u, \varphi \rangle = (-1)^{|\alpha|}\langle u, \partial^\alpha \varphi \rangle$。符号来自分部积分：$\int \partial f \cdot \varphi = -\int f \cdot \partial\varphi$对于光滑的$f$和紧支集的$\varphi$。这个公式将链式法则扩展到整个对偶空间；*每个*分布都是分布意义下的无限可微的，并且微分在弱-*拓扑中是连续的。与经典情况相比，微分是无界的，并且不与极限交换。
 
@@ -185,6 +199,10 @@ $$
 
 ### Sobolev空间$W^{k,p}$
 
+引入 Sobolev 空间之前先讲一下它解决什么问题。分布空间 $\mathcal{D}'$ 太大——它甚至没有一个有用的范数拓扑，无法做精细的存在性证明。$L^p$ 空间太小——它装得下函数但装不下“函数的导数”，差分算子在 $L^p$ 上无界。Sobolev 空间正好填这个缝：要求函数和它的（弱）导数都在 $L^p$ 中，把“正则性”量化成范数大小。这一来微分算子在 $W^{k,p} \to W^{k-1,p}$ 上有界，PDE 弱形式的双线性形式有自然定义域，连续性和强制性可以用具体范数验证。
+
+$W^{k,p}$ 还有第二层意义：它把“正则性”和“可积性”绑在一起，并通过 Sobolev 嵌入定理把这两者互换。如果一个函数在 $L^p$ 中有 $k$ 个导数，那么它本身可能就在更大的 $L^q$（$q > p$）中，甚至是连续 Hölder 函数（如果 $kp > n$）。这一类“正则性 → 可积性” 或 “正则性 → 逐点正则性”的兑换是 PDE 解的正则性理论的全部内容。
+
 对于$k \in \mathbb{N}_0$，$1 \le p \le \infty$，和$\Omega \subseteq \mathbb{R}^n$开集，**Sobolev空间** $W^{k,p}(\Omega)$是
 
 $$
@@ -251,13 +269,17 @@ Sobolev空间的一个基本性质是光滑函数是稠密的：
 
 ### Poincare不等式
 
-可以证明，设$\Omega \subset \mathbb{R}^n$是有界的且连通的。存在$C = C(\Omega, p)$使得对于所有$u \in W_0^{1,p}(\Omega)$，
+可以证明，设 $\Omega \subset \mathbb{R}^n$ 是有界的且连通的。存在 $C = C(\Omega, p)$ 使得对于所有 $u \in W_0^{1,p}(\Omega)$，
+
+Poincare 不等式是 PDE 弱解理论里出现频率最高的具体不等式之一。它说的是：在边界上消失的函数（$W^{1,p}_0$）的 $L^p$ 范数被它的梯度的 $L^p$ 范数控制。这条结论看似无关紧要，但它是 Lax-Milgram 应用于 Dirichlet 问题时验证强制性的关键步骤——双线性形式 $a(u,v) = \int \nabla u \cdot \nabla v$ 满足 $a(u,u) = \|\nabla u\|^2$，要让它强制控制 $\|u\|_{H^1}^2 = \|u\|^2 + \|\nabla u\|^2$，必须有 $\|u\| \leq C\|\nabla u\|$，这正是 Poincare。
+
+Poincare 不等式之所以成立靠的是边界条件 $u|_{\partial\Omega} = 0$。没有这个条件，$u \equiv 1$ 是合法的 $W^{1,p}$ 函数，$\|\nabla u\| = 0$ 但 $\|u\| > 0$，不等式失效。$W^{1,p}_0$ 强制函数在边界上消失，这意味着 $u$ 内部的“质量”可以通过它的“坡度”反推出来——质量不能凭空出现。这种几何直觉让 Poincare 常数 $C$ 与区域几何相关：$C$ 大约等于 $\Omega$ 的直径，所以小区域有小的 Poincare 常数（强制性更强），大区域有大的 Poincare 常数（强制性更弱）。
 
 $$
 \|u\|_{L^p(\Omega)} \le C\|\nabla u\|_{L^p(\Omega)}.
 $$
 
-对于在边界上消失的函数，$L^p$范数由梯度单独控制。这是在$W_0^{1,p}(\Omega)$上$\|\nabla u\|_{L^p}$是等价范数的关键步骤，并且它是下一章中Lax-Milgram应用于椭圆PDE的动力。Poincare常数按$\Omega$的直径缩放：对于半径为$R$的球，$C \sim R$。
+对于在边界上消失的函数，$L^p$ 范数由梯度单独控制。这是在 $W_0^{1,p}(\Omega)$ 上 $\|\nabla u\|_{L^p}$ 是等价范数的关键步骤，并且它是下一章中 Lax-Milgram 应用于椭圆 PDE 的动力。Poincare 常数按 $\Omega$ 的直径缩放：对于半径为 $R$ 的球，$C \sim R$。
 
 一个变体，**Poincare-Wirtinger不等式**，适用于没有边界条件的函数：$\|u - \bar{u}\|_{L^p} \le C\|\nabla u\|_{L^p}$，其中$\bar{u}$是$\Omega$上$u$的平均值。这对于Neumann问题相关，其中解仅确定到一个加性常数。
 
@@ -266,6 +288,10 @@ $$
 ## Sobolev嵌入定理
 
 嵌入定理回答了一个基本问题：如果一个函数在$L^p$中有$k$个导数，我们能对其逐点正则性说什么？
+
+写出嵌入定理之前先讲一下它要算什么。直觉上“多一个导数”意味着函数“更光滑”，但“光滑”这个词在 PDE 里有两种具体含义：可以是“在更高 $L^q$ 中”（更可积），也可以是“逐点连续甚至 Hölder 连续”。Sobolev 嵌入定理告诉我两件事的兑换汇率取决于维数 $n$ 和指数 $p$：低维或大 $p$ 时，一个导数能直接换来逐点连续性；高维或小 $p$ 时，一个导数只能换来更高 $L^q$ 可积性，要拿到逐点连续需要更多导数。
+
+具体的兑换由 Sobolev 共轭指数 $p^* = np/(n-p)$ 控制（当 $p < n$ 时）。$W^{1,p} \hookrightarrow L^{p^*}$ 是说一个导数把可积性从 $L^p$ 提升到 $L^{p^*}$；当 $kp = n$ 时正好达到嵌入到所有 $L^q$ 的临界（$q < \infty$）；当 $kp > n$ 时跨过阈值，得到逐点连续性甚至 Hölder 连续性。这条阈值在三维情形特别有意义：$H^1(\mathbb{R}^3) \hookrightarrow L^6$ 但 $H^1$ 函数不必连续，需要 $H^2$ 才有连续性。这就是为什么在三维 PDE 中“弱解的连续性”是个非平凡问题。
 
 ![迹定理：限制到边界](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/figures/fig11_trace_theorem.png)
 
@@ -317,12 +343,32 @@ Rellich-Kondrachov在$q = p^*$处失败：嵌入$W^{1,p}(\Omega) \hookrightarrow
 
 嵌入从$\mathbb{R}^n$扩展到边界正则的区域$\Omega$：
 
-可以证明，设$\Omega \subset \mathbb{R}^n$是有界的且有Lipschitz边界。存在有界线性$E: W^{
+可以证明，设$\Omega \subset \mathbb{R}^n$是有界的且有Lipschitz边界。存在有界线性扩展算子 $E: W^{k,p}(\Omega) \to W^{k,p}(\mathbb{R}^n)$，使得 $Eu|_\Omega = u$。
+
+扩展定理说明，$\Omega$ 上的 Sobolev 函数总可以被延拓到整个 $\mathbb{R}^n$ 上而不损失正则性。这把所有 $\mathbb{R}^n$ 上证明的嵌入定理（Sobolev 不等式、Morrey 不等式、Rellich-Kondrachov）自动转移到 $\Omega$ 上：先扩展到 $\mathbb{R}^n$、应用 $\mathbb{R}^n$ 版本、再限制回 $\Omega$。Lipschitz 边界正则性是扩展算子存在的标准条件；更粗糙的边界（带有内尖点等）可能让扩展失效，对应的嵌入定理也会出问题。
 
 ![迹定理：把 Sobolev 函数限制到边界](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/11-distributions-sobolev/fa_v2_11_5_trace.png)
 
 ![$H^s$ 与 $H^{-s}$ 的对偶](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/11-distributions-sobolev/fa_v2_11_6_dual_sobolev.png)
 
 ![分布及其导数的例子](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/functional-analysis/11-distributions-sobolev/fa_v2_11_7_examples.png)
+
+### 迹定理
+
+Dirichlet 边界条件 $u|_{\partial\Omega} = 0$ 形式上要求把 $u$ 限制到一个 Lebesgue 测度为零的集合上。对一般 $L^2$ 函数这一限制无意义。但对 $H^1(\Omega)$ 函数，迹定理给出严格意义：存在唯一的有界线性算子 $\gamma_0: H^1(\Omega) \to H^{1/2}(\partial\Omega)$，对 $C^1(\bar\Omega)$ 函数与点态限制一致。这个算子叫**迹算子**，它损失半个导数：$H^1$ 函数的迹只在 $H^{1/2}$ 中，不会更光滑。
+
+子空间 $H^1_0(\Omega) = \ker(\gamma_0)$ 正是“边界上消失的 $H^1$ 函数”，等价地，$C_c^\infty(\Omega)$ 在 $H^1$ 范数下的闭包。下一篇 Lax-Milgram 用到的就是这个空间——Dirichlet 问题的弱形式是在 $H^1_0(\Omega)$ 上找极小值点，迹定理保证“边界为零”这件事即便对粗糙的弱解也有意义。
+
+## 为什么这很重要
+
+回到本篇开头的尴尬：$\delta$、冲击波解、$|x|$ 在原点的二阶导数——这些经典分析里的“病态对象”全都被分布理论收编。每个分布都可以被光滑函数 $C^\infty$ 序列在 $\mathcal{D}'$ 中逼近（磨光），每个分布都有任意阶的导数（通过对偶定义），每个微分算子的基本解都是分布。整个 PDE 理论从“假设解是 $C^k$ 的”这一过强假设里解放出来。
+
+Sobolev 空间是这套理论里能做定量估计的层次。$W^{k,p}$ 的范数控制了 $k$ 阶导数的 $L^p$ 大小；嵌入定理把 $k$ 阶 $L^p$ 正则性翻译成更弱意义下的逐点正则性（Morrey）或更高 $L^q$ 可积性（Sobolev 不等式）；Rellich-Kondrachov 的紧嵌入把 $H^1$ 弱收敛升级到 $L^2$ 强收敛——这是非线性 PDE 中“弱+紧→强”模板的关键步骤。Poincare 不等式、迹定理、扩展定理把抽象空间和具体边值问题接起来。这一整套语言下一篇 Lax-Milgram 会反复用到。
+
+## 下一步
+
+到此为止，泛函分析的工具箱已经基本搭好：度量、范数、内积、对偶、弱拓扑、有界算子、谱、半群、分布、Sobolev 空间。接下来的最后一篇是把这些工具接到具体应用上。
+
+下一篇会展示三类典型应用。**椭圆 PDE** 的 Lax-Milgram 模板：把 $-\Delta u = f$ 写成 $H^1_0$ 上的变分恒等式，用第三篇的 Riesz 表示和强制双线性形式直接得到唯一弱解，再用第七篇的紧嵌入引出 Galerkin 方法和有限元的收敛理论。**变分极小化**的直接方法：能量泛函的极小值点通过第五篇的弱紧性 + 弱下半连续性自动构造，下游覆盖 Hilbert 第十九/二十问题、Yamabe 问题、最小曲面、机器学习中的核回归。**量子力学**的 Stone 定理：自共轭算子 $H$ 通过第八/九篇的谱测度生成强连续幺正群 $e^{-itH/\hbar}$，Schrödinger 方程的解、能量谱、对称性与守恒律全部从这一条对应关系自动得出。十二篇文章就在这里收尾。
 
 ---

@@ -29,6 +29,18 @@ We give the central-path complexity proof in full.
 
 ---
 
+In 1984 Karmarkar shook the optimization world: linear programming, he showed, is solvable in polynomial time not just on paper (the ellipsoid method had already done that) but in *practice*. His algorithm stayed strictly inside the feasible polytope, never touching the edges — that's where the name "interior-point" comes from.
+
+Within a decade, Nesterov and Nemirovski had generalized the trick to **all** convex programs, using the framework of **self-concordant barriers**. The headline iteration count, $O(\sqrt{n} \log(1/\epsilon))$, is still the gold standard for medium-scale convex optimization today.
+
+I'll structure the article in three layers:
+
+1. **The barrier method** — replace inequality constraints with a logarithmic penalty, then track the **central path** as the penalty weight grows.
+2. **Self-concordance** — the analytic property of the barrier that keeps Newton's method well-behaved.
+3. **Primal-dual interior point** — the variant that every commercial LP/QP/SDP solver actually runs.
+
+The central-path complexity proof is included in full because it is the climax of the story.
+
 ## What You Will Learn
 
 1. The logarithmic barrier and the central path.

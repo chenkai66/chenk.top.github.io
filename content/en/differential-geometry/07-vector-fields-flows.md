@@ -282,6 +282,108 @@ This is the **standard contact structure** on $\mathbb{R}^3$. Try to walk while 
 
 ---
 
+## Deeper Examples and Common Pitfalls
+
+The earlier sections introduced vector fields, integral curves, flows, the Lie bracket, the Lie derivative, and the Frobenius integrability theorem. This section computes specific brackets and flows in detail, points out where beginners go wrong, and connects the Lie-bracket machinery to applications outside pure math.
+
+### A worked numerical example: Lie bracket on the plane
+
+Take the vector fields $X = x \partial_x + y \partial_y$ (the radial dilation) and $Y = -y\partial_x + x\partial_y$ (the rotation generator). Compute $[X, Y]$ acting on a smooth function $f(x, y)$:
+$$X(Yf) = (x\partial_x + y\partial_y)(-y f_x + x f_y) = x(-yf_{xx} + f_y + xf_{xy}) + y(-f_x - yf_{xy} + xf_{yy})$$
+$$= -xyf_{xx} + xf_y + x^2 f_{xy} - yf_x - y^2 f_{xy} + xy f_{yy}.$$
+$$Y(Xf) = (-y\partial_x + x\partial_y)(xf_x + yf_y) = -y(f_x + xf_{xx} + yf_{xy}) + x(xf_{xy} + f_y + yf_{yy})$$
+$$= -yf_x - xy f_{xx} - y^2 f_{xy} + x^2 f_{xy} + xf_y + xy f_{yy}.$$
+
+Subtract: $[X, Y]f = X(Yf) - Y(Xf) = (xf_y - yf_x) - (xf_y - yf_x) = 0$. So $[X, Y] = 0$ — radial dilation and rotation commute. This makes geometric sense: rotating then dilating gives the same point as dilating then rotating, since both are linear and centered at the origin.
+
+Now try $X = \partial_x$ and $Y = x\partial_y$. Compute:
+$X(Yf) = \partial_x(xf_y) = f_y + xf_{xy}$.
+$Y(Xf) = x\partial_y(f_x) = xf_{xy}$.
+$[X, Y]f = f_y$. So $[X, Y] = \partial_y$. Translating in $x$ then translating in the variable-$y$-direction is *not* the same as the reverse: the first sequence accumulates a vertical drift. This is exactly the way a parallel-parking car maneuver works (next paragraph).
+
+### A worked numerical example: brackets in robotics — parallel parking
+
+Model a car at position $(x, y)$ with heading $\theta$. Two control vector fields:
+- $X = \cos\theta\, \partial_x + \sin\theta\, \partial_y$ (drive forward).
+- $Y = \partial_\theta$ (turn the wheel without moving).
+
+Compute $[X, Y]f$:
+$Y(Xf) = \partial_\theta(\cos\theta\, f_x + \sin\theta\, f_y) = -\sin\theta\, f_x + \cos\theta\, f_y + \cos\theta\, f_{x\theta} + \sin\theta\, f_{y\theta}$.
+$X(Yf) = (\cos\theta\, \partial_x + \sin\theta\, \partial_y)(f_\theta) = \cos\theta\, f_{x\theta} + \sin\theta\, f_{y\theta}$.
+
+Subtract: $[X, Y]f = X(Yf) - Y(Xf) = -(-\sin\theta\, f_x + \cos\theta\, f_y) = \sin\theta\, f_x - \cos\theta\, f_y$. So $[X, Y] = \sin\theta\, \partial_x - \cos\theta\, \partial_y = -(-\sin\theta\, \partial_x + \cos\theta\, \partial_y)$, which is the *sideways* direction perpendicular to the heading.
+
+This is the bracket structure that makes parallel parking possible. Even though no single control directly produces sideways motion, alternating the two controls (drive-turn-reverse-turn-drive) produces a net sideways displacement of order $\varepsilon^2$ for control durations $\varepsilon$. The Chow-Rashevskii theorem is the precise statement: a control system whose control fields together with their iterated brackets span the entire tangent space at every point is *controllable* — any state can be reached from any other. Parking is possible because $\{X, Y, [X, Y]\}$ span $T\mathbb{R}^2 \times TS^1$ at every point.
+
+### A third worked example: integral curve of a non-trivial field
+
+Take $X = -y\partial_x + x\partial_y$ on $\mathbb{R}^2$. The integral curve through $(x_0, y_0)$ satisfies $\dot x = -y, \dot y = x$. This is the classical harmonic oscillator system. Solution: $x(t) = x_0 \cos t - y_0 \sin t$, $y(t) = x_0 \sin t + y_0 \cos t$. So $\Phi^X_t = $ rotation by angle $t$. The flow is the one-parameter family of rotations, and the orbits are concentric circles. The exception is the origin, which is a fixed point ($X(0, 0) = 0$). Numerically, starting at $(1, 0)$: at $t = \pi/4$, position is $(\cos\pi/4, \sin\pi/4) = (\sqrt{2}/2, \sqrt{2}/2)$. Speed at this point: $|X(\sqrt{2}/2, \sqrt{2}/2)| = |(-\sqrt{2}/2, \sqrt{2}/2)| = 1$. Constant speed along the orbit, as expected for a circle of radius 1 traversed in time $2\pi$ — average speed $1$.
+
+Now perturb: $\tilde X = -y\partial_x + x\partial_y + 0.01(x\partial_x + y\partial_y)$. The integral curves become outward-spiraling, with radial growth rate $0.01$ and angular speed $1$. At $t = 100$, the radius has grown by a factor of $e \approx 2.72$. This kind of small-perturbation analysis is exactly what robotic control engineers do to certify stability: integrate the linearized system, check whether the spectrum is in the left half-plane, conclude.
+
+### A fourth worked example: Lie derivative of a 1-form
+
+Take $\alpha = x\, dy$ on $\mathbb{R}^2$ and $X = \partial_x$. Compute $\mathcal{L}_X \alpha$ using Cartan's magic formula $\mathcal{L}_X = d\circ \iota_X + \iota_X \circ d$.
+
+$d\alpha = dx \wedge dy$. $\iota_X(d\alpha) = \iota_X(dx \wedge dy) = (dx(X)) dy - (dy(X)) dx = 1 \cdot dy - 0 = dy$.
+$\iota_X(\alpha) = \alpha(X) = x \cdot dy(\partial_x) = 0$.
+$d(\iota_X \alpha) = d(0) = 0$.
+So $\mathcal{L}_X \alpha = 0 + dy = dy$.
+
+Verify directly: under the flow $\Phi^X_t(x, y) = (x + t, y)$, the pullback is $(\Phi^X_t)^* \alpha = (x + t)\, dy$. Differentiating at $t = 0$: $\partial_t|_0 (x + t)\, dy = dy$. Match.
+
+### Counterexample: when fields commute but flows do not look it
+
+Beginners sometimes misread $[X, Y] = 0$ as "the trajectories of $X$ and $Y$ are parallel." That is much too strong. $[X, Y] = 0$ means the *flows* commute: $\Phi^X_s \circ \Phi^Y_t = \Phi^Y_t \circ \Phi^X_s$. The trajectories themselves can be wildly different.
+
+Example: on $\mathbb{R}^2$, $X = \partial_x$ and $Y = \partial_y$ commute ($[X, Y] = 0$). The flow of $X$ moves you horizontally; the flow of $Y$ moves you vertically. They commute, but their trajectories are perpendicular, not parallel. Commuting flows form a coordinate grid; the orthogonality of trajectories is incidental in this example, not implied by the commutation.
+
+A stronger counterexample: consider $X = \partial_\theta$ and $Y = f(\theta) \partial_\theta$ on $S^1$. They commute ($[X, Y] = X(f) \partial_\theta - 0 = f' \partial_\theta$, which is generically nonzero), so actually $[X, Y] \neq 0$ unless $f$ is constant. So for non-constant scalar multiples of a vector field, the bracket does *not* vanish — a place where naive intuition (multiplying by a function "shouldn't change anything") fails badly.
+
+### A second counterexample: commuting fields generate coordinate charts
+
+A theorem complementing the Frobenius integrability theorem says: if $X_1, \ldots, X_k$ are linearly independent commuting vector fields on $M$, then there exists a local coordinate chart in which $X_i = \partial / \partial x_i$. Conversely, the fields $\partial / \partial x_i$ in any chart are linearly independent and pairwise commuting. So commuting frames *are* coordinate frames.
+
+Counterexample to "any frame is a coordinate frame": on $S^2$, the orthonormal frame $\{e_\phi, e_\theta / \sin\phi\}$ in spherical coordinates *does not* commute. Compute their bracket: $[e_\phi, e_\theta / \sin\phi] = -\cot\phi \cdot e_\theta / \sin\phi$, nonzero. So this orthonormal frame is *not* a coordinate frame for any chart. In fact, an orthonormal frame on $S^2$ near the equator cannot be a coordinate frame, because any coordinate frame on $S^2$ has a nontrivial metric (off-diagonal terms in $E, F, G$ as you move around). The hairy-ball theorem is downstream of this: there is no global non-vanishing vector field on $S^2$, so no global commuting frame, so no global coordinate chart on $S^2$.
+
+### Common pitfall for beginners
+
+Beginners often think of $[X, Y]$ as a "mixed second derivative" and write things like "$[X, Y]f = \partial_X \partial_Y f - \partial_Y \partial_X f$." That is correct, but the resulting expression is *first-order* in $f$, not second-order — the second derivatives cancel because of the symmetry of mixed partials. The bracket is itself a vector field, defined by how it acts as a derivation. Expressing $[X, Y]$ in terms of components: if $X = X^i \partial_i$ and $Y = Y^j \partial_j$, then
+$$[X, Y]^k = X^i \partial_i Y^k - Y^i \partial_i X^k.$$
+Notice no second derivatives appear — they cancel.
+
+A second pitfall: confusing the Lie bracket with the matrix commutator on $\mathfrak{gl}(n)$. They agree on $\mathbb{R}^n$ for *linear* vector fields (where $X(p) = Ap$ for a matrix $A$, etc.), but for nonlinear fields the bracket has the additional $\partial Y - \partial X$ pieces. The matrix-commutator picture is a useful special case, not a general definition.
+
+### Where this matters in physics, computing, and engineering
+
+In **classical mechanics**, the Poisson bracket on phase space is a Lie bracket: $\{f, g\}$ measures the failure of two observables' Hamiltonian flows to commute. Conservation laws correspond to bracket-vanishing: $f$ is conserved iff $\{f, H\} = 0$ where $H$ is the Hamiltonian. The entire theory of conserved quantities and integrable systems is bracket-arithmetic.
+
+In **quantum mechanics**, the commutator of operators is the quantum analog of the Lie bracket. Heisenberg's uncertainty principle $[\hat x, \hat p] = i\hbar$ is a non-vanishing bracket forcing the impossibility of simultaneous diagonalization. Geometric quantization (Kostant-Souriau-Kirillov) is the systematic mapping from classical Poisson brackets to quantum commutators, mediated by symplectic geometry.
+
+In **control theory**, the Lie algebra rank condition (essentially: do the iterated brackets of control fields span the tangent space?) determines small-time local controllability of nonlinear systems. Autonomous-vehicle trajectory planners use this to certify that a maneuver is feasible before committing to it. The cost of a parking maneuver scales as the depth of bracket nesting needed: depth-2 brackets give $\varepsilon^2$ displacement, depth-3 give $\varepsilon^3$, and so on.
+
+### Revisiting "what's next" with sharper questions
+
+Article 8 will introduce differential forms and the wedge product. To prepare:
+
+(1) Vector fields are sections of $TM$. There is a dual notion: covariant fields, sections of $T^*M$. These are the 1-forms. Why introduce duals at all, and what does the dual basis look like in coordinates?
+(2) The exterior derivative $d$ generalizes gradient, curl, and divergence into a single operation on $k$-forms. Why is the unification possible, and what is the geometric meaning of $d^2 = 0$?
+(3) The wedge product $\alpha \wedge \beta$ is anti-symmetric. Beginners ask "why anti-symmetric?" The answer is that anti-symmetry is what makes integrals of $k$-forms over $k$-dimensional submanifolds well-defined under change of orientation. Why does antisymmetry capture orientation?
+
+You now have vector fields. Article 8 introduces their duals. Read it asking "what is the geometric thing that 1-forms eat?" The answer — they eat tangent vectors and produce numbers, with the right transformation behavior under change of coordinates — connects to the integration theory of article 9.
+
+
+### One last worked example: Frobenius integrability on $\mathbb{R}^3$
+
+Take the distribution $\mathcal{D}$ on $\mathbb{R}^3$ spanned at each point by $X = \partial_x + y \partial_z$ and $Y = \partial_y$. Compute $[X, Y]$:
+$Y(Xf) = \partial_y(\partial_x f + y \partial_z f) = \partial_x \partial_y f + \partial_z f + y \partial_y \partial_z f$.
+$X(Yf) = (\partial_x + y \partial_z)(\partial_y f) = \partial_x \partial_y f + y \partial_z \partial_y f$.
+$[X, Y]f = X(Yf) - Y(Xf) = -\partial_z f$. So $[X, Y] = -\partial_z$.
+
+Is $-\partial_z$ in $\mathcal{D}$? At a generic point, $\mathcal{D}$ is spanned by $\{\partial_x + y\partial_z, \partial_y\}$, and $\partial_z$ is *not* a linear combination of these (it would require an extra direction). So $\mathcal{D}$ is *not* closed under brackets — by Frobenius, it is not integrable. There is no 2-dimensional submanifold of $\mathbb{R}^3$ whose tangent plane at every point coincides with $\mathcal{D}$.
+
+This is exactly the contact structure on $\mathbb{R}^3$ defined by the 1-form $\alpha = dz - y\, dx$. Note $X(\alpha) = \alpha(X) = 0 - y \cdot 1 = 0$ at the right point — wait, $\alpha(X) = dz(X) - y\, dx(X) = y - y = 0$. And $\alpha(Y) = 0$. So $\mathcal{D}$ is the kernel of $\alpha$. Compute $\alpha \wedge d\alpha = (dz - y\, dx) \wedge (-dy \wedge dx) = dz \wedge (-dy)\wedge dx + y\, dx \wedge dy \wedge dx = dx \wedge dy \wedge dz$, the volume form, *nonzero everywhere*. This is exactly the contact condition: $\alpha \wedge d\alpha \neq 0$. Contact structures are maximally non-integrable, the opposite extreme of foliations.
+
 ## What's Next
 
 We now have the kinematic toolkit: vector fields, flows, brackets, Lie derivatives, integrability. The next article moves from $TM$ to its dual $T^*M$ and studies **differential forms** — the objects you integrate. The exterior derivative $d$ unifies gradient, curl, and divergence, and Cartan's magic formula $\mathcal{L}_X = d\iota_X + \iota_X d$ ties everything in this article to the form calculus we are about to develop.

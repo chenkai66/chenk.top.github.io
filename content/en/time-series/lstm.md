@@ -15,6 +15,13 @@ series_order: 2
 series_total: 8
 translationKey: "time-series-2"
 ---
+
+The first RNN I ever trained, back in 2017, was a small sales forecaster: 50 days in, the next day out. The forward pass ran cleanly, the loss went down, and yet the model had near-total amnesia about anything older than three days. The data had a clear monthly cycle. The model couldn't see it. I assumed I needed more data, so I added rows and layers — and watched the training loss jump to NaN halfway through epoch two.
+
+What I'd run into were the two textbook failure modes of vanilla RNNs: **vanishing gradients** and **exploding gradients**. An RNN compresses everything it remembers into one hidden vector and, at every step, multiplies that vector by a weight matrix. Do that 50 times and one of two things happens: the signal decays to near-zero (long-ago information is lost) or blows up to infinity (numerical overflow). RNNs aren't choosing to forget distant context — the math forces them to.
+
+LSTM's idea isn't to tune the RNN better; it's to change the structure. Alongside the hidden state it carries a **cell state** — an extra channel that information can ride almost untouched for hundreds of steps. Three **gates** (forget, input, output) read and write to that channel selectively. "Gating" sounds fancy but it's just a sigmoid that outputs a number between 0 and 1: zero means "drop it entirely," one means "keep it all," 0.7 means "keep about 70%." That single change is what made stable training over hundreds of steps possible, and it's why LSTM was the de-facto deep-learning model for sequences from roughly 2015 to 2018. This chapter takes each gate apart and ends with a working sales forecaster in PyTorch.
+
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/illustration_1.png)
 
 
@@ -318,6 +325,15 @@ LSTM forecasters do not signal their own degradation. Track three things in your
 LSTM solves the vanishing gradient problem by routing memory through an additive **cell-state highway** that the network controls with three multiplicative gates. The forget gate decides what to erase, the input gate decides what to write, and the output gate decides what to expose — and because the long-range gradient is a product of forget gates rather than a product of recurrent Jacobians, the model can learn dependencies hundreds of steps long.
 
 For time series, that translates into a small set of practical recipes: window the series with a sensible lookback, stack 1–3 layers of moderate width, regularize with dropout and early stopping, choose direct multi-step over recursive when horizons are long, and keep BiLSTM for offline tasks only. The next part covers GRU — the slimmer cousin that achieves nearly the same with fewer parameters.
+
+
+## What's next
+
+The three gates in LSTM made stable training over hundreds of steps possible, and that was the moment deep learning actually started working on time series. After using it for a while, though, two things start to grate: the parameter count is on the high side (so it overfits and trains slowly), and the "full three-gate" design is rarely fully exploited in practice.
+
+The next chapter on [GRU](/en/time-series/gru/) addresses both. GRU collapses three gates into two, folds the cell state back into the hidden state, cuts parameters by ~25%, and matches LSTM accuracy on most time-series problems. I'll walk through the head-to-head benchmarks — parameter count, training time, forecast quality — and give a decision matrix for "when to reach for GRU vs LSTM" so you don't have to guess on each new project.
+
+If you want to keep working with LSTM, run the PyTorch implementation from this chapter end-to-end, and then try two experiments: bump sequence length from 30 to 200 and see how training time scales, then halve hidden_size and see how much accuracy you lose. Those two sweeps will give you a concrete intuition for how RNN-style models scale, and that intuition pays off under every deeper time-series architecture you'll build later.
 
 ## References
 

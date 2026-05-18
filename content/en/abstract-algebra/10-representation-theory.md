@@ -219,4 +219,81 @@ In the next article, we step back to look at the bigger picture: **category theo
 ![Animation: rotation group representation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/abstract-algebra/figures/10_rotation_rep.gif)
 
 
+
+## Deeper Dive: Computations in Representation Theory
+
+Representation theory is concrete once you write down character tables and check orthogonality. Five computations:
+
+**Computation A: irreducible representations of $S_3$.** The group $S_3$ has three conjugacy classes: $\{e\}$, the three transpositions, the two $3$-cycles. So there are exactly three irreducible representations (the number of irreps equals the number of conjugacy classes). The trivial representation $\mathbf{1}$ sends every $\sigma$ to $1$. The sign representation $\mathrm{sgn}$ sends $\sigma$ to $\pm 1$ according to its sign. The third must have dimension $d$ with $1^2 + 1^2 + d^2 = |S_3| = 6$, so $d = 2$. This is the *standard representation*, realized as $S_3$ acting on $\{(x_1, x_2, x_3) \in \mathbb{C}^3 : x_1 + x_2 + x_3 = 0\}$, a $2$-dimensional subspace.
+
+Character table of $S_3$:
+
+| | $\{e\}$ | $\{(12), (13), (23)\}$ | $\{(123), (132)\}$ |
+|---|---|---|---|
+| $\mathbf{1}$ | $1$ | $1$ | $1$ |
+| $\mathrm{sgn}$ | $1$ | $-1$ | $1$ |
+| $\rho$ | $2$ | $0$ | $-1$ |
+
+Verify orthogonality: $\langle \mathbf{1}, \mathrm{sgn} \rangle = \frac{1}{6}(1 \cdot 1 \cdot 1 + 3 \cdot 1 \cdot (-1) + 2 \cdot 1 \cdot 1) = \frac{1}{6}(1 - 3 + 2) = 0$ ✓. And $\langle \rho, \rho \rangle = \frac{1}{6}(1 \cdot 4 + 3 \cdot 0 + 2 \cdot 1) = \frac{1}{6}(4 + 0 + 2) = 1$ ✓ (irreducibility).
+
+**Computation B: the regular representation of $\mathbb{Z}/3$.** The cyclic group $\mathbb{Z}/3 = \{e, g, g^2\}$ has three irreducible representations, all $1$-dimensional, sending $g$ to $1, \omega, \omega^2$ respectively (where $\omega = e^{2\pi i / 3}$). The regular representation $\mathbb{C}[\mathbb{Z}/3]$ has dimension $3$ and decomposes as the direct sum of the three irreps, each appearing once: $\mathbb{C}[\mathbb{Z}/3] \cong \mathbf{1} \oplus \chi \oplus \chi^2$.
+
+This generalizes: for any finite group $G$, the regular representation $\mathbb{C}[G]$ decomposes as $\bigoplus_i V_i^{\oplus \dim V_i}$ where $V_i$ ranges over the irreps. Counting dimensions: $|G| = \sum_i (\dim V_i)^2$. For $S_3$: $6 = 1 + 1 + 4$. ✓
+
+**Computation C: tensor product of representations.** Take $S_3$ and tensor $\mathrm{sgn} \otimes \rho$. The character is the pointwise product: $\chi_{\mathrm{sgn} \otimes \rho}(\sigma) = \chi_\mathrm{sgn}(\sigma) \cdot \chi_\rho(\sigma)$. Values: $1 \cdot 2 = 2$ on identity, $-1 \cdot 0 = 0$ on transpositions, $1 \cdot (-1) = -1$ on $3$-cycles. This is the same character as $\rho$ itself, so $\mathrm{sgn} \otimes \rho \cong \rho$. Tensoring with the sign representation is an automorphism of the category of $S_3$-representations that fixes $\rho$.
+
+**Computation D: induced representation from a subgroup.** Take $H = A_3 \subset S_3$ and the trivial representation $\mathbf{1}_H$. Induce up to $S_3$. By Frobenius reciprocity, $\mathrm{Ind}_H^G \mathbf{1}_H$ has character $\chi(\sigma) = \frac{1}{|H|} \sum_{g \in G} \chi_{\mathbf{1}_H}(g\sigma g^{-1})$ when $g\sigma g^{-1} \in H$, else $0$. Concretely, the value at $\sigma$ is the number of $H$-conjugates of $\sigma$ in $H$, divided by something. Easier: $\mathrm{Ind}_H^G \mathbf{1}_H$ has dimension $[G : H] = 2$, character $(2, 0, 2)$ on the three classes of $S_3$. Decompose: this character equals $\mathbf{1} + \mathrm{sgn}$ (with characters $(1, 1, 1) + (1, -1, 1) = (2, 0, 2)$). ✓ So $\mathrm{Ind}_H^G \mathbf{1}_H \cong \mathbf{1} \oplus \mathrm{sgn}$.
+
+**Computation E: characters of $A_4$.** $A_4$ has $12$ elements in $4$ conjugacy classes: $\{e\}$ (size $1$), $\{(12)(34), (13)(24), (14)(23)\}$ (size $3$, the double transpositions), and the eight $3$-cycles split into *two* classes in $A_4$ of sizes $4$ and $4$. So four conjugacy classes, four irreps. Dimensions: $1, 1, 1, d$ with $3 + d^2 = 12$, so $d = 3$. The three $1$-dimensional irreps come from the abelianization $A_4 / [A_4, A_4] = A_4 / V_4 \cong \mathbb{Z}/3$. The $3$-dimensional irrep is the standard rep restricted from $S_4$.
+
+## Why Maschke's Theorem Works
+
+For a finite group $G$ over a field $k$ where $\mathrm{char}(k) \nmid |G|$, every representation decomposes as a direct sum of irreducible subrepresentations. The proof: given a representation $V$ and a subrepresentation $W$, we want a $G$-invariant complement. Pick any $k$-linear projection $\pi : V \to W$, then average: $\pi_G = \frac{1}{|G|} \sum_{g \in G} \rho(g) \pi \rho(g)^{-1}$. The averaging is well-defined because $|G|$ is invertible in $k$, and the result is a $G$-equivariant projection. Its kernel is the desired complement.
+
+The hypothesis on characteristic is essential. In characteristic $p$ dividing $|G|$, the average is undefined, and Maschke fails. *Modular representation theory* — the study of representations in characteristic $p$ — is far more subtle than ordinary character theory, with phenomena like indecomposable but not irreducible modules.
+
+## Common Pitfalls for Beginners
+
+The first pitfall: confusing the dimension of a representation with the order of the group. The trivial representation has dimension $1$, regardless of $|G|$. The regular representation has dimension $|G|$. Most representations sit somewhere in between, and the dimensions are precisely the constraints of $|G| = \sum (\dim V_i)^2$.
+
+The second pitfall: assuming all representations are over $\mathbb{C}$. The standard theory works over any algebraically closed field of characteristic zero, or characteristic coprime to $|G|$. Over $\mathbb{R}$, representations can split differently — for instance, the two non-trivial $1$-dimensional reps of $\mathbb{Z}/3$ over $\mathbb{C}$ combine into a single $2$-dimensional irreducible real representation. Over $\mathbb{Q}$, even more. The "Brauer–Schur theory" handles these distinctions.
+
+The third pitfall: thinking that the character determines the representation as a *set with structure*. It determines the representation only up to isomorphism. Two non-isomorphic constructions giving the same character must give isomorphic representations.
+
+## Where This Shows Up
+
+*Quantum mechanics.* The state space of a physical system is a representation of the symmetry group of the system. Particles are classified by irreducible representations of the Poincaré group (Wigner). Atomic spectra split according to representations of $SO(3)$ — the angular momentum quantum number $\ell = 0, 1, 2, \ldots$ labels the irreducible reps, with dimensions $1, 3, 5, \ldots$ giving the s-, p-, d-, f-orbital count. The classification of fundamental particles in the Standard Model is a representation-theoretic statement about $SU(3) \times SU(2) \times U(1)$.
+
+*Fourier analysis.* The Fourier transform on a finite abelian group is exactly the change of basis to the basis of irreducible characters. On $\mathbb{Z}/n$, this is the discrete Fourier transform. On a non-abelian group, the analogue is the Peter-Weyl decomposition, which decomposes $L^2(G)$ as a direct sum over all irreps.
+
+*Crystallography and chemistry.* The vibrational modes of a molecule decompose under the symmetry group of the molecule into irreducible representations, and selection rules in spectroscopy follow from character orthogonality. This is taught in undergraduate inorganic chemistry as "group theory for chemists" — and it is exactly the same character-table machinery.
+
+## What I Want You to Carry Forward
+
+Three questions for Part 11, on category theory:
+
+1. *Is there a unifying language for groups, rings, modules, and topological spaces?* Yes: category theory. Each of these is a category, and many constructions transfer between them.
+2. *What is a functor, and why are they everywhere?* A functor is a structure-preserving map between categories — and forgetting structure (forgetful functor), free constructions, and tensor products are all examples.
+3. *What is a natural transformation, and why is the canonical isomorphism between $V$ and $V^{**}$ "natural" while the isomorphism with $V^*$ is not?* Natural transformations encode the difference, and the formal language of categories makes this precise.
+
+If the character computations feel routine, you have the technique. The next time you see a finite group, your reflex should be: list conjugacy classes, count them, write down the character table with rows summing to $|G|$ in squared dimensions, verify orthogonality. This is what representation theorists do all day, and you have just earned the right to claim membership.
+
+
+## Supplementary Examples
+
+**A character-table computation for $D_4$.** The dihedral group $D_4$ has order $8$ with five conjugacy classes: $\{e\}, \{r^2\}, \{r, r^3\}, \{s, r^2 s\}, \{rs, r^3 s\}$. So five irreducible representations, with dimensions $d_1, \ldots, d_5$ satisfying $\sum d_i^2 = 8$. The unique solution: $1 + 1 + 1 + 1 + 4 = 8$, so dimensions are $(1, 1, 1, 1, 2)$. The four $1$-dim reps come from the abelianization $D_4 / [D_4, D_4] = D_4 / \{e, r^2\} \cong \mathbb{Z}/2 \times \mathbb{Z}/2$, which has four characters. The $2$-dim irrep is the geometric "rotation+reflection" rep on $\mathbb{R}^2$.
+
+| | $e$ | $r^2$ | $r, r^3$ | $s, r^2 s$ | $rs, r^3 s$ |
+|---|---|---|---|---|---|
+| $\mathbf{1}$ | $1$ | $1$ | $1$ | $1$ | $1$ |
+| $\chi_2$ | $1$ | $1$ | $-1$ | $1$ | $-1$ |
+| $\chi_3$ | $1$ | $1$ | $1$ | $-1$ | $-1$ |
+| $\chi_4$ | $1$ | $1$ | $-1$ | $-1$ | $1$ |
+| $\rho$ | $2$ | $-2$ | $0$ | $0$ | $0$ |
+
+Verify dimensions and orthogonality. The $2$-dim character $\rho$ has trace zero on every non-central class — geometrically, because rotations by $90°$ and reflections all have trace zero in their matrix representation (a rotation by $90°$ has trace $0$, and a reflection has trace $0$ in this rep).
+
+**Schur's lemma in detail.** Two consequences. First: an irreducible representation of an abelian group is $1$-dimensional. Proof: every group element commutes with every other, so by Schur, the action of any group element on an irrep $V$ is a scalar. So $V = \mathbb{C} v$ for any non-zero $v$, hence $\dim V = 1$. Second: the centre of the group algebra $Z(\mathbb{C}[G])$ has dimension equal to the number of conjugacy classes — this is *also* equal to the number of irreps, which is the source of the famous "number of irreps = number of conjugacy classes" fact.
+
+**Frobenius reciprocity and induction.** For $H \leq G$ and a representation $W$ of $H$, the induced representation $\mathrm{Ind}_H^G W$ has dimension $[G : H] \cdot \dim W$. Frobenius reciprocity says $\mathrm{Hom}_G(\mathrm{Ind}_H^G W, V) \cong \mathrm{Hom}_H(W, \mathrm{Res}_H^G V)$ — induction is left adjoint to restriction. This is the categorical formulation of the slogan "induced reps are determined by their restrictions plus a free construction."
 ---

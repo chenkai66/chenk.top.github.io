@@ -25,6 +25,12 @@ translationKey: "pde-ml-7"
 
 ---
 
+The output side of a diffusion model is familiar: a high-quality image. The training objective, on the other hand, looks counter-intuitive at first sight — **add noise to the data until it is fully Gaussian, then learn to denoise step by step**. Why is this detour more effective than learning the data distribution directly?
+
+The answer is hidden in PDEs. The forward noising process is a **heat equation** (or, more generally, a Fokker–Planck equation), and it admits a reverse-time version — provided we know the score (the gradient of the log-density) at every time. **Score matching** is the standard way to learn that score. From this angle, DDPM, DDIM, and score-based SDEs are not three different algorithms but three discretizations of the same PDE story.
+
+This article walks that thread: start from the heat equation, derive the score-matching loss, recover the DDPM training objective inside this unified framework, and discuss how DDIM and Latent Diffusion accelerate inference without breaking the theory. With visualizations.
+
 ## What You Will Learn
 
 Since 2020, **diffusion models** have become the dominant paradigm in generative AI. From DALL·E 2 to Stable Diffusion to Sora, their generation quality and training stability surpass those of GANs and VAEs. This success is underpinned by a remarkably clean mathematical structure: **diffusion models are numerical solvers for partial differential equations**.
@@ -524,6 +530,13 @@ The unifying message: **whenever you need to sample from a high-dimensional, mul
 > *Solution sketch.* In stationary regime $p_t(x) = \mathcal{N}(x;0,1)$, so $\nabla\log p_t(x) = -x$. Plug $f = -\tfrac12\beta x$, $g^2 = \beta$ into (8): drift $= -\tfrac12\beta x - \beta(-x) = \tfrac12\beta x$, i.e. the reverse process has a *positive* mean reversion away from zero — exactly what is needed to "uncrunch" the OU collapse to the origin. $\blacksquare$
 
 ---
+
+## What's next
+
+The handful of core ideas in this chapter (PDE residual as loss, operators on function spaces, Wasserstein geometry, symplectic structure, scores, diffusion) recur throughout the rest of the series. If a section stalls you, jot the question down and keep reading — the next chapter usually re-explains it from a different angle.
+
+The fastest sanity check on your own understanding is to run this chapter's equation on a minimal example: a 1-D heat equation, a single pendulum, a 2-D Gaussian mixture. The code is short, but it converts "looks right" into "it's right on my machine."
+
 
 ## References
 

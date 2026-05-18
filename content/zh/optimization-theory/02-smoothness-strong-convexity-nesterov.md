@@ -28,6 +28,14 @@ aliases:
 
 ---
 
+调过深度学习超参的人多半都体会过这种循环：把学习率调大一点，loss 上天；调小一点，又慢得让人想砸键盘。这背后其实只有三个量在说话：
+
+- **梯度有多陡？**——这就是 Lipschitz 光滑性 $L$，它告诉你步长最多能开多大。
+- **底部有多尖？**——这就是强凸常数 $\mu$，它决定收敛是“线性下降”还是“慢慢爬”。
+- **能不能不牺牲稳定性还跑得更快？**——Nesterov 加速给的答案，把每个条件数 $\kappa$ 的代价从 $\kappa$ 压到 $\sqrt{\kappa}$。
+
+这篇文章我想做的事情很具体：先帮你建立 $L$ 和 $\mu$ 的几何感觉，再把 Nesterov 那个看着像魔法的 $\beta_t = (t-1)/(t+2)$ 拆开来看，让你知道它为什么不是凭空冒出来的。看完之后，下次面对一个新的优化问题，你应该能先估一下 $L$ 和 $\mu$，再决定要不要请加速出场。
+
 ## 你将学到什么
 
 - Lipschitz 连续性的几何意义：每个点都位于一个包含函数图像的斜率锥内。
@@ -360,3 +368,10 @@ $\kappa > 10^4$：考虑预条件或二阶方法。
 3. Bubeck, S. (2015). *Convex Optimization: Algorithms and Complexity.* Foundations and Trends in Machine Learning, 8(3-4), 231–357.
 4. O'Donoghue, B., & Candès, E. (2015). *Adaptive restart for accelerated gradient schemes.* Foundations of Computational Mathematics, 15(3), 715–732.
 5. Karimi, H., Nutini, J., & Schmidt, M. (2016). *Linear convergence of gradient and proximal-gradient methods under the Polyak-Łojasiewicz condition.* ECML-PKDD.
+
+## 下一步
+
+把这一章的工具内化之后，下一篇会继续往前推：本章给你的几个新概念会变成下一章证明的“顺手抄起就用”的工具。如果遇到术语觉得卡住，回到本文 H2 标题对应的小节再读一遍——这些概念后面会反复出现，第一遍不必全懂，第二三遍自然会熟。
+
+如果你想立刻动手验一下今天学到的东西，**最划算的练习是**：找一个你熟悉的优化问题，把本文的关键不等式（凸性、$L$-光滑、强凸、对偶界）逐一在它身上验一遍——很快你就会发现哪些假设是真的成立，哪些只是“纸面上成立”。这种习惯比多读两篇 paper 更有用。
+

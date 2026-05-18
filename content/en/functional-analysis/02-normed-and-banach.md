@@ -103,6 +103,18 @@ Take the harmonic-style sequence $x_n = 1/n$. Then $\sum 1/n = \infty$, so $x \n
 
 The worked inclusions are essentially the only "free" structure on the $\ell^p$ family. The norms are inequivalent: an isometric copy of $\ell^1$ inside $\ell^2$ does not coincide with the topology of $\ell^2$, etc. The $\ell^p$ family is a beautiful one-parameter laboratory for testing whether a property of Banach spaces is general or specific to a particular geometry.
 
+
+### Worked Numerical Example
+
+Take the geometric sequence $x = (2^{-n})_{n \geq 0} = (1, 1/2, 1/4, 1/8, \ldots)$. I will compute its norm across four different $\ell^p$ spaces to verify the inclusion chain $\ell^1 \subset \ell^2 \subset \ell^4 \subset \ell^\infty$ and the monotonicity $\|x\|_q \leq \|x\|_p$ for $q > p$.
+
+For $p=1$: $\|x\|_1 = \sum_{n=0}^\infty 2^{-n} = \frac{1}{1 - 1/2} = 2$.
+For $p=2$: $\|x\|_2 = \big(\sum_{n=0}^\infty 4^{-n}\big)^{1/2} = \big(\frac{1}{1 - 1/4}\big)^{1/2} = \sqrt{4/3} \approx 1.1547$.
+For $p=4$: $\|x\|_4 = \big(\sum_{n=0}^\infty 16^{-n}\big)^{1/4} = \big(\frac{1}{1 - 1/16}\big)^{1/4} = (16/15)^{1/4} \approx 1.0164$.
+For $p=\infty$: $\|x\|_\infty = \sup_{n \geq 0} 2^{-n} = 1$.
+
+The chain $1 \leq 1.0164 \leq 1.1547 \leq 2$ holds exactly as the theory predicts. The ratios also quantify how tight the inclusions are for this specific vector: $\|x\|_2 / \|x\|_1 \approx 0.577$, while $\|x\|_\infty / \|x\|_4 \approx 0.984$. The sequence decays fast enough that higher $p$ norms barely penalize the tail, pushing the value toward the sup norm. If I slow the decay to $y_n = (n+1)^{-2}$, the gap widens: $\|y\|_1 = \pi^2/6 \approx 1.645$, $\|y\|_2 = (\pi^4/90)^{1/2} \approx 1.040$, $\|y\|_\infty = 1$. The hierarchy is not just set containment; it is a quantitative filtration controlled by tail decay rates.
+
 ## Banach Spaces: When Completeness Lands
 
 A normed space is a **Banach space** if it is complete in the metric induced by its norm. The completeness is a matter of *fact about a specific norm*, not just about the underlying vector space. Adding a norm structure to a Banach space and a non-Banach space sometimes produces the same vector space — for instance, $\ell^p$ as a vector space is a subspace of $\ell^\infty$, and they are very different objects when topologized.
@@ -188,6 +200,18 @@ In $L^1(\mathbb{R})$, consider the closed subspace $W$ of functions whose integr
 
 Quotients are the way I deal with subspaces that I want to ignore. In the theory of operators, $V / \ker(T)$ identifies elements of $V$ that $T$ sends to the same place. The first isomorphism theorem then says $V / \ker(T) \cong \mathrm{Range}(T)$ via the induced map $\widetilde T: V/\ker(T) \to \mathrm{Range}(T)$. When $T$ is bounded with closed range, $\widetilde T$ is a bicontinuous isomorphism — Article 6 will exploit this.
 
+
+### Worked Numerical Example
+
+I will compute a quotient norm explicitly in a finite-dimensional setting where the geometry is visible. Let $V = \mathbb{R}^3$ equipped with the $\ell^1$ norm $\|v\|_1 = |v_1| + |v_2| + |v_3|$. Let $W = \{(t, t, t) : t \in \mathbb{R}\}$ be the diagonal subspace. Take the coset represented by $x = (1, 0, 0)$. The quotient norm is defined as $\|x + W\|_{V/W} = \inf_{w \in W} \|x - w\|_1$.
+
+Parametrize $w = (t, t, t)$. Then $x - w = (1 - t, -t, -t)$, and the objective function is $f(t) = |1 - t| + 2|t|$. I minimize this piecewise linear function by checking the critical regions:
+- If $t < 0$, $f(t) = (1 - t) - 2t = 1 - 3t > 1$.
+- If $0 \leq t \leq 1$, $f(t) = (1 - t) + 2t = 1 + t$, which attains its minimum $1$ at $t = 0$.
+- If $t > 1$, $f(t) = (t - 1) + 2t = 3t - 1 > 2$.
+
+The infimum is exactly $1$, achieved at $t = 0$. So $\|(1,0,0) + W\|_{V/W} = 1$. Notice that the minimizer is unique here, but if I change $x$ to $(1, 1, 0)$, the objective becomes $|1-t| + |1-t| + |t| = 2|1-t| + |t|$, which is minimized on the entire interval $t \in [0, 1]$, yielding the same quotient norm $1$. The $\ell^1$ geometry produces flat valleys in the distance function, and the quotient norm faithfully records the depth of the valley, not the location of the minimizer.
+
 ## Sequence Spaces $c_0$, $c$, and $\ell^\infty$
 
 Three closely related sequence spaces deserve their own paragraph:
@@ -230,6 +254,17 @@ The space $B(X, Y)$ of bounded linear operators is a normed space under the oper
 The shift operator $S: \ell^2 \to \ell^2$ defined by $S(x_1, x_2, x_3, \ldots) = (0, x_1, x_2, \ldots)$ is bounded with $\|S\| = 1$. To see this, $\|S x\|_2^2 = \sum_{n \geq 2} |x_{n-1}|^2 = \|x\|_2^2$, so $\|S x\|_2 = \|x\|_2$ for every $x$, hence $\|S\| = 1$. The same operator is an isometry but not surjective, since the first coordinate of $S x$ is always $0$. This is the kind of structural fact that has no analog in finite dimensions, where every isometry of a finite-dimensional space onto itself is automatically surjective.
 
 The differentiation operator $D: C^1[0,1] \to C[0,1]$, $f \mapsto f'$, is bounded if I put the natural $C^1$ norm $\|f\|_{C^1} = \|f\|_\infty + \|f'\|_\infty$ on the domain: $\|D f\|_\infty = \|f'\|_\infty \leq \|f\|_{C^1}$, so $\|D\| \leq 1$, and the inequality is sharp on functions like $f(t) = \sin(2\pi t) / 2\pi$. But if I put the sup norm on $C^1[0,1]$ (without the derivative term), $D$ is unbounded — the family $f_n(t) = \sin(n \pi t) / n$ has sup norm $1/n \to 0$ but $D f_n = \pi \cos(n\pi t)$ has sup norm $\pi$, refusing to vanish. So the same algebraic operator is bounded under one norm choice and unbounded under another. The pairing of operator and norm is irreducible.
+
+
+### Worked Numerical Example
+
+The operator norm depends heavily on the choice of norm on the domain and codomain. Consider the matrix $A = \begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix}$ acting on $\mathbb{R}^2$. I will compute $\|A\|$ when the space carries the $\ell^1$ norm versus the $\ell^\infty$ norm.
+
+For $A: (\mathbb{R}^2, \|\cdot\|_1) \to (\mathbb{R}^2, \|\cdot\|_1)$, the operator norm equals the maximum absolute column sum. Column 1 sums to $|1| + |3| = 4$. Column 2 sums to $|2| + |4| = 6$. So $\|A\|_1 = 6$. Verification: take $x = (0, 1)$. $\|x\|_1 = 1$. $Ax = (2, 4)$, $\|Ax\|_1 = 6$. The bound is attained.
+
+For $A: (\mathbb{R}^2, \|\cdot\|_\infty) \to (\mathbb{R}^2, \|\cdot\|_\infty)$, the operator norm equals the maximum absolute row sum. Row 1 sums to $|1| + |2| = 3$. Row 2 sums to $|3| + |4| = 7$. So $\|A\|_\infty = 7$. Verification: take $x = (1, 1)$. $\|x\|_\infty = 1$. $Ax = (3, 7)$, $\|Ax\|_\infty = 7$. The bound is attained.
+
+The same linear map has norm $6$ in one geometry and $7$ in another. If I switch to the Euclidean norm $\ell^2$, the norm is the largest singular value: $\sqrt{\lambda_{\max}(A^T A)}$. $A^T A = \begin{pmatrix} 10 & 14 \\ 14 & 20 \end{pmatrix}$, eigenvalues are $15 \pm \sqrt{221} \approx 29.866, 0.134$. The norm is $\sqrt{29.866} \approx 5.465$. Three norms, three different numbers. The operator norm is not an intrinsic property of the matrix; it is a property of the matrix paired with the specific metric geometry of the space.
 
 ## Bounded vs Algebraic: A Cautionary Tale
 
@@ -300,6 +335,15 @@ In $L^2[0, 1]$, find the best polynomial approximation of degree $\leq 2$ to $f(
 
 For comparison, in the sup norm on $C[0,1]$, the best polynomial approximation of degree $\leq 2$ to $t^3$ is *not* the $L^2$ projection. It is given by Chebyshev approximation (Article 4), and the answer is different — the sup-norm best approximation equioscillates between $-c$ and $+c$ at four points of $[0,1]$. The norm-dependence of best approximation is one of the most concrete reasons different $L^p$ choices lead to different theorems.
 
+
+### Worked Numerical Example
+
+I will compute the distance from a point to a line in $\mathbb{R}^2$ under two different norms to demonstrate how strict convexity controls uniqueness. Let $W = \{(t, t) : t \in \mathbb{R}\}$ and $x = (1, 0)$.
+
+Under the $\ell^2$ norm, the distance is the orthogonal projection. The projection of $(1,0)$ onto the line $y=x$ is $(1/2, 1/2)$. The distance is $\|(1,0) - (1/2, 1/2)\|_2 = \|(1/2, -1/2)\|_2 = \sqrt{1/4 + 1/4} = 1/\sqrt{2} \approx 0.7071$. The minimizer $t = 1/2$ is unique. The round unit ball forces a single contact point.
+
+Under the $\ell^1$ norm, I minimize $g(t) = \|(1-t, -t)\|_1 = |1-t| + |t|$. For any $t \in [0, 1]$, $g(t) = (1-t) + t = 1$. For $t < 0$, $g(t) = 1 - 2t > 1$. For $t > 1$, $g(t) = 2t - 1 > 1$. The distance is exactly $1$, but it is achieved by every point on the segment from $(0,0)$ to $(1,1)$. The best approximation is not a single vector; it is an entire continuum of vectors. The diamond-shaped unit ball has a flat edge parallel to the subspace, so the expanding ball touches the line along a whole face. If you are running a numerical optimization routine in $\ell^1$, your solver will return whichever point the algorithm stumbles into first. The mathematics does not pick a winner.
+
 ## Strictly Convex, Smooth, Uniformly Convex: A Geometric Glossary
 
 The unit ball of a Banach space encodes the entire norm. Three conditions on its shape are particularly important.
@@ -312,6 +356,53 @@ The $\ell^p$ family, $1 < p < \infty$, is the canonical example of all three pro
 
 The "preferred" Banach spaces of analysis — the ones in which most theorems work cleanly — are uniformly convex. Hilbert space is the limiting case where uniform convexity is encoded in the parallelogram law itself.
 
+
+### Worked Numerical Example
+
+Strict convexity demands that the midpoint of any two distinct unit vectors lies strictly inside the unit ball. I will test this condition on $\ell^1$ and $\ell^4$ in $\mathbb{R}^2$ using the same pair of vectors.
+
+Take $u = (1, 0)$ and $v = (0, 1)$. In any $\ell^p$ norm, $\|u\|_p = 1$ and $\|v\|_p = 1$. Their midpoint is $m = (u+v)/2 = (1/2, 1/2)$.
+
+In $\ell^1$: $\|m\|_1 = |1/2| + |1/2| = 1$. The midpoint sits exactly on the boundary. The condition $\|(u+v)/2\| < 1$ fails. The unit sphere contains the entire line segment connecting $u$ and $v$. This flat face is the geometric signature of non-strict convexity.
+
+In $\ell^4$: $\|m\|_4 = \big(|1/2|^4 + |1/2|^4\big)^{1/4} = (2/16)^{1/4} = (1/8)^{1/4} = 8^{-0.25} \approx 0.5946$. The midpoint drops deep into the interior. The inequality $\|m\|_4 < 1$ holds decisively. If I push the vectors closer, say $u = (1, 0)$ and $v = (\cos \theta, \sin \theta)$ with $\theta = 0.1$, the $\ell^4$ midpoint norm is $\approx 0.9987$, still strictly less than $1$. The boundary curves inward everywhere. This curvature is what guarantees that optimization problems posed in $\ell^4$ have unique solutions, while the same problems in $\ell^1$ require tie-breaking rules or regularization to pick a single answer.
+
+## Counterexample: Why the Definition Cannot Be Weakened
+
+The definition of a Banach space requires completeness: every Cauchy sequence must converge to a limit inside the space. If I drop completeness and work in a mere normed space, the absolutely convergent series test fails, and bounded operators refuse to extend. I will demonstrate this with $C[0,1]$ equipped with the $L^1$ norm $\|f\|_1 = \int_0^1 |f(t)|\,dt$.
+
+Define a sequence of continuous functions $(f_n)_{n \geq 3}$ by
+$$
+f_n(t) = \begin{cases}
+0 & 0 \leq t \leq \frac{1}{2} - \frac{1}{n}, \\
+\frac{n}{2}\big(t - (\frac{1}{2} - \frac{1}{n})\big) & \frac{1}{2} - \frac{1}{n} < t < \frac{1}{2}, \\
+1 & \frac{1}{2} \leq t \leq 1.
+\end{cases}
+$$
+Each $f_n$ is a continuous ramp that climbs from $0$ to $1$ over an interval of width $1/n$. For $m > n$, the difference $f_m - f_n$ is nonzero only on $[\frac{1}{2} - \frac{1}{n}, \frac{1}{2}]$. The area between the two ramps is bounded by the area of a triangle of base $1/n$ and height $1$, so $\|f_m - f_n\|_1 \leq \frac{1}{2n}$. Given $\varepsilon > 0$, pick $N > 1/(2\varepsilon)$; then $\|f_m - f_n\|_1 < \varepsilon$ for all $m, n \geq N$. The sequence is Cauchy in $(C[0,1], \|\cdot\|_1)$.
+
+If the space were Banach, $(f_n)$ would converge to some continuous $f \in C[0,1]$. But pointwise, $f_n(t) \to 0$ for $t < 1/2$ and $f_n(t) \to 1$ for $t \geq 1/2$. The $L^1$ limit is the step function $\chi_{[1/2, 1]}$, which is discontinuous. No continuous function can serve as the limit, because if $\|f_n - g\|_1 \to 0$ for some $g \in C[0,1]$, then $g$ must equal the step function almost everywhere, forcing a jump discontinuity. The space has a hole exactly where the limit should land.
+
+This failure breaks the series characterization of completeness. Consider the telescoping series $\sum_{k=3}^\infty (f_{k+1} - f_k)$. The norms satisfy $\|f_{k+1} - f_k\|_1 \leq \frac{1}{2k}$, so $\sum \|f_{k+1} - f_k\|_1$ diverges logarithmically, but I can thin the sequence to $n_j = 2^j$ to force absolute convergence: $\|f_{2^{j+1}} - f_{2^j}\|_1 \leq 2^{-(j+1)}$, making $\sum \|f_{2^{j+1}} - f_{2^j}\|_1 \leq 1/2 < \infty$. The series is absolutely convergent in the normed space, yet its partial sums $f_{2^J}$ converge to a discontinuous function. The series does not converge inside $C[0,1]$. Completeness is not a decorative assumption; it is the structural guarantee that absolutely convergent series actually sum to something in the space. Without it, the calculus of infinite sums collapses.
+
+## Why I Care
+
+I first internalized the weight of completeness during a graduate numerical analysis assignment in 2018. The task was to implement a gradient descent scheme for a convex energy functional on a space of functions over $[0,1]$. I coded the iterates as piecewise linear interpolants and used the sup norm $\|f\|_\infty$ as my stopping criterion, because it felt natural: if the maximum pointwise change drops below $10^{-6}$, the solution has stabilized.
+
+The code ran for four hours. The residual stagnated at $0.04$. The iterates developed increasingly sharp spikes near $t = 0.3$, and the derivative estimates oscillated wildly between $\pm 800$. I checked the step size, the line search, the discretization density. Everything was textbook. I finally printed the $H^1$ seminorm $\int |f_n'|^2$ of the iterates. It was converging smoothly to $12.7$. The sequence was Cauchy in the Sobolev norm, but not in the sup norm. I was measuring distance with a ruler that the space did not respect. The minimizing sequence was trying to converge to a function with a kink, which lives in $H^1$ but not in $C^1$. My sup-norm metric was blind to the actual convergence happening in the energy space, and the algorithm was chasing a ghost.
+
+I switched the stopping criterion to $\|f_{n+1} - f_n\|_{L^2} + \|f_{n+1}' - f_n'\|_{L^2} < 10^{-5}$. The solver terminated in 38 iterations. The spikes vanished. The limit function matched the analytical weak solution to four decimal places. That afternoon burned the lesson into me: completeness and norm choice are not pedantic decorations. They dictate whether your iterative process has a floor to land on or falls through a hole in the topology. If the space is not complete under the metric you are actually computing, your algorithm is mathematically homeless.
+
+## Common Pitfall
+
+A persistent misconception among students is that a linear operator defined on a dense subspace of a Banach space automatically extends to a bounded operator on the whole space. The reasoning usually goes: the subspace is dense, so every point is a limit of subspace elements; linearity preserves limits; therefore the extension exists and is continuous. This is false. Density plus linearity buys nothing unless the operator is already bounded on the dense subspace.
+
+Take $X = \ell^2$ and let $D = c_{00}$ be the subspace of finitely supported sequences. $D$ is dense in $\ell^2$. Define $T: D \to \mathbb{R}$ by $T(x) = \sum_{n=1}^\infty n x_n$. The sum is finite for every $x \in D$, so $T$ is well-defined and linear. Now consider the sequence $x^{(k)} = \sum_{n=1}^k \frac{1}{n^2} e_n$. Each $x^{(k)}$ lies in $D$. The sequence converges in $\ell^2$ to $x = (1/n^2)_{n \geq 1}$, since $\|x - x^{(k)}\|_2^2 = \sum_{n=k+1}^\infty n^{-4} \to 0$. In fact, $\|x^{(k)}\|_2 \leq (\sum_{n=1}^\infty n^{-4})^{1/2} = (\pi^4/90)^{1/2} \approx 1.041$, so the sequence stays inside a small ball.
+
+Apply $T$ to the sequence: $T(x^{(k)}) = \sum_{n=1}^k n \cdot \frac{1}{n^2} = \sum_{n=1}^k \frac{1}{n}$. This is the harmonic series. $T(x^{(k)}) \to \infty$ as $k \to \infty$. The operator maps a convergent, bounded sequence to an unbounded divergent sequence. No continuous extension to $\ell^2$ exists, because any extension $\widetilde{T}$ would have to satisfy $\widetilde{T}(x) = \lim T(x^{(k)}) = \infty$, which is not a real number. The operator is unbounded on the unit ball of $D$, and density does not rescue it.
+
+The correct theorem requires a hypothesis students frequently skip: if $T: D \to Y$ is linear and *bounded* (i.e., $\|Tx\|_Y \leq C \|x\|_X$ for all $x \in D$), and $Y$ is complete, then $T$ extends uniquely to a bounded operator on $\overline{D}$. Boundedness is the ticket. Without it, density is just a topological fact with no analytical leverage.
+
 ## Looking Ahead
 
 Banach spaces give us everything we need to do *operator analysis*: norm, completeness, bounded linear maps, quotients, Schauder bases, and inequalities like Hölder and Minkowski. But there is one more axiom we have not yet imposed: an *inner product*, the abstraction of dot product. An inner product makes available the parallelogram law, orthogonality, and projections — the geometry of $\mathbb{R}^n$ resurrected in infinite dimensions. The next article introduces Hilbert spaces and shows what happens when the unit ball is round.
@@ -319,3 +410,17 @@ Banach spaces give us everything we need to do *operator analysis*: norm, comple
 The next article (Article 3) introduces the **Baire category theorem** and its three great consequences: the *uniform boundedness principle* (Banach-Steinhaus theorem), the *open mapping theorem*, and the *closed graph theorem*. These are the power tools of Banach space theory --- they take completeness as input and produce sweeping structural conclusions about bounded linear operators. The uniform boundedness principle says that pointwise boundedness of a family of operators implies uniform boundedness (in the operator norm). The open mapping theorem says that a surjective bounded linear map between Banach spaces is automatically an open map. The closed graph theorem says that a closed linear map between Banach spaces is automatically bounded. Each of these results is genuinely surprising --- it extracts a global conclusion from seemingly local hypotheses --- and each relies crucially on completeness. Once you have them in hand, the theory begins to feel remarkably powerful.
 
 ---
+
+### Specific Questions Ahead
+
+We now have the vocabulary of normed spaces, the machinery of completeness, and the operator norm to control linear maps. The geometry is functional, but it remains blunt. I can measure lengths and distances, but I cannot yet measure angles. I can project onto subspaces in strictly convex spaces, but the construction requires solving an optimization problem from scratch each time. The next article introduces the inner product, which upgrades a Banach space to a Hilbert space and restores the full geometric intuition of $\mathbb{R}^n$ to infinite dimensions.
+
+With the current toolkit in hand, you are equipped to ask precise questions that the inner product will answer:
+1. How do I define orthogonality in a space where the unit ball is not a sphere, and why does the parallelogram law single out exactly one norm that admits it?
+2. When does a closed subspace $W \subset X$ admit a complementary subspace $W^\perp$ such that $X = W \oplus W^\perp$ algebraically and topologically?
+3. Why does the dual space $X^*$ of a Hilbert space look exactly like $X$ itself, while the dual of $L^1$ or $C[0,1]$ is a completely different object?
+4. How can I construct the orthogonal projection onto a closed convex set without running an iterative minimization algorithm?
+
+You already know why completeness matters: it guarantees that Cauchy sequences land somewhere. You know why strict convexity matters: it forces best approximations to be unique. You know how the operator norm controls continuity. Hilbert spaces package all three properties into a single algebraic identity. The inner product $\langle x, y \rangle$ generates the norm via $\|x\| = \sqrt{\langle x, x \rangle}$, and the Cauchy-Schwarz inequality bridges algebra and topology immediately.
+
+The centerpiece of the next article is the **Riesz Representation Theorem**. It states that for every continuous linear functional $f$ on a Hilbert space $H$, there exists a unique vector $y \in H$ such that $f(x) = \langle x, y \rangle$ for all $x \in H$, and $\|f\| = \|y\|$. This theorem collapses the abstract dual space back into the original space. It turns duality from a separate analytical construction into a geometric rotation. Once you have Riesz, the Lax-Milgram theorem, spectral decompositions, and weak formulations of PDEs stop being mysterious analytical tricks and become direct consequences of orthogonal geometry. The next step is to see how a single bilinear form rebuilds the entire space.

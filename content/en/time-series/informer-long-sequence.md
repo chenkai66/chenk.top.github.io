@@ -467,6 +467,17 @@ This concludes the time-series forecasting series. Across eight chapters we walk
 
 ---
 
+
+## Where to go from here
+
+You've now walked through the full arc of time-series modeling, from classical to current. Chapter 1's ARIMA showed you what classical statistics still does well and exactly where it breaks. Chapters 2-3 (LSTM, GRU) are where deep learning actually started working on sequences. Chapters 4-5 (attention, Transformer) unlocked direct interactions across arbitrary distances. Chapter 6 (TCN) proved pure convolution can hold its own. Chapter 7 (N-BEATS) was a reminder that architectural priors beat raw capacity. This chapter (Informer) brings Transformers into the regime where "long sequence" becomes practical.
+
+If I had to compress eight chapters into one selection rule: short series with few variables and a need for interpretability, start with ARIMA or Prophet. Medium-length series with nonlinear interactions, GRU or TCN are good defaults. Need interpretable decomposition with thousands of related series? Reach for N-BEATS. Long horizon with many variables? Informer or PatchTST. The boundaries aren't sharp, but they'll save you two rounds of baseline comparisons on a new project.
+
+Three directions worth pursuing if you want to go deeper. Toward **interpretability**: how N-BEATS, TFT, and SHAP apply to time series, especially in regulated domains where "the model said so" isn't an answer. Toward **multivariate and causality**: VAR, Granger causality, and the more recent causal Transformer literature, which try to reason about *why* not just *what*. Toward **production**: putting these models behind real traffic, which is a different engineering problem entirely — online learning, drift detection, low-latency inference. Whichever path you pick, the eight architectures here give you a complete toolbox; the rest is project-specific judgment, and there's no shortcut for that beyond running real data through them.
+
+Thanks for sticking with the series.
+
 ## References
 
 - Zhou, H. et al. (2021). *Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting.* AAAI Best Paper.

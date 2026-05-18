@@ -337,6 +337,75 @@ Keep this at hand. We will not derive these from scratch again.
 
 ---
 
+## Deeper Examples and Common Pitfalls
+
+This section is the load-bearing one. The earlier sections gave the definitions; the goal here is to compute hard enough to feel the definitions push back, to point out the places where beginners slip, and to connect each abstract piece to a setting where it actually pays for itself.
+
+### A worked example for arc length and reparametrization
+
+Take the cubic curve $\gamma(t) = (t, t^2, \tfrac{2}{3} t^3)$ on $t \in [0, 1]$. Its velocity is $\gamma'(t) = (1, 2t, 2t^2)$ and the speed simplifies dramatically:
+$$|\gamma'(t)|^2 = 1 + 4t^2 + 4t^4 = (1 + 2t^2)^2,$$
+so $|\gamma'(t)| = 1 + 2t^2$. The arc length up to parameter $t$ is then
+$$s(t) = \int_0^t (1 + 2u^2)\, du = t + \tfrac{2}{3} t^3.$$
+At $t=1$ we get $s = 5/3$. Solving $s = t + \tfrac{2}{3} t^3$ for $t$ in closed form requires Cardano, but for any specific value of $s$ you can find $t$ numerically. The point is that the existence of the unit-speed reparametrization $\tilde{\gamma}(s) = \gamma(t(s))$ is guaranteed by $|\gamma'| > 0$, even when the explicit formula is ugly. This is exactly why every theorem in this chapter is stated for unit-speed curves: assume the inverse exists, work without it, and the bookkeeping disappears.
+
+### A worked example for curvature and torsion
+
+The helix $\gamma(t) = (\cos 2t, \sin 2t, t)$ is the canonical sanity check. Compute:
+$\gamma'(t) = (-2\sin 2t, 2\cos 2t, 1)$, so $|\gamma'| = \sqrt{4 + 1} = \sqrt{5}$, constant.
+$\gamma''(t) = (-4\cos 2t, -4\sin 2t, 0)$, so $|\gamma''| = 4$.
+$\gamma'''(t) = (8\sin 2t, -8\cos 2t, 0)$.
+
+Curvature: $\kappa = |\gamma' \times \gamma''| / |\gamma'|^3$. The cross product is $(4\sin 2t, -4\cos 2t, 8)$, magnitude $\sqrt{16 + 64} = \sqrt{80} = 4\sqrt{5}$. So $\kappa = 4\sqrt{5} / (\sqrt{5})^3 = 4\sqrt{5} / 5\sqrt{5} = 4/5$. Constant.
+
+Torsion: $\tau = \det[\gamma', \gamma'', \gamma'''] / |\gamma' \times \gamma''|^2$. The triple product expands to $\det\begin{pmatrix} -2\sin 2t & 2\cos 2t & 1 \\ -4\cos 2t & -4\sin 2t & 0 \\ 8\sin 2t & -8\cos 2t & 0 \end{pmatrix} = 1 \cdot (32\cos^2 2t + 32 \sin^2 2t) = 32$. So $\tau = 32/80 = 2/5$. Also constant.
+
+Both invariants are constant, which is the defining property of a generalized helix. At $t=0$: $T = \gamma' / |\gamma'| = (0, 2, 1)/\sqrt{5}$, $N = \gamma'' / |\gamma''| = (-1, 0, 0)$, $B = T \times N = (0, -1, 2)/\sqrt{5}$. Verify orthonormality: $T \cdot N = 0$, $T \cdot B = (0 \cdot 0 + 2 \cdot (-1) + 1 \cdot 2)/5 = 0$, $N \cdot B = 0$, $|T|^2 = (0 + 4 + 1)/5 = 1$, $|B|^2 = (0 + 1 + 4)/5 = 1$. The frame is orthonormal, as the Frenet construction guarantees.
+
+### Counterexample: when the Frenet frame fails
+
+The Frenet construction needs $\kappa > 0$ to define $N = T'/|T'|$. At a point where $\kappa = 0$, the principal normal is undefined. Take $\gamma(t) = (t, 0, t^3)$. Compute $\gamma'' = (0, 0, 6t)$, which vanishes at $t = 0$. The curve passes through a momentary inflection where it locally looks like a straight line, and the binormal $B$ can flip discontinuously across $t=0$ even though $\gamma$ is $C^\infty$.
+
+The cure is the **Bishop frame** (rotation-minimizing frame), which uses parallel transport instead of the second derivative to propagate $N$ along the curve. The lesson: the Frenet frame is a *coordinate system attached to a curve*, and like all coordinate systems it has singularities. The geometry of the curve is real, but the frame is sometimes a bad chart for it.
+
+### Common pitfall for beginners
+
+Beginners frequently confuse the **signed curvature** of a planar curve with the **unsigned curvature** of a space curve. The signed version takes values in $\mathbb{R}$ and tells you which way the curve is turning relative to a chosen normal; the unsigned version takes values in $[0, \infty)$ and only measures how sharply. When you flatten a space curve into the plane, the magnitudes match, but the signed version carries an extra bit of information that depends on orientation. Consequence: $\int \kappa\, ds$ for a closed planar curve gives $2\pi \cdot (\text{turning number})$ when signed and a strictly larger number when unsigned. The Whitney-Graustein theorem and the Gauss-Bonnet theorem both depend on the signed version. If you ever see a textbook claim "$\int \kappa\, ds = 2\pi$ for a simple closed curve," check whether they mean signed; for a peanut-shaped curve the unsigned integral is strictly larger than $2\pi$.
+
+A second pitfall: confusing arc length with chord length. For a space curve from $a$ to $b$, the chord $|\gamma(b) - \gamma(a)|$ is bounded above by the arc length, with equality only when the curve is a straight line. This is the metric statement of the triangle inequality applied to the integral, and it is also why polygonal approximations to a curve give a *lower* bound on its arc length, never an upper bound.
+
+### Where this matters in physics and engineering
+
+In computer graphics, when you sweep a tube along a curve to render a cable or a strand of hair, you must propagate a frame along the curve to orient the cross section. Using the Frenet frame produces visible flips wherever $\kappa = 0$ (think of straight segments in a piecewise curve). Production renderers therefore use the Bishop frame, which is the parallel-transported version. The trade-off is that the Bishop frame has a global twist depending on the curve's torsion integral, which is fine for graphics but matters for ribbons in DNA modeling.
+
+In aerospace, the trajectory of a maneuvering aircraft is described by Frenet-like equations where the analog of curvature is the *load factor* (lateral acceleration divided by gravity) and the analog of torsion is the *roll rate*. The Frenet-Serret equations, written in terms of these quantities, become the kinematic equations of the aircraft. Pilots are trained to think in $T$, $N$, $B$ without ever using those names.
+
+In molecular biology, the writhe and twist of a closed DNA loop are integral invariants directly built from the torsion and the framing of the curve. The Calugareanu-Fuller-White theorem (linking number = twist + writhe) is a topological constraint on closed framed curves, and it has biological consequences: enzymes called topoisomerases manage exactly these integer invariants when DNA replicates.
+
+### A second worked example: closed planar curves and the turning number
+
+To see the signed/unsigned distinction concretely, parametrize a cardioid: $\gamma(\theta) = ((1-\cos\theta)\cos\theta, (1-\cos\theta)\sin\theta)$ for $\theta \in [0, 2\pi]$. The cusp at $\theta=0$ makes $\gamma'(0) = 0$, so technically this is not a regular curve. Replace it by an ellipse $\gamma(\theta) = (a\cos\theta, b\sin\theta)$ with $a \neq b$. Compute $\gamma'(\theta) = (-a\sin\theta, b\cos\theta)$, $\gamma''(\theta) = (-a\cos\theta, -b\sin\theta)$. The signed planar curvature is
+$$\kappa(\theta) = \frac{x' y'' - y' x''}{(x'^2 + y'^2)^{3/2}} = \frac{ab}{(a^2 \sin^2\theta + b^2 \cos^2\theta)^{3/2}}.$$
+For $a = 2, b = 1$, $\kappa$ ranges from $\kappa_{\min} = 1/4$ (at the long axis tips) to $\kappa_{\max} = 2$ (at the short axis tips). The total turning is $\int_0^{2\pi} \kappa(\theta) |\gamma'(\theta)|\, d\theta = 2\pi$ exactly, by the rotation index theorem; the unsigned integral over the same interval gives the same number for a convex curve and strictly more for a non-convex one. This is the cleanest place to feel that "total signed curvature" is a *topological* invariant — it does not change when you smoothly deform the ellipse — while "total unsigned curvature" is geometric and does. The fact that $\int \kappa\, ds$ over a simple closed curve always equals $2\pi$ regardless of shape is your first taste of Gauss-Bonnet, which we will spend article 5 proving.
+
+### Revisiting "what's next" with sharper questions
+
+The next article moves from one-dimensional curves to two-dimensional surfaces. The transition is bigger than it looks because surfaces no longer have a canonical parametrization — there is no natural arc length, only an *area form*. To prepare for that, three questions to keep in mind:
+
+(1) On a curve, "speed" is a scalar; on a surface, the analog is a *bilinear form* (the first fundamental form) eating two tangent vectors. Why is one number not enough?
+(2) On a curve, curvature was defined by how fast $T$ rotates. On a surface, there is no single $T$; the analog is the *shape operator*, a linear map on the tangent plane. How do you collapse a linear map into invariants the same way curvature collapsed a derivative?
+(3) On a curve, intrinsic and extrinsic geometry coincide trivially (arc length is intrinsic, curvature is extrinsic, end of story). On a surface, the two come apart, and the gap between them is what the entire rest of the series is about. What is the right way to keep them separate?
+
+The Frenet machinery you now have is exactly the right preparation: it taught you to read a curve through a *frame* attached to it. The next article does the same for surfaces, but the frame becomes two-dimensional and the equations governing how it changes are matrix-valued. Read the next article asking "how do these formulas reduce to Frenet-Serret if I restrict the surface to a curve on it?" — they all do, and tracking the reduction is the cleanest way to ground the new abstractions.
+
+
+
+### One last worked example: the cycloid and total turning
+
+The cycloid $\gamma(t) = (t - \sin t, 1 - \cos t)$ traced by a point on a rolling unit circle is a great test case. Compute $\gamma'(t) = (1 - \cos t, \sin t)$ and $|\gamma'(t)|^2 = (1 - \cos t)^2 + \sin^2 t = 2(1 - \cos t) = 4\sin^2(t/2)$, so $|\gamma'(t)| = 2|\sin(t/2)|$. The arc length over one full arch ($t \in [0, 2\pi]$) is $\int_0^{2\pi} 2 \sin(t/2)\, dt = -4\cos(t/2)|_0^{2\pi} = 8$. So one arch has length exactly $8$, a clean integer despite the curve being transcendental. This is a famous result of Wren (1659).
+
+The signed planar curvature: $\kappa = (x'y'' - y'x'')/|\gamma'|^3$. Compute $x'' = \sin t$, $y'' = \cos t$, so $x'y'' - y'x'' = (1-\cos t)\cos t - \sin t \cdot \sin t = \cos t - \cos^2 t - \sin^2 t = \cos t - 1$. So $\kappa = (\cos t - 1)/(2\sin(t/2))^3 = -2\sin^2(t/2)/(8\sin^3(t/2)) = -1/(4\sin(t/2))$. The curvature blows up at the cusps ($t = 0, 2\pi$) and equals $-1/4$ at the top of the arch ($t = \pi$). The cusps are precisely the points where $|\gamma'| = 0$, where the regularity hypothesis of the Frenet-Serret machinery fails. Total signed turning over one arch: $\int_0^{2\pi} \kappa(t) |\gamma'(t)|\, dt = \int_0^{2\pi} -2\sin(t/2) /(4\sin(t/2))\, dt = -\pi$. So the cycloid arch turns through $\pi$ radians — a half-turn — consistent with the cusps adding the missing turning to make the rolling-circle picture coherent.
+
 ## What's Next
 
 We now have the complete local theory of curves. The Frenet-Serret apparatus provides a moving orthonormal frame and two scalar invariants ($\kappa, \tau$) which determine the curve up to rigid motion. The whole story is governed by ODEs.

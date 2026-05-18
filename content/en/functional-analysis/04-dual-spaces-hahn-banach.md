@@ -103,6 +103,13 @@ Use the Minkowski functional $p_A(x) = \inf\{t > 0 : x \in tA\}$ of an open conv
 
 The geometric form is the basis of every duality argument in optimization. Convex programming relies on the fact that an infeasible system $A x = b, x \geq 0$ corresponds to a separating hyperplane, and the hyperplane gives a "Farkas-type" certificate of infeasibility. The minimax theorems of game theory are theorems about separating convex sets (the saddle point of a game is the meeting point of two convex hulls). The Choquet integral representation of points in compact convex sets — every point of a compact convex set in a Banach space is the integral of a probability measure on the extreme points — is a deep application of separation.
 
+
+### Worked Numerical Example
+
+Take $X = \mathbb{R}^2$ equipped with the $\ell^1$ norm $\|x\|_1 = |x_1| + |x_2|$. Let $C = \{x \in \mathbb{R}^2 : x_1 + 2x_2 \leq 2, x_1 \geq 0, x_2 \geq 0\}$, a closed convex triangle with vertices $(0,0), (2,0), (0,1)$. Pick the exterior point $x_0 = (3, 2)$. The distance from $x_0$ to $C$ in $\ell^1$ is attained at the vertex $(2,0)$: $d(x_0, C) = |3-2| + |2-0| = 3$.
+
+The geometric Hahn-Banach theorem guarantees a functional $\varphi \in X^*$ with $\|\varphi\|_\infty = 1$ that separates $x_0$ from $C$ with a gap of exactly $3$. The dual norm is $\|\varphi\|_\infty = \max(|\varphi_1|, |\varphi_2|)$. Try $\varphi(x) = x_1 + x_2$. Then $\|\varphi\|_\infty = 1$. Evaluate on the target: $\varphi(x_0) = 3 + 2 = 5$. Evaluate on $C$: since $x_1, x_2 \geq 0$ and $x_1 + 2x_2 \leq 2$, we have $\varphi(x) = x_1 + x_2 \leq x_1 + 2x_2 \leq 2$. Thus $\sup_{c \in C} \varphi(c) = 2$ (attained at $(2,0)$ and $(0,1)$). The separation inequality reads $\varphi(c) \leq 2 < 5 = \varphi(x_0)$, and the gap $5 - 2 = 3$ matches the computed distance exactly. The hyperplane $\{x : x_1 + x_2 = 3.5\}$ cleanly slices between the triangle and the point.
+
 ## Supporting Hyperplanes
 
 A particular case of geometric Hahn-Banach: a closed convex set $C$ in a Banach space $X$ has a supporting hyperplane at every boundary point. That is, for every $x_0 \in \partial C$, there exists $\varphi \in X^*$ with $\varphi(x_0) = \sup_{c \in C} \varphi(c)$.
@@ -154,6 +161,15 @@ where $\perp$ takes annihilators in the appropriate dual or pre-dual. The closed
 
 Take $T: \ell^1 \to \ell^\infty$, $T x = (x_1, x_1 + x_2, x_1 + x_2 + x_3, \ldots)$ — partial sums of a sequence, viewed as a bounded operator. The functional $\varphi_n \in (\ell^\infty)^*$ given by $\varphi_n(y) = y_n$ has norm $1$. Then $T^* \varphi_n \in (\ell^1)^* = \ell^\infty$ is the functional $x \mapsto x_1 + \cdots + x_n$, represented by the bounded sequence $(1, 1, \ldots, 1, 0, 0, \ldots)$ with $n$ ones. As $n \to \infty$, $\|T^*\varphi_n\|_{\ell^\infty} = 1$ remains bounded, illustrating $\|T^*\| \leq \|T\|$ — and in fact $\|T\| = \|T^*\| = 1$ (since the partial sum of sequences with $\ell^1$-norm at most $1$ has $\ell^\infty$-norm at most $1$).
 
+
+### Worked Numerical Example
+
+Consider the right-shift operator $T: \ell^1 \to \ell^1$ defined by $T(x_1, x_2, x_3, \ldots) = (0, x_1, x_2, \ldots)$. Clearly $\|T\| = 1$. The dual space is $(\ell^1)^* = \ell^\infty$. Take a specific functional $\varphi \in \ell^\infty$ given by the sequence $\varphi = (1, 1/2, 1/4, 1/8, \ldots)$, so $\varphi_n = 2^{-(n-1)}$. Its dual norm is $\|\varphi\|_\infty = 1$.
+
+The adjoint $T^*: \ell^\infty \to \ell^\infty$ acts by precomposition: $(T^*\varphi)(x) = \varphi(Tx)$. Compute explicitly:
+$$\varphi(Tx) = \sum_{n=1}^\infty \varphi_n (Tx)_n = \varphi_1 \cdot 0 + \sum_{n=2}^\infty \varphi_n x_{n-1} = \sum_{k=1}^\infty \varphi_{k+1} x_k.$$
+Thus $T^*\varphi$ is represented by the shifted sequence $(\varphi_2, \varphi_3, \varphi_4, \ldots) = (1/2, 1/4, 1/8, \ldots)$. The norm drops: $\|T^*\varphi\|_\infty = 1/2$. This matches the operator inequality $\|T^*\varphi\| \leq \|T\| \|\varphi\| = 1 \cdot 1$. If we instead pick $\psi = (1, 1, 1, \ldots) \in \ell^\infty$, then $T^*\psi = (1, 1, 1, \ldots)$ and $\|T^*\psi\|_\infty = 1$, showing the adjoint norm $\|T^*\|$ actually equals $\|T\| = 1$, attained on constant sequences. The calculation verifies the formal identity $(T^*\varphi)_k = \varphi_{k+1}$ and the norm preservation at the operator level.
+
 ## Annihilators and Pre-Annihilators
 
 Given a subset $A \subseteq X$, the **annihilator** is
@@ -167,6 +183,15 @@ This duality between subspaces and their annihilators is the foundation of every
 ### Why this matters
 
 Annihilator duality reduces "where can $T x = y$ be solved?" to "what are the elements of $\ker(T^*)$?" — a question about a different operator on a different space. In PDE this is everyday: the inhomogeneous equation $L u = f$ has a solution iff $f$ is orthogonal to $\ker(L^*)$, where $L^*$ is the formal adjoint of the differential operator (the boundary terms in integration by parts giving the right notion of adjoint). This is sometimes called the "solvability condition" or "compatibility condition."
+
+
+### Worked Numerical Example
+
+Work in $X = \mathbb{R}^4$ with the Euclidean norm, identifying $X^*$ with $\mathbb{R}^4$ via the dot product. Let $M = \mathrm{span}\{v_1, v_2\}$ where $v_1 = (1, 2, 0, 1)$ and $v_2 = (0, 1, 1, 2)$. The annihilator $M^\perp \subset X^*$ consists of vectors $w$ orthogonal to both $v_1$ and $v_2$. Solve the linear system:
+$$w_1 + 2w_2 + w_4 = 0, \quad w_2 + w_3 + 2w_4 = 0.$$
+Row reduction yields $w_3 = -w_2 - 2w_4$ and $w_1 = -2w_2 - w_4$. Choosing free variables $(w_2, w_4) = (1, 0)$ gives $u_1 = (-2, 1, -1, 0)$. Choosing $(0, 1)$ gives $u_2 = (-1, 0, -2, 1)$. So $M^\perp = \mathrm{span}\{u_1, u_2\}$.
+
+Now compute the pre-annihilator $^\perp(M^\perp) = \{x \in X : x \cdot u_1 = 0, x \cdot u_2 = 0\}$. The conditions are $-2x_1 + x_2 - x_3 = 0$ and $-x_1 - 2x_3 + x_4 = 0$. Solving this system recovers exactly the original span: $x_2 = 2x_1 + x_3$ and $x_4 = x_1 + 2x_3$. Parameterizing by $x_1 = s, x_3 = t$ gives $x = s(1, 2, 0, 1) + t(0, 1, 1, 2) = s v_1 + t v_2$. Thus $^\perp(M^\perp) = M$. The double-annihilator operation is an exact involution on closed subspaces, and the $2 \times 4$ matrix calculation confirms it with zero numerical slack.
 
 ## $L^p$ Duality Spelled Out
 
@@ -230,6 +255,13 @@ The bipolar theorem is a direct consequence of Hahn-Banach geometric form: any p
 
 Convex analysis and optimization are mostly about working with this duality. The Fenchel-Legendre transform of a convex function is exactly the polar applied to the epigraph, and the resulting Fenchel duality theorem reduces minimization of $f + g$ to maximization of $-f^* - g^*$ over the dual variables, where $f^*$ is the conjugate. Many of the cleanest algorithms in modern optimization (proximal methods, ADMM, mirror descent) are bookkeeping on the polar duality.
 
+
+### Worked Numerical Example
+
+Let $X = \mathbb{R}^2$ with the standard pairing. Take the convex set $C = \{(x_1, x_2) : x_1 \geq 0, x_2 \geq 0, x_1 + x_2 \leq 2\}$. This is a right triangle containing the origin. The polar is $C^\circ = \{\varphi \in \mathbb{R}^2 : \varphi_1 x_1 + \varphi_2 x_2 \leq 1 \ \forall x \in C\}$. Testing the vertices of $C$ gives necessary conditions: $\varphi \cdot (0,0) = 0 \leq 1$, $\varphi \cdot (2,0) = 2\varphi_1 \leq 1 \implies \varphi_1 \leq 1/2$, $\varphi \cdot (0,2) = 2\varphi_2 \leq 1 \implies \varphi_2 \leq 1/2$. Since $x_1, x_2 \geq 0$ in $C$, any $\varphi$ with negative components only makes the dot product smaller, so the constraints are exactly $\varphi_1 \leq 1/2$ and $\varphi_2 \leq 1/2$. Thus $C^\circ = \{\varphi : \varphi_1 \leq 1/2, \varphi_2 \leq 1/2\}$, an unbounded quadrant shifted to $(1/2, 1/2)$.
+
+Now compute the bipolar $(C^\circ)^\circ = \{x : \varphi_1 x_1 + \varphi_2 x_2 \leq 1 \ \forall \varphi \in C^\circ\}$. If $x_1 < 0$, pick $\varphi_1 \to -\infty$ to violate the bound, so $x_1 \geq 0$. Similarly $x_2 \geq 0$. With $x_1, x_2 \geq 0$, the supremum of $\varphi \cdot x$ over $C^\circ$ occurs at the corner $\varphi = (1/2, 1/2)$, giving $(1/2)x_1 + (1/2)x_2 \leq 1$, or $x_1 + x_2 \leq 2$. We recover exactly $C$. The bipolar theorem holds with explicit vertex-by-vertex verification: the polar encodes the supporting half-spaces, and the bipolar reconstructs the original intersection.
+
 ## A Word on When the Dual Is "Bigger" Than Expected
 
 I have mentioned that $(\ell^\infty)^* \supsetneq \ell^1$ and $(L^\infty)^* \supsetneq L^1$. The exact source is the same in both cases: the dual contains *finitely additive* set functions that are not measures. The space $\mathrm{ba}(\mathcal{A})$ of bounded finitely additive set functions on a $\sigma$-algebra $\mathcal{A}$ is what completes $L^1$ inside $(L^\infty)^*$.
@@ -291,6 +323,13 @@ These two duality identities are the Banach-space versions of the "first isomorp
 
 The applications are constant in operator theory. To analyze the range of $T: X \to Y$, identify the *closure* of the range as $\ker(T^*)^\perp$ via the previous identities. To analyze the cokernel $Y / \overline{\mathrm{Range}(T)}$, recognize it as $\ker(T^*)$ by quotient duality. The "Fredholm alternative" of Article 7 — for $T - \lambda I$ with $T$ compact — is exactly this duality applied to a particular family of operators.
 
+
+### Worked Numerical Example
+
+Take $X = \mathbb{R}^3$ with the $\ell^2$ norm, and $M = \mathrm{span}\{(1, 1, 1)\}$. The quotient space $X/M$ consists of equivalence classes $[x] = x + M$. The quotient norm is $\|[x]\|_{X/M} = \inf_{m \in M} \|x - m\|_2$, which is the Euclidean distance from $x$ to the line $t(1,1,1)$. For $x = (3, 0, 0)$, the orthogonal projection onto $M$ is $(1, 1, 1)$, so the distance is $\|(2, -1, -1)\|_2 = \sqrt{6} \approx 2.449$. Thus $\|[(3,0,0)]\|_{X/M} = \sqrt{6}$.
+
+Now consider the functional $\psi$ on $X/M$ defined by $\psi([x]) = x_1 - x_2$. This is well-defined because $(x_1+t) - (x_2+t) = x_1 - x_2$. The dual norm is $\|\psi\|_{(X/M)^*} = \sup_{[x] \neq 0} |x_1 - x_2| / \|[x]\|_{X/M}$. By quotient duality, this equals the norm of any extension to $X$ that vanishes on $M$. The functional $\Phi(x) = x_1 - x_2$ already vanishes on $(1,1,1)$, so $\Phi \in M^\perp$. Its norm in $X^* \cong \mathbb{R}^3$ is $\|(1, -1, 0)\|_2 = \sqrt{2} \approx 1.414$. Check the quotient formula: for $x = (3,0,0)$, $|\psi([x])| = 3$. Ratio $3 / \sqrt{6} = \sqrt{1.5} \approx 1.225 < \sqrt{2}$. The supremum is attained at $x = (1, -1, 0)$, where $\|[x]\| = \sqrt{2}$ and $|\psi([x])| = 2$, giving ratio $\sqrt{2}$. The isomorphism $(X/M)^* \cong M^\perp$ preserves norms exactly, verified by orthogonal projection geometry.
+
 ## Generalized Banach Limits and Cesàro Summability
 
 The Banach-limit construction (above) extends to give a useful tool in summation theory. Given a sequence $(x_n) \in \ell^\infty$, ordinary Cesàro summability says $\frac{1}{N} \sum_{n=1}^N x_n$ converges. Banach limits agree with the Cesàro limit when the latter exists, and extend it to *any* bounded sequence. The price is non-uniqueness: different Banach-limit constructions give different values on non-Cesàro-summable sequences.
@@ -317,6 +356,39 @@ The geometric form generalizes too: in a locally convex space, two disjoint conv
 
 What does *not* generalize are the more quantitative consequences (closed range theorem, exact dual norms in some cases). The locally convex setting is where Hahn-Banach is most fundamental and most flexible, and where it has the cleanest applications in distribution theory and harmonic analysis on locally compact groups.
 
+## Counterexample: Why the Definition Cannot Be Weakened
+
+The geometric Hahn-Banach theorem promises strict separation of two disjoint convex sets $A$ and $B$ only when one is closed and the other is compact. If both are merely closed and convex in an infinite-dimensional space, strict separation can fail catastrophically: the distance between them can be zero, making any separating hyperplane collapse to a non-strict boundary.
+
+Consider $X = \ell^2$. Define two sets:
+$$A = \{x \in \ell^2 : x_{2k} = 0 \text{ for all } k \geq 1\},$$
+$$B = \{x \in \ell^2 : x_{2k} = 2^{-k}(x_{2k-1} + 1) \text{ for all } k \geq 1\}.$$
+Both are closed affine subspaces, hence convex. They are disjoint: if $x \in A \cap B$, then $0 = 2^{-k}(x_{2k-1} + 1)$ forces $x_{2k-1} = -1$ for all $k$, but the sequence $(-1, 0, -1, 0, \ldots)$ is not in $\ell^2$. So $A \cap B = \varnothing$.
+
+Compute the distance $d(A, B) = \inf\{\|a - b\|_2 : a \in A, b \in B\}$. For any $b \in B$, the closest point in $A$ is obtained by zeroing out the even coordinates of $b$, so $a_{2k-1} = b_{2k-1}$ and $a_{2k} = 0$. The squared distance is
+$$\|a - b\|_2^2 = \sum_{k=1}^\infty |b_{2k}|^2 = \sum_{k=1}^\infty 2^{-2k} |b_{2k-1} + 1|^2.$$
+We can make this arbitrarily small while keeping $b \in \ell^2$. Choose a truncated sequence $b^{(N)}$ with $b^{(N)}_{2k-1} = -1$ for $k \leq N$ and $0$ for $k > N$. Then $b^{(N)} \in \ell^2$ (finitely many nonzeros), and the distance squared becomes $\sum_{k=N+1}^\infty 2^{-2k} = \frac{4^{-(N+1)}}{1 - 1/4} = \frac{1}{3 \cdot 4^N}$. As $N \to \infty$, $d(A, B) \to 0$.
+
+Since the distance is zero, no continuous linear functional $\varphi$ and scalars $\alpha < \beta$ can satisfy $\varphi(a) \leq \alpha < \beta \leq \varphi(b)$. Any separating hyperplane would require a positive gap. The compactness hypothesis in the strict separation theorem is not decorative; it prevents exactly this asymptotic grazing behavior that infinite dimensions allow.
+
+## Why I Care
+
+I first internalized the Hahn-Banach theorem during a qualifying exam problem on sparse signal recovery. The question asked to prove that a specific vector $x_0 \in \mathbb{R}^n$ is the unique minimizer of an $\ell^1$-regularized least squares problem under a restricted isometry condition. I spent forty minutes trying to construct a dual certificate explicitly: writing down a vector $w$ in the row space of the measurement matrix, bounding its $\ell^\infty$ norm on the complement of the support, and wrestling with triangle inequalities that refused to close. My scratch paper was a mess of component-wise estimates.
+
+Then I remembered the geometric form. The problem was not about coordinates; it was about separating a point from a convex set. The $\ell^1$ ball is a polytope. The measurement constraints define an affine subspace. Uniqueness of the minimizer is equivalent to the affine subspace touching the $\ell^1$ ball at exactly one vertex and otherwise staying outside. Instead of building $w$ entry by entry, I invoked Hahn-Banach to guarantee a supporting hyperplane at that vertex. The hyperplane's normal vector *is* the dual certificate. The existence is automatic once the geometric configuration is verified. I rewrote the proof in six lines: define the convex sets, check disjointness of the relative interior, apply separation, read off the normal. The examiner circled the Hahn-Banach invocation and wrote "this is the point."
+
+That moment killed my habit of brute-forcing functional constructions. Hahn-Banach is not a lemma you prove; it is a permission slip to assume the functional you need exists, provided the convex geometry allows it. I stopped fighting coordinates and started drawing sets.
+
+## Common Pitfall
+
+A persistent misconception is that Hahn-Banach extensions are unique. Students see the norm-preserving extension theorem, assume the extended functional is canonical, and proceed to write $\varphi$ as if it were a well-defined function of the subspace data. It is not. Uniqueness fails whenever the dual norm lacks strict convexity, which happens in almost every space used in applications.
+
+Take $X = \mathbb{R}^2$ with the $\ell^\infty$ norm $\|(x, y)\|_\infty = \max(|x|, |y|)$. Let $M = \{(t, t) : t \in \mathbb{R}\}$ be the diagonal subspace. Define $\varphi_0$ on $M$ by $\varphi_0(t, t) = t$. The norm of $\varphi_0$ is $\sup_{t \neq 0} |t| / |t| = 1$. We want extensions $\varphi(x, y) = \alpha x + \beta y$ to all of $\mathbb{R}^2$ with $\|\varphi\|_1 = |\alpha| + |\beta| = 1$ (since $(\ell^\infty)^* = \ell^1$) that agree with $\varphi_0$ on $M$. Agreement forces $\alpha t + \beta t = t$ for all $t$, so $\alpha + \beta = 1$. The norm constraint is $|\alpha| + |\beta| = 1$.
+
+Solve $\alpha + \beta = 1$ and $|\alpha| + |\beta| = 1$. Any pair $(\alpha, 1-\alpha)$ with $\alpha \in [0, 1]$ works. For $\alpha = 0$, $\varphi(x, y) = y$. For $\alpha = 1$, $\varphi(x, y) = x$. For $\alpha = 1/2$, $\varphi(x, y) = (x+y)/2$. All three have dual norm $1$, all extend $\varphi_0$, and they give different values on $(1, 0)$: $0$, $1$, and $1/2$ respectively. The extension is wildly non-unique.
+
+Uniqueness holds if and only if the dual space $X^*$ is strictly convex (rotund). $\ell^1$ is not strictly convex; its unit ball has flat faces. Whenever your space has an $\ell^1$ or $\ell^\infty$ component, or involves $L^1/L^\infty$, expect multiple norm-preserving extensions. Hahn-Banach guarantees existence, not canonicity. If your proof relies on "the" extension, you have a gap.
+
 ## Looking Ahead
 
 We now have the dual space $X^*$ as a real, populated object. Hahn-Banach provides enough functionals to separate points, extend partial data, support convex sets, and characterize norms by duality. The bidual embedding lets us classify spaces by reflexivity. The next big move is to put a topology on $X$ generated by the dual functionals — the weak topology — and on $X^*$ by the embedding into the bidual — the weak-* topology. Both are coarser than the norm topology and admit compactness theorems that fail in the norm topology. Article 5 walks through the weak topologies and the Banach-Alaoglu theorem, and then we have all the tools to attack operator theory in earnest.
@@ -324,3 +396,17 @@ We now have the dual space $X^*$ as a real, populated object. Hahn-Banach provid
 These results transform functional analysis from the study of individual operators into a theory with powerful automatic regularity properties — properties that have no analogue in finite dimensions because they are trivially true there. Where the Hahn-Banach theorem guaranteed the existence of enough functionals, the next three theorems will constrain the behavior of families of operators in ways that are impossible to anticipate from finite-dimensional linear algebra alone.
 
 ---
+
+### Specific Questions Ahead
+
+You now have the dual space $X^*$ as a populated, computable object. You can extend functionals, separate convex sets, identify annihilators, and recognize when a space embeds into its bidual. The machinery is assembled, but it is currently static. The next step is to make it dynamic by changing the topology.
+
+Article 5 shifts from the norm topology to the weak and weak-* topologies. The norm topology is too fine for infinite-dimensional compactness; closed bounded sets are almost never compact. The dual space provides a coarser topology that recovers compactness at the cost of losing metric structure. You are equipped for this shift because you already know how functionals act on vectors, how the bidual embedding works, and how Banach-Alaoglu will use the product topology on a Cartesian product of disks.
+
+The next article answers these specific questions:
+1. Why does a bounded sequence in $L^2[0, 1]$ always have a weakly convergent subsequence, while the same sequence may have no norm-convergent subsequence? We will compute the weak limit of $f_n(t) = \sin(2\pi n t)$ explicitly and show why $\|f_n\|_2 \not\to 0$ but $f_n \rightharpoonup 0$.
+2. How does the weak-* topology on $X^*$ differ from the weak topology on $X^*$, and why does the distinction vanish exactly when $X$ is reflexive? We will track the convergence of evaluation functionals in $\ell^1 = (c_0)^*$ to see the difference in action.
+3. What is the precise statement and proof of the Banach-Alaoglu theorem, and how does Tychonoff's theorem on product compactness translate into functional analysis? We will build the homeomorphism between the dual unit ball and a closed subset of $\prod_{x \in B_X} \overline{D}(0, \|x\|)$ step by step.
+4. How do you prove lower semicontinuity of the norm under weak convergence, and why is this the key to existence proofs in calculus of variations? We will work through a concrete minimization problem where norm convergence fails but weak convergence plus convexity delivers a minimizer.
+
+The central result is the Banach-Alaoglu theorem: the closed unit ball of $X^*$ is compact in the weak-* topology. This is not a curiosity; it is the engine that drives existence theory for PDEs, optimization, and probability. Once you internalize weak compactness, you stop looking for convergent subsequences in norm and start extracting them in duality. Article 5 builds the topology, proves the compactness, and shows you how to use it without getting lost in net convergence.

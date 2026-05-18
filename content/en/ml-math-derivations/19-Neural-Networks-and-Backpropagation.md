@@ -329,6 +329,12 @@ Five things students reliably get wrong about backprop.
 
 ---
 
+## What's next
+
+Neural networks give expressivity, but expressivity does not automatically give generalization. When model capacity dwarfs the dataset, training loss can be driven to zero while test loss explodes — that is overfitting. The final chapter of the series targets exactly this: **regularization and model selection**.
+
+Regularization is the safety valve between capacity and data — L2 pulls parameters toward the origin, L1 induces sparsity, Dropout breaks neurons during training, early stopping halts before overfitting kicks in. Model selection tunes those valves to the right strength — cross-validation, AIC/BIC, information criteria. I also touch the two counterintuitive phenomena of the deep-learning era: double descent and the implicit regularization of overparametrized networks. This is the closing chapter not because it is the hardest, but because every "tune the hyperparameters" line in every preceding algorithm uses the language built here.
+
 ## References
 
 [1] Rosenblatt, F. (1958). The perceptron: A probabilistic model for information storage and organization in the brain. *Psychological Review*, 65(6), 386–408.

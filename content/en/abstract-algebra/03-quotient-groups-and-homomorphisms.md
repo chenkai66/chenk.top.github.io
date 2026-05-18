@@ -323,4 +323,55 @@ A summary worth keeping: quotient groups are about deliberate forgetting; homomo
 
 **One last reflection.** The isomorphism theorems are sometimes presented as "abstract nonsense," but they are anything but: every concrete computation in finite group theory --- from listing groups of order $100$ to deciding whether two given matrices generate the same group --- depends on them. They are the syntax that makes group theory writable; learn to use them fluently and you will find that most "advanced" results are surprisingly direct consequences.
 
+
+## Deeper Dive: Quotients and Homomorphisms in Practice
+
+The slogan of this article is that quotients and homomorphisms are two sides of one coin: every quotient $G/N$ comes with a canonical surjection $G \to G/N$, and every homomorphism $\varphi: G \to H$ factors as $G \twoheadrightarrow G/\ker\varphi \hookrightarrow H$. Below are computations that make the slogan concrete.
+
+**Computation A: a non-normal subgroup in $S_3$.** Take $G = S_3$ and $H = \{e, (1\ 2)\}$, of order $2$. Is $H$ normal? Compute $g H g^{-1}$ for $g = (1\ 2\ 3)$: $g e g^{-1} = e$, and $g(1\ 2)g^{-1} = (g(1)\ g(2)) = (2\ 3)$. So $g H g^{-1} = \{e, (2\ 3)\}$, which is *not* $H$. Therefore $H$ is not normal in $S_3$. The left coset $g H = \{(1\ 2\ 3), (1\ 2\ 3)(1\ 2)\} = \{(1\ 2\ 3), (1\ 3)\}$, but the right coset $H g = \{(1\ 2\ 3), (1\ 2)(1\ 2\ 3)\} = \{(1\ 2\ 3), (2\ 3)\}$. Different sets. Multiplication of cosets is not well-defined.
+
+This is exactly why the definition of normal subgroup says "$g N g^{-1} = N$ for *every* $g$." If we only required "for some $g$" or "for $g$ in a generating set," counterexamples like the above would slip through. The formulation has been honed to be exactly strong enough to make $G/N$ a group.
+
+**Computation B: $A_n$ is normal in $S_n$.** The sign map $\text{sgn}: S_n \to \{\pm 1\}$ is a homomorphism. Its kernel is $A_n$ (the even permutations). Kernels are always normal, so $A_n \trianglelefteq S_n$. The quotient $S_n / A_n$ has order $2$ (by the index formula: $|S_n|/|A_n| = 2$), and it is isomorphic to $\mathbb{Z}/2\mathbb{Z}$ — concretely, $\{A_n, (1\ 2) A_n\}$ with multiplication "even·even=even, even·odd=odd, odd·odd=even." The first isomorphism theorem says $S_n / A_n \cong \mathrm{im}(\text{sgn}) = \{\pm 1\}$.
+
+**Computation C: a quotient of $\mathbb{Z}$.** Take the homomorphism $\varphi: \mathbb{Z} \to \mathbb{Z}/12\mathbb{Z} \times \mathbb{Z}/8\mathbb{Z}$ defined by $\varphi(n) = (n \bmod 12, n \bmod 8)$. The kernel is $\{n : 12 \mid n \text{ and } 8 \mid n\} = \mathrm{lcm}(12, 8) \mathbb{Z} = 24\mathbb{Z}$. So by the first isomorphism theorem, $\mathbb{Z}/24\mathbb{Z} \cong \mathrm{im}(\varphi) \subseteq \mathbb{Z}/12\mathbb{Z} \times \mathbb{Z}/8\mathbb{Z}$. The image has order $24$ and the codomain has order $96$, so the image is a strict subgroup. (The image misses pairs $(a, b)$ with $a \not\equiv b \pmod{\gcd(12, 8)} = \pmod 4$.)
+
+**Computation D: $D_4 / Z(D_4)$ is the Klein four-group.** $Z(D_4) = \{e, r^2\}$ (computed in Part 1). The quotient $D_4 / Z(D_4)$ has order $8/2 = 4$. The four cosets are $\{e, r^2\}$, $\{r, r^3\}$, $\{s, r^2 s\}$, $\{rs, r^3 s\}$. Pick representatives $\bar e, \bar r, \bar s, \overline{rs}$. Compute: $\bar r^2 = \overline{r^2} = \bar e$ (since $r^2 \in Z(D_4)$); $\bar s^2 = \bar e$; $\overline{rs}^2 = \overline{rsrs} = \overline{rr^{-1}s^2} = \bar e$. All non-identity elements have order $2$, so the quotient is $\mathbb{Z}/2 \times \mathbb{Z}/2$, the Klein four-group. The general theorem behind this — "$G/Z(G)$ cyclic implies $G$ abelian" — has an elegant proof: if $G/Z(G) = \langle \bar g \rangle$, then every element of $G$ is $g^k z$ for some $z \in Z(G)$, and elements of that form commute with each other.
+
+**Computation E: the second isomorphism theorem on $\mathbb{Z}$.** Take $G = \mathbb{Z}$, $H = 6\mathbb{Z}$, $N = 4\mathbb{Z}$. Both are normal (everything is in an abelian group). Then $H + N = 6\mathbb{Z} + 4\mathbb{Z} = \gcd(6,4)\mathbb{Z} = 2\mathbb{Z}$, $H \cap N = \mathrm{lcm}(6,4)\mathbb{Z} = 12\mathbb{Z}$. The second isomorphism theorem says $H/(H \cap N) \cong (H + N)/N$. Check: $6\mathbb{Z}/12\mathbb{Z} \cong \mathbb{Z}/2\mathbb{Z}$ (left side, order $2$); $2\mathbb{Z}/4\mathbb{Z} \cong \mathbb{Z}/2\mathbb{Z}$ (right side, order $2$). ✓
+
+## Why the Definition of "Normal" Is Tuned the Way It Is
+
+A normal subgroup $N \trianglelefteq G$ is, by definition, fixed by all inner automorphisms: $gNg^{-1} = N$ for every $g \in G$. Equivalently, $g N = N g$ for every $g$ (left and right cosets coincide). Equivalently again, $N$ is a union of conjugacy classes.
+
+The intuition I keep coming back to: a subgroup is normal iff "modding out by it" is well-defined as an operation on cosets, i.e., $(gN)(hN) := (gh)N$ does not depend on the representatives. The check is short. Suppose $g_1 N = g_2 N$ and $h_1 N = h_2 N$, so $g_2 = g_1 n_1$ and $h_2 = h_1 n_2$ for some $n_i \in N$. Then $g_2 h_2 = g_1 n_1 h_1 n_2 = g_1 h_1 (h_1^{-1} n_1 h_1) n_2$. For this to lie in $g_1 h_1 N$, we need $h_1^{-1} n_1 h_1 \in N$, which is exactly normality. The definition is the *minimal* condition under which the quotient is a group. Anything weaker fails for some choice of representatives; anything stronger throws away information.
+
+A crisp counterexample of failure: in $S_3$ with the non-normal $H = \{e, (1\ 2)\}$, attempt the multiplication $(1\ 3)H \cdot H = ?$. With representative $(1\ 3)$, we get $(1\ 3) \cdot e = (1\ 3) \in (1\ 3)H$. With representative $(1\ 3)(1\ 2) = (1\ 2\ 3)$, we get $(1\ 2\ 3) \cdot e = (1\ 2\ 3) \notin (1\ 3)H = \{(1\ 3), (1\ 2\ 3)\}$ — actually $(1\ 2\ 3)$ *is* in $(1\ 3)H$, let me recompute. $(1\ 3)H = \{(1\ 3) \cdot e, (1\ 3) \cdot (1\ 2)\} = \{(1\ 3), (1\ 3)(1\ 2)\}$, and $(1\ 3)(1\ 2)$ sends $1 \to 2, 2 \to 3, 3 \to 1$ wait let me just multiply: applied to $1$: $(1\ 2)$ sends $1 \to 2$, then $(1\ 3)$ fixes $2$. So $(1\ 3)(1\ 2)(1) = 2$. Applied to $2$: $(1\ 2)$ sends $2 \to 1$, then $(1\ 3)$ sends $1 \to 3$. So $2 \to 3$. Applied to $3$: $(1\ 2)$ fixes $3$, $(1\ 3)$ sends $3 \to 1$. So $3 \to 1$. The product is the cycle $(1\ 2\ 3)$. So $(1\ 3)H = \{(1\ 3), (1\ 2\ 3)\}$. Now try multiplying coset $(1\ 3)H$ by coset $(2\ 3)H$ using two different representatives: $(1\ 3)(2\ 3) = (1\ 3\ 2)$ vs $(1\ 2\ 3)(2\ 3) = (1\ 2)$ — different cosets. Quotient ill-defined.
+
+## Common Pitfalls for Beginners
+
+The single most common pitfall: equating "normal" with "abelian." A subgroup of an abelian group is automatically normal (every conjugation is trivial), but a normal subgroup need not be abelian, nor must its containing group be. $A_4$ is non-abelian, normal in $S_4$, and contains the non-abelian subgroups it contains. Conflating the two concepts will scramble half of group theory.
+
+A second pitfall: thinking that if $H \trianglelefteq G$ and $K \trianglelefteq H$, then $K \trianglelefteq G$. False. Normality is not transitive. Counterexample: in $S_4$, the subgroup $V_4 = \{e, (1\ 2)(3\ 4), (1\ 3)(2\ 4), (1\ 4)(2\ 3)\}$ is normal in $A_4$ (and in $S_4$). Inside $V_4$, every subgroup is normal because $V_4$ is abelian — say $K = \{e, (1\ 2)(3\ 4)\}$. But $K$ is *not* normal in $S_4$: conjugating $(1\ 2)(3\ 4)$ by $(1\ 2\ 3)$ yields $(2\ 3)(1\ 4)$, which is not in $K$. Normality is a relative notion, and the chain $K \trianglelefteq V_4 \trianglelefteq S_4$ does not give $K \trianglelefteq S_4$.
+
+A third pitfall: the surjection in the first isomorphism theorem is not optional. Beginners sometimes write "$G/\ker\varphi \cong H$" without checking that $\varphi$ is surjective. If $\varphi$ is not surjective, you only get $G/\ker\varphi \cong \mathrm{im}(\varphi)$, a *subgroup* of $H$. The image bit matters whenever you are using the theorem to *identify* a known quotient with a known group.
+
+## Where This Shows Up
+
+*Composition series and the Jordan–Hölder theorem.* Every finite group admits a composition series, a maximal chain of normal subgroups, and the simple quotients in any two such chains are the same up to permutation and isomorphism. This is a structure theorem about how groups are "made of" simple ones, and it is one of the foundational facts on which the classification of finite simple groups rests. It is also the reason solvability (as defined in Part 8) is so well-behaved.
+
+*Group cohomology and extensions.* The data needed to reconstruct $G$ from a normal subgroup $N$ and the quotient $G/N$ is captured by an element of $H^2(G/N, N)$, the second cohomology group. This is the language that lets number theorists classify central simple algebras, that lets topologists classify principal bundles, and that lets physicists analyse anomalies. All of it begins with quotients and the first isomorphism theorem.
+
+*Splitting of polynomials.* In Galois theory, normal subgroups of the Galois group correspond to intermediate fields fixed by the subgroup, and the quotient $\mathrm{Gal}(L/K) / \mathrm{Gal}(L/F)$ gives $\mathrm{Gal}(F/K)$ when $F/K$ is itself Galois. The whole correspondence is built on the bijection between normal subgroups and "well-behaved" intermediate fields.
+
+## What I Want You to Carry Forward
+
+Three questions for Part 4:
+
+1. *Given a finite group $G$, how many subgroups of order $p^k$ does it have, and how are they related?* The Sylow theorems will give precise existence, conjugacy, and counting statements.
+2. *Why is every group of order $p$ cyclic, every group of order $p^2$ abelian, and every group of order $pq$ either cyclic or a single specific non-abelian construction?* All three results follow from Sylow plus the class equation.
+3. *How do you classify groups of small order, say up to $30$?* The combination of Sylow, the structure of cyclic groups, and the semidirect product construction does almost all the work.
+
+If the homomorphism / quotient computations feel like reflex by now, you have the right footing for Sylow theory, where the techniques get more delicate but the underlying logic is the same: count cosets, identify normal subgroups, factor through quotients.
+
 ---

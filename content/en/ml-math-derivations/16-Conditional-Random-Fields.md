@@ -338,6 +338,12 @@ The figure above shows what a trained CRF actually outputs at inference time on 
 
 ---
 
+## What's next
+
+The full supervised line, sequences included, ends here. From the next chapter on I move to **unsupervised representation learning**, starting with the most classical dimensionality-reduction method — principal component analysis (PCA).
+
+PCA looks like nothing more than "find the direction of largest variance", but four equivalent views sit underneath it: maximum-variance projection, minimum reconstruction error, eigendecomposition of the covariance, and SVD of the data matrix. Each view is more natural in different problems, and together they form the semantic skeleton of modern dimensionality reduction — kernel PCA is "PCA in a different inner-product space", probabilistic PCA is "PCA with Gaussian noise", t-SNE / UMAP are "PCA with a different similarity metric". Understanding the four-fold equivalence pays off more than learning any single nonlinear method individually — it is the parent body of the whole family.
+
 ## References
 
 [1] Lafferty, J., McCallum, A., & Pereira, F. C. (2001). Conditional random fields: Probabilistic models for segmenting and labeling sequence data. *ICML*.

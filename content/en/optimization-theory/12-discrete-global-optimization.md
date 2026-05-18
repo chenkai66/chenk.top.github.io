@@ -35,6 +35,17 @@ This article:
 
 ---
 
+For eleven articles we've assumed the variables are continuous and the objective is convex (or at least convex-relaxable). This article confronts two classes of problems where neither holds:
+
+- **Discrete optimization**: variables must take integer or combinatorial values. The feasible region is a finite (but exponentially large) set of points; derivatives lose meaning.
+- **Global non-convex optimization**: continuous variables, but a landscape full of local minima — and we want the *global* minimum.
+
+Newton, L-BFGS, and friends are useless here — at best they find one local minimum.
+
+I'll cover the discrete side first (branch-and-bound + LP relaxation, the textbook answer), then turn to heuristics for continuous non-convex problems (PSO, GA, simulated annealing, spiral optimization). We close on a concrete worked example — cardinality-constrained mean-variance portfolio optimization — where method, parameter tuning, and honest limitations all live in the same place.
+
+This is the closing article of the series. By the end you should be able to look at a fresh optimization problem and tell, fairly quickly, which class it falls into and which tool to reach for.
+
 ## What You Will Learn
 
 - The integer programming formulation and how branch-and-bound prunes the search tree using LP relaxation bounds.

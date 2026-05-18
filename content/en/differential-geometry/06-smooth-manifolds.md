@@ -198,6 +198,79 @@ This connects the smooth manifold framework back to the Gauss-Bonnet theorem of 
 
 ---
 
+## Deeper Examples and Common Pitfalls
+
+The earlier sections defined manifolds via charts and atlases, tangent vectors as derivations, smooth maps and submanifolds, and the Whitney embedding theorem. This section computes specific examples in detail, points out where beginners stumble, and shows where the abstract definitions pay off.
+
+### A worked numerical example: charts on the 2-sphere
+
+The unit sphere $S^2$ needs at least two charts (one chart cannot cover all of $S^2$ because $S^2$ is compact and $\mathbb{R}^2$ is not; any homeomorphism would force compactness mismatch). Standard atlas: stereographic projection from the north and south poles. Define
+$$\varphi_N(x, y, z) = (x, y) / (1 - z), \quad \varphi_S(x, y, z) = (x, y) / (1 + z).$$
+At the equator ($z = 0$), both projections give $(x, y)$. The transition map: take a point $(u, v)$ in the image of $\varphi_N$, find its preimage on $S^2$ (use $x = 2u/(u^2+v^2+1)$, $y = 2v/(u^2+v^2+1)$, $z = (u^2+v^2-1)/(u^2+v^2+1)$), then apply $\varphi_S$:
+$$\varphi_S \circ \varphi_N^{-1}(u, v) = \frac{(2u/(u^2+v^2+1), 2v/(u^2+v^2+1))}{1 + (u^2+v^2-1)/(u^2+v^2+1)} = \frac{(2u, 2v)}{(u^2+v^2+1) + (u^2+v^2-1)} = \frac{(u, v)}{u^2+v^2}.$$
+This is the inversion in the unit circle. It is smooth (in fact, real-analytic) on its domain $\mathbb{R}^2 \setminus \{0\}$, which is exactly where both charts overlap (everything except the two poles). So the two charts form a smooth atlas on $S^2$. Verify a tangent computation: at the equator point $(1, 0, 0)$, the chart $\varphi_N$ assigns coordinates $(1, 0)$. A tangent vector at this point along the direction of the $y$-axis (i.e., $\partial/\partial y|_{(1,0,0)}$ as an embedded vector in $\mathbb{R}^3$) corresponds in the chart to a vector $\partial / \partial v|_{(1, 0)}$ — you can check by differentiating the inverse stereographic formula.
+
+### A worked numerical example: tangent vectors as derivations on $S^2$
+
+Take the smooth function $f(x, y, z) = z$ on $S^2$. In the north-pole chart $\varphi_N$, this becomes $f \circ \varphi_N^{-1}(u, v) = (u^2 + v^2 - 1)/(u^2 + v^2 + 1)$. At the point $\varphi_N(0, 0, 1) = (0, 0)$ — wait, the north pole is excluded from $\varphi_N$. Take instead the point $(0, 0, 0)$ on the equator, $\varphi_N(0, 0, 0) = (0, 0)$. Wait, also wrong: $\varphi_N(0, 0, 0) = (0, 0)/(1 - 0) = (0, 0)$. So the equator point $(0, 0, 0)$ would project to the origin? Only if it's actually on the equator at $\theta = 0$; let me redo: $\varphi_N(1, 0, 0) = (1, 0)$. So at $(1, 0, 0)$, $\varphi_N$ has chart coordinates $(1, 0)$.
+
+A tangent vector at $(1, 0, 0)$ in the direction of $\partial/\partial v|_{(1, 0)}$ in the chart corresponds, as a derivation, to: $X(f) = \partial(f \circ \varphi_N^{-1})/\partial v|_{(1, 0)}$. Compute $\partial/\partial v$ of $(u^2 + v^2 - 1)/(u^2 + v^2 + 1)$ at $(1, 0)$:
+$$\frac{2v(u^2 + v^2 + 1) - (u^2 + v^2 - 1) \cdot 2v}{(u^2 + v^2 + 1)^2} \bigg|_{(1, 0)} = \frac{0 - 0}{4} = 0.$$
+So $X(z) = 0$ at this point: moving in the chart-$v$ direction at $(1, 0, 0)$ does not change the $z$-coordinate to first order. Geometrically, the chart-$v$ direction at this point is tangent to the equator (constant $z$), confirming the calculation.
+
+### Counterexample: a non-Hausdorff "manifold"
+
+Take two copies of the real line, $\mathbb{R}_1$ and $\mathbb{R}_2$, and glue them by identifying $x_1 \sim x_2$ for all $x \neq 0$. The result is the *line with two origins*. Each origin has a neighborhood homeomorphic to $\mathbb{R}$, so locally Euclidean. The space is second-countable. But it is not Hausdorff: the two origins cannot be separated by disjoint open sets (any open neighborhood of either origin contains an interval $(-\varepsilon, 0) \cup (0, \varepsilon)$, and the two origins both sit "above" this). This space fails to be a manifold because the Hausdorff condition is part of the definition. The pathology: a sequence converging to 0 from below has *both* origins as limits. Uniqueness of limits fails, the integration of ODEs becomes ill-posed (a flow line through the identified part has two possible continuations), and the entire smooth-manifold machinery breaks. The Hausdorff axiom is exactly the technical hypothesis that rules out this multiplicity.
+
+### A second counterexample: when stereographic glue fails
+
+Try to build $S^2$ with a single chart from stereographic projection from the north pole alone. The chart $\varphi_N$ misses exactly one point — the north pole itself. As an open set, $S^2 \setminus \{N\}$ is homeomorphic to $\mathbb{R}^2$, so this single chart works topologically but does not cover $S^2$. Adding a second chart from the south pole solves it. The general principle: a manifold may need many charts; the question is only whether the transition maps between them are smooth on overlaps. A "manifold structure" is precisely an equivalence class of atlases under the relation "smoothly compatible." Two atlases give the same manifold iff their union is still a smooth atlas. This equivalence is the level of abstraction one above the atlas.
+
+A subtle counterexample showing this is a real distinction: $\mathbb{R}^4$ admits *uncountably many* inequivalent smooth structures (Donaldson, Freedman, 1982). The topological space is the same, but the smooth atlases are inequivalent: there exist homeomorphisms between $(\mathbb{R}^4, \mathcal{A}_1)$ and $(\mathbb{R}^4, \mathcal{A}_2)$ but no diffeomorphism. This is unique to dimension 4 — every other Euclidean space has a unique smooth structure. The phenomenon is invisible in basic differential geometry but reveals that "smoothness" is much more delicate than it looks.
+
+### A worked numerical example: derivative of a smooth map between manifolds
+
+Take $f: S^2 \to S^2$, $f(x, y, z) = (x, y, -z)$ — reflection across the equator. In stereographic chart $\varphi_N$, $f$ becomes $\varphi_N \circ f \circ \varphi_N^{-1}$. With $\varphi_N(x, y, z) = (x, y)/(1-z)$ and the inverse $\varphi_N^{-1}(u, v) = (2u, 2v, u^2+v^2-1)/(u^2+v^2+1)$, we get
+$$f(\varphi_N^{-1}(u, v)) = \frac{(2u, 2v, -(u^2+v^2-1))}{u^2+v^2+1}.$$
+Then $\varphi_N$ of this point: divide by $1 - z$ where $z = -(u^2+v^2-1)/(u^2+v^2+1) = (1 - u^2 - v^2)/(u^2+v^2+1)$. So $1 - z = (u^2+v^2+1 - 1 + u^2+v^2)/(u^2+v^2+1) = 2(u^2+v^2)/(u^2+v^2+1)$. Thus
+$$\varphi_N \circ f \circ \varphi_N^{-1}(u, v) = \frac{(2u, 2v)/(u^2+v^2+1)}{2(u^2+v^2)/(u^2+v^2+1)} = \frac{(u, v)}{u^2+v^2}.$$
+So in the chart, reflection-across-equator becomes inversion-in-unit-circle — exactly the same transition map we computed earlier. This is not a coincidence: reflection across the equator equals stereographic projection from the south pole composed with inverse stereographic projection from the north, which is exactly the transition function. The differential at $(u, v) = (1, 0)$ (which corresponds to the equator point $(1, 0, 0)$): differentiate $g(u, v) = (u, v)/(u^2+v^2)$. At $(1, 0)$: $g_u = ((u^2+v^2) - u \cdot 2u, -v \cdot 2u)/(u^2+v^2)^2 = ((1 - 2), 0)/1 = (-1, 0)$. $g_v = (-u \cdot 2v, (u^2+v^2) - v \cdot 2v)/(u^2+v^2)^2 = (0, 1)/1 = (0, 1)$. So the Jacobian at $(1, 0)$ is $\begin{pmatrix} -1 & 0 \\ 0 & 1 \end{pmatrix}$ — a reflection in the chart, matching the geometric expectation.
+
+### Common pitfall for beginners
+
+Beginners often think of tangent vectors as "arrows attached to the manifold." On an embedded surface in $\mathbb{R}^3$, this is fine. But on an abstract manifold, there is no ambient space, so where does the arrow live? The resolution — tangent vectors are derivations of smooth functions — feels alien because it abandons the picture entirely.
+
+Why do it? Because derivations are intrinsic. They depend only on the smooth structure of $M$, not on any embedding. The arrow picture is a *consequence* (via Whitney embedding) of the derivation picture, not the other way around. Skipping straight to derivations buys you generality: the same definitions work on infinite-dimensional manifolds (Banach manifolds), on supermanifolds, on schemes — places where the arrow picture has no analog.
+
+A second pitfall: confusing smoothness of a map $f: M \to N$ with smoothness in coordinates. The right definition is "for every chart $\varphi$ on $M$ and every chart $\psi$ on $N$, $\psi \circ f \circ \varphi^{-1}$ is smooth where defined." This is the *only* sensible coordinate-free definition. Beginners write down a single formula in coordinates and conclude smoothness, but the formula needs to make sense in *every* chart. The transition functions of the atlas are exactly the bookkeeping that converts between charts.
+
+### Where this matters in physics, computing, and engineering
+
+In **general relativity**, spacetime is a 4-manifold without a preferred embedding. The tangent space at each event is a 4-dimensional vector space carrying the metric. Without the abstract-manifold framework, it would be impossible to formulate "spacetime curvature" without specifying an embedding into a higher-dimensional ambient space — and physically, no such ambient space is observable. The abstract framework is not optional; it is the only way to do GR.
+
+In **robotics and control theory**, the configuration space of a multi-joint robot is a product of circles and spheres — a torus or a more general manifold. There is no natural embedding into a Euclidean space; using one (e.g., embedding $S^1$ into $\mathbb{R}^2$) introduces redundant coordinates and singularities (gimbal lock in Euler angles). Modern motion-planning libraries (OMPL, MoveIt) work intrinsically on the manifold, treating each chart's coordinates as local approximations and stitching them together via smooth atlases.
+
+In **deep learning**, the parameter space of a neural network with weight-sharing constraints (like CNNs) is naturally a manifold. The gradient descent algorithm secretly assumes a Euclidean structure, but tools like Riemannian SGD (used in geometric deep learning) work intrinsically on the parameter manifold. The Christoffel symbols of the natural metric become correction terms in the update rule.
+
+### Revisiting "what's next" with sharper questions
+
+Article 7 will introduce vector fields, integral curves, flows, and Lie brackets. To prepare:
+
+(1) A vector field on $M$ assigns a tangent vector to each point. On $\mathbb{R}^n$ this is just a function $\mathbb{R}^n \to \mathbb{R}^n$. On a manifold without an embedding, what is the right definition?
+(2) The flow of a vector field is the family of diffeomorphisms generated by integrating the field. On a curved manifold, two vector fields' flows generally do not commute. The Lie bracket measures the failure to commute. Why should there be a finite-dimensional algebraic gadget that captures this?
+(3) The Frobenius theorem says that a distribution (an assignment of subspaces of tangent spaces) is integrable if and only if it is closed under brackets. This is one of the deepest theorems in basic differential geometry. Why should integrability of a geometric distribution reduce to an algebraic identity?
+
+You now have the abstract framework. Article 7 puts dynamics on it. Read it asking "what is the geometric meaning of $[X, Y] = 0$, and how does it generalize from flat space to curved manifolds?"
+
+
+### One last worked example: the projective plane $\mathbb{RP}^2$ as a quotient manifold
+
+The real projective plane $\mathbb{RP}^2$ is the quotient of $S^2$ by the antipodal map. It is a 2-manifold, but *non-orientable*. As a smooth manifold, it can be given charts by taking the upper hemisphere of $S^2$ and identifying antipodal points on the equator.
+
+Construct an atlas: three charts indexed by $i = 1, 2, 3$, where the chart $U_i = \{[x_1 : x_2 : x_3] : x_i \neq 0\}$ uses coordinates $(x_j/x_i, x_k/x_i)$ for $j, k \neq i$. Transition map between $U_1$ and $U_2$: a point with coordinates $(a, b) = (x_2/x_1, x_3/x_1)$ in $U_1$ has $U_2$-coordinates $(x_1/x_2, x_3/x_2) = (1/a, b/a)$. So $\varphi_2 \circ \varphi_1^{-1}(a, b) = (1/a, b/a)$. Smooth where $a \neq 0$ — exactly the overlap.
+
+This gives a complete smooth atlas. Compute the Jacobian of the transition: $\partial(1/a, b/a)/\partial(a, b) = \begin{pmatrix} -1/a^2 & 0 \\ -b/a^2 & 1/a \end{pmatrix}$, determinant $-1/a^3$. The sign of the determinant changes with the sign of $a$, which reflects $\mathbb{RP}^2$'s non-orientability: there is no consistent orientation across all charts. By contrast, on $S^2$ (the orientable cover), all transitions can be chosen with positive Jacobian. The structure-group reduction obstruction is exactly the Stiefel-Whitney class $w_1$, which is nonzero on $\mathbb{RP}^2$ and zero on $S^2$.
+
 ## What's next
 
 The next chapter introduces *vector fields and flows* — the dynamical side of manifold theory. Vector fields generate one-parameter groups of diffeomorphisms, and their algebraic structure (the Lie bracket) encodes infinitesimal symmetries. After that: differential forms, integration and Stokes' theorem, Riemannian metrics (recovering geodesics and curvature in the abstract setting), and connections on bundles.

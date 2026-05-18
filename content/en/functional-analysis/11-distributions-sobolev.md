@@ -61,6 +61,10 @@ A key result: every distribution is the limit (in $\mathcal{D}'$) of a sequence 
 
 ---
 
+
+### Worked Numerical Example
+Take $-u'' = f$ on $(0,1)$ with $u(0)=u(1)=0$ and $f = \chi_{[0.2, 0.6]}$. Integrate twice explicitly. On $[0, 0.2]$, $u''=0$ and $u(0)=0$ gives $u(x) = c_1 x$. On $[0.2, 0.6]$, $u''=-1$ gives $u(x) = -\frac{1}{2}x^2 + c_2 x + c_3$. On $[0.6, 1]$, $u''=0$ and $u(1)=0$ gives $u(x) = c_4(1-x)$. Enforce $C^1$ matching at $x=0.2$ and $x=0.6$. Solving the linear system yields $c_1 = 0.4$, $c_2 = 0.6$, $c_3 = -0.06$, $c_4 = 0.24$. The resulting $u$ is piecewise quadratic, continuous, and has a continuous first derivative. The second derivative jumps from $0$ to $-1$ at $x=0.2$ and back at $x=0.6$. Now test the weak formulation with $\varphi(x) = x(1-x)$. Compute $\int_0^1 u'\varphi' dx$. Since $\varphi'(x) = 1-2x$, split the integral over the three intervals. Direct calculation gives $\int_0^{0.2} 0.4(1-2x)dx + \int_{0.2}^{0.6} (-x+0.6)(1-2x)dx + \int_{0.6}^1 (-0.24)(1-2x)dx = 0.064$. Compute the right side: $\int_0^1 f\varphi dx = \int_{0.2}^{0.6} x(1-x)dx = [\frac{x^2}{2} - \frac{x^3}{3}]_{0.2}^{0.6} = 0.064$. The identity holds exactly. The classical second derivative fails at two points, but the integral identity survives without modification.
+
 ## Test Functions $\mathcal{D}(\Omega)$ and Distributions $\mathcal{D}'(\Omega)$
 
 ### The space of test functions
@@ -163,6 +167,10 @@ For the heat equation $(\partial_t - \Delta)u = 0$, the fundamental solution is 
 
 ---
 
+
+### Worked Numerical Example
+Compute $\langle \mathrm{p.v.}\frac{1}{x}, \varphi \rangle$ for $\varphi(x) = x e^{-x^2}$. By definition, the pairing is $\lim_{\epsilon \to 0} \int_{|x|>\epsilon} \frac{x e^{-x^2}}{x} dx = \lim_{\epsilon \to 0} \int_{|x|>\epsilon} e^{-x^2} dx$. The integrand simplifies to a Gaussian. The limit removes a symmetric interval around zero, which contributes zero measure to the Lebesgue integral of a continuous function. Thus the value is exactly $\int_{-\infty}^\infty e^{-x^2} dx = \sqrt{\pi} \approx 1.77245$. Now try $\psi(x) = e^{-x^2}$. The pairing becomes $\lim_{\epsilon \to 0} \int_{|x|>\epsilon} \frac{e^{-x^2}}{x} dx$. The integrand is odd, and the domain $(-\infty, -\epsilon) \cup (\epsilon, \infty)$ is symmetric. The integral vanishes identically for every $\epsilon > 0$, so the limit is $0$. This explicit computation shows how the principal value extracts the odd part of the test function near the singularity while discarding the even part. The distribution is well-defined precisely because the $1/x$ singularity is cancelled by the vanishing of $\varphi(0)$ or by symmetry. If you replace $\varphi$ with a function that does not vanish at $0$ and lacks symmetry, the limit diverges, which is why $1/x$ alone is not a distribution without the p.v. prescription.
+
 ## Weak Derivatives and Sobolev Spaces
 
 ### From distributional to weak derivative
@@ -261,6 +269,10 @@ A variant, the **Poincare-Wirtinger inequality**, holds for functions without bo
 
 ---
 
+
+### Worked Numerical Example
+Consider the hat function $u(x) = \max(0, 1-|x|)$ on $\Omega = (-2, 2)$. Classically, $u$ is not differentiable at $x=-1, 0, 1$. The weak derivative $g$ must satisfy $\int_{-2}^2 u \varphi' dx = -\int_{-2}^2 g \varphi dx$. Split the left integral: $\int_{-1}^0 (1+x)\varphi' dx + \int_0^1 (1-x)\varphi' dx$. Integrate by parts on each smooth piece. The boundary terms at $\pm 1$ vanish because $u(\pm 1)=0$. The interior terms at $0$ cancel because $u$ is continuous. We are left with $-\int_{-1}^0 1\cdot \varphi dx + \int_0^1 (-1)\cdot \varphi dx$. Thus $g(x) = 1$ on $(-1,0)$, $g(x) = -1$ on $(0,1)$, and $0$ elsewhere. Compute the $H^1$ norm explicitly. $\|u\|_{L^2}^2 = 2\int_0^1 (1-x)^2 dx = 2[ -\frac{(1-x)^3}{3} ]_0^1 = \frac{2}{3}$. $\|g\|_{L^2}^2 = \int_{-1}^0 1^2 dx + \int_0^1 (-1)^2 dx = 2$. The squared $H^1$ norm is $\frac{2}{3} + 2 = \frac{8}{3}$, so $\|u\|_{H^1} = \sqrt{8/3} \approx 1.63299$. The calculation requires no distributional machinery beyond integration by parts on subintervals, yet it places a non-differentiable function firmly inside a Hilbert space.
+
 ## Sobolev Embedding Theorems
 
 The embedding theorems answer a fundamental question: if a function has $k$ derivatives in $L^p$, what can we say about its pointwise regularity?
@@ -318,6 +330,10 @@ The embeddings extend from $\mathbb{R}^n$ to domains $\Omega$ under boundary reg
 This extension reduces problems on domains to problems on $\mathbb{R}^n$, where Fourier-analytic tools are available. The Lipschitz hypothesis is essentially sharp: domains with cusps or fractal boundaries can fail the extension property.
 
 ---
+
+
+### Worked Numerical Example
+Verify the 1D Sobolev inequality $\|u\|_{L^\infty(\mathbb{R})} \le \frac{1}{\sqrt{2}} \|u\|_{H^1(\mathbb{R})}$ for $u(x) = e^{-|x|}$. The supremum is clearly $u(0) = 1$. Compute the $L^2$ norm: $\|u\|_{L^2}^2 = \int_{-\infty}^\infty e^{-2|x|} dx = 2\int_0^\infty e^{-2x} dx = 1$. The weak derivative is $u'(x) = -\mathrm{sgn}(x)e^{-|x|}$, so $\|u'\|_{L^2}^2 = \int_{-\infty}^\infty e^{-2|x|} dx = 1$. The $H^1$ norm squared is $1+1=2$, giving $\|u\|_{H^1} = \sqrt{2} \approx 1.41421$. The inequality reads $1 \le \frac{1}{\sqrt{2}} \cdot \sqrt{2} = 1$. The bound is saturated. This is not an accident: in one dimension, the optimal constant $1/\sqrt{2}$ is achieved exactly by multiples of $e^{-|x|}$. The embedding $H^1(\mathbb{R}) \hookrightarrow C^0_b(\mathbb{R})$ is continuous, and the numerical check confirms that controlling the function and its first derivative in $L^2$ strictly bounds the pointwise maximum. If you drop the derivative term and only control $\|u\|_{L^2}$, you can make the peak arbitrarily high by narrowing a bump while preserving area, destroying any $L^\infty$ bound. The derivative term is what locks the height down.
 
 ## Trace Theorems and Boundary Values
 
@@ -417,6 +433,27 @@ One final remark on terminology that confused me as a graduate student. The term
 
 ---
 
+
+### Worked Numerical Example
+Take $\Omega = B_1(0) \subset \mathbb{R}^2$ and $u(x,y) = x$. The trace on $\partial\Omega$ is $\gamma_0 u(\theta) = \cos\theta$. Compute the $L^2$ norm of the trace: $\|\gamma_0 u\|_{L^2(\partial\Omega)}^2 = \int_0^{2\pi} \cos^2\theta \, d\theta = \pi$. Compute the $H^1$ norm of $u$ on the disk. $\|u\|_{L^2(\Omega)}^2 = \int_0^{2\pi} \int_0^1 r^2 \cos^2\theta \, r dr d\theta = \frac{1}{4} \cdot \pi = \frac{\pi}{4}$. The gradient is $\nabla u = (1, 0)$, so $\|\nabla u\|_{L^2(\Omega)}^2 = \int_\Omega 1 \, dx dy = \pi$. The squared $H^1$ norm is $\frac{\pi}{4} + \pi = \frac{5\pi}{4}$. The trace inequality demands $\|\gamma_0 u\|_{L^2} \le C \|u\|_{H^1}$. Plugging in the numbers: $\sqrt{\pi} \le C \sqrt{5\pi/4}$, which simplifies to $1 \le C \sqrt{5}/2$, or $C \ge 2/\sqrt{5} \approx 0.8944$. The trace operator is bounded, and the constant depends only on the domain geometry. If you attempt to restrict a generic $L^2$ function to the boundary, the left side is undefined. The $H^1$ control provides exactly enough regularity to make the boundary integral finite and continuous with respect to the bulk norm.
+
+## Counterexample: Why the Definition Cannot Be Weakened
+Morrey's inequality states that $W^{1,p}(\mathbb{R}^n) \hookrightarrow C^{0,\gamma}(\mathbb{R}^n)$ when $p > n$. A natural question is whether the strict inequality $p > n$ can be relaxed to $p = n$. The answer is no, and the failure is explicit. Consider $n=2$ and the function $u(x) = \log\log(1/|x|)$ defined on the ball $B_{1/e}(0)$. At the origin, $u$ blows up to $+\infty$, so it is unbounded and certainly not continuous. Compute its gradient for $x \neq 0$: $\nabla u(x) = \frac{1}{\log(1/|x|)} \cdot \frac{1}{1/|x|} \cdot \left(-\frac{x}{|x|^3}\right) = -\frac{x}{|x|^2 \log(1/|x|)}$. The magnitude is $|\nabla u(x)| = \frac{1}{|x| |\log|x||}$. Now check the $L^2$ norm of the gradient using polar coordinates:
+$$
+\int_{B_{1/e}} |\nabla u|^2 dx = 2\pi \int_0^{1/e} \frac{1}{r^2 (\log r)^2} r \, dr = 2\pi \int_0^{1/e} \frac{1}{r (\log r)^2} dr.
+$$
+Substitute $t = -\log r$, so $dt = -dr/r$. The limits transform from $r \in (0, 1/e]$ to $t \in [1, \infty)$. The integral becomes $2\pi \int_1^\infty t^{-2} dt = 2\pi [ -t^{-1} ]_1^\infty = 2\pi$. The gradient is square-integrable. Since $u$ is also square-integrable near the origin (the logarithmic singularity is mild in $L^2$), we have $u \in H^1(B_{1/e})$. Yet $u$ is unbounded. This single computation destroys any hope of embedding $W^{1,n}$ into $C^0$. The threshold $p=n$ is sharp. Below it, functions can have logarithmic spikes; above it, the derivative integrability forces Holder continuity. The definition of the Sobolev conjugate and the Morrey exponent cannot be weakened without losing pointwise control entirely.
+
+## Why I Care
+In 2018 I was debugging a 2D finite element solver for a microstrip transmission line. The code assembled the stiffness matrix correctly, but the solution refused to converge under mesh refinement. I had imposed a Dirichlet ground condition at a single interior node, treating it as a physical probe. The solver produced a logarithmic spike around that node that grew sharper as $h \to 0$. My advisor looked at the output, pointed at the singularity, and said: "Points have zero capacity in two dimensions. You are trying to evaluate an $H^1$ function at a point. The trace theorem says you can only restrict to curves." I went back to the theory, computed the $2$-capacity of a point in $\mathbb{R}^2$, and found it was exactly zero. My Dirichlet condition was mathematically void; the variational formulation simply ignored it, and the spike was the solver's attempt to satisfy an impossible constraint. I replaced the point constraint with a small circular boundary condition of radius $0.01$. The solver converged in four Newton steps. That afternoon I stopped treating Sobolev spaces as abstract exam material and started reading them as a manual for what my discretization was actually allowed to do. The trace theorem and capacity theory went from definitions on a page to debugging tools that saved a week of wasted compute time.
+
+## Common Pitfall
+A persistent misconception is that if a function is differentiable almost everywhere, its classical a.e. derivative equals its weak derivative. This is false. Consider $f(x) = \mathrm{sgn}(x)$ on $(-1, 1)$. Classically, $f$ is differentiable everywhere except at $x=0$. The a.e. derivative is $f'_{\mathrm{ae}}(x) = 0$ for all $x \neq 0$. If this were the weak derivative, the defining identity would require $\int_{-1}^1 f \varphi' dx = -\int_{-1}^1 0 \cdot \varphi dx = 0$ for every $\varphi \in C_c^\infty(-1,1)$. Compute the left side directly:
+$$
+\int_{-1}^1 \mathrm{sgn}(x) \varphi'(x) dx = \int_0^1 \varphi'(x) dx - \int_{-1}^0 \varphi'(x) dx = (\varphi(1)-\varphi(0)) - (\varphi(0)-\varphi(-1)).
+$$
+Since $\varphi$ has compact support in $(-1,1)$, $\varphi(1)=\varphi(-1)=0$. The result is $-2\varphi(0)$, which equals $\langle -2\delta_0, \varphi \rangle$. The weak derivative is $2\delta_0$, not the zero function. The a.e. derivative misses the jump entirely because Lebesgue integration ignores sets of measure zero, while distributional derivatives record singular concentrations. You cannot patch classical a.e. derivatives into Sobolev spaces without verifying absolute continuity. The bridge between classical and weak differentiation is not a.e. differentiability; it is the fundamental theorem of calculus holding in integral form. Ignore that distinction, and your integration-by-parts arguments will silently drop delta terms.
+
 ## What's Next
 
 We have built the distributional and Sobolev-space foundations needed for modern PDE theory: distributions give meaning to derivatives that don't exist classically, Sobolev spaces provide Banach/Hilbert settings for weak formulations, embedding theorems connect integrability to regularity, and trace theorems handle boundary conditions rigorously.
@@ -424,3 +461,16 @@ We have built the distributional and Sobolev-space foundations needed for modern
 In the final article of this series, we put everything together. The **Lax-Milgram theorem** gives existence and uniqueness for elliptic boundary value problems. **Variational methods** convert PDE into minimization problems. **Stone's theorem** connects self-adjoint operators to quantum dynamics. The abstract machinery of functional analysis meets its most important applications.
 
 ---
+
+### Specific Questions Ahead
+The machinery built here does not sit idle. In the next article, we turn the abstract existence question into a computational guarantee. I will answer four specific questions that naturally arise once you accept weak formulations:
+1. How do we prove that a weak solution actually exists without constructing it explicitly or solving the PDE directly?
+2. What precise conditions on the bilinear form $a(u,v)$ and the linear functional $F(v)$ guarantee uniqueness and continuous dependence on the data?
+3. How does the geometry of the domain $\Omega$ enter the stability constants, and why do re-entrant corners destroy $H^2$ regularity even when the data is smooth?
+4. Why does the finite element method converge at exactly the rate predicted by polynomial degree, and where does the Sobolev norm hide in the error estimate?
+
+### Why You Are Equipped
+You are now equipped to read the answers because the heavy lifting is already done. You know that $H^1_0(\Omega)$ is a Hilbert space, so the Riesz representation theorem applies directly to bounded linear functionals. You know that the trace operator handles Dirichlet data without pointwise evaluation, and that $W^{1,p}_0$ is precisely the kernel of that operator. You know that Rellich-Kondrachov compactness turns bounded sequences into convergent subsequences, which is the engine behind eigenvalue approximations and the Fredholm alternative. The next article assumes fluency with these facts and moves directly to operator bounds and variational stability. You no longer need to worry about whether derivatives exist; you only need to check whether integrals are bounded and coercive.
+
+### Preview: The Lax-Milgram Theorem
+The central result is the Lax-Milgram theorem. I will state it in its standard form: given a bounded, coercive bilinear form $a: V \times V \to \mathbb{R}$ on a Hilbert space $V$ and a bounded linear functional $F \in V'$, there exists a unique $u \in V$ such that $a(u,v) = F(v)$ for all $v \in V$, with the stability estimate $\|u\|_V \le \frac{1}{\alpha}\|F\|_{V'}$ where $\alpha$ is the coercivity constant. The proof is a direct application of the Riesz representation theorem composed with a bounded invertible operator induced by $a$. I will also derive C\'ea's lemma, which bounds the finite element error by the best approximation error in the energy norm: $\|u - u_h\|_V \le \frac{M}{\alpha} \inf_{v_h \in V_h} \|u - v_h\|_V$. This inequality is the reason engineers trust mesh refinement. You will see exactly how the Sobolev embedding constants and the Poincar\'e inequality feed into $M$ and $\alpha$, closing the loop between the abstract space and the concrete stiffness matrix. The transition from distributional derivatives to computable linear systems is shorter than it looks, and the estimates you verify here are the same ones that prevent numerical blow-up in production codes.

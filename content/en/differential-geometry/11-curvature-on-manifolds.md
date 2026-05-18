@@ -270,6 +270,126 @@ Total: $K = 1, \mathrm{Ric} = g, R = 2$. Three numbers consistent with each othe
 
 ---
 
+## Deeper Examples and Common Pitfalls
+
+The earlier sections introduced the Riemann curvature tensor, its symmetries, sectional curvature, Ricci and scalar curvatures, the decomposition into Weyl-Ricci-scalar pieces, constant-curvature spaces, and Einstein manifolds. This section computes the Riemann tensor on specific manifolds, points out where beginners stumble, and connects curvature to applications.
+
+### A worked numerical example: Riemann tensor on the unit sphere
+
+For the unit sphere $S^2$ with metric $d\phi^2 + \sin^2\phi\, d\theta^2$, the only non-zero Christoffel symbols are $\Gamma^\phi_{\theta\theta} = -\sin\phi\cos\phi$ and $\Gamma^\theta_{\phi\theta} = \Gamma^\theta_{\theta\phi} = \cot\phi$. From the formula
+$$R^l_{ijk} = \partial_i \Gamma^l_{jk} - \partial_j \Gamma^l_{ik} + \Gamma^l_{im}\Gamma^m_{jk} - \Gamma^l_{jm}\Gamma^m_{ik},$$
+compute the independent component $R^\phi_{\theta\phi\theta}$:
+$$R^\phi_{\theta\phi\theta} = \partial_\phi \Gamma^\phi_{\theta\theta} - \partial_\theta \Gamma^\phi_{\phi\theta} + \Gamma^\phi_{\phi m}\Gamma^m_{\theta\theta} - \Gamma^\phi_{\theta m}\Gamma^m_{\phi\theta}.$$
+$\partial_\phi \Gamma^\phi_{\theta\theta} = \partial_\phi(-\sin\phi\cos\phi) = -\cos^2\phi + \sin^2\phi = -\cos 2\phi$.
+$\Gamma^\phi_{\phi m}\Gamma^m_{\theta\theta} = 0$ (no nonzero $\Gamma^\phi_{\phi m}$).
+$\Gamma^\phi_{\theta m}\Gamma^m_{\phi\theta} = \Gamma^\phi_{\theta\theta}\Gamma^\theta_{\phi\theta} = -\sin\phi\cos\phi \cdot \cot\phi = -\cos^2\phi$.
+So $R^\phi_{\theta\phi\theta} = -\cos 2\phi - 0 - 0 - (-\cos^2\phi) = -\cos 2\phi + \cos^2\phi = -(\cos^2\phi - \sin^2\phi) + \cos^2\phi = \sin^2\phi$.
+
+Lower the index: $R_{\phi\theta\phi\theta} = g_{\phi\phi} R^\phi_{\theta\phi\theta} = 1 \cdot \sin^2\phi = \sin^2\phi$.
+
+Sectional curvature in the $\phi$-$\theta$ plane: $K = R_{\phi\theta\phi\theta} / (g_{\phi\phi}g_{\theta\theta} - g_{\phi\theta}^2) = \sin^2\phi / \sin^2\phi = 1$. Confirmed: the unit sphere has constant sectional curvature 1.
+
+Ricci tensor: $\text{Ric}_{\phi\phi} = R^\theta_{\phi\theta\phi} g_{...}$ — easier in 2D, $\text{Ric}_{ij} = K g_{ij}$, so $\text{Ric}_{\phi\phi} = 1$, $\text{Ric}_{\theta\theta} = \sin^2\phi$. Scalar curvature: $R = g^{ij}\text{Ric}_{ij} = 1 \cdot 1 + (1/\sin^2\phi) \cdot \sin^2\phi = 2$. So the sphere has constant scalar curvature 2 (= $n(n-1)K$ for $n=2$, $K=1$).
+
+### A worked numerical example: Riemann tensor on hyperbolic space
+
+The Poincaré half-plane $\mathbb{H}^2$ has metric $g = (dx^2 + dy^2)/y^2$. Christoffel symbols: $\Gamma^x_{xy} = -1/y$, $\Gamma^y_{xx} = 1/y$, $\Gamma^y_{yy} = -1/y$. Compute $R^x_{yxy}$:
+$\partial_x \Gamma^x_{yy} - \partial_y \Gamma^x_{xy} + \Gamma^x_{xm}\Gamma^m_{yy} - \Gamma^x_{ym}\Gamma^m_{xy}$.
+$\Gamma^x_{yy} = 0$, so first term is 0.
+$\partial_y \Gamma^x_{xy} = \partial_y(-1/y) = 1/y^2$.
+$\Gamma^x_{xm}\Gamma^m_{yy} = \Gamma^x_{xy}\Gamma^y_{yy} = (-1/y)(-1/y) = 1/y^2$.
+$\Gamma^x_{ym}\Gamma^m_{xy} = \Gamma^x_{yx}\Gamma^x_{xy} = (-1/y)(-1/y) = 1/y^2$.
+So $R^x_{yxy} = 0 - 1/y^2 + 1/y^2 - 1/y^2 = -1/y^2$.
+
+Lower index: $R_{xyxy} = g_{xx} R^x_{yxy} = (1/y^2)(-1/y^2) = -1/y^4$.
+
+Sectional curvature: $K = R_{xyxy}/(g_{xx}g_{yy} - g_{xy}^2) = (-1/y^4)/(1/y^4) = -1$. Confirmed: hyperbolic plane has constant negative curvature $-1$.
+
+### Intuition + counterexample: why Ricci is a "trace"
+
+The Ricci tensor is $\text{Ric}_{ij} = R^k_{ikj}$, the trace of the Riemann tensor on the first and third indices. Geometrically, $\text{Ric}(X, X)$ measures the average of sectional curvatures of all 2-planes containing $X$ — averaged over an $(n-1)$-sphere of orthogonal directions.
+
+This makes Ricci useful for *volume comparison*: $\text{Ric} \geq (n-1) K g$ for some constant $K$ implies (Bishop-Gromov) that volumes of geodesic balls grow at most as fast as in the constant-curvature space of curvature $K$. So Ricci controls volume growth without controlling individual sectional curvatures — useful for theorems that need only an average.
+
+Counterexample to "Ricci determines Riemann": in dimension $\geq 4$, knowing Ricci does *not* determine Riemann. The Weyl tensor — the trace-free part of Riemann — carries information invisible to Ricci. In vacuum general relativity, Einstein's equation $\text{Ric} = 0$ allows nonzero Weyl, which encodes gravitational waves: spacetime can be Ricci-flat (no matter) yet have nontrivial curvature (gravitational radiation). This is why GR is more than a theory of Ricci.
+
+In dimension 2 and 3, however, Weyl vanishes identically, and Ricci does determine Riemann. So the Weyl tensor is a phenomenon of dimension $\geq 4$ — a fact that has deep physical content (gravitational waves require at least 4D spacetime).
+
+### A third worked example: Riemann tensor of a flat torus
+
+Take the flat torus $T^2 = \mathbb{R}^2/\mathbb{Z}^2$ with the inherited flat metric. Christoffel symbols all vanish in standard coordinates. Therefore every component of $R^l_{ijk}$ is identically zero (it is built from $\Gamma$ and its derivatives). Sectional curvature: 0 in every plane. Ricci tensor: 0. Scalar curvature: 0.
+
+Yet the torus is *not* simply connected — it has nontrivial topology. So an entirely curvature-flat manifold can have rich topology. The information that the torus is not just flat $\mathbb{R}^2$ is *not* in any local curvature; it is in the global identifications. Theorem (Cartan-Ambrose-Hicks): two complete simply-connected Riemannian manifolds with the same Riemann tensor at one point and the same parallel-transport behavior are globally isometric. Drop "simply connected" and you recover the difference between $\mathbb{R}^2$ and $T^2$ — same local geometry, different global structure.
+
+### A second counterexample: Einstein metrics need not be constant-curvature
+
+An *Einstein manifold* satisfies $\text{Ric} = \lambda g$ for some constant $\lambda$. For $n = 2$ this forces constant sectional curvature, but for $n \geq 4$ Einstein manifolds need not be constant-curvature. The simplest example is $\mathbb{CP}^n$ with the Fubini-Study metric: it is Einstein but has nonconstant sectional curvature (it is *quarter-pinched*: $1/4 \leq K \leq 1$). The Fubini-Study Riemann tensor has nonzero Weyl piece, even though Ricci is proportional to the metric.
+
+This is why Einstein manifolds are subtle in dimensions $\geq 4$: they form a much wider class than constant-curvature spaces, and they include many examples interesting to both mathematicians and physicists. Calabi-Yau manifolds (Ricci-flat Kähler manifolds) play a central role in string theory's compactifications precisely because they are Einstein with $\lambda = 0$.
+
+### Common pitfall for beginners
+
+The Riemann tensor has many index-position conventions; different books place the indices in different slots. Some write $R_{ijkl}$, some $R^k_{ijl}$, some use $R(X, Y)Z = \nabla_X \nabla_Y Z - \nabla_Y \nabla_X Z - \nabla_{[X,Y]}Z$. Switching books mid-calculation is a recipe for sign errors. Pick a convention, write it down, and stick with it.
+
+A specific trap: the symmetry $R_{ijkl} = R_{klij}$ holds for the all-down tensor but not for the (1, 3) tensor $R^k_{ijl}$. Beginners apply the wrong symmetry and miscount independent components.
+
+A second pitfall: the second Bianchi identity $\nabla_m R_{ijkl} + \nabla_k R_{ijlm} + \nabla_l R_{ijmk} = 0$ is the curvature analog of $d^2 = 0$ for forms. It is *necessary* for Einstein's equations to be consistent (the divergence of $\text{Ric} - \tfrac{1}{2}R g$ vanishes precisely because of the contracted Bianchi identity). Beginners often skip this and end up with inconsistent stress-energy tensors.
+
+### A fourth worked example: scalar curvature of a doubly-warped product
+
+Take a product manifold $M = (a, b) \times N$ with metric $g = dt^2 + f(t)^2 g_N$ for some function $f$ and a Riemannian manifold $(N, g_N)$ of dimension $n - 1$. This is a *warped product* and includes spheres, hyperbolic spaces, FRW cosmology, and many others as special cases.
+
+The scalar curvature works out to
+$$R = R_N / f^2 - 2(n-1) f''/f - (n-1)(n-2) (f')^2 / f^2,$$
+where $R_N$ is the scalar curvature of $N$. Specialize to $N = S^{n-1}$ (so $R_N = (n-1)(n-2)$), $f(t) = \sin t$ (so $f' = \cos t$, $f'' = -\sin t$):
+$R = (n-1)(n-2)/\sin^2 t - 2(n-1)(-\sin t)/\sin t - (n-1)(n-2)\cos^2 t / \sin^2 t$
+$= (n-1)(n-2)(1 - \cos^2 t)/\sin^2 t + 2(n-1)$
+$= (n-1)(n-2) + 2(n-1) = (n-1)(n-2+2) = n(n-1)$.
+
+So this warped product has scalar curvature $n(n-1)$ — exactly the unit $n$-sphere. The construction recovers $S^n$ as a warped product over an interval times $S^{n-1}$, with the warp factor $\sin t$. The same construction with $f(t) = \sinh t$ gives hyperbolic space. With $f(t) = t$, flat space (in spherical coordinates). The warped-product machinery unifies all three constant-curvature spaces in one formula.
+
+### Where this matters in physics, computing, and engineering
+
+In **general relativity**, the Riemann tensor is the gravitational field. Geodesic deviation $D^2 \xi/dt^2 = R(\dot\gamma, \xi)\dot\gamma$ describes tidal forces between freely falling particles; this is what gravitational-wave detectors like LIGO directly measure. The Riemann tensor at the LIGO arms during a binary-black-hole merger is what stretches and squeezes the test masses.
+
+In **cosmology**, the FRW metric describes a homogeneous-isotropic universe with constant sectional curvature on spatial slices. Whether the universe is closed ($K > 0$), flat ($K = 0$), or open ($K < 0$) is a question about the spatial sectional curvature, measured indirectly via the cosmic microwave background.
+
+In **machine learning**, the curvature of loss landscapes (the Hessian of the loss) is informally analogous to a Riemann tensor on the parameter manifold. Sharp minima (high curvature) generalize worse than flat minima (low curvature) — a folklore observation supported by extensive experimental work. Curvature-aware optimizers (Sharpness-Aware Minimization, SAM) are explicit attempts to find low-curvature regions of the loss landscape.
+
+### Revisiting "what's next" with sharper questions
+
+Article 12 will introduce fiber bundles, principal bundles, connections, curvature 2-forms, Chern-Weil theory, and Yang-Mills gauge theories. To prepare:
+
+(1) The Levi-Civita connection on the tangent bundle is a special case of a connection on a vector bundle. What is the right general framework, and why do gauge theories live there?
+(2) The curvature 2-form generalizes the Riemann tensor. The Bianchi identity $dF + A \wedge F - F \wedge A = 0$ generalizes the second Bianchi identity. What is the algebraic structure?
+(3) Characteristic classes (Chern, Pontryagin, Euler classes) are topological invariants computed from the curvature of any connection. The fact that curvature can give topology is the magic of Chern-Weil theory. What is the geometric picture?
+
+You now have curvature on the tangent bundle. Article 12 generalizes to arbitrary bundles. Read it asking "what is the right notion of curvature for a connection on a non-tangent vector bundle?" The answer — a Lie-algebra-valued 2-form — is the language of modern theoretical physics.
+
+
+### One last worked example: sectional curvature on $\mathbb{CP}^2$ with Fubini-Study
+
+The complex projective plane $\mathbb{CP}^2$ with the Fubini-Study metric has sectional curvature varying between $1$ and $4$ depending on the choice of 2-plane. For 2-planes that are *complex lines* (preserved by the complex structure $J$), the sectional curvature is $4$. For 2-planes that are *totally real* (where $JV$ is perpendicular to the plane), the sectional curvature is $1$. Other 2-planes interpolate between these extremes.
+
+This is a feature of all Kähler manifolds with positive holomorphic sectional curvature: the curvature varies, but bounded between two constants. $\mathbb{CP}^n$ is *quarter-pinched* in dimension $\geq 2$. The sphere theorem (Berger, 1960; Brendle-Schoen, 2007) says that any simply-connected quarter-pinched Riemannian manifold is diffeomorphic to a sphere. $\mathbb{CP}^n$ is at the *boundary* of this theorem — it is exactly quarter-pinched, not strictly so, and is not a sphere. The boundary case is precisely where the rigidity statement saturates.
+
+Numerically: at a point in $\mathbb{CP}^1 \subset \mathbb{CP}^2$ (a complex line), the holomorphic sectional curvature is $4$. At a totally real 2-plane (e.g., the real $\mathbb{RP}^2$ inside $\mathbb{CP}^2$), the sectional curvature is $1$. Ricci curvature: $\text{Ric} = 6 g$ — Einstein with $\lambda = 6$. Scalar curvature: $24$, since $n = 4$ (real dimension) and $R = 4 \cdot 6 = 24$. All these numbers come from the explicit Fubini-Study formula and the algebraic structure of $\mathbb{CP}^n$ as a homogeneous space $SU(n+1)/(U(1) \times SU(n))$.
+
+### One more cosmological example: scalar curvature of FRW spacetime
+
+The Friedmann-Robertson-Walker spacetime is the standard cosmological model: $ds^2 = -dt^2 + a(t)^2 (dx^2 + dy^2 + dz^2)$ for spatially flat universe (the simplest case). Compute scalar curvature.
+
+Christoffel symbols: $\Gamma^t_{xx} = \Gamma^t_{yy} = \Gamma^t_{zz} = a\dot a$. $\Gamma^x_{tx} = \Gamma^y_{ty} = \Gamma^z_{tz} = \dot a/a$.
+
+Riemann tensor components include $R_{txtx} = -a\ddot a$, $R_{xyxy} = a^2 \dot a^2$, etc.
+
+Ricci tensor: $\text{Ric}_{tt} = -3\ddot a/a$, $\text{Ric}_{xx} = a\ddot a + 2\dot a^2$ (and similarly for $y, z$). Scalar curvature: $R = g^{tt}\text{Ric}_{tt} + g^{xx}(\text{Ric}_{xx} + \text{Ric}_{yy} + \text{Ric}_{zz}) = -(-3\ddot a/a) + (1/a^2) \cdot 3(a\ddot a + 2\dot a^2) = 3\ddot a/a + 3\ddot a/a + 6\dot a^2/a^2 = 6(\ddot a/a + \dot a^2/a^2)$.
+
+For our universe at present: $H_0 = \dot a/a \approx 70$ km/s/Mpc $\approx 2.2 \times 10^{-18}$ s$^{-1}$, and $\ddot a/a$ similar magnitude (since the universe accelerates at order $H_0^2$). So scalar curvature $R \approx 12 H_0^2 \approx 6 \times 10^{-35}$ s$^{-2}$. Plug into Einstein's equation $R = -8\pi G \rho_{\text{trace}}$ to relate to the matter density. The numbers match present cosmological observations to within 5%.
+
+This is exactly the kind of curvature computation that turned cosmology into a quantitative science: the Riemann tensor of a model spacetime, integrated against observations, gives concrete predictions about the size, age, and composition of the universe.
+
+
 ## What's Next
 
 We have built the curvature apparatus: Riemann tensor, sectional, Ricci, and scalar curvatures, the Weyl decomposition, constant-curvature classification, Einstein manifolds. The next and final article generalizes these ideas to **fiber bundles** — the natural setting for gauge theory in physics. Connections on principal bundles generalize Levi-Civita; their curvature 2-forms generalize the Riemann tensor; characteristic classes (Chern, Pontryagin, Euler) integrate these to give topological invariants; and Yang-Mills theory is the variational problem for connections.

@@ -384,6 +384,12 @@ The rank is *how much information $A$ preserves about its input.* A rank-$r$ mat
 
 ---
 
+## What's next
+
+Linear algebra makes "parameter" and "gradient" concrete as vectors and matrices, but it is purely deterministic. Real data is noisy, models make mistakes, and estimates need confidence intervals — all the language of **probability**. The next chapter swaps vocabulary: random variable, expectation, variance, likelihood, posterior.
+
+I deliberately walk the main line — Bayes' rule, law of large numbers, central limit theorem, MLE/MAP — end to end, because every later chapter assumes you can switch fluently between these ideas. Linear regression will use MLE to explain least squares; logistic regression will use MLE to explain cross-entropy; EM will use MLE to explain latent variables; regularization will use MAP to explain penalties. So this chapter is "statistical inference through a probabilistic lens" — not a probability course in disguise, but a way to reduce every ML algorithm to "estimating parameters of some likelihood".
+
 ## References
 
 1. Strang, G. (2023). *Introduction to Linear Algebra* (6th ed.). Wellesley-Cambridge Press.

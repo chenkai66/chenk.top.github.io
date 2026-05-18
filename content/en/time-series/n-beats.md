@@ -501,6 +501,15 @@ Next chapter we close the series with **Informer**, which solves a different pro
 
 ---
 
+
+## What's next
+
+The core lesson from N-BEATS is that on time series, **architectural priors matter more than raw capacity**. No RNN, no attention, not even a particularly large parameter count — and yet a single design choice (double residual stacking + basis-function expansion) was enough to beat decades of hand-tuned statistical ensembles at M4. That's a useful corrective to the reflex of "throw a bigger Transformer at it" — for many time-series tasks, the right inductive bias is worth more than scale.
+
+N-BEATS does have a limit: it's an MLP at heart, and **very long input windows** stretch it (parameter count grows linearly with lookback). If your task is "predict 168 steps ahead from a 720-step lookback" — energy, weather, long-range IoT — N-BEATS starts to creak, and you need an architecture purpose-built for long sequences.
+
+The final chapter, [Informer](/en/time-series/informer-long-sequence/), is exactly that. It combines three independent tricks: ProbSparse attention drops cost from O(n²) to O(n log n), encoder distilling halves the sequence at every layer, and a generative decoder predicts the whole horizon in one pass instead of autoregressively. Together they deliver 6-10x speedup and better accuracy than vanilla Transformer. That chapter also closes the series with a full decision table — given the eight architectures we've covered, which one to reach for on a new project — so you walk away with a working playbook rather than just eight isolated tools.
+
 ## References
 
 - Oreshkin, B. N., Carpov, D., Chapados, N., & Bengio, Y. (2020). *N-BEATS: Neural Basis Expansion Analysis for Interpretable Time Series Forecasting.* ICLR.

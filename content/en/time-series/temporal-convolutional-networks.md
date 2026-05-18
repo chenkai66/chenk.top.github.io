@@ -496,6 +496,15 @@ Next chapter we move from convolutions to **N-BEATS**, which throws away both co
 
 ---
 
+
+## What's next
+
+TCN proves a slightly uncomfortable point for the recurrent camp: if you're careful about causality and receptive field, pure convolution can be both faster and more accurate than RNNs on time series. Dilation grows the receptive field as 2^L, residual connections keep deep stacks trainable, and together they give you a fully parallel architecture that beats LSTM/GRU on accuracy.
+
+TCN is still "local-then-global," though — the receptive field is finite and the kernels are fixed. If you want the full "any two points talk directly" flexibility, you're back to attention. The next chapter on [N-BEATS](/en/time-series/n-beats/) takes a different, more radical route: **just MLPs** — no RNN, no convolution, no attention. At the 2018 M4 competition it beat decades of hand-tuned statistical ensembles, which is interesting evidence that a clean architecture (double residual stacking + basis-function expansion) is enough to make a plain feed-forward network competitive at the very top.
+
+If your project happens to involve "thousands of related series forecast by one shared model" (retail store sales is the canonical case), N-BEATS is genuinely worth trying. It trains fast, infers fast, and gives you an interpretable trend/seasonality decomposition for free. That last property is the actual reason it beat the ARIMA ensemble at M4 — not because "deep beats stats" but because it folded the interpretability of stats into the expressive power of a deep network.
+
 ## References
 
 - Bai, S., Kolter, J. Z., & Koltun, V. (2018). *An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling.* [arXiv:1803.01271](https://arxiv.org/abs/1803.01271).

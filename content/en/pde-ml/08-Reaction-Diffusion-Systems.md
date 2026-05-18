@@ -24,6 +24,12 @@ translationKey: "pde-ml-8"
 
 ---
 
+Anyone who has trained a deep GNN has seen it collapse — past a dozen or so layers, every node's embedding becomes nearly identical and the model goes mush. There is a name for this — **over-smoothing** — and the underlying math is surprisingly clean: **GNN message passing is essentially a diffusion equation on the graph**, and diffusion's long-time behavior is to flatten everything to a constant.
+
+In 1952 Turing studied how zebra stripes form and proposed the **reaction-diffusion equation**: diffusion homogenizes, reaction fights back to maintain inhomogeneity. The interplay can produce stable patterns — this is Turing instability. Drag this idea onto graphs and you get a class of architectures designed to resist over-smoothing: diffusion smears information out, reaction insists on keeping differences alive.
+
+This is the eighth and final article in the series. We'll dissect over-smoothing, port Turing's 1952 reaction-diffusion theory to graphs, give a concrete reaction-GNN architecture, and step back over the whole eight-chapter PDE+ML arc — every chapter, in retrospect, has been doing the same thing: using mathematical structure as the inductive bias for a neural network.
+
 ## What You Will Learn
 
 Stack 32 layers of GCN on a citation graph and accuracy collapses from 81 % to 20 %. Every node converges to the same vector. This is **over-smoothing**, the GNN equivalent of heat death — and the diagnosis comes straight from PDE theory. **A GCN layer is one explicit-Euler step of the heat equation on a graph**, and the heat equation has exactly one fixed point: the constant. The cure was published in 1952. Alan Turing showed that adding a *reaction* term to a diffusion equation can make a uniform state spontaneously break apart into stripes, spots, or labyrinths. The same trick — a learned reaction term — keeps deep GNNs alive.
@@ -489,6 +495,24 @@ The PDE perspective is not the only useful lens on deep learning, but it is unco
 > *Solution sketch.* The homogeneous steady state of Gray-Scott solves $u v^2 = F(1 - u)$ and $u v^2 = (F + k) v$. Compute the $2\times 2$ Jacobian of the kinetics at this state, build $\mathbf{A}(|\mathbf{k}|^2) = \mathbf{J} - |\mathbf{k}|^2 \mathrm{diag}(D_u, D_v)$, and plot $\det\,\mathbf{A}$ vs $|\mathbf{k}|^2$. A negative dip indicates an unstable band; the corresponding wavelength $2\pi/|\mathbf{k}_*|$ matches the visual scale of the simulated patterns. $\blacksquare$
 
 ---
+
+## Where to go from here
+
+That closes the eight-chapter PDE-and-ML arc. Looking back, the thread is cleaner than it looked along the way:
+
+- **PINNs (Ch. 1)** wrote the PDE residual into the loss;
+- **Neural operators (Ch. 2)** upgraded "learn one solution" to "learn the entire solution operator";
+- **Variational principles (Ch. 3)** revealed the continuous-time geometry behind training;
+- **Variational inference & Fokker-Planck (Ch. 4)** unified optimization and sampling under one PDE;
+- **Symplectic geometry (Ch. 5)** baked conservation laws into network architecture;
+- **Continuous normalizing flows (Ch. 6)** turned generation into an invertible ODE;
+- **Diffusion models (Ch. 7)** translated generation into a reverse heat equation;
+- **Reaction-diffusion & GNNs (Ch. 8)** used Turing's 1952 theory to repair deep GNNs.
+
+Lined up together, the whole series has been doing exactly one thing: **using mathematical structure as the inductive bias of a neural network**. Each chapter is the same idea with a different constraint plugged in.
+
+Where to next? Three threads are worth chasing further: (1) operator learning meeting foundation models (PDE foundation models); (2) structure-preserving networks landing in molecular dynamics and climate modeling; (3) score-based methods crossing into reinforcement learning and planning. I hope these eight chapters left you with the key needed to walk down any one of them.
+
 
 ## References
 

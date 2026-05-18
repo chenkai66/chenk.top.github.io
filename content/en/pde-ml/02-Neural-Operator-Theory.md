@@ -29,6 +29,12 @@ This article is a deep dive into how that is possible. We start from the functio
 
 ---
 
+Classical PDE solvers — finite differences, finite elements, spectral methods — are essentially functions: feed in initial conditions and parameters, get a solution back. **PINNs are also functions** in this sense: change the initial condition (a wing's incoming flow speed shifts, a sensor reading drifts a hair) and the network has to be retrained from scratch.
+
+**Neural operators rewrite the rules.** Instead of learning one solution, they learn the **solution operator itself**: input is a function (initial condition, coefficient field, source term), output is also a function (the solution at some time, a field over the target region). One offline training, then every new instance is a single forward pass — no remeshing, no inner optimization, no classical solver in the loop.
+
+This article walks the technology in two halves. First the functional-analytic framework that makes "learning maps between function spaces" mean something rigorous. Then two dominant architectures: **DeepONet** — split the operator into branch and trunk via the Chen–Chen universal approximation theorem; and **Fourier Neural Operator (FNO)** — perform learnable global convolutions in frequency space. Along the way: why neural operators are **resolution-invariant**, how tight the error bounds actually are, and where each architecture quietly fails.
+
 ## Why operators, not just bigger networks
 
 ### The PINN ceiling

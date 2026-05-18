@@ -15,6 +15,13 @@ series_order: 1
 series_total: 8
 translationKey: "time-series-1"
 ---
+
+The first time I touched data that "looked like a time series" — hourly server CPU usage — my instinct was to throw it at a linear regression. Time on the x-axis, usage on the y-axis. The fit was terrible. The problem wasn't the regression; the problem was that this kind of data has its own personality. It has trends, seasonality, and a stubborn dependence between consecutive observations. A vanilla regression treats every row as an independent sample and throws away the one piece of information that matters most: time itself.
+
+Traditional time-series models exist to put that information back in. They don't pretend rows are independent. They model the fact that today's value usually looks a lot like yesterday's. Temperature readings, for instance, drift gently — today is 20°C, tomorrow will be somewhere in 18-22°C, it won't suddenly jump to 5°C. Stock prices look superficially similar but behave very differently: today's price is yesterday's price plus a small shock, and only the shock is random. Both are curves on a screen, but their **memory structure** is completely opposite — one mean-reverts, the other random-walks. Telling those two apart is exactly what the ARIMA, GARCH, and state-space toolkit was designed for.
+
+This chapter walks through that toolkit. The goal isn't to memorize formulas; it's to build a working sense of judgment. When you see a new dataset, do you difference first or look at the ACF? When you see a slow tail, is it AR or ARMA? When is a classical model enough, and when do you graduate to deep learning? Those questions don't have one right answer, but there is a reusable diagnostic flow, and the rest of the chapter unpacks it.
+
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/illustration_1.png)
 
 
@@ -314,6 +321,15 @@ Traditional models reach their ceiling when:
 That is the launchpad for the next seven articles. We start with **LSTM** as the canonical non-linear sequential model, then build up through GRU, attention, the Transformer, TCN, N-BEATS, and finally Informer for very long sequences. Each of them generalises one of the linear models above; treat ARIMA / SARIMA / Holt-Winters as the baselines you must beat, not as the past you can skip.
 
 ---
+
+
+## What's next
+
+You now have a complete classical toolkit: ARIMA for mean dynamics, GARCH for volatility, Prophet for strong seasonality, Kalman filter for state-space recursion. On problems with clear structure, enough data, and no need to capture nonlinear interactions, these models are usually more stable, more interpretable, and cheaper to tune than anything deep.
+
+They also have well-defined failure modes. When variables interact nonlinearly (think multi-sensor systems where each affects the others), when sequences are very long (thousands of steps), or when you need a single model to forecast hundreds of thousands of related series at once — classical methods start to creak. That's the gap the rest of the series fills.
+
+The next chapter starts with recurrent neural networks and focuses on [LSTM](/en/time-series/lstm/): how its gating mechanism preserves useful information across long sequences, how it solves the vanishing-gradient problem, and why it was the de-facto deep model for sequences from 2015 to 2018. If your current project is comfortably handled by ARIMA, my advice is to keep using it — but practice the ACF/PACF diagnostic flow from this chapter until it's automatic. You'll reuse it under every later model, including to sanity-check the residuals of deep architectures.
 
 ## References
 

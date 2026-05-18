@@ -373,6 +373,12 @@ With $N = 1000$, $a = 0.2$, $b = 0.1$: keep $200$ large-gradient samples plus $0
 
 ---
 
+## What's next
+
+The supervised line, from linear models all the way to engineered tree ensembles, ends here. But many real problems have no labels at all — customer segmentation, topic discovery, anomaly detection, generative modelling. From the next chapter on I cross into **unsupervised learning and latent-variable models**, starting with the EM algorithm and Gaussian mixture models.
+
+EM is the standard tool for latent-variable models: when the data-generating process has hidden intermediate variables (cluster identity, topic, state), direct MLE on the marginal likelihood becomes intractable, and EM sidesteps it with an iterative E-step (posterior over latents) and M-step (maximize expected complete-data likelihood). I derive EM end to end on GMM, the cleanest worked example — it is at once a probabilistic version of K-means and the entry point to variational inference, HMM learning, and the entire latent-variable line that follows.
+
 ## References
 
 - Chen, T., & Guestrin, C. (2016). *XGBoost: A Scalable Tree Boosting System*. KDD.

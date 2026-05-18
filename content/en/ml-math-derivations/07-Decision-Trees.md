@@ -488,6 +488,12 @@ On $[0, 1]^2$, how many axis-aligned splits does a binary tree need to approxima
 
 *Solution.* A staircase of $n$ rectangles each of width $1/n$ has step height $1/n$, giving error $\Theta(1/n)$. Setting $1/n \leq \epsilon$ yields $n = \lceil 1/\epsilon \rceil$ rectangles, so $\Theta(1/\epsilon)$ leaves. An oblique tree with the single split $y - x \leq 0$ achieves zero error with one node — illustrating the cost of axis alignment for diagonal structure.
 
+## What's next
+
+Decision trees take "axis-aligned splits + information gain" to its limit on tabular data, but they have two hard weaknesses: a single tree overfits (high variance), and the boundary is forever staircase-shaped — no depth lets it draw a diagonal. Two ways forward: switch to a different inductive bias, or ensemble the tree itself. The next chapter takes the first road — support vector machines.
+
+SVM's core idea is almost the opposite of a tree: it does not slice the space, it finds a max-margin hyperplane; it is not greedy, it solves a quadratic program; it does not use depth for expressivity, it uses the kernel trick to lift data into a higher-dimensional space where the originally non-separable problem becomes linearly separable. I run hard margin → soft margin → dual → kernels → SMO end to end — it is the first time after chapter four that KKT conditions actually do load-bearing work. By the end you should have a concrete sense of when SVM beats trees, and when it doesn't.
+
 ## References
 
 - **Quinlan, J. R.** (1986). Induction of decision trees. *Machine Learning*, 1(1), 81–106.

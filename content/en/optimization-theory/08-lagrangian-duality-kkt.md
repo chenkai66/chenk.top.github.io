@@ -30,6 +30,19 @@ Each result is proved or carefully cited. We close with the SVM example, where t
 
 ---
 
+The single deepest idea in constrained optimization, in my view, is this: **constraints have prices**.
+
+Attach a non-negative multiplier to each inequality, a free multiplier to each equality, and the constrained problem becomes an unconstrained one. Sometimes this new problem is genuinely easier (the SVM dual is the canonical example). Sometimes it just gives you a useful lower bound (LP relaxation of an integer program).
+
+I'll lay out the theory in a "always true → usually true → directly usable" order:
+
+- **Weak duality**: no assumptions needed; the dual optimum is always $\leq$ the primal optimum.
+- **Strong duality**: under Slater's condition (convex + an interior point), the two are equal.
+- **KKT conditions**: those two facts translated into equations and inequalities you can actually verify.
+- **Saddle-point picture**: optimal primal-dual pairs are exactly the saddles of the Lagrangian — the seed of every minimax algorithm later.
+
+We close on SVMs, where the dual variable count drops from $d$ (features) to $n$ (samples). That is the kernel-method magic in its first appearance.
+
 ## What You Will Learn
 
 1. Constructing the Lagrangian and the dual function.

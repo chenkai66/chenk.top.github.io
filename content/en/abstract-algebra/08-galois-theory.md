@@ -341,4 +341,69 @@ Before moving on, three takeaways worth keeping in your back pocket:
 2. *Normal subgroups encode normal sub-extensions.* The terminology was chosen exactly so that the FTGT statement is uniform on both sides. When you see "normal" in either context, the other context's "normal" is what makes it work.
 3. *Solvability is about chains of cyclic steps.* The general philosophy — break a problem into iterated cyclic (or abelian) pieces — recurs throughout algebra: composition series for groups, refinements for representations, derived functors in homological algebra. Galois theory is the original example, and it is the one whose connection to a concrete classical question is most striking.
 
+
+## Deeper Dive: Computations in Galois Theory
+
+Galois theory feels abstract until you compute the Galois group of a specific polynomial and trace the correspondence by hand. Five computations:
+
+**Computation A: Galois group of $x^4 - 2$ over $\mathbb{Q}$.** The four roots are $\sqrt[4]{2}, i\sqrt[4]{2}, -\sqrt[4]{2}, -i\sqrt[4]{2}$. The splitting field is $L = \mathbb{Q}(\sqrt[4]{2}, i)$. Degree: $[\mathbb{Q}(\sqrt[4]{2}) : \mathbb{Q}] = 4$ (irreducible by Eisenstein at $p = 2$), and $[L : \mathbb{Q}(\sqrt[4]{2})] = 2$ (since $\mathbb{Q}(\sqrt[4]{2}) \subset \mathbb{R}$ but $i \notin \mathbb{R}$). So $[L : \mathbb{Q}] = 8$.
+
+The Galois group $G$ has order $8$, acts faithfully on the four roots, hence embeds in $S_4$. Generators: $\sigma : \sqrt[4]{2} \mapsto i\sqrt[4]{2}, i \mapsto i$ (order $4$, a "rotation" of the four roots) and $\tau : \sqrt[4]{2} \mapsto \sqrt[4]{2}, i \mapsto -i$ (order $2$, complex conjugation). Compute $\tau \sigma \tau^{-1}$: applied to $\sqrt[4]{2}$, $\tau$ fixes it, then $\sigma$ sends to $i\sqrt[4]{2}$, then $\tau$ sends $i\sqrt[4]{2}$ to $-i\sqrt[4]{2}$. So $\tau\sigma\tau^{-1}(\sqrt[4]{2}) = -i\sqrt[4]{2} = \sigma^{-1}(\sqrt[4]{2})$. Hence $\tau\sigma\tau = \sigma^{-1}$ (using $\tau^{-1} = \tau$). The relations $\sigma^4 = \tau^2 = e, \tau\sigma\tau = \sigma^{-1}$ are exactly the dihedral relations, so $G \cong D_4$.
+
+A common mistake here: thinking the Galois group acts by "choosing a root." It doesn't — it permutes the roots simultaneously according to the relations. The complex root $i\sqrt[4]{2}$ and its conjugate $-i\sqrt[4]{2}$ are linked: any automorphism either preserves complex conjugation or swaps it. There is no automorphism that, say, fixes $\sqrt[4]{2}$, sends $i\sqrt[4]{2}$ to $-\sqrt[4]{2}$, and does something independent with $-\sqrt[4]{2}$. The four roots are coupled.
+
+**Computation B: Galois group of a cyclotomic extension.** $\mathrm{Gal}(\mathbb{Q}(\zeta_n)/\mathbb{Q}) \cong (\mathbb{Z}/n\mathbb{Z})^*$, acting via $\zeta_n \mapsto \zeta_n^a$ for $a$ coprime to $n$. For $n = 7$: $(\mathbb{Z}/7)^* \cong \mathbb{Z}/6$, cyclic of order $6$. So the Galois group is cyclic, hence abelian. By the Galois correspondence, $\mathbb{Q}(\zeta_7)/\mathbb{Q}$ has exactly one subfield of each degree dividing $6$: degrees $1, 2, 3, 6$, corresponding to subgroups of $\mathbb{Z}/6$ of indices $1, 2, 3, 6$ (i.e., subgroups of orders $6, 3, 2, 1$). The degree-$2$ subfield is $\mathbb{Q}(\sqrt{-7})$ (a deep fact, but the existence comes free from the correspondence).
+
+**Computation C: solvability of $S_4$.** The composition series is $S_4 \supset A_4 \supset V_4 \supset \{e, (1\ 2)(3\ 4)\} \supset \{e\}$, with successive quotients $\mathbb{Z}/2, \mathbb{Z}/3, \mathbb{Z}/2, \mathbb{Z}/2$. All abelian, so $S_4$ is solvable. By the fundamental theorem of Galois theory's solvability criterion, every quartic over $\mathbb{Q}$ is solvable by radicals — there are explicit formulas (Ferrari, 1540) using nested square and cube roots. Cubic: same story, $S_3$ solvable, Cardano's formula.
+
+**Computation D: insolvability of $S_5$.** $S_5$ has only one non-trivial normal subgroup, $A_5$, which is simple non-abelian (the smallest non-abelian simple group). Composition series: $S_5 \supset A_5 \supset \{e\}$, with quotients $\mathbb{Z}/2$ and $A_5$. The second is non-abelian, so $S_5$ is not solvable. Therefore the general quintic is not solvable by radicals: there is no analogue of the cubic or quartic formula. Specific polynomials with Galois group $S_5$ — e.g., $x^5 - x - 1$ — have roots that *cannot* be expressed using rational arithmetic and root extractions alone.
+
+**Computation E: a non-Galois extension.** $\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q}$ has degree $3$. Its Galois group has order $\leq 3$. But $\mathbb{Q}(\sqrt[3]{2}) \subset \mathbb{R}$, so any automorphism fixes $\mathbb{R}$ pointwise on real embeddings, and the only real cube root of $2$ is $\sqrt[3]{2}$ itself — so the only automorphism is the identity. $|\mathrm{Aut}(\mathbb{Q}(\sqrt[3]{2})/\mathbb{Q})| = 1$, not $3$. The extension is not Galois (because it is not normal: $x^3 - 2$ does not split in $\mathbb{Q}(\sqrt[3]{2})$).
+
+To make it Galois, take the splitting field $\mathbb{Q}(\sqrt[3]{2}, \omega)$, degree $6$, Galois group $S_3$ (compute: $S_3$ acts on the three roots, and the action is faithful and transitive). Subgroups of $S_3$: $\{e\}, \langle(1\ 2)\rangle, \langle(1\ 3)\rangle, \langle(2\ 3)\rangle, A_3, S_3$. By Galois correspondence, six intermediate fields. The three subgroups of order $2$ correspond to the three real embeddings of $\mathbb{Q}(\sqrt[3]{2})$ — three different but isomorphic fields, each of degree $3$ over $\mathbb{Q}$.
+
+## Common Pitfalls for Beginners
+
+The most subtle pitfall: thinking of Galois group elements as "choosing a root." They don't. They permute the roots simultaneously, respecting all algebraic relations. Here's where the difference matters: for $x^4 - 2$ over $\mathbb{Q}$, two roots are real ($\pm\sqrt[4]{2}$) and two are complex ($\pm i\sqrt[4]{2}$). Any Galois automorphism either fixes complex conjugation (mapping real roots to real roots) or swaps it (mapping real to complex). It cannot, for instance, map $\sqrt[4]{2}$ to a real root and simultaneously map $i\sqrt[4]{2}$ to a real root — that would force $i$ to map to a real number, impossible. The constraints couple the roots.
+
+A second pitfall: confusing "abelian extension" with "abelian group." A Galois extension $L/F$ is *abelian* if $\mathrm{Gal}(L/F)$ is abelian. Cyclotomic extensions are abelian (Galois group is $(\mathbb{Z}/n)^*$, abelian). A field whose Galois group over $\mathbb{Q}$ is non-abelian (like $\mathbb{Q}(\sqrt[3]{2}, \omega)$, group $S_3$) is non-abelian — even though the field itself is, of course, an abelian additive group. The adjective lives on the *extension*, not the field.
+
+A third pitfall: assuming that all Galois extensions of $\mathbb{Q}$ have abelian Galois group. They don't. $\mathbb{Q}(\sqrt[3]{2}, \omega)/\mathbb{Q}$ is Galois with group $S_3$, non-abelian. The Kronecker–Weber theorem says every *abelian* extension of $\mathbb{Q}$ sits inside a cyclotomic field, but non-abelian extensions are wide open territory and the subject of the Langlands program.
+
+## Where This Shows Up
+
+*The inverse Galois problem.* Given a finite group $G$, is there a Galois extension $L/\mathbb{Q}$ with $\mathrm{Gal}(L/\mathbb{Q}) \cong G$? This is open in general and has been a central question for over a century. Solvable groups are known (Shafarevich), and many specific groups including all symmetric and alternating groups are known. The general case remains stubbornly hard.
+
+*Class field theory.* The abelian extensions of a number field $K$ are classified by the *idele class group* of $K$. Class field theory is, roughly, the "Galois theory of abelian extensions" done globally. The non-abelian generalization is the Langlands program.
+
+*Cryptographic field choices.* Elliptic curve cryptography requires choosing curves over finite fields whose group of points has prime order, and verifying this involves Galois-theoretic computations of Frobenius eigenvalues. The whole infrastructure of TLS / SSL handshakes depends on the algebraic geometry over finite fields, which depends on Galois theory.
+
+## What I Want You to Carry Forward
+
+Three questions for Part 9, on modules:
+
+1. *What is the analogue of vector spaces for rings other than fields?* Modules. Every theorem about vector spaces becomes a question for modules: are there bases? Are submodules direct summands? When is a module finitely generated?
+2. *How does the Galois group structure connect to module structure?* For an extension $L/K$ with Galois group $G$, the field $L$ is a $K[G]$-module. The structure of this module is the input to Hilbert 90 and to many cohomological constructions.
+3. *When does a module have a "nice" decomposition?* Over a PID, finitely generated modules decompose as a direct sum of cyclic modules (the structure theorem). This generalizes both the structure of finite abelian groups (over $\mathbb{Z}$) and the Jordan canonical form (over $k[x]$).
+
+Three reflections to take away from Galois theory:
+
+1. *The Galois correspondence is the prototype of all Galois-style dualities* — between subgroups and intermediate objects, between subobjects and quotients. Topology has covering spaces (Galois group = deck transformation group, intermediate spaces = intermediate covers). Algebraic geometry has étale covers. Number theory has class field theory. The pattern is one of the deepest in mathematics.
+
+2. *Solvability is about chains of cyclic steps.* The general philosophy — break a problem into iterated cyclic (or abelian) pieces — recurs throughout algebra: composition series for groups, refinements for representations, derived functors in homological algebra. Galois theory is the original example, and it is the one whose connection to a concrete classical question — solving polynomials by radicals — is most striking.
+
+3. *Galois theory is the bridge between groups and fields.* Once you have it, you can move freely between group-theoretic and field-theoretic problems. A deep group-theoretic fact (like the simplicity of $A_5$) translates to a deep field-theoretic fact (the unsolvability of the general quintic). This kind of dictionary between very different-looking subjects is the most rewarding feature of abstract algebra, and it is exactly the payoff for the abstraction we have been investing in for eight articles.
+
+If you can compute the Galois group of one or two specific polynomials and identify the corresponding intermediate fields, you have the technique. The next time you see a polynomial of degree $\leq 5$, your reflex should be: factor over $\mathbb{Q}$, find the splitting field, identify the Galois group as a subgroup of $S_n$, and read off the intermediate fields. Three articles ago this would have been impossible. Now it is bread and butter.
+
+
+## Supplementary Examples
+
+**A second Galois computation: the polynomial $x^3 - 2$ over $\mathbb{Q}$.** The three roots are $\sqrt[3]{2}, \omega\sqrt[3]{2}, \omega^2\sqrt[3]{2}$. The splitting field is $K = \mathbb{Q}(\sqrt[3]{2}, \omega)$ of degree $6$. The Galois group has order $6$ and acts faithfully on the three roots, so it embeds in $S_3$. Since the order matches, $\mathrm{Gal}(K/\mathbb{Q}) \cong S_3$, the smallest non-abelian group. The three subgroups of order $2$ in $S_3$ correspond to the three real embeddings of $\mathbb{Q}(\sqrt[3]{2})$ into $K$ — three different intermediate fields, each isomorphic but not equal as subsets of $K$. The unique subgroup of order $3$, $A_3$, corresponds to $\mathbb{Q}(\omega)$, and the index-$2$ subgroup matches a degree-$2$ extension over $\mathbb{Q}$.
+
+**A third example: the discriminant and the Galois group of a cubic.** For an irreducible cubic $f(x) = x^3 + ax + b$ over $\mathbb{Q}$ (any cubic can be brought to this depressed form by translation), the discriminant is $\Delta = -4a^3 - 27b^2$. The Galois group is $A_3$ (cyclic of order $3$) if $\Delta$ is a square in $\mathbb{Q}$, and $S_3$ otherwise. Concrete: $f(x) = x^3 - 3x + 1$ has $\Delta = 108 - 27 = 81 = 9^2$, a square. So Galois group is $A_3$, the splitting field has degree $3$ (not $6$), and the cubic is "totally real" in the sense that all three roots are real and lie in a single cyclic cubic extension. By contrast, $f(x) = x^3 - 2$ has $\Delta = -108$, not a square, and Galois group $S_3$.
+
+**The Galois group of $x^p - x - 1$ over $\mathbb{Q}$ is $S_p$.** This is a striking result: for $p$ prime, this specific polynomial has the maximal possible Galois group. Sketch: the polynomial is irreducible (Artin–Schreier modulo $p$), it has a real root (by intermediate value theorem with $f(-2) < 0 < f(2)$), and the Galois group acts transitively on the $p$ roots, contains a transposition (because complex conjugation gives one when there are exactly two complex roots), and a transitive subgroup of $S_p$ containing a transposition must be all of $S_p$ when $p$ is prime. So we get explicit polynomials with Galois group $S_5, S_7, S_{11}, \ldots$ — and via the Galois correspondence, explicit unsolvable extensions.
+
+**Solvability and the cubic resolvent.** For a quartic polynomial $f(x)$, the Galois group is a subgroup of $S_4$. The four possibilities — $S_4, A_4, D_4, V_4, \mathbb{Z}/4$ — can be distinguished by the cubic resolvent (a polynomial whose roots are certain symmetric functions of the roots of $f$). When the cubic resolvent factors into a product of three linear factors over $\mathbb{Q}$, the Galois group of $f$ is contained in $V_4$. This is the level of detail at which classical Galois theory operates, and modern computer algebra systems have full implementations.
 ---

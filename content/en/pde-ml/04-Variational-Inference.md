@@ -22,6 +22,13 @@ translationKey: "pde-ml-4"
 
 ---
 
+Why do variational inference (a method that looks purely optimization) and Langevin MCMC (a method that looks purely sampling) end up at the same partial differential equation?
+
+That is the heart of this article. In continuous time, they are **two faces of the same Fokker–Planck PDE**: one face is the evolution of a density, the other is the Wasserstein gradient flow of KL divergence. Once you see this, several seemingly unrelated tools — the SVGD particle algorithm, the exponential convergence rate from a log-Sobolev inequality, the training of Bayesian neural networks — all snap onto a single picture.
+
+If you've worked with VI or with Langevin samplers but always felt they lived in different worlds, this article is the bridge.
+
+## The seven dimensions of this article
 ## Seven Dimensions of This Article
 
 1. **Motivation**: why VI and MCMC look different but solve the same PDE.

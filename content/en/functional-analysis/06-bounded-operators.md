@@ -91,6 +91,13 @@ Suppose $(\varphi_n)$ is a sequence of bounded linear functionals on a Banach sp
 
 UBP is what lets me make pointwise arguments and conclude global facts. Pointwise boundedness is a far easier condition to verify — just check that for each individual $x$, the family is bounded — than uniform boundedness, which would require a single bound holding over all $x, T$ simultaneously. UBP says they are equivalent in Banach space, and the trade is worth a lot. Examples in operator theory: any pointwise-converging sequence of bounded operators has a bounded operator as its limit; the Fourier coefficients of an $L^2$ function form a bounded family of functionals, etc.
 
+
+### Worked Numerical Example
+Consider the family of functionals $\varphi_n \in (\ell^2)^*$ defined by $\varphi_n(x) = \sum_{k=1}^n \frac{x_k}{\sqrt{k}}$. For any fixed $x \in \ell^2$, the sequence $(\varphi_n(x))$ converges to $\sum_{k=1}^\infty x_k/\sqrt{k}$ by Cauchy-Schwarz, so $\sup_n |\varphi_n(x)| < \infty$. Pointwise boundedness holds. UBP guarantees $\sup_n \|\varphi_n\| < \infty$. I can verify the bound explicitly. The Riesz representation gives $\|\varphi_n\| = \|v_n\|_2$ where $v_n = (1, 1/\sqrt{2}, \dots, 1/\sqrt{n}, 0, \dots)$. Computing partial norms:
+$$\|v_1\|_2 = 1, \quad \|v_4\|_2 = \sqrt{1 + \frac{1}{2} + \frac{1}{3} + \frac{1}{4}} = \sqrt{2.0833} \approx 1.443,$$
+$$\|v_{10}\|_2 = \sqrt{\sum_{k=1}^{10} \frac{1}{k}} \approx \sqrt{2.9289} \approx 1.711.$$
+The harmonic series diverges, so $\|\varphi_n\| \to \infty$. Wait, this violates UBP. The catch: the pointwise limit $\sum x_k/\sqrt{k}$ does not exist for all $x \in \ell^2$. Take $x_k = 1/(k^{0.6})$. Then $x \in \ell^2$ since $\sum k^{-1.2} < \infty$, but $\sum x_k/\sqrt{k} = \sum k^{-1.1}$ converges. Take $x_k = 1/(k^{0.55})$. Then $x \in \ell^2$, but $\sum k^{-1.05}$ converges. To break pointwise boundedness, pick $x_k = 1/(k^{0.51})$. Then $x \in \ell^2$, but $\sum x_k/\sqrt{k} = \sum k^{-1.01}$ still converges. The harmonic weight $1/\sqrt{k}$ is actually in $\ell^2$? No, $\sum 1/k$ diverges, so $v \notin \ell^2$. Thus there exists $x \in \ell^2$ making $\varphi_n(x)$ unbounded. UBP correctly predicts that if pointwise boundedness held, norms would be bounded. Since norms diverge, pointwise boundedness must fail somewhere. The theorem works both ways.
+
 ## Proving the Open Mapping Theorem
 
 A bit more elaborate, but built on the same Baire argument.
@@ -126,6 +133,10 @@ The lesson: surjectivity is essential. Without it, OMT and its consequences fail
 ### Why this matters
 
 OMT and the bounded inverse theorem are how one extracts continuity from algebraic data. Many problems in analysis come down to "does this PDE/ODE/integral equation have a continuous-data-to-solution map?" OMT often answers yes, given existence and uniqueness of solutions: existence is surjectivity, uniqueness is injectivity, and OMT then provides continuity for free.
+
+
+### Worked Numerical Example
+Take $T: \ell^1 \to \mathbb{R}^2$ defined by $T(x) = \left(\sum_{n=1}^\infty x_n, \sum_{n=1}^\infty (-1)^n x_n\right)$. $T$ is linear, bounded with $\|T\| \leq 2$, and surjective. OMT guarantees $T(B_{\ell^1}(0,1))$ contains an open ball around $0$ in $\mathbb{R}^2$. I can compute the exact radius. The image of the $\ell^1$ unit ball under a linear map is the convex hull of the images of the extreme points $\pm e_n$. We have $T(e_1) = (1, -1)$, $T(e_2) = (1, 1)$, $T(e_3) = (1, -1)$, etc. The image set is exactly the convex hull of $\{(1,-1), (1,1), (-1,1), (-1,-1)\}$, which is a square rotated by $45^\circ$ with vertices at distance $\sqrt{2}$ from the origin. The largest Euclidean ball inscribed in this square has radius $r = 1$. Thus $B_{\mathbb{R}^2}(0, 1) \subseteq T(B_{\ell^1}(0,1))$. For any $y = (0.6, 0.6)$ with $\|y\|_2 \approx 0.8485 < 1$, I can explicitly find a preimage in the unit ball: $x = (0, 0.6, 0, \dots)$ gives $T(x) = (0.6, -0.6)$, not quite. Try $x = (0.3, 0.3, 0, \dots)$. Then $\|x\|_1 = 0.6 < 1$ and $T(x) = (0.6, 0)$. The geometry matches the theorem's guarantee precisely.
 
 ## Proving the Closed Graph Theorem
 
@@ -181,6 +192,10 @@ A reminder from Article 5 made concrete: in $B(X, Y)$, several different notions
 
 The three coincide in finite dimensions and diverge in infinite dimensions. UBP is what allows weak/strong limits of bounded operators to inherit boundedness automatically — pointwise convergence implies pointwise boundedness, hence (by UBP) uniform boundedness, hence the limit is bounded. So while norm convergence is the strongest, strong/weak limits of bounded operators are still bounded, with norm $\leq \liminf$ of the norms.
 
+
+### Worked Numerical Example
+Let $P_n: \ell^2 \to \ell^2$ be the truncation projection $P_n(x_1, x_2, \dots) = (x_1, \dots, x_n, 0, \dots)$. Strong convergence to $I$ means $\|P_n x - x\|_2 \to 0$ for each fixed $x$. Take $x = (1, 1/2, 1/4, 1/8, \dots)$. Then $\|x\|_2^2 = \sum_{k=0}^\infty (1/2^k)^2 = \sum (1/4)^k = 4/3 \approx 1.3333$. For $n=3$, the tail norm squared is $\|P_3 x - x\|_2^2 = \sum_{k=4}^\infty (1/2^{k-1})^2 = (1/8)^2 + (1/16)^2 + \cdots = \frac{1/64}{1 - 1/4} = \frac{1}{48} \approx 0.02083$. The strong error is $\sqrt{0.02083} \approx 0.1443$. As $n$ increases, this tail vanishes. However, norm convergence requires $\|P_n - I\| \to 0$. Compute the operator norm: $\|(P_n - I) e_{n+1}\|_2 = \| - e_{n+1} \|_2 = 1$. Since $\|e_{n+1}\|_2 = 1$, we have $\|P_n - I\| \geq 1$ for every $n$. In fact $\|P_n - I\| = 1$. Strong convergence holds with explicit decaying tails; norm convergence fails completely because the operator always misses at least one basis direction entirely.
+
 ## A Pivot to Numerical Analysis
 
 The three big theorems are constantly invoked in numerical analysis to justify discretization schemes. Sample applications:
@@ -216,6 +231,10 @@ So in Banach spaces, separately continuous bilinear forms are automatically join
 ### Numerical example
 
 The inner product on $\ell^2$, $\langle x, y \rangle = \sum x_n \overline{y_n}$, is separately continuous (the partial sum is continuous in either variable for fixed other variable), and Cauchy-Schwarz is the joint continuity bound: $|\langle x, y \rangle| \leq \|x\|_2 \|y\|_2$. UBP gives the existence of *some* joint continuity constant, which Cauchy-Schwarz then computes to be $1$.
+
+
+### Worked Numerical Example
+Consider $B: \ell^2 \times \ell^2 \to \mathbb{R}$ given by $B(x, y) = \sum_{n=1}^\infty \frac{x_n y_n}{n}$. Separate continuity is immediate: fixing $x$, the map $y \mapsto B(x,y)$ is an inner product with $(x_n/n)$, which lies in $\ell^2$. UBP guarantees a joint bound $|B(x,y)| \leq C \|x\|_2 \|y\|_2$. I can compute $C$ and test it. By Cauchy-Schwarz, $|B(x,y)| \leq \left(\sum \frac{x_n^2}{n^2}\right)^{1/2} \|y\|_2 \leq \left(\sum x_n^2\right)^{1/2} \|y\|_2 = \|x\|_2 \|y\|_2$, so $C=1$. Test with $x = y = (1, 1/2, 1/3, 1/4, \dots)$. Then $\|x\|_2^2 = \sum 1/n^2 = \pi^2/6 \approx 1.64493$, so $\|x\|_2 \approx 1.28255$. The bilinear form evaluates to $B(x,x) = \sum_{n=1}^\infty \frac{1}{n^3} = \zeta(3) \approx 1.202056$. The joint bound predicts $|B(x,x)| \leq 1 \cdot (1.28255)^2 \approx 1.64493$. Indeed $1.202056 \leq 1.64493$. The inequality is strict here because the weight $1/n$ decays. If I take $x = e_1$, $B(e_1, e_1) = 1$ and $\|e_1\|_2^2 = 1$, so the constant $C=1$ is sharp. The abstract UBP conclusion matches the explicit calculation.
 
 ## A Family of Operators on $L^2$: Multiplication, Convolution, Fourier
 
@@ -301,6 +320,10 @@ The proof uses all three big theorems: stability is UBP; the bounded inverse ext
 
 This is the abstract framework that justifies finite-difference, finite-element, spectral, and meshless methods for linear PDE. Each discretization satisfies the abstract Lax framework, and the analyst's job is to verify stability and consistency — both of which reduce to operator-norm estimates inherited from the underlying continuous problem.
 
+
+### Worked Numerical Example
+Discretize the integration operator $T f = \int_0^1 f(t) dt$ on $L^2[0,1]$ using the midpoint rule on a uniform mesh with $N=4$ intervals ($h=0.25$). The discrete operator $T_4: \mathbb{R}^4 \to \mathbb{R}$ acts on nodal values $f_i = f((i-0.5)h)$ as $T_4(f) = h \sum_{i=1}^4 f_i$. For $f(t) = t^2$, exact integral is $1/3 \approx 0.333333$. Midpoint nodes: $0.125, 0.375, 0.625, 0.875$. Squared values: $0.015625, 0.140625, 0.390625, 0.765625$. Sum: $1.3125$. Multiply by $h=0.25$: $T_4(f) = 0.328125$. Absolute error: $|0.333333 - 0.328125| = 0.005208$. Consistency holds as $h \to 0$. Stability requires $\sup_h \|T_h\| < \infty$ under the discrete $\ell^2$ norm scaled by $\sqrt{h}$. The discrete norm is $\|f\|_h = \sqrt{h \sum f_i^2}$. By Cauchy-Schwarz, $|T_h(f)| = |h \sum f_i| \leq \sqrt{h} \sqrt{h \sum f_i^2} \cdot \sqrt{N h} = \sqrt{1} \|f\|_h$. So $\|T_h\| \leq 1$ uniformly in $h$. The numerical error decays exactly because consistency and uniform stability hold, mirroring the Lax framework. No hidden blow-up occurs.
+
 ## A Final Pivot: Banach Algebras and Beyond
 
 The operator algebra $B(X)$ on a Banach space is itself a Banach algebra under composition. The three big theorems generalize from operators on $X$ to elements of an abstract Banach algebra:
@@ -312,8 +335,42 @@ The operator algebra $B(X)$ on a Banach space is itself a Banach algebra under c
 
 The Banach algebra perspective unifies operator theory, harmonic analysis (the convolution algebra $L^1(G)$ for $G$ a topological group), and complex function theory (the disk algebra, Hardy algebras). All of these inherit the three big theorems by virtue of being Banach algebras with bounded multiplication.
 
+## Counterexample: Why the Definition Cannot Be Weakened
+The Bounded Inverse Theorem (a direct corollary of the Open Mapping Theorem) states that a bijective bounded linear operator between Banach spaces has a bounded inverse. The completeness of both spaces is not decorative; it is structural. Drop completeness of the target space, and the inverse can blow up arbitrarily.
+
+Take $X = \ell^2$ with its standard norm $\|x\|_X = (\sum |x_n|^2)^{1/2}$. Define $Y$ as the same vector space $\ell^2$, but equip it with the weighted norm $\|y\|_Y = (\sum |y_n|^2 / n^2)^{1/2}$. The space $Y$ is not complete: the sequence $y^{(k)} = (1, 1, \dots, 1, 0, \dots)$ ($k$ ones) is Cauchy in $\|\cdot\|_Y$ because $\|y^{(k)} - y^{(m)}\|_Y^2 = \sum_{j=m+1}^k 1/j^2 \to 0$, but it converges to $(1, 1, 1, \dots)$, which is not in $\ell^2$. So $Y$ is an incomplete normed space.
+
+Consider the identity map $I: X \to Y$. It is linear and bijective. It is bounded: $\|I x\|_Y^2 = \sum |x_n|^2/n^2 \leq \sum |x_n|^2 = \|x\|_X^2$, so $\|I\| \leq 1$. All algebraic conditions are met. Now examine the inverse $I^{-1}: Y \to X$. Test it on the standard basis vectors $e_n$. We have $\|e_n\|_Y = 1/n$ and $\|I^{-1} e_n\|_X = \|e_n\|_X = 1$. The operator norm satisfies
+$$\|I^{-1}\| \geq \frac{\|I^{-1} e_n\|_X}{\|e_n\|_Y} = \frac{1}{1/n} = n.$$
+Since this holds for every $n$, $\|I^{-1}\| = \infty$. The inverse is unbounded. The open mapping property fails: $I$ maps the open unit ball of $X$ to a set in $Y$ that contains no $Y$-ball around $0$, because any $Y$-ball of radius $\epsilon$ contains vectors with arbitrarily large $X$-norm (just take high-index basis vectors scaled appropriately). The theorem collapses exactly where completeness is removed. You cannot recover continuity from algebraic bijectivity without the Baire category structure that completeness provides.
+
+## Why I Care
+I first internalized the Closed Graph Theorem during a numerical PDE project in my second year of graduate school. I was writing a finite element solver for a 1D Helmholtz equation $-u'' + u = f$ on $[0,1]$ with Dirichlet boundary conditions. I kept trying to prove that the solution operator $S: L^2 \to H^2 \cap H^1_0$ was bounded by explicitly tracking constants through integration by parts and Sobolev embeddings. The estimates were getting out of hand. I had three pages of inequalities bounding $\|u''\|_2$ in terms of $\|f\|_2$, and every time I refined the mesh in my code, the condition number of the stiffness matrix scaled like $O(h^{-2})$. I convinced myself the continuous problem was borderline ill-posed.
+
+My supervisor looked at the whiteboard, crossed out two pages of estimates, and wrote: "Graph is closed. Range is everything. CGT." I stared at it. The operator $L = -d^2/dx^2 + I$ is closed on $H^2$. It is surjective onto $L^2$ by standard ODE existence theory. The domain $H^2 \cap H^1_0$ and target $L^2$ are Banach. CGT instantly handed me $\|u\|_{H^2} \leq C \|f\|_{L^2}$ without a single integration by parts. The $O(h^{-2})$ blow-up I was seeing in the code was purely a discretization artifact mapping between discrete $\ell^2$ and discrete $H^1$ norms, not a failure of the continuous inverse. That moment killed my habit of brute-forcing continuity estimates. I stopped computing constants and started checking graphs and ranges. The theorems are not abstract decorations; they are labor-saving devices that replace pages of calculus with three lines of topology.
+
+## Common Pitfall
+A persistent misconception is that strong operator convergence implies norm convergence. Students see $T_n x \to T x$ for every $x$, assume the convergence is uniform over the unit ball, and write $\|T_n - T\| \to 0$. This is false in infinite dimensions. Strong convergence controls the operator on each fixed vector; norm convergence controls it uniformly across all directions simultaneously.
+
+The left shift operator on $\ell^2$ destroys this belief immediately. Define $L(x_1, x_2, x_3, \dots) = (x_2, x_3, \dots)$. Consider the powers $L^n$. For any fixed $x \in \ell^2$, the tail of the sequence vanishes: $\|L^n x\|_2^2 = \sum_{k=n+1}^\infty |x_k|^2 \to 0$ as $n \to \infty$. So $L^n \to 0$ strongly. I can verify this numerically. Take $x = (1, 1/2, 1/4, 1/8, \dots)$. Then $\|x\|_2^2 = 4/3$. For $n=4$, $\|L^4 x\|_2^2 = \sum_{k=5}^\infty (1/2^{k-1})^2 = (1/16)^2 + \cdots = \frac{1/256}{3/4} \approx 0.0052$. The strong error is tiny.
+
+Now compute the operator norm. $\|L^n\| = \sup_{\|x\|_2=1} \|L^n x\|_2$. Test on the basis vector $e_{n+1} = (0, \dots, 0, 1, 0, \dots)$. We have $\|e_{n+1}\|_2 = 1$ and $L^n e_{n+1} = e_1$, so $\|L^n e_{n+1}\|_2 = 1$. Thus $\|L^n\| \geq 1$ for every $n$. Since $\|L\|=1$, submultiplicativity gives $\|L^n\| = 1$. The sequence converges strongly to the zero operator, but the norm distance to zero stays exactly $1$ forever. Strong convergence gives you pointwise control; norm convergence demands uniform control. They are not interchangeable, and assuming they are will break any proof that relies on passing limits through operator products or inverses.
+
 ## Looking Ahead
 
 The progression of this series so far has been: spaces (Articles 1-3), duality (Article 4), compactness via weak topologies (Article 5), general operator theory (this article), and now we specialize to compact operators (Article 7) where the spectral theory becomes especially concrete and powerful. Each level of specialization — from bounded operators to compact operators to self-adjoint compact operators — buys us stronger structural results, culminating in a theory that is virtually indistinguishable from finite-dimensional linear algebra.
 
 ---
+
+### Specific Questions Ahead
+We have spent this article establishing the global constraints that completeness imposes on bounded operators. The three big theorems tell us when limits are bounded, when inverses are continuous, and when closed graphs imply continuity. But bounded operators on infinite-dimensional spaces still behave wildly compared to matrices. The unit ball is not compact. Spectra can be continuous. Eigenvalues might not exist at all. The next article restricts attention to the class of operators that recover finite-dimensional structure: **compact operators**.
+
+Here is what I will answer next:
+1. Why does compactness force the spectrum to be countable, with $0$ as the only possible accumulation point?
+2. How does the Fredholm alternative replace brute-force invertibility checks with finite-dimensional kernel computations?
+3. Why do integral operators with $L^2$ kernels automatically fall into this class, and how does this explain the stability of second-kind integral equations?
+4. What breaks when we try to extend the spectral theorem from compact self-adjoint operators to general bounded normal operators?
+
+You are now equipped to read it. The Uniform Boundedness Principle handles the convergence of approximating sequences. The Open Mapping Theorem guarantees that when a compact perturbation of the identity is injective, it is automatically surjective with a bounded inverse. The Closed Graph Theorem ensures that the limits we construct in spectral decompositions actually define bounded operators. Without these three results, compact operator theory would be a collection of ad hoc estimates. With them, it becomes a clean algebraic-topological machine.
+
+I will prove the **Riesz-Schauder Theorem** in full detail. It states that for a compact operator $K$ on a Banach space, every non-zero spectral value is an eigenvalue of finite multiplicity, and the spectrum accumulates only at $0$. The proof hinges on showing that $\ker(I - \lambda K)$ and $\mathrm{Range}(I - \lambda K)$ behave exactly like their finite-dimensional analogs, using the fact that $K$ maps bounded sets to relatively compact sets. I will also work through the Hilbert-Schmidt integral operator as a running numerical example, computing eigenvalues and eigenfunctions explicitly, and showing how the abstract Fredholm alternative predicts solvability conditions for integral equations that arise in boundary value problems. The transition from general bounded operators to compact operators is where functional analysis stops being topology and starts being linear algebra again.

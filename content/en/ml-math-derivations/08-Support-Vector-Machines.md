@@ -379,6 +379,12 @@ $\eta$ and the kernel matrix involve $\lVert x \rVert$. A feature with large uni
 
 ---
 
+## What's next
+
+By now I have walked both mainstream supervised lines: discriminative ones (linear regression, logistic regression, SVM, trees). They all model $P(y\mid x)$ or a decision function $f(x)$ directly. The next chapter switches sides — to generative models, starting with the simplest one, naive Bayes.
+
+Generative models first specify $P(x\mid y)$ and $P(y)$, then invert via Bayes' rule to get $P(y\mid x)$. Naive Bayes makes a feature-conditional-independence assumption that looks absurd, yet it routinely beats logistic regression on text classification — one of the most counterintuitive results in ML. Ng and Jordan's 2001 paper supplies the answer: a model with worse asymptotic error can still win on small samples because it has a faster rate. Understanding that phenomenon is the starting point for every "discriminative vs. generative" trade-off later.
+
 ## References
 
 - Cortes, C., & Vapnik, V. (1995). Support-vector networks. *Machine Learning*, 20(3), 273-297.

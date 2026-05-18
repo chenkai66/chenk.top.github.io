@@ -27,6 +27,16 @@ The unifying tool is a **Lyapunov potential** — a non-negative quantity that t
 
 ---
 
+We met Nesterov acceleration last article: it cuts the per-condition-number cost of gradient descent from $\kappa$ down to $\sqrt{\kappa}$. After reading that I was left with three sharp questions of my own:
+
+- **Why $\sqrt{\kappa}$, and not faster?** Where does that number come from?
+- **Is Nesterov the only way?** Polyak's Heavy-Ball method looks completely different but hits the same rate.
+- **Can we wrap any slow solver and make it accelerated?** The Catalyst framework says yes, at the cost of an inner regularized subproblem.
+
+This article answers those three. The unifying tool is a **Lyapunov potential** — a non-negative quantity that the algorithm forces down at every step. Both Nesterov and Heavy-Ball admit such a Lyapunov story, and the lower bound is essentially the statement that no Lyapunov potential can decay faster.
+
+If you have only seen Nesterov as a formula to memorize, this article will give you the underlying "energy is decreasing" picture that makes the formula inevitable.
+
 ## What You Will Learn
 
 1. The Nemirovski--Yudin lower bound: $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ iterations are necessary for any first-order method on the worst-case smooth strongly convex problem.

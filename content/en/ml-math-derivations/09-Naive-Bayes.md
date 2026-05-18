@@ -454,6 +454,12 @@ When (i) features are heavily correlated *and* the correlation differs across cl
 
 ---
 
+## What's next
+
+Naive Bayes' "given the class, features are independent" assumption is almost cheating, yet often survives in practice. The trouble shows up when features really are correlated — symptoms in medical diagnosis, item co-occurrence in recommenders — at which point the assumption visibly cracks. The next chapter is the natural extension: relax the independence, but not all at once.
+
+Semi-naive Bayes (TAN, AODE) lets each feature depend on at most one other feature — expressivity goes up while estimation stays tractable. One step further is the full Bayesian network: a directed acyclic graph that explicitly encodes the conditional-independence structure, factoring the joint into local conditionals. I climb the ladder NB → TAN → AODE → general Bayesian network and ask the same question at every rung: how much extra expressivity did I buy, and how much inference / learning cost did I pay?
+
 ## References
 
 - Domingos, P., & Pazzani, M. (1997). On the optimality of the simple Bayesian classifier under zero-one loss. *Machine Learning*, 29(2-3), 103-130.

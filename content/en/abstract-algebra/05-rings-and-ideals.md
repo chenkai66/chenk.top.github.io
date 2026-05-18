@@ -369,4 +369,60 @@ A second summary, this time historical. The conceptual leap "from numbers to ide
 
 A second reflection: ideals are simultaneously the right substitute for normal subgroups (when modding out) and the right substitute for elements (when factoring). The "factor uniquely as primes" property of $\mathbb{Z}$ generalizes to many rings only at the level of ideals, not elements. This is why algebraic number theorists work with ideals more than with numbers: they are the units of structural arithmetic.
 
+
+## Deeper Dive: Computations in Rings and Ideals
+
+The fastest way to understand ideals is to compute several quotient rings and see which structures survive.
+
+**Computation A: $\mathbb{Z}/n\mathbb{Z}$ as a window into ideals.** The ideals of $\mathbb{Z}$ are exactly the principal ideals $n\mathbb{Z}$ for $n \geq 0$. The quotient $\mathbb{Z}/n\mathbb{Z}$ is a ring of order $n$. Whether it is a field, a domain, or has zero divisors depends entirely on $n$:
+
+- $n = 0$: $\mathbb{Z}/0\mathbb{Z} = \mathbb{Z}$, a domain but not a field.
+- $n = 1$: trivial ring (the zero ring), where $0 = 1$. Mathematicians sometimes argue about whether this counts as a ring; the convention here is yes.
+- $n = p$ prime: $\mathbb{Z}/p\mathbb{Z} = \mathbb{F}_p$, a field of $p$ elements.
+- $n$ composite, say $n = ab$ with $1 < a, b < n$: $\mathbb{Z}/n\mathbb{Z}$ has zero divisors, namely $\bar a \cdot \bar b = \bar n = \bar 0$ but $\bar a, \bar b \neq \bar 0$.
+
+Concrete: in $\mathbb{Z}/12\mathbb{Z}$, $4 \cdot 3 = 12 = 0$. Both $4$ and $3$ are non-zero zero divisors. The units are exactly the residues coprime to $12$: $\{1, 5, 7, 11\}$, forming the group $(\mathbb{Z}/12)^* \cong \mathbb{Z}/2 \times \mathbb{Z}/2$.
+
+**Computation B: ideals of $\mathbb{Z}[i]$, the Gaussian integers.** This is a Euclidean domain (norm $N(a+bi) = a^2 + b^2$), hence a PID, hence every ideal is principal. The prime ideals are: $(0)$; $(1+i)$ above the rational prime $2$; $(p)$ for $p \equiv 3 \pmod 4$ rational prime; and pairs $(\pi), (\bar\pi)$ for $p \equiv 1 \pmod 4$, where $p = \pi \bar\pi$ in $\mathbb{Z}[i]$. Concrete factorization: $5 = (2+i)(2-i)$, both primes; $13 = (3+2i)(3-2i)$, both primes. But $7$ is itself prime in $\mathbb{Z}[i]$, since $7 \equiv 3 \pmod 4$. Quotient $\mathbb{Z}[i]/(7)$ is a field of $49$ elements ($\mathbb{F}_{49}$).
+
+**Computation C: a non-principal ideal.** In $R = \mathbb{Z}[\sqrt{-5}]$, the ideal $I = (2, 1 + \sqrt{-5})$ is *not* principal. To see this, consider the norm $N(a + b\sqrt{-5}) = a^2 + 5b^2$. Suppose $I = (\alpha)$ for some $\alpha = a + b\sqrt{-5}$. Then $\alpha \mid 2$ and $\alpha \mid 1 + \sqrt{-5}$. From $N(\alpha) \mid N(2) = 4$ and $N(\alpha) \mid N(1+\sqrt{-5}) = 6$, we get $N(\alpha) \mid \gcd(4, 6) = 2$. But $a^2 + 5b^2 = 2$ has no integer solutions ($b = 0 \Rightarrow a^2 = 2$ impossible; $b \neq 0 \Rightarrow 5b^2 \geq 5$). So no $\alpha$ exists, and $I$ is not principal. The failure of unique factorization in $\mathbb{Z}[\sqrt{-5}]$ — witnessed by $6 = 2 \cdot 3 = (1+\sqrt{-5})(1-\sqrt{-5})$ — is exactly captured by the existence of non-principal ideals like $I$. At the level of *ideals*, factorization is unique (Dedekind), and this is the genesis of algebraic number theory.
+
+**Computation D: prime versus maximal in $\mathbb{Z}[x]$.** Take $R = \mathbb{Z}[x]$. Consider the ideal $(x)$: $R/(x) \cong \mathbb{Z}$, which is a domain but not a field. So $(x)$ is prime but not maximal. The ideal $(2, x)$: $R/(2, x) \cong \mathbb{Z}/2\mathbb{Z}$, a field. So $(2, x)$ is maximal (and prime). The ideal $(2)$: $R/(2) \cong \mathbb{F}_2[x]$, a domain but not a field. Prime, not maximal. The ideal $(x^2 + 1)$: $R/(x^2+1) \cong \mathbb{Z}[i]$, a domain. Prime, not maximal. The ideal $(p, f(x))$ for $p$ prime and $f$ irreducible mod $p$: $R/(p, f) \cong \mathbb{F}_p[x]/(\bar f)$, a finite field. Prime *and* maximal.
+
+The pattern: in a PID, prime ideals (except $(0)$) are exactly maximal. In a Dedekind domain, the same. But in two or more variables, primes and maximals genuinely separate, and the difference is the algebraic geometry of $\mathrm{Spec}\, R$ — closed points are maximal ideals, generic points are non-maximal primes.
+
+**Computation E: the Chinese Remainder Theorem in practice.** Compute $\mathbb{Z}/35\mathbb{Z}$. Since $\gcd(5, 7) = 1$, the ideals $(5)$ and $(7)$ are coprime in $\mathbb{Z}$. CRT gives $\mathbb{Z}/35\mathbb{Z} \cong \mathbb{Z}/5\mathbb{Z} \times \mathbb{Z}/7\mathbb{Z}$. The isomorphism takes $n \pmod{35}$ to $(n \bmod 5, n \bmod 7)$. To go back: if $n \equiv 2 \pmod 5$ and $n \equiv 4 \pmod 7$, find $n$ modulo $35$. By inspection or extended Euclidean: $n = 32$ (since $32 = 6 \cdot 5 + 2$ and $32 = 4 \cdot 7 + 4$). The general formula uses Bezout coefficients $1 = 3 \cdot 5 - 2 \cdot 7$, giving $n \equiv 4 \cdot 3 \cdot 5 + 2 \cdot (-2) \cdot 7 \equiv 60 - 28 \equiv 32 \pmod{35}$.
+
+## Why "Ideal" Is the Right Generalization
+
+A subring of a ring is *not* what you want for forming quotients — the analogue of "subgroup is not always normal." The condition that absorbs both left and right multiplication is what makes the quotient $R/I$ inherit ring structure. Specifically: $(a + I)(b + I) := ab + I$ is well-defined iff for $a' \in a + I$ and $b' \in b + I$, the difference $a'b' - ab \in I$. Compute: $a' = a + i_1$, $b' = b + i_2$, so $a'b' - ab = ai_2 + i_1 b + i_1 i_2$. For this to lie in $I$ for all $i_1, i_2$, we need $aI \subseteq I$ (left-absorption) *and* $Ib \subseteq I$ (right-absorption). The two-sided ideal definition is exactly tuned to make this work. In a non-commutative ring, left ideals and right ideals are different objects, and only two-sided ideals admit well-defined quotients.
+
+A counterexample makes this concrete. Take the ring $M_2(\mathbb{R})$ of $2 \times 2$ real matrices. The set $L = \left\{ \begin{pmatrix} a & 0 \\ b & 0 \end{pmatrix} \right\}$ is a *left* ideal: matrix multiplication on the left preserves it. But it is not a right ideal. Multiplying on the right by $\begin{pmatrix} 0 & 0 \\ 0 & 1 \end{pmatrix}$ gives the matrix $\begin{pmatrix} 0 & 0 \\ 0 & 0 \end{pmatrix}$ trivially, but right-multiplying $\begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}$ by $\begin{pmatrix} 0 & 1 \\ 0 & 0 \end{pmatrix}$ gives $\begin{pmatrix} 0 & 1 \\ 0 & 0 \end{pmatrix}$, which is not in $L$. So you cannot quotient by $L$ as a ring. The only two-sided ideals of $M_2(\mathbb{R})$ are $\{0\}$ and the full ring (this is why $M_2(\mathbb{R})$ is "simple" as a ring — Wedderburn).
+
+## Common Pitfalls for Beginners
+
+The first pitfall: thinking that "non-zero implies invertible." In a ring with zero divisors like $\mathbb{Z}/12\mathbb{Z}$, most non-zero elements have *no* inverse. The units are special. The phrase "field" exactly means "non-zero implies invertible," and rings without that property are the rule, not the exception.
+
+The second pitfall: assuming every ideal is principal. The example $\mathbb{Z}[\sqrt{-5}]$ shows non-principal ideals exist in concrete number rings. Even in "nice" rings like $k[x, y]$ with $k$ a field, the ideal $(x, y)$ is not principal: its generators have no common divisor other than units.
+
+The third pitfall: confusing "prime element" with "irreducible element." In a UFD they coincide. In a general domain, every prime is irreducible but not every irreducible is prime. In $\mathbb{Z}[\sqrt{-5}]$, the element $2$ is irreducible but not prime (since $2 \mid (1+\sqrt{-5})(1-\sqrt{-5}) = 6$ but $2 \nmid 1 \pm \sqrt{-5}$). The distinction is exactly why unique factorization fails there.
+
+## Where This Shows Up
+
+*Algebraic number theory.* The ring of integers $\mathcal{O}_K$ of a number field $K$ is a Dedekind domain: every non-zero ideal factors uniquely as a product of prime ideals, even when unique factorization of *elements* fails. Class field theory measures the failure of element-level UFD-ness via the *ideal class group* — finite for any number field, trivial precisely when $\mathcal{O}_K$ is a PID. For $\mathbb{Q}(\sqrt{-5})$ the class group has order $2$. For $\mathbb{Q}(\sqrt{-1})$ it is trivial.
+
+*Algebraic geometry.* For a commutative ring $R$, $\mathrm{Spec}\, R$ is the set of prime ideals with the Zariski topology. This dictionary turns ring-theoretic statements into geometric ones: maximal ideals $\leftrightarrow$ closed points, prime ideals $\leftrightarrow$ irreducible closed subsets, ideal containment $\leftrightarrow$ subset containment of vanishing loci. Every theorem in commutative algebra has a geometric interpretation, and vice versa.
+
+*Coding theory.* Cyclic codes are ideals in $\mathbb{F}_q[x]/(x^n - 1)$, and their generator polynomials are exactly the elements that generate these ideals as principal ideals. The Reed–Solomon and BCH families of error-correcting codes are constructed and analysed using exactly this ring-ideal correspondence.
+
+## What I Want You to Carry Forward
+
+Three questions for Part 6, on polynomial rings:
+
+1. *When is a polynomial ring over a field a UFD?* Always, by Gauss's lemma. When is a polynomial ring over a UFD a UFD? Also always. This is the inductive engine of the structure of $\mathbb{Z}[x_1, \ldots, x_n]$.
+2. *How do we test whether a polynomial is irreducible?* Eisenstein, reduction mod $p$, the rational root theorem, and degree-based arguments form the standard toolkit.
+3. *What does the quotient $\mathbb{Z}[x] / (f(x))$ look like, geometrically?* For $f$ irreducible over $\mathbb{Q}$, it is the ring of integers in some number field (modulo subtleties about $\mathcal{O}_K$ being maximal); the prime ideals capture the splitting behaviour of primes in the extension.
+
+If the ideal computations above feel routine, you are ready. If not, work through the lattice of ideals of $\mathbb{Z}[x]$ for one or two specific $f$'s — say $f(x) = x^2 + 1$ — and convince yourself why $(p, x^2 + 1)$ behaves differently for $p = 2$, $p = 3$, $p = 5$. That single exercise is half of algebraic number theory in miniature.
+
 ---

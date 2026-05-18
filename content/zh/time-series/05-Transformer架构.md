@@ -15,6 +15,13 @@ series_order: 5
 series_total: 8
 translationKey: "time-series-5"
 ---
+
+2017 年那篇 *Attention Is All You Need* 把上一章的注意力机制推到了极致：**根本不要 RNN 了**。Transformer 完全用注意力堆叠出一个序列模型，没有一处递归、没有一个隐藏状态在时间上传播。最初它是为机器翻译设计的，但很快被搬到了所有序列任务上——包括时间序列预测。
+
+直接把 NLP 里的 Transformer 套用到时序数据，会立刻撞上两个新问题。第一个是**位置信息**：注意力是"集合操作"——把同样的序列重排顺序，注意力的输出完全一样。但对时间序列而言，先后顺序就是一切，温度先升后降和先降后升是完全不同的信号。NLP 里用正弦位置编码解决，时序里要不要用同样的方案？还是用可学习编码？还是干脆把"星期几""第几小时"这类时间特征直接拼上去？
+
+第二个是**复杂度**。注意力的 O(n²) 在 NLP 里影响有限——一句话顶多几百个 token——但在时序里，一个月的小时数据就 720 步，三个月 2160 步，O(n²) 直接吃光显存。围绕这一点，研究界发展出了四条路线：稀疏注意力（只让一部分 token 对齐）、线性注意力（用核方法降复杂度）、分块（patching，把多个时间步合并成一个 token）、以及只用解码器（decoder-only，类似 GPT）。这一章我会把每条路线和它的代表模型——Autoformer、FEDformer、Informer、PatchTST——一次讲清楚，并配一份可以直接跑的 PyTorch 参考实现。
+
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.png)
 
 ---
@@ -337,3 +344,12 @@ $$
 \text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.
 $$
 本文所有内容，本质上都是在此公式之上的工程实践。
+
+
+## 下一步
+
+Transformer 把注意力机制推到了极致——完全抛弃递归，纯堆叠 attention 和前馈层。它在 NLP 里横扫一切之后，时序圈花了几年时间把它"本地化"：位置编码方案、O(n²) 复杂度优化、各种针对季节性/趋势的归纳偏置（inductive bias），围绕这些方向涌现出 Autoformer、FEDformer、PatchTST 等一系列变体。
+
+但有一个特别尖锐的问题，这些通用变体都没有彻底解决：**长序列预测**。当你需要从过去 720 步预测未来 168 步——这在能源、气象、IoT 里非常常见——朴素 Transformer 的 O(n²) 不仅训练慢，部署成本也高得离谱。下一篇 [Informer](/zh/time-series/08-informer长序列预测) 是 AAAI 2021 最佳论文，它用三个独立的设计联合解决这个问题：ProbSparse 注意力（O(n²) → O(n log n)）、编码器蒸馏（每层把序列减半）、生成式解码器��一次前向预测整个 horizon，不再自回归）。组合下来，长 horizon 任务上比朴素 Transformer 快 6-10 倍、精度还更好。
+
+不过在跳到 Informer 之前，下一章还有两个值得掌握的中间架构：[TCN](/zh/time-series/06-时序卷积网络tcn) 用因果空洞卷积换并行训练，以及 [N-BEATS](/zh/time-series/07-n-beats深度架构) 用纯 MLP 做可解释分解。这两个模型证明了一件事：在时序领域，"非 attention 的深度架构"在某些场景下反而更好用、更便宜、更可解释。

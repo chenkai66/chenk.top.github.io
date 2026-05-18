@@ -15,6 +15,13 @@ series_order: 4
 series_total: 8
 translationKey: "time-series-4"
 ---
+
+RNNs and LSTMs handled "too many time steps" but left a subtler limitation in place: information has to travel **step by step**. For step 100 to see what happened at step 1, the signal has to ride the hidden state through 99 intermediate stops — and each stop attenuates the signal a little and squashes it through a nonlinearity. Even with LSTM's "highway" cell state, it's still a single lane in a single direction.
+
+Attention's core idea is almost embarrassingly simple: **why not let any two time steps talk directly?** Instead of step 100 hearing about step 1 secondhand through 99 intermediaries, compute a direct "how much should step 100 care about step 1?" weight, then read step 1's content with that weight. The distance between any two points collapses from 99 steps to 1 — and gradients no longer need to crawl through the whole sequence to update distant weights.
+
+It sounds like brute force (every pair of steps now carries a relationship, blowing complexity from O(n) to O(n²)) but the payoff is enormous: long-range dependencies become trivial, training parallelizes (RNNs are forced to run step-by-step), and the attention weights themselves become a kind of self-explanation that you can visualize. This chapter starts where the field actually started — bolting attention onto an LSTM encoder/decoder — and works up to the full Query/Key/Value formulation, which is the doorway into the next chapter on Transformers. The closing case study uses attention on a stock-price forecaster and shows the weight heatmap so you can see exactly which days the model is reading.
+
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/illustration_1.png)
 
 
@@ -334,6 +341,15 @@ The price is $O(n^2)$ memory and the need to inject position explicitly. For mos
 > **Mnemonic** — *Q asks, K answers, V carries; scale by $\sqrt{d_k}$, softmax to weights, multiply V to read; many heads, many views.*
 
 ---
+
+
+## What's next
+
+Attention does one simple thing — let any two time steps compute a direct relationship — and the consequences are out of proportion to the simplicity. The "long-range dependencies must be hand-held by gates" problem the RNN era struggled with disappears. As bonuses you get parallel training (no more step-by-step recurrence) and free visualization (just plot the attention weights as a heatmap).
+
+This chapter still uses attention gently, as a helper bolted onto LSTM. The next chapter on [Transformers](/en/time-series/transformer/) takes it to the limit: **no RNN at all**, just attention stacks all the way down. That pure-attention approach took over NLP, but porting it to time series introduces two new problems — how to inject ordering (attention is permutation-invariant on its own) and how to deal with O(n²) cost (a month of hourly data is already 720 steps). The next chapter walks through the four families of fixes — sparse, linear, patched, decoder-only — and their flagship models (Autoformer, FEDformer, Informer, PatchTST).
+
+Before you get there, run the attention-heatmap code from this chapter and pick a few moments you already know matter — known events, known periodic peaks — and check that the model puts weight on them. The habit of aligning a model's self-explanation against your own domain knowledge transfers cleanly to every Transformer-style model later.
 
 ## References
 

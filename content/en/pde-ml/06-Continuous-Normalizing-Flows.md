@@ -24,6 +24,14 @@ translationKey: "pde-ml-6"
 
 ---
 
+How do you turn an isotropic Gaussian into a photograph of a cat?
+
+Normalizing flows give the most direct answer: stack a sequence of invertible transformations and let them push the simple distribution into the complex one. This article's continuous version (CNF) takes that idea to the limit — let the step size go to zero and the discrete chain becomes an ODE. Invertibility is automatic, and the change of density is governed by the instantaneous change of variables formula.
+
+When the right-hand side of that ODE is a neural network, the whole thing is called a **Neural ODE**, and a few of its properties are genuinely elegant: memory cost decoupled from the number of integration steps (the adjoint method), continuous-time interpolation, a direct connection to optimal transport.
+
+This article walks Neural ODEs, the adjoint method, continuous normalizing flows (FFJORD), and finally the post-2023 method that has largely replaced them in large-scale generative modeling — Flow Matching. Seven figures clarify the core mechanics.
+
 ## What You Will Learn
 
 Generative modeling reduces to one geometric question: **how do you transform a simple distribution (a Gaussian) into a complex one (faces, molecules, motion)?** Discrete normalizing flows stack invertible blocks, but each block needs a Jacobian determinant at $O(d^3)$ cost. **Neural ODEs** replace discrete depth with a continuous ODE; **Continuous Normalizing Flows (CNF)** then push densities through that ODE using the *instantaneous* change-of-variables formula, dropping density computation to $O(d)$. **Flow Matching** removes the divergence integral altogether and turns training into plain regression on a target velocity field.
@@ -525,6 +533,13 @@ Flow Matching converges $\sim 2.7\times$ faster and produces qualitatively clean
 > *Solution sketch.* Write $\rho_t(\mathbf{z})=\int q(\mathbf{z}_0,\mathbf{z}_1)\,\delta(\mathbf{z}-(1-t)\mathbf{z}_0-t\mathbf{z}_1)\,d\mathbf{z}_0\,d\mathbf{z}_1$. Differentiate $\rho_t$ in $t$ and use the identity $\partial_t\delta=-\nabla\!\cdot[(\mathbf{z}_1-\mathbf{z}_0)\delta]$. Marginalising over $\mathbf{z}_0,\mathbf{z}_1$ given $\mathbf{z}_t$ yields $\partial_t\rho_t+\nabla\!\cdot(\rho_t\,\bar v_t)=0$ with $\bar v_t(\mathbf{z})=\mathbb{E}[\mathbf{z}_1-\mathbf{z}_0\mid\mathbf{z}_t=\mathbf{z}]$.
 
 ---
+
+## What's next
+
+The handful of core ideas in this chapter (PDE residual as loss, operators on function spaces, Wasserstein geometry, symplectic structure, scores, diffusion) recur throughout the rest of the series. If a section stalls you, jot the question down and keep reading — the next chapter usually re-explains it from a different angle.
+
+The fastest sanity check on your own understanding is to run this chapter's equation on a minimal example: a 1-D heat equation, a single pendulum, a 2-D Gaussian mixture. The code is short, but it converts "looks right" into "it's right on my machine."
+
 
 ## References
 

@@ -24,6 +24,10 @@ Your model diverges. You halve the learning rate. Now it trains, but takes forev
 
 ---
 
+Training crashes on the first thousand steps. You halve the learning rate; now the model trains, but agonizingly slowly. Halve it again, and the loss barely moves. Sound familiar? Of every knob on a deep model, **the learning rate is the one most likely to decide whether you converge at all** — and, failing that, whether you converge in days or weeks.
+
+This article walks the learning rate as one continuous story: starting from a one-dimensional parabola (so you see clearly *why* too-large blows up), all the way to the cosine / WSD / Schedule-Free recipes that actually get used in LLM pretraining. The goal is two-fold — give you a reliable intuition (so you can look at a loss curve and guess whether LR is the culprit) and a checklist you can paste straight into a training script.
+
 ## What You Will Learn
 
 - Why "too big explodes, too small stalls" — derived from the simplest possible model
@@ -592,6 +596,13 @@ Reference: [The surprising agreement between convex optimization theory and lear
 If you remember nothing else: **most problems blamed on "the optimizer" are LR-schedule problems, and most LR-schedule problems can be fixed in a single afternoon with an LR range test plus a warmup.**
 
 ---
+
+## What's next
+
+Once the tools from this article feel automatic, the next one builds directly on them: concepts introduced here will be reused as black boxes in later proofs. If a term still feels slippery, come back to the corresponding H2 section above — these ideas recur throughout the series, and you don't need to grasp them in one pass.
+
+If you want to put today's material to work right away, **the highest-leverage exercise** is this: pick an optimization problem you already understand, and check the article's headline inequalities (convexity, $L$-smoothness, strong convexity, the duality bound) against it one by one. You'll quickly find which assumptions actually hold and which only do so on paper — that's a more useful muscle than reading two more papers.
+
 
 ## References
 

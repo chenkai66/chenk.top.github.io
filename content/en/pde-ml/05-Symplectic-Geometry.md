@@ -23,6 +23,12 @@ translationKey: "pde-ml-5"
 
 ---
 
+A pendulum keeps swinging for a very long time without slowly winding down — energy is conserved. The Earth orbits the Sun for billions of years without flying off — angular momentum is conserved. Behind every "this quantity stays constant" lurks a piece of geometry called **symplectic structure**.
+
+Train a vanilla Neural ODE on pendulum data: after a few hundred steps the energy drifts. The network can fit the short-term trajectory just fine; what it can't fit is the long-time conservation law. **Structure-preserving networks** (HNN, LNN, SympNet) take a different approach: bake the conservation law into the architecture so the network *cannot* violate it.
+
+This article aims to demystify the word "symplectic." We start from the geometric picture — phase space, the symplectic form, what Liouville's theorem really says — then look at why symplectic integrators are a different beast from generic Runge–Kutta methods, and finally see how HNN / LNN / SympNet each encode this geometry into network weights. By the end you should be able to tell, for a given physics problem, whether a symplectic network is the right tool or overkill.
+
 ## What You Will Learn
 
 Train an unconstrained neural network on pendulum data and ask it to extrapolate. After a few seconds of integration the prediction is fine; after a minute the pendulum has either crept to a halt or, more often, accelerated to escape velocity. Energy was supposed to be conserved, but the network has no idea what energy is. The bug is not in the data, the optimizer, or the depth of the network. **The bug is in the architecture.** A standard MLP can represent any vector field, including unphysical ones, and a tiny systematic bias in that vector field is amplified into macroscopic energy drift over a long rollout.
@@ -609,6 +615,13 @@ With a symplectic integrator, the energy error oscillates but never grows — ev
 > **Solution.** Each kick is the time-$h/2$ flow of the Hamiltonian $V(q)$; each drift is the time-$h$ flow of $T(p) = p^2/2$. Both are exact Hamiltonian flows, hence symplectic. Composition of symplectic maps is symplectic.
 
 ---
+
+## What's next
+
+The handful of core ideas in this chapter (PDE residual as loss, operators on function spaces, Wasserstein geometry, symplectic structure, scores, diffusion) recur throughout the rest of the series. If a section stalls you, jot the question down and keep reading — the next chapter usually re-explains it from a different angle.
+
+The fastest sanity check on your own understanding is to run this chapter's equation on a minimal example: a 1-D heat equation, a single pendulum, a 2-D Gaussian mixture. The code is short, but it converts "looks right" into "it's right on my machine."
+
 
 ## References
 
