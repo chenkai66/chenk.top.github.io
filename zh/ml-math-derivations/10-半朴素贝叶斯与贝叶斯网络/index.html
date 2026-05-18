@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/ml-math-derivations/>机器学习数学推导</a>
 · 第 10 篇</div><h1>机器学习数学推导（十）：半朴素贝叶斯与贝叶斯网络</h1><p class=deck>从 SPODE、TAN、AODE 到完整的贝叶斯网络：通过单依赖树、超父集成与图结构学习，把朴素贝叶斯和全联合分布之间的鸿沟逐级填平。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-01-29>January 29, 2026</time> · 30 分钟 · 7338 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/zh/tags/semi-naive-bayes/ class=tag>#Semi-Naive Bayes</a><a href=/zh/tags/bayesian-networks/ class=tag>#Bayesian Networks</a><a href=/zh/tags/probabilistic-graphical-models/ class=tag>#Probabilistic Graphical Models</a><a href=/zh/tags/tan/ class=tag>#TAN</a><a href=/zh/tags/aode/ class=tag>#AODE</a><a href=/zh/tags/mathematical-derivations/ class=tag>#Mathematical Derivations</a></div><a class="pill pill-outline" href=/en/ml-math-derivations/10-semi-naive-bayes-and-bayesian-networks/>Read in English →</a></div></header><div class=prose><p><strong>引子。</strong> 朴素贝叶斯假设所有特征在给定类别下条件独立。这是一种便于计算的“善意谎言”——它让我们只需遍历一遍数据就能完成训练，但几乎所有 UCI 基准测试都表明，基于树结构或小型图的分类器总能稳定高出几个百分点的准确率。本文将沿着从“无依赖”（朴素贝叶斯）到“全依赖”（完整联合分布）的连续谱系，重点介绍实践中真正常用的三个甜点模型：SPODE、TAN 和 AODE。而将这种因子分解思想推广至一般形式，就得到了贝叶斯网络。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/illustration_1.png alt="机器学习数学推导（十）：半朴素贝叶斯与贝叶斯网络 — 章节概览图" loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>为何完全条件独立假设会失效，以及放松该假设时参数数量如何增长。</li><li><strong>SPODE</strong>：所有特征共享一个“超父”节点。</li><li><strong>TAN</strong>：每个特征拥有自己的父节点，通过条件互信息构建的最大生成树（Chow-Liu 算法）来选择。</li><li><strong>AODE</strong>：对所有符合条件的超父取平均，以消除模型选择带来的方差。</li><li><strong>贝叶斯网络</strong>：DAG 因子分解、d-分离、马尔可夫毯、变量消除与联合树算法。</li><li>实用决策准则：何时选用 NB、TAN、AODE 或完整 BN。</li></ul><h2 id=前置知识 class=heading-anchor>前置知识<a href=#%e5%89%8d%e7%bd%ae%e7%9f%a5%e8%af%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>联合分布、条件独立性、互信息</li><li>生成树、树上的动态规划</li><li>已掌握 <a href=/zh/ml-math-derivations/09-%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af/>第 9 篇：朴素贝叶斯</a></li></ul><hr><h2 id=为什么要放松独立性假设 class=heading-anchor>为什么要放松独立性假设？<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%a6%81%e6%94%be%e6%9d%be%e7%8b%ac%e7%ab%8b%e6%80%a7%e5%81%87%e8%ae%be class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=那个便利的谎言 class=heading-anchor>那个“便利的谎言”<a href=#%e9%82%a3%e4%b8%aa%e4%be%bf%e5%88%a9%e7%9a%84%e8%b0%8e%e8%a8%80 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$P(\mathbf{x}\mid c_k) \;=\; \prod_{j=1}^{d} P(x^{(j)}\mid c_k).$$</span><p>这个“谎言”在于：给定类别后，各特征彼此无关。然而在现实中，这一假设几乎总会被打破，典型场景包括：</p><ul><li><strong>文本处理</strong>：即使限定在“机器学习文章”这一类别中，“machine learning”这个二元组的出现频率也远高于 <span class=math-inline>$P(\text{machine})\,P(\text{learning})$</span>
+<span class=meta-line><time datetime=2026-01-29>January 29, 2026</time> · 22 分钟 · 5329 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/zh/tags/semi-naive-bayes/ class=tag>#Semi-Naive Bayes</a><a href=/zh/tags/bayesian-networks/ class=tag>#Bayesian Networks</a><a href=/zh/tags/probabilistic-graphical-models/ class=tag>#Probabilistic Graphical Models</a><a href=/zh/tags/tan/ class=tag>#TAN</a><a href=/zh/tags/aode/ class=tag>#AODE</a><a href=/zh/tags/mathematical-derivations/ class=tag>#Mathematical Derivations</a></div><a class="pill pill-outline" href=/en/ml-math-derivations/10-semi-naive-bayes-and-bayesian-networks/>Read in English →</a></div></header><div class=prose><p><strong>引子。</strong> 朴素贝叶斯假设所有特征在给定类别下条件独立。这是一种便于计算的“善意谎言”——它让我们只需遍历一遍数据就能完成训练，但几乎所有 UCI 基准测试都表明，基于树结构或小型图的分类器总能稳定高出几个百分点的准确率。本文将沿着从“无依赖”（朴素贝叶斯）到“全依赖”（完整联合分布）的连续谱系，重点介绍实践中真正常用的三个甜点模型：SPODE、TAN 和 AODE。而将这种因子分解思想推广至一般形式，就得到了贝叶斯网络。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/illustration_1.png alt="机器学习数学推导（十）：半朴素贝叶斯与贝叶斯网络 — 章节概览图" loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>为何完全条件独立假设会失效，以及放松该假设时参数数量如何增长。</li><li><strong>SPODE</strong>：所有特征共享一个“超父”节点。</li><li><strong>TAN</strong>：每个特征拥有自己的父节点，通过条件互信息构建的最大生成树（Chow-Liu 算法）来选择。</li><li><strong>AODE</strong>：对所有符合条件的超父取平均，以消除模型选择带来的方差。</li><li><strong>贝叶斯网络</strong>：DAG 因子分解、d-分离、马尔可夫毯、变量消除与联合树算法。</li><li>实用决策准则：何时选用 NB、TAN、AODE 或完整 BN。</li></ul><h2 id=前置知识 class=heading-anchor>前置知识<a href=#%e5%89%8d%e7%bd%ae%e7%9f%a5%e8%af%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>联合分布、条件独立性、互信息</li><li>生成树、树上的动态规划</li><li>已掌握 <a href=/zh/ml-math-derivations/09-%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af/>第 9 篇：朴素贝叶斯</a></li></ul><hr><h2 id=为什么要放松独立性假设 class=heading-anchor>为什么要放松独立性假设？<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%a6%81%e6%94%be%e6%9d%be%e7%8b%ac%e7%ab%8b%e6%80%a7%e5%81%87%e8%ae%be class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=那个便利的谎言 class=heading-anchor>那个“便利的谎言”<a href=#%e9%82%a3%e4%b8%aa%e4%be%bf%e5%88%a9%e7%9a%84%e8%b0%8e%e8%a8%80 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$P(\mathbf{x}\mid c_k) \;=\; \prod_{j=1}^{d} P(x^{(j)}\mid c_k).$$</span><p>这个“谎言”在于：给定类别后，各特征彼此无关。然而在现实中，这一假设几乎总会被打破，典型场景包括：</p><ul><li><strong>文本处理</strong>：即使限定在“机器学习文章”这一类别中，“machine learning”这个二元组的出现频率也远高于 <span class=math-inline>$P(\text{machine})\,P(\text{learning})$</span>
 的乘积预测值。</li><li><strong>医学诊断</strong>：在“流感”类别下，“发热”与“咳嗽”依然高度相关——它们共享同一条下游生理通路。</li><li><strong>计算机视觉</strong>：无论图像属于哪一类，相邻像素的值通常都非常接近。</li></ul><p>当条件独立性假设被严重违反时，后验概率 <span class=math-inline>$P(c\mid\mathbf{x})$</span>
 会出现<strong>校准偏差</strong>：虽然最终胜出的类别通常仍是正确的，但其置信度会被严重高估，且相近候选类别的排序也会显著退化。</p><h3 id=模型谱系 class=heading-anchor>模型谱系<a href=#%e6%a8%a1%e5%9e%8b%e8%b0%b1%e7%b3%bb class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>模型</th><th>允许的依赖关系</th><th>参数量</th><th>准确率</th></tr></thead><tbody><tr><td>朴素贝叶斯</td><td>无</td><td><span class=math-inline>$O(K d)$</span></td><td>基线</td></tr><tr><td>一阶依赖（SPODE / TAN / AODE）</td><td>每个特征最多有一个父节点</td><td><span class=math-inline>$O(K d S)$</span></td><td>更优</td></tr><tr><td><span class=math-inline>$k$</span>
 -依赖</td><td>每个特征最多有 <span class=math-inline>$k$</span>
@@ -52,253 +52,20 @@ $$</span><p>其中 <span class=math-inline>$n_i$</span>
 的出现次数，<span class=math-inline>$m$</span>
 （通常取 30）是超父可信所需的最小支撑阈值。</p><p><strong>为何有效？</strong></p><ol><li><strong>无需结构搜索</strong>：模型结构固定，仅需统计频次。</li><li><strong>方差缩减</strong>：对 <span class=math-inline>$d$</span>
 个相关的 SPODE 估计取平均，效果类似于 bagging。</li><li><strong>易于部署</strong>：只需复用 SPODE 的计数器，并对所有 <span class=math-inline>$i$</span>
-求和即可。</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
-</span><span class=lnt>  2
-</span><span class=lnt>  3
-</span><span class=lnt>  4
-</span><span class=lnt>  5
-</span><span class=lnt>  6
-</span><span class=lnt>  7
-</span><span class=lnt>  8
-</span><span class=lnt>  9
-</span><span class=lnt> 10
-</span><span class=lnt> 11
-</span><span class=lnt> 12
-</span><span class=lnt> 13
-</span><span class=lnt> 14
-</span><span class=lnt> 15
-</span><span class=lnt> 16
-</span><span class=lnt> 17
-</span><span class=lnt> 18
-</span><span class=lnt> 19
-</span><span class=lnt> 20
-</span><span class=lnt> 21
-</span><span class=lnt> 22
-</span><span class=lnt> 23
-</span><span class=lnt> 24
-</span><span class=lnt> 25
-</span><span class=lnt> 26
-</span><span class=lnt> 27
-</span><span class=lnt> 28
-</span><span class=lnt> 29
-</span><span class=lnt> 30
-</span><span class=lnt> 31
-</span><span class=lnt> 32
-</span><span class=lnt> 33
-</span><span class=lnt> 34
-</span><span class=lnt> 35
-</span><span class=lnt> 36
-</span><span class=lnt> 37
-</span><span class=lnt> 38
-</span><span class=lnt> 39
-</span><span class=lnt> 40
-</span><span class=lnt> 41
-</span><span class=lnt> 42
-</span><span class=lnt> 43
-</span><span class=lnt> 44
-</span><span class=lnt> 45
-</span><span class=lnt> 46
-</span><span class=lnt> 47
-</span><span class=lnt> 48
-</span><span class=lnt> 49
-</span><span class=lnt> 50
-</span><span class=lnt> 51
-</span><span class=lnt> 52
-</span><span class=lnt> 53
-</span><span class=lnt> 54
-</span><span class=lnt> 55
-</span><span class=lnt> 56
-</span><span class=lnt> 57
-</span><span class=lnt> 58
-</span><span class=lnt> 59
-</span><span class=lnt> 60
-</span><span class=lnt> 61
-</span><span class=lnt> 62
-</span><span class=lnt> 63
-</span><span class=lnt> 64
-</span><span class=lnt> 65
-</span><span class=lnt> 66
-</span><span class=lnt> 67
-</span><span class=lnt> 68
-</span><span class=lnt> 69
-</span><span class=lnt> 70
-</span><span class=lnt> 71
-</span><span class=lnt> 72
-</span><span class=lnt> 73
-</span><span class=lnt> 74
-</span><span class=lnt> 75
-</span><span class=lnt> 76
-</span><span class=lnt> 77
-</span><span class=lnt> 78
-</span><span class=lnt> 79
-</span><span class=lnt> 80
-</span><span class=lnt> 81
-</span><span class=lnt> 82
-</span><span class=lnt> 83
-</span><span class=lnt> 84
-</span><span class=lnt> 85
-</span><span class=lnt> 86
-</span><span class=lnt> 87
-</span><span class=lnt> 88
-</span><span class=lnt> 89
-</span><span class=lnt> 90
-</span><span class=lnt> 91
-</span><span class=lnt> 92
-</span><span class=lnt> 93
-</span><span class=lnt> 94
-</span><span class=lnt> 95
-</span><span class=lnt> 96
-</span><span class=lnt> 97
-</span><span class=lnt> 98
-</span><span class=lnt> 99
-</span><span class=lnt>100
-</span><span class=lnt>101
-</span><span class=lnt>102
-</span><span class=lnt>103
-</span><span class=lnt>104
-</span><span class=lnt>105
-</span><span class=lnt>106
-</span><span class=lnt>107
-</span><span class=lnt>108
-</span><span class=lnt>109
-</span><span class=lnt>110
-</span><span class=lnt>111
-</span><span class=lnt>112
-</span><span class=lnt>113
-</span><span class=lnt>114
-</span><span class=lnt>115
-</span><span class=lnt>116
-</span><span class=lnt>117
-</span><span class=lnt>118
-</span><span class=lnt>119
-</span><span class=lnt>120
-</span><span class=lnt>121
-</span><span class=lnt>122
-</span><span class=lnt>123
-</span><span class=lnt>124
-</span><span class=lnt>125
-</span><span class=lnt>126
-</span><span class=lnt>127
-</span><span class=lnt>128
-</span><span class=lnt>129
-</span><span class=lnt>130
-</span><span class=lnt>131
-</span><span class=lnt>132
-</span><span class=lnt>133
-</span><span class=lnt>134
-</span><span class=lnt>135
-</span><span class=lnt>136
-</span><span class=lnt>137
-</span><span class=lnt>138
-</span><span class=lnt>139
-</span><span class=lnt>140
-</span><span class=lnt>141
-</span><span class=lnt>142
-</span><span class=lnt>143
-</span><span class=lnt>144
-</span><span class=lnt>145
-</span><span class=lnt>146
-</span><span class=lnt>147
-</span><span class=lnt>148
-</span><span class=lnt>149
-</span><span class=lnt>150
-</span><span class=lnt>151
-</span><span class=lnt>152
-</span><span class=lnt>153
-</span><span class=lnt>154
-</span><span class=lnt>155
-</span><span class=lnt>156
-</span><span class=lnt>157
-</span><span class=lnt>158
-</span><span class=lnt>159
-</span><span class=lnt>160
-</span><span class=lnt>161
-</span><span class=lnt>162
-</span><span class=lnt>163
-</span><span class=lnt>164
-</span><span class=lnt>165
-</span><span class=lnt>166
-</span><span class=lnt>167
-</span><span class=lnt>168
-</span><span class=lnt>169
-</span><span class=lnt>170
-</span><span class=lnt>171
-</span><span class=lnt>172
-</span><span class=lnt>173
-</span><span class=lnt>174
-</span><span class=lnt>175
-</span><span class=lnt>176
-</span><span class=lnt>177
-</span><span class=lnt>178
-</span><span class=lnt>179
-</span><span class=lnt>180
-</span><span class=lnt>181
-</span><span class=lnt>182
-</span><span class=lnt>183
-</span><span class=lnt>184
-</span><span class=lnt>185
-</span><span class=lnt>186
-</span><span class=lnt>187
-</span><span class=lnt>188
-</span><span class=lnt>189
-</span><span class=lnt>190
-</span><span class=lnt>191
-</span><span class=lnt>192
-</span><span class=lnt>193
-</span><span class=lnt>194
-</span><span class=lnt>195
-</span><span class=lnt>196
-</span><span class=lnt>197
-</span><span class=lnt>198
-</span><span class=lnt>199
-</span><span class=lnt>200
-</span><span class=lnt>201
-</span><span class=lnt>202
-</span><span class=lnt>203
-</span><span class=lnt>204
-</span><span class=lnt>205
-</span><span class=lnt>206
-</span><span class=lnt>207
-</span><span class=lnt>208
-</span><span class=lnt>209
-</span><span class=lnt>210
-</span><span class=lnt>211
-</span><span class=lnt>212
-</span><span class=lnt>213
-</span><span class=lnt>214
-</span><span class=lnt>215
-</span><span class=lnt>216
-</span><span class=lnt>217
-</span><span class=lnt>218
-</span><span class=lnt>219
-</span><span class=lnt>220
-</span><span class=lnt>221
-</span><span class=lnt>222
-</span><span class=lnt>223
-</span><span class=lnt>224
-</span><span class=lnt>225
-</span><span class=lnt>226
-</span><span class=lnt>227
-</span><span class=lnt>228
-</span><span class=lnt>229
-</span><span class=lnt>230
-</span><span class=lnt>231
-</span><span class=lnt>232
-</span><span class=lnt>233
-</span><span class=lnt>234
-</span><span class=lnt>235
-</span><span class=lnt>236
-</span><span class=lnt>237
-</span><span class=lnt>238
-</span><span class=lnt>239
-</span><span class=lnt>240
-</span><span class=lnt>241
-</span><span class=lnt>242
-</span><span class=lnt>243
-</span><span class=lnt>244
-</span><span class=lnt>245
-</span><span class=lnt>246
-</span><span class=lnt>247
+求和即可。</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
 </span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.naive_bayes</span> <span class=kn>import</span> <span class=n>BernoulliNB</span>
 </span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.model_selection</span> <span class=kn>import</span> <span class=n>cross_val_score</span>
@@ -313,40 +80,41 @@ $$</span><p>其中 <span class=math-inline>$n_i$</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;Naive Bayes 5 折 CV:&#34;</span><span class=p>,</span>
 </span></span><span class=line><span class=cl>      <span class=n>cross_val_score</span><span class=p>(</span><span class=n>BernoulliNB</span><span class=p>(),</span> <span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>cv</span><span class=o>=</span><span class=mi>5</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=mi>4</span><span class=p>))</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl><span class=c1>## TAN：树增广朴素贝叶斯</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>机器学习数学推导</span><span class=err>（</span><span class=n>十</span><span class=err>）：</span><span class=n>半朴素贝叶斯与贝叶斯网络</span> <span class=err>—</span> <span class=n>章节小结图</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>ml</span><span class=o>-</span><span class=n>math</span><span class=o>-</span><span class=n>derivations</span><span class=o>/</span><span class=mi>10</span><span class=o>-</span><span class=n>半朴素贝叶斯与贝叶斯网络</span><span class=o>/</span><span class=n>illustration_2</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 每个特征自选父节点</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>朴素贝叶斯</span><span class=err>（</span><span class=n>星形</span><span class=err>）</span><span class=n>vs</span> <span class=n>TAN</span><span class=err>（</span><span class=n>星形</span> <span class=o>+</span> <span class=n>增广树</span><span class=err>）</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>ml</span><span class=o>-</span><span class=n>math</span><span class=o>-</span><span class=n>derivations</span><span class=o>/</span><span class=mi>10</span><span class=o>-</span><span class=n>半朴素贝叶斯与贝叶斯网络</span><span class=o>/</span><span class=n>fig3_nb_vs_tan</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>SPODE</span> <span class=n>强制所有特征共享同一个超父</span><span class=err>，</span><span class=n>而</span> <span class=n>TAN</span> <span class=n>则更灵活</span><span class=err>：</span><span class=n>允许每个特征选择</span><span class=o>**</span><span class=n>自己唯一的额外父节点</span><span class=o>**</span><span class=err>，</span><span class=n>这些父子关系构成一棵树</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span><span class=n>P</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span>\<span class=n>mid</span> <span class=n>c_k</span><span class=p>)</span> \<span class=p>;</span><span class=o>=</span>\<span class=p>;</span> \<span class=n>prod_</span><span class=p>{</span><span class=n>j</span><span class=o>=</span><span class=mi>1</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=n>d</span><span class=p>}</span> <span class=n>P</span><span class=p>(</span><span class=n>x</span><span class=o>^</span><span class=p>{(</span><span class=n>j</span><span class=p>)}</span>\<span class=n>mid</span> <span class=n>c_k</span><span class=p>,</span>\<span class=p>,</span><span class=n>x</span><span class=o>^</span><span class=p>{(</span>\<span class=n>pi_j</span><span class=p>)}),</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span>\<span class=n>pi_j</span><span class=err>$</span> <span class=n>是特征</span> <span class=err>$</span><span class=n>j</span><span class=err>$</span> <span class=n>在增广树中的父节点</span><span class=err>（</span><span class=n>根节点无父</span><span class=err>，</span><span class=n>对应项退化为</span> <span class=err>$</span><span class=n>P</span><span class=p>(</span><span class=n>x</span><span class=o>^</span><span class=p>{(</span><span class=n>j</span><span class=p>)}</span>\<span class=n>mid</span> <span class=n>c_k</span><span class=p>)</span><span class=err>$）。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 树的学习——Chow-Liu 算法</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>定理</span><span class=err>（</span><span class=n>Chow</span> <span class=o>&amp;</span> <span class=n>Liu</span> <span class=mi>1968</span><span class=err>；</span><span class=n>Friedman</span><span class=p>,</span> <span class=n>Geiger</span><span class=p>,</span> <span class=n>Goldszmidt</span> <span class=mi>1997</span><span class=err>）</span><span class=o>**</span><span class=err>：</span><span class=n>在所有树形增广结构中</span><span class=err>，</span><span class=n>最大化条件对数似然的结构是以条件互信息为边权的</span><span class=o>**</span><span class=n>最大生成树</span><span class=o>**</span><span class=err>，</span><span class=n>其权重定义为</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>w_</span><span class=p>{</span><span class=n>jk</span><span class=p>}</span> \<span class=p>;</span><span class=o>=</span>\<span class=p>;</span> <span class=n>I</span><span class=p>(</span><span class=n>X</span><span class=o>^</span><span class=p>{(</span><span class=n>j</span><span class=p>)};</span><span class=n>X</span><span class=o>^</span><span class=p>{(</span><span class=n>k</span><span class=p>)}</span>\<span class=n>mid</span> <span class=n>Y</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>\<span class=p>;</span><span class=o>=</span>\<span class=p>;</span>
-</span></span><span class=line><span class=cl>\<span class=n>sum_</span><span class=p>{</span><span class=n>y</span><span class=p>,</span><span class=n>x_j</span><span class=p>,</span><span class=n>x_k</span><span class=p>}</span> <span class=n>P</span><span class=p>(</span><span class=n>x_j</span><span class=p>,</span><span class=n>x_k</span><span class=p>,</span><span class=n>y</span><span class=p>)</span>\<span class=p>,</span>
-</span></span><span class=line><span class=cl>\<span class=n>log</span>\<span class=n>frac</span><span class=p>{</span><span class=n>P</span><span class=p>(</span><span class=n>x_j</span><span class=p>,</span><span class=n>x_k</span>\<span class=n>mid</span> <span class=n>y</span><span class=p>)}{</span><span class=n>P</span><span class=p>(</span><span class=n>x_j</span>\<span class=n>mid</span> <span class=n>y</span><span class=p>)</span>\<span class=p>,</span><span class=n>P</span><span class=p>(</span><span class=n>x_k</span>\<span class=n>mid</span> <span class=n>y</span><span class=p>)}</span><span class=o>.</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>权重含义</span><span class=o>**</span><span class=err>：$</span><span class=n>I</span><span class=p>(</span><span class=n>X</span><span class=o>^</span><span class=p>{(</span><span class=n>j</span><span class=p>)};</span><span class=n>X</span><span class=o>^</span><span class=p>{(</span><span class=n>k</span><span class=p>)}</span>\<span class=n>mid</span> <span class=n>Y</span><span class=p>)</span><span class=err>$</span> <span class=n>衡量的是类别</span> <span class=err>$</span><span class=n>Y</span><span class=err>$</span> <span class=n>未能解释的</span> <span class=err>$</span><span class=n>X</span><span class=o>^</span><span class=p>{(</span><span class=n>j</span><span class=p>)}</span><span class=err>$</span> <span class=n>与</span> <span class=err>$</span><span class=n>X</span><span class=o>^</span><span class=p>{(</span><span class=n>k</span><span class=p>)}</span><span class=err>$</span> <span class=n>之间的残余相关性</span><span class=err>。</span><span class=n>权重越高的边</span><span class=err>，</span><span class=n>越值得建模</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>算法步骤</span><span class=o>**</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=mf>1.</span> <span class=n>在</span> <span class=err>$</span><span class=n>d</span><span class=err>$</span> <span class=n>个特征上构建完全图</span><span class=err>；</span>
-</span></span><span class=line><span class=cl><span class=mf>2.</span> <span class=n>将边</span> <span class=err>$</span><span class=p>(</span><span class=n>j</span><span class=p>,</span><span class=n>k</span><span class=p>)</span><span class=err>$</span> <span class=n>的权重设为</span> <span class=err>$</span><span class=n>I</span><span class=p>(</span><span class=n>X</span><span class=o>^</span><span class=p>{(</span><span class=n>j</span><span class=p>)};</span><span class=n>X</span><span class=o>^</span><span class=p>{(</span><span class=n>k</span><span class=p>)}</span>\<span class=n>mid</span> <span class=n>Y</span><span class=p>)</span><span class=err>$；</span>
-</span></span><span class=line><span class=cl><span class=mf>3.</span> <span class=n>使用</span> <span class=n>Kruskal</span> <span class=n>或</span> <span class=n>Prim</span> <span class=n>算法求最大生成树</span><span class=err>，</span><span class=n>复杂度为</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>d</span><span class=o>^</span><span class=p>{</span><span class=mi>2</span><span class=p>}</span>\<span class=n>log</span> <span class=n>d</span><span class=p>)</span><span class=err>$；</span>
-</span></span><span class=line><span class=cl><span class=mf>4.</span> <span class=n>选定根节点</span><span class=err>（</span><span class=n>通常取</span> <span class=err>$</span>\<span class=n>arg</span>\<span class=n>max_j</span> <span class=n>I</span><span class=p>(</span><span class=n>X</span><span class=o>^</span><span class=p>{(</span><span class=n>j</span><span class=p>)};</span><span class=n>Y</span><span class=p>)</span><span class=err>$）；</span>
-</span></span><span class=line><span class=cl><span class=mf>5.</span> <span class=n>将无向树从根向外定向</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=tan树增广朴素贝叶斯 class=heading-anchor>TAN：树增广朴素贝叶斯<a href=#tan%e6%a0%91%e5%a2%9e%e5%b9%bf%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/illustration_2.png alt="机器学习数学推导（十）：半朴素贝叶斯与贝叶斯网络 — 章节小结图" loading=lazy decoding=async class=content-image></figure></p><h3 id=每个特征自选父节点 class=heading-anchor>每个特征自选父节点<a href=#%e6%af%8f%e4%b8%aa%e7%89%b9%e5%be%81%e8%87%aa%e9%80%89%e7%88%b6%e8%8a%82%e7%82%b9 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/fig3_nb_vs_tan.png alt="朴素贝叶斯（星形）vs TAN（星形 + 增广树）" loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$P(\mathbf{x}\mid c_k) \;=\; \prod_{j=1}^{d} P(x^{(j)}\mid c_k,\,x^{(\pi_j)}),$$</span><p>其中 <span class=math-inline>$\pi_j$</span>
+是特征 <span class=math-inline>$j$</span>
+在增广树中的父节点（根节点无父，对应项退化为 <span class=math-inline>$P(x^{(j)}\mid c_k)$</span>
+）。</p><h3 id=树的学习chow-liu-算法 class=heading-anchor>树的学习——Chow-Liu 算法<a href=#%e6%a0%91%e7%9a%84%e5%ad%a6%e4%b9%a0chow-liu-%e7%ae%97%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+w_{jk} \;=\; I(X^{(j)};X^{(k)}\mid Y)
+\;=\;
+\sum_{y,x_j,x_k} P(x_j,x_k,y)\,
+\log\frac{P(x_j,x_k\mid y)}{P(x_j\mid y)\,P(x_k\mid y)}.
+$$</span><p><strong>权重含义</strong>：<span class=math-inline>$I(X^{(j)};X^{(k)}\mid Y)$</span>
+衡量的是类别 <span class=math-inline>$Y$</span>
+未能解释的 <span class=math-inline>$X^{(j)}$</span>
+与 <span class=math-inline>$X^{(k)}$</span>
+之间的残余相关性。权重越高的边，越值得建模。</p><p><strong>算法步骤</strong>：</p><ol><li>在 <span class=math-inline>$d$</span>
+个特征上构建完全图；</li><li>将边 <span class=math-inline>$(j,k)$</span>
+的权重设为 <span class=math-inline>$I(X^{(j)};X^{(k)}\mid Y)$</span>
+；</li><li>使用 Kruskal 或 Prim 算法求最大生成树，复杂度为 <span class=math-inline>$O(d^{2}\log d)$</span>
+；</li><li>选定根节点（通常取 <span class=math-inline>$\arg\max_j I(X^{(j)};Y)$</span>
+）；</li><li>将无向树从根向外定向。</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
 </span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>itertools</span> <span class=kn>import</span> <span class=n>combinations</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>conditional_mutual_info</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>j</span><span class=p>,</span> <span class=n>k</span><span class=p>):</span>
@@ -363,194 +131,115 @@ $$</span><p>其中 <span class=math-inline>$n_i$</span>
 </span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=nb>min</span><span class=p>(</span><span class=n>p_jk</span><span class=p>,</span> <span class=n>p_j</span><span class=p>,</span> <span class=n>p_k</span><span class=p>)</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>:</span>
 </span></span><span class=line><span class=cl>                    <span class=n>cmi</span> <span class=o>+=</span> <span class=n>p_c</span> <span class=o>*</span> <span class=n>p_jk</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=n>p_jk</span> <span class=o>/</span> <span class=p>(</span><span class=n>p_j</span> <span class=o>*</span> <span class=n>p_k</span><span class=p>))</span>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>cmi</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>在前述合成示例中</span><span class=err>，</span><span class=n>依赖对</span> <span class=err>$</span><span class=p>(</span><span class=n>x_0</span><span class=p>,</span><span class=n>x_1</span><span class=p>)</span><span class=err>$</span> <span class=n>的条件互信息</span><span class=err>（</span><span class=n>CMI</span><span class=err>）</span><span class=n>明显大于独立对</span> <span class=err>$</span><span class=p>(</span><span class=n>x_0</span><span class=p>,</span><span class=n>x_2</span><span class=p>)</span><span class=err>$——</span><span class=n>Kruskal</span> <span class=n>算法正是利用这一差异优先连接高权重边</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl><span class=c1>## 贝叶斯网络</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>朴素贝叶斯和</span> <span class=n>TAN</span> <span class=n>都是更一般模型</span><span class=err>——</span><span class=n>贝叶斯网络的特例</span><span class=err>。</span><span class=n>现在我们将其置于完整的图模型框架中审视</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### DAG 因子分解</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>四变量示例网络</span><span class=err>：</span><span class=n>Cloudy</span> <span class=o>/</span> <span class=n>Sprinkler</span> <span class=o>/</span> <span class=n>Rain</span> <span class=o>/</span> <span class=n>WetGrass</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>ml</span><span class=o>-</span><span class=n>math</span><span class=o>-</span><span class=n>derivations</span><span class=o>/</span><span class=mi>10</span><span class=o>-</span><span class=n>半朴素贝叶斯与贝叶斯网络</span><span class=o>/</span><span class=n>fig1_dag</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>贝叶斯网络</span><span class=o>**</span><span class=n>是一个有向无环图</span><span class=err>（</span><span class=n>DAG</span><span class=err>）$</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>G</span><span class=p>}</span><span class=o>=</span><span class=p>(</span><span class=n>V</span><span class=p>,</span><span class=n>E</span><span class=p>)</span><span class=err>$，</span><span class=n>每个节点附带一张</span><span class=o>**</span><span class=n>条件概率表</span><span class=o>**</span><span class=err>（</span><span class=n>CPT</span><span class=err>）。</span><span class=n>其联合分布可分解为</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span><span class=n>P</span><span class=p>(</span><span class=n>X_1</span><span class=p>,</span>\<span class=n>dots</span><span class=p>,</span><span class=n>X_n</span><span class=p>)</span> \<span class=p>;</span><span class=o>=</span>\<span class=p>;</span> \<span class=n>prod_</span><span class=p>{</span><span class=n>i</span><span class=o>=</span><span class=mi>1</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=n>n</span><span class=p>}</span> <span class=n>P</span>\<span class=n>bigl</span><span class=p>(</span><span class=n>X_i</span>\<span class=n>mid</span> \<span class=n>mathrm</span><span class=p>{</span><span class=n>Pa</span><span class=p>}(</span><span class=n>X_i</span><span class=p>)</span>\<span class=n>bigr</span><span class=p>)</span><span class=o>.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>为何分解重要</span><span class=err>？</span><span class=o>**</span> <span class=n>对于四个二值变量</span><span class=err>，</span><span class=n>完整联合分布需</span> <span class=err>$</span><span class=mi>2</span><span class=o>^</span><span class=mi>4</span> <span class=o>-</span> <span class=mi>1</span> <span class=o>=</span> <span class=mi>15</span><span class=err>$</span> <span class=n>个自由参数</span><span class=err>，</span><span class=n>而按图分解仅需</span> <span class=err>$</span><span class=mi>1</span><span class=o>+</span><span class=mi>2</span><span class=o>+</span><span class=mi>2</span><span class=o>+</span><span class=mi>4</span> <span class=o>=</span> <span class=mi>9</span><span class=err>$</span> <span class=n>个</span><span class=err>。</span><span class=n>若扩展至</span> <span class=err>$</span><span class=n>n</span><span class=o>=</span><span class=mi>20</span><span class=err>$</span> <span class=n>个二值变量</span><span class=err>，</span><span class=n>且平均每个节点有</span> <span class=mi>3</span> <span class=n>个父节点</span><span class=err>，</span><span class=n>则联合分布约含</span> <span class=err>$</span><span class=mi>10</span><span class=o>^</span><span class=mi>6</span><span class=err>$</span> <span class=n>项</span><span class=err>，</span><span class=n>而分解形式仅需约</span> <span class=err>$</span><span class=mi>20</span> \<span class=n>cdot</span> <span class=mi>2</span><span class=o>^</span><span class=mi>3</span> <span class=o>=</span> <span class=mi>160</span><span class=err>$</span> <span class=n>项</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>我们已见过的特例</span><span class=o>**</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>*</span><span class=n>朴素贝叶斯</span><span class=o>*</span><span class=err>：</span><span class=n>星形图</span><span class=err>，$</span><span class=n>Y</span><span class=err>$</span> <span class=n>为所有</span> <span class=err>$</span><span class=n>X_j</span><span class=err>$</span> <span class=n>的父节点</span><span class=err>，$</span><span class=n>X_j</span><span class=err>$</span> <span class=n>间无边</span><span class=err>；</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>*</span><span class=n>TAN</span><span class=o>*</span><span class=err>：</span><span class=n>星形图基础上</span><span class=err>，</span><span class=n>在</span> <span class=err>$</span><span class=n>X_j</span><span class=err>$</span> <span class=n>上再叠加一棵树</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### d-分离</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>三种基本结构</span><span class=err>：</span><span class=n>链</span><span class=err>、</span><span class=n>叉</span><span class=err>、</span><span class=n>对撞</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>ml</span><span class=o>-</span><span class=n>math</span><span class=o>-</span><span class=n>derivations</span><span class=o>/</span><span class=mi>10</span><span class=o>-</span><span class=n>半朴素贝叶斯与贝叶斯网络</span><span class=o>/</span><span class=n>fig2_d_separation</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>DAG</span> <span class=n>中的条件独立性由</span><span class=o>**</span><span class=n>d</span><span class=o>-</span><span class=n>分离</span><span class=o>**</span><span class=n>这一图形准则判定</span><span class=err>。</span><span class=n>所有情形均可归结为以下三种基本结构</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>链</span> <span class=err>$</span><span class=n>A</span>\<span class=n>to</span> <span class=n>B</span>\<span class=n>to</span> <span class=n>C</span><span class=err>$</span><span class=o>**</span><span class=err>：</span><span class=n>若</span> <span class=err>$</span><span class=n>B</span><span class=err>$</span> <span class=n>未观测</span><span class=err>，</span><span class=n>则</span> <span class=err>$</span><span class=n>Aot</span>\<span class=err>!</span>\<span class=n>perp</span> <span class=n>C</span><span class=err>$；</span><span class=n>若条件化</span> <span class=err>$</span><span class=n>B</span><span class=err>$，</span><span class=n>路径被阻断</span><span class=err>，$</span><span class=n>A</span>\<span class=n>perp</span> <span class=n>C</span>\<span class=n>mid</span> <span class=n>B</span><span class=err>$。</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>叉</span> <span class=err>$</span><span class=n>A</span>\<span class=n>leftarrow</span> <span class=n>B</span>\<span class=n>to</span> <span class=n>C</span><span class=err>$</span><span class=o>**</span><span class=err>：</span><span class=n>行为与链相同</span><span class=err>：</span><span class=n>共同原因使</span> <span class=err>$</span><span class=n>A</span><span class=p>,</span><span class=n>C</span><span class=err>$</span> <span class=n>相关</span><span class=err>，</span><span class=n>观测后相关性消失</span><span class=err>。</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>对撞</span> <span class=err>$</span><span class=n>A</span>\<span class=n>to</span> <span class=n>B</span>\<span class=n>leftarrow</span> <span class=n>C</span><span class=err>$</span><span class=o>**</span><span class=err>：</span><span class=n>行为相反</span><span class=err>。</span><span class=n>若</span> <span class=err>$</span><span class=n>B</span><span class=err>$</span> <span class=n>未观测</span><span class=err>，</span><span class=n>则</span> <span class=err>$</span><span class=n>A</span>\<span class=n>perp</span> <span class=n>C</span><span class=err>$；</span><span class=n>一旦观测</span> <span class=err>$</span><span class=n>B</span><span class=err>$，</span><span class=n>路径被激活</span><span class=err>，</span><span class=n>两个原因相互耦合</span><span class=err>——</span><span class=n>即著名的</span><span class=o>**</span><span class=n>explaining</span><span class=o>-</span><span class=n>away</span><span class=o>**</span><span class=err>（</span><span class=n>因因相消</span><span class=err>）</span><span class=n>效应</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>一条路径被</span><span class=o>**</span><span class=n>阻断</span><span class=o>**</span><span class=err>，</span><span class=n>当且仅当</span><span class=err>：</span><span class=n>路径上存在一个链或叉节点被观测</span><span class=err>，</span><span class=o>**</span><span class=n>或</span><span class=o>**</span><span class=n>存在一个对撞节点未被观测</span><span class=err>（</span><span class=n>且其所有后代也未被观测</span><span class=err>）。</span><span class=n>两组变量在给定</span> <span class=err>$</span><span class=n>Z</span><span class=err>$</span> <span class=n>下</span> <span class=n>d</span><span class=o>-</span><span class=n>分离</span><span class=err>，</span><span class=n>当且仅当它们之间的所有路径均被</span> <span class=err>$</span><span class=n>Z</span><span class=err>$</span> <span class=n>阻断</span><span class=err>。</span><span class=n>这是图模型中所有条件独立性断言的理论基础</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 马尔可夫毯</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>马尔可夫毯</span> <span class=o>=</span> <span class=n>父节点</span> <span class=o>+</span> <span class=n>子节点</span> <span class=o>+</span> <span class=n>共同父节点</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>ml</span><span class=o>-</span><span class=n>math</span><span class=o>-</span><span class=n>derivations</span><span class=o>/</span><span class=mi>10</span><span class=o>-</span><span class=n>半朴素贝叶斯与贝叶斯网络</span><span class=o>/</span><span class=n>fig6_markov_blanket</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>马尔可夫毯</span><span class=o>**</span> <span class=err>$</span>\<span class=n>mathrm</span><span class=p>{</span><span class=n>MB</span><span class=p>}(</span><span class=n>X</span><span class=p>)</span><span class=err>$</span> <span class=n>是使得</span> <span class=err>$</span><span class=n>X</span><span class=err>$</span> <span class=n>在给定该集合后与网络其余部分条件独立的</span><span class=o>**</span><span class=n>最小集合</span><span class=o>**</span><span class=err>。</span><span class=n>在贝叶斯网络中</span><span class=err>，</span><span class=n>它恰好为</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathrm</span><span class=p>{</span><span class=n>MB</span><span class=p>}(</span><span class=n>X</span><span class=p>)</span> \<span class=p>;</span><span class=o>=</span>\<span class=p>;</span> \<span class=n>mathrm</span><span class=p>{</span><span class=n>Pa</span><span class=p>}(</span><span class=n>X</span><span class=p>)</span>\<span class=p>;</span>\<span class=n>cup</span>\<span class=p>;</span>\<span class=n>mathrm</span><span class=p>{</span><span class=n>Ch</span><span class=p>}(</span><span class=n>X</span><span class=p>)</span>\<span class=p>;</span>\<span class=n>cup</span>\<span class=p>;</span>\<span class=n>bigl</span>\<span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>X</span> <span class=n>的子节点的其他父节点</span><span class=p>}</span>\<span class=n>bigr</span>\<span class=p>}</span><span class=o>.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>这些</span><span class=err>“</span><span class=n>共父节点</span><span class=err>”</span><span class=n>常被忽略</span><span class=err>，</span><span class=n>却至关重要</span><span class=err>——</span><span class=n>根据对撞规则</span><span class=err>，</span><span class=n>条件化一个子节点会激活通往其其他父节点的路径</span><span class=err>。</span><span class=n>马尔可夫毯也是</span> <span class=n>Gibbs</span> <span class=n>采样中重采样</span> <span class=err>$</span><span class=n>X</span><span class=err>$</span> <span class=n>所需的最小变量集</span><span class=err>；</span><span class=n>从因果角度看</span><span class=err>，</span><span class=n>它是用网络其余部分预测</span> <span class=err>$</span><span class=n>X</span><span class=err>$</span> <span class=n>的最小充分统计量</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 推断：变量消除</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>链上的变量消除</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>ml</span><span class=o>-</span><span class=n>math</span><span class=o>-</span><span class=n>derivations</span><span class=o>/</span><span class=mi>10</span><span class=o>-</span><span class=n>半朴素贝叶斯与贝叶斯网络</span><span class=o>/</span><span class=n>fig5_variable_elimination</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>直接计算后验如</span> <span class=err>$</span><span class=n>P</span><span class=p>(</span><span class=n>D</span>\<span class=n>mid</span> \<span class=n>text</span><span class=p>{</span><span class=n>evidence</span><span class=p>})</span><span class=err>$</span> <span class=n>需指数级求和</span><span class=err>。</span><span class=o>**</span><span class=n>变量消除</span><span class=o>**</span><span class=n>通过逐个消去变量并复用中间因子来降低复杂度</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=mf>1.</span> <span class=n>选定消元顺序</span><span class=err>（</span><span class=n>如查询</span> <span class=err>$</span><span class=n>D</span><span class=err>$</span> <span class=n>时按</span> <span class=err>$</span><span class=n>A</span><span class=p>,</span><span class=n>B</span><span class=p>,</span><span class=n>C</span><span class=err>$）；</span>
-</span></span><span class=line><span class=cl><span class=mf>2.</span> <span class=n>将所有含</span> <span class=err>$</span><span class=n>A</span><span class=err>$</span> <span class=n>的因子相乘后对</span> <span class=err>$</span><span class=n>A</span><span class=err>$</span> <span class=n>求和</span><span class=err>，</span><span class=n>得到新因子</span> <span class=err>$</span>\<span class=n>tau_1</span><span class=p>(</span><span class=n>B</span><span class=p>)</span><span class=err>$；</span>
-</span></span><span class=line><span class=cl><span class=mf>3.</span> <span class=n>重复</span><span class=err>：</span><span class=n>合并含</span> <span class=err>$</span><span class=n>B</span><span class=err>$</span> <span class=n>的因子并求和得</span> <span class=err>$</span>\<span class=n>tau_2</span><span class=p>(</span><span class=n>C</span><span class=p>)</span><span class=err>$，</span><span class=n>依此类推</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>对链结构</span><span class=err>，</span><span class=n>复杂度从</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>S</span><span class=o>^</span><span class=n>n</span><span class=p>)</span><span class=err>$</span> <span class=n>降至</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>nS</span><span class=o>^</span><span class=mi>2</span><span class=p>)</span><span class=err>$；</span><span class=n>对一般图</span><span class=err>，</span><span class=n>复杂度由</span><span class=o>**</span><span class=n>树宽</span><span class=o>**</span><span class=n>决定</span><span class=err>——</span><span class=n>即消元过程中产生的最大中间因子的大小</span><span class=err>。</span><span class=n>这也解释了为何稠密图即便使用消除法仍难以处理</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 联合树</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>联合树流程</span><span class=err>：</span><span class=n>三角化</span> <span class=err>→</span> <span class=n>极大团</span> <span class=err>→</span> <span class=n>带</span> <span class=n>separator</span> <span class=n>的树</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>ml</span><span class=o>-</span><span class=n>math</span><span class=o>-</span><span class=n>derivations</span><span class=o>/</span><span class=mi>10</span><span class=o>-</span><span class=n>半朴素贝叶斯与贝叶斯网络</span><span class=o>/</span><span class=n>fig7_junction_tree</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>联合树</span><span class=o>**</span><span class=n>算法将变量消除全局化</span><span class=err>，</span><span class=n>使所有边缘分布可通过两次消息传递计算</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=mf>1.</span> <span class=o>**</span><span class=n>道德化</span><span class=o>**</span><span class=err>：</span><span class=n>为每对共父节点添加无向边</span><span class=err>，</span><span class=n>然后忽略方向</span><span class=err>；</span>
-</span></span><span class=line><span class=cl><span class=mf>2.</span> <span class=o>**</span><span class=n>三角化</span><span class=o>**</span><span class=err>：</span><span class=n>添加弦边</span><span class=err>，</span><span class=n>使所有长度</span> <span class=err>$</span>\<span class=n>geq</span> <span class=mi>4</span><span class=err>$</span> <span class=n>的环均有弦</span><span class=err>。</span><span class=n>此步控制树宽</span><span class=err>，</span><span class=n>最优三角化为</span> <span class=n>NP</span><span class=o>-</span><span class=n>hard</span><span class=err>，</span><span class=n>实践中常用</span> <span class=o>*</span><span class=n>minimum</span> <span class=n>fill</span><span class=o>-</span><span class=ow>in</span><span class=o>*</span> <span class=n>等启发式</span><span class=err>；</span>
-</span></span><span class=line><span class=cl><span class=mf>3.</span> <span class=o>**</span><span class=n>提取极大团</span><span class=o>**</span><span class=err>；</span>
-</span></span><span class=line><span class=cl><span class=mf>4.</span> <span class=o>**</span><span class=n>构建团树</span><span class=o>**</span><span class=err>：</span><span class=n>相邻团共享</span> <span class=n>separator</span> <span class=n>集</span><span class=err>，</span><span class=n>并满足</span> <span class=o>*</span><span class=n>running</span><span class=o>-</span><span class=n>intersection</span><span class=o>*</span> <span class=n>性质</span><span class=err>（</span><span class=n>任一变量出现的团构成连通子树</span><span class=err>）；</span>
-</span></span><span class=line><span class=cl><span class=mf>5.</span> <span class=o>**</span><span class=n>消息传递</span><span class=o>**</span><span class=err>：</span><span class=n>先</span> <span class=n>collect</span> <span class=n>后</span> <span class=n>distribute</span><span class=err>。</span><span class=n>两轮后</span><span class=err>，</span><span class=n>每个团持有其变量的正确边缘分布</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>总代价随最大团大小</span><span class=err>（</span><span class=n>即树宽</span> <span class=err>$</span><span class=o>+</span><span class=mi>1</span><span class=err>$）</span><span class=n>指数增长</span><span class=err>——</span><span class=n>与变量消除复杂度一致</span><span class=err>，</span><span class=n>但可摊销至所有查询</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 结构学习</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>DAG</span> <span class=n>本身也可从数据中学习</span><span class=err>，</span><span class=n>主要有两类方法</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>评分</span> <span class=o>+</span> <span class=n>搜索</span><span class=o>**</span><span class=err>：</span><span class=n>在</span> <span class=n>DAG</span> <span class=n>空间中爬山</span><span class=err>（</span><span class=n>增</span><span class=o>/</span><span class=n>删</span><span class=o>/</span><span class=n>反转边</span><span class=err>），</span><span class=n>用似然加罚项的评分函数评估</span><span class=err>。</span><span class=n>经典评分如</span> <span class=o>**</span><span class=n>BIC</span><span class=o>**</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathrm</span><span class=p>{</span><span class=n>BIC</span><span class=p>}(</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>G</span><span class=p>})</span> \<span class=p>;</span><span class=o>=</span>\<span class=p>;</span> \<span class=n>log</span> <span class=n>p</span><span class=p>(</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>D</span><span class=p>}</span>\<span class=n>mid</span>\<span class=n>hat</span><span class=p>{</span>\<span class=n>theta</span><span class=p>},</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>G</span><span class=p>})</span> \<span class=p>;</span><span class=o>-</span>\<span class=p>;</span> \<span class=n>tfrac</span><span class=p>{</span><span class=o>|</span>\<span class=n>theta</span><span class=o>|</span><span class=p>}{</span><span class=mi>2</span><span class=p>}</span>\<span class=n>log</span> <span class=n>N</span><span class=o>.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>第一项奖励拟合度</span><span class=err>，</span><span class=n>第二项惩罚参数量</span><span class=err>；</span><span class=n>BIC</span> <span class=n>在标准假设下具有一致性</span><span class=err>（$</span><span class=n>N</span>\<span class=n>to</span>\<span class=n>infty</span><span class=err>$</span> <span class=n>时收敛至真实图</span><span class=err>）。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>基于约束</span><span class=o>**</span><span class=err>（</span><span class=n>PC</span><span class=err>、</span><span class=n>FCI</span> <span class=n>算法</span><span class=err>）：</span><span class=n>通过条件独立性检验构建骨架</span><span class=err>，</span><span class=n>再用对撞规则定向</span> <span class=n>v</span><span class=o>-</span><span class=n>结构</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>一个硬事实</span><span class=err>：</span><span class=o>**</span><span class=n>精确结构学习是</span> <span class=n>NP</span><span class=o>-</span><span class=n>hard</span> <span class=n>的</span><span class=o>**</span><span class=err>（</span><span class=n>Chickering</span><span class=p>,</span> <span class=n>Heckerman</span> <span class=o>&amp;</span> <span class=n>Meek</span> <span class=mi>2004</span><span class=err>）。</span><span class=n>实用算法通常限制每节点最大父数</span><span class=err>、</span><span class=n>使用随机重启</span><span class=err>，</span><span class=n>或引入先验知识固定某些边方向</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl><span class=c1>## 贝叶斯网络的推断复杂度</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>结构分解</span> <span class=err>$</span><span class=n>P</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})</span> <span class=o>=</span> \<span class=n>prod_i</span> <span class=n>P</span><span class=p>(</span><span class=n>x_i</span> \<span class=n>mid</span> \<span class=n>mathrm</span><span class=p>{</span><span class=n>pa</span><span class=p>}(</span><span class=n>x_i</span><span class=p>))</span><span class=err>$</span> <span class=n>节省了存储空间</span><span class=err>，</span><span class=n>但推断</span><span class=err>（</span><span class=n>即计算</span> <span class=err>$</span><span class=n>P</span><span class=p>(</span><span class=n>X_q</span> \<span class=n>mid</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_e</span><span class=p>)</span><span class=err>$）</span><span class=n>通常是</span> <span class=c1>#P-hard 的。复杂度取决于网络沿消元顺序的分解质量。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>变量消除</span><span class=o>**</span><span class=err>：</span><span class=n>选定非查询</span><span class=err>、</span><span class=n>非证据变量的消元顺序</span> <span class=err>$</span>\<span class=n>sigma</span><span class=err>$。</span><span class=n>每步消去一个变量</span><span class=err>，</span><span class=n>将其涉及的所有因子相乘后求和</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>phi</span><span class=s1>&#39;(\mathbf</span><span class=si>{Y}</span><span class=s1>) = \sum_</span><span class=si>{x_k}</span><span class=s1> \prod_{f \in \mathcal</span><span class=si>{F}</span><span class=s1>_k} f(x_k, \mathbf</span><span class=si>{Y}</span><span class=s1>).$$</span>
-</span></span><span class=line><span class=cl><span class=n>单步成本随</span> <span class=o>*</span><span class=n>width</span><span class=o>*</span><span class=err>（</span><span class=n>即</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>Y</span><span class=p>}</span> \<span class=n>cup</span> \<span class=p>{</span><span class=n>x_k</span>\<span class=p>}</span><span class=err>$</span> <span class=n>的最大规模</span><span class=err>）</span><span class=n>指数增长</span><span class=err>。</span><span class=n>最优消元顺序对应最小</span> <span class=o>*</span><span class=n>induced</span> <span class=n>treewidth</span><span class=o>*</span><span class=err>，</span><span class=n>但寻找该顺序本身是</span> <span class=n>NP</span><span class=o>-</span><span class=n>hard</span> <span class=n>的</span><span class=err>。</span><span class=n>实践中</span><span class=err>，</span><span class=nb>min</span><span class=o>-</span><span class=n>fill</span> <span class=n>或</span> <span class=nb>min</span><span class=o>-</span><span class=n>neighbour</span> <span class=n>启发式在数百节点网络上表现良好</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>对树状网络</span><span class=err>（</span><span class=n>道德图无环</span><span class=err>），</span><span class=n>树宽为</span> <span class=mi>1</span><span class=err>，</span><span class=n>精确推断复杂度为</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>N</span> \<span class=n>cdot</span> <span class=n>K</span><span class=o>^</span><span class=mi>2</span><span class=p>)</span><span class=err>$（$</span><span class=n>N</span><span class=err>$</span> <span class=n>个</span> <span class=err>$</span><span class=n>K</span><span class=err>$</span> <span class=n>元变量</span><span class=err>）——</span><span class=n>这正是</span> <span class=n>HMM</span> <span class=n>前向</span><span class=o>-</span><span class=n>后向算法的复杂度</span><span class=err>（</span><span class=n>HMM</span> <span class=n>是链式特例</span><span class=err>）。</span><span class=n>但在全连接医疗诊断</span> <span class=n>BN</span> <span class=n>等稠密网络中</span><span class=err>，</span><span class=n>树宽随</span> <span class=err>$</span><span class=n>N</span><span class=err>$</span> <span class=n>线性增长</span><span class=err>，</span><span class=n>当</span> <span class=err>$</span><span class=n>N</span> \<span class=n>approx</span> <span class=mi>30</span><span class=err>$</span> <span class=n>时</span><span class=err>，</span><span class=n>精确推断已不可行</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>近似替代方案</span><span class=o>**</span><span class=err>：</span><span class=n>当树宽过大时</span><span class=err>，</span><span class=n>常用</span> <span class=n>loopy</span> <span class=n>belief</span> <span class=n>propagation</span><span class=err>（</span><span class=n>在含环图上直接运行</span> <span class=n>BP</span><span class=err>，</span><span class=n>期望收敛</span><span class=err>；</span><span class=n>实证有效但无理论保证</span><span class=err>）、</span><span class=n>Gibbs</span> <span class=n>采样</span><span class=err>（</span><span class=n>轮流从条件分布采样各变量</span><span class=err>），</span><span class=n>以及变分方法</span><span class=err>（</span><span class=n>见第</span> <span class=mi>14</span> <span class=n>篇</span><span class=err>）。</span><span class=n>对树宽为</span> <span class=mi>25</span> <span class=n>的二值稠密</span> <span class=n>BN</span><span class=err>，</span><span class=n>单条</span> <span class=n>Gibbs</span> <span class=n>链运行</span> <span class=mi>10</span> <span class=n>万样本通常可获得边缘概率的</span> <span class=mi>2</span><span class=err>–</span><span class=mi>3</span> <span class=n>位有效精度</span><span class=err>——</span><span class=n>虽慢</span><span class=err>，</span><span class=n>但至少可行</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl><span class=c1>## 结构学习：真正的难点所在</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>给定结构</span> <span class=err>$</span><span class=n>G</span><span class=err>$，</span><span class=n>条件概率表的</span> <span class=n>MLE</span> <span class=n>极其简单</span><span class=err>——</span><span class=n>只需计数再归一化</span><span class=err>。</span><span class=n>真正的挑战在于</span><span class=o>**</span><span class=n>从数据中学习</span> <span class=err>$</span><span class=n>G</span><span class=err>$</span> <span class=n>本身</span><span class=o>**</span><span class=err>。</span><span class=n>主流方法有两类</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>基于评分的搜索</span><span class=o>**</span><span class=err>：</span><span class=n>定义权衡拟合与复杂度的评分函数</span> <span class=err>$</span>\<span class=n>mathrm</span><span class=p>{</span><span class=n>score</span><span class=p>}(</span><span class=n>G</span><span class=p>,</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>D</span><span class=p>})</span><span class=err>$，</span><span class=n>在</span> <span class=n>DAG</span> <span class=n>空间中搜索</span><span class=err>。</span><span class=n>常用评分包括</span> <span class=n>BIC</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathrm</span><span class=p>{</span><span class=n>BIC</span><span class=p>}(</span><span class=n>G</span><span class=p>,</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>D</span><span class=p>})</span> <span class=o>=</span> \<span class=n>log</span> <span class=n>P</span><span class=p>(</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>D</span><span class=p>}</span> \<span class=n>mid</span> \<span class=n>hat</span>\<span class=n>theta_G</span><span class=p>,</span> <span class=n>G</span><span class=p>)</span> <span class=o>-</span> \<span class=n>frac</span><span class=p>{</span><span class=o>|</span>\<span class=n>theta_G</span><span class=o>|</span><span class=p>}{</span><span class=mi>2</span><span class=p>}</span>\<span class=n>log</span> <span class=n>N</span><span class=p>,</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>以及</span> <span class=n>BDeu</span><span class=err>（</span><span class=n>均匀</span> <span class=n>Dirichlet</span> <span class=n>先验下的边缘似然</span><span class=err>）。</span><span class=n>二者均</span><span class=o>**</span><span class=n>可分解</span><span class=o>**</span><span class=err>——</span><span class=n>评分可按局部结构</span> <span class=err>$</span><span class=p>(</span><span class=n>x_i</span><span class=p>,</span> \<span class=n>mathrm</span><span class=p>{</span><span class=n>pa</span><span class=p>}(</span><span class=n>x_i</span><span class=p>))</span><span class=err>$</span> <span class=n>分解</span><span class=err>，</span><span class=n>故局部边变更仅需重评受影响部分</span><span class=err>。</span><span class=n>即便如此</span><span class=err>，$</span><span class=n>n</span><span class=err>$</span> <span class=n>节点的</span> <span class=n>DAG</span> <span class=n>空间规模为超指数级</span><span class=err>（$</span>\<span class=n>sim</span> <span class=n>n</span><span class=err>!</span> \<span class=n>cdot</span> <span class=mi>2</span><span class=o>^</span><span class=p>{</span>\<span class=n>binom</span><span class=p>{</span><span class=n>n</span><span class=p>}{</span><span class=mi>2</span><span class=p>}}</span><span class=err>$），</span><span class=n>因此搜索多为贪心策略</span><span class=err>：</span><span class=n>如带随机重启的爬山法</span><span class=err>、</span><span class=n>禁忌搜索</span><span class=err>，</span><span class=n>或对小规模问题</span><span class=err>（$</span><span class=n>n</span> \<span class=n>lesssim</span> <span class=mi>25</span><span class=err>$）</span><span class=n>使用</span> <span class=n>Silander</span><span class=o>-</span><span class=n>Myllymäki</span> <span class=n>的动态规划精确算法</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>基于约束的搜索</span><span class=o>**</span><span class=err>：</span><span class=n>通过条件独立性检验定向边</span><span class=err>。</span><span class=n>PC</span> <span class=n>算法从完全图出发</span><span class=err>，</span><span class=n>若找到分离集</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>Z</span><span class=p>}</span><span class=err>$</span> <span class=n>使</span> <span class=err>$</span><span class=n>X</span> \<span class=n>perp</span> <span class=n>Y</span> \<span class=n>mid</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>Z</span><span class=p>}</span><span class=err>$，</span><span class=n>则删除边</span> <span class=err>$</span><span class=p>(</span><span class=n>X</span><span class=p>,</span><span class=n>Y</span><span class=p>)</span><span class=err>$；</span><span class=n>再用</span> <span class=n>Meek</span> <span class=n>规则定向对撞结构</span><span class=err>。</span><span class=n>该方法理论更清晰</span><span class=err>（</span><span class=n>在忠实性假设下可恢复马尔可夫等价类</span><span class=err>），</span><span class=n>但对有限样本下条件独立性检验的</span> <span class=n>I</span> <span class=n>类错误极为敏感</span><span class=err>。</span><span class=n>笔者仅在玩具数据上见其有效</span><span class=err>；</span><span class=n>在真实噪声数据中</span><span class=err>，</span><span class=n>基于评分的爬山法通常更优</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>重审</span> <span class=n>TAN</span> <span class=n>的优势</span><span class=o>**</span><span class=err>：</span><span class=n>TAN</span> <span class=n>将结构限制为以类别为根的树增广形式</span><span class=err>，</span><span class=n>该问题可通过</span> <span class=n>Chow</span><span class=o>-</span><span class=n>Liu</span> <span class=n>算法精确求解</span><span class=err>——</span><span class=n>基于条件互信息的最大权生成树可在</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>n</span><span class=o>^</span><span class=mi>2</span> <span class=n>N</span><span class=p>)</span><span class=err>$</span> <span class=n>时间内构建</span><span class=err>。</span><span class=n>这正是</span> <span class=n>TAN</span> <span class=n>成为实践折衷方案的原因</span><span class=err>：</span><span class=n>它几乎保留了朴素贝叶斯的鲁棒性</span><span class=err>，</span><span class=n>又具备接近完整</span> <span class=n>BN</span> <span class=n>的表达能力</span><span class=err>，</span><span class=n>且结构学习具有多项式复杂度</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl><span class=c1>## 练习题</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 练习 1 — SPODE 参数估计</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=mi>100</span> <span class=n>个样本中</span><span class=err>，</span><span class=n>类别</span> <span class=err>$</span><span class=n>c_1</span><span class=err>$</span> <span class=n>占</span> <span class=mi>60</span> <span class=n>个</span><span class=err>。</span><span class=n>在</span> <span class=err>$</span><span class=n>c_1</span><span class=err>$</span> <span class=n>中</span><span class=err>，</span><span class=mi>30</span> <span class=n>个样本满足</span> <span class=err>$</span><span class=n>x</span><span class=o>^</span><span class=p>{(</span><span class=n>p</span><span class=p>)}{</span><span class=o>=</span><span class=p>}</span><span class=mi>1</span><span class=err>$，</span><span class=n>其中</span> <span class=mi>18</span> <span class=n>个同时满足</span> <span class=err>$</span><span class=n>x</span><span class=o>^</span><span class=p>{(</span><span class=n>j</span><span class=p>)}{</span><span class=o>=</span><span class=p>}</span><span class=mi>1</span><span class=err>$。</span><span class=n>设拉普拉斯平滑</span> <span class=err>$</span>\<span class=n>alpha</span><span class=o>=</span><span class=mi>1</span><span class=err>$，$</span><span class=o>|</span><span class=n>x</span><span class=o>^</span><span class=p>{(</span><span class=n>j</span><span class=p>)}</span><span class=o>|=</span><span class=mi>3</span><span class=err>$，</span><span class=n>则</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>hat</span><span class=p>{</span><span class=n>P</span><span class=p>}</span>\<span class=n>bigl</span><span class=p>(</span><span class=n>x</span><span class=o>^</span><span class=p>{(</span><span class=n>j</span><span class=p>)}{</span><span class=o>=</span><span class=p>}</span><span class=mi>1</span>\<span class=n>mid</span> <span class=n>c_1</span><span class=p>,</span> <span class=n>x</span><span class=o>^</span><span class=p>{(</span><span class=n>p</span><span class=p>)}{</span><span class=o>=</span><span class=p>}</span><span class=mi>1</span>\<span class=n>bigr</span><span class=p>)</span> \<span class=p>;</span><span class=o>=</span>\<span class=p>;</span> \<span class=n>frac</span><span class=p>{</span><span class=mi>18</span><span class=o>+</span><span class=mi>1</span><span class=p>}{</span><span class=mi>30</span><span class=o>+</span><span class=mi>1</span>\<span class=n>cdot</span> <span class=mi>3</span><span class=p>}</span> \<span class=p>;</span><span class=o>=</span>\<span class=p>;</span> \<span class=n>frac</span><span class=p>{</span><span class=mi>19</span><span class=p>}{</span><span class=mi>33</span><span class=p>}</span> \<span class=p>;</span>\<span class=n>approx</span>\<span class=p>;</span> <span class=mf>0.576</span><span class=o>.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=c1>### 练习 2 — TAN 参数量</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>对二值特征</span><span class=err>、$</span><span class=n>K</span><span class=err>$</span> <span class=n>个类别</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>朴素贝叶斯</span><span class=err>：$</span><span class=n>K</span> \<span class=n>cdot</span> <span class=n>d</span><span class=err>$</span> <span class=n>个参数</span><span class=err>（</span><span class=n>每类每特征一项</span><span class=err>）；</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>TAN</span><span class=err>：</span><span class=n>每个非根特征依赖类别和一个二值父节点</span><span class=err>，</span><span class=n>故每类每特征需</span> <span class=mi>2</span> <span class=n>项</span><span class=err>，</span><span class=n>总计</span> <span class=err>$</span><span class=mi>2</span><span class=n>Kd</span><span class=err>$。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>TAN</span> <span class=n>将参数预算翻倍</span><span class=err>，</span><span class=n>换取对成对依赖的建模能力</span><span class=err>。</span><span class=n>若特征为</span> <span class=err>$</span><span class=n>S</span><span class=err>$</span> <span class=n>元</span><span class=err>，</span><span class=n>则倍数变为</span> <span class=err>$</span><span class=n>S</span><span class=err>$。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 练习 3 — Chow-Liu 边选择</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>设</span> <span class=err>$</span><span class=n>I</span><span class=p>(</span><span class=n>X_1</span><span class=p>;</span><span class=n>X_2</span>\<span class=n>mid</span> <span class=n>Y</span><span class=p>)</span><span class=o>=</span><span class=mf>0.8</span><span class=err>$，$</span><span class=n>I</span><span class=p>(</span><span class=n>X_1</span><span class=p>;</span><span class=n>X_3</span>\<span class=n>mid</span> <span class=n>Y</span><span class=p>)</span><span class=o>=</span><span class=mf>0.5</span><span class=err>$。</span><span class=n>Chow</span><span class=o>-</span><span class=n>Liu</span> <span class=n>最大生成树优先选择权重更大的边</span><span class=err>，</span><span class=n>故</span> <span class=err>$</span><span class=n>X_1</span>\<span class=err>!</span><span class=o>-</span>\<span class=err>!</span><span class=n>X_2</span><span class=err>$</span> <span class=n>先入树</span><span class=err>，$</span><span class=n>X_1</span>\<span class=err>!</span><span class=o>-</span>\<span class=err>!</span><span class=n>X_3</span><span class=err>$</span> <span class=n>仅在不形成环时加入</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 练习 4 — d-分离</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>在</span> <span class=err>$</span><span class=n>A</span>\<span class=n>to</span> <span class=n>C</span>\<span class=n>leftarrow</span> <span class=n>B</span><span class=err>$</span> <span class=n>中</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=p>(</span><span class=n>a</span><span class=p>)</span> <span class=err>$</span><span class=n>A</span>\<span class=n>perp</span> <span class=n>B</span><span class=err>$？</span><span class=o>**</span><span class=n>是</span><span class=o>**</span><span class=err>。$</span><span class=n>C</span><span class=err>$</span> <span class=n>为未观测对撞节点</span><span class=err>，</span><span class=n>路径被阻断</span><span class=err>。</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=p>(</span><span class=n>b</span><span class=p>)</span> <span class=err>$</span><span class=n>A</span>\<span class=n>perp</span> <span class=n>B</span>\<span class=n>mid</span> <span class=n>D</span><span class=err>$（$</span><span class=n>D</span><span class=err>$</span> <span class=n>无关</span><span class=err>）？</span><span class=o>**</span><span class=n>是</span><span class=o>**</span><span class=err>。$</span><span class=n>D</span><span class=err>$</span> <span class=n>非</span> <span class=err>$</span><span class=n>C</span><span class=err>$</span> <span class=n>后代</span><span class=err>，</span><span class=n>对撞仍阻断</span><span class=err>。</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=p>(</span><span class=n>c</span><span class=p>)</span> <span class=err>$</span><span class=n>A</span>\<span class=n>perp</span> <span class=n>B</span>\<span class=n>mid</span> <span class=n>C</span><span class=err>$？</span><span class=o>**</span><span class=n>否</span><span class=o>**</span><span class=err>。</span><span class=n>条件化对撞节点激活路径</span><span class=err>，</span><span class=n>导致</span> <span class=err>$</span><span class=n>A</span><span class=err>$</span> <span class=n>与</span> <span class=err>$</span><span class=n>B</span><span class=err>$</span> <span class=n>耦合</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 练习 5 — 小样本下 AODE vs TAN</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>大</span> <span class=err>$</span><span class=n>d</span><span class=err>$、</span><span class=n>充足数据</span><span class=err>：</span><span class=n>TAN</span> <span class=n>预测复杂度</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>d</span><span class=p>)</span><span class=err>$</span> <span class=n>优于</span> <span class=n>AODE</span> <span class=n>的</span> <span class=err>$</span><span class=n>O</span><span class=p>(</span><span class=n>d</span><span class=o>^</span><span class=mi>2</span><span class=p>)</span><span class=err>$；</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>小</span> <span class=err>$</span><span class=n>N</span><span class=err>$：</span><span class=n>AODE</span> <span class=n>的平均操作具正则化效果</span><span class=err>，</span><span class=n>通常比</span> <span class=n>TAN</span> <span class=n>更稳健</span><span class=err>——</span><span class=n>后者易因噪声</span> <span class=n>CMI</span> <span class=n>估计导致</span> <span class=n>MST</span> <span class=n>边过拟合</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>合理默认策略</span><span class=err>：</span><span class=n>先用</span> <span class=n>AODE</span><span class=err>；</span><span class=n>当样本量</span> <span class=err>$</span><span class=n>N</span><span class=err>$</span> <span class=n>显著超过需估计的</span> <span class=n>CMI</span> <span class=n>格子数时</span><span class=err>，</span><span class=n>再切换至</span> <span class=n>TAN</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl><span class=c1>## 常见问题</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 为何不总用完整贝叶斯网络？</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>结构学习是</span> <span class=n>NP</span><span class=o>-</span><span class=n>hard</span> <span class=n>问题</span><span class=err>，</span><span class=n>DAG</span> <span class=n>搜索空间为超指数级</span><span class=err>。</span><span class=n>TAN</span> <span class=n>和</span> <span class=n>AODE</span> <span class=n>通过约束结构</span><span class=err>（</span><span class=n>如树形或平均超父</span><span class=err>）</span><span class=n>使学习可行</span><span class=err>，</span><span class=n>同时捕获最关键依赖</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 有向边是否表示因果？</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>否</span><span class=err>。</span><span class=n>多个</span> <span class=n>DAG</span> <span class=n>可编码相同的条件独立结构</span><span class=err>（</span><span class=n>即</span><span class=o>**</span><span class=n>等价类</span><span class=o>**</span><span class=err>），</span><span class=n>在统计上不可区分</span><span class=err>。</span><span class=n>因果推断需干预或反事实假设</span><span class=err>——</span><span class=n>如</span> <span class=n>Pearl</span> <span class=n>的</span> <span class=n>do</span><span class=o>-</span><span class=n>演算或工具变量</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### TAN 如何处理连续特征？</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>三种方案</span><span class=err>：</span><span class=p>(</span><span class=n>i</span><span class=p>)</span> <span class=n>离散化</span><span class=err>（</span><span class=n>等宽</span><span class=o>/</span><span class=n>等频分箱</span><span class=err>）；</span><span class=p>(</span><span class=n>ii</span><span class=p>)</span> <span class=n>假设条件高斯分布</span><span class=err>（</span><span class=n>条件高斯贝叶斯网络</span><span class=err>）；</span><span class=p>(</span><span class=n>iii</span><span class=p>)</span> <span class=n>用核密度估计局部</span> <span class=n>CPD</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### AODE 还是 TAN？</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>AODE</span> <span class=n>更简单</span><span class=err>，</span><span class=n>小样本更稳健</span><span class=err>，</span><span class=n>无需结构学习</span><span class=err>；</span><span class=n>TAN</span> <span class=n>在高维下预测更快</span><span class=err>，</span><span class=n>允许异构父选择</span><span class=err>。</span><span class=n>文本分类中</span> <span class=n>AODE</span> <span class=n>更常用</span><span class=err>；</span><span class=n>稠密数值表中</span> <span class=n>TAN</span> <span class=n>往往更优</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 深度生成模型与此有何关联？</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>现代隐变量模型</span><span class=err>（</span><span class=n>如</span> <span class=n>VAE</span><span class=err>、</span><span class=n>标准化流</span><span class=err>、</span><span class=n>PixelCNN</span> <span class=n>等自回归模型</span><span class=err>）</span><span class=n>本质是连续贝叶斯网络</span><span class=err>，</span><span class=n>仅将</span> <span class=n>CPT</span> <span class=n>替换为神经条件密度</span><span class=err>。</span><span class=n>因子分解思想完全一致</span><span class=err>，</span><span class=n>变化的只是</span> <span class=err>$</span><span class=n>P</span><span class=p>(</span><span class=n>X_i</span>\<span class=n>mid</span> \<span class=n>mathrm</span><span class=p>{</span><span class=n>Pa</span><span class=p>}(</span><span class=n>X_i</span><span class=p>))</span><span class=err>$</span> <span class=n>的参数化形式</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl><span class=c1>## 下一步</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>贝叶斯网络让我可以显式画出变量之间的依赖结构</span><span class=err>，</span><span class=n>但它也暴露了一个新问题</span><span class=err>：</span><span class=n>单个模型再准</span><span class=err>，</span><span class=n>也可能因为数据噪声</span><span class=err>、</span><span class=n>初始化</span><span class=err>、</span><span class=n>特征采样的偶然性而方差很大</span><span class=err>。</span><span class=n>下一章我换一个完全不同的解题思路</span><span class=err>——</span><span class=o>**</span><span class=n>集成学习</span><span class=o>**</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>集成的核心赌注是</span><span class=err>：</span><span class=n>与其把一个模型调到极致</span><span class=err>，</span><span class=n>不如训练一群</span><span class=s2>&#34;基学习器&#34;</span><span class=err>，</span><span class=n>然后通过投票</span><span class=err>（</span><span class=n>Bagging</span><span class=err>）</span><span class=n>或加权</span><span class=err>（</span><span class=n>Boosting</span><span class=err>）</span><span class=n>把它们的错误抵消掉</span><span class=err>。</span><span class=n>Bagging</span> <span class=n>通过重采样降低方差</span><span class=err>，</span><span class=n>随机森林进一步通过特征子采样去相关</span><span class=err>；</span><span class=n>Boosting</span> <span class=n>把弱学习器按梯度方向逐个叠加</span><span class=err>，</span><span class=n>把偏差吃掉</span><span class=err>。</span><span class=n>这两条路线都建立在一个共同的代数事实上</span><span class=err>——</span><span class=n>加权平均的方差受相关性</span> <span class=err>$</span>\<span class=n>rho</span><span class=err>$</span> <span class=n>控制</span><span class=err>——</span><span class=n>理解这一点</span><span class=err>，</span><span class=n>比记住具体算法重要得多</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>## 参考文献</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Friedman</span><span class=p>,</span> <span class=n>N</span><span class=o>.</span><span class=p>,</span> <span class=n>Geiger</span><span class=p>,</span> <span class=n>D</span><span class=o>.</span> <span class=o>&amp;</span> <span class=n>Goldszmidt</span><span class=p>,</span> <span class=n>M</span><span class=o>.</span> <span class=p>(</span><span class=mi>1997</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>Bayesian</span> <span class=n>network</span> <span class=n>classifiers</span><span class=o>.*</span> <span class=n>Machine</span> <span class=n>Learning</span><span class=p>,</span> <span class=mi>29</span><span class=p>(</span><span class=mi>2</span><span class=o>-</span><span class=mi>3</span><span class=p>),</span> <span class=mi>131</span><span class=o>-</span><span class=mf>163.</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Webb</span><span class=p>,</span> <span class=n>G</span><span class=o>.</span> <span class=n>I</span><span class=o>.</span><span class=p>,</span> <span class=n>Boughton</span><span class=p>,</span> <span class=n>J</span><span class=o>.</span> <span class=n>R</span><span class=o>.</span> <span class=o>&amp;</span> <span class=n>Wang</span><span class=p>,</span> <span class=n>Z</span><span class=o>.</span> <span class=p>(</span><span class=mi>2005</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>Not</span> <span class=n>so</span> <span class=n>naive</span> <span class=n>Bayes</span><span class=p>:</span> <span class=n>Aggregating</span> <span class=n>one</span><span class=o>-</span><span class=n>dependence</span> <span class=n>estimators</span><span class=o>.*</span> <span class=n>Machine</span> <span class=n>Learning</span><span class=p>,</span> <span class=mi>58</span><span class=p>(</span><span class=mi>1</span><span class=p>),</span> <span class=mi>5</span><span class=o>-</span><span class=mf>24.</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Chow</span><span class=p>,</span> <span class=n>C</span><span class=o>.</span> <span class=o>&amp;</span> <span class=n>Liu</span><span class=p>,</span> <span class=n>C</span><span class=o>.</span> <span class=p>(</span><span class=mi>1968</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>Approximating</span> <span class=n>discrete</span> <span class=n>probability</span> <span class=n>distributions</span> <span class=k>with</span> <span class=n>dependence</span> <span class=n>trees</span><span class=o>.*</span> <span class=n>IEEE</span> <span class=n>Transactions</span> <span class=n>on</span> <span class=n>Information</span> <span class=n>Theory</span><span class=p>,</span> <span class=mi>14</span><span class=p>(</span><span class=mi>3</span><span class=p>),</span> <span class=mi>462</span><span class=o>-</span><span class=mf>467.</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Chickering</span><span class=p>,</span> <span class=n>D</span><span class=o>.</span> <span class=n>M</span><span class=o>.</span><span class=p>,</span> <span class=n>Heckerman</span><span class=p>,</span> <span class=n>D</span><span class=o>.</span> <span class=o>&amp;</span> <span class=n>Meek</span><span class=p>,</span> <span class=n>C</span><span class=o>.</span> <span class=p>(</span><span class=mi>2004</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>Large</span><span class=o>-</span><span class=n>sample</span> <span class=n>learning</span> <span class=n>of</span> <span class=n>Bayesian</span> <span class=n>networks</span> <span class=ow>is</span> <span class=n>NP</span><span class=o>-</span><span class=n>hard</span><span class=o>.*</span> <span class=n>JMLR</span><span class=p>,</span> <span class=mi>5</span><span class=p>,</span> <span class=mi>1287</span><span class=o>-</span><span class=mf>1330.</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Koller</span><span class=p>,</span> <span class=n>D</span><span class=o>.</span> <span class=o>&amp;</span> <span class=n>Friedman</span><span class=p>,</span> <span class=n>N</span><span class=o>.</span> <span class=p>(</span><span class=mi>2009</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>Probabilistic</span> <span class=n>Graphical</span> <span class=n>Models</span><span class=p>:</span> <span class=n>Principles</span> <span class=ow>and</span> <span class=n>Techniques</span><span class=o>.*</span> <span class=n>MIT</span> <span class=n>Press</span><span class=o>.</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>Pearl</span><span class=p>,</span> <span class=n>J</span><span class=o>.</span> <span class=p>(</span><span class=mi>1988</span><span class=p>)</span><span class=o>.</span> <span class=o>*</span><span class=n>Probabilistic</span> <span class=n>Reasoning</span> <span class=ow>in</span> <span class=n>Intelligent</span> <span class=n>Systems</span><span class=o>.*</span> <span class=n>Morgan</span> <span class=n>Kaufmann</span><span class=o>.</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span></code></pre></td></tr></table></div></div></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+</span></span></code></pre></td></tr></table></div></div><p>在前述合成示例中，依赖对 <span class=math-inline>$(x_0,x_1)$</span>
+的条件互信息（CMI）明显大于独立对 <span class=math-inline>$(x_0,x_2)$</span>
+——Kruskal 算法正是利用这一差异优先连接高权重边。</p><hr><h2 id=贝叶斯网络 class=heading-anchor>贝叶斯网络<a href=#%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>朴素贝叶斯和 TAN 都是更一般模型——贝叶斯网络的特例。现在我们将其置于完整的图模型框架中审视。</p><h3 id=dag-因子分解 class=heading-anchor>DAG 因子分解<a href=#dag-%e5%9b%a0%e5%ad%90%e5%88%86%e8%a7%a3 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/fig1_dag.png alt="四变量示例网络：Cloudy / Sprinkler / Rain / WetGrass" loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$P(X_1,\dots,X_n) \;=\; \prod_{i=1}^{n} P\bigl(X_i\mid \mathrm{Pa}(X_i)\bigr).$$</span><p><strong>为何分解重要？</strong> 对于四个二值变量，完整联合分布需 <span class=math-inline>$2^4 - 1 = 15$</span>
+个自由参数，而按图分解仅需 <span class=math-inline>$1+2+2+4 = 9$</span>
+个。若扩展至 <span class=math-inline>$n=20$</span>
+个二值变量，且平均每个节点有 3 个父节点，则联合分布约含 <span class=math-inline>$10^6$</span>
+项，而分解形式仅需约 <span class=math-inline>$20 \cdot 2^3 = 160$</span>
+项。</p><p><strong>我们已见过的特例</strong>：</p><ul><li><em>朴素贝叶斯</em>：星形图，<span class=math-inline>$Y$</span>
+为所有 <span class=math-inline>$X_j$</span>
+的父节点，<span class=math-inline>$X_j$</span>
+间无边；</li><li><em>TAN</em>：星形图基础上，在 <span class=math-inline>$X_j$</span>
+上再叠加一棵树。</li></ul><h3 id=d-分离 class=heading-anchor>d-分离<a href=#d-%e5%88%86%e7%a6%bb class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/fig2_d_separation.png alt=三种基本结构：链、叉、对撞 loading=lazy decoding=async class=content-image></figure></p><p>DAG 中的条件独立性由<strong>d-分离</strong>这一图形准则判定。所有情形均可归结为以下三种基本结构：</p><ul><li><strong>链 <span class=math-inline>$A\to B\to C$</span>
+</strong>：若 <span class=math-inline>$B$</span>
+未观测，则 <span class=math-inline>$Aot\!\perp C$</span>
+；若条件化 <span class=math-inline>$B$</span>
+，路径被阻断，<span class=math-inline>$A\perp C\mid B$</span>
+。</li><li><strong>叉 <span class=math-inline>$A\leftarrow B\to C$</span>
+</strong>：行为与链相同：共同原因使 <span class=math-inline>$A,C$</span>
+相关，观测后相关性消失。</li><li><strong>对撞 <span class=math-inline>$A\to B\leftarrow C$</span>
+</strong>：行为相反。若 <span class=math-inline>$B$</span>
+未观测，则 <span class=math-inline>$A\perp C$</span>
+；一旦观测 <span class=math-inline>$B$</span>
+，路径被激活，两个原因相互耦合——即著名的<strong>explaining-away</strong>（因因相消）效应。</li></ul><p>一条路径被<strong>阻断</strong>，当且仅当：路径上存在一个链或叉节点被观测，<strong>或</strong>存在一个对撞节点未被观测（且其所有后代也未被观测）。两组变量在给定 <span class=math-inline>$Z$</span>
+下 d-分离，当且仅当它们之间的所有路径均被 <span class=math-inline>$Z$</span>
+阻断。这是图模型中所有条件独立性断言的理论基础。</p><h3 id=马尔可夫毯 class=heading-anchor>马尔可夫毯<a href=#%e9%a9%ac%e5%b0%94%e5%8f%af%e5%a4%ab%e6%af%af class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/fig6_markov_blanket.png alt="马尔可夫毯 = 父节点 + 子节点 + 共同父节点" loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$\mathrm{MB}(X) \;=\; \mathrm{Pa}(X)\;\cup\;\mathrm{Ch}(X)\;\cup\;\bigl\{\text{X 的子节点的其他父节点}\bigr\}.$$</span><p>这些“共父节点”常被忽略，却至关重要——根据对撞规则，条件化一个子节点会激活通往其其他父节点的路径。马尔可夫毯也是 Gibbs 采样中重采样 <span class=math-inline>$X$</span>
+所需的最小变量集；从因果角度看，它是用网络其余部分预测 <span class=math-inline>$X$</span>
+的最小充分统计量。</p><h3 id=推断变量消除 class=heading-anchor>推断：变量消除<a href=#%e6%8e%a8%e6%96%ad%e5%8f%98%e9%87%8f%e6%b6%88%e9%99%a4 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/fig5_variable_elimination.png alt=链上的变量消除 loading=lazy decoding=async class=content-image></figure></p><p>直接计算后验如 <span class=math-inline>$P(D\mid \text{evidence})$</span>
+需指数级求和。<strong>变量消除</strong>通过逐个消去变量并复用中间因子来降低复杂度：</p><ol><li>选定消元顺序（如查询 <span class=math-inline>$D$</span>
+时按 <span class=math-inline>$A,B,C$</span>
+）；</li><li>将所有含 <span class=math-inline>$A$</span>
+的因子相乘后对 <span class=math-inline>$A$</span>
+求和，得到新因子 <span class=math-inline>$\tau_1(B)$</span>
+；</li><li>重复：合并含 <span class=math-inline>$B$</span>
+的因子并求和得 <span class=math-inline>$\tau_2(C)$</span>
+，依此类推。</li></ol><p>对链结构，复杂度从 <span class=math-inline>$O(S^n)$</span>
+降至 <span class=math-inline>$O(nS^2)$</span>
+；对一般图，复杂度由<strong>树宽</strong>决定——即消元过程中产生的最大中间因子的大小。这也解释了为何稠密图即便使用消除法仍难以处理。</p><h3 id=联合树 class=heading-anchor>联合树<a href=#%e8%81%94%e5%90%88%e6%a0%91 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/fig7_junction_tree.png alt="联合树流程：三角化 → 极大团 → 带 separator 的树" loading=lazy decoding=async class=content-image></figure></p><p><strong>联合树</strong>算法将变量消除全局化，使所有边缘分布可通过两次消息传递计算：</p><ol><li><strong>道德化</strong>：为每对共父节点添加无向边，然后忽略方向；</li><li><strong>三角化</strong>：添加弦边，使所有长度 <span class=math-inline>$\geq 4$</span>
+的环均有弦。此步控制树宽，最优三角化为 NP-hard，实践中常用 <em>minimum fill-in</em> 等启发式；</li><li><strong>提取极大团</strong>；</li><li><strong>构建团树</strong>：相邻团共享 separator 集，并满足 <em>running-intersection</em> 性质（任一变量出现的团构成连通子树）；</li><li><strong>消息传递</strong>：先 collect 后 distribute。两轮后，每个团持有其变量的正确边缘分布。</li></ol><p>总代价随最大团大小（即树宽 <span class=math-inline>$+1$</span>
+）指数增长——与变量消除复杂度一致，但可摊销至所有查询。</p><h3 id=结构学习 class=heading-anchor>结构学习<a href=#%e7%bb%93%e6%9e%84%e5%ad%a6%e4%b9%a0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>DAG 本身也可从数据中学习，主要有两类方法：</p><ul><li><strong>评分 + 搜索</strong>：在 DAG 空间中爬山（增/删/反转边），用似然加罚项的评分函数评估。经典评分如 <strong>BIC</strong>：</li></ul><span class=math-block>$$\mathrm{BIC}(\mathcal{G}) \;=\; \log p(\mathcal{D}\mid\hat{\theta},\mathcal{G}) \;-\; \tfrac{|\theta|}{2}\log N.$$</span><p>第一项奖励拟合度，第二项惩罚参数量；BIC 在标准假设下具有一致性（<span class=math-inline>$N\to\infty$</span>
+时收敛至真实图）。</p><ul><li><strong>基于约束</strong>（PC、FCI 算法）：通过条件独立性检验构建骨架，再用对撞规则定向 v-结构。</li></ul><p>一个硬事实：<strong>精确结构学习是 NP-hard 的</strong>（Chickering, Heckerman & Meek 2004）。实用算法通常限制每节点最大父数、使用随机重启，或引入先验知识固定某些边方向。</p><hr><h2 id=贝叶斯网络的推断复杂度 class=heading-anchor>贝叶斯网络的推断复杂度<a href=#%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c%e7%9a%84%e6%8e%a8%e6%96%ad%e5%a4%8d%e6%9d%82%e5%ba%a6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>结构分解 <span class=math-inline>$P(\mathbf{x}) = \prod_i P(x_i \mid \mathrm{pa}(x_i))$</span>
+节省了存储空间，但推断（即计算 <span class=math-inline>$P(X_q \mid \mathbf{x}_e)$</span>
+）通常是 #P-hard 的。复杂度取决于网络沿消元顺序的分解质量。</p><span class=math-block>$$\phi'(\mathbf{Y}) = \sum_{x_k} \prod_{f \in \mathcal{F}_k} f(x_k, \mathbf{Y}).$$</span><p>单步成本随 <em>width</em>（即 <span class=math-inline>$\mathbf{Y} \cup \{x_k\}$</span>
+的最大规模）指数增长。最优消元顺序对应最小 <em>induced treewidth</em>，但寻找该顺序本身是 NP-hard 的。实践中，min-fill 或 min-neighbour 启发式在数百节点网络上表现良好。</p><p>对树状网络（道德图无环），树宽为 1，精确推断复杂度为 <span class=math-inline>$O(N \cdot K^2)$</span>
+（<span class=math-inline>$N$</span>
+个 <span class=math-inline>$K$</span>
+元变量）——这正是 HMM 前向-后向算法的复杂度（HMM 是链式特例）。但在全连接医疗诊断 BN 等稠密网络中，树宽随 <span class=math-inline>$N$</span>
+线性增长，当 <span class=math-inline>$N \approx 30$</span>
+时，精确推断已不可行。</p><p><strong>近似替代方案</strong>：当树宽过大时，常用 loopy belief propagation（在含环图上直接运行 BP，期望收敛；实证有效但无理论保证）、Gibbs 采样（轮流从条件分布采样各变量），以及变分方法（见第 14 篇）。对树宽为 25 的二值稠密 BN，单条 Gibbs 链运行 10 万样本通常可获得边缘概率的 2–3 位有效精度——虽慢，但至少可行。</p><hr><h2 id=结构学习真正的难点所在 class=heading-anchor>结构学习：真正的难点所在<a href=#%e7%bb%93%e6%9e%84%e5%ad%a6%e4%b9%a0%e7%9c%9f%e6%ad%a3%e7%9a%84%e9%9a%be%e7%82%b9%e6%89%80%e5%9c%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>给定结构 <span class=math-inline>$G$</span>
+，条件概率表的 MLE 极其简单——只需计数再归一化。真正的挑战在于<strong>从数据中学习 <span class=math-inline>$G$</span>
+本身</strong>。主流方法有两类。</p><span class=math-block>$$\mathrm{BIC}(G, \mathcal{D}) = \log P(\mathcal{D} \mid \hat\theta_G, G) - \frac{|\theta_G|}{2}\log N,$$</span><p>以及 BDeu（均匀 Dirichlet 先验下的边缘似然）。二者均<strong>可分解</strong>——评分可按局部结构 <span class=math-inline>$(x_i, \mathrm{pa}(x_i))$</span>
+分解，故局部边变更仅需重评受影响部分。即便如此，<span class=math-inline>$n$</span>
+节点的 DAG 空间规模为超指数级（<span class=math-inline>$\sim n! \cdot 2^{\binom{n}{2}}$</span>
+），因此搜索多为贪心策略：如带随机重启的爬山法、禁忌搜索，或对小规模问题（<span class=math-inline>$n \lesssim 25$</span>
+）使用 Silander-Myllymäki 的动态规划精确算法。</p><p><strong>基于约束的搜索</strong>：通过条件独立性检验定向边。PC 算法从完全图出发，若找到分离集 <span class=math-inline>$\mathbf{Z}$</span>
+使 <span class=math-inline>$X \perp Y \mid \mathbf{Z}$</span>
+，则删除边 <span class=math-inline>$(X,Y)$</span>
+；再用 Meek 规则定向对撞结构。该方法理论更清晰（在忠实性假设下可恢复马尔可夫等价类），但对有限样本下条件独立性检验的 I 类错误极为敏感。笔者仅在玩具数据上见其有效；在真实噪声数据中，基于评分的爬山法通常更优。</p><p><strong>重审 TAN 的优势</strong>：TAN 将结构限制为以类别为根的树增广形式，该问题可通过 Chow-Liu 算法精确求解——基于条件互信息的最大权生成树可在 <span class=math-inline>$O(n^2 N)$</span>
+时间内构建。这正是 TAN 成为实践折衷方案的原因：它几乎保留了朴素贝叶斯的鲁棒性，又具备接近完整 BN 的表达能力，且结构学习具有多项式复杂度。</p><hr><h2 id=练习题 class=heading-anchor>练习题<a href=#%e7%bb%83%e4%b9%a0%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=练习-1--spode-参数估计 class=heading-anchor>练习 1 — SPODE 参数估计<a href=#%e7%bb%83%e4%b9%a0-1--spode-%e5%8f%82%e6%95%b0%e4%bc%b0%e8%ae%a1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\hat{P}\bigl(x^{(j)}{=}1\mid c_1, x^{(p)}{=}1\bigr) \;=\; \frac{18+1}{30+1\cdot 3} \;=\; \frac{19}{33} \;\approx\; 0.576.$$</span><h3 id=练习-2--tan-参数量 class=heading-anchor>练习 2 — TAN 参数量<a href=#%e7%bb%83%e4%b9%a0-2--tan-%e5%8f%82%e6%95%b0%e9%87%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>对二值特征、<span class=math-inline>$K$</span>
+个类别：</p><ul><li>朴素贝叶斯：<span class=math-inline>$K \cdot d$</span>
+个参数（每类每特征一项）；</li><li>TAN：每个非根特征依赖类别和一个二值父节点，故每类每特征需 2 项，总计 <span class=math-inline>$2Kd$</span>
+。</li></ul><p>TAN 将参数预算翻倍，换取对成对依赖的建模能力。若特征为 <span class=math-inline>$S$</span>
+元，则倍数变为 <span class=math-inline>$S$</span>
+。</p><h3 id=练习-3--chow-liu-边选择 class=heading-anchor>练习 3 — Chow-Liu 边选择<a href=#%e7%bb%83%e4%b9%a0-3--chow-liu-%e8%be%b9%e9%80%89%e6%8b%a9 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>设 <span class=math-inline>$I(X_1;X_2\mid Y)=0.8$</span>
+，<span class=math-inline>$I(X_1;X_3\mid Y)=0.5$</span>
+。Chow-Liu 最大生成树优先选择权重更大的边，故 <span class=math-inline>$X_1\!-\!X_2$</span>
+先入树，<span class=math-inline>$X_1\!-\!X_3$</span>
+仅在不形成环时加入。</p><h3 id=练习-4--d-分离 class=heading-anchor>练习 4 — d-分离<a href=#%e7%bb%83%e4%b9%a0-4--d-%e5%88%86%e7%a6%bb class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>在 <span class=math-inline>$A\to C\leftarrow B$</span>
+中：</p><ul><li>(a) <span class=math-inline>$A\perp B$</span>
+？<strong>是</strong>。<span class=math-inline>$C$</span>
+为未观测对撞节点，路径被阻断。</li><li>(b) <span class=math-inline>$A\perp B\mid D$</span>
+（<span class=math-inline>$D$</span>
+无关）？<strong>是</strong>。<span class=math-inline>$D$</span>
+非 <span class=math-inline>$C$</span>
+后代，对撞仍阻断。</li><li>(c) <span class=math-inline>$A\perp B\mid C$</span>
+？<strong>否</strong>。条件化对撞节点激活路径，导致 <span class=math-inline>$A$</span>
+与 <span class=math-inline>$B$</span>
+耦合。</li></ul><h3 id=练习-5--小样本下-aode-vs-tan class=heading-anchor>练习 5 — 小样本下 AODE vs TAN<a href=#%e7%bb%83%e4%b9%a0-5--%e5%b0%8f%e6%a0%b7%e6%9c%ac%e4%b8%8b-aode-vs-tan class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><ul><li>大 <span class=math-inline>$d$</span>
+、充足数据：TAN 预测复杂度 <span class=math-inline>$O(d)$</span>
+优于 AODE 的 <span class=math-inline>$O(d^2)$</span>
+；</li><li>小 <span class=math-inline>$N$</span>
+：AODE 的平均操作具正则化效果，通常比 TAN 更稳健——后者易因噪声 CMI 估计导致 MST 边过拟合。</li></ul><p>合理默认策略：先用 AODE；当样本量 <span class=math-inline>$N$</span>
+显著超过需估计的 CMI 格子数时，再切换至 TAN。</p><hr><h2 id=常见问题 class=heading-anchor>常见问题<a href=#%e5%b8%b8%e8%a7%81%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=为何不总用完整贝叶斯网络 class=heading-anchor>为何不总用完整贝叶斯网络？<a href=#%e4%b8%ba%e4%bd%95%e4%b8%8d%e6%80%bb%e7%94%a8%e5%ae%8c%e6%95%b4%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>结构学习是 NP-hard 问题，DAG 搜索空间为超指数级。TAN 和 AODE 通过约束结构（如树形或平均超父）使学习可行，同时捕获最关键依赖。</p><h3 id=有向边是否表示因果 class=heading-anchor>有向边是否表示因果？<a href=#%e6%9c%89%e5%90%91%e8%be%b9%e6%98%af%e5%90%a6%e8%a1%a8%e7%a4%ba%e5%9b%a0%e6%9e%9c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>否。多个 DAG 可编码相同的条件独立结构（即<strong>等价类</strong>），在统计上不可区分。因果推断需干预或反事实假设——如 Pearl 的 do-演算或工具变量。</p><h3 id=tan-如何处理连续特征 class=heading-anchor>TAN 如何处理连续特征？<a href=#tan-%e5%a6%82%e4%bd%95%e5%a4%84%e7%90%86%e8%bf%9e%e7%bb%ad%e7%89%b9%e5%be%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>三种方案：(i) 离散化（等宽/等频分箱）；(ii) 假设条件高斯分布（条件高斯贝叶斯网络）；(iii) 用核密度估计局部 CPD。</p><h3 id=aode-还是-tan class=heading-anchor>AODE 还是 TAN？<a href=#aode-%e8%bf%98%e6%98%af-tan class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>AODE 更简单，小样本更稳健，无需结构学习；TAN 在高维下预测更快，允许异构父选择。文本分类中 AODE 更常用；稠密数值表中 TAN 往往更优。</p><h3 id=深度生成模型与此有何关联 class=heading-anchor>深度生成模型与此有何关联？<a href=#%e6%b7%b1%e5%ba%a6%e7%94%9f%e6%88%90%e6%a8%a1%e5%9e%8b%e4%b8%8e%e6%ad%a4%e6%9c%89%e4%bd%95%e5%85%b3%e8%81%94 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>现代隐变量模型（如 VAE、标准化流、PixelCNN 等自回归模型）本质是连续贝叶斯网络，仅将 CPT 替换为神经条件密度。因子分解思想完全一致，变化的只是 <span class=math-inline>$P(X_i\mid \mathrm{Pa}(X_i))$</span>
+的参数化形式。</p><hr><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>贝叶斯网络让我可以显式画出变量之间的依赖结构，但它也暴露了一个新问题：单个模型再准，也可能因为数据噪声、初始化、特征采样的偶然性而方差很大。下一章我换一个完全不同的解题思路——<strong>集成学习</strong>。</p><p>集成的核心赌注是：与其把一个模型调到极致，不如训练一群"基学习器"，然后通过投票（Bagging）或加权（Boosting）把它们的错误抵消掉。Bagging 通过重采样降低方差，随机森林进一步通过特征子采样去相关；Boosting 把弱学习器按梯度方向逐个叠加，把偏差吃掉。这两条路线都建立在一个共同的代数事实上——加权平均的方差受相关性 <span class=math-inline>$\rho$</span>
+控制——理解这一点，比记住具体算法重要得多。</p><h2 id=参考文献 class=heading-anchor>参考文献<a href=#%e5%8f%82%e8%80%83%e6%96%87%e7%8c%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>Friedman, N., Geiger, D. & Goldszmidt, M. (1997). <em>Bayesian network classifiers.</em> Machine Learning, 29(2-3), 131-163.</li><li>Webb, G. I., Boughton, J. R. & Wang, Z. (2005). <em>Not so naive Bayes: Aggregating one-dependence estimators.</em> Machine Learning, 58(1), 5-24.</li><li>Chow, C. & Liu, C. (1968). <em>Approximating discrete probability distributions with dependence trees.</em> IEEE Transactions on Information Theory, 14(3), 462-467.</li><li>Chickering, D. M., Heckerman, D. & Meek, C. (2004). <em>Large-sample learning of Bayesian networks is NP-hard.</em> JMLR, 5, 1287-1330.</li><li>Koller, D. & Friedman, N. (2009). <em>Probabilistic Graphical Models: Principles and Techniques.</em> MIT Press.</li><li>Pearl, J. (1988). <em>Probabilistic Reasoning in Intelligent Systems.</em> Morgan Kaufmann.</li></ul><hr></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/ data-next-url=https://www.chenk.top/zh/ml-math-derivations/11-%E9%9B%86%E6%88%90%E5%AD%A6%E4%B9%A0/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/ml-math-derivations/>机器学习数学推导</a> <span class=count>20 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/><span class=title>机器学习数学推导（九）：朴素贝叶斯</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/ml-math-derivations/11-%E9%9B%86%E6%88%90%E5%AD%A6%E4%B9%A0/><span class=title>机器学习数学推导（十一）：集成学习</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/01-%E7%BB%AA%E8%AE%BA%E4%B8%8E%E6%95%B0%E5%AD%A6%E5%9F%BA%E7%A1%80/><span class=series-nav-num>01</span>
+<span class=series-nav-title>机器学习数学推导（一）：绪论与数学基础</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/02-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0%E4%B8%8E%E7%9F%A9%E9%98%B5%E8%AE%BA/><span class=series-nav-num>02</span>
+<span class=series-nav-title>机器学习数学推导（二）：线性代数与矩阵论</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/03-%E6%A6%82%E7%8E%87%E8%AE%BA%E4%B8%8E%E7%BB%9F%E8%AE%A1%E6%8E%A8%E6%96%AD/><span class=series-nav-num>03</span>
+<span class=series-nav-title>机器学习数学推导（三）：概率论与统计推断</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/04-%E5%87%B8%E4%BC%98%E5%8C%96%E7%90%86%E8%AE%BA/><span class=series-nav-num>04</span>
+<span class=series-nav-title>机器学习数学推导（四）：凸优化理论</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/05-%E7%BA%BF%E6%80%A7%E5%9B%9E%E5%BD%92/><span class=series-nav-num>05</span>
+<span class=series-nav-title>机器学习数学推导（五）：线性回归</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/06-%E9%80%BB%E8%BE%91%E5%9B%9E%E5%BD%92%E4%B8%8E%E5%88%86%E7%B1%BB/><span class=series-nav-num>06</span>
+<span class=series-nav-title>机器学习数学推导（六）：逻辑回归与分类</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/><span class=series-nav-num>07</span>
+<span class=series-nav-title>机器学习数学推导（七）：决策树</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/><span class=series-nav-num>08</span>
+<span class=series-nav-title>机器学习数学推导（八）：支持向量机</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/><span class=series-nav-num>09</span>
+<span class=series-nav-title>机器学习数学推导（九）：朴素贝叶斯</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>10</span>
+<span class=series-nav-title>机器学习数学推导（十）：半朴素贝叶斯与贝叶斯网络</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/11-%E9%9B%86%E6%88%90%E5%AD%A6%E4%B9%A0/><span class=series-nav-num>11</span>
+<span class=series-nav-title>机器学习数学推导（十一）：集成学习</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/12-xgboost%E4%B8%8Elightgbm/><span class=series-nav-num>12</span>
+<span class=series-nav-title>机器学习数学推导（十二）：XGBoost 与 LightGBM</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/13-em%E7%AE%97%E6%B3%95%E4%B8%8Egmm/><span class=series-nav-num>13</span>
+<span class=series-nav-title>机器学习数学推导（十三）：EM 算法与 GMM</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/14-%E5%8F%98%E5%88%86%E6%8E%A8%E6%96%AD%E4%B8%8E%E5%8F%98%E5%88%86em/><span class=series-nav-num>14</span>
+<span class=series-nav-title>机器学习数学推导（十四）：变分推断与变分 EM</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/15-%E9%9A%90%E9%A9%AC%E5%B0%94%E5%8F%AF%E5%A4%AB%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>15</span>
+<span class=series-nav-title>机器学习数学推导（十五）：隐马尔可夫模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/16-%E6%9D%A1%E4%BB%B6%E9%9A%8F%E6%9C%BA%E5%9C%BA/><span class=series-nav-num>16</span>
+<span class=series-nav-title>机器学习数学推导（十六）：条件随机场</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/17-%E9%99%8D%E7%BB%B4%E4%B8%8E%E4%B8%BB%E6%88%90%E5%88%86%E5%88%86%E6%9E%90/><span class=series-nav-num>17</span>
+<span class=series-nav-title>机器学习数学推导（十七）：降维与主成分分析</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/18-%E8%81%9A%E7%B1%BB%E7%AE%97%E6%B3%95/><span class=series-nav-num>18</span>
+<span class=series-nav-title>机器学习数学推导（十八）：聚类算法</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/><span class=series-nav-num>19</span>
+<span class=series-nav-title>机器学习数学推导（十九）：神经网络与反向传播</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/ml-math-derivations/20-%E6%AD%A3%E5%88%99%E5%8C%96%E4%B8%8E%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9/><span class=series-nav-num>20</span>
+<span class=series-nav-title>机器学习数学推导（二十）：正则化与模型选择</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E6%259C%25BA%25E5%2599%25A8%25E5%25AD%25A6%25E4%25B9%25A0%25E6%2595%25B0%25E5%25AD%25A6%25E6%258E%25A8%25E5%25AF%25BC%25EF%25BC%2588%25E5%258D%2581%25EF%25BC%2589%25EF%25BC%259A%25E5%258D%258A%25E6%259C%25B4%25E7%25B4%25A0%25E8%25B4%259D%25E5%258F%25B6%25E6%2596%25AF%25E4%25B8%258E%25E8%25B4%259D%25E5%258F%25B6%25E6%2596%25AF%25E7%25BD%2591%25E7%25BB%259C&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fml-math-derivations%252F10-%2525E5%25258D%25258A%2525E6%25259C%2525B4%2525E7%2525B4%2525A0%2525E8%2525B4%25259D%2525E5%25258F%2525B6%2525E6%252596%2525AF%2525E4%2525B8%25258E%2525E8%2525B4%25259D%2525E5%25258F%2525B6%2525E6%252596%2525AF%2525E7%2525BD%252591%2525E7%2525BB%25259C%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fml-math-derivations%252F10-%2525E5%25258D%25258A%2525E6%25259C%2525B4%2525E7%2525B4%2525A0%2525E8%2525B4%25259D%2525E5%25258F%2525B6%2525E6%252596%2525AF%2525E4%2525B8%25258E%2525E8%2525B4%25259D%2525E5%25258F%2525B6%2525E6%252596%2525AF%2525E7%2525BD%252591%2525E7%2525BB%25259C%252F&title=%25E6%259C%25BA%25E5%2599%25A8%25E5%25AD%25A6%25E4%25B9%25A0%25E6%2595%25B0%25E5%25AD%25A6%25E6%258E%25A8%25E5%25AF%25BC%25EF%25BC%2588%25E5%258D%2581%25EF%25BC%2589%25EF%25BC%259A%25E5%258D%258A%25E6%259C%25B4%25E7%25B4%25A0%25E8%25B4%259D%25E5%258F%25B6%25E6%2596%25AF%25E4%25B8%258E%25E8%25B4%259D%25E5%258F%25B6%25E6%2596%25AF%25E7%25BD%2591%25E7%25BB%259C" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/ml-math-derivations/10-%E5%8D%8A%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF%E4%B8%8E%E8%B4%9D%E5%8F%B6%E6%96%AF%E7%BD%91%E7%BB%9C/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2026-01-29>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#为什么要放松独立性假设>为什么要放松独立性假设？</a><ul><li><a href=#那个便利的谎言>那个“便利的谎言”</a></li><li><a href=#模型谱系>模型谱系</a></li></ul></li><li><a href=#一阶依赖估计器ode>一阶依赖估计器（ODE）</a><ul><li><a href=#spode单一超父节点>SPODE：单一超父节点</a></li><li><a href=#aode对所有合格超父取平均>AODE：对所有合格超父取平均</a></li></ul></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/ml-math-derivations/ class=series-name>机器学习数学推导</a>
+<span class=sig-meta data-days-since=2026-01-29>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#为什么要放松独立性假设>为什么要放松独立性假设？</a><ul><li><a href=#那个便利的谎言>那个“便利的谎言”</a></li><li><a href=#模型谱系>模型谱系</a></li></ul></li><li><a href=#一阶依赖估计器ode>一阶依赖估计器（ODE）</a><ul><li><a href=#spode单一超父节点>SPODE：单一超父节点</a></li><li><a href=#aode对所有合格超父取平均>AODE：对所有合格超父取平均</a></li></ul></li><li><a href=#tan树增广朴素贝叶斯>TAN：树增广朴素贝叶斯</a><ul><li><a href=#每个特征自选父节点>每个特征自选父节点</a></li><li><a href=#树的学习chow-liu-算法>树的学习——Chow-Liu 算法</a></li></ul></li><li><a href=#贝叶斯网络>贝叶斯网络</a><ul><li><a href=#dag-因子分解>DAG 因子分解</a></li><li><a href=#d-分离>d-分离</a></li><li><a href=#马尔可夫毯>马尔可夫毯</a></li><li><a href=#推断变量消除>推断：变量消除</a></li><li><a href=#联合树>联合树</a></li><li><a href=#结构学习>结构学习</a></li></ul></li><li><a href=#贝叶斯网络的推断复杂度>贝叶斯网络的推断复杂度</a></li><li><a href=#结构学习真正的难点所在>结构学习：真正的难点所在</a></li><li><a href=#练习题>练习题</a><ul><li><a href=#练习-1--spode-参数估计>练习 1 — SPODE 参数估计</a></li><li><a href=#练习-2--tan-参数量>练习 2 — TAN 参数量</a></li><li><a href=#练习-3--chow-liu-边选择>练习 3 — Chow-Liu 边选择</a></li><li><a href=#练习-4--d-分离>练习 4 — d-分离</a></li><li><a href=#练习-5--小样本下-aode-vs-tan>练习 5 — 小样本下 AODE vs TAN</a></li></ul></li><li><a href=#常见问题>常见问题</a><ul><li><a href=#为何不总用完整贝叶斯网络>为何不总用完整贝叶斯网络？</a></li><li><a href=#有向边是否表示因果>有向边是否表示因果？</a></li><li><a href=#tan-如何处理连续特征>TAN 如何处理连续特征？</a></li><li><a href=#aode-还是-tan>AODE 还是 TAN？</a></li><li><a href=#深度生成模型与此有何关联>深度生成模型与此有何关联？</a></li></ul></li><li><a href=#下一步>下一步</a></li><li><a href=#参考文献>参考文献</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/ml-math-derivations/ class=series-name>机器学习数学推导</a>
 <span class=count>20</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/ml-math-derivations/01-%E7%BB%AA%E8%AE%BA%E4%B8%8E%E6%95%B0%E5%AD%A6%E5%9F%BA%E7%A1%80/><span class=chapter-num>01</span>
 <span class=chapter-title>机器学习数学推导（一）：绪论与数学基础</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/ml-math-derivations/02-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0%E4%B8%8E%E7%9F%A9%E9%98%B5%E8%AE%BA/><span class=chapter-num>02</span>
 <span class=chapter-title>机器学习数学推导（二）：线性代数与矩阵论</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/ml-math-derivations/03-%E6%A6%82%E7%8E%87%E8%AE%BA%E4%B8%8E%E7%BB%9F%E8%AE%A1%E6%8E%A8%E6%96%AD/><span class=chapter-num>03</span>
@@ -571,5 +260,5 @@ $$</span><p>其中 <span class=math-inline>$n_i$</span>
 <span class=chapter-title>机器学习数学推导（十七）：降维与主成分分析</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/ml-math-derivations/18-%E8%81%9A%E7%B1%BB%E7%AE%97%E6%B3%95/><span class=chapter-num>18</span>
 <span class=chapter-title>机器学习数学推导（十八）：聚类算法</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/><span class=chapter-num>19</span>
 <span class=chapter-title>机器学习数学推导（十九）：神经网络与反向传播</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/ml-math-derivations/20-%E6%AD%A3%E5%88%99%E5%8C%96%E4%B8%8E%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9/><span class=chapter-num>20</span>
-<span class=chapter-title>机器学习数学推导（二十）：正则化与模型选择</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>30 min</strong></div><div class=row><span>字数</span><strong>7338</strong></div><div class=row><span>写于</span><strong>Jan 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>机器学习数学推导（二十）：正则化与模型选择</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>22 min</strong></div><div class=row><span>字数</span><strong>5329</strong></div><div class=row><span>写于</span><strong>Jan 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

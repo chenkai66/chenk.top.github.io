@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/pde-ml/>PDE × 机器学习</a>
 · 第 7 篇</div><h1>偏微分方程与机器学习（七）：扩散模型与 Score Matching</h1><p class=deck>从 PDE 视角统一理解扩散模型：热方程、Fokker-Planck、score matching、DDPM/DDIM、Latent Diffusion，配可视化。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2024-07-30>July 30, 2024</time> · 46 分钟 · 11255 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/pde/ class=tag>#PDE</a><a href=/zh/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/zh/tags/diffusion-models/ class=tag>#Diffusion Models</a><a href=/zh/tags/score-matching/ class=tag>#Score Matching</a><a href=/zh/tags/ddpm/ class=tag>#DDPM</a><a href=/zh/tags/ddim/ class=tag>#DDIM</a><a href=/zh/tags/sde/ class=tag>#SDE</a><a href=/zh/tags/generative-models/ class=tag>#Generative Models</a></div><a class="pill pill-outline" href=/en/pde-ml/07-diffusion-models/>Read in English →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-Diffusion-Models/illustration_1.png alt="偏微分方程与机器学习（七）：扩散模型与 Score Matching — 章节概览图" loading=lazy decoding=async class=content-image></figure></p><hr><p>扩散模型的输出端我们很熟悉：一张高质量图片。但训练目标乍看之下却很反直觉——<strong>先把数据加噪声加到完全是高斯，再学怎么一步步去噪</strong>。为什么这个绕远路的策略反而比直接学数据分布有效？</p><p>答案藏在偏微分方程里。前向加噪过程是一个<strong>热方程</strong>（或者更一般的 Fokker-Planck 方程），它有一个反向版本——只要我们知道每个时刻的 score（密度的对数梯度）。<strong>Score Matching</strong> 就是学这个 score 的标准方法。从这个角度看，DDPM、DDIM、Score-based SDE 不是几个独立的算法，而是同一个 PDE 故事的不同离散化。</p><p>这篇文章用 PDE 的视角把这条线串起来：从热方程出发，导出 score-matching loss，把 DDPM 训练目标推回这个统一框架，再讨论 DDIM 和 Latent Diffusion 是怎么在保持这套理论的同时把推理速度加上去的。配可视化。</p><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>自 2020 年起，<strong>扩散模型</strong>已成为生成式 AI 的主流范式。从 DALL·E 2 到 Stable Diffusion 再到 Sora，其生成质量与训练稳定性均超越了 GAN 和 VAE。这一成功背后是一套异常简洁的数学结构：<strong>扩散模型本质上是偏微分方程（PDE）的数值求解器</strong>。</p><ul><li>添加高斯噪声对应于<strong>正向积分 Fokker–Planck 方程</strong>；</li><li>学习去噪等价于学习 <strong>score 函数</strong> <span class=math-inline>$\nabla\log p_t$</span>
+<span class=meta-line><time datetime=2024-07-30>July 30, 2024</time> · 34 分钟 · 8169 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/pde/ class=tag>#PDE</a><a href=/zh/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/zh/tags/diffusion-models/ class=tag>#Diffusion Models</a><a href=/zh/tags/score-matching/ class=tag>#Score Matching</a><a href=/zh/tags/ddpm/ class=tag>#DDPM</a><a href=/zh/tags/ddim/ class=tag>#DDIM</a><a href=/zh/tags/sde/ class=tag>#SDE</a><a href=/zh/tags/generative-models/ class=tag>#Generative Models</a></div><a class="pill pill-outline" href=/en/pde-ml/07-diffusion-models/>Read in English →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-Diffusion-Models/illustration_1.png alt="偏微分方程与机器学习（七）：扩散模型与 Score Matching — 章节概览图" loading=lazy decoding=async class=content-image></figure></p><hr><p>扩散模型的输出端我们很熟悉：一张高质量图片。但训练目标乍看之下却很反直觉——<strong>先把数据加噪声加到完全是高斯，再学怎么一步步去噪</strong>。为什么这个绕远路的策略反而比直接学数据分布有效？</p><p>答案藏在偏微分方程里。前向加噪过程是一个<strong>热方程</strong>（或者更一般的 Fokker-Planck 方程），它有一个反向版本——只要我们知道每个时刻的 score（密度的对数梯度）。<strong>Score Matching</strong> 就是学这个 score 的标准方法。从这个角度看，DDPM、DDIM、Score-based SDE 不是几个独立的算法，而是同一个 PDE 故事的不同离散化。</p><p>这篇文章用 PDE 的视角把这条线串起来：从热方程出发，导出 score-matching loss，把 DDPM 训练目标推回这个统一框架，再讨论 DDIM 和 Latent Diffusion 是怎么在保持这套理论的同时把推理速度加上去的。配可视化。</p><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>自 2020 年起，<strong>扩散模型</strong>已成为生成式 AI 的主流范式。从 DALL·E 2 到 Stable Diffusion 再到 Sora，其生成质量与训练稳定性均超越了 GAN 和 VAE。这一成功背后是一套异常简洁的数学结构：<strong>扩散模型本质上是偏微分方程（PDE）的数值求解器</strong>。</p><ul><li>添加高斯噪声对应于<strong>正向积分 Fokker–Planck 方程</strong>；</li><li>学习去噪等价于学习 <strong>score 函数</strong> <span class=math-inline>$\nabla\log p_t$</span>
 ；</li><li>DDPM 是离散化的<strong>反向 SDE</strong>；DDIM 则是对应的<strong>概率流 ODE</strong>；</li><li>Stable Diffusion 将这套机制搬到了低维潜空间中执行。</li></ul><p><strong>你将学到的内容</strong>：</p><ol><li>热方程与高斯核——扩散过程的数学基础；</li><li>随机微分方程（SDE）与 Fokker–Planck 方程——概率密度如何演化；</li><li>Score 函数、Score Matching（DSM/SSM）与 Langevin 动力学；</li><li>DDPM 作为离散反向 SDE，DDIM 作为概率流 ODE；</li><li>潜空间扩散（Stable Diffusion）及其与科学计算的联系。</li></ol><p><strong>前置知识</strong>：多元微积分、基础概率论（高斯分布、贝叶斯）、神经网络基本原理。</p><hr><h2 id=热方程与扩散过程 class=heading-anchor>热方程与扩散过程<a href=#%e7%83%ad%e6%96%b9%e7%a8%8b%e4%b8%8e%e6%89%a9%e6%95%a3%e8%bf%87%e7%a8%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=fick-定律与扩散方程 class=heading-anchor>Fick 定律与扩散方程<a href=#fick-%e5%ae%9a%e5%be%8b%e4%b8%8e%e6%89%a9%e6%95%a3%e6%96%b9%e7%a8%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 \mathbf{J} = -D\,\nabla u,
 $$</span>
@@ -41,376 +41,27 @@ $$</span><p>高频成分（大 <span class=math-inline>$\|\mathbf{k}\|$</span>
 ）比低频成分指数级更快地衰减。<strong>扩散本质上是一个低通滤波器</strong>——精细结构最先消失，粗粒度结构最后留存。因此，反向的去噪过程必须重建高频信息；而这正是 score 网络所承担的任务。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/fig1_forward_diffusion.png alt="前向扩散把结构化数据变成各向同性的高斯噪声；下排展示边际密度 0 按 Fokker–Planck 方程预测收敛到 1。" loading=lazy decoding=async class=content-image></figure><em>前向扩散将结构化数据逐步转化为各向同性高斯噪声；底部一行展示了边际密度 <span class=math-inline>$p_t$</span>
 如何按 Fokker–Planck 方程预测收敛至 <span class=math-inline>$\mathcal{N}(0, I)$</span>
 。</em></p><hr><p><strong>实现：观察扩散过程如何逐步摧毁数据结构</strong><br>我们可以直接模拟前向扩散过程，并验证 <span class=math-inline>$p_t$</span>
-确实收敛至标准高斯分布：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
-</span><span class=lnt>  2
-</span><span class=lnt>  3
-</span><span class=lnt>  4
-</span><span class=lnt>  5
-</span><span class=lnt>  6
-</span><span class=lnt>  7
-</span><span class=lnt>  8
-</span><span class=lnt>  9
-</span><span class=lnt> 10
-</span><span class=lnt> 11
-</span><span class=lnt> 12
-</span><span class=lnt> 13
-</span><span class=lnt> 14
-</span><span class=lnt> 15
-</span><span class=lnt> 16
-</span><span class=lnt> 17
-</span><span class=lnt> 18
-</span><span class=lnt> 19
-</span><span class=lnt> 20
-</span><span class=lnt> 21
-</span><span class=lnt> 22
-</span><span class=lnt> 23
-</span><span class=lnt> 24
-</span><span class=lnt> 25
-</span><span class=lnt> 26
-</span><span class=lnt> 27
-</span><span class=lnt> 28
-</span><span class=lnt> 29
-</span><span class=lnt> 30
-</span><span class=lnt> 31
-</span><span class=lnt> 32
-</span><span class=lnt> 33
-</span><span class=lnt> 34
-</span><span class=lnt> 35
-</span><span class=lnt> 36
-</span><span class=lnt> 37
-</span><span class=lnt> 38
-</span><span class=lnt> 39
-</span><span class=lnt> 40
-</span><span class=lnt> 41
-</span><span class=lnt> 42
-</span><span class=lnt> 43
-</span><span class=lnt> 44
-</span><span class=lnt> 45
-</span><span class=lnt> 46
-</span><span class=lnt> 47
-</span><span class=lnt> 48
-</span><span class=lnt> 49
-</span><span class=lnt> 50
-</span><span class=lnt> 51
-</span><span class=lnt> 52
-</span><span class=lnt> 53
-</span><span class=lnt> 54
-</span><span class=lnt> 55
-</span><span class=lnt> 56
-</span><span class=lnt> 57
-</span><span class=lnt> 58
-</span><span class=lnt> 59
-</span><span class=lnt> 60
-</span><span class=lnt> 61
-</span><span class=lnt> 62
-</span><span class=lnt> 63
-</span><span class=lnt> 64
-</span><span class=lnt> 65
-</span><span class=lnt> 66
-</span><span class=lnt> 67
-</span><span class=lnt> 68
-</span><span class=lnt> 69
-</span><span class=lnt> 70
-</span><span class=lnt> 71
-</span><span class=lnt> 72
-</span><span class=lnt> 73
-</span><span class=lnt> 74
-</span><span class=lnt> 75
-</span><span class=lnt> 76
-</span><span class=lnt> 77
-</span><span class=lnt> 78
-</span><span class=lnt> 79
-</span><span class=lnt> 80
-</span><span class=lnt> 81
-</span><span class=lnt> 82
-</span><span class=lnt> 83
-</span><span class=lnt> 84
-</span><span class=lnt> 85
-</span><span class=lnt> 86
-</span><span class=lnt> 87
-</span><span class=lnt> 88
-</span><span class=lnt> 89
-</span><span class=lnt> 90
-</span><span class=lnt> 91
-</span><span class=lnt> 92
-</span><span class=lnt> 93
-</span><span class=lnt> 94
-</span><span class=lnt> 95
-</span><span class=lnt> 96
-</span><span class=lnt> 97
-</span><span class=lnt> 98
-</span><span class=lnt> 99
-</span><span class=lnt>100
-</span><span class=lnt>101
-</span><span class=lnt>102
-</span><span class=lnt>103
-</span><span class=lnt>104
-</span><span class=lnt>105
-</span><span class=lnt>106
-</span><span class=lnt>107
-</span><span class=lnt>108
-</span><span class=lnt>109
-</span><span class=lnt>110
-</span><span class=lnt>111
-</span><span class=lnt>112
-</span><span class=lnt>113
-</span><span class=lnt>114
-</span><span class=lnt>115
-</span><span class=lnt>116
-</span><span class=lnt>117
-</span><span class=lnt>118
-</span><span class=lnt>119
-</span><span class=lnt>120
-</span><span class=lnt>121
-</span><span class=lnt>122
-</span><span class=lnt>123
-</span><span class=lnt>124
-</span><span class=lnt>125
-</span><span class=lnt>126
-</span><span class=lnt>127
-</span><span class=lnt>128
-</span><span class=lnt>129
-</span><span class=lnt>130
-</span><span class=lnt>131
-</span><span class=lnt>132
-</span><span class=lnt>133
-</span><span class=lnt>134
-</span><span class=lnt>135
-</span><span class=lnt>136
-</span><span class=lnt>137
-</span><span class=lnt>138
-</span><span class=lnt>139
-</span><span class=lnt>140
-</span><span class=lnt>141
-</span><span class=lnt>142
-</span><span class=lnt>143
-</span><span class=lnt>144
-</span><span class=lnt>145
-</span><span class=lnt>146
-</span><span class=lnt>147
-</span><span class=lnt>148
-</span><span class=lnt>149
-</span><span class=lnt>150
-</span><span class=lnt>151
-</span><span class=lnt>152
-</span><span class=lnt>153
-</span><span class=lnt>154
-</span><span class=lnt>155
-</span><span class=lnt>156
-</span><span class=lnt>157
-</span><span class=lnt>158
-</span><span class=lnt>159
-</span><span class=lnt>160
-</span><span class=lnt>161
-</span><span class=lnt>162
-</span><span class=lnt>163
-</span><span class=lnt>164
-</span><span class=lnt>165
-</span><span class=lnt>166
-</span><span class=lnt>167
-</span><span class=lnt>168
-</span><span class=lnt>169
-</span><span class=lnt>170
-</span><span class=lnt>171
-</span><span class=lnt>172
-</span><span class=lnt>173
-</span><span class=lnt>174
-</span><span class=lnt>175
-</span><span class=lnt>176
-</span><span class=lnt>177
-</span><span class=lnt>178
-</span><span class=lnt>179
-</span><span class=lnt>180
-</span><span class=lnt>181
-</span><span class=lnt>182
-</span><span class=lnt>183
-</span><span class=lnt>184
-</span><span class=lnt>185
-</span><span class=lnt>186
-</span><span class=lnt>187
-</span><span class=lnt>188
-</span><span class=lnt>189
-</span><span class=lnt>190
-</span><span class=lnt>191
-</span><span class=lnt>192
-</span><span class=lnt>193
-</span><span class=lnt>194
-</span><span class=lnt>195
-</span><span class=lnt>196
-</span><span class=lnt>197
-</span><span class=lnt>198
-</span><span class=lnt>199
-</span><span class=lnt>200
-</span><span class=lnt>201
-</span><span class=lnt>202
-</span><span class=lnt>203
-</span><span class=lnt>204
-</span><span class=lnt>205
-</span><span class=lnt>206
-</span><span class=lnt>207
-</span><span class=lnt>208
-</span><span class=lnt>209
-</span><span class=lnt>210
-</span><span class=lnt>211
-</span><span class=lnt>212
-</span><span class=lnt>213
-</span><span class=lnt>214
-</span><span class=lnt>215
-</span><span class=lnt>216
-</span><span class=lnt>217
-</span><span class=lnt>218
-</span><span class=lnt>219
-</span><span class=lnt>220
-</span><span class=lnt>221
-</span><span class=lnt>222
-</span><span class=lnt>223
-</span><span class=lnt>224
-</span><span class=lnt>225
-</span><span class=lnt>226
-</span><span class=lnt>227
-</span><span class=lnt>228
-</span><span class=lnt>229
-</span><span class=lnt>230
-</span><span class=lnt>231
-</span><span class=lnt>232
-</span><span class=lnt>233
-</span><span class=lnt>234
-</span><span class=lnt>235
-</span><span class=lnt>236
-</span><span class=lnt>237
-</span><span class=lnt>238
-</span><span class=lnt>239
-</span><span class=lnt>240
-</span><span class=lnt>241
-</span><span class=lnt>242
-</span><span class=lnt>243
-</span><span class=lnt>244
-</span><span class=lnt>245
-</span><span class=lnt>246
-</span><span class=lnt>247
-</span><span class=lnt>248
-</span><span class=lnt>249
-</span><span class=lnt>250
-</span><span class=lnt>251
-</span><span class=lnt>252
-</span><span class=lnt>253
-</span><span class=lnt>254
-</span><span class=lnt>255
-</span><span class=lnt>256
-</span><span class=lnt>257
-</span><span class=lnt>258
-</span><span class=lnt>259
-</span><span class=lnt>260
-</span><span class=lnt>261
-</span><span class=lnt>262
-</span><span class=lnt>263
-</span><span class=lnt>264
-</span><span class=lnt>265
-</span><span class=lnt>266
-</span><span class=lnt>267
-</span><span class=lnt>268
-</span><span class=lnt>269
-</span><span class=lnt>270
-</span><span class=lnt>271
-</span><span class=lnt>272
-</span><span class=lnt>273
-</span><span class=lnt>274
-</span><span class=lnt>275
-</span><span class=lnt>276
-</span><span class=lnt>277
-</span><span class=lnt>278
-</span><span class=lnt>279
-</span><span class=lnt>280
-</span><span class=lnt>281
-</span><span class=lnt>282
-</span><span class=lnt>283
-</span><span class=lnt>284
-</span><span class=lnt>285
-</span><span class=lnt>286
-</span><span class=lnt>287
-</span><span class=lnt>288
-</span><span class=lnt>289
-</span><span class=lnt>290
-</span><span class=lnt>291
-</span><span class=lnt>292
-</span><span class=lnt>293
-</span><span class=lnt>294
-</span><span class=lnt>295
-</span><span class=lnt>296
-</span><span class=lnt>297
-</span><span class=lnt>298
-</span><span class=lnt>299
-</span><span class=lnt>300
-</span><span class=lnt>301
-</span><span class=lnt>302
-</span><span class=lnt>303
-</span><span class=lnt>304
-</span><span class=lnt>305
-</span><span class=lnt>306
-</span><span class=lnt>307
-</span><span class=lnt>308
-</span><span class=lnt>309
-</span><span class=lnt>310
-</span><span class=lnt>311
-</span><span class=lnt>312
-</span><span class=lnt>313
-</span><span class=lnt>314
-</span><span class=lnt>315
-</span><span class=lnt>316
-</span><span class=lnt>317
-</span><span class=lnt>318
-</span><span class=lnt>319
-</span><span class=lnt>320
-</span><span class=lnt>321
-</span><span class=lnt>322
-</span><span class=lnt>323
-</span><span class=lnt>324
-</span><span class=lnt>325
-</span><span class=lnt>326
-</span><span class=lnt>327
-</span><span class=lnt>328
-</span><span class=lnt>329
-</span><span class=lnt>330
-</span><span class=lnt>331
-</span><span class=lnt>332
-</span><span class=lnt>333
-</span><span class=lnt>334
-</span><span class=lnt>335
-</span><span class=lnt>336
-</span><span class=lnt>337
-</span><span class=lnt>338
-</span><span class=lnt>339
-</span><span class=lnt>340
-</span><span class=lnt>341
-</span><span class=lnt>342
-</span><span class=lnt>343
-</span><span class=lnt>344
-</span><span class=lnt>345
-</span><span class=lnt>346
-</span><span class=lnt>347
-</span><span class=lnt>348
-</span><span class=lnt>349
-</span><span class=lnt>350
-</span><span class=lnt>351
-</span><span class=lnt>352
-</span><span class=lnt>353
-</span><span class=lnt>354
-</span><span class=lnt>355
-</span><span class=lnt>356
-</span><span class=lnt>357
-</span><span class=lnt>358
-</span><span class=lnt>359
-</span><span class=lnt>360
-</span><span class=lnt>361
-</span><span class=lnt>362
-</span><span class=lnt>363
-</span><span class=lnt>364
-</span><span class=lnt>365
-</span><span class=lnt>366
-</span><span class=lnt>367
-</span><span class=lnt>368
-</span><span class=lnt>369
-</span><span class=lnt>370
+确实收敛至标准高斯分布：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>make_two_moons</span><span class=p>(</span><span class=n>n</span><span class=o>=</span><span class=mi>2000</span><span class=p>,</span> <span class=n>noise</span><span class=o>=</span><span class=mf>0.05</span><span class=p>):</span>
@@ -432,108 +83,90 @@ $$</span><p>高频成分（大 <span class=math-inline>$\|\mathbf{k}\|$</span>
 </span></span><span class=line><span class=cl>    <span class=n>xt</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>alpha_bar</span><span class=p>[</span><span class=n>t</span><span class=p>])</span> <span class=o>*</span> <span class=n>x0</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>alpha_bar</span><span class=p>[</span><span class=n>t</span><span class=p>])</span> <span class=o>*</span> <span class=n>eps</span>
 </span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;t=</span><span class=si>{</span><span class=n>t</span><span class=si>:</span><span class=s2>4d</span><span class=si>}</span><span class=s2>: mean=</span><span class=si>{</span><span class=n>xt</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=mi>3</span><span class=p>)</span><span class=si>}</span><span class=s2>, std=</span><span class=si>{</span><span class=n>xt</span><span class=o>.</span><span class=n>std</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=mi>3</span><span class=p>)</span><span class=si>}</span><span class=s2>, &#34;</span>
 </span></span><span class=line><span class=cl>          <span class=sa>f</span><span class=s2>&#34;alpha_bar=</span><span class=si>{</span><span class=n>alpha_bar</span><span class=p>[</span><span class=n>t</span><span class=p>]</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>在</span> <span class=err>$</span><span class=n>t</span><span class=o>=</span><span class=mi>0</span><span class=err>$</span> <span class=n>时</span><span class=err>，</span><span class=n>数据呈现出清晰的双月形结构</span><span class=err>（</span><span class=n>方差小</span><span class=err>、</span><span class=n>均值明显偏离原点</span><span class=err>）；</span><span class=n>而到</span> <span class=err>$</span><span class=n>t</span><span class=o>=</span><span class=mi>999</span><span class=err>$</span> <span class=n>时</span><span class=err>，$</span>\<span class=n>bar</span>\<span class=n>alpha_T</span> \<span class=n>approx</span> <span class=mi>10</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>4</span><span class=p>}</span><span class=err>$，</span><span class=n>此时</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_T</span><span class=err>$</span> <span class=n>已几乎完全退化为纯高斯噪声</span><span class=err>——</span><span class=n>整个前向过程就像一个低通滤波器</span><span class=err>，</span><span class=n>彻底抹去了所有原始结构信息</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>## SDE 与 Fokker–Planck 方程</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>Ornstein</span><span class=o>-</span><span class=n>Uhlenbeck</span> <span class=n>SDE样本路径收敛及直方图向高斯演化</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>07</span><span class=o>-</span><span class=n>扩散模型与Score</span><span class=o>-</span><span class=n>Matching</span><span class=o>/</span><span class=n>fig8_sde_particle_trajectories</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>热方程描述的是密度的</span><span class=o>**</span><span class=n>确定性</span><span class=o>**</span><span class=n>演化</span><span class=err>。</span><span class=n>但若想刻画单个样本路径</span><span class=err>——</span><span class=n>这正是扩散模型实际生成的对象</span><span class=err>——</span><span class=n>我们需要引入随机微分方程</span><span class=err>（</span><span class=n>SDE</span><span class=err>）。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 布朗运动与 Itô SDE</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>布朗运动</span><span class=o>**</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>B</span><span class=p>}</span><span class=n>_t</span><span class=err>$</span> <span class=n>满足</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>B</span><span class=p>}</span><span class=n>_0</span> <span class=o>=</span> <span class=mi>0</span><span class=err>$，</span><span class=n>具有独立的高斯增量</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>B</span><span class=p>}</span><span class=n>_</span><span class=p>{</span><span class=n>t</span><span class=o>+</span>\<span class=n>Delta</span> <span class=n>t</span><span class=p>}</span> <span class=o>-</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>B</span><span class=p>}</span><span class=n>_t</span> \<span class=n>sim</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>N</span><span class=p>}(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=mi>0</span><span class=p>},</span> \<span class=n>Delta</span> <span class=n>t</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>})</span><span class=err>$，</span><span class=n>其路径连续但处处不可微</span><span class=err>。</span><span class=n>一般的</span> <span class=n>Itô</span> <span class=n>SDE</span> <span class=n>形式为</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>d</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_t</span> <span class=o>=</span> <span class=n>f</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_t</span><span class=p>,</span> <span class=n>t</span><span class=p>)</span>\<span class=p>,</span><span class=n>dt</span> <span class=o>+</span> <span class=n>g</span><span class=p>(</span><span class=n>t</span><span class=p>)</span>\<span class=p>,</span><span class=n>d</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>B</span><span class=p>}</span><span class=n>_t</span><span class=p>,</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>3</span><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span><span class=n>f</span><span class=err>$</span> <span class=n>称为</span><span class=o>**</span><span class=n>漂移项</span><span class=o>**</span><span class=err>（</span><span class=n>确定性驱动力</span><span class=err>），$</span><span class=n>g</span><span class=err>$</span> <span class=n>是</span><span class=o>**</span><span class=n>扩散系数</span><span class=o>**</span><span class=err>（</span><span class=n>噪声强度</span><span class=err>）。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>当前扩散模型文献中占主导地位的两种调度方案如下</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>调度</span> <span class=o>|</span> <span class=n>漂移</span> <span class=err>$</span><span class=n>f</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>},</span> <span class=n>t</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=n>扩散</span> <span class=err>$</span><span class=n>g</span><span class=p>(</span><span class=n>t</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=n>平稳分布</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl><span class=o>|------|------------------------|--------------|----------|</span>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>方差保持</span><span class=err>（</span><span class=n>VP</span><span class=err>）</span> <span class=o>|</span> <span class=err>$</span><span class=o>-</span>\<span class=n>tfrac</span><span class=p>{</span><span class=mi>1</span><span class=p>}{</span><span class=mi>2</span><span class=p>}</span>\<span class=n>beta</span><span class=p>(</span><span class=n>t</span><span class=p>)</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span>\<span class=n>sqrt</span><span class=p>{</span>\<span class=n>beta</span><span class=p>(</span><span class=n>t</span><span class=p>)}</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>N</span><span class=p>}(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=mi>0</span><span class=p>},</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>})</span><span class=err>$</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>方差爆炸</span><span class=err>（</span><span class=n>VE</span><span class=err>）</span> <span class=o>|</span> <span class=err>$</span><span class=mi>0</span><span class=err>$</span> <span class=o>|</span> <span class=err>$</span>\<span class=n>sqrt</span><span class=p>{</span><span class=n>d</span>\<span class=n>sigma</span><span class=o>^</span><span class=mi>2</span><span class=o>/</span><span class=n>dt</span><span class=p>}</span><span class=err>$</span> <span class=o>|</span> <span class=n>方差无界增长</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>DDPM</span> <span class=n>是</span> <span class=n>VP</span><span class=o>-</span><span class=n>SDE</span> <span class=n>的离散化</span><span class=err>；</span><span class=n>而</span> <span class=n>Song</span> <span class=o>&amp;</span> <span class=n>Ermon</span><span class=err>（</span><span class=mi>2019</span><span class=err>）</span><span class=n>提出的原始</span> <span class=n>NCSN</span> <span class=n>则对应</span> <span class=n>VE</span> <span class=n>的离散化</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### Fokker–Planck 方程</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>若随机过程</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_t</span><span class=err>$</span> <span class=n>满足</span> <span class=p>(</span><span class=mi>3</span><span class=p>)</span><span class=err>，</span><span class=n>其概率密度</span> <span class=err>$</span><span class=n>p</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>},</span> <span class=n>t</span><span class=p>)</span><span class=err>$</span> <span class=n>满足</span><span class=o>**</span><span class=n>Fokker</span><span class=err>–</span><span class=n>Planck</span> <span class=n>方程</span><span class=o>**</span><span class=err>（</span><span class=n>即</span> <span class=n>Kolmogorov</span> <span class=n>前向方程</span><span class=err>）：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>boxed</span><span class=p>{</span>\<span class=p>;</span>\<span class=n>frac</span><span class=p>{</span>\<span class=n>partial</span> <span class=n>p</span><span class=p>}{</span>\<span class=n>partial</span> <span class=n>t</span><span class=p>}</span> \<span class=p>;</span><span class=o>=</span>\<span class=p>;</span> <span class=o>-</span>\<span class=n>nabla</span>\<span class=err>!</span>\<span class=n>cdot</span>\<span class=err>!</span>\<span class=n>bigl</span><span class=p>(</span><span class=n>f</span>\<span class=p>,</span><span class=n>p</span>\<span class=n>bigr</span><span class=p>)</span> \<span class=p>;</span><span class=o>+</span>\<span class=p>;</span> \<span class=n>tfrac</span><span class=p>{</span><span class=mi>1</span><span class=p>}{</span><span class=mi>2</span><span class=p>}</span>\<span class=p>,</span><span class=n>g</span><span class=o>^</span><span class=mi>2</span>\<span class=p>,</span>\<span class=n>nabla</span><span class=o>^</span><span class=mi>2</span> <span class=n>p</span>\<span class=p>;</span><span class=o>.</span><span class=p>}</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>4</span><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>证明概要</span><span class=o>**</span><span class=err>：</span><span class=n>对任意光滑测试函数</span> <span class=err>$</span>\<span class=n>varphi</span><span class=err>$，</span><span class=n>由</span> <span class=n>Itô</span> <span class=n>公式得</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>d</span>\<span class=n>varphi</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_t</span><span class=p>)</span> <span class=o>=</span> \<span class=n>bigl</span><span class=p>(</span><span class=n>f</span>\<span class=err>!</span>\<span class=n>cdot</span>\<span class=err>!</span>\<span class=n>nabla</span>\<span class=n>varphi</span> <span class=o>+</span> \<span class=n>tfrac</span><span class=p>{</span><span class=mi>1</span><span class=p>}{</span><span class=mi>2</span><span class=p>}</span><span class=n>g</span><span class=o>^</span><span class=mi>2</span>\<span class=n>nabla</span><span class=o>^</span><span class=mi>2</span>\<span class=n>varphi</span>\<span class=n>bigr</span><span class=p>)</span>\<span class=p>,</span><span class=n>dt</span> <span class=o>+</span> <span class=n>g</span>\<span class=p>,</span>\<span class=n>nabla</span>\<span class=n>varphi</span>\<span class=err>!</span>\<span class=n>cdot</span>\<span class=err>!</span><span class=n>d</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>B</span><span class=p>}</span><span class=n>_t</span><span class=o>.</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>取期望后鞅项消失</span><span class=err>，</span><span class=n>再利用</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}[</span>\<span class=n>varphi</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_t</span><span class=p>)]</span> <span class=o>=</span> \<span class=nb>int</span> \<span class=n>varphi</span>\<span class=p>,</span><span class=n>p</span>\<span class=p>,</span><span class=n>d</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=err>$</span> <span class=n>并分部积分</span><span class=err>（</span><span class=n>因</span> <span class=err>$</span>\<span class=n>varphi</span><span class=err>$</span> <span class=n>任意</span><span class=err>），</span><span class=n>即可导出</span> <span class=p>(</span><span class=mi>4</span><span class=p>)</span><span class=err>。$</span>\<span class=n>blacksquare</span><span class=err>$</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>一致性验证</span><span class=o>**</span><span class=err>：</span><span class=n>在</span> <span class=p>(</span><span class=mi>4</span><span class=p>)</span> <span class=n>中令</span> <span class=err>$</span><span class=n>f</span> \<span class=n>equiv</span> <span class=mi>0</span><span class=err>$</span> <span class=n>且</span> <span class=err>$</span><span class=n>g</span><span class=o>^</span><span class=mi>2</span><span class=o>/</span><span class=mi>2</span> <span class=o>=</span> <span class=n>D</span><span class=err>$，</span><span class=n>即得热方程</span> <span class=err>$</span>\<span class=n>partial_t</span> <span class=n>p</span> <span class=o>=</span> <span class=n>D</span>\<span class=p>,</span>\<span class=n>nabla</span><span class=o>^</span><span class=mi>2</span> <span class=n>p</span><span class=err>$。</span><span class=n>可见</span> <span class=n>Fokker</span><span class=err>–</span><span class=n>Planck</span> <span class=n>方程正是带漂移项的热方程</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### Kolmogorov 后向方程</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>对于终端收益</span> <span class=err>$</span><span class=n>g</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_T</span><span class=p>)</span><span class=err>$，</span><span class=n>条件期望</span> <span class=err>$</span><span class=n>u</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})</span> <span class=o>=</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}[</span><span class=n>g</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_T</span><span class=p>)</span>\<span class=p>,</span><span class=o>|</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_s</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}]</span><span class=err>$</span> <span class=n>满足</span><span class=o>**</span><span class=n>后向方程</span><span class=o>**</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>partial_s</span> <span class=n>u</span> <span class=o>+</span> <span class=n>f</span>\<span class=err>!</span>\<span class=n>cdot</span>\<span class=err>!</span>\<span class=n>nabla</span> <span class=n>u</span> <span class=o>+</span> \<span class=n>tfrac</span><span class=p>{</span><span class=mi>1</span><span class=p>}{</span><span class=mi>2</span><span class=p>}</span><span class=n>g</span><span class=o>^</span><span class=mi>2</span> \<span class=n>nabla</span><span class=o>^</span><span class=mi>2</span> <span class=n>u</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>终端条件为</span> <span class=err>$</span><span class=n>u</span><span class=p>(</span><span class=n>T</span><span class=p>,</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})</span> <span class=o>=</span> <span class=n>g</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})</span><span class=err>$。</span><span class=n>前向方程推动密度向前演化</span><span class=err>，</span><span class=n>后向方程则将期望向后传播</span><span class=err>。</span><span class=n>二者共同构成</span> <span class=n>Feynman</span><span class=err>–</span><span class=n>Kac</span> <span class=n>对应关系</span><span class=err>——</span><span class=n>而前向</span> <span class=n>SDE</span> <span class=n>的时间反演</span><span class=err>，</span><span class=n>正是我们用来</span><span class=o>**</span><span class=n>生成样本</span><span class=o>**</span><span class=n>的关键工具</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>## 基于 Score 的生成模型</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>偏微分方程与机器学习</span><span class=err>（</span><span class=n>七</span><span class=err>）：</span><span class=n>扩散模型与</span> <span class=n>Score</span> <span class=n>Matching</span> <span class=err>—</span> <span class=n>章节小结图</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>07</span><span class=o>-</span><span class=n>Diffusion</span><span class=o>-</span><span class=n>Models</span><span class=o>/</span><span class=n>illustration_2</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### Score 函数</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>密度</span> <span class=err>$</span><span class=n>p</span><span class=err>$</span> <span class=n>的</span> <span class=o>**</span><span class=n>score</span><span class=o>**</span> <span class=n>定义为</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>mathbf</span><span class=p>{</span><span class=n>s</span><span class=p>}(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})</span> \<span class=p>;</span><span class=o>:=</span>\<span class=p>;</span> \<span class=n>nabla_</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}}</span>\<span class=p>,</span>\<span class=n>log</span> <span class=n>p</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})</span><span class=o>.</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>5</span><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>它具有三个重要性质</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>无需归一化</span><span class=o>**</span><span class=err>：$</span>\<span class=n>nabla</span> \<span class=n>log</span><span class=p>(</span><span class=n>p</span> <span class=o>/</span> <span class=n>Z</span><span class=p>)</span> <span class=o>=</span> \<span class=n>nabla</span> \<span class=n>log</span> <span class=n>p</span><span class=err>$，</span><span class=n>因此无需知道配分函数</span> <span class=err>$</span><span class=n>Z</span><span class=err>$；</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>高斯分布有解析解</span><span class=o>**</span><span class=err>：</span><span class=n>若</span> <span class=err>$</span><span class=n>p</span> <span class=o>=</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>N</span><span class=p>}(</span>\<span class=n>boldsymbol</span>\<span class=n>mu</span><span class=p>,</span> \<span class=n>sigma</span><span class=o>^</span><span class=mi>2</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>})</span><span class=err>$，</span><span class=n>则</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>s</span><span class=p>}(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})</span> <span class=o>=</span> <span class=o>-</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span> <span class=o>-</span> \<span class=n>boldsymbol</span>\<span class=n>mu</span><span class=p>)</span> <span class=o>/</span> \<span class=n>sigma</span><span class=o>^</span><span class=mi>2</span><span class=err>$；</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>期望为零</span><span class=o>**</span><span class=err>：</span><span class=n>在温和正则条件下</span><span class=err>，$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}</span><span class=n>_p</span><span class=p>[</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>s</span><span class=p>}(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})]</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=mi>0</span><span class=p>}</span><span class=err>$。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>几何上</span><span class=err>，</span><span class=n>score</span> <span class=n>是一个始终指向高概率区域的向量场</span><span class=err>，</span><span class=n>在低密度</span><span class=err>“</span><span class=n>山谷</span><span class=err>”</span><span class=n>中模长较大</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>双峰高斯混合的</span> <span class=n>score</span> <span class=n>场</span><span class=err>：</span><span class=n>箭头沿密度梯度向上</span><span class=err>，</span><span class=n>指向两个模式</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>07</span><span class=o>-</span><span class=n>扩散模型与Score</span><span class=o>-</span><span class=n>Matching</span><span class=o>/</span><span class=n>fig3_score_field</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>双峰高斯混合分布的</span> <span class=n>score</span> <span class=n>场</span><span class=err>：</span><span class=n>箭头沿密度梯度</span><span class=err>“</span><span class=n>上坡</span><span class=err>”，</span><span class=n>远离低密度区域</span><span class=err>，</span><span class=n>指向两个峰值</span><span class=err>。</span><span class=o>*</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### Score Matching</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>由于真实密度</span> <span class=err>$</span><span class=n>p</span><span class=err>$</span> <span class=n>未知</span><span class=err>，</span><span class=n>无法直接最小化</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}</span><span class=n>_p</span>\<span class=p>,</span>\<span class=o>|</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>s</span><span class=p>}</span><span class=n>_</span>\<span class=n>theta</span> <span class=o>-</span> \<span class=n>nabla</span>\<span class=n>log</span> <span class=n>p</span>\<span class=o>|^</span><span class=mi>2</span><span class=err>$。</span><span class=n>目前有三种实用的替代方案</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>隐式</span> <span class=n>Score</span> <span class=n>Matching</span><span class=err>（</span><span class=n>ISM</span><span class=p>,</span> <span class=n>Hyvärinen</span> <span class=mi>2005</span><span class=err>）</span><span class=o>**</span><span class=err>：</span><span class=n>通过分部积分消去未知项</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>mathcal</span><span class=p>{</span><span class=n>L</span><span class=p>}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>ISM</span><span class=p>}}(</span>\<span class=n>theta</span><span class=p>)</span> <span class=o>=</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}</span><span class=n>_p</span>\<span class=n>Bigl</span><span class=p>[</span>\<span class=p>,</span>\<span class=n>tfrac</span><span class=p>{</span><span class=mi>1</span><span class=p>}{</span><span class=mi>2</span><span class=p>}</span>\<span class=o>|</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>s</span><span class=p>}</span><span class=n>_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})</span>\<span class=o>|^</span><span class=mi>2</span> <span class=o>+</span> \<span class=n>mathrm</span><span class=p>{</span><span class=n>tr</span><span class=p>}</span>\<span class=n>bigl</span><span class=p>(</span>\<span class=n>nabla</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>s</span><span class=p>}</span><span class=n>_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})</span>\<span class=n>bigr</span><span class=p>)</span>\<span class=n>Bigr</span><span class=p>]</span><span class=o>.</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>但雅可比矩阵的迹在高维下计算代价高昂</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>切片</span> <span class=n>Score</span> <span class=n>Matching</span><span class=err>（</span><span class=n>SSM</span><span class=p>,</span> <span class=n>Song</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span> <span class=mi>2019</span><span class=err>）</span><span class=o>**</span><span class=err>：</span><span class=n>将梯度投影到随机方向</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>v</span><span class=p>}</span><span class=err>$：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>mathcal</span><span class=p>{</span><span class=n>L</span><span class=p>}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>SSM</span><span class=p>}}(</span>\<span class=n>theta</span><span class=p>)</span> <span class=o>=</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}</span><span class=n>_</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>v</span><span class=p>},</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}}</span>\<span class=n>Bigl</span><span class=p>[</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>v</span><span class=p>}</span><span class=o>^</span>\<span class=n>top</span> \<span class=n>nabla</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>s</span><span class=p>}</span><span class=n>_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>v</span><span class=p>}</span> <span class=o>+</span> \<span class=n>tfrac</span><span class=p>{</span><span class=mi>1</span><span class=p>}{</span><span class=mi>2</span><span class=p>}(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>v</span><span class=p>}</span><span class=o>^</span>\<span class=n>top</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>s</span><span class=p>}</span><span class=n>_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}))</span><span class=o>^</span><span class=mi>2</span>\<span class=n>Bigr</span><span class=p>]</span><span class=o>.</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>每样本只需一次</span> <span class=n>Hessian</span><span class=err>–</span><span class=n>向量乘积</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>去噪</span> <span class=n>Score</span> <span class=n>Matching</span><span class=err>（</span><span class=n>DSM</span><span class=p>,</span> <span class=n>Vincent</span> <span class=mi>2011</span><span class=err>）——</span><span class=n>主流方法</span><span class=o>**</span><span class=err>：</span><span class=n>对数据加噪</span> <span class=err>$</span>\<span class=n>tilde</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span> <span class=o>+</span> \<span class=n>sigma</span>\<span class=p>,</span>\<span class=n>boldsymbol</span>\<span class=n>eta</span><span class=err>$，</span><span class=n>其中</span> <span class=err>$</span>\<span class=n>boldsymbol</span>\<span class=n>eta</span> \<span class=n>sim</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>N</span><span class=p>}(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=mi>0</span><span class=p>},</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>})</span><span class=err>$，</span><span class=n>并训练网络预测噪声方向</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>boxed</span><span class=p>{</span>\<span class=p>;</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>L</span><span class=p>}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>DSM</span><span class=p>}}(</span>\<span class=n>theta</span><span class=p>)</span> <span class=o>=</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}</span><span class=n>_</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>},</span> \<span class=n>tilde</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}}}</span>\<span class=n>Bigl</span><span class=p>[</span>\<span class=n>bigl</span>\<span class=o>|</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>s</span><span class=p>}</span><span class=n>_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>tilde</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}})</span> <span class=o>+</span> \<span class=n>tfrac</span><span class=p>{</span>\<span class=n>tilde</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}}</span> <span class=o>-</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}}{</span>\<span class=n>sigma</span><span class=o>^</span><span class=mi>2</span><span class=p>}</span>\<span class=n>bigr</span>\<span class=o>|^</span><span class=mi>2</span>\<span class=n>Bigr</span><span class=p>]</span><span class=o>.</span>\<span class=p>;}</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>6</span><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>Vincent</span> <span class=n>证明</span><span class=err>：</span><span class=p>(</span><span class=mi>6</span><span class=p>)</span> <span class=n>的最优解与匹配加噪分布</span> <span class=err>$</span><span class=n>p_</span>\<span class=n>sigma</span> <span class=o>=</span> <span class=n>p</span> <span class=o>*</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>N</span><span class=p>}(</span><span class=mi>0</span><span class=p>,</span> \<span class=n>sigma</span><span class=o>^</span><span class=mi>2</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>})</span><span class=err>$</span> <span class=n>的真实</span> <span class=n>score</span> <span class=n>一致</span><span class=err>。</span><span class=n>当</span> <span class=err>$</span>\<span class=n>sigma</span> \<span class=n>to</span> <span class=mi>0</span><span class=err>$</span> <span class=n>时</span><span class=err>，$</span><span class=n>p_</span>\<span class=n>sigma</span> \<span class=n>to</span> <span class=n>p</span><span class=err>$。</span><span class=n>实践中通常在训练中对</span> <span class=err>$</span>\<span class=n>sigma</span><span class=err>$</span> <span class=n>进行退火</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>左</span><span class=err>：</span><span class=n>DSM</span> <span class=n>损失单调下降并趋于平稳</span><span class=err>。</span><span class=n>右</span><span class=err>：</span><span class=n>学到的</span> <span class=n>score</span> <span class=n>在高密度区与真值吻合</span><span class=err>；</span><span class=n>中央低密度谷因被噪声平滑而看起来</span><span class=s2>&#34;被磨平&#34;</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>07</span><span class=o>-</span><span class=n>扩散模型与Score</span><span class=o>-</span><span class=n>Matching</span><span class=o>/</span><span class=n>fig5_score_matching_loss</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>左图</span><span class=err>：</span><span class=n>DSM</span> <span class=n>损失单调下降并趋于平稳</span><span class=err>；</span><span class=n>右图</span><span class=err>：</span><span class=n>学习到的</span> <span class=n>score</span> <span class=n>在高密度区域与真实</span> <span class=err>$</span>\<span class=n>nabla</span>\<span class=n>log</span> <span class=n>p</span><span class=err>$</span> <span class=n>高度吻合</span><span class=err>，</span><span class=n>而在低密度谷底</span><span class=err>（</span><span class=n>中心</span><span class=err>）</span><span class=n>因受噪声水平</span> <span class=err>$</span>\<span class=n>sigma</span><span class=err>$</span> <span class=n>平滑而显得</span><span class=err>“</span><span class=n>柔和</span><span class=err>”。</span><span class=o>*</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>实现</span><span class=err>：</span><span class=n>去噪分数匹配</span><span class=err>（</span><span class=n>Denoising</span> <span class=n>Score</span> <span class=n>Matching</span><span class=p>,</span> <span class=n>DSM</span><span class=err>）</span><span class=o>**</span>  
-</span></span><span class=line><span class=cl><span class=n>DSM</span> <span class=n>是驱动扩散模型训练的核心目标函数</span><span class=err>。</span><span class=n>下面是一个极简但功能完整的实现</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span></code></pre></td></tr></table></div></div><p>在 <span class=math-inline>$t=0$</span>
+时，数据呈现出清晰的双月形结构（方差小、均值明显偏离原点）；而到 <span class=math-inline>$t=999$</span>
+时，<span class=math-inline>$\bar\alpha_T \approx 10^{-4}$</span>
+，此时 <span class=math-inline>$\mathbf{x}_T$</span>
+已几乎完全退化为纯高斯噪声——整个前向过程就像一个低通滤波器，彻底抹去了所有原始结构信息。</p><h2 id=sde-与-fokkerplanck-方程 class=heading-anchor>SDE 与 Fokker–Planck 方程<a href=#sde-%e4%b8%8e-fokkerplanck-%e6%96%b9%e7%a8%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/fig8_sde_particle_trajectories.png alt="Ornstein-Uhlenbeck SDE样本路径收敛及直方图向高斯演化" loading=lazy decoding=async class=content-image></figure></p><p>热方程描述的是密度的<strong>确定性</strong>演化。但若想刻画单个样本路径——这正是扩散模型实际生成的对象——我们需要引入随机微分方程（SDE）。</p><h3 id=布朗运动与-itô-sde class=heading-anchor>布朗运动与 Itô SDE<a href=#%e5%b8%83%e6%9c%97%e8%bf%90%e5%8a%a8%e4%b8%8e-it%c3%b4-sde class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+d\mathbf{X}_t = f(\mathbf{X}_t, t)\,dt + g(t)\,d\mathbf{B}_t, \tag{3}
+$$</span><p>其中 <span class=math-inline>$f$</span>
+称为<strong>漂移项</strong>（确定性驱动力），<span class=math-inline>$g$</span>
+是<strong>扩散系数</strong>（噪声强度）。</p><p>当前扩散模型文献中占主导地位的两种调度方案如下：</p><div class=table-wrap><table><thead><tr><th>调度</th><th>漂移 <span class=math-inline>$f(\mathbf{x}, t)$</span></th><th>扩散 <span class=math-inline>$g(t)$</span></th><th>平稳分布</th></tr></thead><tbody><tr><td>方差保持（VP）</td><td><span class=math-inline>$-\tfrac{1}{2}\beta(t)\,\mathbf{x}$</span></td><td><span class=math-inline>$\sqrt{\beta(t)}$</span></td><td><span class=math-inline>$\mathcal{N}(\mathbf{0},\,\mathbf{I})$</span></td></tr><tr><td>方差爆炸（VE）</td><td><span class=math-inline>$0$</span></td><td><span class=math-inline>$\sqrt{d\sigma^2/dt}$</span></td><td>方差无界增长</td></tr></tbody></table></div><p>DDPM 是 VP-SDE 的离散化；而 Song & Ermon（2019）提出的原始 NCSN 则对应 VE 的离散化。</p><h3 id=fokkerplanck-方程 class=heading-anchor>Fokker–Planck 方程<a href=#fokkerplanck-%e6%96%b9%e7%a8%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\boxed{\;\frac{\partial p}{\partial t} \;=\; -\nabla\!\cdot\!\bigl(f\,p\bigr) \;+\; \tfrac{1}{2}\,g^2\,\nabla^2 p\;.} \tag{4}
+$$</span>
+<span class=math-block>$$
+d\varphi(\mathbf{X}_t) = \bigl(f\!\cdot\!\nabla\varphi + \tfrac{1}{2}g^2\nabla^2\varphi\bigr)\,dt + g\,\nabla\varphi\!\cdot\!d\mathbf{B}_t.
+$$</span><p>取期望后鞅项消失，再利用 <span class=math-inline>$\mathbb{E}[\varphi(\mathbf{X}_t)] = \int \varphi\,p\,d\mathbf{x}$</span>
+并分部积分（因 <span class=math-inline>$\varphi$</span>
+任意），即可导出 (4)。<span class=math-inline>$\blacksquare$</span></p><p><strong>一致性验证</strong>：在 (4) 中令 <span class=math-inline>$f \equiv 0$</span>
+且 <span class=math-inline>$g^2/2 = D$</span>
+，即得热方程 <span class=math-inline>$\partial_t p = D\,\nabla^2 p$</span>
+。可见 Fokker–Planck 方程正是带漂移项的热方程。</p><h3 id=kolmogorov-后向方程 class=heading-anchor>Kolmogorov 后向方程<a href=#kolmogorov-%e5%90%8e%e5%90%91%e6%96%b9%e7%a8%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\partial_s u + f\!\cdot\!\nabla u + \tfrac{1}{2}g^2 \nabla^2 u = 0,
+$$</span><p>终端条件为 <span class=math-inline>$u(T, \mathbf{x}) = g(\mathbf{x})$</span>
+。前向方程推动密度向前演化，后向方程则将期望向后传播。二者共同构成 Feynman–Kac 对应关系——而前向 SDE 的时间反演，正是我们用来<strong>生成样本</strong>的关键工具。</p><hr><h2 id=基于-score-的生成模型 class=heading-anchor>基于 Score 的生成模型<a href=#%e5%9f%ba%e4%ba%8e-score-%e7%9a%84%e7%94%9f%e6%88%90%e6%a8%a1%e5%9e%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-Diffusion-Models/illustration_2.png alt="偏微分方程与机器学习（七）：扩散模型与 Score Matching — 章节小结图" loading=lazy decoding=async class=content-image></figure></p><h3 id=score-函数 class=heading-anchor>Score 函数<a href=#score-%e5%87%bd%e6%95%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\mathbf{s}(\mathbf{x}) \;:=\; \nabla_{\mathbf{x}}\,\log p(\mathbf{x}). \tag{5}
+$$</span><p>它具有三个重要性质：</p><ul><li><strong>无需归一化</strong>：<span class=math-inline>$\nabla \log(p / Z) = \nabla \log p$</span>
+，因此无需知道配分函数 <span class=math-inline>$Z$</span>
+；</li><li><strong>高斯分布有解析解</strong>：若 <span class=math-inline>$p = \mathcal{N}(\boldsymbol\mu, \sigma^2 \mathbf{I})$</span>
+，则 <span class=math-inline>$\mathbf{s}(\mathbf{x}) = -(\mathbf{x} - \boldsymbol\mu) / \sigma^2$</span>
+；</li><li><strong>期望为零</strong>：在温和正则条件下，<span class=math-inline>$\mathbb{E}_p[\mathbf{s}(\mathbf{x})] = \mathbf{0}$</span>
+。</li></ul><p>几何上，score 是一个始终指向高概率区域的向量场，在低密度“山谷”中模长较大。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/fig3_score_field.png alt="双峰高斯混合的 score 场：箭头沿密度梯度向上，指向两个模式。" loading=lazy decoding=async class=content-image></figure><em>双峰高斯混合分布的 score 场：箭头沿密度梯度“上坡”，远离低密度区域，指向两个峰值。</em></p><h3 id=score-matching class=heading-anchor>Score Matching<a href=#score-matching class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>由于真实密度 <span class=math-inline>$p$</span>
+未知，无法直接最小化 <span class=math-inline>$\mathbb{E}_p\,\|\mathbf{s}_\theta - \nabla\log p\|^2$</span>
+。目前有三种实用的替代方案：</p><span class=math-block>$$
+\mathcal{L}_{\text{ISM}}(\theta) = \mathbb{E}_p\Bigl[\,\tfrac{1}{2}\|\mathbf{s}_\theta(\mathbf{x})\|^2 + \mathrm{tr}\bigl(\nabla\mathbf{s}_\theta(\mathbf{x})\bigr)\Bigr].
+$$</span><p>但雅可比矩阵的迹在高维下计算代价高昂。</p><span class=math-block>$$
+\mathcal{L}_{\text{SSM}}(\theta) = \mathbb{E}_{\mathbf{v}, \mathbf{x}}\Bigl[\,\mathbf{v}^\top \nabla\mathbf{s}_\theta(\mathbf{x})\,\mathbf{v} + \tfrac{1}{2}(\mathbf{v}^\top \mathbf{s}_\theta(\mathbf{x}))^2\Bigr].
+$$</span><p>每样本只需一次 Hessian–向量乘积。</p><span class=math-block>$$
+\boxed{\;\mathcal{L}_{\text{DSM}}(\theta) = \mathbb{E}_{\mathbf{x}, \tilde{\mathbf{x}}}\Bigl[\bigl\|\mathbf{s}_\theta(\tilde{\mathbf{x}}) + \tfrac{\tilde{\mathbf{x}} - \mathbf{x}}{\sigma^2}\bigr\|^2\Bigr].\;} \tag{6}
+$$</span><p>Vincent 证明：(6) 的最优解与匹配加噪分布 <span class=math-inline>$p_\sigma = p * \mathcal{N}(0, \sigma^2 \mathbf{I})$</span>
+的真实 score 一致。当 <span class=math-inline>$\sigma \to 0$</span>
+时，<span class=math-inline>$p_\sigma \to p$</span>
+。实践中通常在训练中对 <span class=math-inline>$\sigma$</span>
+进行退火。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/fig5_score_matching_loss.png alt='左：DSM 损失单调下降并趋于平稳。右：学到的 score 在高密度区与真值吻合；中央低密度谷因被噪声平滑而看起来"被磨平"。' loading=lazy decoding=async class=content-image></figure><em>左图：DSM 损失单调下降并趋于平稳；右图：学习到的 score 在高密度区域与真实 <span class=math-inline>$\nabla\log p$</span>
+高度吻合，而在低密度谷底（中心）因受噪声水平 <span class=math-inline>$\sigma$</span>
+平滑而显得“柔和”。</em></p><p><strong>实现：去噪分数匹配（Denoising Score Matching, DSM）</strong><br>DSM 是驱动扩散模型训练的核心目标函数。下面是一个极简但功能完整的实现：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>ScoreNet</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
@@ -574,64 +207,83 @@ $$</span><p>高频成分（大 <span class=math-inline>$\|\mathbf{k}\|$</span>
 </span></span><span class=line><span class=cl>    <span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>();</span> <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>();</span> <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
 </span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>step</span> <span class=o>%</span> <span class=mi>1000</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
 </span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;训练步数 </span><span class=si>{</span><span class=n>step</span><span class=si>}</span><span class=s2>：损失=</span><span class=si>{</span><span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>在多个噪声尺度上进行退火至关重要</span><span class=err>：</span><span class=n>较小的</span> <span class=err>$</span>\<span class=n>sigma</span><span class=err>$</span> <span class=n>能在数据密集区域提供高精度的分数估计</span><span class=err>，</span><span class=n>但在低密度区域覆盖不足</span><span class=err>；</span><span class=n>而较大的</span> <span class=err>$</span>\<span class=n>sigma</span><span class=err>$</span> <span class=n>虽能实现更广的覆盖范围</span><span class=err>，</span><span class=n>却会导致分数估计失准</span><span class=err>。</span><span class=n>多尺度策略则兼顾了二者优势</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### Langevin 动力学</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>一旦获得</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>s</span><span class=p>}</span><span class=n>_</span>\<span class=n>theta</span><span class=err>$，</span><span class=n>即可通过</span> <span class=n>Langevin</span> <span class=n>MCMC</span> <span class=n>进行采样</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_</span><span class=p>{</span><span class=n>k</span><span class=o>+</span><span class=mi>1</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_k</span> <span class=o>+</span> \<span class=n>tfrac</span><span class=p>{</span>\<span class=n>epsilon</span><span class=p>}{</span><span class=mi>2</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>s</span><span class=p>}</span><span class=n>_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_k</span><span class=p>)</span> <span class=o>+</span> \<span class=n>sqrt</span><span class=p>{</span>\<span class=n>epsilon</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>boldsymbol</span>\<span class=n>eta_k</span><span class=p>,</span>\<span class=n>qquad</span> \<span class=n>boldsymbol</span>\<span class=n>eta_k</span> \<span class=n>sim</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>N</span><span class=p>}(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=mi>0</span><span class=p>},</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>})</span><span class=o>.</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>7</span><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>当</span> <span class=err>$</span>\<span class=n>epsilon</span> \<span class=n>to</span> <span class=mi>0</span><span class=err>$</span> <span class=n>且迭代步数</span> <span class=err>$</span><span class=n>k</span> \<span class=n>to</span> \<span class=n>infty</span><span class=err>$</span> <span class=n>时</span><span class=err>，</span><span class=n>链收敛至目标分布</span> <span class=err>$</span><span class=n>p</span><span class=err>$。</span><span class=n>其中确定性项负责</span><span class=err>“</span><span class=n>利用</span><span class=err>”（</span><span class=n>沿</span> <span class=n>score</span> <span class=n>上坡</span><span class=err>），</span><span class=n>噪声项负责</span><span class=err>“</span><span class=n>探索</span><span class=err>”（</span><span class=n>跳出局部极大值</span><span class=err>）。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### Anderson 的反向时间 SDE</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>以下是将</span> <span class=n>score</span> <span class=n>matching</span> <span class=n>转化为生成模型的基石性结果</span><span class=err>。</span><span class=o>**</span><span class=n>Anderson</span><span class=err>（</span><span class=mi>1982</span><span class=err>）</span><span class=o>**</span> <span class=n>证明</span><span class=err>：</span><span class=n>SDE</span> <span class=p>(</span><span class=mi>3</span><span class=p>)</span> <span class=n>的时间反演本身仍是一个</span> <span class=n>SDE</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>boxed</span><span class=p>{</span>\<span class=p>;</span><span class=n>d</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_t</span> <span class=o>=</span> \<span class=n>bigl</span><span class=p>[</span>\<span class=p>,</span><span class=n>f</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_t</span><span class=p>,</span> <span class=n>t</span><span class=p>)</span> <span class=o>-</span> <span class=n>g</span><span class=p>(</span><span class=n>t</span><span class=p>)</span><span class=o>^</span><span class=mi>2</span>\<span class=p>,</span>\<span class=n>nabla</span>\<span class=n>log</span> <span class=n>p_t</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_t</span><span class=p>)</span>\<span class=p>,</span>\<span class=n>bigr</span><span class=p>]</span>\<span class=p>,</span><span class=n>dt</span> <span class=o>+</span> <span class=n>g</span><span class=p>(</span><span class=n>t</span><span class=p>)</span>\<span class=p>,</span><span class=n>d</span>\<span class=n>bar</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>B</span><span class=p>}}</span><span class=n>_t</span><span class=p>,</span>\<span class=p>;}</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>8</span><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span>\<span class=n>bar</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>B</span><span class=p>}}</span><span class=n>_t</span><span class=err>$</span> <span class=n>是反向时间的布朗运动</span><span class=err>，$</span><span class=n>p_t</span><span class=err>$</span> <span class=n>是原过程在时刻</span> <span class=err>$</span><span class=n>t</span><span class=err>$</span> <span class=n>的边际密度</span><span class=err>。</span><span class=o>**</span><span class=n>该</span> <span class=n>SDE</span> <span class=n>中唯一依赖数据分布的部分就是</span> <span class=err>$</span>\<span class=n>nabla</span>\<span class=n>log</span> <span class=n>p_t</span><span class=err>$——</span><span class=n>这正是</span> <span class=n>score</span> <span class=n>网络所学习的目标</span><span class=o>**</span><span class=err>。</span><span class=n>从</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_T</span> \<span class=n>sim</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>N</span><span class=p>}(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=mi>0</span><span class=p>},</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>})</span><span class=err>$</span> <span class=n>出发</span><span class=err>，</span><span class=n>沿时间倒推求解</span> <span class=p>(</span><span class=mi>8</span><span class=p>)</span><span class=err>，</span><span class=n>即可生成</span><span class=err>（</span><span class=n>近似</span><span class=err>）</span><span class=n>来自数据分布的样本</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>反向扩散从</span> <span class=mi>0</span> <span class=n>倒推到</span> <span class=mi>1</span><span class=err>；</span><span class=n>score</span> <span class=n>网络提供反转加噪所需的漂移修正</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>07</span><span class=o>-</span><span class=n>扩散模型与Score</span><span class=o>-</span><span class=n>Matching</span><span class=o>/</span><span class=n>fig2_reverse_diffusion</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>反向扩散从</span> <span class=err>$</span><span class=n>t</span> <span class=o>=</span> <span class=n>T</span><span class=err>$</span> <span class=n>回退至</span> <span class=err>$</span><span class=n>t</span> <span class=o>=</span> <span class=mi>0</span><span class=err>$；</span><span class=n>score</span> <span class=n>网络提供反转加噪过程所需的漂移修正</span><span class=err>。</span><span class=o>*</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>## 从连续理论到 DDPM 与 DDIM</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### DDPM：前向过程的闭式解</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>前向扩散过程</span><span class=p>:</span> <span class=n>结构化点云逐渐溶解为高斯噪声</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>07</span><span class=o>-</span><span class=n>扩散模型与Score</span><span class=o>-</span><span class=n>Matching</span><span class=o>/</span><span class=n>anim_forward_diffusion</span><span class=o>.</span><span class=n>gif</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>选定噪声调度</span> <span class=err>$</span>\<span class=p>{</span>\<span class=n>beta_t</span>\<span class=p>}</span><span class=n>_</span><span class=p>{</span><span class=n>t</span><span class=o>=</span><span class=mi>1</span><span class=p>}</span><span class=o>^</span><span class=n>T</span><span class=err>$，</span><span class=n>定义</span> <span class=err>$</span>\<span class=n>alpha_t</span> <span class=o>=</span> <span class=mi>1</span> <span class=o>-</span> \<span class=n>beta_t</span><span class=err>$</span> <span class=n>和</span> <span class=err>$</span>\<span class=n>bar</span>\<span class=n>alpha_t</span> <span class=o>=</span> \<span class=n>prod_</span><span class=p>{</span><span class=n>s</span><span class=o>=</span><span class=mi>1</span><span class=p>}</span><span class=o>^</span><span class=n>t</span> \<span class=n>alpha_s</span><span class=err>$。</span><span class=n>DDPM</span> <span class=n>的前向过程是一个离散时间马尔可夫链</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>q</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_t</span> \<span class=n>mid</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_</span><span class=p>{</span><span class=n>t</span><span class=o>-</span><span class=mi>1</span><span class=p>})</span> <span class=o>=</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>N</span><span class=p>}</span>\<span class=n>bigl</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_t</span><span class=p>;</span>\<span class=p>,</span>\<span class=n>sqrt</span><span class=p>{</span>\<span class=n>alpha_t</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_</span><span class=p>{</span><span class=n>t</span><span class=o>-</span><span class=mi>1</span><span class=p>},</span>\<span class=p>,</span>\<span class=n>beta_t</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>}</span>\<span class=n>bigr</span><span class=p>),</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>其具有简洁的闭式表达</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_t</span> <span class=o>=</span> \<span class=n>sqrt</span><span class=p>{</span>\<span class=n>bar</span>\<span class=n>alpha_t</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_0</span> <span class=o>+</span> \<span class=n>sqrt</span><span class=p>{</span><span class=mi>1</span> <span class=o>-</span> \<span class=n>bar</span>\<span class=n>alpha_t</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon</span><span class=p>,</span>\<span class=n>qquad</span> \<span class=n>boldsymbol</span>\<span class=n>epsilon</span> \<span class=n>sim</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>N</span><span class=p>}(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=mi>0</span><span class=p>},</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>})</span><span class=o>.</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>9</span><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>这正是</span> <span class=n>VP</span><span class=o>-</span><span class=n>SDE</span> <span class=n>的</span> <span class=n>Euler</span><span class=err>–</span><span class=n>Maruyama</span> <span class=n>离散化形式</span><span class=err>。</span><span class=n>当</span> <span class=err>$</span><span class=n>T</span><span class=err>$</span> <span class=n>足够大时</span><span class=err>，$</span>\<span class=n>bar</span>\<span class=n>alpha_T</span> \<span class=n>to</span> <span class=mi>0</span><span class=err>$，</span><span class=n>故</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_T</span> \<span class=n>approx</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>N</span><span class=p>}(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=mi>0</span><span class=p>},</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>})</span><span class=err>$。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### DDPM 损失 = 加权 DSM</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>训练一个网络</span> <span class=err>$</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_t</span><span class=p>,</span> <span class=n>t</span><span class=p>)</span><span class=err>$</span> <span class=n>来预测所添加的噪声</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>mathcal</span><span class=p>{</span><span class=n>L</span><span class=p>}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>DDPM</span><span class=p>}}(</span>\<span class=n>theta</span><span class=p>)</span> <span class=o>=</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>E</span><span class=p>}</span><span class=n>_</span><span class=p>{</span><span class=n>t</span><span class=p>,</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_0</span><span class=p>,</span>\<span class=p>,</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon</span><span class=p>}</span>\<span class=n>Bigl</span><span class=p>[</span>\<span class=p>,</span>\<span class=n>bigl</span>\<span class=o>|</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_t</span><span class=p>,</span> <span class=n>t</span><span class=p>)</span> <span class=o>-</span> \<span class=n>boldsymbol</span>\<span class=n>epsilon</span>\<span class=n>bigr</span>\<span class=o>|^</span><span class=mi>2</span>\<span class=n>Bigr</span><span class=p>]</span><span class=o>.</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>10</span><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>为何这是</span> <span class=n>score</span> <span class=n>matching</span> <span class=n>的伪装</span><span class=err>？</span><span class=n>因为由</span> <span class=p>(</span><span class=mi>9</span><span class=p>)</span> <span class=n>可得</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>nabla_</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_t</span><span class=p>}</span> \<span class=n>log</span> <span class=n>q</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_t</span> \<span class=n>mid</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_0</span><span class=p>)</span> <span class=o>=</span> <span class=o>-</span>\<span class=n>frac</span><span class=p>{</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon</span><span class=p>}{</span>\<span class=n>sqrt</span><span class=p>{</span><span class=mi>1</span> <span class=o>-</span> \<span class=n>bar</span>\<span class=n>alpha_t</span><span class=p>}},</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>因此网络实际上在学习一个缩放后的</span> <span class=n>score</span><span class=err>：$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>s</span><span class=p>}</span><span class=n>_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_t</span><span class=p>,</span> <span class=n>t</span><span class=p>)</span> <span class=o>=</span> <span class=o>-</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_t</span><span class=p>,</span> <span class=n>t</span><span class=p>)</span><span class=o>/</span>\<span class=n>sqrt</span><span class=p>{</span><span class=mi>1</span> <span class=o>-</span> \<span class=n>bar</span>\<span class=n>alpha_t</span><span class=p>}</span><span class=err>$。</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span> <span class=n>正是</span> <span class=p>(</span><span class=mi>6</span><span class=p>)</span> <span class=n>在权重</span> <span class=err>$</span><span class=n>w</span><span class=p>(</span><span class=n>t</span><span class=p>)</span> <span class=o>=</span> <span class=mi>1</span><span class=err>$</span> <span class=n>下的特例</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>实现</span><span class=err>：</span><span class=n>一个完整的</span> <span class=n>DDPM</span> <span class=n>训练循环</span><span class=o>**</span>  
-</span></span><span class=line><span class=cl><span class=n>下方是一个面向二维数据的极简但可直接运行的</span> <span class=n>DDPM</span> <span class=n>实现</span><span class=err>。</span><span class=n>核心思想很清晰</span><span class=err>：</span><span class=n>我们训练的是一个</span> <span class=err>$</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon</span><span class=err>$</span><span class=o>-</span><span class=n>预测器</span><span class=err>（</span><span class=n>而非直接预测分数函数</span><span class=err>），</span><span class=n>损失函数则简单地采用预测噪声与真实噪声之间的均方误差</span><span class=err>（</span><span class=n>MSE</span><span class=err>）。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span></code></pre></td></tr></table></div></div><p>在多个噪声尺度上进行退火至关重要：较小的 <span class=math-inline>$\sigma$</span>
+能在数据密集区域提供高精度的分数估计，但在低密度区域覆盖不足；而较大的 <span class=math-inline>$\sigma$</span>
+虽能实现更广的覆盖范围，却会导致分数估计失准。多尺度策略则兼顾了二者优势。</p><h3 id=langevin-动力学 class=heading-anchor>Langevin 动力学<a href=#langevin-%e5%8a%a8%e5%8a%9b%e5%ad%a6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\mathbf{x}_{k+1} = \mathbf{x}_k + \tfrac{\epsilon}{2}\,\mathbf{s}_\theta(\mathbf{x}_k) + \sqrt{\epsilon}\,\boldsymbol\eta_k,\qquad \boldsymbol\eta_k \sim \mathcal{N}(\mathbf{0}, \mathbf{I}). \tag{7}
+$$</span><p>当 <span class=math-inline>$\epsilon \to 0$</span>
+且迭代步数 <span class=math-inline>$k \to \infty$</span>
+时，链收敛至目标分布 <span class=math-inline>$p$</span>
+。其中确定性项负责“利用”（沿 score 上坡），噪声项负责“探索”（跳出局部极大值）。</p><h3 id=anderson-的反向时间-sde class=heading-anchor>Anderson 的反向时间 SDE<a href=#anderson-%e7%9a%84%e5%8f%8d%e5%90%91%e6%97%b6%e9%97%b4-sde class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\boxed{\;d\mathbf{X}_t = \bigl[\,f(\mathbf{X}_t, t) - g(t)^2\,\nabla\log p_t(\mathbf{X}_t)\,\bigr]\,dt + g(t)\,d\bar{\mathbf{B}}_t,\;} \tag{8}
+$$</span><p>其中 <span class=math-inline>$\bar{\mathbf{B}}_t$</span>
+是反向时间的布朗运动，<span class=math-inline>$p_t$</span>
+是原过程在时刻 <span class=math-inline>$t$</span>
+的边际密度。<strong>该 SDE 中唯一依赖数据分布的部分就是 <span class=math-inline>$\nabla\log p_t$</span>
+——这正是 score 网络所学习的目标</strong>。从 <span class=math-inline>$\mathbf{x}_T \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$</span>
+出发，沿时间倒推求解 (8)，即可生成（近似）来自数据分布的样本。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/fig2_reverse_diffusion.png alt="反向扩散从 0 倒推到 1；score 网络提供反转加噪所需的漂移修正。" loading=lazy decoding=async class=content-image></figure><em>反向扩散从 <span class=math-inline>$t = T$</span>
+回退至 <span class=math-inline>$t = 0$</span>
+；score 网络提供反转加噪过程所需的漂移修正。</em></p><hr><h2 id=从连续理论到-ddpm-与-ddim class=heading-anchor>从连续理论到 DDPM 与 DDIM<a href=#%e4%bb%8e%e8%bf%9e%e7%bb%ad%e7%90%86%e8%ae%ba%e5%88%b0-ddpm-%e4%b8%8e-ddim class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=ddpm前向过程的闭式解 class=heading-anchor>DDPM：前向过程的闭式解<a href=#ddpm%e5%89%8d%e5%90%91%e8%bf%87%e7%a8%8b%e7%9a%84%e9%97%ad%e5%bc%8f%e8%a7%a3 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/anim_forward_diffusion.gif alt="前向扩散过程: 结构化点云逐渐溶解为高斯噪声" loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$
+q(\mathbf{x}_t \mid \mathbf{x}_{t-1}) = \mathcal{N}\bigl(\mathbf{x}_t;\,\sqrt{\alpha_t}\,\mathbf{x}_{t-1},\,\beta_t\mathbf{I}\bigr),
+$$</span>
+<span class=math-block>$$
+\mathbf{x}_t = \sqrt{\bar\alpha_t}\,\mathbf{x}_0 + \sqrt{1 - \bar\alpha_t}\,\boldsymbol\epsilon,\qquad \boldsymbol\epsilon \sim \mathcal{N}(\mathbf{0}, \mathbf{I}). \tag{9}
+$$</span><p>这正是 VP-SDE 的 Euler–Maruyama 离散化形式。当 <span class=math-inline>$T$</span>
+足够大时，<span class=math-inline>$\bar\alpha_T \to 0$</span>
+，故 <span class=math-inline>$\mathbf{x}_T \approx \mathcal{N}(\mathbf{0}, \mathbf{I})$</span>
+。</p><h3 id=ddpm-损失--加权-dsm class=heading-anchor>DDPM 损失 = 加权 DSM<a href=#ddpm-%e6%8d%9f%e5%a4%b1--%e5%8a%a0%e6%9d%83-dsm class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\mathcal{L}_{\text{DDPM}}(\theta) = \mathbb{E}_{t,\,\mathbf{x}_0,\,\boldsymbol\epsilon}\Bigl[\,\bigl\|\boldsymbol\epsilon_\theta(\mathbf{x}_t, t) - \boldsymbol\epsilon\bigr\|^2\Bigr]. \tag{10}
+$$</span>
+<span class=math-block>$$
+\nabla_{\mathbf{x}_t} \log q(\mathbf{x}_t \mid \mathbf{x}_0) = -\frac{\boldsymbol\epsilon}{\sqrt{1 - \bar\alpha_t}},
+$$</span><p>因此网络实际上在学习一个缩放后的 score：<span class=math-inline>$\mathbf{s}_\theta(\mathbf{x}_t, t) = -\boldsymbol\epsilon_\theta(\mathbf{x}_t, t)/\sqrt{1 - \bar\alpha_t}$</span>
+。(10) 正是 (6) 在权重 <span class=math-inline>$w(t) = 1$</span>
+下的特例。</p><p><strong>实现：一个完整的 DDPM 训练循环</strong><br>下方是一个面向二维数据的极简但可直接运行的 DDPM 实现。核心思想很清晰：我们训练的是一个 <span class=math-inline>$\boldsymbol\epsilon$</span>
+-预测器（而非直接预测分数函数），损失函数则简单地采用预测噪声与真实噪声之间的均方误差（MSE）。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
 </span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>EpsilonNet</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
@@ -675,37 +327,51 @@ $$</span><p>高频成分（大 <span class=math-inline>$\|\mathbf{k}\|$</span>
 </span></span><span class=line><span class=cl>    <span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>();</span> <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>();</span> <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
 </span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>step</span> <span class=o>%</span> <span class=mi>2000</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
 </span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;训练步数 </span><span class=si>{</span><span class=n>step</span><span class=si>}</span><span class=s2>: 损失=</span><span class=si>{</span><span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>这个训练循环出人意料地简洁</span><span class=err>：</span><span class=n>随机选一个时间步</span> <span class=err>→</span> <span class=n>按该步加噪</span> <span class=err>→</span> <span class=n>预测所加的噪声</span> <span class=err>→</span> <span class=n>反向传播更新参数</span><span class=err>。</span><span class=n>真正的复杂性其实藏在模型结构</span><span class=err>（</span><span class=n>此处是简单的多层感知机</span><span class=err>；</span><span class=n>对图像任务则通常采用带注意力机制的</span> <span class=n>U</span><span class=o>-</span><span class=n>Net</span><span class=err>）</span><span class=n>和噪声调度策略中</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>噪声调度策略</span><span class=err>：</span><span class=n>线性</span> <span class=n>vs</span> <span class=n>余弦</span><span class=o>**</span>  
-</span></span><span class=line><span class=cl><span class=err>$</span>\<span class=n>beta_t</span><span class=err>$</span> <span class=n>的选择</span><span class=err>，</span><span class=n>其重要性远超直觉判断</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>调度方式</span> <span class=o>|</span> <span class=n>公式</span> <span class=o>|</span> <span class=n>特性</span> <span class=o>|</span> <span class=n>最适用场景</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl><span class=o>|----------|------|------|------------|</span>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>线性</span><span class=err>（</span><span class=n>Linear</span><span class=err>）</span><span class=o>**</span> <span class=o>|</span> <span class=err>$</span>\<span class=n>beta_t</span> <span class=o>=</span> \<span class=n>beta_</span><span class=p>{</span>\<span class=nb>min</span><span class=p>}</span> <span class=o>+</span> <span class=n>t</span><span class=p>(</span>\<span class=n>beta_</span><span class=p>{</span>\<span class=nb>max</span><span class=p>}</span> <span class=o>-</span> \<span class=n>beta_</span><span class=p>{</span>\<span class=nb>min</span><span class=p>})</span><span class=o>/</span><span class=n>T</span><span class=err>$</span> <span class=o>|</span> <span class=n>早期噪声增长剧烈</span> <span class=o>|</span> <span class=n>DDPM</span><span class=err>（</span><span class=n>Ho</span> <span class=n>等</span><span class=err>，</span><span class=mi>2020</span><span class=err>）</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>余弦</span><span class=err>（</span><span class=n>Cosine</span><span class=err>）</span><span class=o>**</span> <span class=o>|</span> <span class=err>$</span>\<span class=n>bar</span>\<span class=n>alpha_t</span> <span class=o>=</span> \<span class=n>cos</span><span class=o>^</span><span class=mi>2</span><span class=p>(</span>\<span class=n>frac</span><span class=p>{</span><span class=n>t</span><span class=o>/</span><span class=n>T</span> <span class=o>+</span> <span class=n>s</span><span class=p>}{</span><span class=mi>1</span><span class=o>+</span><span class=n>s</span><span class=p>}</span>\<span class=n>cdot</span>\<span class=n>frac</span><span class=p>{</span>\<span class=n>pi</span><span class=p>}{</span><span class=mi>2</span><span class=p>})</span><span class=err>$</span> <span class=o>|</span> <span class=n>噪声衰减更平缓</span> <span class=o>|</span> <span class=n>改进版</span> <span class=n>DDPM</span><span class=err>（</span><span class=n>Nichol</span> <span class=o>&amp;</span> <span class=n>Dhariwal</span><span class=err>，</span><span class=mi>2021</span><span class=err>）</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>**</span><span class=n>Sigmoid</span><span class=o>**</span> <span class=o>|</span> <span class=err>$</span>\<span class=n>bar</span>\<span class=n>alpha_t</span> <span class=o>=</span> \<span class=n>sigma</span><span class=p>(</span><span class=o>-</span><span class=n>a</span> <span class=o>+</span> <span class=mi>2</span><span class=n>a</span> \<span class=n>cdot</span> <span class=n>t</span><span class=o>/</span><span class=n>T</span><span class=p>)</span><span class=err>$</span> <span class=o>|</span> <span class=n>中段下降更陡峭</span><span class=err>，</span><span class=n>首尾趋于平缓</span> <span class=o>|</span> <span class=n>Stable</span> <span class=n>Diffusion</span> <span class=mi>3</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>线性调度存在明显的容量浪费问题</span><span class=err>：</span><span class=n>前几百步中</span><span class=err>，$</span>\<span class=n>bar</span>\<span class=n>alpha_t</span><span class=err>$</span> <span class=n>仍非常接近</span> <span class=mi>1</span><span class=err>（</span><span class=n>即数据几乎未被加噪</span><span class=err>），</span><span class=n>模型不得不花费大量训练步数去学习预测近乎为零的噪声</span><span class=err>。</span><span class=n>而余弦调度则能更均匀地将</span><span class=err>“</span><span class=n>信息含量</span><span class=err>”</span><span class=n>分布在各个时间步上</span><span class=err>，</span><span class=n>使训练更高效</span><span class=err>、</span><span class=n>生成质量更稳定</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### DDIM：概率流 ODE</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>关于</span> <span class=n>SDE</span> <span class=p>(</span><span class=mi>3</span><span class=p>)</span> <span class=n>有一个优美事实</span><span class=err>：</span><span class=n>存在一个</span><span class=o>**</span><span class=n>确定性</span><span class=o>**</span> <span class=n>ODE</span><span class=err>，</span><span class=n>其在任意时刻</span> <span class=err>$</span><span class=n>t</span><span class=err>$</span> <span class=n>的边际分布与原</span> <span class=n>SDE</span> <span class=n>完全相同</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>boxed</span><span class=p>{</span>\<span class=p>;</span>\<span class=n>frac</span><span class=p>{</span><span class=n>d</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}}{</span><span class=n>dt</span><span class=p>}</span> <span class=o>=</span> <span class=n>f</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>},</span> <span class=n>t</span><span class=p>)</span> <span class=o>-</span> \<span class=n>tfrac</span><span class=p>{</span><span class=mi>1</span><span class=p>}{</span><span class=mi>2</span><span class=p>}</span>\<span class=p>,</span><span class=n>g</span><span class=p>(</span><span class=n>t</span><span class=p>)</span><span class=o>^</span><span class=mi>2</span>\<span class=p>,</span>\<span class=n>nabla</span>\<span class=n>log</span> <span class=n>p_t</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>})</span><span class=o>.</span>\<span class=p>;}</span> \<span class=n>tag</span><span class=p>{</span><span class=mi>11</span><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>这就是</span><span class=o>**</span><span class=n>概率流</span> <span class=n>ODE</span><span class=o>**</span><span class=err>。</span><span class=n>其边际分布之所以一致</span><span class=err>，</span><span class=n>是因为</span> <span class=p>(</span><span class=mi>8</span><span class=p>)</span> <span class=n>和</span> <span class=p>(</span><span class=mi>11</span><span class=p>)</span> <span class=n>对应的密度</span> <span class=err>$</span><span class=n>p_t</span><span class=err>$</span> <span class=n>都满足同一个</span> <span class=n>Fokker</span><span class=err>–</span><span class=n>Planck</span> <span class=n>方程</span> <span class=p>(</span><span class=mi>4</span><span class=p>)</span><span class=err>。</span><span class=n>使用高阶</span> <span class=n>ODE</span> <span class=n>求解器</span><span class=err>（</span><span class=n>如</span> <span class=n>Heun</span><span class=err>、</span><span class=n>RK4</span><span class=err>、</span><span class=n>DPM</span><span class=o>-</span><span class=n>Solver</span><span class=err>）</span><span class=n>沿时间反向求解</span> <span class=p>(</span><span class=mi>11</span><span class=p>)</span><span class=err>，</span><span class=n>构成了</span> <span class=n>DDIM</span> <span class=n>及其后续方法的基础</span><span class=err>。</span><span class=n>其优势在于</span><span class=err>：</span><span class=o>**</span><span class=n>确定性</span><span class=o>**</span><span class=err>（</span><span class=n>相同噪声输入</span> <span class=err>→</span> <span class=n>相同输出图像</span><span class=err>）、</span><span class=o>**</span><span class=n>支持更大步长</span><span class=o>**</span><span class=err>（</span><span class=mi>25</span><span class=err>–</span><span class=mi>50</span> <span class=n>步</span> <span class=n>vs</span> <span class=mi>1000</span> <span class=n>步</span><span class=err>）、</span><span class=o>**</span><span class=n>严格可逆</span><span class=o>**</span><span class=err>（</span><span class=n>可将图像编码回其潜噪声</span><span class=err>）。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>DDPM</span><span class=err>（</span><span class=n>左</span><span class=err>）</span><span class=n>每步注入新噪声</span><span class=err>，</span><span class=n>DDIM</span><span class=err>（</span><span class=n>右</span><span class=err>）</span><span class=n>在同一</span> <span class=n>score</span> <span class=n>下走确定性流</span><span class=err>；</span><span class=n>ODE</span> <span class=n>用更少步数抵达模式</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>07</span><span class=o>-</span><span class=n>扩散模型与Score</span><span class=o>-</span><span class=n>Matching</span><span class=o>/</span><span class=n>fig4_ddpm_vs_ddim</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>DDPM</span><span class=err>（</span><span class=n>左</span><span class=err>）</span><span class=n>在每一步反向过程中注入新噪声</span><span class=err>；</span><span class=n>DDIM</span><span class=err>（</span><span class=n>右</span><span class=err>）</span><span class=n>则在同一</span> <span class=n>learned</span> <span class=n>score</span> <span class=n>下沿确定性轨迹流动</span><span class=err>，</span><span class=n>仅用极少步数即可抵达数据模式</span><span class=err>。</span><span class=o>*</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>实现</span><span class=err>：</span><span class=n>DDIM</span> <span class=n>采样</span><span class=o>**</span>  
-</span></span><span class=line><span class=cl><span class=n>DDIM</span> <span class=n>将原本随机的反向扩散步骤替换为确定性的常微分方程</span><span class=err>（</span><span class=n>ODE</span><span class=err>）</span><span class=n>步骤</span><span class=err>，</span><span class=n>从而大幅减少采样所需的迭代次数</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
-</span></span><span class=line><span class=cl><span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><p>这个训练循环出人意料地简洁：随机选一个时间步 → 按该步加噪 → 预测所加的噪声 → 反向传播更新参数。真正的复杂性其实藏在模型结构（此处是简单的多层感知机；对图像任务则通常采用带注意力机制的 U-Net）和噪声调度策略中。</p><p><strong>噪声调度策略：线性 vs 余弦</strong><br><span class=math-inline>$\beta_t$</span>
+的选择，其重要性远超直觉判断：</p><div class=table-wrap><table><thead><tr><th>调度方式</th><th>公式</th><th>特性</th><th>最适用场景</th></tr></thead><tbody><tr><td><strong>线性（Linear）</strong></td><td><span class=math-inline>$\beta_t = \beta_{\min} + t(\beta_{\max} - \beta_{\min})/T$</span></td><td>早期噪声增长剧烈</td><td>DDPM（Ho 等，2020）</td></tr><tr><td><strong>余弦（Cosine）</strong></td><td><span class=math-inline>$\bar\alpha_t = \cos^2(\frac{t/T + s}{1+s}\cdot\frac{\pi}{2})$</span></td><td>噪声衰减更平缓</td><td>改进版 DDPM（Nichol & Dhariwal，2021）</td></tr><tr><td><strong>Sigmoid</strong></td><td><span class=math-inline>$\bar\alpha_t = \sigma(-a + 2a \cdot t/T)$</span></td><td>中段下降更陡峭，首尾趋于平缓</td><td>Stable Diffusion 3</td></tr></tbody></table></div><p>线性调度存在明显的容量浪费问题：前几百步中，<span class=math-inline>$\bar\alpha_t$</span>
+仍非常接近 1（即数据几乎未被加噪），模型不得不花费大量训练步数去学习预测近乎为零的噪声。而余弦调度则能更均匀地将“信息含量”分布在各个时间步上，使训练更高效、生成质量更稳定。</p><h3 id=ddim概率流-ode class=heading-anchor>DDIM：概率流 ODE<a href=#ddim%e6%a6%82%e7%8e%87%e6%b5%81-ode class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\boxed{\;\frac{d\mathbf{x}}{dt} = f(\mathbf{x}, t) - \tfrac{1}{2}\,g(t)^2\,\nabla\log p_t(\mathbf{x}).\;} \tag{11}
+$$</span><p>这就是<strong>概率流 ODE</strong>。其边际分布之所以一致，是因为 (8) 和 (11) 对应的密度 <span class=math-inline>$p_t$</span>
+都满足同一个 Fokker–Planck 方程 (4)。使用高阶 ODE 求解器（如 Heun、RK4、DPM-Solver）沿时间反向求解 (11)，构成了 DDIM 及其后续方法的基础。其优势在于：<strong>确定性</strong>（相同噪声输入 → 相同输出图像）、<strong>支持更大步长</strong>（25–50 步 vs 1000 步）、<strong>严格可逆</strong>（可将图像编码回其潜噪声）。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/fig4_ddpm_vs_ddim.png alt="DDPM（左）每步注入新噪声，DDIM（右）在同一 score 下走确定性流；ODE 用更少步数抵达模式。" loading=lazy decoding=async class=content-image></figure><em>DDPM（左）在每一步反向过程中注入新噪声；DDIM（右）则在同一 learned score 下沿确定性轨迹流动，仅用极少步数即可抵达数据模式。</em></p><p><strong>实现：DDIM 采样</strong><br>DDIM 将原本随机的反向扩散步骤替换为确定性的常微分方程（ODE）步骤，从而大幅减少采样所需的迭代次数：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=nd>@torch.no_grad</span><span class=p>()</span>
 </span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>ddpm_sample</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>alpha_bar</span><span class=p>,</span> <span class=n>betas</span><span class=p>,</span> <span class=n>n</span><span class=o>=</span><span class=mi>2000</span><span class=p>,</span> <span class=n>T</span><span class=o>=</span><span class=mi>1000</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=c1># 完整的 DDPM 采样（1000 步，随机过程）</span>
 </span></span><span class=line><span class=cl>    <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span>
@@ -744,306 +410,120 @@ $$</span><p>高频成分（大 <span class=math-inline>$\|\mathbf{k}\|$</span>
 </span></span><span class=line><span class=cl><span class=n>samples_ddim</span> <span class=o>=</span> <span class=n>ddim_sample</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>alpha_bar</span><span class=p>,</span> <span class=n>n</span><span class=o>=</span><span class=mi>2000</span><span class=p>,</span> <span class=n>steps</span><span class=o>=</span><span class=mi>50</span><span class=p>,</span> <span class=n>T</span><span class=o>=</span><span class=n>T</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;DDPM 样本均值: </span><span class=si>{</span><span class=n>samples_ddpm</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>numpy</span><span class=p>()</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=mi>3</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;DDIM 样本均值: </span><span class=si>{</span><span class=n>samples_ddim</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>numpy</span><span class=p>()</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=mi>3</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>DDIM</span> <span class=n>仅需</span> <span class=o>**</span><span class=mi>1</span><span class=o>/</span><span class=mi>20</span> <span class=n>的模型调用次数</span><span class=o>**</span><span class=err>，</span><span class=n>即可生成质量相当的样本</span><span class=err>。</span><span class=n>核心区别在于</span><span class=err>：</span>  
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>DDPM</span> <span class=n>在每一步都引入全新的随机噪声</span><span class=err>（</span><span class=n>对应随机微分方程</span><span class=err>，</span><span class=n>SDE</span><span class=err>）；</span>  
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=n>DDIM</span> <span class=n>则完全不添加额外噪声</span><span class=err>（</span><span class=n>对应确定性常微分方程</span><span class=err>，</span><span class=n>ODE</span><span class=err>）。</span>  
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>因此</span><span class=err>，</span><span class=n>对</span> <span class=n>DDIM</span> <span class=n>而言</span><span class=err>，</span><span class=o>**</span><span class=n>相同的初始噪声总能生成完全一致的输出</span><span class=o>**</span><span class=err>——</span><span class=n>这一确定性特性使其天然支持潜在空间插值</span><span class=err>（</span><span class=n>latent</span><span class=o>-</span><span class=n>space</span> <span class=n>interpolation</span><span class=err>）</span><span class=n>与反演</span><span class=err>（</span><span class=n>inversion</span><span class=err>）。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 统一视角</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>方法</span> <span class=o>|</span> <span class=n>过程</span> <span class=o>|</span> <span class=n>典型步数</span> <span class=o>|</span> <span class=n>是否确定性</span> <span class=o>|</span> <span class=n>优势</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl><span class=o>|------|------|---------|------------|------|</span>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>DDPM</span> <span class=o>|</span> <span class=n>反向</span> <span class=n>SDE</span> <span class=p>(</span><span class=mi>8</span><span class=p>)</span> <span class=o>|</span> <span class=o>~</span><span class=mi>1000</span> <span class=o>|</span> <span class=n>否</span> <span class=o>|</span> <span class=n>多样性好</span><span class=err>、</span><span class=n>训练简单</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>DDIM</span> <span class=o>|</span> <span class=n>概率流</span> <span class=n>ODE</span> <span class=p>(</span><span class=mi>11</span><span class=p>)</span> <span class=o>|</span> <span class=o>~</span><span class=mi>25</span><span class=err>–</span><span class=mi>50</span> <span class=o>|</span> <span class=n>是</span> <span class=o>|</span> <span class=n>速度快</span><span class=err>、</span><span class=n>可精确反演</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>DPM</span><span class=o>-</span><span class=n>Solver</span> <span class=o>|</span> <span class=n>高阶</span> <span class=n>ODE</span> <span class=o>|</span> <span class=o>~</span><span class=mi>10</span><span class=err>–</span><span class=mi>20</span> <span class=o>|</span> <span class=n>是</span> <span class=o>|</span> <span class=n>更快</span><span class=err>、</span><span class=n>保真度不变</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>EDM</span><span class=err>（</span><span class=n>Karras</span> <span class=n>et</span> <span class=n>al</span><span class=o>.</span><span class=err>）</span> <span class=o>|</span> <span class=n>连续</span><span class=err>、</span><span class=n>精细预条件</span> <span class=o>|</span> <span class=o>~</span><span class=mi>30</span> <span class=o>|</span> <span class=n>可调</span> <span class=o>|</span> <span class=n>当前</span> <span class=n>SOTA</span> <span class=n>质量</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### PDE → 扩散模型全景图</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>将上述内容整合</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>热方程</span> <span class=err>→</span> <span class=n>Fokker</span><span class=err>–</span><span class=n>Planck</span> <span class=err>→</span> <span class=n>前向</span> <span class=n>SDE</span><span class=err>；</span><span class=n>Anderson</span> <span class=n>时间反演需要</span> <span class=mi>0</span><span class=err>，</span><span class=n>由</span> <span class=n>score</span> <span class=n>网络通过</span> <span class=n>DSM</span> <span class=n>学习</span><span class=err>；</span><span class=n>同一</span> <span class=n>score</span> <span class=n>既能驱动</span> <span class=n>DDPM</span> <span class=p>(</span><span class=n>SDE</span><span class=p>)</span> <span class=n>也能驱动</span> <span class=n>DDIM</span> <span class=p>(</span><span class=n>ODE</span><span class=p>)</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>pde</span><span class=o>-</span><span class=n>ml</span><span class=o>/</span><span class=mi>07</span><span class=o>-</span><span class=n>扩散模型与Score</span><span class=o>-</span><span class=n>Matching</span><span class=o>/</span><span class=n>fig6_pde_diffusion_bridge</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=o>*</span><span class=n>热方程</span> <span class=err>→</span> <span class=n>Fokker</span><span class=err>–</span><span class=n>Planck</span> <span class=n>方程</span> <span class=err>→</span> <span class=n>前向</span> <span class=n>SDE</span><span class=err>；</span><span class=n>Anderson</span> <span class=n>时间反演需要</span> <span class=err>$</span>\<span class=n>nabla</span>\<span class=n>log</span> <span class=n>p_t</span><span class=err>$，</span><span class=n>由</span> <span class=n>score</span> <span class=n>网络通过</span> <span class=n>DSM</span> <span class=n>学习</span><span class=err>；</span><span class=n>同一</span> <span class=n>score</span> <span class=n>既可驱动</span> <span class=n>DDPM</span><span class=err>（</span><span class=n>SDE</span><span class=err>）</span><span class=n>也可驱动</span> <span class=n>DDIM</span><span class=err>（</span><span class=n>ODE</span><span class=err>）。</span><span class=o>*</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 评分网络架构：U-Net</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>在图像生成任务中</span><span class=err>，</span><span class=n>评分网络</span> <span class=err>$</span>\<span class=n>boldsymbol</span>\<span class=n>epsilon_</span>\<span class=n>theta</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_t</span><span class=p>,</span> <span class=n>t</span><span class=p>)</span><span class=err>$</span> <span class=n>采用经典的</span> <span class=o>**</span><span class=n>U</span><span class=o>-</span><span class=n>Net</span><span class=o>**</span> <span class=n>结构</span><span class=err>——</span><span class=n>即一种带跳跃连接</span><span class=err>（</span><span class=n>skip</span> <span class=n>connections</span><span class=err>）</span><span class=n>的编码器</span><span class=o>-</span><span class=n>解码器架构</span><span class=err>。</span><span class=n>其核心设计要点如下</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>时间条件注入</span><span class=err>（</span><span class=n>Time</span> <span class=n>conditioning</span><span class=err>）</span><span class=o>**</span><span class=err>：</span><span class=n>对时间步</span> <span class=err>$</span><span class=n>t</span><span class=err>$</span> <span class=n>使用正弦位置嵌入</span><span class=err>（</span><span class=n>sinusoidal</span> <span class=n>positional</span> <span class=n>embedding</span><span class=err>），</span><span class=n>再经线性层投影后</span><span class=err>，</span><span class=n>逐层加到每个残差块</span><span class=err>（</span><span class=n>ResBlock</span><span class=err>）</span><span class=n>的输入上</span><span class=err>（</span><span class=n>思路类似于</span> <span class=n>Transformer</span> <span class=n>中的位置编码方式</span><span class=err>）。</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>空间分辨率变化</span><span class=o>**</span><span class=err>：</span><span class=n>编码器在每一级均进行</span> <span class=err>$</span><span class=mi>2</span>\<span class=n>times</span><span class=err>$</span> <span class=n>下采样</span><span class=err>（</span><span class=n>典型设置为</span> <span class=mi>4</span> <span class=n>级下采样</span><span class=err>，</span><span class=n>例如对</span> <span class=mi>64</span> <span class=n>像素图像</span><span class=err>：</span><span class=mi>64</span> <span class=err>→</span> <span class=mi>32</span> <span class=err>→</span> <span class=mi>16</span> <span class=err>→</span> <span class=mi>8</span><span class=err>）。</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>自注意力机制</span><span class=err>（</span><span class=n>Self</span><span class=o>-</span><span class=n>attention</span><span class=err>）</span><span class=o>**</span><span class=err>：</span><span class=n>仅在</span> <span class=mi>16</span><span class=err>×</span><span class=mi>16</span> <span class=n>和</span> <span class=mi>8</span><span class=err>×</span><span class=mi>8</span> <span class=n>分辨率层级插入自注意力模块</span><span class=err>；</span><span class=n>更高分辨率</span><span class=err>（</span><span class=n>如</span> <span class=mi>32</span><span class=err>×</span><span class=mi>32</span> <span class=n>或</span> <span class=mi>64</span><span class=err>×</span><span class=mi>64</span><span class=err>）</span><span class=n>下引入自注意力计算开销过大</span><span class=err>，</span><span class=n>故不采用</span><span class=err>。</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>交叉注意力机制</span><span class=err>（</span><span class=n>Cross</span><span class=o>-</span><span class=n>attention</span><span class=err>，</span><span class=n>用于条件控制</span><span class=err>）</span><span class=o>**</span><span class=err>：</span><span class=n>CLIP</span> <span class=n>或</span> <span class=n>T5</span> <span class=n>提取的文本嵌入</span><span class=err>，</span><span class=n>通过交叉注意力模块注入到与自注意力相同的两个分辨率层级</span><span class=err>（</span><span class=n>即</span> <span class=mi>16</span><span class=err>×</span><span class=mi>16</span> <span class=n>和</span> <span class=mi>8</span><span class=err>×</span><span class=mi>8</span><span class=err>）。</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>归一化与激活函数</span><span class=o>**</span><span class=err>：</span><span class=n>全网络统一使用</span> <span class=o>**</span><span class=n>Group</span> <span class=n>Normalization</span><span class=err>（</span><span class=n>组归一化</span><span class=err>）</span> <span class=o>+</span> <span class=n>SiLU</span> <span class=n>激活函数</span><span class=o>**</span><span class=err>（</span><span class=n>而非</span> <span class=n>BatchNorm</span><span class=err>，</span><span class=n>因其在不同噪声水平下表现不稳定</span><span class=err>，</span><span class=n>易与扩散过程中的噪声动态产生冲突</span><span class=err>）。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>该架构可概括为如下流程</span><span class=err>：</span>
-</span></span></code></pre></td></tr></table></div></div><p>输入 x_t（C×H×W） + 时间嵌入 t
-↓
+</span></span></code></pre></td></tr></table></div></div><p>DDIM 仅需 <strong>1/20 的模型调用次数</strong>，即可生成质量相当的样本。核心区别在于：</p><ul><li>DDPM 在每一步都引入全新的随机噪声（对应随机微分方程，SDE）；</li><li>DDIM 则完全不添加额外噪声（对应确定性常微分方程，ODE）。</li></ul><p>因此，对 DDIM 而言，<strong>相同的初始噪声总能生成完全一致的输出</strong>——这一确定性特性使其天然支持潜在空间插值（latent-space interpolation）与反演（inversion）。</p><h3 id=统一视角 class=heading-anchor>统一视角<a href=#%e7%bb%9f%e4%b8%80%e8%a7%86%e8%a7%92 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>方法</th><th>过程</th><th>典型步数</th><th>是否确定性</th><th>优势</th></tr></thead><tbody><tr><td>DDPM</td><td>反向 SDE (8)</td><td>~1000</td><td>否</td><td>多样性好、训练简单</td></tr><tr><td>DDIM</td><td>概率流 ODE (11)</td><td>~25–50</td><td>是</td><td>速度快、可精确反演</td></tr><tr><td>DPM-Solver</td><td>高阶 ODE</td><td>~10–20</td><td>是</td><td>更快、保真度不变</td></tr><tr><td>EDM（Karras et al.）</td><td>连续、精细预条件</td><td>~30</td><td>可调</td><td>当前 SOTA 质量</td></tr></tbody></table></div><h3 id=pde--扩散模型全景图 class=heading-anchor>PDE → 扩散模型全景图<a href=#pde--%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e5%85%a8%e6%99%af%e5%9b%be class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>将上述内容整合：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/fig6_pde_diffusion_bridge.png alt="热方程 → Fokker–Planck → 前向 SDE；Anderson 时间反演需要 0，由 score 网络通过 DSM 学习；同一 score 既能驱动 DDPM (SDE) 也能驱动 DDIM (ODE)。" loading=lazy decoding=async class=content-image></figure><em>热方程 → Fokker–Planck 方程 → 前向 SDE；Anderson 时间反演需要 <span class=math-inline>$\nabla\log p_t$</span>
+，由 score 网络通过 DSM 学习；同一 score 既可驱动 DDPM（SDE）也可驱动 DDIM（ODE）。</em></p><hr><h3 id=评分网络架构u-net class=heading-anchor>评分网络架构：U-Net<a href=#%e8%af%84%e5%88%86%e7%bd%91%e7%bb%9c%e6%9e%b6%e6%9e%84u-net class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>在图像生成任务中，评分网络 <span class=math-inline>$\boldsymbol\epsilon_\theta(\mathbf{x}_t, t)$</span>
+采用经典的 <strong>U-Net</strong> 结构——即一种带跳跃连接（skip connections）的编码器-解码器架构。其核心设计要点如下：</p><ul><li><strong>时间条件注入（Time conditioning）</strong>：对时间步 <span class=math-inline>$t$</span>
+使用正弦位置嵌入（sinusoidal positional embedding），再经线性层投影后，逐层加到每个残差块（ResBlock）的输入上（思路类似于 Transformer 中的位置编码方式）。</li><li><strong>空间分辨率变化</strong>：编码器在每一级均进行 <span class=math-inline>$2\times$</span>
+下采样（典型设置为 4 级下采样，例如对 64 像素图像：64 → 32 → 16 → 8）。</li><li><strong>自注意力机制（Self-attention）</strong>：仅在 16×16 和 8×8 分辨率层级插入自注意力模块；更高分辨率（如 32×32 或 64×64）下引入自注意力计算开销过大，故不采用。</li><li><strong>交叉注意力机制（Cross-attention，用于条件控制）</strong>：CLIP 或 T5 提取的文本嵌入，通过交叉注意力模块注入到与自注意力相同的两个分辨率层级（即 16×16 和 8×8）。</li><li><strong>归一化与激活函数</strong>：全网络统一使用 <strong>Group Normalization（组归一化） + SiLU 激活函数</strong>（而非 BatchNorm，因其在不同噪声水平下表现不稳定，易与扩散过程中的噪声动态产生冲突）。</li></ul><p>该架构可概括为如下流程：</p><pre tabindex=0><code>输入 x_t（C×H×W） + 时间嵌入 t
+  ↓
 残差块（ResBlock）→ 残差块（ResBlock）→ 下采样（共 4 级）
-↓ 跳跃连接 ↓
+  ↓     跳跃连接 ↓
 瓶颈层（含自注意力 + 残差块）
-↓ 跳跃连接 ↓
+  ↓     跳跃连接 ↓
 残差块（ResBlock）→ 残差块（ResBlock）→ 上采样（共 4 级）
-↓
-输出 eps_pred（C×H×W）</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
-</span><span class=lnt>  2
-</span><span class=lnt>  3
-</span><span class=lnt>  4
-</span><span class=lnt>  5
-</span><span class=lnt>  6
-</span><span class=lnt>  7
-</span><span class=lnt>  8
-</span><span class=lnt>  9
-</span><span class=lnt> 10
-</span><span class=lnt> 11
-</span><span class=lnt> 12
-</span><span class=lnt> 13
-</span><span class=lnt> 14
-</span><span class=lnt> 15
-</span><span class=lnt> 16
-</span><span class=lnt> 17
-</span><span class=lnt> 18
-</span><span class=lnt> 19
-</span><span class=lnt> 20
-</span><span class=lnt> 21
-</span><span class=lnt> 22
-</span><span class=lnt> 23
-</span><span class=lnt> 24
-</span><span class=lnt> 25
-</span><span class=lnt> 26
-</span><span class=lnt> 27
-</span><span class=lnt> 28
-</span><span class=lnt> 29
-</span><span class=lnt> 30
-</span><span class=lnt> 31
-</span><span class=lnt> 32
-</span><span class=lnt> 33
-</span><span class=lnt> 34
-</span><span class=lnt> 35
-</span><span class=lnt> 36
-</span><span class=lnt> 37
-</span><span class=lnt> 38
-</span><span class=lnt> 39
-</span><span class=lnt> 40
-</span><span class=lnt> 41
-</span><span class=lnt> 42
-</span><span class=lnt> 43
-</span><span class=lnt> 44
-</span><span class=lnt> 45
-</span><span class=lnt> 46
-</span><span class=lnt> 47
-</span><span class=lnt> 48
-</span><span class=lnt> 49
-</span><span class=lnt> 50
-</span><span class=lnt> 51
-</span><span class=lnt> 52
-</span><span class=lnt> 53
-</span><span class=lnt> 54
-</span><span class=lnt> 55
-</span><span class=lnt> 56
-</span><span class=lnt> 57
-</span><span class=lnt> 58
-</span><span class=lnt> 59
-</span><span class=lnt> 60
-</span><span class=lnt> 61
-</span><span class=lnt> 62
-</span><span class=lnt> 63
-</span><span class=lnt> 64
-</span><span class=lnt> 65
-</span><span class=lnt> 66
-</span><span class=lnt> 67
-</span><span class=lnt> 68
-</span><span class=lnt> 69
-</span><span class=lnt> 70
-</span><span class=lnt> 71
-</span><span class=lnt> 72
-</span><span class=lnt> 73
-</span><span class=lnt> 74
-</span><span class=lnt> 75
-</span><span class=lnt> 76
-</span><span class=lnt> 77
-</span><span class=lnt> 78
-</span><span class=lnt> 79
-</span><span class=lnt> 80
-</span><span class=lnt> 81
-</span><span class=lnt> 82
-</span><span class=lnt> 83
-</span><span class=lnt> 84
-</span><span class=lnt> 85
-</span><span class=lnt> 86
-</span><span class=lnt> 87
-</span><span class=lnt> 88
-</span><span class=lnt> 89
-</span><span class=lnt> 90
-</span><span class=lnt> 91
-</span><span class=lnt> 92
-</span><span class=lnt> 93
-</span><span class=lnt> 94
-</span><span class=lnt> 95
-</span><span class=lnt> 96
-</span><span class=lnt> 97
-</span><span class=lnt> 98
-</span><span class=lnt> 99
-</span><span class=lnt>100
-</span><span class=lnt>101
-</span><span class=lnt>102
-</span><span class=lnt>103
-</span><span class=lnt>104
-</span><span class=lnt>105
-</span><span class=lnt>106
-</span><span class=lnt>107
-</span><span class=lnt>108
-</span><span class=lnt>109
-</span><span class=lnt>110
-</span><span class=lnt>111
-</span><span class=lnt>112
-</span><span class=lnt>113
-</span><span class=lnt>114
-</span><span class=lnt>115
-</span><span class=lnt>116
-</span><span class=lnt>117
-</span><span class=lnt>118
-</span><span class=lnt>119
-</span><span class=lnt>120
-</span><span class=lnt>121
-</span><span class=lnt>122
-</span><span class=lnt>123
-</span><span class=lnt>124
-</span><span class=lnt>125
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>典型图像生成模型的参数量约为 1 亿至 9 亿（相比之下，我们此前介绍的二维玩具示例仅约 100 万参数）。其中，跳跃连接至关重要：若移除它们，细粒度空间细节会在瓶颈层中严重丢失，导致模型无法重建高频信息——而这恰恰是扩散过程最先抹除、也必须最后恢复的关键内容。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>## 潜空间扩散：一张图理解 Stable Diffusion
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>在像素空间对 $512 \times 512$ 图像进行扩散计算开销巨大：每次 U-Net 前向需处理约 $8 \times 10^5$ 个浮点数。**潜空间扩散**（Rombach et al., 2022）首先训练一个类 VAE 的自编码器 $(\mathcal{E}, \mathcal{D})$，将图像映射到约 $8\times$ 更小的潜变量 $\mathbf{z}_0 = \mathcal{E}(\mathbf{x})$，然后在整个扩散过程中**仅在潜空间操作**。最终通过一次前向传递完成解码：$\hat{\mathbf{x}} = \mathcal{D}(\mathbf{z}_0)$。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>各类条件信息（文本、类别标签、深度图、ControlNet 姿态等）通过交叉注意力机制注入 U-Net。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>![Stable Diffusion = 自编码器 + 潜空间扩散 + 交叉注意力条件输入。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-扩散模型与Score-Matching/fig7_latent_diffusion.png)
-</span></span><span class=line><span class=cl>*Stable Diffusion = 自编码器 + 潜空间扩散 + 交叉注意力条件输入。*
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>计算开销节省约为 $f^{2d}$，其中 $f$ 为空间下采样因子（通常为 8），$d=2$，即约 **64 倍**。正是这一架构创新，使扩散模型得以走向消费级应用。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>---
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>### 无分类器引导（Classifier-Free Guidance）
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>当前扩散模型中最实用、影响最深远的技术当属**无分类器引导**（Ho &amp; Salimans，2022）。其核心思想非常简洁：在训练阶段，以概率 $p_{\text{uncond}} \approx 0.1$ 随机丢弃条件信号（例如文本提示）；而在推理阶段，则将带条件与不带条件的预测结果进行加权组合：
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>$$\hat{\boldsymbol\epsilon}(\mathbf{x}_t, t, c) = \boldsymbol\epsilon_\theta(\mathbf{x}_t, t, \varnothing) + w\,\bigl[\boldsymbol\epsilon_\theta(\mathbf{x}_t, t, c) - \boldsymbol\epsilon_\theta(\mathbf{x}_t, t, \varnothing)\bigr], \tag{12}$$
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>其中 $w &gt; 1$ 称为**引导尺度（guidance scale）**。当 $w = 1$ 时，退化为标准的条件生成模型；而文本到图像任务中，$w = 7$–$15$ 是典型取值范围。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>```python
-</span></span><span class=line><span class=cl>@torch.no_grad()
-</span></span><span class=line><span class=cl>def guided_sample(model, alpha_bar, cond, w=7.5, steps=50, T=1000):
-</span></span><span class=line><span class=cl>    # 使用无分类器引导进行采样
-</span></span><span class=line><span class=cl>    timesteps = torch.linspace(T-1, 0, steps).long()
-</span></span><span class=line><span class=cl>    x = torch.randn(cond.shape[0], 2)
-</span></span><span class=line><span class=cl>    null_cond = torch.zeros_like(cond)  # 无条件嵌入（即空条件）
-</span></span><span class=line><span class=cl>    for i in range(len(timesteps)):
-</span></span><span class=line><span class=cl>        t = timesteps[i]
-</span></span><span class=line><span class=cl>        t_batch = torch.full((x.shape[0],), t, dtype=torch.long)
-</span></span><span class=line><span class=cl>        # 执行两次前向传播：一次带条件，一次无条件
-</span></span><span class=line><span class=cl>        eps_cond = model(x, t_batch, cond)
-</span></span><span class=line><span class=cl>        eps_uncond = model(x, t_batch, null_cond)
-</span></span><span class=line><span class=cl>        # 计算引导后的噪声预测
-</span></span><span class=line><span class=cl>        eps_guided = eps_uncond + w * (eps_cond - eps_uncond)
-</span></span><span class=line><span class=cl>        # 使用引导后的噪声执行 DDIM 步骤
-</span></span><span class=line><span class=cl>        ab_t = alpha_bar[t]
-</span></span><span class=line><span class=cl>        ab_prev = alpha_bar[timesteps[i+1]] if i+1 &lt; len(timesteps) else torch.tensor(1.0)
-</span></span><span class=line><span class=cl>        x0_pred = (x - torch.sqrt(1 - ab_t) * eps_guided) / torch.sqrt(ab_t)
-</span></span><span class=line><span class=cl>        x = torch.sqrt(ab_prev) * x0_pred + torch.sqrt(1 - ab_prev) * eps_guided
-</span></span><span class=line><span class=cl>    return x
-</span></span><span class=line><span class=cl>```text
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>**为何有效？**  
-</span></span><span class=line><span class=cl>引导机制本质上放大了「模型在给定提示下生成的内容」与「模型无条件生成的内容」之间的差异。这会将采样结果推向那些**在该条件下异常高概率出现**的区域——从而得到更紧凑、更贴合提示的输出，代价是牺牲部分多样性。从数学角度看，该方法近似于从分布 $p(x|c)^w \cdot p(x)^{1-w}$ 中采样，即对原始条件分布进行了锐化（sharpening）。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>| 引导尺度 $w$ | 效果 | 典型应用场景 |
-</span></span><span class=line><span class=cl>|---------------------|--------|-------------|
-</span></span><span class=line><span class=cl>| $w = 1$ | 无引导，即标准条件生成 | 注重多样性的任务 |
-</span></span><span class=line><span class=cl>| $w = 3$–$5$ | 轻度引导 | 创意探索、风格微调 |
-</span></span><span class=line><span class=cl>| $w = 7$–$10$ | 强引导 | 文本到图像生成（DALL-E、Stable Diffusion 等） |
-</span></span><span class=line><span class=cl>| $w &gt; 15$ | 过度饱和，易出现伪影 | 通常过高，不推荐使用 |
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>## 与科学计算的联系
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>基于 score 的扩散不仅是一种生成建模技巧，更是从任意（可能难以处理的）概率分布中采样的通用工具。对 PDE 社区而言，以下两个方向尤为相关：
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>1. **PDE 约束下的条件生成**：训练一个条件 score 模型 $\mathbf{s}_\theta(\mathbf{x}, t \mid \mathcal{C})$，其中 $\mathcal{C}$ 编码了 PDE 残差或边界条件。反向采样生成的场在分布意义上满足约束。这构成了**扩散后验采样**（diffusion posterior sampling）的基础（Chung et al., 2023），适用于断层成像、超分辨率、去模糊等反问题。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>2. **贝叶斯推断的代理采样器**：许多贝叶斯反问题需从后验 $p(\theta \mid \mathbf{y}) \propto p(\mathbf{y}\mid\theta)\,p(\theta)$ 中采样。若能基于模拟生成的 $(\theta, \mathbf{y})$ 数据对训练 score 模型，则可通过条件反向采样替代传统 MCMC。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>核心思想是：**只要你需要从高维、多峰分布中采样，且能够负担前向动力学的模拟，扩散模型的整套流程就适用**。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>---
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>## 练习题
-</span></span><span class=line><span class=cl>**练习 1.** 证明热方程是 Fokker–Planck 方程在 $f \equiv 0$、$g^2 / 2 = D$ 时的特例。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>&gt; *解。* 代入 (4)：$\partial_t p = -\nabla\!\cdot\!(\mathbf{0}\cdot p) + D\nabla^2 p = D\nabla^2 p$。$\blacksquare$
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>**练习 2.** 解释为何 DDPM 损失等价于（加权）score matching。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>&gt; *解。* 由 (9)，$q(\mathbf{x}_t\mid\mathbf{x}_0) = \mathcal{N}(\sqrt{\bar\alpha_t}\,\mathbf{x}_0, (1-\bar\alpha_t)\mathbf{I})$，故 $\nabla_{\mathbf{x}_t}\log q = -\boldsymbol\epsilon/\sqrt{1-\bar\alpha_t}$。预测 $\boldsymbol\epsilon$ 即预测缩放后的 score，(10) 正是 (6) 在 $w(t)=1$ 下的形式。$\blacksquare$
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>**练习 3.** 为何 DDIM 能使用远少于 DDPM 的步数？
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>&gt; *解。* DDIM 求解的是光滑的确定性 ODE (11)，可采用高阶多步法（Heun、RK4、DPM-Solver）；而 DDPM 求解 SDE，其强收敛阶仅为 $\mathcal{O}(\sqrt{\Delta t})$，需极小步长才能保证精度。$\blacksquare$
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>**练习 4.** 将扩散解释为低通滤波器，并说明为何“噪声先破坏高频内容”。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>&gt; *解。* 傅里叶模式演化为 $\hat p(\mathbf{k}, t) \propto \exp(-D\|\mathbf{k}\|^2 t)$，故高频（大 $\|\mathbf{k}\|$）衰减更快。由于高频对应细节，精细结构最先消失，粗结构则持续更久。$\blacksquare$
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>**练习 5.** 对一维 OU 过程 $dX_t = -\tfrac12 \beta X_t\,dt + \sqrt\beta\,dB_t$（平稳分布为 $\mathcal{N}(0,1)$），推导 Anderson 反向 SDE 的漂移项。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>&gt; *解概要。* 在平稳态下 $p_t(x) = \mathcal{N}(x;0,1)$，故 $\nabla\log p_t(x) = -x$。代入 (8)：漂移 $= -\tfrac12\beta x - \beta(-x) = \tfrac12\beta x$，即反向过程具有**远离原点**的正向均值回归——恰好抵消了 OU 过程向原点收缩的趋势。$\blacksquare$
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>---
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>## 下一步
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>本章给的几个核心想法（PDE 残��作为损失、函数空间上的算子、Wasserstein 几何、辛结构、score、扩散）在后面的章节里会反复出现。如果某一段卡住了，建议先记下问题继续往下读——下一章往往会从另一个角度把它再讲一遍。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>如果你想验证自己读懂了，最直接的练习是把本章的方程在一个最小例子上跑通：一维热方程、单摆、二维高斯混合。代码不长，但能让公式从“看着对”变成“在我电脑上确实是对的”。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>## 参考文献
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>[1] Song, Y., et al. (2020). *Score-based generative modeling through stochastic differential equations.* [arXiv:2011.13456](https://arxiv.org/abs/2011.13456).
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>[2] Ho, J., Jain, A., &amp; Abbeel, P. (2020). *Denoising diffusion probabilistic models.* NeurIPS. [arXiv:2006.11239](https://arxiv.org/abs/2006.11239).
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>[3] Song, J., Meng, C., &amp; Ermon, S. (2021). *Denoising diffusion implicit models.* ICLR. [arXiv:2010.02502](https://arxiv.org/abs/2010.02502).
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>[4] Song, Y., &amp; Ermon, S. (2019). *Generative modeling by estimating gradients of the data distribution.* NeurIPS. [arXiv:1907.05600](https://arxiv.org/abs/1907.05600).
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>[5] Karras, T., Aittala, M., Aila, T., &amp; Laine, S. (2022). *Elucidating the design space of diffusion-based generative models (EDM).* NeurIPS. [arXiv:2206.00364](https://arxiv.org/abs/2206.00364).
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>[6] Lu, C., et al. (2022). *DPM-Solver: a fast ODE solver for diffusion models.* NeurIPS. [arXiv:2206.00927](https://arxiv.org/abs/2206.00927).
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>[7] Rombach, R., et al. (2022). *High-resolution image synthesis with latent diffusion models.* CVPR. [arXiv:2112.10752](https://arxiv.org/abs/2112.10752).
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>[8] Anderson, B. D. O. (1982). *Reverse-time diffusion equation models.* Stochastic Processes and their Applications, 12(3), 313–326.
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>[9] Hyvärinen, A. (2005). *Estimation of non-normalized statistical models by score matching.* JMLR.
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>[10] Vincent, P. (2011). *A connection between score matching and denoising autoencoders.* Neural Computation.
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>[11] Chung, H., et al. (2023). *Diffusion posterior sampling for general noisy inverse problems.* ICLR. [arXiv:2209.14687](https://arxiv.org/abs/2209.14687).
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>---
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>*本文是 [PDE 与机器学习](/zh/pde-ml/) 系列的第 7 篇。下一篇：[第 8 篇 —— 反应扩散系统与 GNN](/zh/pde-ml/08-反应扩散系统与gnn)。上一篇：[第 6 篇 —— 连续归一化流](/zh/pde-ml/06-连续归一化流与neural-ode)。*
-</span></span></code></pre></td></tr></table></div></div></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+  ↓
+输出 eps_pred（C×H×W）
+</code></pre><p>典型图像生成模型的参数量约为 1 亿至 9 亿（相比之下，我们此前介绍的二维玩具示例仅约 100 万参数）。其中，跳跃连接至关重要：若移除它们，细粒度空间细节会在瓶颈层中严重丢失，导致模型无法重建高频信息——而这恰恰是扩散过程最先抹除、也必须最后恢复的关键内容。</p><h2 id=潜空间扩散一张图理解-stable-diffusion class=heading-anchor>潜空间扩散：一张图理解 Stable Diffusion<a href=#%e6%bd%9c%e7%a9%ba%e9%97%b4%e6%89%a9%e6%95%a3%e4%b8%80%e5%bc%a0%e5%9b%be%e7%90%86%e8%a7%a3-stable-diffusion class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>在像素空间对 <span class=math-inline>$512 \times 512$</span>
+图像进行扩散计算开销巨大：每次 U-Net 前向需处理约 <span class=math-inline>$8 \times 10^5$</span>
+个浮点数。<strong>潜空间扩散</strong>（Rombach et al., 2022）首先训练一个类 VAE 的自编码器 <span class=math-inline>$(\mathcal{E}, \mathcal{D})$</span>
+，将图像映射到约 <span class=math-inline>$8\times$</span>
+更小的潜变量 <span class=math-inline>$\mathbf{z}_0 = \mathcal{E}(\mathbf{x})$</span>
+，然后在整个扩散过程中<strong>仅在潜空间操作</strong>。最终通过一次前向传递完成解码：<span class=math-inline>$\hat{\mathbf{x}} = \mathcal{D}(\mathbf{z}_0)$</span>
+。</p><p>各类条件信息（文本、类别标签、深度图、ControlNet 姿态等）通过交叉注意力机制注入 U-Net。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/fig7_latent_diffusion.png alt="Stable Diffusion = 自编码器 + 潜空间扩散 + 交叉注意力条件输入。" loading=lazy decoding=async class=content-image></figure><em>Stable Diffusion = 自编码器 + 潜空间扩散 + 交叉注意力条件输入。</em></p><p>计算开销节省约为 <span class=math-inline>$f^{2d}$</span>
+，其中 <span class=math-inline>$f$</span>
+为空间下采样因子（通常为 8），<span class=math-inline>$d=2$</span>
+，即约 <strong>64 倍</strong>。正是这一架构创新，使扩散模型得以走向消费级应用。</p><hr><h3 id=无分类器引导classifier-free-guidance class=heading-anchor>无分类器引导（Classifier-Free Guidance）<a href=#%e6%97%a0%e5%88%86%e7%b1%bb%e5%99%a8%e5%bc%95%e5%af%bcclassifier-free-guidance class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>当前扩散模型中最实用、影响最深远的技术当属<strong>无分类器引导</strong>（Ho & Salimans，2022）。其核心思想非常简洁：在训练阶段，以概率 <span class=math-inline>$p_{\text{uncond}} \approx 0.1$</span>
+随机丢弃条件信号（例如文本提示）；而在推理阶段，则将带条件与不带条件的预测结果进行加权组合：</p><span class=math-block>$$\hat{\boldsymbol\epsilon}(\mathbf{x}_t, t, c) = \boldsymbol\epsilon_\theta(\mathbf{x}_t, t, \varnothing) + w\,\bigl[\boldsymbol\epsilon_\theta(\mathbf{x}_t, t, c) - \boldsymbol\epsilon_\theta(\mathbf{x}_t, t, \varnothing)\bigr], \tag{12}$$</span><p>其中 <span class=math-inline>$w > 1$</span>
+称为<strong>引导尺度（guidance scale）</strong>。当 <span class=math-inline>$w = 1$</span>
+时，退化为标准的条件生成模型；而文本到图像任务中，<span class=math-inline>$w = 7$</span>
+–<span class=math-inline>$15$</span>
+是典型取值范围。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>guided_sample</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>alpha_bar</span><span class=p>,</span> <span class=n>cond</span><span class=p>,</span> <span class=n>w</span><span class=o>=</span><span class=mf>7.5</span><span class=p>,</span> <span class=n>steps</span><span class=o>=</span><span class=mi>50</span><span class=p>,</span> <span class=n>T</span><span class=o>=</span><span class=mi>1000</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 使用无分类器引导进行采样</span>
+</span></span><span class=line><span class=cl>    <span class=n>timesteps</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=n>T</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=n>steps</span><span class=p>)</span><span class=o>.</span><span class=n>long</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>cond</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>null_cond</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros_like</span><span class=p>(</span><span class=n>cond</span><span class=p>)</span>  <span class=c1># 无条件嵌入（即空条件）</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>timesteps</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>        <span class=n>t</span> <span class=o>=</span> <span class=n>timesteps</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>t_batch</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>full</span><span class=p>((</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>],),</span> <span class=n>t</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>long</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 执行两次前向传播：一次带条件，一次无条件</span>
+</span></span><span class=line><span class=cl>        <span class=n>eps_cond</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>t_batch</span><span class=p>,</span> <span class=n>cond</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>eps_uncond</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>t_batch</span><span class=p>,</span> <span class=n>null_cond</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 计算引导后的噪声预测</span>
+</span></span><span class=line><span class=cl>        <span class=n>eps_guided</span> <span class=o>=</span> <span class=n>eps_uncond</span> <span class=o>+</span> <span class=n>w</span> <span class=o>*</span> <span class=p>(</span><span class=n>eps_cond</span> <span class=o>-</span> <span class=n>eps_uncond</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 使用引导后的噪声执行 DDIM 步骤</span>
+</span></span><span class=line><span class=cl>        <span class=n>ab_t</span> <span class=o>=</span> <span class=n>alpha_bar</span><span class=p>[</span><span class=n>t</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>ab_prev</span> <span class=o>=</span> <span class=n>alpha_bar</span><span class=p>[</span><span class=n>timesteps</span><span class=p>[</span><span class=n>i</span><span class=o>+</span><span class=mi>1</span><span class=p>]]</span> <span class=k>if</span> <span class=n>i</span><span class=o>+</span><span class=mi>1</span> <span class=o>&lt;</span> <span class=nb>len</span><span class=p>(</span><span class=n>timesteps</span><span class=p>)</span> <span class=k>else</span> <span class=n>torch</span><span class=o>.</span><span class=n>tensor</span><span class=p>(</span><span class=mf>1.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>x0_pred</span> <span class=o>=</span> <span class=p>(</span><span class=n>x</span> <span class=o>-</span> <span class=n>torch</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>ab_t</span><span class=p>)</span> <span class=o>*</span> <span class=n>eps_guided</span><span class=p>)</span> <span class=o>/</span> <span class=n>torch</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>ab_t</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>ab_prev</span><span class=p>)</span> <span class=o>*</span> <span class=n>x0_pred</span> <span class=o>+</span> <span class=n>torch</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>ab_prev</span><span class=p>)</span> <span class=o>*</span> <span class=n>eps_guided</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>x</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>为何有效？</strong><br>引导机制本质上放大了「模型在给定提示下生成的内容」与「模型无条件生成的内容」之间的差异。这会将采样结果推向那些<strong>在该条件下异常高概率出现</strong>的区域——从而得到更紧凑、更贴合提示的输出，代价是牺牲部分多样性。从数学角度看，该方法近似于从分布 <span class=math-inline>$p(x|c)^w \cdot p(x)^{1-w}$</span>
+中采样，即对原始条件分布进行了锐化（sharpening）。</p><div class=table-wrap><table><thead><tr><th>引导尺度 <span class=math-inline>$w$</span></th><th>效果</th><th>典型应用场景</th></tr></thead><tbody><tr><td><span class=math-inline>$w = 1$</span></td><td>无引导，即标准条件生成</td><td>注重多样性的任务</td></tr><tr><td><span class=math-inline>$w = 3$</span>
+–<span class=math-inline>$5$</span></td><td>轻度引导</td><td>创意探索、风格微调</td></tr><tr><td><span class=math-inline>$w = 7$</span>
+–<span class=math-inline>$10$</span></td><td>强引导</td><td>文本到图像生成（DALL-E、Stable Diffusion 等）</td></tr><tr><td><span class=math-inline>$w > 15$</span></td><td>过度饱和，易出现伪影</td><td>通常过高，不推荐使用</td></tr></tbody></table></div><h2 id=与科学计算的联系 class=heading-anchor>与科学计算的联系<a href=#%e4%b8%8e%e7%a7%91%e5%ad%a6%e8%ae%a1%e7%ae%97%e7%9a%84%e8%81%94%e7%b3%bb class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>基于 score 的扩散不仅是一种生成建模技巧，更是从任意（可能难以处理的）概率分布中采样的通用工具。对 PDE 社区而言，以下两个方向尤为相关：</p><ol><li><p><strong>PDE 约束下的条件生成</strong>：训练一个条件 score 模型 <span class=math-inline>$\mathbf{s}_\theta(\mathbf{x}, t \mid \mathcal{C})$</span>
+，其中 <span class=math-inline>$\mathcal{C}$</span>
+编码了 PDE 残差或边界条件。反向采样生成的场在分布意义上满足约束。这构成了<strong>扩散后验采样</strong>（diffusion posterior sampling）的基础（Chung et al., 2023），适用于断层成像、超分辨率、去模糊等反问题。</p></li><li><p><strong>贝叶斯推断的代理采样器</strong>：许多贝叶斯反问题需从后验 <span class=math-inline>$p(\theta \mid \mathbf{y}) \propto p(\mathbf{y}\mid\theta)\,p(\theta)$</span>
+中采样。若能基于模拟生成的 <span class=math-inline>$(\theta, \mathbf{y})$</span>
+数据对训练 score 模型，则可通过条件反向采样替代传统 MCMC。</p></li></ol><p>核心思想是：<strong>只要你需要从高维、多峰分布中采样，且能够负担前向动力学的模拟，扩散模型的整套流程就适用</strong>。</p><hr><h2 id=练习题 class=heading-anchor>练习题<a href=#%e7%bb%83%e4%b9%a0%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>练习 1.</strong> 证明热方程是 Fokker–Planck 方程在 <span class=math-inline>$f \equiv 0$</span>
+、<span class=math-inline>$g^2 / 2 = D$</span>
+时的特例。</p><blockquote><p><em>解。</em> 代入 (4)：<span class=math-inline>$\partial_t p = -\nabla\!\cdot\!(\mathbf{0}\cdot p) + D\nabla^2 p = D\nabla^2 p$</span>
+。<span class=math-inline>$\blacksquare$</span></p></blockquote><p><strong>练习 2.</strong> 解释为何 DDPM 损失等价于（加权）score matching。</p><blockquote><p><em>解。</em> 由 (9)，<span class=math-inline>$q(\mathbf{x}_t\mid\mathbf{x}_0) = \mathcal{N}(\sqrt{\bar\alpha_t}\,\mathbf{x}_0, (1-\bar\alpha_t)\mathbf{I})$</span>
+，故 <span class=math-inline>$\nabla_{\mathbf{x}_t}\log q = -\boldsymbol\epsilon/\sqrt{1-\bar\alpha_t}$</span>
+。预测 <span class=math-inline>$\boldsymbol\epsilon$</span>
+即预测缩放后的 score，(10) 正是 (6) 在 <span class=math-inline>$w(t)=1$</span>
+下的形式。<span class=math-inline>$\blacksquare$</span></p></blockquote><p><strong>练习 3.</strong> 为何 DDIM 能使用远少于 DDPM 的步数？</p><blockquote><p><em>解。</em> DDIM 求解的是光滑的确定性 ODE (11)，可采用高阶多步法（Heun、RK4、DPM-Solver）；而 DDPM 求解 SDE，其强收敛阶仅为 <span class=math-inline>$\mathcal{O}(\sqrt{\Delta t})$</span>
+，需极小步长才能保证精度。<span class=math-inline>$\blacksquare$</span></p></blockquote><p><strong>练习 4.</strong> 将扩散解释为低通滤波器，并说明为何“噪声先破坏高频内容”。</p><blockquote><p><em>解。</em> 傅里叶模式演化为 <span class=math-inline>$\hat p(\mathbf{k}, t) \propto \exp(-D\|\mathbf{k}\|^2 t)$</span>
+，故高频（大 <span class=math-inline>$\|\mathbf{k}\|$</span>
+）衰减更快。由于高频对应细节，精细结构最先消失，粗结构则持续更久。<span class=math-inline>$\blacksquare$</span></p></blockquote><p><strong>练习 5.</strong> 对一维 OU 过程 <span class=math-inline>$dX_t = -\tfrac12 \beta X_t\,dt + \sqrt\beta\,dB_t$</span>
+（平稳分布为 <span class=math-inline>$\mathcal{N}(0,1)$</span>
+），推导 Anderson 反向 SDE 的漂移项。</p><blockquote><p><em>解概要。</em> 在平稳态下 <span class=math-inline>$p_t(x) = \mathcal{N}(x;0,1)$</span>
+，故 <span class=math-inline>$\nabla\log p_t(x) = -x$</span>
+。代入 (8)：漂移 <span class=math-inline>$= -\tfrac12\beta x - \beta(-x) = \tfrac12\beta x$</span>
+，即反向过程具有<strong>远离原点</strong>的正向均值回归——恰好抵消了 OU 过程向原点收缩的趋势。<span class=math-inline>$\blacksquare$</span></p></blockquote><hr><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>本章给的几个核心想法（PDE 残��作为损失、函数空间上的算子、Wasserstein 几何、辛结构、score、扩散）在后面的章节里会反复出现。如果某一段卡住了，建议先记下问题继续往下读——下一章往往会从另一个角度把它再讲一遍。</p><p>如果你想验证自己读懂了，最直接的练习是把本章的方程在一个最小例子上跑通：一维热方程、单摆、二维高斯混合。代码不长，但能让公式从“看着对”变成“在我电脑上确实是对的”。</p><h2 id=参考文献 class=heading-anchor>参考文献<a href=#%e5%8f%82%e8%80%83%e6%96%87%e7%8c%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>[1] Song, Y., et al. (2020). <em>Score-based generative modeling through stochastic differential equations.</em> <a href=https://arxiv.org/abs/2011.13456 target=_blank rel="noopener noreferrer">arXiv:2011.13456 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</p><p>[2] Ho, J., Jain, A., & Abbeel, P. (2020). <em>Denoising diffusion probabilistic models.</em> NeurIPS. <a href=https://arxiv.org/abs/2006.11239 target=_blank rel="noopener noreferrer">arXiv:2006.11239 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</p><p>[3] Song, J., Meng, C., & Ermon, S. (2021). <em>Denoising diffusion implicit models.</em> ICLR. <a href=https://arxiv.org/abs/2010.02502 target=_blank rel="noopener noreferrer">arXiv:2010.02502 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</p><p>[4] Song, Y., & Ermon, S. (2019). <em>Generative modeling by estimating gradients of the data distribution.</em> NeurIPS. <a href=https://arxiv.org/abs/1907.05600 target=_blank rel="noopener noreferrer">arXiv:1907.05600 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</p><p>[5] Karras, T., Aittala, M., Aila, T., & Laine, S. (2022). <em>Elucidating the design space of diffusion-based generative models (EDM).</em> NeurIPS. <a href=https://arxiv.org/abs/2206.00364 target=_blank rel="noopener noreferrer">arXiv:2206.00364 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</p><p>[6] Lu, C., et al. (2022). <em>DPM-Solver: a fast ODE solver for diffusion models.</em> NeurIPS. <a href=https://arxiv.org/abs/2206.00927 target=_blank rel="noopener noreferrer">arXiv:2206.00927 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</p><p>[7] Rombach, R., et al. (2022). <em>High-resolution image synthesis with latent diffusion models.</em> CVPR. <a href=https://arxiv.org/abs/2112.10752 target=_blank rel="noopener noreferrer">arXiv:2112.10752 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</p><p>[8] Anderson, B. D. O. (1982). <em>Reverse-time diffusion equation models.</em> Stochastic Processes and their Applications, 12(3), 313–326.</p><p>[9] Hyvärinen, A. (2005). <em>Estimation of non-normalized statistical models by score matching.</em> JMLR.</p><p>[10] Vincent, P. (2011). <em>A connection between score matching and denoising autoencoders.</em> Neural Computation.</p><p>[11] Chung, H., et al. (2023). <em>Diffusion posterior sampling for general noisy inverse problems.</em> ICLR. <a href=https://arxiv.org/abs/2209.14687 target=_blank rel="noopener noreferrer">arXiv:2209.14687 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</p><hr><p><em>本文是 <a href=/zh/pde-ml/>PDE 与机器学习</a>
+系列的第 7 篇。下一篇：<a href=/zh/pde-ml/08-%e5%8f%8d%e5%ba%94%e6%89%a9%e6%95%a3%e7%b3%bb%e7%bb%9f%e4%b8%8egnn>第 8 篇 —— 反应扩散系统与 GNN</a>
+。上一篇：<a href=/zh/pde-ml/06-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eneural-ode>第 6 篇 —— 连续归一化流</a>
+。</em></p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/ data-next-url=https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/pde-ml/>PDE × 机器学习</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/><span class=title>偏微分方程与机器学习（六）：连续归一化流与 Neural ODE</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/><span class=title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/pde-ml/01-%E7%89%A9%E7%90%86%E4%BF%A1%E6%81%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/><span class=series-nav-num>01</span>
+<span class=series-nav-title>偏微分方程与机器学习（一）：物理信息神经网络</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/pde-ml/02-%E7%A5%9E%E7%BB%8F%E7%AE%97%E5%AD%90%E7%90%86%E8%AE%BA/><span class=series-nav-num>02</span>
+<span class=series-nav-title>偏微分方程与机器学习（二）：神经算子理论</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/><span class=series-nav-num>03</span>
+<span class=series-nav-title>偏微分方程与机器学习（三）：变分原理与优化</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/pde-ml/04-%E5%8F%98%E5%88%86%E6%8E%A8%E6%96%AD%E4%B8%8Efokker-planck%E6%96%B9%E7%A8%8B/><span class=series-nav-num>04</span>
+<span class=series-nav-title>偏微分方程与机器学习（四）：变分推断与 Fokker-Planck 方程</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/pde-ml/05-%E8%BE%9B%E5%87%A0%E4%BD%95%E4%B8%8E%E4%BF%9D%E7%BB%93%E6%9E%84%E7%BD%91%E7%BB%9C/><span class=series-nav-num>05</span>
+<span class=series-nav-title>偏微分方程与机器学习（五）：辛几何与保结构网络</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/><span class=series-nav-num>06</span>
+<span class=series-nav-title>偏微分方程与机器学习（六）：连续归一化流与 Neural ODE</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>07</span>
+<span class=series-nav-title>偏微分方程与机器学习（七）：扩散模型与 Score Matching</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/><span class=series-nav-num>08</span>
+<span class=series-nav-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E5%2581%258F%25E5%25BE%25AE%25E5%2588%2586%25E6%2596%25B9%25E7%25A8%258B%25E4%25B8%258E%25E6%259C%25BA%25E5%2599%25A8%25E5%25AD%25A6%25E4%25B9%25A0%25EF%25BC%2588%25E4%25B8%2583%25EF%25BC%2589%25EF%25BC%259A%25E6%2589%25A9%25E6%2595%25A3%25E6%25A8%25A1%25E5%259E%258B%25E4%25B8%258E%2bScore%2bMatching&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpde-ml%252F07-%2525E6%252589%2525A9%2525E6%252595%2525A3%2525E6%2525A8%2525A1%2525E5%25259E%25258B%2525E4%2525B8%25258Escore-matching%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpde-ml%252F07-%2525E6%252589%2525A9%2525E6%252595%2525A3%2525E6%2525A8%2525A1%2525E5%25259E%25258B%2525E4%2525B8%25258Escore-matching%252F&title=%25E5%2581%258F%25E5%25BE%25AE%25E5%2588%2586%25E6%2596%25B9%25E7%25A8%258B%25E4%25B8%258E%25E6%259C%25BA%25E5%2599%25A8%25E5%25AD%25A6%25E4%25B9%25A0%25EF%25BC%2588%25E4%25B8%2583%25EF%25BC%2589%25EF%25BC%259A%25E6%2589%25A9%25E6%2595%25A3%25E6%25A8%25A1%25E5%259E%258B%25E4%25B8%258E%2bScore%2bMatching" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/pde-ml/07-%E6%89%A9%E6%95%A3%E6%A8%A1%E5%9E%8B%E4%B8%8Escore-matching/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2024-07-30>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#热方程与扩散过程>热方程与扩散过程</a><ul><li><a href=#fick-定律与扩散方程>Fick 定律与扩散方程</a></li><li><a href=#高斯核基本解>高斯核：基本解</a></li><li><a href=#傅里叶视角扩散作为低通滤波器>傅里叶视角：扩散作为低通滤波器</a></li></ul></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/pde-ml/ class=series-name>PDE × 机器学习</a>
+<span class=sig-meta data-days-since=2024-07-30>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#热方程与扩散过程>热方程与扩散过程</a><ul><li><a href=#fick-定律与扩散方程>Fick 定律与扩散方程</a></li><li><a href=#高斯核基本解>高斯核：基本解</a></li><li><a href=#傅里叶视角扩散作为低通滤波器>傅里叶视角：扩散作为低通滤波器</a></li></ul></li><li><a href=#sde-与-fokkerplanck-方程>SDE 与 Fokker–Planck 方程</a><ul><li><a href=#布朗运动与-itô-sde>布朗运动与 Itô SDE</a></li><li><a href=#fokkerplanck-方程>Fokker–Planck 方程</a></li><li><a href=#kolmogorov-后向方程>Kolmogorov 后向方程</a></li></ul></li><li><a href=#基于-score-的生成模型>基于 Score 的生成模型</a><ul><li><a href=#score-函数>Score 函数</a></li><li><a href=#score-matching>Score Matching</a></li><li><a href=#langevin-动力学>Langevin 动力学</a></li><li><a href=#anderson-的反向时间-sde>Anderson 的反向时间 SDE</a></li></ul></li><li><a href=#从连续理论到-ddpm-与-ddim>从连续理论到 DDPM 与 DDIM</a><ul><li><a href=#ddpm前向过程的闭式解>DDPM：前向过程的闭式解</a></li><li><a href=#ddpm-损失--加权-dsm>DDPM 损失 = 加权 DSM</a></li><li><a href=#ddim概率流-ode>DDIM：概率流 ODE</a></li><li><a href=#统一视角>统一视角</a></li><li><a href=#pde--扩散模型全景图>PDE → 扩散模型全景图</a></li><li><a href=#评分网络架构u-net>评分网络架构：U-Net</a></li></ul></li><li><a href=#潜空间扩散一张图理解-stable-diffusion>潜空间扩散：一张图理解 Stable Diffusion</a><ul><li><a href=#无分类器引导classifier-free-guidance>无分类器引导（Classifier-Free Guidance）</a></li></ul></li><li><a href=#与科学计算的联系>与科学计算的联系</a></li><li><a href=#练习题>练习题</a></li><li><a href=#下一步>下一步</a></li><li><a href=#参考文献>参考文献</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/pde-ml/ class=series-name>PDE × 机器学习</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/01-%E7%89%A9%E7%90%86%E4%BF%A1%E6%81%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/><span class=chapter-num>01</span>
 <span class=chapter-title>偏微分方程与机器学习（一）：物理信息神经网络</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/02-%E7%A5%9E%E7%BB%8F%E7%AE%97%E5%AD%90%E7%90%86%E8%AE%BA/><span class=chapter-num>02</span>
 <span class=chapter-title>偏微分方程与机器学习（二）：神经算子理论</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/><span class=chapter-num>03</span>
@@ -1052,5 +532,5 @@ $$</span><p>高频成分（大 <span class=math-inline>$\|\mathbf{k}\|$</span>
 <span class=chapter-title>偏微分方程与机器学习（五）：辛几何与保结构网络</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/><span class=chapter-num>06</span>
 <span class=chapter-title>偏微分方程与机器学习（六）：连续归一化流与 Neural ODE</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
 <span class=chapter-title>偏微分方程与机器学习（七）：扩散模型与 Score Matching</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/><span class=chapter-num>08</span>
-<span class=chapter-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>46 min</strong></div><div class=row><span>字数</span><strong>11255</strong></div><div class=row><span>写于</span><strong>Jul 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>34 min</strong></div><div class=row><span>字数</span><strong>8169</strong></div><div class=row><span>写于</span><strong>Jul 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/linear-algebra/>线性代数</a>
 · 第 17 篇</div><h1>线性代数（十七）：计算机视觉中的线性代数——从像素到三维重建</h1><p class=deck>计算机视觉几乎完全建立在线性代数之上：图像是矩阵，几何变换是矩阵乘法，相机成像是投影矩阵，三维重建是求解线性方程组。本章带你串起齐次坐标、单应矩阵、相机标定、对极几何、SfM 与 SLAM 的完整脉络。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2025-04-23>April 23, 2025</time> · 32 分钟 · 7606 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/linear-algebra/ class=tag>#Linear Algebra</a><a href=/zh/tags/computer-vision/ class=tag>#Computer Vision</a><a href=/zh/tags/3d-reconstruction/ class=tag>#3D Reconstruction</a><a href=/zh/tags/image-processing/ class=tag>#image processing</a></div><a class="pill pill-outline" href=/en/linear-algebra/17-linear-algebra-in-computer-vision/>Read in English →</a></div></header><div class=prose><p>计算机视觉就是教机器学会“看”。有意思的是，这个领域几乎所有问题最后都能归结为线性代数：图像可以看作矩阵，几何变换是矩阵相乘，相机成像用一个 <span class=math-inline>$3 \times 4$</span>
+<span class=meta-line><time datetime=2025-04-23>April 23, 2025</time> · 18 分钟 · 4476 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/linear-algebra/ class=tag>#Linear Algebra</a><a href=/zh/tags/computer-vision/ class=tag>#Computer Vision</a><a href=/zh/tags/3d-reconstruction/ class=tag>#3D Reconstruction</a><a href=/zh/tags/image-processing/ class=tag>#image processing</a></div><a class="pill pill-outline" href=/en/linear-algebra/17-linear-algebra-in-computer-vision/>Read in English →</a></div></header><div class=prose><p>计算机视觉就是教机器学会“看”。有意思的是，这个领域几乎所有问题最后都能归结为线性代数：图像可以看作矩阵，几何变换是矩阵相乘，相机成像用一个 <span class=math-inline>$3 \times 4$</span>
 的投影矩阵表示，两视图几何关系简化为方程 <span class=math-inline>$\mathbf{x}_2^\top \mathbf{F}\, \mathbf{x}_1 = 0$</span>
 ，三维重建则是一个稀疏线性最小二乘问题。一旦从这个角度理解 CV，原本看似杂乱无章的算法其实只是反复应用了少数几个线性代数的核心思想。</p><blockquote><p><strong>你会学到什么</strong></p><ul><li>图像如何表示为矩阵、张量和高维向量</li><li>旋转、缩放、错切和平移如何通过矩阵乘法实现，齐次坐标统一了这些操作</li><li>为什么透视变换需要单应矩阵 <span class=math-inline>$\mathbf{H}$</span>
 ，以及如何从点对应关系中求解它</li><li>针孔相机模型与投影矩阵 <span class=math-inline>$\mathbf{P} = \mathbf{K}[\mathbf{R}\,|\,\mathbf{t}]$</span></li><li>对极几何、基础矩阵 / 本质矩阵、三角测量</li><li>基于 SVD 的图像压缩与 Eckart-Young 定理</li><li>卷积的本质是矩阵乘法； Harris 角点检测和光流问题归结为 <span class=math-inline>$2 \times 2$</span>
@@ -28,446 +28,66 @@
 ）、特征分解（<a href=/zh/linear-algebra/06-%e7%89%b9%e5%be%81%e5%80%bc%e4%b8%8e%e7%89%b9%e5%be%81%e5%90%91%e9%87%8f/>第 6 章</a>
 ）、 SVD （<a href=/zh/linear-algebra/09-%e5%a5%87%e5%bc%82%e5%80%bc%e5%88%86%e8%a7%a3SVD/>第 9 章</a>
 ）</p></blockquote><hr><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%e8%ae%a1%e7%ae%97%e6%9c%ba%e8%a7%86%e8%a7%89%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0/illustration_1.png alt="线性代数（十七）：计算机视觉中的线性代数——从像素到三维重建 — 章节概览图" loading=lazy decoding=async class=content-image></figure></p><h2 id=图像矩阵张量与向量 class=heading-anchor>图像：矩阵、张量与向量<a href=#%e5%9b%be%e5%83%8f%e7%9f%a9%e9%98%b5%e5%bc%a0%e9%87%8f%e4%b8%8e%e5%90%91%e9%87%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=从像素到矩阵 class=heading-anchor>从像素到矩阵<a href=#%e4%bb%8e%e5%83%8f%e7%b4%a0%e5%88%b0%e7%9f%a9%e9%98%b5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\mathbf{I} \in \mathbb{R}^{H \times W}, \qquad I_{ij} \in [0, 1].$$</span><p>到这里，故事已经讲清楚了。后续所有对图像的操作，都可以看作是对这个矩阵进行线性代数变换。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%e8%ae%a1%e7%ae%97%e6%9c%ba%e8%a7%86%e8%a7%89%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0/fig1_image_as_matrix.png alt="灰度图是矩阵，彩色图是 H x W x 3 的张量。" loading=lazy decoding=async class=content-image></figure></p><h3 id=彩色图像三通道张量 class=heading-anchor>彩色图像：三通道张量<a href=#%e5%bd%a9%e8%89%b2%e5%9b%be%e5%83%8f%e4%b8%89%e9%80%9a%e9%81%93%e5%bc%a0%e9%87%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\mathcal{I} \in \mathbb{R}^{H \times W \times 3}.$$</span>
-<span class=math-block>$$Y = 0.299\,R + 0.587\,G + 0.114\,B.$$</span><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
-</span><span class=lnt>  2
-</span><span class=lnt>  3
-</span><span class=lnt>  4
-</span><span class=lnt>  5
-</span><span class=lnt>  6
-</span><span class=lnt>  7
-</span><span class=lnt>  8
-</span><span class=lnt>  9
-</span><span class=lnt> 10
-</span><span class=lnt> 11
-</span><span class=lnt> 12
-</span><span class=lnt> 13
-</span><span class=lnt> 14
-</span><span class=lnt> 15
-</span><span class=lnt> 16
-</span><span class=lnt> 17
-</span><span class=lnt> 18
-</span><span class=lnt> 19
-</span><span class=lnt> 20
-</span><span class=lnt> 21
-</span><span class=lnt> 22
-</span><span class=lnt> 23
-</span><span class=lnt> 24
-</span><span class=lnt> 25
-</span><span class=lnt> 26
-</span><span class=lnt> 27
-</span><span class=lnt> 28
-</span><span class=lnt> 29
-</span><span class=lnt> 30
-</span><span class=lnt> 31
-</span><span class=lnt> 32
-</span><span class=lnt> 33
-</span><span class=lnt> 34
-</span><span class=lnt> 35
-</span><span class=lnt> 36
-</span><span class=lnt> 37
-</span><span class=lnt> 38
-</span><span class=lnt> 39
-</span><span class=lnt> 40
-</span><span class=lnt> 41
-</span><span class=lnt> 42
-</span><span class=lnt> 43
-</span><span class=lnt> 44
-</span><span class=lnt> 45
-</span><span class=lnt> 46
-</span><span class=lnt> 47
-</span><span class=lnt> 48
-</span><span class=lnt> 49
-</span><span class=lnt> 50
-</span><span class=lnt> 51
-</span><span class=lnt> 52
-</span><span class=lnt> 53
-</span><span class=lnt> 54
-</span><span class=lnt> 55
-</span><span class=lnt> 56
-</span><span class=lnt> 57
-</span><span class=lnt> 58
-</span><span class=lnt> 59
-</span><span class=lnt> 60
-</span><span class=lnt> 61
-</span><span class=lnt> 62
-</span><span class=lnt> 63
-</span><span class=lnt> 64
-</span><span class=lnt> 65
-</span><span class=lnt> 66
-</span><span class=lnt> 67
-</span><span class=lnt> 68
-</span><span class=lnt> 69
-</span><span class=lnt> 70
-</span><span class=lnt> 71
-</span><span class=lnt> 72
-</span><span class=lnt> 73
-</span><span class=lnt> 74
-</span><span class=lnt> 75
-</span><span class=lnt> 76
-</span><span class=lnt> 77
-</span><span class=lnt> 78
-</span><span class=lnt> 79
-</span><span class=lnt> 80
-</span><span class=lnt> 81
-</span><span class=lnt> 82
-</span><span class=lnt> 83
-</span><span class=lnt> 84
-</span><span class=lnt> 85
-</span><span class=lnt> 86
-</span><span class=lnt> 87
-</span><span class=lnt> 88
-</span><span class=lnt> 89
-</span><span class=lnt> 90
-</span><span class=lnt> 91
-</span><span class=lnt> 92
-</span><span class=lnt> 93
-</span><span class=lnt> 94
-</span><span class=lnt> 95
-</span><span class=lnt> 96
-</span><span class=lnt> 97
-</span><span class=lnt> 98
-</span><span class=lnt> 99
-</span><span class=lnt>100
-</span><span class=lnt>101
-</span><span class=lnt>102
-</span><span class=lnt>103
-</span><span class=lnt>104
-</span><span class=lnt>105
-</span><span class=lnt>106
-</span><span class=lnt>107
-</span><span class=lnt>108
-</span><span class=lnt>109
-</span><span class=lnt>110
-</span><span class=lnt>111
-</span><span class=lnt>112
-</span><span class=lnt>113
-</span><span class=lnt>114
-</span><span class=lnt>115
-</span><span class=lnt>116
-</span><span class=lnt>117
-</span><span class=lnt>118
-</span><span class=lnt>119
-</span><span class=lnt>120
-</span><span class=lnt>121
-</span><span class=lnt>122
-</span><span class=lnt>123
-</span><span class=lnt>124
-</span><span class=lnt>125
-</span><span class=lnt>126
-</span><span class=lnt>127
-</span><span class=lnt>128
-</span><span class=lnt>129
-</span><span class=lnt>130
-</span><span class=lnt>131
-</span><span class=lnt>132
-</span><span class=lnt>133
-</span><span class=lnt>134
-</span><span class=lnt>135
-</span><span class=lnt>136
-</span><span class=lnt>137
-</span><span class=lnt>138
-</span><span class=lnt>139
-</span><span class=lnt>140
-</span><span class=lnt>141
-</span><span class=lnt>142
-</span><span class=lnt>143
-</span><span class=lnt>144
-</span><span class=lnt>145
-</span><span class=lnt>146
-</span><span class=lnt>147
-</span><span class=lnt>148
-</span><span class=lnt>149
-</span><span class=lnt>150
-</span><span class=lnt>151
-</span><span class=lnt>152
-</span><span class=lnt>153
-</span><span class=lnt>154
-</span><span class=lnt>155
-</span><span class=lnt>156
-</span><span class=lnt>157
-</span><span class=lnt>158
-</span><span class=lnt>159
-</span><span class=lnt>160
-</span><span class=lnt>161
-</span><span class=lnt>162
-</span><span class=lnt>163
-</span><span class=lnt>164
-</span><span class=lnt>165
-</span><span class=lnt>166
-</span><span class=lnt>167
-</span><span class=lnt>168
-</span><span class=lnt>169
-</span><span class=lnt>170
-</span><span class=lnt>171
-</span><span class=lnt>172
-</span><span class=lnt>173
-</span><span class=lnt>174
-</span><span class=lnt>175
-</span><span class=lnt>176
-</span><span class=lnt>177
-</span><span class=lnt>178
-</span><span class=lnt>179
-</span><span class=lnt>180
-</span><span class=lnt>181
-</span><span class=lnt>182
-</span><span class=lnt>183
-</span><span class=lnt>184
-</span><span class=lnt>185
-</span><span class=lnt>186
-</span><span class=lnt>187
-</span><span class=lnt>188
-</span><span class=lnt>189
-</span><span class=lnt>190
-</span><span class=lnt>191
-</span><span class=lnt>192
-</span><span class=lnt>193
-</span><span class=lnt>194
-</span><span class=lnt>195
-</span><span class=lnt>196
-</span><span class=lnt>197
-</span><span class=lnt>198
-</span><span class=lnt>199
-</span><span class=lnt>200
-</span><span class=lnt>201
-</span><span class=lnt>202
-</span><span class=lnt>203
-</span><span class=lnt>204
-</span><span class=lnt>205
-</span><span class=lnt>206
-</span><span class=lnt>207
-</span><span class=lnt>208
-</span><span class=lnt>209
-</span><span class=lnt>210
-</span><span class=lnt>211
-</span><span class=lnt>212
-</span><span class=lnt>213
-</span><span class=lnt>214
-</span><span class=lnt>215
-</span><span class=lnt>216
-</span><span class=lnt>217
-</span><span class=lnt>218
-</span><span class=lnt>219
-</span><span class=lnt>220
-</span><span class=lnt>221
-</span><span class=lnt>222
-</span><span class=lnt>223
-</span><span class=lnt>224
-</span><span class=lnt>225
-</span><span class=lnt>226
-</span><span class=lnt>227
-</span><span class=lnt>228
-</span><span class=lnt>229
-</span><span class=lnt>230
-</span><span class=lnt>231
-</span><span class=lnt>232
-</span><span class=lnt>233
-</span><span class=lnt>234
-</span><span class=lnt>235
-</span><span class=lnt>236
-</span><span class=lnt>237
-</span><span class=lnt>238
-</span><span class=lnt>239
-</span><span class=lnt>240
-</span><span class=lnt>241
-</span><span class=lnt>242
-</span><span class=lnt>243
-</span><span class=lnt>244
-</span><span class=lnt>245
-</span><span class=lnt>246
-</span><span class=lnt>247
-</span><span class=lnt>248
-</span><span class=lnt>249
-</span><span class=lnt>250
-</span><span class=lnt>251
-</span><span class=lnt>252
-</span><span class=lnt>253
-</span><span class=lnt>254
-</span><span class=lnt>255
-</span><span class=lnt>256
-</span><span class=lnt>257
-</span><span class=lnt>258
-</span><span class=lnt>259
-</span><span class=lnt>260
-</span><span class=lnt>261
-</span><span class=lnt>262
-</span><span class=lnt>263
-</span><span class=lnt>264
-</span><span class=lnt>265
-</span><span class=lnt>266
-</span><span class=lnt>267
-</span><span class=lnt>268
-</span><span class=lnt>269
-</span><span class=lnt>270
-</span><span class=lnt>271
-</span><span class=lnt>272
-</span><span class=lnt>273
-</span><span class=lnt>274
-</span><span class=lnt>275
-</span><span class=lnt>276
-</span><span class=lnt>277
-</span><span class=lnt>278
-</span><span class=lnt>279
-</span><span class=lnt>280
-</span><span class=lnt>281
-</span><span class=lnt>282
-</span><span class=lnt>283
-</span><span class=lnt>284
-</span><span class=lnt>285
-</span><span class=lnt>286
-</span><span class=lnt>287
-</span><span class=lnt>288
-</span><span class=lnt>289
-</span><span class=lnt>290
-</span><span class=lnt>291
-</span><span class=lnt>292
-</span><span class=lnt>293
-</span><span class=lnt>294
-</span><span class=lnt>295
-</span><span class=lnt>296
-</span><span class=lnt>297
-</span><span class=lnt>298
-</span><span class=lnt>299
-</span><span class=lnt>300
-</span><span class=lnt>301
-</span><span class=lnt>302
-</span><span class=lnt>303
-</span><span class=lnt>304
-</span><span class=lnt>305
-</span><span class=lnt>306
-</span><span class=lnt>307
-</span><span class=lnt>308
-</span><span class=lnt>309
-</span><span class=lnt>310
-</span><span class=lnt>311
-</span><span class=lnt>312
-</span><span class=lnt>313
-</span><span class=lnt>314
-</span><span class=lnt>315
-</span><span class=lnt>316
-</span><span class=lnt>317
-</span><span class=lnt>318
-</span><span class=lnt>319
-</span><span class=lnt>320
-</span><span class=lnt>321
-</span><span class=lnt>322
-</span><span class=lnt>323
-</span><span class=lnt>324
-</span><span class=lnt>325
-</span><span class=lnt>326
-</span><span class=lnt>327
-</span><span class=lnt>328
-</span><span class=lnt>329
-</span><span class=lnt>330
-</span><span class=lnt>331
-</span><span class=lnt>332
-</span><span class=lnt>333
-</span><span class=lnt>334
-</span><span class=lnt>335
-</span><span class=lnt>336
-</span><span class=lnt>337
-</span><span class=lnt>338
-</span><span class=lnt>339
-</span><span class=lnt>340
-</span><span class=lnt>341
-</span><span class=lnt>342
-</span><span class=lnt>343
-</span><span class=lnt>344
-</span><span class=lnt>345
-</span><span class=lnt>346
-</span><span class=lnt>347
-</span><span class=lnt>348
-</span><span class=lnt>349
-</span><span class=lnt>350
-</span><span class=lnt>351
-</span><span class=lnt>352
-</span><span class=lnt>353
-</span><span class=lnt>354
-</span><span class=lnt>355
-</span><span class=lnt>356
+<span class=math-block>$$Y = 0.299\,R + 0.587\,G + 0.114\,B.$$</span><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span><span class=o>,</span> <span class=nn>cv2</span>
 </span></span><span class=line><span class=cl><span class=n>img</span> <span class=o>=</span> <span class=n>cv2</span><span class=o>.</span><span class=n>imread</span><span class=p>(</span><span class=s1>&#39;photo.jpg&#39;</span><span class=p>)</span>           <span class=c1># (H, W, 3)，注意 BGR 顺序</span>
 </span></span><span class=line><span class=cl><span class=n>B</span><span class=p>,</span> <span class=n>G</span><span class=p>,</span> <span class=n>R</span> <span class=o>=</span> <span class=n>cv2</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>img</span><span class=o>.</span><span class=n>astype</span><span class=p>(</span><span class=nb>float</span><span class=p>)</span> <span class=o>/</span> <span class=mi>255</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>gray</span> <span class=o>=</span> <span class=mf>0.299</span> <span class=o>*</span> <span class=n>R</span> <span class=o>+</span> <span class=mf>0.587</span> <span class=o>*</span> <span class=n>G</span> <span class=o>+</span> <span class=mf>0.114</span> <span class=o>*</span> <span class=n>B</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 图像作为高维向量</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>许多机器学习算法</span><span class=err>（</span><span class=n>如</span> <span class=n>PCA</span><span class=err>、</span> <span class=n>SVM</span><span class=err>、</span><span class=n>全连接层</span><span class=err>）</span><span class=n>只接受向量输入</span><span class=err>。</span><span class=n>我们把</span> <span class=err>$</span><span class=n>H</span> \<span class=n>times</span> <span class=n>W</span><span class=err>$</span> <span class=n>的图像按列或按行拉平成一个</span> <span class=err>$</span><span class=n>HW</span><span class=err>$</span> <span class=n>维向量</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathrm</span><span class=p>{</span><span class=n>vec</span><span class=p>}(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>})</span> \<span class=ow>in</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=n>HW</span><span class=p>}</span><span class=o>.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>比如</span><span class=err>，</span><span class=n>一张</span> <span class=err>$</span><span class=mi>640</span> \<span class=n>times</span> <span class=mi>480</span><span class=err>$</span> <span class=n>的图像</span><span class=err>，</span><span class=n>会被拉平成一个</span> <span class=mi>307</span><span class=p>,</span><span class=mi>200</span> <span class=n>维的向量</span><span class=err>，</span><span class=n>每个维度对应一个像素位置</span><span class=err>。</span><span class=n>两张图像的相似度可以用</span><span class=o>**</span><span class=n>余弦相似度</span><span class=o>**</span><span class=n>来衡量</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>cos</span>\<span class=n>theta</span> <span class=o>=</span> \<span class=n>frac</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>a</span><span class=p>}</span><span class=o>^</span>\<span class=n>top</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>b</span><span class=p>}}{</span>\<span class=n>lVert</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>a</span><span class=p>}</span>\<span class=n>rVert</span>\<span class=p>,</span>\<span class=n>lVert</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>b</span><span class=p>}</span>\<span class=n>rVert</span><span class=p>}</span><span class=o>.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>这种方法广泛应用于图像检索和人脸识别</span><span class=err>。</span><span class=n>但维度太高会导致几何邻近关系失去意义</span><span class=err>，</span><span class=n>这正是我们需要用</span> <span class=n>PCA</span> <span class=n>或</span> <span class=n>SVD</span> <span class=n>将其压缩到低维子空间的原因</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>## 几何变换 = 矩阵乘法</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 为什么用矩阵</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>几何变换会把每个像素坐标</span> <span class=err>$</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span><span class=err>$</span> <span class=n>映射到一个新位置</span><span class=err>。</span><span class=n>用矩阵表示这种变换有两个巨大的优势</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>组合就是相乘</span><span class=o>**</span><span class=err>。</span><span class=n>先应用</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>A</span><span class=p>}</span><span class=err>$，</span><span class=n>再应用</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>B</span><span class=p>}</span><span class=err>$，</span><span class=n>结果直接是</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>B</span><span class=p>}</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>A</span><span class=p>}</span><span class=err>$。</span>
-</span></span><span class=line><span class=cl><span class=o>-</span> <span class=o>**</span><span class=n>逆变换就是求逆矩阵</span><span class=o>**</span><span class=err>。</span><span class=n>撤销操作时</span><span class=err>，</span><span class=n>完全不用重新推导公式</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 旋转、缩放、错切</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>绕原点逆时针旋转角度</span> <span class=err>$</span>\<span class=n>theta</span><span class=err>$</span> <span class=n>的矩阵如下</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}(</span>\<span class=n>theta</span><span class=p>)</span> <span class=o>=</span> \<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span>\<span class=n>cos</span>\<span class=n>theta</span> <span class=o>&amp;</span> <span class=o>-</span>\<span class=n>sin</span>\<span class=n>theta</span> \\ \<span class=n>sin</span>\<span class=n>theta</span> <span class=o>&amp;</span> \<span class=n>cos</span>\<span class=n>theta</span>\<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span><span class=o>.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>旋转矩阵有三个特别让人省心的性质</span><span class=err>：</span>  
-</span></span><span class=line><span class=cl><span class=mf>1.</span> <span class=n>它是正交矩阵</span><span class=err>（$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span>\<span class=n>top</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>}</span><span class=err>$），</span><span class=n>所以逆矩阵就是转置</span><span class=err>，$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>1</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span>\<span class=n>top</span><span class=err>$；</span>  
-</span></span><span class=line><span class=cl><span class=mf>2.</span> <span class=n>行列式</span> <span class=err>$</span>\<span class=n>det</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}</span> <span class=o>=</span> <span class=mi>1</span><span class=err>$，</span><span class=n>这意味着它既保面积又保朝向</span><span class=err>；</span>  
-</span></span><span class=line><span class=cl><span class=mf>3.</span> <span class=n>旋转角可以直接相加</span><span class=err>，$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}(</span>\<span class=n>alpha</span><span class=p>)</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}(</span>\<span class=n>beta</span><span class=p>)</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}(</span>\<span class=n>alpha</span> <span class=o>+</span> \<span class=n>beta</span><span class=p>)</span><span class=err>$。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>缩放和错切同样简单</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>mathbf</span><span class=p>{</span><span class=n>S</span><span class=p>}</span> <span class=o>=</span> \<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span><span class=n>s_x</span> <span class=o>&amp;</span> <span class=mi>0</span> \\ <span class=mi>0</span> <span class=o>&amp;</span> <span class=n>s_y</span>\<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>},</span> \<span class=n>qquad</span>
-</span></span><span class=line><span class=cl>\<span class=n>mathbf</span><span class=p>{</span><span class=n>H</span><span class=p>}</span><span class=n>_k</span> <span class=o>=</span> \<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span><span class=mi>1</span> <span class=o>&amp;</span> <span class=n>k</span> \\ <span class=mi>0</span> <span class=o>&amp;</span> <span class=mi>1</span>\<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span><span class=o>.</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=c1>### 顺序很重要</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>变换组合是从右往左读的</span><span class=err>：$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>T</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>S</span><span class=p>}</span><span class=err>$</span> <span class=n>意思是</span><span class=err>“</span><span class=n>先缩放</span><span class=err>，</span><span class=n>再旋转</span><span class=err>”。</span><span class=n>如果调换顺序</span><span class=err>，</span><span class=n>结果通常不一样</span><span class=err>。</span><span class=n>唯一例外是等比缩放</span><span class=err>，</span><span class=n>它和旋转可以交换</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
-</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>rotation_matrix</span><span class=p>(</span><span class=n>theta</span><span class=p>):</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=图像作为高维向量 class=heading-anchor>图像作为高维向量<a href=#%e5%9b%be%e5%83%8f%e4%bd%9c%e4%b8%ba%e9%ab%98%e7%bb%b4%e5%90%91%e9%87%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\mathrm{vec}(\mathbf{I}) \in \mathbb{R}^{HW}.$$</span>
+<span class=math-block>$$\cos\theta = \frac{\mathbf{a}^\top \mathbf{b}}{\lVert\mathbf{a}\rVert\,\lVert\mathbf{b}\rVert}.$$</span><p>这种方法广泛应用于图像检索和人脸识别。但维度太高会导致几何邻近关系失去意义，这正是我们需要用 PCA 或 SVD 将其压缩到低维子空间的原因。</p><h2 id=几何变换--矩阵乘法 class=heading-anchor>几何变换 = 矩阵乘法<a href=#%e5%87%a0%e4%bd%95%e5%8f%98%e6%8d%a2--%e7%9f%a9%e9%98%b5%e4%b9%98%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=为什么用矩阵 class=heading-anchor>为什么用矩阵<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e7%94%a8%e7%9f%a9%e9%98%b5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>几何变换会把每个像素坐标 <span class=math-inline>$(x, y)$</span>
+映射到一个新位置。用矩阵表示这种变换有两个巨大的优势：</p><ul><li><strong>组合就是相乘</strong>。先应用 <span class=math-inline>$\mathbf{A}$</span>
+，再应用 <span class=math-inline>$\mathbf{B}$</span>
+，结果直接是 <span class=math-inline>$\mathbf{B}\mathbf{A}$</span>
+。</li><li><strong>逆变换就是求逆矩阵</strong>。撤销操作时，完全不用重新推导公式。</li></ul><h3 id=旋转缩放错切 class=heading-anchor>旋转、缩放、错切<a href=#%e6%97%8b%e8%bd%ac%e7%bc%a9%e6%94%be%e9%94%99%e5%88%87 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\mathbf{R}(\theta) = \begin{bmatrix}\cos\theta & -\sin\theta \\ \sin\theta & \cos\theta\end{bmatrix}.$$</span><p>旋转矩阵有三个特别让人省心的性质：</p><ol><li>它是正交矩阵（<span class=math-inline>$\mathbf{R}^\top\mathbf{R} = \mathbf{I}$</span>
+），所以逆矩阵就是转置，<span class=math-inline>$\mathbf{R}^{-1} = \mathbf{R}^\top$</span>
+；</li><li>行列式 <span class=math-inline>$\det \mathbf{R} = 1$</span>
+，这意味着它既保面积又保朝向；</li><li>旋转角可以直接相加，<span class=math-inline>$\mathbf{R}(\alpha)\mathbf{R}(\beta) = \mathbf{R}(\alpha + \beta)$</span>
+。</li></ol><span class=math-block>$$
+\mathbf{S} = \begin{bmatrix}s_x & 0 \\ 0 & s_y\end{bmatrix}, \qquad
+\mathbf{H}_k = \begin{bmatrix}1 & k \\ 0 & 1\end{bmatrix}.
+$$</span><h3 id=顺序很重要 class=heading-anchor>顺序很重要<a href=#%e9%a1%ba%e5%ba%8f%e5%be%88%e9%87%8d%e8%a6%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>变换组合是从右往左读的：<span class=math-inline>$\mathbf{T} = \mathbf{R}\,\mathbf{S}$</span>
+意思是“先缩放，再旋转”。如果调换顺序，结果通常不一样。唯一例外是等比缩放，它和旋转可以交换。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>rotation_matrix</span><span class=p>(</span><span class=n>theta</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=n>c</span><span class=p>,</span> <span class=n>s</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=n>theta</span><span class=p>),</span> <span class=n>np</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>theta</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([[</span><span class=n>c</span><span class=p>,</span> <span class=o>-</span><span class=n>s</span><span class=p>],</span> <span class=p>[</span><span class=n>s</span><span class=p>,</span> <span class=n>c</span><span class=p>]])</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=n>S</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>diag</span><span class=p>([</span><span class=mf>2.0</span><span class=p>,</span> <span class=mf>2.0</span><span class=p>])</span>
 </span></span><span class=line><span class=cl><span class=n>T</span> <span class=o>=</span> <span class=n>rotation_matrix</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>pi</span> <span class=o>/</span> <span class=mi>4</span><span class=p>)</span> <span class=o>@</span> <span class=n>S</span>        <span class=c1># 先 S 再 R</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl><span class=c1>## 齐次坐标：让平移变成线性</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 平移的麻烦</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>旋转</span><span class=err>、</span><span class=n>缩放和错切都不会动原点</span><span class=err>，</span><span class=n>所以它们是线性变换</span><span class=err>，</span><span class=n>公式是</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>y</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>A</span><span class=p>}</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=err>$。</span><span class=n>但</span><span class=o>**</span><span class=n>平移</span><span class=o>**</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>y</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span> <span class=o>+</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>t</span><span class=p>}</span><span class=err>$</span> <span class=n>不一样</span><span class=err>，</span><span class=n>它把原点移到别的地方</span><span class=err>，</span><span class=n>破坏了线性性质</span><span class=err>。</span><span class=n>我希望所有几何变换都能用矩阵乘法统一描述</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 升维的小技巧</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>给每个</span> <span class=mi>2</span><span class=n>D</span> <span class=n>点加一个</span> <span class=err>$</span><span class=mi>1</span><span class=err>$：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=n>x</span> \\ <span class=n>y</span> \<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> \<span class=p>;</span>\<span class=n>longrightarrow</span>\<span class=p>;</span> \<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=n>x</span> \\ <span class=n>y</span> \\ <span class=mi>1</span> \<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span><span class=o>.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>在更高维的空间里</span><span class=err>，</span><span class=n>平移就变成了线性变换</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=n>x</span><span class=s1>&#39; </span><span class=se>\\</span><span class=s1> y&#39;</span> \\ <span class=mi>1</span> \<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=o>=</span>
-</span></span><span class=line><span class=cl>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=mi>1</span> <span class=o>&amp;</span> <span class=mi>0</span> <span class=o>&amp;</span> <span class=n>t_x</span> \\ <span class=mi>0</span> <span class=o>&amp;</span> <span class=mi>1</span> <span class=o>&amp;</span> <span class=n>t_y</span> \\ <span class=mi>0</span> <span class=o>&amp;</span> <span class=mi>0</span> <span class=o>&amp;</span> <span class=mi>1</span> \<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span>
-</span></span><span class=line><span class=cl>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=n>x</span> \\ <span class=n>y</span> \\ <span class=mi>1</span> \<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span><span class=o>.</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>从几何上看</span><span class=err>，</span><span class=n>我把</span> <span class=mi>2</span><span class=n>D</span> <span class=n>平面嵌入到</span> <span class=mi>3</span><span class=n>D</span> <span class=n>空间中</span><span class=err>，</span><span class=n>固定在</span> <span class=err>$</span><span class=n>z</span> <span class=o>=</span> <span class=mi>1</span><span class=err>$</span> <span class=n>的平面上</span><span class=err>。</span><span class=n>原本的平移操作</span><span class=err>，</span><span class=n>在</span> <span class=mi>3</span><span class=n>D</span> <span class=n>中其实是一个错切</span><span class=err>；</span><span class=n>而错切是线性的</span><span class=err>。</span><span class=n>现在</span><span class=err>，</span><span class=n>所有的仿射变换都可以写成一个</span> <span class=err>$</span><span class=mi>3</span> \<span class=n>times</span> <span class=mi>3</span><span class=err>$</span> <span class=n>矩阵</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>mathbf</span><span class=p>{</span><span class=n>M</span><span class=p>}</span> <span class=o>=</span>
-</span></span><span class=line><span class=cl>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=n>a_</span><span class=p>{</span><span class=mi>11</span><span class=p>}</span> <span class=o>&amp;</span> <span class=n>a_</span><span class=p>{</span><span class=mi>12</span><span class=p>}</span> <span class=o>&amp;</span> <span class=n>t_x</span> \\
-</span></span><span class=line><span class=cl><span class=n>a_</span><span class=p>{</span><span class=mi>21</span><span class=p>}</span> <span class=o>&amp;</span> <span class=n>a_</span><span class=p>{</span><span class=mi>22</span><span class=p>}</span> <span class=o>&amp;</span> <span class=n>t_y</span> \\
-</span></span><span class=line><span class=cl><span class=mi>0</span> <span class=o>&amp;</span> <span class=mi>0</span> <span class=o>&amp;</span> <span class=mi>1</span>
-</span></span><span class=line><span class=cl>\<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span><span class=o>.</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>左上角的</span> <span class=err>$</span><span class=mi>2</span> \<span class=n>times</span> <span class=mi>2</span><span class=err>$</span> <span class=n>块负责线性部分</span><span class=err>，</span><span class=n>右边一列是平移</span><span class=err>，</span><span class=n>最后一行</span> <span class=err>$</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span><span class=err>$</span> <span class=n>标记着这是个仿射变换</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>旋转</span><span class=err>、</span><span class=n>缩放</span><span class=err>、</span><span class=n>平移在齐次坐标下都是</span> <span class=mi>3</span><span class=n>x3</span> <span class=n>矩阵</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>linear</span><span class=o>-</span><span class=n>algebra</span><span class=o>/</span><span class=mi>17</span><span class=o>-</span><span class=n>计算机视觉中的线性代数</span><span class=o>/</span><span class=n>fig3_affine_transforms</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 绕任意点旋转</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>常见需求</span><span class=err>：</span><span class=n>绕图像中心</span> <span class=err>$</span><span class=p>(</span><span class=n>c_x</span><span class=p>,</span> <span class=n>c_y</span><span class=p>)</span><span class=err>$</span> <span class=n>而不是原点旋转</span><span class=err>。</span><span class=n>分三步完成</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>M</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>T</span><span class=p>}(</span><span class=n>c_x</span><span class=p>,</span> <span class=n>c_y</span><span class=p>)</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}(</span>\<span class=n>theta</span><span class=p>)</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>T</span><span class=p>}(</span><span class=o>-</span><span class=n>c_x</span><span class=p>,</span> <span class=o>-</span><span class=n>c_y</span><span class=p>)</span><span class=o>.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
-</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>affine_matrix</span><span class=p>(</span><span class=n>rotation_deg</span><span class=p>,</span> <span class=n>scale</span><span class=p>,</span> <span class=n>translation</span><span class=p>):</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=齐次坐标让平移变成线性 class=heading-anchor>齐次坐标：让平移变成线性<a href=#%e9%bd%90%e6%ac%a1%e5%9d%90%e6%a0%87%e8%ae%a9%e5%b9%b3%e7%a7%bb%e5%8f%98%e6%88%90%e7%ba%bf%e6%80%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=平移的麻烦 class=heading-anchor>平移的麻烦<a href=#%e5%b9%b3%e7%a7%bb%e7%9a%84%e9%ba%bb%e7%83%a6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>旋转、缩放和错切都不会动原点，所以它们是线性变换，公式是 <span class=math-inline>$\mathbf{y} = \mathbf{A}\mathbf{x}$</span>
+。但<strong>平移</strong> <span class=math-inline>$\mathbf{y} = \mathbf{x} + \mathbf{t}$</span>
+不一样，它把原点移到别的地方，破坏了线性性质。我希望所有几何变换都能用矩阵乘法统一描述。</p><h3 id=升维的小技巧 class=heading-anchor>升维的小技巧<a href=#%e5%8d%87%e7%bb%b4%e7%9a%84%e5%b0%8f%e6%8a%80%e5%b7%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\begin{bmatrix} x \\ y \end{bmatrix} \;\longrightarrow\; \begin{bmatrix} x \\ y \\ 1 \end{bmatrix}.$$</span>
+<span class=math-block>$$
+\begin{bmatrix} x' \\ y' \\ 1 \end{bmatrix} =
+\begin{bmatrix} 1 & 0 & t_x \\ 0 & 1 & t_y \\ 0 & 0 & 1 \end{bmatrix}
+\begin{bmatrix} x \\ y \\ 1 \end{bmatrix}.
+$$</span>
+<span class=math-block>$$
+\mathbf{M} =
+\begin{bmatrix}
+a_{11} & a_{12} & t_x \\
+a_{21} & a_{22} & t_y \\
+0 & 0 & 1
+\end{bmatrix}.
+$$</span><p>左上角的 <span class=math-inline>$2 \times 2$</span>
+块负责线性部分，右边一列是平移，最后一行 <span class=math-inline>$(0, 0, 1)$</span>
+标记着这是个仿射变换。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%e8%ae%a1%e7%ae%97%e6%9c%ba%e8%a7%86%e8%a7%89%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0/fig3_affine_transforms.png alt="旋转、缩放、平移在齐次坐标下都是 3x3 矩阵。" loading=lazy decoding=async class=content-image></figure></p><h3 id=绕任意点旋转 class=heading-anchor>绕任意点旋转<a href=#%e7%bb%95%e4%bb%bb%e6%84%8f%e7%82%b9%e6%97%8b%e8%bd%ac class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\mathbf{M} = \mathbf{T}(c_x, c_y)\,\mathbf{R}(\theta)\,\mathbf{T}(-c_x, -c_y).$$</span><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>affine_matrix</span><span class=p>(</span><span class=n>rotation_deg</span><span class=p>,</span> <span class=n>scale</span><span class=p>,</span> <span class=n>translation</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=n>theta</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>radians</span><span class=p>(</span><span class=n>rotation_deg</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>    <span class=n>c</span><span class=p>,</span> <span class=n>s</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=n>theta</span><span class=p>),</span> <span class=n>np</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>theta</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>    <span class=n>sx</span><span class=p>,</span> <span class=n>sy</span> <span class=o>=</span> <span class=n>scale</span><span class=p>;</span> <span class=n>tx</span><span class=p>,</span> <span class=n>ty</span> <span class=o>=</span> <span class=n>translation</span>
@@ -476,155 +96,103 @@
 </span></span><span class=line><span class=cl>                     <span class=p>[</span><span class=mi>0</span><span class=p>,</span>       <span class=mi>0</span><span class=p>,</span>      <span class=mi>1</span><span class=p>]])</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=n>M</span> <span class=o>=</span> <span class=n>affine_matrix</span><span class=p>(</span><span class=mi>30</span><span class=p>,</span> <span class=p>(</span><span class=mf>1.5</span><span class=p>,</span> <span class=mf>1.5</span><span class=p>),</span> <span class=p>(</span><span class=mi>100</span><span class=p>,</span> <span class=mi>50</span><span class=p>))</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl><span class=c1>## 透视变换与单应矩阵</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 为什么仿射变换不够用</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>仿射变换能保持平行线不变</span><span class=err>，</span><span class=n>但现实世界不是这样</span><span class=err>。</span><span class=n>比如铁轨在远处会</span><span class=o>**</span><span class=n>汇聚</span><span class=o>**</span><span class=n>到地平线</span><span class=err>。</span><span class=n>拍一张平面物体的照片时</span><span class=err>，</span><span class=n>如果角度倾斜</span><span class=err>，</span><span class=n>照片里的平行线也会汇聚</span><span class=err>。</span><span class=n>要解决这个问题</span><span class=err>，</span><span class=n>需要一种更灵活的变换</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### $3 \times 3$ 单应矩阵</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>单应矩阵</span> <span class=p>(</span><span class=n>homography</span><span class=p>)</span><span class=o>**</span> <span class=n>是一个通用的</span> <span class=err>$</span><span class=mi>3</span> \<span class=n>times</span> <span class=mi>3</span><span class=err>$</span> <span class=n>可逆矩阵</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>H</span><span class=p>}</span><span class=err>$，</span><span class=n>作用在齐次坐标上</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=n>x</span><span class=s1>&#39; </span><span class=se>\\</span><span class=s1> y&#39;</span> \\ <span class=n>w</span><span class=s1>&#39; \end</span><span class=si>{bmatrix}</span>
-</span></span><span class=line><span class=cl><span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>H</span><span class=p>}</span>
-</span></span><span class=line><span class=cl>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=n>x</span> \\ <span class=n>y</span> \\ <span class=mi>1</span> \<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>},</span>
-</span></span><span class=line><span class=cl>\<span class=n>qquad</span>
-</span></span><span class=line><span class=cl><span class=n>u</span> <span class=o>=</span> <span class=n>x</span><span class=s1>&#39;/w&#39;</span><span class=p>,</span> \<span class=n>quad</span> <span class=n>v</span> <span class=o>=</span> <span class=n>y</span><span class=s1>&#39;/w&#39;</span><span class=o>.</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>它和仿射矩阵的关键区别在于最后一行</span><span class=err>。</span><span class=n>仿射矩阵的最后一行固定为</span> <span class=err>$</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span><span class=err>$，</span><span class=n>而单应矩阵允许非零值</span><span class=err>。</span><span class=n>这些非零值引入了</span><span class=o>**</span><span class=n>透视除法</span><span class=o>**</span> <span class=err>$</span><span class=n>w</span><span class=s1>&#39;$，让平行线看起来汇聚在一起。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>单应矩阵有</span> <span class=err>$</span><span class=mi>9</span> <span class=o>-</span> <span class=mi>1</span> <span class=o>=</span> <span class=mi>8</span><span class=err>$</span> <span class=n>个自由度</span><span class=err>，</span><span class=n>因为矩阵只在尺度上唯一确定</span><span class=err>。</span><span class=n>每对对应点</span> <span class=err>$</span><span class=p>(</span><span class=n>x_i</span><span class=p>,</span> <span class=n>y_i</span><span class=p>)</span> \<span class=n>leftrightarrow</span> <span class=p>(</span><span class=n>u_i</span><span class=p>,</span> <span class=n>v_i</span><span class=p>)</span><span class=err>$</span> <span class=n>提供两个方程</span><span class=err>，</span><span class=n>所以理论上只需要</span><span class=o>**</span><span class=n>四对点</span><span class=o>**</span><span class=n>就能确定</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>H</span><span class=p>}</span><span class=err>$。</span><span class=n>实际操作中</span><span class=err>，</span><span class=n>我们会用更多带噪声的点</span><span class=err>，</span><span class=n>把所有约束堆成</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>A</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>h</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=mi>0</span><span class=p>}</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>然后用</span> <span class=n>SVD</span> <span class=n>求解</span><span class=err>：</span><span class=n>取最小奇异值对应的右奇异向量作为</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>h</span><span class=p>}</span><span class=err>$。</span><span class=n>这就是</span><span class=o>**</span><span class=n>直接线性变换</span> <span class=p>(</span><span class=n>DLT</span><span class=p>)</span><span class=o>**</span> <span class=n>算法</span><span class=err>，</span><span class=n>也是本章所有投影几何估计算法的原型</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>从一张倾斜拍摄的平面照片</span><span class=err>，</span><span class=n>通过单应矩阵</span> <span class=n>H</span> <span class=n>矫正回正视图</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>linear</span><span class=o>-</span><span class=n>algebra</span><span class=o>/</span><span class=mi>17</span><span class=o>-</span><span class=n>计算机视觉中的线性代数</span><span class=o>/</span><span class=n>fig4_homography</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
-</span></span><span class=line><span class=cl><span class=n>src</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>float32</span><span class=p>([[</span><span class=mi>100</span><span class=p>,</span><span class=mi>100</span><span class=p>],[</span><span class=mi>200</span><span class=p>,</span><span class=mi>100</span><span class=p>],[</span><span class=mi>200</span><span class=p>,</span><span class=mi>200</span><span class=p>],[</span><span class=mi>100</span><span class=p>,</span><span class=mi>200</span><span class=p>]])</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=透视变换与单应矩阵 class=heading-anchor>透视变换与单应矩阵<a href=#%e9%80%8f%e8%a7%86%e5%8f%98%e6%8d%a2%e4%b8%8e%e5%8d%95%e5%ba%94%e7%9f%a9%e9%98%b5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=为什么仿射变换不够用 class=heading-anchor>为什么仿射变换不够用<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e4%bb%bf%e5%b0%84%e5%8f%98%e6%8d%a2%e4%b8%8d%e5%a4%9f%e7%94%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>仿射变换能保持平行线不变，但现实世界不是这样。比如铁轨在远处会<strong>汇聚</strong>到地平线。拍一张平面物体的照片时，如果角度倾斜，照片里的平行线也会汇聚。要解决这个问题，需要一种更灵活的变换。</p><h3 id=3-times-3-单应矩阵 class=heading-anchor><span class=math-inline>$3 \times 3$</span>
+单应矩阵<a href=#3-times-3-%e5%8d%95%e5%ba%94%e7%9f%a9%e9%98%b5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\begin{bmatrix} x' \\ y' \\ w' \end{bmatrix}
+= \mathbf{H}
+\begin{bmatrix} x \\ y \\ 1 \end{bmatrix},
+\qquad
+u = x'/w', \quad v = y'/w'.
+$$</span><p>它和仿射矩阵的关键区别在于最后一行。仿射矩阵的最后一行固定为 <span class=math-inline>$(0, 0, 1)$</span>
+，而单应矩阵允许非零值。这些非零值引入了<strong>透视除法</strong> <span class=math-inline>$w'$</span>
+，让平行线看起来汇聚在一起。</p><span class=math-block>$$\mathbf{A}\,\mathbf{h} = \mathbf{0}$$</span><p>然后用 SVD 求解：取最小奇异值对应的右奇异向量作为 <span class=math-inline>$\mathbf{h}$</span>
+。这就是<strong>直接线性变换 (DLT)</strong> 算法，也是本章所有投影几何估计算法的原型。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%e8%ae%a1%e7%ae%97%e6%9c%ba%e8%a7%86%e8%a7%89%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0/fig4_homography.png alt="从一张倾斜拍摄的平面照片，通过单应矩阵 H 矫正回正视图。" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>src</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>float32</span><span class=p>([[</span><span class=mi>100</span><span class=p>,</span><span class=mi>100</span><span class=p>],[</span><span class=mi>200</span><span class=p>,</span><span class=mi>100</span><span class=p>],[</span><span class=mi>200</span><span class=p>,</span><span class=mi>200</span><span class=p>],[</span><span class=mi>100</span><span class=p>,</span><span class=mi>200</span><span class=p>]])</span>
 </span></span><span class=line><span class=cl><span class=n>dst</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>float32</span><span class=p>([[</span><span class=mi>120</span><span class=p>,</span> <span class=mi>90</span><span class=p>],[</span><span class=mi>220</span><span class=p>,</span><span class=mi>110</span><span class=p>],[</span><span class=mi>210</span><span class=p>,</span><span class=mi>220</span><span class=p>],[</span> <span class=mi>90</span><span class=p>,</span><span class=mi>210</span><span class=p>]])</span>
 </span></span><span class=line><span class=cl><span class=n>H</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=n>cv2</span><span class=o>.</span><span class=n>findHomography</span><span class=p>(</span><span class=n>src</span><span class=p>,</span> <span class=n>dst</span><span class=p>,</span> <span class=n>cv2</span><span class=o>.</span><span class=n>RANSAC</span><span class=p>,</span> <span class=mf>5.0</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>应用场景</span><span class=o>**</span>  
-</span></span><span class=line><span class=cl><span class=n>全景拼接</span><span class=err>：</span><span class=n>相机只旋转时</span><span class=err>，</span><span class=n>相邻图像之间可以用一个</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>H</span><span class=p>}</span><span class=err>$</span> <span class=n>表示</span><span class=err>。</span>  
-</span></span><span class=line><span class=cl><span class=n>文档扫描</span><span class=err>：</span><span class=n>把斜拍的纸面矫正成正面视角</span><span class=err>。</span>  
-</span></span><span class=line><span class=cl><span class=n>增强现实</span><span class=err>：</span><span class=n>在检测到的平面标志上放置虚拟物体</span><span class=err>。</span>  
-</span></span><span class=line><span class=cl><span class=n>自动驾驶</span><span class=err>：</span><span class=n>将车前视角转换为俯视</span> <span class=n>BEV</span> <span class=n>图像</span><span class=err>。</span>  
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl><span class=c1>## 针孔相机与投影矩阵</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 针孔几何</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>最简单的相机模型假设光圈是一个位于原点的极小孔</span><span class=err>，</span><span class=n>成像平面距离光圈</span> <span class=err>$</span><span class=n>f</span><span class=err>$（</span><span class=n>焦距</span><span class=err>）。</span><span class=n>在相机坐标系中</span><span class=err>，</span> <span class=mi>3</span><span class=n>D</span> <span class=n>点</span> <span class=err>$</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>Y</span><span class=p>,</span> <span class=n>Z</span><span class=p>)</span><span class=err>$</span> <span class=n>投影到成像平面上的坐标是</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span><span class=n>u</span> <span class=o>=</span> <span class=n>f</span>\<span class=p>,</span>\<span class=n>frac</span><span class=p>{</span><span class=n>X</span><span class=p>}{</span><span class=n>Z</span><span class=p>},</span> \<span class=n>qquad</span> <span class=n>v</span> <span class=o>=</span> <span class=n>f</span>\<span class=p>,</span>\<span class=n>frac</span><span class=p>{</span><span class=n>Y</span><span class=p>}{</span><span class=n>Z</span><span class=p>}</span><span class=o>.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>这里除以深度</span> <span class=err>$</span><span class=n>Z</span><span class=err>$</span> <span class=n>是透视效果的来源</span><span class=err>：</span><span class=n>远处的物体在图像上显得更小</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 内参：从物理单位到像素</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>实际传感器的像素不是单位长度</span><span class=err>，</span><span class=n>主点也不一定和光轴重合</span><span class=err>。</span><span class=n>把这些参数打包成一个矩阵</span><span class=err>，</span><span class=n>就得到了</span><span class=o>**</span><span class=n>相机内参矩阵</span><span class=o>**</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}</span> <span class=o>=</span>
-</span></span><span class=line><span class=cl>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=n>f_x</span> <span class=o>&amp;</span> <span class=n>s</span> <span class=o>&amp;</span> <span class=n>c_x</span> \\ <span class=mi>0</span> <span class=o>&amp;</span> <span class=n>f_y</span> <span class=o>&amp;</span> <span class=n>c_y</span> \\ <span class=mi>0</span> <span class=o>&amp;</span> <span class=mi>0</span> <span class=o>&amp;</span> <span class=mi>1</span> \<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>},</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span><span class=n>f_x</span><span class=p>,</span> <span class=n>f_y</span><span class=err>$</span> <span class=n>是以像素为单位的焦距</span><span class=err>，$</span><span class=p>(</span><span class=n>c_x</span><span class=p>,</span> <span class=n>c_y</span><span class=p>)</span><span class=err>$</span> <span class=n>是主点的像素坐标</span><span class=err>，$</span><span class=n>s</span><span class=err>$</span> <span class=n>是传感器的倾斜量</span><span class=err>（</span><span class=n>现代相机基本为零</span><span class=err>）。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 外参与完整投影</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>世界坐标系通常和相机坐标系不同</span><span class=err>，</span><span class=n>二者通过刚体变换关联</span><span class=err>：</span><span class=n>先旋转</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=err>$，</span><span class=n>再平移</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>t</span><span class=p>}</span><span class=err>$。</span><span class=n>把所有这些整合起来</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=k>lambda</span>
-</span></span><span class=line><span class=cl>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=n>u</span> \\ <span class=n>v</span> \\ <span class=mi>1</span> \<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=o>=</span>
-</span></span><span class=line><span class=cl>\<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}</span>\<span class=p>,[</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}</span>\<span class=p>,</span><span class=o>|</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>t</span><span class=p>}]</span>
-</span></span><span class=line><span class=cl>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=n>X</span> \\ <span class=n>Y</span> \\ <span class=n>Z</span> \\ <span class=mi>1</span> \<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>P</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_w</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>P</span><span class=p>}</span> \<span class=ow>in</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=mi>3</span> \<span class=n>times</span> <span class=mi>4</span><span class=p>}</span><span class=err>$</span> <span class=n>是</span><span class=o>**</span><span class=n>投影矩阵</span><span class=o>**</span><span class=err>，$</span>\<span class=k>lambda</span><span class=err>$</span> <span class=n>吸收了透视除法引入的比例因子</span><span class=err>。</span><span class=n>投影矩阵包含</span> <span class=mi>11</span> <span class=n>个参数</span><span class=err>：</span> <span class=mi>5</span> <span class=n>个内参加</span> <span class=mi>6</span> <span class=n>个位姿参数</span><span class=err>（</span><span class=mi>3</span> <span class=n>个旋转角和</span> <span class=mi>3</span> <span class=n>个平移分量</span><span class=err>）。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>针孔相机投影</span><span class=err>：</span> <span class=mi>3</span><span class=n>D</span> <span class=n>点经</span> <span class=n>P</span> <span class=o>=</span> <span class=n>K</span><span class=p>[</span><span class=n>R</span><span class=o>|</span><span class=n>t</span><span class=p>]</span> <span class=n>变成</span> <span class=mi>2</span><span class=n>D</span> <span class=n>像素</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>linear</span><span class=o>-</span><span class=n>algebra</span><span class=o>/</span><span class=mi>17</span><span class=o>-</span><span class=n>计算机视觉中的线性代数</span><span class=o>/</span><span class=n>fig5_camera_projection</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
-</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>project</span><span class=p>(</span><span class=n>X_world</span><span class=p>,</span> <span class=n>K</span><span class=p>,</span> <span class=n>R</span><span class=p>,</span> <span class=n>t</span><span class=p>):</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>应用场景</strong><br>全景拼接：相机只旋转时，相邻图像之间可以用一个 <span class=math-inline>$\mathbf{H}$</span>
+表示。<br>文档扫描：把斜拍的纸面矫正成正面视角。<br>增强现实：在检测到的平面标志上放置虚拟物体。<br>自动驾驶：将车前视角转换为俯视 BEV 图像。</p><hr><h2 id=针孔相机与投影矩阵 class=heading-anchor>针孔相机与投影矩阵<a href=#%e9%92%88%e5%ad%94%e7%9b%b8%e6%9c%ba%e4%b8%8e%e6%8a%95%e5%bd%b1%e7%9f%a9%e9%98%b5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=针孔几何 class=heading-anchor>针孔几何<a href=#%e9%92%88%e5%ad%94%e5%87%a0%e4%bd%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$u = f\,\frac{X}{Z}, \qquad v = f\,\frac{Y}{Z}.$$</span><p>这里除以深度 <span class=math-inline>$Z$</span>
+是透视效果的来源：远处的物体在图像上显得更小。</p><h3 id=内参从物理单位到像素 class=heading-anchor>内参：从物理单位到像素<a href=#%e5%86%85%e5%8f%82%e4%bb%8e%e7%89%a9%e7%90%86%e5%8d%95%e4%bd%8d%e5%88%b0%e5%83%8f%e7%b4%a0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\mathbf{K} =
+\begin{bmatrix} f_x & s & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{bmatrix},
+$$</span><p>其中 <span class=math-inline>$f_x, f_y$</span>
+是以像素为单位的焦距，<span class=math-inline>$(c_x, c_y)$</span>
+是主点的像素坐标，<span class=math-inline>$s$</span>
+是传感器的倾斜量（现代相机基本为零）。</p><h3 id=外参与完整投影 class=heading-anchor>外参与完整投影<a href=#%e5%a4%96%e5%8f%82%e4%b8%8e%e5%ae%8c%e6%95%b4%e6%8a%95%e5%bd%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\lambda
+\begin{bmatrix} u \\ v \\ 1 \end{bmatrix} =
+\mathbf{K}\,[\mathbf{R}\,|\,\mathbf{t}]
+\begin{bmatrix} X \\ Y \\ Z \\ 1 \end{bmatrix}
+= \mathbf{P}\,\mathbf{X}_w,
+$$</span><p>其中 <span class=math-inline>$\mathbf{P} \in \mathbb{R}^{3 \times 4}$</span>
+是<strong>投影矩阵</strong>，<span class=math-inline>$\lambda$</span>
+吸收了透视除法引入的比例因子。投影矩阵包含 11 个参数： 5 个内参加 6 个位姿参数（3 个旋转角和 3 个平移分量）。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%e8%ae%a1%e7%ae%97%e6%9c%ba%e8%a7%86%e8%a7%89%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0/fig5_camera_projection.png alt="针孔相机投影： 3D 点经 P = K[R|t] 变成 2D 像素。" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>project</span><span class=p>(</span><span class=n>X_world</span><span class=p>,</span> <span class=n>K</span><span class=p>,</span> <span class=n>R</span><span class=p>,</span> <span class=n>t</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=n>Xc</span> <span class=o>=</span> <span class=n>X_world</span> <span class=o>@</span> <span class=n>R</span><span class=o>.</span><span class=n>T</span> <span class=o>+</span> <span class=n>t</span>                 <span class=c1># 世界坐标 -&gt; 相机坐标</span>
 </span></span><span class=line><span class=cl>    <span class=n>x</span>  <span class=o>=</span> <span class=n>Xc</span><span class=p>[:,</span> <span class=mi>0</span><span class=p>]</span> <span class=o>/</span> <span class=n>Xc</span><span class=p>[:,</span> <span class=mi>2</span><span class=p>]</span>                <span class=c1># 透视除法</span>
 </span></span><span class=line><span class=cl>    <span class=n>y</span>  <span class=o>=</span> <span class=n>Xc</span><span class=p>[:,</span> <span class=mi>1</span><span class=p>]</span> <span class=o>/</span> <span class=n>Xc</span><span class=p>[:,</span> <span class=mi>2</span><span class=p>]</span>
 </span></span><span class=line><span class=cl>    <span class=n>u</span>  <span class=o>=</span> <span class=n>K</span><span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=n>x</span> <span class=o>+</span> <span class=n>K</span><span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>]</span>
 </span></span><span class=line><span class=cl>    <span class=n>v</span>  <span class=o>=</span> <span class=n>K</span><span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>]</span> <span class=o>*</span> <span class=n>y</span> <span class=o>+</span> <span class=n>K</span><span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>]</span>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>stack</span><span class=p>([</span><span class=n>u</span><span class=p>,</span> <span class=n>v</span><span class=p>],</span> <span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 张正友标定法</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>用一组已知尺寸的棋盘格图像估计</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}</span><span class=err>$</span> <span class=n>和镜头畸变系数</span><span class=err>，</span><span class=n>这就是</span><span class=o>**</span><span class=n>相机标定</span><span class=o>**</span><span class=err>。</span><span class=n>张正友在</span> <span class=mi>1999</span> <span class=n>年提出的算法分为三步</span><span class=err>：</span><span class=n>每张棋盘图估计一个单应矩阵</span><span class=err>，</span><span class=n>利用旋转矩阵列向量正交的约束提取关于</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=o>-</span>\<span class=n>top</span><span class=p>}</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>1</span><span class=p>}</span><span class=err>$</span> <span class=n>的线性方程</span><span class=err>，</span><span class=n>最后用非线性优化细化结果</span><span class=err>。</span> <span class=n>OpenCV</span> <span class=n>的</span> <span class=err>`</span><span class=n>calibrateCamera</span><span class=err>`</span> <span class=n>函数一行代码就能完成整个流程</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>## 两视图：对极几何</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>线性代数</span><span class=err>（</span><span class=n>十七</span><span class=err>）：</span><span class=n>计算机视觉中的线性代数</span><span class=err>——</span><span class=n>从像素到三维重建</span> <span class=err>—</span> <span class=n>章节小结图</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>linear</span><span class=o>-</span><span class=n>algebra</span><span class=o>/</span><span class=mi>17</span><span class=o>-</span><span class=n>计算机视觉中的线性代数</span><span class=o>/</span><span class=n>illustration_2</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 对极约束</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>用两台相机看同一个</span> <span class=mi>3</span><span class=n>D</span> <span class=n>点</span><span class=err>，</span><span class=n>它在第一张图像中落在</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_1</span><span class=err>$，</span><span class=n>在第二张图像中落在</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_2</span><span class=err>$。</span><span class=n>这两个像素点不是独立的</span><span class=err>。</span> <span class=mi>3</span><span class=n>D</span> <span class=n>点</span><span class=err>、</span><span class=n>两台相机的光心</span><span class=err>、</span><span class=n>以及两个像素点</span><span class=err>，</span><span class=n>这四个点必然共面</span><span class=err>。</span><span class=n>这个平面叫对极平面</span><span class=err>。</span><span class=n>用代数表示这种共面关系</span><span class=err>，</span><span class=n>就是</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_2</span><span class=o>^</span>\<span class=n>top</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>F</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_1</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>F</span><span class=p>}</span><span class=err>$</span> <span class=n>是</span> <span class=err>$</span><span class=mi>3</span> \<span class=n>times</span> <span class=mi>3</span><span class=err>$</span> <span class=n>的</span><span class=o>**</span><span class=n>基础矩阵</span><span class=o>**</span><span class=err>。</span><span class=n>它只和两台相机的相对位姿有关</span><span class=err>，</span><span class=n>与场景无关</span><span class=err>。</span><span class=n>如果知道第一张图像中的一个点</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_1</span><span class=err>$，</span><span class=n>那么它在第二张图像中的对应点一定落在一条直线上</span><span class=err>。</span><span class=n>这条直线叫</span><span class=o>**</span><span class=n>对极线</span><span class=o>**</span><span class=err>，</span><span class=n>计算公式是</span> <span class=err>$</span>\<span class=n>boldsymbol</span><span class=p>{</span>\<span class=n>ell</span><span class=p>}</span><span class=n>_2</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>F</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_1</span><span class=err>$。</span><span class=n>这样一来</span><span class=err>，</span><span class=n>立体匹配的搜索范围就从二维降到了一维</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 本质矩阵 vs 基础矩阵</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>如果相机已经标定</span><span class=err>，</span><span class=n>使用归一化坐标</span> <span class=err>$</span>\<span class=n>hat</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>1</span><span class=p>}</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=err>$，</span><span class=n>同样的约束可以用</span><span class=o>**</span><span class=n>本质矩阵</span><span class=o>**</span><span class=n>表示</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>hat</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}}</span><span class=n>_2</span><span class=o>^</span>\<span class=n>top</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>E</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>hat</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}}</span><span class=n>_1</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> \<span class=n>qquad</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>F</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}</span><span class=n>_2</span><span class=o>^</span><span class=p>{</span><span class=o>-</span>\<span class=n>top</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>E</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}</span><span class=n>_1</span><span class=o>^</span><span class=p>{</span><span class=o>-</span><span class=mi>1</span><span class=p>}</span><span class=o>.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>本质矩阵有特殊形式</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>E</span><span class=p>}</span> <span class=o>=</span> <span class=p>[</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>t</span><span class=p>}]</span><span class=n>_</span>\<span class=n>times</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=err>$，</span><span class=n>其中</span> <span class=err>$</span><span class=p>[</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>t</span><span class=p>}]</span><span class=n>_</span>\<span class=n>times</span><span class=err>$</span> <span class=n>是平移向量的反对称矩阵</span><span class=err>。</span><span class=n>对</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>E</span><span class=p>}</span><span class=err>$</span> <span class=n>做</span> <span class=n>SVD</span> <span class=n>分解</span><span class=err>，</span><span class=n>可以恢复出两台相机的相对位姿</span> <span class=err>$</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>},</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>t</span><span class=p>})</span><span class=err>$。</span><span class=n>不过</span><span class=err>，$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>t</span><span class=p>}</span><span class=err>$</span> <span class=n>的绝对长度永远无法确定</span><span class=err>，</span><span class=n>这是单目视觉固有的尺度不确定性</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
-</span></span><span class=line><span class=cl><span class=n>F</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=n>cv2</span><span class=o>.</span><span class=n>findFundamentalMat</span><span class=p>(</span><span class=n>pts1</span><span class=p>,</span> <span class=n>pts2</span><span class=p>,</span> <span class=n>cv2</span><span class=o>.</span><span class=n>FM_RANSAC</span><span class=p>,</span> <span class=mf>3.0</span><span class=p>,</span> <span class=mf>0.99</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=张正友标定法 class=heading-anchor>张正友标定法<a href=#%e5%bc%a0%e6%ad%a3%e5%8f%8b%e6%a0%87%e5%ae%9a%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>用一组已知尺寸的棋盘格图像估计 <span class=math-inline>$\mathbf{K}$</span>
+和镜头畸变系数，这就是<strong>相机标定</strong>。张正友在 1999 年提出的算法分为三步：每张棋盘图估计一个单应矩阵，利用旋转矩阵列向量正交的约束提取关于 <span class=math-inline>$\mathbf{K}^{-\top}\mathbf{K}^{-1}$</span>
+的线性方程，最后用非线性优化细化结果。 OpenCV 的 <code>calibrateCamera</code> 函数一行代码就能完成整个流程。</p><h2 id=两视图对极几何 class=heading-anchor>两视图：对极几何<a href=#%e4%b8%a4%e8%a7%86%e5%9b%be%e5%af%b9%e6%9e%81%e5%87%a0%e4%bd%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%e8%ae%a1%e7%ae%97%e6%9c%ba%e8%a7%86%e8%a7%89%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0/illustration_2.png alt="线性代数（十七）：计算机视觉中的线性代数——从像素到三维重建 — 章节小结图" loading=lazy decoding=async class=content-image></figure></p><h3 id=对极约束 class=heading-anchor>对极约束<a href=#%e5%af%b9%e6%9e%81%e7%ba%a6%e6%9d%9f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\mathbf{x}_2^\top\,\mathbf{F}\,\mathbf{x}_1 = 0,$$</span><p>其中 <span class=math-inline>$\mathbf{F}$</span>
+是 <span class=math-inline>$3 \times 3$</span>
+的<strong>基础矩阵</strong>。它只和两台相机的相对位姿有关，与场景无关。如果知道第一张图像中的一个点 <span class=math-inline>$\mathbf{x}_1$</span>
+，那么它在第二张图像中的对应点一定落在一条直线上。这条直线叫<strong>对极线</strong>，计算公式是 <span class=math-inline>$\boldsymbol{\ell}_2 = \mathbf{F}\,\mathbf{x}_1$</span>
+。这样一来，立体匹配的搜索范围就从二维降到了一维。</p><h3 id=本质矩阵-vs-基础矩阵 class=heading-anchor>本质矩阵 vs 基础矩阵<a href=#%e6%9c%ac%e8%b4%a8%e7%9f%a9%e9%98%b5-vs-%e5%9f%ba%e7%a1%80%e7%9f%a9%e9%98%b5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\hat{\mathbf{x}}_2^\top\,\mathbf{E}\,\hat{\mathbf{x}}_1 = 0, \qquad \mathbf{F} = \mathbf{K}_2^{-\top}\,\mathbf{E}\,\mathbf{K}_1^{-1}.$$</span><p>本质矩阵有特殊形式 <span class=math-inline>$\mathbf{E} = [\mathbf{t}]_\times \mathbf{R}$</span>
+，其中 <span class=math-inline>$[\mathbf{t}]_\times$</span>
+是平移向量的反对称矩阵。对 <span class=math-inline>$\mathbf{E}$</span>
+做 SVD 分解，可以恢复出两台相机的相对位姿 <span class=math-inline>$(\mathbf{R}, \mathbf{t})$</span>
+。不过，<span class=math-inline>$\mathbf{t}$</span>
+的绝对长度永远无法确定，这是单目视觉固有的尺度不确定性。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>F</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=n>cv2</span><span class=o>.</span><span class=n>findFundamentalMat</span><span class=p>(</span><span class=n>pts1</span><span class=p>,</span> <span class=n>pts2</span><span class=p>,</span> <span class=n>cv2</span><span class=o>.</span><span class=n>FM_RANSAC</span><span class=p>,</span> <span class=mf>3.0</span><span class=p>,</span> <span class=mf>0.99</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>E</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=n>cv2</span><span class=o>.</span><span class=n>findEssentialMat</span><span class=p>(</span><span class=n>pts1</span><span class=p>,</span> <span class=n>pts2</span><span class=p>,</span> <span class=n>K</span><span class=p>,</span> <span class=n>cv2</span><span class=o>.</span><span class=n>RANSAC</span><span class=p>,</span> <span class=mf>0.999</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>_</span><span class=p>,</span> <span class=n>R</span><span class=p>,</span> <span class=n>t</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=n>cv2</span><span class=o>.</span><span class=n>recoverPose</span><span class=p>(</span><span class=n>E</span><span class=p>,</span> <span class=n>pts1</span><span class=p>,</span> <span class=n>pts2</span><span class=p>,</span> <span class=n>K</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl><span class=c1>## 三维重建：三角测量、 SfM 和 Bundle Adjustment</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 三角测量是一个线性系统</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>已知两个投影矩阵</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>P</span><span class=p>}</span><span class=n>_1</span><span class=p>,</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>P</span><span class=p>}</span><span class=n>_2</span><span class=err>$，</span><span class=n>以及一对对应点</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_1</span> \<span class=n>leftrightarrow</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_2</span><span class=err>$。</span><span class=n>每幅图像的方程</span> <span class=err>$</span>\<span class=n>lambda_i</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_i</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>P</span><span class=p>}</span><span class=n>_i</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=err>$</span> <span class=n>消去未知深度</span> <span class=err>$</span>\<span class=n>lambda_i</span><span class=err>$</span> <span class=n>后</span><span class=err>，</span><span class=n>会为</span> <span class=mi>3</span><span class=n>D</span> <span class=n>点</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=err>$</span> <span class=n>提供两个线性约束</span><span class=err>。</span><span class=n>把这些约束堆叠起来</span><span class=err>，</span><span class=n>就得到一个</span> <span class=err>$</span><span class=mi>4</span> \<span class=n>times</span> <span class=mi>4</span><span class=err>$</span> <span class=n>的线性系统</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>A</span><span class=p>}</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=mi>0</span><span class=p>}</span><span class=err>$。</span><span class=n>用</span> <span class=n>SVD</span> <span class=n>求解时</span><span class=err>，$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=err>$</span> <span class=n>是最小奇异值对应的右奇异向量</span><span class=err>，</span><span class=n>经过齐次除法后就能恢复出</span> <span class=mi>3</span><span class=n>D</span> <span class=n>坐标</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
-</span></span><span class=line><span class=cl><span class=n>X4</span> <span class=o>=</span> <span class=n>cv2</span><span class=o>.</span><span class=n>triangulatePoints</span><span class=p>(</span><span class=n>P1</span><span class=p>,</span> <span class=n>P2</span><span class=p>,</span> <span class=n>pts1</span><span class=o>.</span><span class=n>T</span><span class=p>,</span> <span class=n>pts2</span><span class=o>.</span><span class=n>T</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=三维重建三角测量-sfm-和-bundle-adjustment class=heading-anchor>三维重建：三角测量、 SfM 和 Bundle Adjustment<a href=#%e4%b8%89%e7%bb%b4%e9%87%8d%e5%bb%ba%e4%b8%89%e8%a7%92%e6%b5%8b%e9%87%8f-sfm-%e5%92%8c-bundle-adjustment class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=三角测量是一个线性系统 class=heading-anchor>三角测量是一个线性系统<a href=#%e4%b8%89%e8%a7%92%e6%b5%8b%e9%87%8f%e6%98%af%e4%b8%80%e4%b8%aa%e7%ba%bf%e6%80%a7%e7%b3%bb%e7%bb%9f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>已知两个投影矩阵 <span class=math-inline>$\mathbf{P}_1, \mathbf{P}_2$</span>
+，以及一对对应点 <span class=math-inline>$\mathbf{x}_1 \leftrightarrow \mathbf{x}_2$</span>
+。每幅图像的方程 <span class=math-inline>$\lambda_i \mathbf{x}_i = \mathbf{P}_i \mathbf{X}$</span>
+消去未知深度 <span class=math-inline>$\lambda_i$</span>
+后，会为 3D 点 <span class=math-inline>$\mathbf{X}$</span>
+提供两个线性约束。把这些约束堆叠起来，就得到一个 <span class=math-inline>$4 \times 4$</span>
+的线性系统 <span class=math-inline>$\mathbf{A}\mathbf{X} = \mathbf{0}$</span>
+。用 SVD 求解时，<span class=math-inline>$\mathbf{X}$</span>
+是最小奇异值对应的右奇异向量，经过齐次除法后就能恢复出 3D 坐标。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>X4</span> <span class=o>=</span> <span class=n>cv2</span><span class=o>.</span><span class=n>triangulatePoints</span><span class=p>(</span><span class=n>P1</span><span class=p>,</span> <span class=n>P2</span><span class=p>,</span> <span class=n>pts1</span><span class=o>.</span><span class=n>T</span><span class=p>,</span> <span class=n>pts2</span><span class=o>.</span><span class=n>T</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>X3</span> <span class=o>=</span> <span class=p>(</span><span class=n>X4</span><span class=p>[:</span><span class=mi>3</span><span class=p>]</span> <span class=o>/</span> <span class=n>X4</span><span class=p>[</span><span class=mi>3</span><span class=p>])</span><span class=o>.</span><span class=n>T</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 运动恢复结构</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>SfM</span><span class=o>**</span> <span class=n>把三角测量扩展到多视图场景</span><span class=err>。</span><span class=n>标准的增量式流程如下</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=mf>1.</span> <span class=o>**</span><span class=n>特征检测与匹配</span><span class=o>**</span><span class=err>：</span><span class=n>在所有重叠图像对之间用</span> <span class=n>SIFT</span> <span class=n>或</span> <span class=n>ORB</span> <span class=n>检测和匹配特征点</span><span class=err>。</span>
-</span></span><span class=line><span class=cl><span class=mf>2.</span> <span class=o>**</span><span class=n>初始化</span><span class=o>**</span><span class=err>：</span><span class=n>选两张视差适中的图像</span><span class=err>，</span><span class=n>用</span> <span class=mi>5</span> <span class=n>点法加</span> <span class=n>RANSAC</span> <span class=n>估计本质矩阵</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>E</span><span class=p>}</span><span class=err>$，</span><span class=n>恢复相对位姿</span><span class=err>，</span><span class=n>再通过三角测量生成初始点云</span><span class=err>。</span>
-</span></span><span class=line><span class=cl><span class=mf>3.</span> <span class=o>**</span><span class=n>逐步扩展</span><span class=o>**</span><span class=err>：</span><span class=n>每次加入一张新图像</span><span class=err>，</span><span class=n>用</span> <span class=o>**</span><span class=n>PnP</span><span class=o>**</span><span class=err>（</span><span class=n>Perspective</span><span class=o>-</span><span class=n>n</span><span class=o>-</span><span class=n>Point</span><span class=err>）</span><span class=n>求解新相机的位姿</span><span class=err>，</span><span class=n>然后三角测量出新可见的</span> <span class=mi>3</span><span class=n>D</span> <span class=n>点</span><span class=err>。</span>
-</span></span><span class=line><span class=cl><span class=mf>4.</span> <span class=o>**</span><span class=n>全局优化</span><span class=o>**</span><span class=err>：</span><span class=n>调用</span> <span class=n>Bundle</span> <span class=n>Adjustment</span> <span class=n>对所有变量进行联合优化</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 光束法平差</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>这是多视图几何中的核心优化问题</span><span class=err>：</span><span class=n>同时优化</span><span class=o>**</span><span class=n>所有</span><span class=o>**</span><span class=n>相机参数</span> <span class=err>$</span>\<span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>P</span><span class=p>}</span><span class=n>_i</span>\<span class=p>}</span><span class=err>$</span> <span class=n>和</span><span class=o>**</span><span class=n>所有</span><span class=o>**</span> <span class=mi>3</span><span class=n>D</span> <span class=n>点</span> <span class=err>$</span>\<span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_j</span>\<span class=p>}</span><span class=err>$，</span><span class=n>目标是最小化总重投影误差</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>min_</span><span class=p>{</span>\<span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>P</span><span class=p>}</span><span class=n>_i</span>\<span class=p>},</span>\<span class=p>,</span>\<span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_j</span>\<span class=p>}}</span>\<span class=p>;</span>\<span class=n>sum_</span><span class=p>{(</span><span class=n>i</span><span class=p>,</span><span class=n>j</span><span class=p>)</span>\<span class=ow>in</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>V</span><span class=p>}}</span> \<span class=n>rho</span>\<span class=err>!</span>\<span class=n>left</span><span class=p>(</span>\<span class=n>lVert</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span><span class=n>_</span><span class=p>{</span><span class=n>ij</span><span class=p>}</span> <span class=o>-</span> \<span class=n>pi</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>P</span><span class=p>}</span><span class=n>_i</span><span class=p>,</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>X</span><span class=p>}</span><span class=n>_j</span><span class=p>)</span>\<span class=n>rVert</span><span class=o>^</span><span class=mi>2</span>\<span class=n>right</span><span class=p>),</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span>\<span class=n>pi</span><span class=err>$</span> <span class=n>是投影函数</span><span class=err>，$</span>\<span class=n>rho</span><span class=err>$</span> <span class=n>是</span> <span class=n>Huber</span> <span class=n>鲁棒核函数</span><span class=err>，</span><span class=n>用来处理外点</span><span class=err>。</span><span class=n>这是一个超大规模的非线性最小二乘问题</span><span class=err>——</span><span class=n>现代重建中变量数可能达到百万级</span><span class=err>。</span><span class=n>但雅可比矩阵是</span><span class=o>**</span><span class=n>块稀疏</span><span class=o>**</span><span class=n>的</span><span class=err>：</span><span class=n>每个观测只涉及一个相机和一个</span> <span class=mi>3</span><span class=n>D</span> <span class=n>点</span><span class=err>。</span> <span class=n>Levenberg</span><span class=o>-</span><span class=n>Marquardt</span> <span class=n>算法结合</span> <span class=n>Schur</span> <span class=n>补利用了这种稀疏性</span><span class=err>，</span><span class=n>让普通笔记本也能高效求解</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl><span class=c1>## SLAM：实时中的线性代数</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### SLAM 问题</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>机器人在未知环境中移动</span><span class=err>，</span><span class=n>一边读取传感器数据</span><span class=err>，</span><span class=n>一边同时估计自己的轨迹和环境地图</span><span class=err>。</span><span class=n>这就是</span> <span class=o>**</span><span class=n>SLAM</span><span class=o>**</span><span class=err>（</span><span class=n>Simultaneous</span> <span class=n>Localization</span> <span class=n>And</span> <span class=n>Mapping</span><span class=err>）。</span><span class=n>现代</span> <span class=n>SLAM</span> <span class=n>系统本质上是在线版的</span> <span class=n>Bundle</span> <span class=n>Adjustment</span><span class=err>，</span><span class=n>其中包含两个非常有趣的线性代数部分</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 用李群表示旋转</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=mi>3</span><span class=n>D</span> <span class=n>刚体位姿属于矩阵群</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>T</span><span class=p>}</span> <span class=o>=</span> \<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}</span> <span class=o>&amp;</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>t</span><span class=p>}</span> \\ \<span class=n>mathbf</span><span class=p>{</span><span class=mi>0</span><span class=p>}</span><span class=o>^</span>\<span class=n>top</span> <span class=o>&amp;</span> <span class=mi>1</span>\<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> \<span class=ow>in</span> <span class=n>SE</span><span class=p>(</span><span class=mi>3</span><span class=p>)</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}</span> \<span class=ow>in</span> <span class=n>SO</span><span class=p>(</span><span class=mi>3</span><span class=p>)</span><span class=err>$。</span><span class=n>直接把</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=err>$</span> <span class=n>当成</span> <span class=mi>9</span> <span class=n>个自由变量优化很麻烦</span><span class=err>，</span><span class=n>因为必须时刻保证</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span>\<span class=n>top</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>R</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>}</span><span class=err>$。</span><span class=o>**</span><span class=n>李代数</span><span class=o>**</span> <span class=err>$</span>\<span class=n>mathfrak</span><span class=p>{</span><span class=n>se</span><span class=p>}(</span><span class=mi>3</span><span class=p>)</span> \<span class=n>cong</span> \<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=mi>6</span><span class=err>$</span> <span class=n>是一个无约束的向量空间</span><span class=err>，</span><span class=n>指数映射</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>T</span><span class=p>}</span> <span class=o>=</span> \<span class=n>exp</span><span class=p>(</span>\<span class=n>boldsymbol</span><span class=p>{</span>\<span class=n>xi</span><span class=p>}</span><span class=o>^</span>\<span class=n>wedge</span><span class=p>)</span><span class=err>$</span> <span class=n>在两者之间切换</span><span class=err>。</span><span class=n>我们在</span> <span class=err>$</span>\<span class=n>mathbb</span><span class=p>{</span><span class=n>R</span><span class=p>}</span><span class=o>^</span><span class=mi>6</span><span class=err>$</span> <span class=n>中做梯度下降</span><span class=err>，</span><span class=n>再映射回</span> <span class=err>$</span><span class=n>SE</span><span class=p>(</span><span class=mi>3</span><span class=p>)</span><span class=err>$</span> <span class=err>——</span> <span class=n>干净利落</span><span class=err>，</span><span class=n>没有约束</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
-</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>skew</span><span class=p>(</span><span class=n>v</span><span class=p>):</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=运动恢复结构 class=heading-anchor>运动恢复结构<a href=#%e8%bf%90%e5%8a%a8%e6%81%a2%e5%a4%8d%e7%bb%93%e6%9e%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>SfM</strong> 把三角测量扩展到多视图场景。标准的增量式流程如下：</p><ol><li><strong>特征检测与匹配</strong>：在所有重叠图像对之间用 SIFT 或 ORB 检测和匹配特征点。</li><li><strong>初始化</strong>：选两张视差适中的图像，用 5 点法加 RANSAC 估计本质矩阵 <span class=math-inline>$\mathbf{E}$</span>
+，恢复相对位姿，再通过三角测量生成初始点云。</li><li><strong>逐步扩展</strong>：每次加入一张新图像，用 <strong>PnP</strong>（Perspective-n-Point）求解新相机的位姿，然后三角测量出新可见的 3D 点。</li><li><strong>全局优化</strong>：调用 Bundle Adjustment 对所有变量进行联合优化。</li></ol><h3 id=光束法平差 class=heading-anchor>光束法平差<a href=#%e5%85%89%e6%9d%9f%e6%b3%95%e5%b9%b3%e5%b7%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\min_{\{\mathbf{P}_i\},\,\{\mathbf{X}_j\}}\;\sum_{(i,j)\in\mathcal{V}} \rho\!\left(\lVert \mathbf{x}_{ij} - \pi(\mathbf{P}_i, \mathbf{X}_j)\rVert^2\right),$$</span><p>其中 <span class=math-inline>$\pi$</span>
+是投影函数，<span class=math-inline>$\rho$</span>
+是 Huber 鲁棒核函数，用来处理外点。这是一个超大规模的非线性最小二乘问题——现代重建中变量数可能达到百万级。但雅可比矩阵是<strong>块稀疏</strong>的：每个观测只涉及一个相机和一个 3D 点。 Levenberg-Marquardt 算法结合 Schur 补利用了这种稀疏性，让普通笔记本也能高效求解。</p><hr><h2 id=slam实时中的线性代数 class=heading-anchor>SLAM：实时中的线性代数<a href=#slam%e5%ae%9e%e6%97%b6%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=slam-问题 class=heading-anchor>SLAM 问题<a href=#slam-%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>机器人在未知环境中移动，一边读取传感器数据，一边同时估计自己的轨迹和环境地图。这就是 <strong>SLAM</strong>（Simultaneous Localization And Mapping）。现代 SLAM 系统本质上是在线版的 Bundle Adjustment，其中包含两个非常有趣的线性代数部分。</p><h3 id=用李群表示旋转 class=heading-anchor>用李群表示旋转<a href=#%e7%94%a8%e6%9d%8e%e7%be%a4%e8%a1%a8%e7%a4%ba%e6%97%8b%e8%bd%ac class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\mathbf{T} = \begin{bmatrix}\mathbf{R} & \mathbf{t} \\ \mathbf{0}^\top & 1\end{bmatrix} \in SE(3)$$</span><p>其中 <span class=math-inline>$\mathbf{R} \in SO(3)$</span>
+。直接把 <span class=math-inline>$\mathbf{R}$</span>
+当成 9 个自由变量优化很麻烦，因为必须时刻保证 <span class=math-inline>$\mathbf{R}^\top\mathbf{R} = \mathbf{I}$</span>
+。<strong>李代数</strong> <span class=math-inline>$\mathfrak{se}(3) \cong \mathbb{R}^6$</span>
+是一个无约束的向量空间，指数映射 <span class=math-inline>$\mathbf{T} = \exp(\boldsymbol{\xi}^\wedge)$</span>
+在两者之间切换。我们在 <span class=math-inline>$\mathbb{R}^6$</span>
+中做梯度下降，再映射回 <span class=math-inline>$SE(3)$</span>
+—— 干净利落，没有约束。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>skew</span><span class=p>(</span><span class=n>v</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([[</span><span class=mi>0</span><span class=p>,</span> <span class=o>-</span><span class=n>v</span><span class=p>[</span><span class=mi>2</span><span class=p>],</span> <span class=n>v</span><span class=p>[</span><span class=mi>1</span><span class=p>]],</span>
 </span></span><span class=line><span class=cl>                     <span class=p>[</span><span class=n>v</span><span class=p>[</span><span class=mi>2</span><span class=p>],</span> <span class=mi>0</span><span class=p>,</span> <span class=o>-</span><span class=n>v</span><span class=p>[</span><span class=mi>0</span><span class=p>]],</span>
 </span></span><span class=line><span class=cl>                     <span class=p>[</span><span class=o>-</span><span class=n>v</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=n>v</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=mi>0</span><span class=p>]])</span>
@@ -635,61 +203,33 @@
 </span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>eye</span><span class=p>(</span><span class=mi>3</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>    <span class=n>a</span> <span class=o>=</span> <span class=n>phi</span> <span class=o>/</span> <span class=n>theta</span><span class=p>;</span> <span class=n>A</span> <span class=o>=</span> <span class=n>skew</span><span class=p>(</span><span class=n>a</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>eye</span><span class=p>(</span><span class=mi>3</span><span class=p>)</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>theta</span><span class=p>)</span> <span class=o>*</span> <span class=n>A</span> <span class=o>+</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>np</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=n>theta</span><span class=p>))</span> <span class=o>*</span> <span class=p>(</span><span class=n>A</span> <span class=o>@</span> <span class=n>A</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 位姿图优化</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>现代</span> <span class=n>SLAM</span> <span class=n>框架</span><span class=err>（</span><span class=n>g2o</span><span class=err>、</span> <span class=n>GTSAM</span><span class=err>、</span> <span class=n>Ceres</span><span class=err>）</span><span class=n>将问题建模为</span><span class=o>**</span><span class=n>因子图</span><span class=o>**</span><span class=err>：</span><span class=n>节点表示位姿和路标</span><span class=err>，</span><span class=n>边表示带协方差</span> <span class=err>$</span>\<span class=n>boldsymbol</span><span class=p>{</span>\<span class=n>Omega</span><span class=p>}</span><span class=n>_k</span><span class=err>$</span> <span class=n>的相对测量值</span><span class=err>。</span><span class=n>优化目标是</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=nb>min</span>\<span class=p>;</span>\<span class=n>sum_k</span> \<span class=n>lVert</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>e</span><span class=p>}</span><span class=n>_k</span>\<span class=n>rVert</span><span class=o>^</span><span class=mi>2</span><span class=n>_</span><span class=p>{</span>\<span class=n>boldsymbol</span><span class=p>{</span>\<span class=n>Omega</span><span class=p>}</span><span class=n>_k</span><span class=p>}</span><span class=o>.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>通过</span> <span class=n>Gauss</span><span class=o>-</span><span class=n>Newton</span> <span class=n>迭代求解</span><span class=err>，</span><span class=n>每一步都需要解一个稀疏线性方程组</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>H</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>Delta</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>x</span><span class=p>}</span> <span class=o>=</span> <span class=o>-</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>b</span><span class=p>},</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>H</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>J</span><span class=p>}</span><span class=o>^</span>\<span class=n>top</span> \<span class=n>boldsymbol</span><span class=p>{</span>\<span class=n>Omega</span><span class=p>}</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>J</span><span class=p>}</span><span class=err>$</span> <span class=n>继承了图的稀疏结构</span><span class=err>。</span><span class=n>对</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>H</span><span class=p>}</span><span class=err>$</span> <span class=n>做稀疏</span> <span class=n>Cholesky</span> <span class=n>分解</span><span class=err>，</span><span class=n>几乎是所有现代</span> <span class=n>SLAM</span> <span class=n>系统的核心步骤</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>## 图像滤波 = 矩阵乘法</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>三种经典</span> <span class=mi>3</span><span class=n>x3</span> <span class=n>卷积核</span><span class=err>（</span><span class=n>边缘</span><span class=err>、</span><span class=n>模糊</span><span class=err>、</span><span class=n>锐化</span><span class=err>）</span><span class=n>的输入输出对比</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>linear</span><span class=o>-</span><span class=n>algebra</span><span class=o>/</span><span class=mi>17</span><span class=o>-</span><span class=n>计算机视觉中的线性代数</span><span class=o>/</span><span class=n>fig2_convolution_kernels</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 卷积是超大、稀疏、有结构的线性映射</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>二维卷积</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>G</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>}</span> \<span class=n>ast</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}</span><span class=err>$，</span><span class=n>把图像拉成向量后可以写成矩阵乘法</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>g</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>T</span><span class=p>}</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>i</span><span class=p>}</span><span class=err>$。</span><span class=n>这里的</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>T</span><span class=p>}</span><span class=err>$</span> <span class=n>是一个由卷积核生成的</span><span class=o>**</span><span class=n>双重块</span> <span class=n>Toeplitz</span> <span class=n>矩阵</span><span class=o>**</span><span class=err>。</span><span class=n>我们不会真的去存储</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>T</span><span class=p>}</span><span class=err>$，</span><span class=n>因为它需要</span> <span class=err>$</span><span class=p>(</span><span class=n>HW</span><span class=p>)</span><span class=o>^</span><span class=mi>2</span><span class=err>$</span> <span class=n>个元素</span><span class=err>。</span><span class=n>但它的存在让我们可以用线性代数工具分析卷积</span><span class=err>。</span><span class=n>比如</span><span class=err>，$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>T</span><span class=p>}</span><span class=err>$</span> <span class=n>的特征值正好是卷积核的离散傅里叶变换</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 必须记住的三个卷积核</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>均值核</span><span class=o>**</span><span class=err>（</span><span class=n>低通</span><span class=err>，</span><span class=n>模糊</span><span class=err>）。</span><span class=n>对邻域取平均</span><span class=err>，</span><span class=n>权重加起来等于</span> <span class=mi>1</span><span class=err>，</span><span class=n>所以图像整体亮度不变</span><span class=err>。</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>blur</span><span class=p>}}</span> <span class=o>=</span> \<span class=n>tfrac</span><span class=p>{</span><span class=mi>1</span><span class=p>}{</span><span class=mi>9</span><span class=p>}</span>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span><span class=mi>1</span> <span class=o>&amp;</span> <span class=mi>1</span> <span class=o>&amp;</span> <span class=mi>1</span>\\ <span class=mi>1</span> <span class=o>&amp;</span> <span class=mi>1</span> <span class=o>&amp;</span> <span class=mi>1</span>\\ <span class=mi>1</span> <span class=o>&amp;</span> <span class=mi>1</span> <span class=o>&amp;</span> <span class=mi>1</span>\<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>拉普拉斯核</span><span class=o>**</span><span class=err>（</span><span class=n>带通</span><span class=err>，</span><span class=n>边缘</span><span class=err>）。</span><span class=n>这是离散二阶导数的近似</span><span class=err>，</span><span class=n>权重加起来等于</span> <span class=mi>0</span><span class=err>。</span><span class=n>平坦区域会被抹掉</span><span class=err>，</span><span class=n>只有突变的地方会凸显出来</span><span class=err>。</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>edge</span><span class=p>}}</span> <span class=o>=</span> \<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span><span class=mi>0</span> <span class=o>&amp;</span> <span class=o>-</span><span class=mi>1</span> <span class=o>&amp;</span> <span class=mi>0</span>\\ <span class=o>-</span><span class=mi>1</span> <span class=o>&amp;</span> <span class=mi>4</span> <span class=o>&amp;</span> <span class=o>-</span><span class=mi>1</span>\\ <span class=mi>0</span> <span class=o>&amp;</span> <span class=o>-</span><span class=mi>1</span> <span class=o>&amp;</span> <span class=mi>0</span>\<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>锐化核</span><span class=o>**</span><span class=err>（</span><span class=n>高通</span> <span class=o>+</span> <span class=n>恒等</span><span class=err>）。</span><span class=n>简单说就是</span><span class=err>“</span><span class=n>原图加上自己的边缘</span><span class=err>”。</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>sharp</span><span class=p>}}</span> <span class=o>=</span> \<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span><span class=mi>0</span> <span class=o>&amp;</span> <span class=o>-</span><span class=mi>1</span> <span class=o>&amp;</span> <span class=mi>0</span>\\ <span class=o>-</span><span class=mi>1</span> <span class=o>&amp;</span> <span class=mi>5</span> <span class=o>&amp;</span> <span class=o>-</span><span class=mi>1</span>\\ <span class=mi>0</span> <span class=o>&amp;</span> <span class=o>-</span><span class=mi>1</span> <span class=o>&amp;</span> <span class=mi>0</span>\<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=o>=</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>}</span> <span class=o>+</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>edge</span><span class=p>}}</span><span class=o>.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=c1>### 卷积定理</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>任何线性平移不变滤波器在傅里叶基下都是对角化的</span><span class=err>。</span><span class=n>空域卷积在频域中变成了逐点相乘</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathcal</span><span class=p>{</span><span class=n>F</span><span class=p>}[</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>}</span> \<span class=n>ast</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}]</span> <span class=o>=</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>F</span><span class=p>}[</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>}]</span> \<span class=n>cdot</span> \<span class=n>mathcal</span><span class=p>{</span><span class=n>F</span><span class=p>}[</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}]</span><span class=o>.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>设计滤波器其实就是设计它的频率响应</span><span class=err>：</span><span class=n>低通用来去噪</span><span class=err>，</span><span class=n>高通用来提取边缘</span><span class=err>，</span><span class=n>带通用来捕捉纹理</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>## 两个看似不同、本质却是同一个 $2 \times 2$ 特征值问题的算法</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### Harris 角点：结构张量</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>在像素周围</span><span class=err>，</span><span class=n>用</span> <span class=o>**</span><span class=n>结构张量</span><span class=o>**</span> <span class=n>来汇总局部图像梯度</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>mathbf</span><span class=p>{</span><span class=n>M</span><span class=p>}</span> <span class=o>=</span> \<span class=n>sum_</span><span class=p>{(</span><span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span> \<span class=ow>in</span> <span class=n>W</span><span class=p>}</span> <span class=n>w</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=n>I_x</span><span class=o>^</span><span class=mi>2</span> <span class=o>&amp;</span> <span class=n>I_x</span> <span class=n>I_y</span> \\ <span class=n>I_x</span> <span class=n>I_y</span> <span class=o>&amp;</span> <span class=n>I_y</span><span class=o>^</span><span class=mi>2</span> \<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span><span class=o>.</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>这是一个</span> <span class=err>$</span><span class=mi>2</span> \<span class=n>times</span> <span class=mi>2</span><span class=err>$</span> <span class=n>的对称半正定矩阵</span><span class=err>。</span><span class=n>它的特征值</span> <span class=err>$</span>\<span class=n>lambda_1</span> \<span class=n>ge</span> \<span class=n>lambda_2</span> \<span class=n>ge</span> <span class=mi>0</span><span class=err>$</span> <span class=n>描述了窗口内图像沿两个主方向的变化情况</span><span class=err>：</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>特征值</span> <span class=o>|</span> <span class=n>含义</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=o>---</span> <span class=o>|</span> <span class=o>---</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>都很小</span> <span class=o>|</span> <span class=n>平坦区域</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>一大一小</span> <span class=o>|</span> <span class=n>边缘</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl><span class=o>|</span> <span class=n>都很大</span> <span class=o>|</span> <span class=n>角点</span> <span class=o>|</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>Harris</span> <span class=n>提出了一个巧妙的方法</span><span class=err>，</span><span class=n>避免直接计算特征值</span><span class=err>。</span><span class=n>他定义了一个响应函数</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span><span class=n>R</span> <span class=o>=</span> \<span class=n>det</span><span class=p>(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>M</span><span class=p>})</span> <span class=o>-</span> <span class=n>k</span>\<span class=p>,</span>\<span class=n>mathrm</span><span class=p>{</span><span class=n>trace</span><span class=p>}(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>M</span><span class=p>})</span><span class=o>^</span><span class=mi>2</span> <span class=o>=</span> \<span class=n>lambda_1</span>\<span class=n>lambda_2</span> <span class=o>-</span> <span class=n>k</span><span class=p>(</span>\<span class=n>lambda_1</span> <span class=o>+</span> \<span class=n>lambda_2</span><span class=p>)</span><span class=o>^</span><span class=mi>2</span><span class=p>,</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>只有当两个特征值都较大时</span><span class=err>，$</span><span class=n>R</span><span class=err>$</span> <span class=n>才会显著增大</span><span class=err>，</span><span class=n>从而准确刻画角点</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
-</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>harris</span><span class=p>(</span><span class=n>img</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mf>0.04</span><span class=p>,</span> <span class=n>win</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>ksize</span><span class=o>=</span><span class=mi>3</span><span class=p>):</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=位姿图优化 class=heading-anchor>位姿图优化<a href=#%e4%bd%8d%e5%a7%bf%e5%9b%be%e4%bc%98%e5%8c%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\min\;\sum_k \lVert \mathbf{e}_k\rVert^2_{\boldsymbol{\Omega}_k}.$$</span>
+<span class=math-block>$$\mathbf{H}\,\Delta\mathbf{x} = -\mathbf{b},$$</span><p>其中 <span class=math-inline>$\mathbf{H} = \mathbf{J}^\top \boldsymbol{\Omega}\,\mathbf{J}$</span>
+继承了图的稀疏结构。对 <span class=math-inline>$\mathbf{H}$</span>
+做稀疏 Cholesky 分解，几乎是所有现代 SLAM 系统的核心步骤。</p><h2 id=图像滤波--矩阵乘法 class=heading-anchor>图像滤波 = 矩阵乘法<a href=#%e5%9b%be%e5%83%8f%e6%bb%a4%e6%b3%a2--%e7%9f%a9%e9%98%b5%e4%b9%98%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%e8%ae%a1%e7%ae%97%e6%9c%ba%e8%a7%86%e8%a7%89%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0/fig2_convolution_kernels.png alt="三种经典 3x3 卷积核（边缘、模糊、锐化）的输入输出对比。" loading=lazy decoding=async class=content-image></figure></p><h3 id=卷积是超大稀疏有结构的线性映射 class=heading-anchor>卷积是超大、稀疏、有结构的线性映射<a href=#%e5%8d%b7%e7%a7%af%e6%98%af%e8%b6%85%e5%a4%a7%e7%a8%80%e7%96%8f%e6%9c%89%e7%bb%93%e6%9e%84%e7%9a%84%e7%ba%bf%e6%80%a7%e6%98%a0%e5%b0%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>二维卷积 <span class=math-inline>$\mathbf{G} = \mathbf{I} \ast \mathbf{K}$</span>
+，把图像拉成向量后可以写成矩阵乘法 <span class=math-inline>$\mathbf{g} = \mathbf{T}\mathbf{i}$</span>
+。这里的 <span class=math-inline>$\mathbf{T}$</span>
+是一个由卷积核生成的<strong>双重块 Toeplitz 矩阵</strong>。我们不会真的去存储 <span class=math-inline>$\mathbf{T}$</span>
+，因为它需要 <span class=math-inline>$(HW)^2$</span>
+个元素。但它的存在让我们可以用线性代数工具分析卷积。比如，<span class=math-inline>$\mathbf{T}$</span>
+的特征值正好是卷积核的离散傅里叶变换。</p><h3 id=必须记住的三个卷积核 class=heading-anchor>必须记住的三个卷积核<a href=#%e5%bf%85%e9%a1%bb%e8%ae%b0%e4%bd%8f%e7%9a%84%e4%b8%89%e4%b8%aa%e5%8d%b7%e7%a7%af%e6%a0%b8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\mathbf{K}_{\text{blur}} = \tfrac{1}{9}\begin{bmatrix}1 & 1 & 1\\ 1 & 1 & 1\\ 1 & 1 & 1\end{bmatrix}$$</span>
+<span class=math-block>$$\mathbf{K}_{\text{edge}} = \begin{bmatrix}0 & -1 & 0\\ -1 & 4 & -1\\ 0 & -1 & 0\end{bmatrix}$$</span>
+<span class=math-block>$$\mathbf{K}_{\text{sharp}} = \begin{bmatrix}0 & -1 & 0\\ -1 & 5 & -1\\ 0 & -1 & 0\end{bmatrix} = \mathbf{I} + \mathbf{K}_{\text{edge}}.$$</span><h3 id=卷积定理 class=heading-anchor>卷积定理<a href=#%e5%8d%b7%e7%a7%af%e5%ae%9a%e7%90%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\mathcal{F}[\mathbf{I} \ast \mathbf{K}] = \mathcal{F}[\mathbf{I}] \cdot \mathcal{F}[\mathbf{K}].$$</span><p>设计滤波器其实就是设计它的频率响应：低通用来去噪，高通用来提取边缘，带通用来捕捉纹理。</p><h2 id=两个看似不同本质却是同一个-2-times-2-特征值问题的算法 class=heading-anchor>两个看似不同、本质却是同一个 <span class=math-inline>$2 \times 2$</span>
+特征值问题的算法<a href=#%e4%b8%a4%e4%b8%aa%e7%9c%8b%e4%bc%bc%e4%b8%8d%e5%90%8c%e6%9c%ac%e8%b4%a8%e5%8d%b4%e6%98%af%e5%90%8c%e4%b8%80%e4%b8%aa-2-times-2-%e7%89%b9%e5%be%81%e5%80%bc%e9%97%ae%e9%a2%98%e7%9a%84%e7%ae%97%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=harris-角点结构张量 class=heading-anchor>Harris 角点：结构张量<a href=#harris-%e8%a7%92%e7%82%b9%e7%bb%93%e6%9e%84%e5%bc%a0%e9%87%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\mathbf{M} = \sum_{(x, y) \in W} w(x, y)
+\begin{bmatrix} I_x^2 & I_x I_y \\ I_x I_y & I_y^2 \end{bmatrix}.
+$$</span><p>这是一个 <span class=math-inline>$2 \times 2$</span>
+的对称半正定矩阵。它的特征值 <span class=math-inline>$\lambda_1 \ge \lambda_2 \ge 0$</span>
+描述了窗口内图像沿两个主方向的变化情况：</p><div class=table-wrap><table><thead><tr><th>特征值</th><th>含义</th></tr></thead><tbody><tr><td>都很小</td><td>平坦区域</td></tr><tr><td>一大一小</td><td>边缘</td></tr><tr><td>都很大</td><td>角点</td></tr></tbody></table></div><span class=math-block>$$R = \det(\mathbf{M}) - k\,\mathrm{trace}(\mathbf{M})^2 = \lambda_1\lambda_2 - k(\lambda_1 + \lambda_2)^2,$$</span><p>只有当两个特征值都较大时，<span class=math-inline>$R$</span>
+才会显著增大，从而准确刻画角点。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>harris</span><span class=p>(</span><span class=n>img</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mf>0.04</span><span class=p>,</span> <span class=n>win</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>ksize</span><span class=o>=</span><span class=mi>3</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=n>Ix</span> <span class=o>=</span> <span class=n>cv2</span><span class=o>.</span><span class=n>Sobel</span><span class=p>(</span><span class=n>img</span><span class=p>,</span> <span class=n>cv2</span><span class=o>.</span><span class=n>CV_64F</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=n>ksize</span><span class=o>=</span><span class=n>ksize</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>    <span class=n>Iy</span> <span class=o>=</span> <span class=n>cv2</span><span class=o>.</span><span class=n>Sobel</span><span class=p>(</span><span class=n>img</span><span class=p>,</span> <span class=n>cv2</span><span class=o>.</span><span class=n>CV_64F</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>ksize</span><span class=o>=</span><span class=n>ksize</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>    <span class=n>Sxx</span> <span class=o>=</span> <span class=n>cv2</span><span class=o>.</span><span class=n>GaussianBlur</span><span class=p>(</span><span class=n>Ix</span> <span class=o>*</span> <span class=n>Ix</span><span class=p>,</span> <span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>win</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,)</span> <span class=o>*</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span>
@@ -697,54 +237,47 @@
 </span></span><span class=line><span class=cl>    <span class=n>Sxy</span> <span class=o>=</span> <span class=n>cv2</span><span class=o>.</span><span class=n>GaussianBlur</span><span class=p>(</span><span class=n>Ix</span> <span class=o>*</span> <span class=n>Iy</span><span class=p>,</span> <span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>win</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,)</span> <span class=o>*</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>    <span class=n>detM</span><span class=p>,</span> <span class=n>trM</span> <span class=o>=</span> <span class=n>Sxx</span> <span class=o>*</span> <span class=n>Syy</span> <span class=o>-</span> <span class=n>Sxy</span> <span class=o>**</span> <span class=mi>2</span><span class=p>,</span> <span class=n>Sxx</span> <span class=o>+</span> <span class=n>Syy</span>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>detM</span> <span class=o>-</span> <span class=n>k</span> <span class=o>*</span> <span class=n>trM</span> <span class=o>**</span> <span class=mi>2</span>
-</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>text</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 光流：同一个矩阵再次登场</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>光流估计的是相邻两帧之间每个像素的位移</span> <span class=err>$</span><span class=p>(</span><span class=n>u</span><span class=p>,</span> <span class=n>v</span><span class=p>)</span><span class=err>$。</span><span class=n>假设亮度守恒</span><span class=err>，</span><span class=n>对灰度变化做一阶泰勒展开</span><span class=err>，</span><span class=n>得到</span> <span class=o>**</span><span class=n>亮度恒定方程</span><span class=o>**</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span><span class=n>I_x</span>\<span class=p>,</span><span class=n>u</span> <span class=o>+</span> <span class=n>I_y</span>\<span class=p>,</span><span class=n>v</span> <span class=o>+</span> <span class=n>I_t</span> <span class=o>=</span> <span class=mf>0.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>一个标量方程</span><span class=err>，</span><span class=n>两个未知数</span> <span class=o>--</span> <span class=n>局部欠定</span><span class=err>，</span><span class=n>这就是著名的</span> <span class=o>**</span><span class=n>光圈问题</span><span class=o>**</span><span class=err>。</span> <span class=n>Lucas</span><span class=o>-</span><span class=n>Kanade</span> <span class=n>的解决方法是</span><span class=err>：</span><span class=n>假设</span> <span class=err>$</span><span class=p>(</span><span class=n>u</span><span class=p>,</span> <span class=n>v</span><span class=p>)</span><span class=err>$</span> <span class=n>在小窗口内为常数</span><span class=err>，</span><span class=n>对窗口内的每个像素列出一个方程</span><span class=err>，</span><span class=n>形成一个超定线性系统</span><span class=err>，</span><span class=n>然后用最小二乘法求解</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl>\<span class=n>underbrace</span><span class=p>{</span>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> \<span class=nb>sum</span> <span class=n>I_x</span><span class=o>^</span><span class=mi>2</span> <span class=o>&amp;</span> \<span class=nb>sum</span> <span class=n>I_x</span> <span class=n>I_y</span> \\ \<span class=nb>sum</span> <span class=n>I_x</span> <span class=n>I_y</span> <span class=o>&amp;</span> \<span class=nb>sum</span> <span class=n>I_y</span><span class=o>^</span><span class=mi>2</span> \<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}}</span><span class=n>_</span><span class=p>{</span>\<span class=n>text</span><span class=p>{</span><span class=n>正是结构张量</span> <span class=p>}</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>M</span><span class=p>}}</span>
-</span></span><span class=line><span class=cl>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> <span class=n>u</span> \\ <span class=n>v</span> \<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=o>=</span> <span class=o>-</span>\<span class=n>begin</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span> \<span class=nb>sum</span> <span class=n>I_x</span> <span class=n>I_t</span> \\ \<span class=nb>sum</span> <span class=n>I_y</span> <span class=n>I_t</span> \<span class=n>end</span><span class=p>{</span><span class=n>bmatrix</span><span class=p>}</span><span class=o>.</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>这个方程组是否能解得好</span><span class=err>，</span><span class=n>取决于</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>M</span><span class=p>}</span><span class=err>$</span> <span class=n>的条件数</span> <span class=o>--</span> <span class=n>换句话说</span><span class=err>，</span><span class=n>取决于当前区域是否为角点</span><span class=err>。</span><span class=n>同样的特征值分析告诉</span> <span class=n>Harris</span> <span class=n>哪里有角点</span><span class=err>，</span><span class=n>也告诉</span> <span class=n>Lucas</span><span class=o>-</span><span class=n>Kanade</span> <span class=n>它的光流估计是否可靠</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>光流</span><span class=err>：</span><span class=n>从亮度恒定方程局部最小二乘解出来的位移向量场</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>linear</span><span class=o>-</span><span class=n>algebra</span><span class=o>/</span><span class=mi>17</span><span class=o>-</span><span class=n>计算机视觉中的线性代数</span><span class=o>/</span><span class=n>fig7_optical_flow</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl><span class=c1>## SVD 图像压缩</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>一张</span> <span class=err>$</span><span class=n>H</span> \<span class=n>times</span> <span class=n>W</span><span class=err>$</span> <span class=n>的灰度图像可以写成奇异值分解的形式</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>}</span> <span class=o>=</span> \<span class=n>sum_</span><span class=p>{</span><span class=n>i</span><span class=o>=</span><span class=mi>1</span><span class=p>}</span><span class=o>^</span><span class=p>{</span><span class=n>r</span><span class=p>}</span> \<span class=n>sigma_i</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>u</span><span class=p>}</span><span class=n>_i</span>\<span class=p>,</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>v</span><span class=p>}</span><span class=n>_i</span><span class=o>^</span>\<span class=n>top</span><span class=p>,</span> \<span class=n>qquad</span> \<span class=n>sigma_1</span> \<span class=n>ge</span> \<span class=n>sigma_2</span> \<span class=n>ge</span> \<span class=n>cdots</span> \<span class=n>ge</span> <span class=mf>0.</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=o>**</span><span class=n>Eckart</span><span class=o>-</span><span class=n>Young</span> <span class=n>定理</span><span class=o>**</span><span class=err>（</span><span class=p>[</span><span class=n>第</span> <span class=mi>9</span> <span class=n>章</span><span class=p>](</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>linear</span><span class=o>-</span><span class=n>algebra</span><span class=o>/</span><span class=mi>09</span><span class=o>-</span><span class=n>奇异值分解SVD</span><span class=o>/</span><span class=p>)</span><span class=err>）</span><span class=n>指出</span><span class=err>，</span><span class=n>取前</span> <span class=err>$</span><span class=n>k</span><span class=err>$</span> <span class=n>项的截断结果</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>I</span><span class=p>}</span><span class=n>_k</span><span class=err>$</span> <span class=n>是在</span> <span class=n>Frobenius</span> <span class=n>范数和谱范数意义下的最佳秩</span> <span class=err>$</span><span class=n>k</span><span class=err>$</span> <span class=n>近似</span><span class=err>。</span><span class=n>自然图像的奇异值衰减得很快</span><span class=err>，</span><span class=n>大部分视觉信息集中在前几十个分量中</span><span class=err>。</span><span class=n>因此</span><span class=err>，</span><span class=n>即使</span> <span class=err>$</span><span class=n>k</span><span class=err>$</span> <span class=n>很小</span><span class=err>，</span><span class=n>也能生成可辨认的图像</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>存储需求从</span> <span class=err>$</span><span class=n>HW</span><span class=err>$</span> <span class=n>减少到</span> <span class=err>$</span><span class=n>k</span><span class=p>(</span><span class=n>H</span> <span class=o>+</span> <span class=n>W</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span><span class=err>$</span> <span class=n>个数</span><span class=err>，</span><span class=n>压缩比大约是</span> <span class=err>$</span><span class=n>k</span><span class=p>(</span><span class=n>H</span> <span class=o>+</span> <span class=n>W</span><span class=p>)</span> <span class=o>/</span> <span class=p>(</span><span class=n>HW</span><span class=p>)</span><span class=err>$。</span> <span class=n>SVD</span> <span class=n>在自然图像上的效率远不如</span> <span class=n>JPEG</span> <span class=err>（</span><span class=n>JPEG</span> <span class=n>利用了</span> <span class=n>DCT</span> <span class=n>系数的感知冗余</span><span class=err>），</span><span class=n>但它思路清晰</span><span class=err>，</span><span class=n>是许多视觉任务中低秩近似的金标准</span><span class=err>：</span><span class=n>比如人脸识别</span><span class=err>（</span><span class=n>Eigenfaces</span><span class=err>）、</span><span class=n>背景建模</span><span class=err>（</span><span class=n>RPCA</span><span class=err>）</span><span class=n>和图像去噪</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=err>!</span><span class=p>[</span><span class=n>SVD</span> <span class=n>在三个不同秩下的低秩重建及奇异值谱</span><span class=err>。</span><span class=p>](</span><span class=n>https</span><span class=p>:</span><span class=o>//</span><span class=n>blog</span><span class=o>-</span><span class=n>pic</span><span class=o>-</span><span class=n>ck</span><span class=o>.</span><span class=n>oss</span><span class=o>-</span><span class=n>cn</span><span class=o>-</span><span class=n>beijing</span><span class=o>.</span><span class=n>aliyuncs</span><span class=o>.</span><span class=n>com</span><span class=o>/</span><span class=n>posts</span><span class=o>/</span><span class=n>zh</span><span class=o>/</span><span class=n>linear</span><span class=o>-</span><span class=n>algebra</span><span class=o>/</span><span class=mi>17</span><span class=o>-</span><span class=n>计算机视觉中的线性代数</span><span class=o>/</span><span class=n>fig6_svd_compression</span><span class=o>.</span><span class=n>png</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=o>---</span>
-</span></span><span class=line><span class=cl><span class=c1>## 现代深度视觉中的线性代数</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 卷积通过 im2col 转化为矩阵乘法</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>GPU</span> <span class=n>在处理稠密矩阵乘法时性能极强</span><span class=err>。</span><span class=o>**</span><span class=n>im2col</span><span class=o>**</span> <span class=n>方法把卷积操作转化为一次大规模的</span> <span class=err>`</span><span class=n>gemm</span><span class=err>`：</span><span class=n>将每个感受野区域提取为一列</span><span class=err>，</span><span class=n>把所有卷积核展开成行</span><span class=err>，</span><span class=n>然后一次性完成矩阵乘法</span><span class=err>，</span><span class=n>最后再将结果重塑为特征图</span><span class=err>。</span><span class=n>从本质上讲</span><span class=err>，</span> <span class=n>CNN</span> <span class=n>就是一系列矩阵乘法和逐元素非线性变换的交替操作</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 自注意力机制的核心是矩阵乘法</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>Transformer</span> <span class=n>的自注意力层公式如下</span><span class=err>：</span>
-</span></span><span class=line><span class=cl><span class=err>$$</span>\<span class=n>mathrm</span><span class=p>{</span><span class=n>Attention</span><span class=p>}(</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>Q</span><span class=p>},</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>},</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>V</span><span class=p>})</span> <span class=o>=</span> \<span class=n>mathrm</span><span class=p>{</span><span class=n>softmax</span><span class=p>}</span>\<span class=err>!</span>\<span class=n>left</span><span class=p>(</span>\<span class=n>frac</span><span class=p>{</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>Q</span><span class=p>}</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>}</span><span class=o>^</span>\<span class=n>top</span><span class=p>}{</span>\<span class=n>sqrt</span><span class=p>{</span><span class=n>d_k</span><span class=p>}}</span>\<span class=n>right</span><span class=p>)</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>V</span><span class=p>},</span><span class=err>$$</span>
-</span></span><span class=line><span class=cl><span class=n>其中</span> <span class=err>$</span>\<span class=n>mathbf</span><span class=p>{</span><span class=n>Q</span><span class=p>},</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>K</span><span class=p>},</span> \<span class=n>mathbf</span><span class=p>{</span><span class=n>V</span><span class=p>}</span><span class=err>$</span> <span class=n>是对序列进行线性投影的结果</span><span class=err>。</span> <span class=n>Vision</span> <span class=n>Transformer</span> <span class=p>(</span><span class=n>ViT</span><span class=p>)</span> <span class=n>把图像分割成小块作为</span> <span class=n>token</span> <span class=n>输入</span><span class=err>，</span><span class=n>整个前向传播过程就是一堆矩阵乘法堆叠起来的操作</span><span class=err>。</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>### 推理时 BatchNorm 是仿射变换</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>推理阶段</span><span class=err>，</span> <span class=n>BatchNorm</span> <span class=n>使用存储的运行统计量和学到的</span> <span class=err>$</span><span class=p>(</span>\<span class=n>gamma</span><span class=p>,</span> \<span class=n>beta</span><span class=p>)</span><span class=err>$</span> <span class=n>参数</span><span class=err>，</span><span class=n>执行逐元素仿射变换</span> <span class=err>$</span><span class=n>y</span> <span class=o>=</span> \<span class=n>gamma</span>\<span class=p>,</span>\<span class=n>hat</span><span class=p>{</span><span class=n>x</span><span class=p>}</span> <span class=o>+</span> \<span class=n>beta</span><span class=err>$。</span><span class=n>在部署时</span><span class=err>，</span><span class=n>这个操作可以合并到前一层卷积中</span><span class=err>，</span><span class=n>从而完全从计算图中移除</span><span class=err>。</span>
-</span></span></code></pre></td></tr></table></div></div></div><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=光流同一个矩阵再次登场 class=heading-anchor>光流：同一个矩阵再次登场<a href=#%e5%85%89%e6%b5%81%e5%90%8c%e4%b8%80%e4%b8%aa%e7%9f%a9%e9%98%b5%e5%86%8d%e6%ac%a1%e7%99%bb%e5%9c%ba class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$I_x\,u + I_y\,v + I_t = 0.$$</span>
+<span class=math-block>$$
+\underbrace{\begin{bmatrix} \sum I_x^2 & \sum I_x I_y \\ \sum I_x I_y & \sum I_y^2 \end{bmatrix}}_{\text{正是结构张量 } \mathbf{M}}
+\begin{bmatrix} u \\ v \end{bmatrix}
+= -\begin{bmatrix} \sum I_x I_t \\ \sum I_y I_t \end{bmatrix}.
+$$</span><p>这个方程组是否能解得好，取决于 <span class=math-inline>$\mathbf{M}$</span>
+的条件数 &ndash; 换句话说，取决于当前区域是否为角点。同样的特征值分析告诉 Harris 哪里有角点，也告诉 Lucas-Kanade 它的光流估计是否可靠。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%e8%ae%a1%e7%ae%97%e6%9c%ba%e8%a7%86%e8%a7%89%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0/fig7_optical_flow.png alt=光流：从亮度恒定方程局部最小二乘解出来的位移向量场。 loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=svd-图像压缩 class=heading-anchor>SVD 图像压缩<a href=#svd-%e5%9b%be%e5%83%8f%e5%8e%8b%e7%bc%a9 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$\mathbf{I} = \sum_{i=1}^{r} \sigma_i\,\mathbf{u}_i\,\mathbf{v}_i^\top, \qquad \sigma_1 \ge \sigma_2 \ge \cdots \ge 0.$$</span><p><strong>Eckart-Young 定理</strong>（<a href=/zh/linear-algebra/09-%e5%a5%87%e5%bc%82%e5%80%bc%e5%88%86%e8%a7%a3SVD/>第 9 章</a>
+）指出，取前 <span class=math-inline>$k$</span>
+项的截断结果 <span class=math-inline>$\mathbf{I}_k$</span>
+是在 Frobenius 范数和谱范数意义下的最佳秩 <span class=math-inline>$k$</span>
+近似。自然图像的奇异值衰减得很快，大部分视觉信息集中在前几十个分量中。因此，即使 <span class=math-inline>$k$</span>
+很小，也能生成可辨认的图像。</p><p>存储需求从 <span class=math-inline>$HW$</span>
+减少到 <span class=math-inline>$k(H + W + 1)$</span>
+个数，压缩比大约是 <span class=math-inline>$k(H + W) / (HW)$</span>
+。 SVD 在自然图像上的效率远不如 JPEG （JPEG 利用了 DCT 系数的感知冗余），但它思路清晰，是许多视觉任务中低秩近似的金标准：比如人脸识别（Eigenfaces）、背景建模（RPCA）和图像去噪。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%e8%ae%a1%e7%ae%97%e6%9c%ba%e8%a7%86%e8%a7%89%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0/fig6_svd_compression.png alt="SVD 在三个不同秩下的低秩重建及奇异值谱。" loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=现代深度视觉中的线性代数 class=heading-anchor>现代深度视觉中的线性代数<a href=#%e7%8e%b0%e4%bb%a3%e6%b7%b1%e5%ba%a6%e8%a7%86%e8%a7%89%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=卷积通过-im2col-转化为矩阵乘法 class=heading-anchor>卷积通过 im2col 转化为矩阵乘法<a href=#%e5%8d%b7%e7%a7%af%e9%80%9a%e8%bf%87-im2col-%e8%bd%ac%e5%8c%96%e4%b8%ba%e7%9f%a9%e9%98%b5%e4%b9%98%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>GPU 在处理稠密矩阵乘法时性能极强。<strong>im2col</strong> 方法把卷积操作转化为一次大规模的 <code>gemm</code>：将每个感受野区域提取为一列，把所有卷积核展开成行，然后一次性完成矩阵乘法，最后再将结果重塑为特征图。从本质上讲， CNN 就是一系列矩阵乘法和逐元素非线性变换的交替操作。</p><h3 id=自注意力机制的核心是矩阵乘法 class=heading-anchor>自注意力机制的核心是矩阵乘法<a href=#%e8%87%aa%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6%e7%9a%84%e6%a0%b8%e5%bf%83%e6%98%af%e7%9f%a9%e9%98%b5%e4%b9%98%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\mathrm{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \mathrm{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V},$$</span><p>其中 <span class=math-inline>$\mathbf{Q}, \mathbf{K}, \mathbf{V}$</span>
+是对序列进行线性投影的结果。 Vision Transformer (ViT) 把图像分割成小块作为 token 输入，整个前向传播过程就是一堆矩阵乘法堆叠起来的操作。</p><h3 id=推理时-batchnorm-是仿射变换 class=heading-anchor>推理时 BatchNorm 是仿射变换<a href=#%e6%8e%a8%e7%90%86%e6%97%b6-batchnorm-%e6%98%af%e4%bb%bf%e5%b0%84%e5%8f%98%e6%8d%a2 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>推理阶段， BatchNorm 使用存储的运行统计量和学到的 <span class=math-inline>$(\gamma, \beta)$</span>
+参数，执行逐元素仿射变换 <span class=math-inline>$y = \gamma\,\hat{x} + \beta$</span>
+。在部署时，这个操作可以合并到前一层卷积中，从而完全从计算图中移除。</p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/linear-algebra/16-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/ data-next-url=https://www.chenk.top/zh/linear-algebra/18-%E5%89%8D%E6%B2%BF%E5%BA%94%E7%94%A8%E4%B8%8E%E6%80%BB%E7%BB%93/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/linear-algebra/>线性代数</a> <span class=count>18 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/linear-algebra/16-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/><span class=title>线性代数（十六）：深度学习中的线性代数——从全连接到 Transformer</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/linear-algebra/18-%E5%89%8D%E6%B2%BF%E5%BA%94%E7%94%A8%E4%B8%8E%E6%80%BB%E7%BB%93/><span class=title>线性代数（十八）：前沿应用与总结——量子计算、GNN、大模型，与十八章回望</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/01-%E5%90%91%E9%87%8F%E7%9A%84%E6%9C%AC%E8%B4%A8/><span class=series-nav-num>01</span>
+<span class=series-nav-title>线性代数（一）：向量的本质——不仅仅是箭头</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/02-%E7%BA%BF%E6%80%A7%E7%BB%84%E5%90%88%E4%B8%8E%E5%90%91%E9%87%8F%E7%A9%BA%E9%97%B4/><span class=series-nav-num>02</span>
+<span class=series-nav-title>线性代数（二）：线性组合与向量空间</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/03-%E7%9F%A9%E9%98%B5%E4%BD%9C%E4%B8%BA%E7%BA%BF%E6%80%A7%E5%8F%98%E6%8D%A2/><span class=series-nav-num>03</span>
+<span class=series-nav-title>线性代数（三）：矩阵作为线性变换</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/04-%E8%A1%8C%E5%88%97%E5%BC%8F%E7%9A%84%E7%A7%98%E5%AF%86/><span class=series-nav-num>04</span>
+<span class=series-nav-title>线性代数（四）：行列式的秘密</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/05-%E7%BA%BF%E6%80%A7%E6%96%B9%E7%A8%8B%E7%BB%84%E4%B8%8E%E5%88%97%E7%A9%BA%E9%97%B4/><span class=series-nav-num>05</span>
+<span class=series-nav-title>线性代数（五）：线性方程组与列空间</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/06-%E7%89%B9%E5%BE%81%E5%80%BC%E4%B8%8E%E7%89%B9%E5%BE%81%E5%90%91%E9%87%8F/><span class=series-nav-num>06</span>
+<span class=series-nav-title>线性代数（六）：特征值与特征向量</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/07-%E6%AD%A3%E4%BA%A4%E6%80%A7%E4%B8%8E%E6%8A%95%E5%BD%B1/><span class=series-nav-num>07</span>
+<span class=series-nav-title>线性代数（七）：正交性与投影——当向量互不干扰</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/08-%E5%AF%B9%E7%A7%B0%E7%9F%A9%E9%98%B5%E4%B8%8E%E4%BA%8C%E6%AC%A1%E5%9E%8B/><span class=series-nav-num>08</span>
+<span class=series-nav-title>线性代数（八）：对称矩阵与二次型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/09-%E5%A5%87%E5%BC%82%E5%80%BC%E5%88%86%E8%A7%A3svd/><span class=series-nav-num>09</span>
+<span class=series-nav-title>线性代数（九）：奇异值分解 SVD</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/10-%E7%9F%A9%E9%98%B5%E8%8C%83%E6%95%B0%E4%B8%8E%E6%9D%A1%E4%BB%B6%E6%95%B0/><span class=series-nav-num>10</span>
+<span class=series-nav-title>线性代数（十）：矩阵范数与条件数——数值计算的健康体检</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/><span class=series-nav-num>11</span>
+<span class=series-nav-title>线性代数（十一）：矩阵微积分与优化——从梯度到反向传播</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/12-%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E4%B8%8E%E5%8E%8B%E7%BC%A9%E6%84%9F%E7%9F%A5/><span class=series-nav-num>12</span>
+<span class=series-nav-title>线性代数（十二）：稀疏矩阵与压缩感知——少即是多的数学奇迹</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/13-%E5%BC%A0%E9%87%8F%E4%B8%8E%E5%A4%9A%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/><span class=series-nav-num>13</span>
+<span class=series-nav-title>线性代数（十三）：张量与多线性代数——从标量到高维数据立方体</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/14-%E9%9A%8F%E6%9C%BA%E7%9F%A9%E9%98%B5%E7%90%86%E8%AE%BA/><span class=series-nav-num>14</span>
+<span class=series-nav-title>线性代数（十四）：随机矩阵理论——混沌中的秩序</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/15-%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/><span class=series-nav-num>15</span>
+<span class=series-nav-title>线性代数（十五）：机器学习中的线性代数——从 PCA 到推荐系统</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/16-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/><span class=series-nav-num>16</span>
+<span class=series-nav-title>线性代数（十六）：深度学习中的线性代数——从全连接到 Transformer</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>17</span>
+<span class=series-nav-title>线性代数（十七）：计算机视觉中的线性代数——从像素到三维重建</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/linear-algebra/18-%E5%89%8D%E6%B2%BF%E5%BA%94%E7%94%A8%E4%B8%8E%E6%80%BB%E7%BB%93/><span class=series-nav-num>18</span>
+<span class=series-nav-title>线性代数（十八）：前沿应用与总结——量子计算、GNN、大模型，与十八章回望</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E7%25BA%25BF%25E6%2580%25A7%25E4%25BB%25A3%25E6%2595%25B0%25EF%25BC%2588%25E5%258D%2581%25E4%25B8%2583%25EF%25BC%2589%25EF%25BC%259A%25E8%25AE%25A1%25E7%25AE%2597%25E6%259C%25BA%25E8%25A7%2586%25E8%25A7%2589%25E4%25B8%25AD%25E7%259A%2584%25E7%25BA%25BF%25E6%2580%25A7%25E4%25BB%25A3%25E6%2595%25B0%25E2%2580%2594%25E2%2580%2594%25E4%25BB%258E%25E5%2583%258F%25E7%25B4%25A0%25E5%2588%25B0%25E4%25B8%2589%25E7%25BB%25B4%25E9%2587%258D%25E5%25BB%25BA&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Flinear-algebra%252F17-%2525E8%2525AE%2525A1%2525E7%2525AE%252597%2525E6%25259C%2525BA%2525E8%2525A7%252586%2525E8%2525A7%252589%2525E4%2525B8%2525AD%2525E7%25259A%252584%2525E7%2525BA%2525BF%2525E6%252580%2525A7%2525E4%2525BB%2525A3%2525E6%252595%2525B0%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Flinear-algebra%252F17-%2525E8%2525AE%2525A1%2525E7%2525AE%252597%2525E6%25259C%2525BA%2525E8%2525A7%252586%2525E8%2525A7%252589%2525E4%2525B8%2525AD%2525E7%25259A%252584%2525E7%2525BA%2525BF%2525E6%252580%2525A7%2525E4%2525BB%2525A3%2525E6%252595%2525B0%252F&title=%25E7%25BA%25BF%25E6%2580%25A7%25E4%25BB%25A3%25E6%2595%25B0%25EF%25BC%2588%25E5%258D%2581%25E4%25B8%2583%25EF%25BC%2589%25EF%25BC%259A%25E8%25AE%25A1%25E7%25AE%2597%25E6%259C%25BA%25E8%25A7%2586%25E8%25A7%2589%25E4%25B8%25AD%25E7%259A%2584%25E7%25BA%25BF%25E6%2580%25A7%25E4%25BB%25A3%25E6%2595%25B0%25E2%2580%2594%25E2%2580%2594%25E4%25BB%258E%25E5%2583%258F%25E7%25B4%25A0%25E5%2588%25B0%25E4%25B8%2589%25E7%25BB%25B4%25E9%2587%258D%25E5%25BB%25BA" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/linear-algebra/17-%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2025-04-23>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#图像矩阵张量与向量>图像：矩阵、张量与向量</a><ul><li><a href=#从像素到矩阵>从像素到矩阵</a></li><li><a href=#彩色图像三通道张量>彩色图像：三通道张量</a></li></ul></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/linear-algebra/ class=series-name>线性代数</a>
+<span class=sig-meta data-days-since=2025-04-23>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#图像矩阵张量与向量>图像：矩阵、张量与向量</a><ul><li><a href=#从像素到矩阵>从像素到矩阵</a></li><li><a href=#彩色图像三通道张量>彩色图像：三通道张量</a></li><li><a href=#图像作为高维向量>图像作为高维向量</a></li></ul></li><li><a href=#几何变换--矩阵乘法>几何变换 = 矩阵乘法</a><ul><li><a href=#为什么用矩阵>为什么用矩阵</a></li><li><a href=#旋转缩放错切>旋转、缩放、错切</a></li><li><a href=#顺序很重要>顺序很重要</a></li></ul></li><li><a href=#齐次坐标让平移变成线性>齐次坐标：让平移变成线性</a><ul><li><a href=#平移的麻烦>平移的麻烦</a></li><li><a href=#升维的小技巧>升维的小技巧</a></li><li><a href=#绕任意点旋转>绕任意点旋转</a></li></ul></li><li><a href=#透视变换与单应矩阵>透视变换与单应矩阵</a><ul><li><a href=#为什么仿射变换不够用>为什么仿射变换不够用</a></li><li><a href=#3-times-3-单应矩阵>单应矩阵</a></li></ul></li><li><a href=#针孔相机与投影矩阵>针孔相机与投影矩阵</a><ul><li><a href=#针孔几何>针孔几何</a></li><li><a href=#内参从物理单位到像素>内参：从物理单位到像素</a></li><li><a href=#外参与完整投影>外参与完整投影</a></li><li><a href=#张正友标定法>张正友标定法</a></li></ul></li><li><a href=#两视图对极几何>两视图：对极几何</a><ul><li><a href=#对极约束>对极约束</a></li><li><a href=#本质矩阵-vs-基础矩阵>本质矩阵 vs 基础矩阵</a></li></ul></li><li><a href=#三维重建三角测量-sfm-和-bundle-adjustment>三维重建：三角测量、 SfM 和 Bundle Adjustment</a><ul><li><a href=#三角测量是一个线性系统>三角测量是一个线性系统</a></li><li><a href=#运动恢复结构>运动恢复结构</a></li><li><a href=#光束法平差>光束法平差</a></li></ul></li><li><a href=#slam实时中的线性代数>SLAM：实时中的线性代数</a><ul><li><a href=#slam-问题>SLAM 问题</a></li><li><a href=#用李群表示旋转>用李群表示旋转</a></li><li><a href=#位姿图优化>位姿图优化</a></li></ul></li><li><a href=#图像滤波--矩阵乘法>图像滤波 = 矩阵乘法</a><ul><li><a href=#卷积是超大稀疏有结构的线性映射>卷积是超大、稀疏、有结构的线性映射</a></li><li><a href=#必须记住的三个卷积核>必须记住的三个卷积核</a></li><li><a href=#卷积定理>卷积定理</a></li></ul></li><li><a href=#两个看似不同本质却是同一个-2-times-2-特征值问题的算法>两个看似不同、本质却是同一个 特征值问题的算法</a><ul><li><a href=#harris-角点结构张量>Harris 角点：结构张量</a></li><li><a href=#光流同一个矩阵再次登场>光流：同一个矩阵再次登场</a></li></ul></li><li><a href=#svd-图像压缩>SVD 图像压缩</a></li><li><a href=#现代深度视觉中的线性代数>现代深度视觉中的线性代数</a><ul><li><a href=#卷积通过-im2col-转化为矩阵乘法>卷积通过 im2col 转化为矩阵乘法</a></li><li><a href=#自注意力机制的核心是矩阵乘法>自注意力机制的核心是矩阵乘法</a></li><li><a href=#推理时-batchnorm-是仿射变换>推理时 BatchNorm 是仿射变换</a></li></ul></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/linear-algebra/ class=series-name>线性代数</a>
 <span class=count>18</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/linear-algebra/01-%E5%90%91%E9%87%8F%E7%9A%84%E6%9C%AC%E8%B4%A8/><span class=chapter-num>01</span>
 <span class=chapter-title>线性代数（一）：向量的本质——不仅仅是箭头</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/linear-algebra/02-%E7%BA%BF%E6%80%A7%E7%BB%84%E5%90%88%E4%B8%8E%E5%90%91%E9%87%8F%E7%A9%BA%E9%97%B4/><span class=chapter-num>02</span>
 <span class=chapter-title>线性代数（二）：线性组合与向量空间</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/linear-algebra/03-%E7%9F%A9%E9%98%B5%E4%BD%9C%E4%B8%BA%E7%BA%BF%E6%80%A7%E5%8F%98%E6%8D%A2/><span class=chapter-num>03</span>
@@ -763,5 +296,5 @@
 <span class=chapter-title>线性代数（十五）：机器学习中的线性代数——从 PCA 到推荐系统</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/linear-algebra/16-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/><span class=chapter-num>16</span>
 <span class=chapter-title>线性代数（十六）：深度学习中的线性代数——从全连接到 Transformer</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>17</span>
 <span class=chapter-title>线性代数（十七）：计算机视觉中的线性代数——从像素到三维重建</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/linear-algebra/18-%E5%89%8D%E6%B2%BF%E5%BA%94%E7%94%A8%E4%B8%8E%E6%80%BB%E7%BB%93/><span class=chapter-num>18</span>
-<span class=chapter-title>线性代数（十八）：前沿应用与总结——量子计算、GNN、大模型，与十八章回望</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>32 min</strong></div><div class=row><span>字数</span><strong>7606</strong></div><div class=row><span>写于</span><strong>Apr 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>线性代数（十八）：前沿应用与总结——量子计算、GNN、大模型，与十八章回望</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>18 min</strong></div><div class=row><span>字数</span><strong>4476</strong></div><div class=row><span>写于</span><strong>Apr 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>
