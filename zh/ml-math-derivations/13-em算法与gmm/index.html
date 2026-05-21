@@ -211,7 +211,7 @@ $$</span><p>其中 <span class=math-inline>$p_K$</span>
 </span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>predict</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_e_step</span><span class=p>(</span><span class=n>X</span><span class=p>)[</span><span class=mi>0</span><span class=p>],</span> <span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
 </span></span></code></pre></td></tr></table></div></div><h2 id=数值实现的几个坑 class=heading-anchor>数值实现的几个坑<a href=#%e6%95%b0%e5%80%bc%e5%ae%9e%e7%8e%b0%e7%9a%84%e5%87%a0%e4%b8%aa%e5%9d%91 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>上述推导虽数学优雅，但工程实现中潜藏诸多陷阱。我在生产环境中反复遭遇以下三类问题。</p><span class=math-block>$$\log \gamma_{ik} = \log\pi_k + \log\mathcal{N}_k(\mathbf{x}_i) - \mathrm{logsumexp}_j\big(\log\pi_j + \log\mathcal{N}_j(\mathbf{x}_i)\big),$$</span><p>再通过 <span class=math-inline>$\gamma_{ik} = \exp(\log \gamma_{ik})$</span>
-恢复原始值。<strong>务必在归一化前全程保持对数运算。</strong></p><p><strong>协方差矩阵退化。</strong> 当某成分仅覆盖单个点时，<span class=math-inline>$\boldsymbol{\Sigma}_k$</span>
+恢复原始值。<strong>务必在归一化前全程保持对数运算。</strong></p><p><strong>协方差矩阵退化：</strong> 当某成分仅覆盖单个点时，<span class=math-inline>$\boldsymbol{\Sigma}_k$</span>
 趋向秩零矩阵，行列式趋于零，似然值爆炸至 <span class=math-inline>$+\infty$</span>
 。这虽是 MLE 的正确解，但无实用价值。两种常用缓解措施：(1) 添加岭项 <span class=math-inline>$\boldsymbol{\Sigma}_k \leftarrow \boldsymbol{\Sigma}_k + \lambda \mathbf{I}$</span>
 ，其中 <span class=math-inline>$\lambda \approx 10^{-6} \cdot \mathrm{tr}(\boldsymbol{\Sigma}_k)/D$</span>
@@ -273,32 +273,32 @@ $$</span><p>其中 <span class=math-inline>$p_K$</span>
 不变，算法交替执行：在 <span class=math-inline>$\mathcal{Q}$</span>
 内最小化 KL（E 步），以及对 <span class=math-inline>$\boldsymbol{\theta}$</span>
 最大化 <span class=math-inline>$\mathcal{L}$</span>
-（M 步）。详见第 14 篇。</p><hr><h2 id=练习题 class=heading-anchor>练习题<a href=#%e7%bb%83%e4%b9%a0%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>E1 （E 步计算）.</strong> 考虑一维 GMM，<span class=math-inline>$K=2$</span>
+（M 步）。详见第 14 篇。</p><hr><h2 id=练习题 class=heading-anchor>练习题<a href=#%e7%bb%83%e4%b9%a0%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>E1 （E 步计算）：</strong> 考虑一维 GMM，<span class=math-inline>$K=2$</span>
 ，先验相等 <span class=math-inline>$\pi_1 = \pi_2 = 1/2$</span>
 ，<span class=math-inline>$\mu_1 = 0,\, \mu_2 = 3,\, \sigma^2 = 1$</span>
 。求 <span class=math-inline>$x_i = 1.5$</span>
 时的 <span class=math-inline>$\gamma_{i1}$</span>
-。</p><p><em>解.</em> 由对称性，两分量密度在 <span class=math-inline>$x=1.5$</span>
+。</p><p><em>解：</em> 由对称性，两分量密度在 <span class=math-inline>$x=1.5$</span>
 处相等，故 <span class=math-inline>$\gamma_{i1} = 1/2$</span>
-。</p><p><strong>E2 （M 步更新）.</strong> 样本 <span class=math-inline>$x_1 = 1,\; x_2 = 4$</span>
+。</p><p><strong>E2 （M 步更新）：</strong> 样本 <span class=math-inline>$x_1 = 1,\; x_2 = 4$</span>
 的责任值为 <span class=math-inline>$\gamma_{11} = 0.8,\; \gamma_{21} = 0.3$</span>
 。求 M 步更新后的 <span class=math-inline>$\mu_1$</span>
-。</p><p><em>解.</em> <span class=math-inline>$N_1 = 0.8 + 0.3 = 1.1$</span>
+。</p><p><em>解：</em> <span class=math-inline>$N_1 = 0.8 + 0.3 = 1.1$</span>
 ，故 <span class=math-inline>$\mu_1 = (0.8 \cdot 1 + 0.3 \cdot 4) / 1.1 = 2.0 / 1.1 \approx 1.82$</span>
-。</p><p><strong>E3 （单调性分析）.</strong> 在链式关系 <span class=math-inline>$\log p(\boldsymbol{\theta}^{(t)}) = \mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t)}) \leq \mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t+1)}) \leq \log p(\boldsymbol{\theta}^{(t+1)})$</span>
-中，M 步最优性体现在哪？ELBO 不等式又体现在哪？</p><p><em>解.</em> 中间 <span class=math-inline>$\leq$</span>
+。</p><p><strong>E3 （单调性分析）：</strong> 在链式关系 <span class=math-inline>$\log p(\boldsymbol{\theta}^{(t)}) = \mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t)}) \leq \mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t+1)}) \leq \log p(\boldsymbol{\theta}^{(t+1)})$</span>
+中，M 步最优性体现在哪？ELBO 不等式又体现在哪？</p><p><em>解：</em> 中间 <span class=math-inline>$\leq$</span>
 由 M 步定义（<span class=math-inline>$\boldsymbol{\theta}^{(t+1)}$</span>
 最大化 <span class=math-inline>$\mathcal{L}(q^{(t)}, \cdot)$</span>
 ）；右侧 <span class=math-inline>$\leq$</span>
 是 ELBO 不等式在新参数下的应用。</p><p><strong>E4 （奇异极限退化为 K-means）.</strong> 证明：若固定 <span class=math-inline>$\boldsymbol{\Sigma}_k = \epsilon \mathbf{I}$</span>
 并令 <span class=math-inline>$\epsilon \to 0^+$</span>
-，EM 的均值更新将退化为 K-means 更新。</p><p><em>提示.</em> 写出 <span class=math-inline>$\mathcal{N}(\mathbf{x}\mid\boldsymbol{\mu}_k, \epsilon\mathbf{I}) \propto \exp(-\Vert \mathbf{x} - \boldsymbol{\mu}_k\Vert^2 / (2\epsilon))$</span>
+，EM 的均值更新将退化为 K-means 更新。</p><p><em>提示：</em> 写出 <span class=math-inline>$\mathcal{N}(\mathbf{x}\mid\boldsymbol{\mu}_k, \epsilon\mathbf{I}) \propto \exp(-\Vert \mathbf{x} - \boldsymbol{\mu}_k\Vert^2 / (2\epsilon))$</span>
 。当 <span class=math-inline>$\epsilon \to 0$</span>
 时，对 <span class=math-inline>$-\Vert\mathbf{x}-\boldsymbol{\mu}_k\Vert^2$</span>
 的 softmax 退化为硬 argmin，<span class=math-inline>$\gamma_{ik}\in\{0,1\}$</span>
-，M 步均值更新即 K-means 的簇均值更新。</p><p><strong>E5 （缺失数据处理）.</strong> 设样本 <span class=math-inline>$\mathbf{x}_i$</span>
+，M 步均值更新即 K-means 的簇均值更新。</p><p><strong>E5 （缺失数据处理）：</strong> 设样本 <span class=math-inline>$\mathbf{x}_i$</span>
 的第 <span class=math-inline>$j$</span>
-维缺失，设计 EM 方法将缺失值视为隐变量，并联合更新参数与缺失值。</p><p><em>提示.</em> 将缺失值 <span class=math-inline>$x_{ij}$</span>
+维缺失，设计 EM 方法将缺失值视为隐变量，并联合更新参数与缺失值。</p><p><em>提示：</em> 将缺失值 <span class=math-inline>$x_{ij}$</span>
 加入隐变量 <span class=math-inline>$z$</span>
 。E 步计算 <span class=math-inline>$\mathbb{E}[x_{ij} \mid \text{已观测}, \boldsymbol{\theta}^{(t)}]$</span>
 （含二阶矩）。M 步将这些期望作为插补值代入加权 MLE 公式。</p><hr><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>EM 在 GMM 这种"E 步有闭式解"的模型里跑得很顺，但它有一个隐含前提：后验 <span class=math-inline>$p(z\mid x,\theta)$</span>
