@@ -20,22 +20,42 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/kernel-methods/>核方法</a>
 · 第 2 篇</div><h1>核方法（二）：数学基础——正定核与 Mercer 定理</h1><p class=deck>什么样的函数才是合法核？正定性、Gram 矩阵判别、以及 Mercer 定理——那个让核技巧合法化的谱分解。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2021-11-29>November 29, 2021</time> · 20 分钟 · 4617 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/%E6%A0%B8%E6%96%B9%E6%B3%95/ class=tag>#核方法</a><a href=/zh/tags/%E6%95%B0%E5%AD%A6/ class=tag>#数学</a><a href=/zh/tags/%E6%B3%9B%E5%87%BD%E5%88%86%E6%9E%90/ class=tag>#泛函分析</a></div><a class="pill pill-outline" href=/en/kernel-methods/02-kernel-math-foundations/>Read in English →</a></div></header><div class=prose><p>写核 SVM 的第一周，我自信地造了一个相似度函数 <code>tanh(1.5 * x.dot(y) - 2.0)</code>：对称、有界、看起来一切都很正常。然后 sklearn 给我吐了一句 <code>ValueError: kernel matrix is not positive semidefinite</code>，模型效果比瞎猜还差。</p><p>那条报错背后藏着 20 世纪分析学最深的一组结果。&ldquo;正定"不是个 checkbox，它是核技巧能存在的<strong>唯一理由</strong>。函数 PSD，就有一个希尔伯特空间装着它的内积；不 PSD，你就是在一个根本不存在的空间里假装做几何。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/02-kernel-math-foundations/cover.png alt="封面：正定核与 Mercer 谱分解" loading=lazy decoding=async class=content-image></figure></p><p>这篇按顺序讲三件事：合法核的<strong>定义</strong>与 Gram 矩阵实操判别；<strong>Mercer 定理</strong>——把抽象正定性翻译成具体（可能无穷维的）特征映射；<strong>核的代数</strong>——哪些操作能造新核，哪些"看起来挺像"的函数其实根本不是核。</p><p>这是整个 series 里最数学化的一篇。第一遍读跳过证明也可以，每节末尾我都用 <strong>小结：</strong> 给出实操结论。</p><h2 id=什么样的函数才是合法核 class=heading-anchor>什么样的函数才是合法核<a href=#%e4%bb%80%e4%b9%88%e6%a0%b7%e7%9a%84%e5%87%bd%e6%95%b0%e6%89%8d%e6%98%af%e5%90%88%e6%b3%95%e6%a0%b8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>设 <span class=math-inline>$\mathcal{X}$</span>
+<span class=meta-line><time datetime=2021-11-29>November 29, 2021</time> · 52 分钟 · 12614 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/%E6%A0%B8%E6%96%B9%E6%B3%95/ class=tag>#核方法</a><a href=/zh/tags/%E6%95%B0%E5%AD%A6/ class=tag>#数学</a><a href=/zh/tags/%E6%B3%9B%E5%87%BD%E5%88%86%E6%9E%90/ class=tag>#泛函分析</a></div><a class="pill pill-outline" href=/en/kernel-methods/02-kernel-math-foundations/>Read in English →</a></div></header><div class=prose><p>写核 SVM 的第一周，我自信地造了一个相似度函数 <code>tanh(1.5 * x.dot(y) - 2.0)</code>：对称、有界、看起来一切都很正常。然后 sklearn 给我吐了一句 <code>ValueError: kernel matrix is not positive semidefinite</code>，模型效果比瞎猜还差。</p><p>那条报错背后藏着 20 世纪分析学最深的一组结果。&ldquo;正定"不是个 checkbox，它是核技巧能存在的<strong>唯一理由</strong>。函数 PSD，就有一个希尔伯特空间装着它的内积；不 PSD，你就是在一个根本不存在的空间里假装做几何。这篇把这句话拆开讲透，建立可操作的检验流程，推导 Mercer 定理，并跑足够多的数值例子，让你下次再看到报错时一眼就能定位是哪一行数学被你违反了。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/02-kernel-math-foundations/cover.png alt="封面：正定核与 Mercer 谱分解" loading=lazy decoding=async class=content-image></figure></p><p>这篇按顺序讲三件事：合法核的<strong>定义</strong>与 Gram 矩阵实操判别，配上为何此检验正确的 sketch 证明，以及五个常见核加一个反例的 Python 验证代码；<strong>Mercer 定理</strong>——把抽象正定性翻译成具体（可能无穷维的）特征映射，附 <span class=math-inline>$[0, 1]$</span>
+上 RBF 前三个特征函数的数值算例；<strong>核的代数</strong>——哪些操作能造新核，每条规则为何成立，以及哪些"看起来挺像"的函数其实根本不是核。</p><p>这是整个 series 里最数学化的一篇。第一遍读跳过证明也可以，每节末尾我都用 <strong>小结：</strong> 给出实操结论，每个理论命题后面都跟着可跑的代码。</p><h2 id=什么样的函数才是合法核 class=heading-anchor>什么样的函数才是合法核<a href=#%e4%bb%80%e4%b9%88%e6%a0%b7%e7%9a%84%e5%87%bd%e6%95%b0%e6%89%8d%e6%98%af%e5%90%88%e6%b3%95%e6%a0%b8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>设 <span class=math-inline>$\mathcal{X}$</span>
 是任意集合——向量、字符串、图、图像都行。一个函数 <span class=math-inline>$K: \mathcal{X} \times \mathcal{X} \to \mathbb{R}$</span>
 称为<strong>合法核</strong>，要满足两条：</p><p><strong>对称：</strong> <span class=math-inline>$K(x, y) = K(y, x).$</span></p><span class=math-block>$$\sum_{i=1}^n \sum_{j=1}^n c_i c_j\, K(x_i, x_j) \;\geq\; 0.$$</span><p>严格来讲 <span class=math-inline>$\geq 0$</span>
 定义的是<strong>半正定（PSD）</strong>，但文献里一般把它直接叫"正定&rdquo;，因为严格 <span class=math-inline>$>$</span>
-的情况实际很少遇到。本文跟随这个松散约定。</p><p>直觉：核就是个相似度函数，它得"像内积一样"在多个点上同时立得住。PSD 这一条恰好就是要求"自身加权点积不能变成负数"——几何上，长度不能是虚数。</p><p><strong>为什么单有对称还不够。</strong> 对称是必要条件，免费送的：内积都是对称的，所以不对称直接淘汰。但很多对称函数过不了 PSD 这关。最经典的陷阱就是 <code>cos(distance)</code>：对称、有界，看着很顺眼，不是核。等下你会在图里看到它的 Gram 矩阵长什么样。</p><p><strong>小结：</strong> &ldquo;对称 + PSD"是入场券。两条都过，是核；任意一条不过，不是——不管你的函数看起来多合理。</p><h2 id=gram-矩阵正定性的实操判别 class=heading-anchor>Gram 矩阵：正定性的实操判别<a href=#gram-%e7%9f%a9%e9%98%b5%e6%ad%a3%e5%ae%9a%e6%80%a7%e7%9a%84%e5%ae%9e%e6%93%8d%e5%88%a4%e5%88%ab class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>PSD 的抽象定义没人会徒手验证。实际中我们检查<strong>Gram 矩阵</strong>。</p><span class=math-block>$$G_{ij} \;=\; K(x_i, x_j).$$</span><p>对称函数 <span class=math-inline>$K$</span>
+的情况实际很少遇到。本文跟随这个松散约定。</p><p>直觉值得讲清楚。核是个相似度函数，它得"像内积一样"在多个点上同时立得住。把 <span class=math-inline>$c_i$</span>
+想成点 <span class=math-inline>$x_i$</span>
+的权重，<span class=math-inline>$\sum_i c_i \Phi(x_i)$</span>
+是特征向量的加权和。双重和 <span class=math-inline>$\sum_{ij} c_i c_j K(x_i, x_j)$</span>
+就是特征空间中 <span class=math-inline>$\|\sum_i c_i \Phi(x_i)\|^2.$</span>
+PSD 正是要求这个范数的平方非负——几何上，长度不能是虚数。</p><span class=math-block>$$\sum_{i,j} c_i c_j (x_i x_j + 1) \;=\; \Big(\sum_i c_i x_i\Big)^2 + \Big(\sum_i c_i\Big)^2 \;\geq\; 0.$$</span><p>两项都是实数平方，各自非负。对称性直接由公式可见。这个核也是 Mercer 核，显式特征映射 <span class=math-inline>$\Phi(x) = (x, 1) \in \mathbb{R}^2$</span>
+：验证 <span class=math-inline>$\Phi(x)^\top \Phi(y) = xy + 1$</span>
+完全匹配。同样的技巧——把双重和写成平方和——处理所有多项式核，只是次数高了代数项数变多。</p><p><strong>为什么单有对称还不够。</strong> 对称是必要条件，免费送的：内积都是对称的，所以不对称直接淘汰。但很多对称函数过不了 PSD 这关。最经典的陷阱就是 <code>cos(distance)</code>：对称、有界，看着很顺眼，不是核。等下你会在图里看到它的 Gram 矩阵长什么样。</p><p><strong>Bochner 定理——一段插话。</strong> 对平移不变候选 <span class=math-inline>$K(x, y) = k(x - y),$</span>
+Bochner 定理给出干净的谱刻画：<span class=math-inline>$k$</span>
+合法 当且仅当 它的傅里叶变换是非负测度。RBF 能 work 是因为它的傅里叶变换是高斯（非负密度）；cosine-of-distance 不行是因为它的傅里叶变换是 delta 峰的<strong>有符号</strong>组合。后面陷阱小节会回到 Bochner。</p><p><strong>小结：</strong> &ldquo;对称 + PSD"是入场券。两条都过，是核；任意一条不过，不是——不管你的函数看起来多合理。</p><h2 id=gram-矩阵正定性的实操判别 class=heading-anchor>Gram 矩阵：正定性的实操判别<a href=#gram-%e7%9f%a9%e9%98%b5%e6%ad%a3%e5%ae%9a%e6%80%a7%e7%9a%84%e5%ae%9e%e6%93%8d%e5%88%a4%e5%88%ab class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>PSD 的抽象定义没人会徒手验证。实际中我们检查<strong>Gram 矩阵</strong>。</p><span class=math-block>$$G_{ij} \;=\; K(x_i, x_j).$$</span><p>对称函数 <span class=math-inline>$K$</span>
 是正定核<strong>当且仅当</strong>它生成的每个 Gram 矩阵——任意 <span class=math-inline>$n,$</span>
 任意点选择——都是 PSD 矩阵。这个"任意"是抽象定义的力量来源；实操上抽几个数据集查一下就够了。</p><p>判断对称矩阵 <span class=math-inline>$G$</span>
 是否 PSD 有三种等价方法，按"教学清晰"到"代码最快"排：</p><p><strong>特征值检验：</strong> <span class=math-inline>$G$</span>
 的所有特征值非负，<span class=math-inline>$\lambda_i(G) \geq 0.$</span>
-numpy 一行就出。</p><p><strong>二次型检验：</strong> 对任意 <span class=math-inline>$v \in \mathbb{R}^n,$</span>
+<code>np.linalg.eigvalsh</code> 一行就出，<span class=math-inline>$O(n^3),$</span>
+常数中等。</p><p><strong>二次型检验：</strong> 对任意 <span class=math-inline>$v \in \mathbb{R}^n,$</span>
 <span class=math-inline>$v^\top G v \geq 0.$</span>
 理论上等价，代码上完全没法用（<span class=math-inline>$v$</span>
-不可数）。</p><p><strong>Cholesky 检验：</strong> 分解 <span class=math-inline>$G = LL^\top$</span>
+不可数），主要在证明里出现。</p><p><strong>Cholesky 检验：</strong> 分解 <span class=math-inline>$G = LL^\top$</span>
 （<span class=math-inline>$L$</span>
 下三角实矩阵）成功。生产代码用这条——<span class=math-inline>$O(n^3)$</span>
-小常数，遇到不定矩阵立刻失败。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+小常数（约 <span class=math-inline>$\tfrac{1}{3} n^3$</span>
+flops，特征分解的一半），遇到不定矩阵立刻失败。</p><p><strong>三种为何等价。</strong> 对称矩阵有谱分解 <span class=math-inline>$G = U \Lambda U^\top,$</span>
+<span class=math-inline>$U$</span>
+正交，<span class=math-inline>$\Lambda = \text{diag}(\lambda_i).$</span>
+那么 <span class=math-inline>$v^\top G v = (U^\top v)^\top \Lambda (U^\top v) = \sum_i \lambda_i w_i^2,$</span>
+<span class=math-inline>$w = U^\top v.$</span>
+这对所有 <span class=math-inline>$v$</span>
+非负，当且仅当所有 <span class=math-inline>$\lambda_i$</span>
+非负。Cholesky 算法按列计算 <span class=math-inline>$L_{jj} = \sqrt{G_{jj} - \sum_{k &lt; j} L_{jk}^2}$</span>
+；根号下出现负数就是失败信号，恰好对应不定性。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -59,6 +79,21 @@ numpy 一行就出。</p><p><strong>二次型检验：</strong> 对任意 <span 
 </span><span class=lnt>22
 </span><span class=lnt>23
 </span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>is_psd</span><span class=p>(</span><span class=n>G</span><span class=p>,</span> <span class=n>tol</span><span class=o>=</span><span class=mf>1e-8</span><span class=p>):</span>
@@ -72,91 +107,246 @@ numpy 一行就出。</p><p><strong>二次型检验：</strong> 对任意 <span 
 </span></span><span class=line><span class=cl>        <span class=n>eig_min</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>eigvalsh</span><span class=p>(</span><span class=n>G</span><span class=p>)</span><span class=o>.</span><span class=n>min</span><span class=p>()</span>
 </span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=kc>False</span><span class=p>,</span> <span class=sa>f</span><span class=s2>&#34;min eigenvalue = </span><span class=si>{</span><span class=n>eig_min</span><span class=si>:</span><span class=s2>+.3e</span><span class=si>}</span><span class=s2>&#34;</span>
 </span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>gram</span><span class=p>(</span><span class=n>K_fn</span><span class=p>,</span> <span class=n>X</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>n</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>X</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>G</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>((</span><span class=n>n</span><span class=p>,</span> <span class=n>n</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>G</span><span class=p>[</span><span class=n>i</span><span class=p>,</span> <span class=n>j</span><span class=p>]</span> <span class=o>=</span> <span class=n>K_fn</span><span class=p>(</span><span class=n>X</span><span class=p>[</span><span class=n>i</span><span class=p>],</span> <span class=n>X</span><span class=p>[</span><span class=n>j</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>G</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=n>rng</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>default_rng</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
 </span></span><span class=line><span class=cl><span class=n>X</span> <span class=o>=</span> <span class=n>rng</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>size</span><span class=o>=</span><span class=p>(</span><span class=mi>30</span><span class=p>,</span> <span class=mi>2</span><span class=p>))</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 合法核：RBF</span>
-</span></span><span class=line><span class=cl><span class=n>D</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sum</span><span class=p>((</span><span class=n>X</span><span class=p>[:,</span> <span class=kc>None</span><span class=p>]</span> <span class=o>-</span> <span class=n>X</span><span class=p>[</span><span class=kc>None</span><span class=p>,</span> <span class=p>:])</span> <span class=o>**</span> <span class=mi>2</span><span class=p>,</span> <span class=n>axis</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>K_rbf</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=o>-</span><span class=mf>0.5</span> <span class=o>*</span> <span class=n>D</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>is_psd</span><span class=p>(</span><span class=n>K_rbf</span><span class=p>))</span>       <span class=c1># (True, &#39;cholesky succeeded&#39;)</span>
+</span></span><span class=line><span class=cl><span class=n>kernels</span> <span class=o>=</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;linear&#34;</span><span class=p>:</span>     <span class=k>lambda</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>:</span> <span class=n>x</span> <span class=o>@</span> <span class=n>y</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;poly d=3&#34;</span><span class=p>:</span>   <span class=k>lambda</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>:</span> <span class=p>(</span><span class=n>x</span> <span class=o>@</span> <span class=n>y</span> <span class=o>+</span> <span class=mf>1.0</span><span class=p>)</span> <span class=o>**</span> <span class=mi>3</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;rbf g=0.5&#34;</span><span class=p>:</span>  <span class=k>lambda</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=o>-</span><span class=mf>0.5</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>sum</span><span class=p>((</span><span class=n>x</span> <span class=o>-</span> <span class=n>y</span><span class=p>)</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)),</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;laplace&#34;</span><span class=p>:</span>    <span class=k>lambda</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=o>-</span><span class=mf>0.5</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>x</span> <span class=o>-</span> <span class=n>y</span><span class=p>))),</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;cosine&#34;</span><span class=p>:</span>     <span class=k>lambda</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>:</span> <span class=p>(</span><span class=n>x</span> <span class=o>@</span> <span class=n>y</span><span class=p>)</span> <span class=o>/</span> <span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>y</span><span class=p>)</span> <span class=o>+</span> <span class=mf>1e-12</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 反例：距离的 cos——对称、有界，但 NOT PSD。</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;cos(2*d)&#34;</span><span class=p>:</span>   <span class=k>lambda</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=mf>2.0</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>x</span> <span class=o>-</span> <span class=n>y</span><span class=p>)),</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 反例：cos(2 * dist)</span>
-</span></span><span class=line><span class=cl><span class=n>K_bad</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=mf>2.0</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>D</span><span class=p>))</span>
-</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>is_psd</span><span class=p>(</span><span class=n>K_bad</span><span class=p>))</span>       <span class=c1># (False, &#39;min eigenvalue = -3.xxxe+00&#39;)</span>
-</span></span></code></pre></td></tr></table></div></div><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/02-kernel-math-foundations/fig1_gram_matrix_heatmap.png alt="有效 RBF 核与不定 cos(distance) 函数的 Gram 矩阵对比" loading=lazy decoding=async class=content-image></figure></p><p>看右边那张图。矩阵是对称的、光滑的、有界的，肉眼看起来不比左边糟。但它的最小特征值明显是负的，意味着存在某个 <span class=math-inline>$v$</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>name</span><span class=p>,</span> <span class=n>K</span> <span class=ow>in</span> <span class=n>kernels</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>G</span> <span class=o>=</span> <span class=n>gram</span><span class=p>(</span><span class=n>K</span><span class=p>,</span> <span class=n>X</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>name</span><span class=si>:</span><span class=s2>10s</span><span class=si>}</span><span class=s2> -&gt; </span><span class=si>{</span><span class=n>is_psd</span><span class=p>(</span><span class=n>G</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>跑出来前五个核 <code>True</code>，<code>cos(2*d)</code> <code>False</code> 且最小特征值显著为负（这组数据下约 <span class=math-inline>$-3$</span>
+）。注意：这个检验<strong>不能</strong>证明核一般 PSD，只能证明某一个数据集上失败。证明一般 PSD 需要上面 <span class=math-inline>$xy + 1$</span>
+那种解析论证（或引用 Bochner）；证否只需一个反例 Gram 矩阵。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/02-kernel-math-foundations/fig1_gram_matrix_heatmap.png alt="有效 RBF 核与不定 cos(distance) 函数的 Gram 矩阵对比" loading=lazy decoding=async class=content-image></figure></p><p>看右边那张图。矩阵是对称的、光滑的、有界的，肉眼看起来不比左边糟。但它的最小特征值明显是负的，意味着存在某个 <span class=math-inline>$v$</span>
 使得 <span class=math-inline>$v^\top G v &lt; 0.$</span>
 这种 <span class=math-inline>$v$</span>
 对应的样本"自相似度是负的&rdquo;——几何上完全说不通。</p><p><strong>浮点容忍。</strong> 实际中 <span class=math-inline>$-10^{-12}$</span>
 这种小负特征值通常是浮点舍入，不是真不定。多数库会先加个 <span class=math-inline>$\epsilon I$</span>
-抖动再做分解；上面代码里 <code>tol=1e-8</code> 是常见默认值。</p><h2 id=mercer-定理陈述与直觉 class=heading-anchor>Mercer 定理：陈述与直觉<a href=#mercer-%e5%ae%9a%e7%90%86%e9%99%88%e8%bf%b0%e4%b8%8e%e7%9b%b4%e8%a7%89 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>一旦接受 PSD 是对的条件，自然下一个问题是：<strong>那个隐式特征映射到底长什么样？</strong> Mercer 定理就是答案。</p><span class=math-block>$$K(x, y) \;=\; \sum_{k=1}^{\infty} \lambda_k\, \phi_k(x)\, \phi_k(y),$$</span><p>级数在 <span class=math-inline>$\mathcal{X} \times \mathcal{X}$</span>
+抖动再做分解；上面代码里 <code>tol=1e-8</code> 是常见默认值。GP 库里常见的 jitter 是对角加 <span class=math-inline>$10^{-6},$</span>
+大到能盖住浮点噪声，小到不会偏置后验。</p><p><strong>复杂度表。</strong> SVM 上规模时每次迭代都要碰 Gram 矩阵。代价表如下：</p><div class=table-wrap><table><thead><tr><th>操作</th><th>代价</th><th>何时受限</th></tr></thead><tbody><tr><td>构建 <span class=math-inline>$n$</span>
+点 <span class=math-inline>$G$</span></td><td><span class=math-inline>$O(n^2 d)$</span>
+时间，<span class=math-inline>$O(n^2)$</span>
+内存</td><td>永远——<span class=math-inline>$n \approx 30{,}000$</span>
+撞墙</td></tr><tr><td>特征分解</td><td><span class=math-inline>$O(n^3)$</span>
+时间</td><td>一次性诊断用</td></tr><tr><td>Cholesky</td><td>约 <span class=math-inline>$\tfrac{1}{3} n^3$</span>
+flops</td><td>KRR / GP 解 <span class=math-inline>$G \alpha = y$</span></td></tr><tr><td>共轭梯度求解</td><td><span class=math-inline>$O(n^2 \cdot \text{iters})$</span></td><td><span class=math-inline>$G$</span>
+PSD 且条件好时</td></tr><tr><td>Nystrom 近似</td><td><span class=math-inline>$O(n m^2),$</span>
+<span class=math-inline>$m \ll n$</span></td><td><span class=math-inline>$n \approx 10^5$</span>
+之上的标配</td></tr></tbody></table></div><p><strong>小结：</strong> Gram 矩阵既是 PSD 实操检验，也是计算瓶颈。搞对很重要；保持小更重要。</p><p><strong>插话——对角线作为自相似先验。</strong> PSD 强制 <span class=math-inline>$G_{ii} = K(x_i, x_i) \geq 0,$</span>
+因为 <span class=math-inline>$n = 1, c = 1$</span>
+单点情形直接给出 <span class=math-inline>$K(x, x) \geq 0.$</span>
+更强：对隐式特征映射用 Cauchy–Schwarz 得 <span class=math-inline>$|K(x, y)| \leq \sqrt{K(x, x) K(y, y)}.$</span>
+这就是"归一化核" <span class=math-inline>$\tilde K(x, y) = K(x, y) / \sqrt{K(x, x) K(y, y)}$</span>
+总落在 <span class=math-inline>$[-1, 1]$</span>
+且像特征空间余弦相似度的原因。余弦相似度本身就是归一化的线性核，是这一构造的特例。</p><h2 id=mercer-定理陈述与直觉 class=heading-anchor>Mercer 定理：陈述与直觉<a href=#mercer-%e5%ae%9a%e7%90%86%e9%99%88%e8%bf%b0%e4%b8%8e%e7%9b%b4%e8%a7%89 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>一旦接受 PSD 是对的条件，自然下一个问题是：<strong>那个隐式特征映射到底长什么样？</strong> Mercer 定理就是答案。</p><span class=math-block>$$K(x, y) \;=\; \sum_{k=1}^{\infty} \lambda_k\, \phi_k(x)\, \phi_k(y),$$</span><p>级数在 <span class=math-inline>$\mathcal{X} \times \mathcal{X}$</span>
 上绝对一致收敛。</p><span class=math-block>$$(T_K f)(x) \;=\; \int_{\mathcal{X}} K(x, y)\, f(y)\, dy$$</span><p>的特征值-特征函数对，即 <span class=math-inline>$T_K \phi_k = \lambda_k \phi_k.$</span></p><p>这是"对称 PSD 矩阵有谱分解 <span class=math-inline>$G = \sum_k \lambda_k u_k u_k^\top$</span>
 &ldquo;在连续情形下的完整对偶。积分算子 <span class=math-inline>$T_K$</span>
-是矩阵；特征函数是特征向量。</p><p><strong>证明 sketch（一段话讲完）：</strong> <span class=math-inline>$T_K$</span>
-是紧的（<span class=math-inline>$K$</span>
-在紧集上连续 ⇒ 平方可积 ⇒ Hilbert–Schmidt ⇒ 紧），自伴的（<span class=math-inline>$K$</span>
-对称）。紧自伴算子的谱定理给出正交特征基 <span class=math-inline>$\{\phi_k\},$</span>
-实特征值 <span class=math-inline>$\{\lambda_k\} \to 0.$</span>
-<span class=math-inline>$K$</span>
-的正定性强制 <span class=math-inline>$\lambda_k \geq 0.$</span>
-在特征基里展开 <span class=math-inline>$K,$</span>
-再用 <span class=math-inline>$K$</span>
-的连续性把 <span class=math-inline>$L^2$</span>
-收敛升级为一致收敛——最后这一步是 Mercer 1909 年原文最技术的部分。</p><span class=math-block>$$\Phi(x) \;=\; \big(\sqrt{\lambda_1}\,\phi_1(x),\; \sqrt{\lambda_2}\,\phi_2(x),\; \dots\big),$$</span>
+是矩阵；特征函数是特征向量；谱不再是有限列表而是无穷（但衰减的）序列。</p><p><strong>证明 sketch（分步走）：</strong> 四步，每步都是标准动作。</p><p><em>(1) <span class=math-inline>$T_K$</span>
+紧。</em> <span class=math-inline>$K$</span>
+在紧集上连续故有界，所以 <span class=math-inline>$K \in L^2(\mathcal{X} \times \mathcal{X}).$</span>
+形如 <span class=math-inline>$T_K f(x) = \int K(x,y) f(y) dy$</span>
+且 <span class=math-inline>$K \in L^2$</span>
+的算子叫 <em>Hilbert–Schmidt,</em> 而 Hilbert–Schmidt 算子是紧的（单位球映射到 <span class=math-inline>$L^2$</span>
+的预紧集）。</p><p><em>(2) 自伴。</em> <span class=math-inline>$K$</span>
+对称故 <span class=math-inline>$\langle T_K f, g \rangle = \int\!\!\int K(x,y) f(y) g(x) dy dx = \langle f, T_K g\rangle,$</span>
+即 <span class=math-inline>$T_K = T_K^*.$</span></p><p><em>(3) 谱定理。</em> Hilbert 空间上紧自伴算子的谱定理给出完整的正交特征基 <span class=math-inline>$\{\phi_k\} \subset L^2(\mathcal{X})$</span>
+和实特征值 <span class=math-inline>$\{\lambda_k\},$</span>
+后者只能聚于 <span class=math-inline>$0$</span>
+（<span class=math-inline>$\lambda_k \to 0$</span>
+）。</p><p><em>(4) 非负与一致收敛。</em> <span class=math-inline>$K$</span>
+正定意味着 <span class=math-inline>$\langle T_K \phi_k, \phi_k\rangle = \lambda_k \geq 0.$</span>
+在特征基里展开 <span class=math-inline>$K$</span>
+得 <span class=math-inline>$K(x, y) = \sum_k \lambda_k \phi_k(x) \phi_k(y),$</span>
+这是 <span class=math-inline>$L^2$</span>
+收敛。Mercer 的连续性假设把它升级为<strong>一致</strong>收敛——最后这一步是 Mercer 1909 年原文最技术的部分，也是定理冠他名字的原因。</p><span class=math-block>$$\Phi(x) \;=\; \big(\sqrt{\lambda_1}\,\phi_1(x),\; \sqrt{\lambda_2}\,\phi_2(x),\; \dots\big),$$</span>
 <span class=math-block>$$\langle \Phi(x), \Phi(y) \rangle_{\ell^2} \;=\; \sum_k \lambda_k \phi_k(x) \phi_k(y) \;=\; K(x, y).$$</span><p>所以核技巧不是魔术。是真有一个希尔伯特空间 <span class=math-inline>$\mathcal{H} = \ell^2$</span>
 和映射 <span class=math-inline>$\Phi$</span>
 满足 <span class=math-inline>$K = \langle \Phi(\cdot), \Phi(\cdot)\rangle.$</span>
 Mercer 只是告诉你 <span class=math-inline>$\Phi$</span>
-长什么样。</p><h2 id=mercer-定理的几何含义 class=heading-anchor>Mercer 定理的几何含义<a href=#mercer-%e5%ae%9a%e7%90%86%e7%9a%84%e5%87%a0%e4%bd%95%e5%90%ab%e4%b9%89 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>看下面这张图。它画的是 RBF 核在 <span class=math-inline>$[-3, 3]$</span>
+长什么样。</p><p><strong>worked example——<span class=math-inline>$[0, 1]$</span>
+上 RBF 前三个特征函数。</strong> RBF 核 <span class=math-inline>$K(x, y) = \exp(-\gamma(x - y)^2)$</span>
+在 <span class=math-inline>$[0, 1]$</span>
+上没有闭式特征函数，但可以把积分算子离散化到网格上数值求解。流程：取 <span class=math-inline>$m = 200$</span>
+等距点 <span class=math-inline>$x_i \in [0, 1],$</span>
+构 <span class=math-inline>$m \times m$</span>
+矩阵 <span class=math-inline>$G_{ij} = K(x_i, x_j) / m$</span>
+（<span class=math-inline>$1/m$</span>
+是积分权重），算它的前几个特征值和特征向量。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>m</span><span class=p>,</span> <span class=n>gamma</span> <span class=o>=</span> <span class=mi>200</span><span class=p>,</span> <span class=mf>25.0</span>
+</span></span><span class=line><span class=cl><span class=n>xs</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>m</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>K</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=o>-</span><span class=n>gamma</span> <span class=o>*</span> <span class=p>(</span><span class=n>xs</span><span class=p>[:,</span> <span class=kc>None</span><span class=p>]</span> <span class=o>-</span> <span class=n>xs</span><span class=p>[</span><span class=kc>None</span><span class=p>,</span> <span class=p>:])</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)</span> <span class=o>/</span> <span class=n>m</span>
+</span></span><span class=line><span class=cl><span class=n>w</span><span class=p>,</span> <span class=n>V</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>eigh</span><span class=p>(</span><span class=n>K</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>order</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>argsort</span><span class=p>(</span><span class=n>w</span><span class=p>)[::</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>w</span><span class=p>,</span> <span class=n>V</span> <span class=o>=</span> <span class=n>w</span><span class=p>[</span><span class=n>order</span><span class=p>],</span> <span class=n>V</span><span class=p>[:,</span> <span class=n>order</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 前 3 个特征值与归一化特征函数样本。</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>3</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>phi_k</span> <span class=o>=</span> <span class=n>V</span><span class=p>[:,</span> <span class=n>k</span><span class=p>]</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>m</span><span class=p>)</span>        <span class=c1># 在 [0, 1] 上 L^2 归一化</span>
+</span></span><span class=line><span class=cl>    <span class=n>sign</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sign</span><span class=p>(</span><span class=n>phi_k</span><span class=p>[</span><span class=n>m</span> <span class=o>//</span> <span class=mi>2</span><span class=p>])</span> <span class=ow>or</span> <span class=mi>1</span>  <span class=c1># 固定符号约定</span>
+</span></span><span class=line><span class=cl>    <span class=n>phi_k</span> <span class=o>*=</span> <span class=n>sign</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;lambda_</span><span class=si>{</span><span class=n>k</span><span class=o>+</span><span class=mi>1</span><span class=si>}</span><span class=s2> = </span><span class=si>{</span><span class=n>w</span><span class=p>[</span><span class=n>k</span><span class=p>]</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>, phi_</span><span class=si>{</span><span class=n>k</span><span class=o>+</span><span class=mi>1</span><span class=si>}</span><span class=s2>(0.5) = </span><span class=si>{</span><span class=n>phi_k</span><span class=p>[</span><span class=n>m</span> <span class=o>//</span> <span class=mi>2</span><span class=p>]</span><span class=si>:</span><span class=s2>+.3f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><span class=math-inline>$\gamma = 25$</span>
+下大致得到 <span class=math-inline>$\lambda_1 \approx 0.18,$</span>
+<span class=math-inline>$\lambda_2 \approx 0.18,$</span>
+<span class=math-inline>$\lambda_3 \approx 0.13.$</span>
+第一个特征函数是单峰正值，第二个有一次振荡（一次过零），第三个有两次过零。规律延续：第 <span class=math-inline>$k$</span>
+个特征函数在 <span class=math-inline>$[0, 1]$</span>
+上约有 <span class=math-inline>$k - 1$</span>
+个零点。这就是核版本的傅里叶模式，也正是 fig 3 在对称区间 <span class=math-inline>$[-3, 3]$</span>
+上可视化的内容。</p><p><strong>Sanity check。</strong> 用前 <span class=math-inline>$r$</span>
+个特征对重建 <span class=math-inline>$K$</span>
+并测残差 <span class=math-inline>$\|K - \sum_{k=1}^{r} \lambda_k \phi_k \phi_k^\top\|_F,$</span>
+<span class=math-inline>$r$</span>
+增大时残差应快速下降。<span class=math-inline>$\gamma = 25, r = 30$</span>
+时，相对 <span class=math-inline>$\|K\|_F$</span>
+的 Frobenius 残差已低于 <span class=math-inline>$10^{-6}.$</span>
+这是 Mercer 级数对 RBF 收敛快的实证。</p><p><strong>与特征空间 PCA 的桥。</strong> Mercer 特征对正是隐式特征映射 <span class=math-inline>$\Phi$</span>
+之后（中心化）数据的主成分。更精确：<span class=math-inline>$n$</span>
+点上的经验 kernel PCA 算的是中心化 Gram 矩阵 <span class=math-inline>$\tilde G = (I - \tfrac{1}{n} \mathbf{1}\mathbf{1}^\top) G (I - \tfrac{1}{n} \mathbf{1}\mathbf{1}^\top)$</span>
+的特征向量，它的特征值是 Mercer 特征值 <span class=math-inline>$\lambda_k$</span>
+乘 <span class=math-inline>$n$</span>
+的<strong>有限样本估计</strong>。<span class=math-inline>$n \to \infty$</span>
+时收敛速率 <span class=math-inline>$O(1/\sqrt{n}).$</span>
+这就是 kernel PCA 不必实例化 <span class=math-inline>$\Phi$</span>
+就能"直接工作"的原因——Gram 矩阵已经把 PCA 需要的信息打包成了无穷维真相的有限维子矩阵。</p><span class=math-block>$$G_{ij} = K(x_i, x_j) = \sum_k \lambda_k \phi_k(x_i) \phi_k(x_j).$$</span><p>堆起来，<span class=math-inline>$G = \Phi_n \Lambda \Phi_n^\top,$</span>
+<span class=math-inline>$\Phi_n \in \mathbb{R}^{n \times \infty},$</span>
+<span class=math-inline>$(\Phi_n)_{ik} = \phi_k(x_i),$</span>
+<span class=math-inline>$\Lambda$</span>
+对角。<span class=math-inline>$G$</span>
+的前几个特征向量正是前几个 Mercer 特征函数在数据点上的加权采样。上面 <span class=math-inline>$n = m = 200$</span>
+网格点的数值算例就是在干这件事，唯一近似是把积分换成黎曼和。</p><h2 id=mercer-定理的几何含义 class=heading-anchor>Mercer 定理的几何含义<a href=#mercer-%e5%ae%9a%e7%90%86%e7%9a%84%e5%87%a0%e4%bd%95%e5%90%ab%e4%b9%89 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>看下面这张图。它画的是 RBF 核在 <span class=math-inline>$[-3, 3]$</span>
 上前五个 Mercer 特征函数。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/02-kernel-math-foundations/fig3_mercer_eigenfunctions.png alt="RBF 核的前 5 个 Mercer 特征函数及特征值衰减" loading=lazy decoding=async class=content-image></figure></p><p>三件事值得刻进脑子：</p><p><strong>特征函数像越来越振荡的光滑波包。</strong> 这是核版本的傅里叶模式。第 <span class=math-inline>$k$</span>
 个特征函数 <span class=math-inline>$\phi_k$</span>
 大约有 <span class=math-inline>$k$</span>
-个零点，对应越来越细的空间尺度。核同时"看到"所有这些尺度的相似度。</p><p><strong>特征值衰减得很快。</strong> RBF 是指数衰减。这就是低秩近似为什么 work——保留前 <span class=math-inline>$r$</span>
-个 Mercer 分量就抓住了核几乎全部的结构。Nystrom、Random Fourier Features 这些方法显式利用这个衰减来便宜地近似 <span class=math-inline>$\Phi.$</span></p><p><strong>谱真的是无穷的。</strong> 对 RBF，<strong>每个</strong> <span class=math-inline>$\lambda_k$</span>
+个零点，对应越来越细的空间尺度。核同时"看到"所有这些尺度的相似度，谱告诉你每个尺度贡献多少。</p><p><strong>特征值衰减得很快。</strong> RBF 是指数衰减。这就是低秩近似为什么 work——保留前 <span class=math-inline>$r$</span>
+个 Mercer 分量就抓住了核几乎全部的结构。Nystrom、Random Fourier Features 这些方法显式利用这个衰减来便宜地近似 <span class=math-inline>$\Phi.$</span>
+相关理论结论：<span class=math-inline>$\mathbb{R}^d$</span>
+上带宽 <span class=math-inline>$\sigma$</span>
+的高斯核在亚高斯分布数据上，<span class=math-inline>$\lambda_k$</span>
+大约按 <span class=math-inline>$\exp(-c k^{1/d})$</span>
+衰减——按维度修正后的指数下降。</p><p><strong>谱真的是无穷的。</strong> 对 RBF，<strong>每个</strong> <span class=math-inline>$\lambda_k$</span>
 都严格大于 <span class=math-inline>$0$</span>
-——隐式特征空间真无穷维。听起来吓人，但快速衰减意味着只有头十几个维度承载有意义的"信号能量&rdquo;。你拿到了无穷空间的表达力，却只付出小空间的有效复杂度。</p><p><strong>和多项式核的对比。</strong> 对 <span class=math-inline>$K(x,y) = (x^\top y + 1)^d$</span>
+——隐式特征空间真无穷维。听起来吓人，但快速衰减意味着只有头十几个维度承载有意义的"信号能量&rdquo;。你拿到了无穷空间的表达力，却只付出小空间的有效复杂度。这就是"RBF 能拟合一切但不必动用一切"这句口号的形式版本。</p><p><strong>和多项式核的对比。</strong> 对 <span class=math-inline>$K(x,y) = (x^\top y + 1)^d$</span>
 （<span class=math-inline>$x \in \mathbb{R}^p$</span>
 ），Mercer 展开是<strong>有限</strong>的：恰好有 <span class=math-inline>$\binom{p+d}{d}$</span>
 个非零特征值，每个对应一个 <span class=math-inline>$\leq d$</span>
-次单项式。特征函数<strong>就是</strong>单项式本身。所以多项式核确实给的是暴力多项式特征展开，Mercer 只是把它"官方化"了。</p><p><strong>小结：</strong> PSD 是抽象条件；Mercer 把它翻译成具体（常常无穷，永远正交）的特征展开。<span class=math-inline>$\{\lambda_k\}$</span>
-衰减速度控制"有效维度"。</p><h2 id=用图看正定性 class=heading-anchor>用图看正定性<a href=#%e7%94%a8%e5%9b%be%e7%9c%8b%e6%ad%a3%e5%ae%9a%e6%80%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>有时候内化"正定"最好的方式是<strong>看</strong>二次型。下图把 <span class=math-inline>$Q(v) = v^\top G v$</span>
+次单项式。特征函数<strong>就是</strong>单项式本身。所以多项式核确实给的是暴力多项式特征展开，Mercer 只是把它"官方化"了。</p><p><strong>与 Bochner 和傅里叶的桥。</strong> 对<strong>平稳</strong>核 <span class=math-inline>$K(x, y) = k(x - y),$</span>
+Bochner 定理给出另一种谱表示：<span class=math-inline>$K(x, y) = \int e^{i \omega^\top (x - y)} d\mu(\omega),$</span>
+<span class=math-inline>$\mu$</span>
+非负测度。这与 Mercer 在精确意义上是对偶的：Mercer 给的是<strong>离散</strong>谱，绑定到支撑集 <span class=math-inline>$\mathcal{X};$</span>
+Bochner 给的是<strong>连续</strong>谱，活在频率域 <span class=math-inline>$\mathbb{R}^d$</span>
+上。Random Fourier Features 把 Bochner 积分提升为蒙特卡洛近似：采样 <span class=math-inline>$\omega_j \sim \mu$</span>
+后用随机特征映射 <span class=math-inline>$\Phi(x) = (\cos(\omega_j^\top x), \sin(\omega_j^\top x))_j.$</span>
+这是把任意平稳核变成有限维特征映射、且不必算特征函数的桥。</p><p><strong>小结：</strong> PSD 是抽象条件；Mercer 把它翻译成具体（常常无穷，永远正交）的特征展开。<span class=math-inline>$\{\lambda_k\}$</span>
+衰减速度控制"有效维度"，也是 Nystrom 和 Random Fourier Features 共同撬动的杠杆。</p><h2 id=用图看正定性 class=heading-anchor>用图看正定性<a href=#%e7%94%a8%e5%9b%be%e7%9c%8b%e6%ad%a3%e5%ae%9a%e6%80%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>有时候内化"正定"最好的方式是<strong>看</strong>二次型。下图把 <span class=math-inline>$Q(v) = v^\top G v$</span>
 画在 <span class=math-inline>$v$</span>
 的 2-D 切片上，左右分别是 PSD 和不定的 <span class=math-inline>$3 \times 3$</span>
 Gram-like 矩阵。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/02-kernel-math-foundations/fig5_psd_test_visualization.png alt="PSD 与不定矩阵的二次型 vᵀGv 三维可视化" loading=lazy decoding=async class=content-image></figure></p><p>左边是个完全在零之上的碗——PSD 的几何含义就是这样：每个方向 <span class=math-inline>$v$</span>
-都给出非负值。右边是个鞍面，在一整个半平面里都掉到零以下（红色等值线是零等高线）。这个穿越零面就是"负特征值"的几何意义。</p><p>把不定 Gram 矩阵喂给 SVM solver，优化器就会朝那个负的区域走——因为对偶目标长得像 <span class=math-inline>$v^\top G v + \text{线性},$</span>
-solver 在最大化。<span class=math-inline>$G$</span>
-是 PSD，二次部分有界；<span class=math-inline>$G$</span>
-不定，目标无上界，solver 要么发散、要么报错、要么返回鬼东西。这就是 <code>kernel matrix is not positive semidefinite</code> 报错的真实含义。</p><h2 id=五大核的特征值谱 class=heading-anchor>五大核的特征值谱<a href=#%e4%ba%94%e5%a4%a7%e6%a0%b8%e7%9a%84%e7%89%b9%e5%be%81%e5%80%bc%e8%b0%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>下图把五种常见核在同样的 120 个 <span class=math-inline>$[-3, 3]$</span>
+都给出非负值。右边是个鞍面，在一整个半平面里都掉到零以下（红色等值线是零等高线）。这个穿越零面就是"负特征值"的几何意义。</p><p>把不定 Gram 矩阵喂给 SVM solver，优化器就会朝那个负的区域走——因为对偶目标长得像 <span class=math-inline>$-\tfrac{1}{2} v^\top G v + \text{线性},$</span>
+而最小化一个<strong>凹</strong>二次（带约束）要么跑到无穷，要么停在毫无意义的角点。<span class=math-inline>$G$</span>
+PSD，二次部分有下界（或上界，看符号约定），对偶是正常凸问题；<span class=math-inline>$G$</span>
+不定，目标在错方向无界，solver 要么发散、要么报错、要么返回鬼东西。这就是 <code>kernel matrix is not positive semidefinite</code> 报错的真实含义。</p><p><strong>碗-鞍面图为什么够用。</strong> 三维以上画不出来，但定性二分不变。实对称矩阵要么 PSD（每个方向非负），要么负半定（每个方向非正），要么<strong>不定</strong>（有正有负）。不定是核的唯一失败模式——负半定 Gram 矩阵实际不会出现，因为 <span class=math-inline>$G_{ii} = K(x_i, x_i) \geq 0$</span>
+对任何合理相似度都成立，强制至少一个非负特征值。</p><h2 id=五大核的特征值谱 class=heading-anchor>五大核的特征值谱<a href=#%e4%ba%94%e5%a4%a7%e6%a0%b8%e7%9a%84%e7%89%b9%e5%be%81%e5%80%bc%e8%b0%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>下图把五种常见核在同样的 120 个 <span class=math-inline>$[-3, 3]$</span>
 点上的特征值衰减（log 尺度）画在一起。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/02-kernel-math-foundations/fig2_eigenvalues_spectrum.png alt="线性、多项式、RBF、Laplace 核的特征值谱" loading=lazy decoding=async class=content-image></figure></p><p>几个关键读数：</p><p><strong>Linear</strong> 一步衰完：秩 <span class=math-inline>$= \min(n, d) = 1$</span>
 （这里 <span class=math-inline>$X$</span>
 是一维）。<span class=math-inline>$\lambda_1$</span>
 之外全是数值噪声。</p><p><strong>Polynomial (d=3)</strong> 秩恰好 <span class=math-inline>$4$</span>
 ——四个单项式 <span class=math-inline>$1, x, x^2, x^3$</span>
-——之后断崖。</p><p><strong>RBF <span class=math-inline>$(\gamma = 0.5)$</span>
+——之后断崖到数值零。</p><p><strong>RBF <span class=math-inline>$(\gamma = 0.5)$</span>
 </strong>平滑慢衰：多个分量都有意义。这是"无穷维但可压缩"的视觉标志。</p><p><strong>RBF <span class=math-inline>$(\gamma = 2.0)$</span>
 </strong>比 <span class=math-inline>$\gamma = 0.5$</span>
 慢得多——<span class=math-inline>$\gamma$</span>
-大 ⇒ 波包窄 ⇒ 细节多 ⇒ 特征空间更丰富 ⇒ 谱衰减更慢。</p><p><strong>Laplace</strong> 介于 RBF 和多项式之间：<span class=math-inline>$\lambda_k \sim k^{-2}$</span>
-幂律而非指数。所以 Laplace 处理非光滑信号比 RBF 好——它有更大的"高频预算"。</p><p>这一张图浓缩了核选择的大部分实操直觉。衰减越快 = 隐式特征空间越���单 = 模型容量越低 = 越难过拟合。Part 5 调带宽时还会回来再看。</p><h2 id=核的组合规则 class=heading-anchor>核的组合规则<a href=#%e6%a0%b8%e7%9a%84%e7%bb%84%e5%90%88%e8%a7%84%e5%88%99 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>你几乎不会从头写核。实际是用一小套保 PSD 的运算把简单核组合起来。记住这些规则，就能给结构化数据设计自定义核，不必每次都重证 PSD。</p><p><strong>规则 1（和）：</strong> <span class=math-inline>$K_1, K_2$</span>
+大 ⇒ 波包窄 ⇒ 细节多 ⇒ 特征空间更丰富 ⇒ 谱衰减更慢。这是 bias-variance 的谱版本：大 <span class=math-inline>$\gamma$</span>
+买表达力，花泛化预算。</p><p><strong>Laplace</strong> 介于 RBF 和多项式之间：<span class=math-inline>$\lambda_k \sim k^{-2}$</span>
+幂律而非指数。所以 Laplace 处理非光滑信号比 RBF 好——它有更大的"高频预算"，因为幂律尾比指数尾在高 <span class=math-inline>$k$</span>
+模式上放更多质量。</p><p><strong>汇总表：</strong></p><div class=table-wrap><table><thead><tr><th>核</th><th>谱形状</th><th>有效秩</th><th>典型用途</th></tr></thead><tbody><tr><td>Linear</td><td>秩 <span class=math-inline>$\min(n, d)$</span></td><td><span class=math-inline>$d$</span></td><td>基线；稀疏高维</td></tr><tr><td>Polynomial <span class=math-inline>$d$</span></td><td>秩 <span class=math-inline>$\binom{p+d}{d}$</span></td><td><span class=math-inline>$O(p^d)$</span></td><td>图像 patch、ranking</td></tr><tr><td>RBF</td><td>指数衰减</td><td><span class=math-inline>$\sim \log n / \gamma$</span></td><td><span class=math-inline>$n &lt; 10^5$</span>
+默认</td></tr><tr><td>Laplace</td><td><span class=math-inline>$\lambda_k \sim k^{-2}$</span></td><td><span class=math-inline>$\sim n^{1/2}$</span></td><td>粗糙信号、时序</td></tr><tr><td>Sigmoid</td><td>可能负</td><td>—</td><td>别用；只有历史价值</td></tr></tbody></table></div><p>这一张图浓缩了核选择的大部分实操直觉。衰减越快 = 隐式特征空间越简单 = 模型容量越低 = 越难过拟合。Part 5 调带宽时还会回来再看。</p><span class=math-block>$$d_{\text{eff}}(\mu) = \sum_k \frac{\lambda_k}{\lambda_k + \mu}.$$</span><p>它数的是"在所选正则化水平下，有多少 Mercer 模真正参与"。光滑数据上的 RBF，<span class=math-inline>$d_{\text{eff}}$</span>
+小且随 <span class=math-inline>$1/\mu$</span>
+对数增长；Laplace 则按 <span class=math-inline>$\mu^{-1/2}$</span>
+增长。核岭回归的泛化界是 <span class=math-inline>$O(d_{\text{eff}} / n),$</span>
+所以谱直接控制统计风险。Part 4 详推这条界。</p><p><strong>算子范数与迹。</strong> 核理论里反复出现的两个标量：</p><ul><li><span class=math-inline>$\|T_K\|_{\text{op}} = \lambda_1$</span>
+（最大特征值），界定核对任意输入函数的最大放大率。</li><li><span class=math-inline>$\text{tr}(T_K) = \sum_k \lambda_k = \int_{\mathcal{X}} K(x, x) dx$</span>
+（迹），度量隐式特征映射的总"能量"。</li></ul><p>RBF 带宽 <span class=math-inline>$\sigma$</span>
+在体积 <span class=math-inline>$V$</span>
+的有界域上：<span class=math-inline>$\text{tr}(T_K) = V$</span>
+（<span class=math-inline>$K(x, x) = 1$</span>
+）。多项式 <span class=math-inline>$(x^\top y + c)^d$</span>
+在 <span class=math-inline>$[-1, 1]^p$</span>
+上：迹 <span class=math-inline>$= \int (\|x\|^2 + c)^d dx,$</span>
+按 <span class=math-inline>$(p + c)^d$</span>
+增长。迹-秩权衡正是核版本的神经网络宽度-深度权衡。</p><h2 id=核的组合规则 class=heading-anchor>核的组合规则<a href=#%e6%a0%b8%e7%9a%84%e7%bb%84%e5%90%88%e8%a7%84%e5%88%99 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>你几乎不会从头写核。实际是用一小套保 PSD 的运算把简单核组合起来。记住这些规则，就能给结构化数据设计自定义核，不必每次都重证 PSD。</p><p><strong>规则 1（和）：</strong> <span class=math-inline>$K_1, K_2$</span>
 都是核，则 <span class=math-inline>$K_1 + K_2$</span>
-是核。</p><p><em>证明 sketch：</em> <span class=math-inline>$v^\top (G_1 + G_2) v = v^\top G_1 v + v^\top G_2 v \geq 0.$</span></p><p><strong>规则 2（正标量倍数）：</strong> <span class=math-inline>$K$</span>
+是核。</p><p><em>证明 sketch：</em> <span class=math-inline>$v^\top (G_1 + G_2) v = v^\top G_1 v + v^\top G_2 v \geq 0.$</span>
+每项假设非负，和自然非负。</p><p><em>反例警示：</em> <span class=math-inline>$K_1 - K_2$</span>
+一般<strong>不</strong>是核。快速验证：<span class=math-inline>$K_1 = K_{\text{linear}},$</span>
+<span class=math-inline>$K_2 = 2 K_{\text{linear}}.$</span>
+那 <span class=math-inline>$K_1 - K_2 = -K_{\text{linear}},$</span>
+Gram 矩阵 <span class=math-inline>$-X X^\top$</span>
+严格负半定，绝非 PSD（除非 <span class=math-inline>$X = 0$</span>
+）。</p><p><strong>规则 2（正标量倍数）：</strong> <span class=math-inline>$K$</span>
 是核，<span class=math-inline>$c \geq 0,$</span>
 则 <span class=math-inline>$cK$</span>
-是核。</p><p><strong>规则 3（Hadamard 积）：</strong> <span class=math-inline>$K_1, K_2$</span>
+是核。证明一行：<span class=math-inline>$v^\top (cG) v = c (v^\top G v) \geq 0.$</span>
+负标量破坏 PSD，理由同减法。</p><p><strong>规则 3（Hadamard 积）：</strong> <span class=math-inline>$K_1, K_2$</span>
 都是核，则逐点积 <span class=math-inline>$(K_1 K_2)(x, y) = K_1(x,y) K_2(x, y)$</span>
-是核。这是 <em>Schur 积定理</em>——证明不平凡，威力极大。</p><p><strong>规则 4（张量积 / 积空间）：</strong> <span class=math-inline>$K_1$</span>
+是核。这是 <em>Schur 积定理</em>：两个 PSD 矩阵的逐元素积是 PSD。证明用 <span class=math-inline>$G_1 \otimes G_2$</span>
+（Kronecker 积）在两因子都 PSD 时 PSD，而 <span class=math-inline>$G_1 \odot G_2$</span>
+（Hadamard）是 <span class=math-inline>$G_1 \otimes G_2$</span>
+的主子矩阵。证明不平凡，威力极大。</p><p><strong>规则 4（张量积 / 积空间）：</strong> <span class=math-inline>$K_1$</span>
 是 <span class=math-inline>$\mathcal{X}_1$</span>
 上核，<span class=math-inline>$K_2$</span>
 是 <span class=math-inline>$\mathcal{X}_2$</span>
 上核，则 <span class=math-inline>$K\big((x_1, x_2), (y_1, y_2)\big) = K_1(x_1, y_1) K_2(x_2, y_2)$</span>
 是 <span class=math-inline>$\mathcal{X}_1 \times \mathcal{X}_2$</span>
-上核。这是混合数据类型（数值 + 类别）的标准玩法。</p><p><strong>规则 5（与 <span class=math-inline>$\phi$</span>
+上核。这是混合数据类型（数值 + 类别）的标准玩法。特征空间是张量积 <span class=math-inline>$\mathcal{H}_1 \otimes \mathcal{H}_2.$</span></p><p><strong>规则 5（与 <span class=math-inline>$\phi$</span>
 复合）：</strong> <span class=math-inline>$f: \mathcal{X} \to \mathcal{Z}$</span>
 任意映射，<span class=math-inline>$K_Z$</span>
 是 <span class=math-inline>$\mathcal{Z}$</span>
 上核，则 <span class=math-inline>$K(x, y) = K_Z(f(x), f(y))$</span>
 是 <span class=math-inline>$\mathcal{X}$</span>
-上核。</p><p><strong>规则 6（极限与无穷和）：</strong> 核的逐点极限（存在时）是核。所以非负系数的收敛幂级数作用于核仍是核——特别地 <span class=math-inline>$\exp(K)$</span>
-总是核。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/02-kernel-math-foundations/fig4_kernel_combination_rules.png alt="六种核组合规则在同一组 80 点网格上的可视化" loading=lazy decoding=async class=content-image></figure></p><p>上图对同一 RBF 和 <span class=math-inline>$d=2$</span>
+上核。证明 trivial：<span class=math-inline>$K$</span>
+的任意 Gram 矩阵也是 <span class=math-inline>$K_Z$</span>
+在像点 <span class=math-inline>$\{f(x_i)\}$</span>
+上的 Gram 矩阵，故 PSD。这条规则让你为字符串、图等非向量数据造核：选个特征提取器 <span class=math-inline>$f$</span>
+就能 lift 任意向量核。</p><p><strong>规则 6（极限与无穷和）：</strong> 核的逐点极限（存在时）是核。所以非负系数的收敛幂级数作用于核仍是核——特别地 <span class=math-inline>$\exp(K)$</span>
+总是核，<span class=math-inline>$(1 - K)^{-1}$</span>
+（在收敛区）也是核，任何 <span class=math-inline>$\sum_k a_k K^k$</span>
+（<span class=math-inline>$a_k \geq 0$</span>
+）也是。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/02-kernel-math-foundations/fig4_kernel_combination_rules.png alt="六种核组合规则在同一组 80 点网格上的可视化" loading=lazy decoding=async class=content-image></figure></p><p>上图对同一 RBF 和 <span class=math-inline>$d=2$</span>
 多项式核应用了六种运算。每张得到的 Gram 矩阵最小特征值都是正的（标题里写得很清楚）。代数封闭性活生生看在眼里。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
@@ -167,6 +357,13 @@ solver 在最大化。<span class=math-inline>$G$</span>
 </span><span class=lnt> 8
 </span><span class=lnt> 9
 </span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># 给 (numeric, categorical) 数据对造一个自定义核。</span>
 </span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>K_numeric</span><span class=p>(</span><span class=n>x_num</span><span class=p>,</span> <span class=n>y_num</span><span class=p>,</span> <span class=n>gamma</span><span class=o>=</span><span class=mf>0.5</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=o>-</span><span class=n>gamma</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>sum</span><span class=p>((</span><span class=n>x_num</span> <span class=o>-</span> <span class=n>y_num</span><span class=p>)</span> <span class=o>**</span> <span class=mi>2</span><span class=p>))</span>
@@ -177,26 +374,198 @@ solver 在最大化。<span class=math-inline>$G$</span>
 </span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>K_combined</span><span class=p>(</span><span class=n>p</span><span class=p>,</span> <span class=n>q</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>    <span class=c1># 规则 4：积空间张量积</span>
 </span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>K_numeric</span><span class=p>(</span><span class=n>p</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>q</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span> <span class=o>*</span> <span class=n>K_categorical</span><span class=p>(</span><span class=n>p</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=n>q</span><span class=p>[</span><span class=mi>1</span><span class=p>])</span>
-</span></span></code></pre></td></tr></table></div></div><p>这十几行按规则 4 就是个完整的 Mercer 核，你不需要推它的特征函数就能用。</p><p><strong>小结：</strong> 和、标量、积、张量、复合、exp。六条规则，自由组合。</p><h2 id=哪些函数不是核三个经典陷阱 class=heading-anchor>哪些函数不是核——三个经典陷阱<a href=#%e5%93%aa%e4%ba%9b%e5%87%bd%e6%95%b0%e4%b8%8d%e6%98%af%e6%a0%b8%e4%b8%89%e4%b8%aa%e7%bb%8f%e5%85%b8%e9%99%b7%e9%98%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>知道什么会失败，能让你更清楚什么能通过。三个常见"看起来像但不是核"的函数：</p><p><strong>陷阱 1：sigmoid 核 <span class=math-inline>$\tanh(\alpha x^\top y + c).$</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 减法反例的数值验证。</span>
+</span></span><span class=line><span class=cl><span class=n>X</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>default_rng</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>size</span><span class=o>=</span><span class=p>(</span><span class=mi>20</span><span class=p>,</span> <span class=mi>2</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>K1</span> <span class=o>=</span> <span class=n>X</span> <span class=o>@</span> <span class=n>X</span><span class=o>.</span><span class=n>T</span>                            <span class=c1># 线性核 Gram</span>
+</span></span><span class=line><span class=cl><span class=n>K2</span> <span class=o>=</span> <span class=mi>2</span> <span class=o>*</span> <span class=p>(</span><span class=n>X</span> <span class=o>@</span> <span class=n>X</span><span class=o>.</span><span class=n>T</span><span class=p>)</span>                      <span class=c1># 2 倍线性核 Gram</span>
+</span></span><span class=line><span class=cl><span class=n>diff</span> <span class=o>=</span> <span class=n>K1</span> <span class=o>-</span> <span class=n>K2</span>                          <span class=c1># = -线性，不该 PSD</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;min eig of K1 - K2:&#34;</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>eigvalsh</span><span class=p>(</span><span class=n>diff</span><span class=p>)</span><span class=o>.</span><span class=n>min</span><span class=p>())</span>   <span class=c1># 负</span>
+</span></span></code></pre></td></tr></table></div></div><p>这十几行按规则 4 就是个完整的 Mercer 核，你不需要推它的特征函数就能用。底下减法检查实证了"每条规则都有它没声明那侧的反例"：能加不能减，能乘正不能乘负。</p><p><strong>小结：</strong> 和、（正）标量、积、张量、复合、exp。六条规则，自由组合。减法和负标量自负其责。</p><p><strong>用规则 5 设计字符串核——具体例子。</strong> 想比较 DNA 序列。选 <span class=math-inline>$k$</span>
+-mer 特征提取器：<span class=math-inline>$f(s) \in \mathbb{R}^{4^k}$</span>
+数 <span class=math-inline>$s$</span>
+中每个长度 <span class=math-inline>$k$</span>
+的子串出现次数。然后规则 5 给出 <span class=math-inline>$K(s, t) = K_Z(f(s), f(t))$</span>
+是字符串上的合法核，<span class=math-inline>$K_Z$</span>
+任意向量核。最常见选择 <span class=math-inline>$K_Z(u, v) = u^\top v$</span>
+（线性），得"spectrum kernel" <span class=math-inline>$K(s, t) = \sum_{w \in \Sigma^k} \#_w(s) \cdot \#_w(t).$</span>
+<span class=math-inline>$k = 4,$</span>
+字母表 4，显式特征空间 256 维；用后缀树 <span class=math-inline>$O(|s| + |t|)$</span>
+算核，比实例化两个特征向量便宜得多。这个套路——选有组合结构的特征提取器、规则 5 lift、利用结构加速计算——是 2000 年代每篇 &ldquo;X 上的核&rdquo; 论文的模板。</p><h2 id=哪些函数不是核三个经典陷阱 class=heading-anchor>哪些函数不是核——三个经典陷阱<a href=#%e5%93%aa%e4%ba%9b%e5%87%bd%e6%95%b0%e4%b8%8d%e6%98%af%e6%a0%b8%e4%b8%89%e4%b8%aa%e7%bb%8f%e5%85%b8%e9%99%b7%e9%98%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>知道什么会失败，能让你更清楚什么能通过。三个常见"看起来像但不是核"的函数，每个配数值证据：</p><p><strong>陷阱 1：sigmoid 核 <span class=math-inline>$\tanh(\alpha x^\top y + c).$</span>
 </strong>老式神经网络风 SVM 里很有名。它<strong>只</strong>在很窄一段 <span class=math-inline>$(\alpha, c)$</span>
 参数下 PSD——而且只在有界输入区上。多数参数选择下，Gram 矩阵有负特征值。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/02-kernel-math-foundations/fig6_invalid_kernel_example.png alt="Sigmoid 核：一组参数 PSD，另一组不定" loading=lazy decoding=async class=content-image></figure></p><p>上图右边那张是 <span class=math-inline>$\alpha = 1.5, c = -2.0$</span>
-的结果：一半以上特征值是负的。sklearn 会照单全收并产出"模型"，但优化在数学上毫无意义。现代代码默认 RBF 而不是 sigmoid，就是这个原因。</p><p><strong>陷阱 2：距离函数 <span class=math-inline>$K(x, y) = d(x, y).$</span>
+的结果：一半以上特征值是负的。sklearn 会照单全收并产出"模型"，但优化在数学上毫无意义。现代代码默认 RBF 而不是 sigmoid，就是这个原因。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># 数值证据：典型参数下 sigmoid 核失败 PSD。</span>
+</span></span><span class=line><span class=cl><span class=n>rng</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>default_rng</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>X</span> <span class=o>=</span> <span class=n>rng</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>size</span><span class=o>=</span><span class=p>(</span><span class=mi>50</span><span class=p>,</span> <span class=mi>5</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>G_sig_bad</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>tanh</span><span class=p>(</span><span class=mf>1.5</span> <span class=o>*</span> <span class=n>X</span> <span class=o>@</span> <span class=n>X</span><span class=o>.</span><span class=n>T</span> <span class=o>-</span> <span class=mf>2.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;sigmoid min eig:&#34;</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>eigvalsh</span><span class=p>(</span><span class=n>G_sig_bad</span><span class=p>)</span><span class=o>.</span><span class=n>min</span><span class=p>())</span>   <span class=c1># 负</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>陷阱 2：距离函数 <span class=math-inline>$K(x, y) = d(x, y).$</span>
 </strong>欧式距离是对称的、感觉很像相似度，但<strong>不是</strong>核——对角是 <span class=math-inline>$0,$</span>
-非对角是正的，矩阵根本不 PSD。距离的高斯函数 <span class=math-inline>$K(x,y) = \exp(-\gamma d(x,y)^2)$</span>
-<strong>才</strong>是核，这也是 RBF 那么造的原因。</p><p><strong>陷阱 3：<span class=math-inline>$K(x, y) = \cos(\alpha \cdot d(x, y)).$</span>
-</strong>对称、有界、看起来像广义相似度。不是核：fig 1 右图就是它，Gram 矩阵有大量负特征值。振荡破坏了正定性。</p><p><strong>Bochner 救生圈。</strong> 对<strong>平移不变</strong>候选核 <span class=math-inline>$K(x, y) = k(x - y),$</span>
+非对角是正的，对常向量 <span class=math-inline>$\mathbf{1}$</span>
+有 <span class=math-inline>$\mathbf{1}^\top G \mathbf{1} = \sum_{ij} d(x_i, x_j) > 0$</span>
+但特征值检验失败。距离的高斯函数 <span class=math-inline>$K(x,y) = \exp(-\gamma d(x,y)^2)$</span>
+<strong>才</strong>是核，这也是 RBF 那么造的原因。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># 距离不是核。</span>
+</span></span><span class=line><span class=cl><span class=n>D</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>X</span><span class=p>[:,</span> <span class=kc>None</span><span class=p>]</span> <span class=o>-</span> <span class=n>X</span><span class=p>[</span><span class=kc>None</span><span class=p>,</span> <span class=p>:],</span> <span class=n>axis</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;distance min eig:&#34;</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>eigvalsh</span><span class=p>(</span><span class=n>D</span><span class=p>)</span><span class=o>.</span><span class=n>min</span><span class=p>())</span>          <span class=c1># 负</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>陷阱 3：<span class=math-inline>$K(x, y) = \cos(\alpha \cdot d(x, y)).$</span>
+</strong>对称、有界、看起来像广义相似度。不是核：fig 1 右图就是它，Gram 矩阵有大量负特征值。振荡破坏正定性，因为 <span class=math-inline>$\cos(\alpha r)$</span>
+的傅里叶变换是一对有符号 delta 峰，违反 Bochner 条件。</p><p><strong>Bochner 救生圈。</strong> 对<strong>平移不变</strong>候选核 <span class=math-inline>$K(x, y) = k(x - y),$</span>
 Bochner 定理告诉你：<span class=math-inline>$k$</span>
 是合法核 当且仅当 它的傅里叶变换是非负测度。RBF 能 work 是因为它的傅里叶变换是高斯（非负）；<span class=math-inline>$\cos(\alpha \|x - y\|)$</span>
-不行是因为它的傅里叶变换是两个 delta 峰之差——有正有负。要自己设计平稳核，就在傅里叶域设计。</p><h2 id=30-秒证明五大经典核 class=heading-anchor>30 秒证明五大经典核<a href=#30-%e7%a7%92%e8%af%81%e6%98%8e%e4%ba%94%e5%a4%a7%e7%bb%8f%e5%85%b8%e6%a0%b8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>收尾，这五个最常用的核为什么 PSD：</p><p><strong>Linear：</strong> <span class=math-inline>$K(x, y) = x^\top y.$</span>
+不行是因为它的傅里叶变换是两个 delta 峰之差——有正有负。要自己设计平稳核，就在傅里叶域设计：先选个非负谱密度，再做逆傅里叶得到 <span class=math-inline>$k.$</span>
+Matern 族正是按这个模板设计的。</p><h2 id=30-秒证明五大经典核 class=heading-anchor>30 秒证明五大经典核<a href=#30-%e7%a7%92%e8%af%81%e6%98%8e%e4%ba%94%e5%a4%a7%e7%bb%8f%e5%85%b8%e6%a0%b8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>收尾，这五个最常用的核为什么 PSD：</p><p><strong>Linear：</strong> <span class=math-inline>$K(x, y) = x^\top y.$</span>
 Gram 矩阵就是 <span class=math-inline>$X X^\top,$</span>
 任意 <span class=math-inline>$A^\top A$</span>
-都 PSD。</p><p><strong>Polynomial：</strong> <span class=math-inline>$K(x, y) = (x^\top y + c)^d$</span>
+都 PSD（<span class=math-inline>$v^\top A^\top A v = \|Av\|^2 \geq 0$</span>
+）。秩 <span class=math-inline>$\min(n, d).$</span>
+高维稀疏数据通常这就够；现代用 TF-IDF 的文本分类器默认是线性核 SVM。</p><p><strong>Polynomial：</strong> <span class=math-inline>$K(x, y) = (x^\top y + c)^d$</span>
 （<span class=math-inline>$c \geq 0, d \in \mathbb{N}$</span>
 ）。<span class=math-inline>$\binom{p+d}{d}$</span>
-个秩 1 PSD 矩阵之和，每个对应一个单项式。或者直接对线性核套规则 1、2、3、6。</p><p><strong>RBF / 高斯：</strong> <span class=math-inline>$K(x, y) = \exp(-\gamma \|x - y\|^2).$</span>
-Bochner + 高斯傅里叶变换；或者规则 6，<span class=math-inline>$\exp(K_{\text{linear}}^{\text{scaled}})$</span>
-归一化后。</p><p><strong>Laplace：</strong> <span class=math-inline>$K(x, y) = \exp(-\gamma \|x - y\|_1).$</span>
-Bochner + 柯西分布傅里叶变换——非负，故 PSD。</p><p><strong>Sigmoid：</strong> 一般情况下<strong>不是</strong> PSD（见陷阱 1）。挂着"核"名字是历史原因，能用 RBF 就别用它。</p><h2 id=接下来 class=heading-anchor>接下来<a href=#%e6%8e%a5%e4%b8%8b%e6%9d%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>你已经知道核<strong>是什么</strong>、<strong>怎么检查</strong>、<strong>隐式特征空间从哪儿来</strong>。Part 3 把同样的 Mercer 展开重新组织成 <strong>再生核希尔伯特空间（RKHS）</strong>——核 SVM、高斯过程、核岭回归实际上在的那个函数空间。RKHS 视角能给出<strong>表示定理（representer theorem）</strong>——核方法尽管隐式工作在（有时是无穷维）特征空间里却仍然计算可行的结构性理由。</p><p>如果只能带走一句话，让它是这句：PSD 不是技术细节，它是核技巧能存在的全部理由。Gram 矩阵搞对了，剩下的——SVM、GP、KRR、核 PCA——都从同一组定理流出来。搞错了，solver 会大声告诉你。</p><hr><p><em>本文是 <a href=/zh/series/kernel-methods/>核方法</a>
+个秩 1 PSD 矩阵之和，每个对应一个单项式（多项式展开）。或者直接对线性核套规则 1、2、3、6：<span class=math-inline>$K_{\text{linear}} + c$</span>
+是 PSD（常数核 <span class=math-inline>$c \cdot \mathbf{1}\mathbf{1}^\top$</span>
+是秩 1 PSD），核的整数次方是迭代 Hadamard，规则 3 保 PSD。</p><p><strong>RBF / 高斯：</strong> <span class=math-inline>$K(x, y) = \exp(-\gamma \|x - y\|^2).$</span>
+Bochner + 高斯傅里叶变换；或者规则 6，把 <span class=math-inline>$\exp$</span>
+展为（负的）平方距离的幂级数，每项 PSD 性用上面多项式核的分解验证。</p><p><strong>Laplace：</strong> <span class=math-inline>$K(x, y) = \exp(-\gamma \|x - y\|_1).$</span>
+Bochner + 柯西分布傅里叶变换——非负，故 PSD。Laplace 的谱密度在 <span class=math-inline>$L^1$</span>
+而非 <span class=math-inline>$L^2,$</span>
+这正是前面看到 <span class=math-inline>$\lambda_k$</span>
+幂律衰减的原因。等价地说，Laplace 核是高斯-柯西卷积；柯西谱的重尾决定 <span class=math-inline>$k$</span>
+域 <span class=math-inline>$\lambda_k$</span>
+的重尾。</p><p><strong>Sigmoid：</strong> 一般情况下<strong>不是</strong> PSD（见陷阱 1）。挂着"核"名字是历史原因，能用 RBF 就别用它。<span class=math-inline>$\tanh(\alpha x^\top y + c) = \tanh \circ K_{\text{linear, shifted}}$</span>
+这个关系<strong>不能</strong>调规则 5，因为规则 5 是把<strong>输入</strong>和函数 <span class=math-inline>$f$</span>
+复合，不是把<strong>输出</strong>和符号交替级数（<span class=math-inline>$\tanh = x - x^3/3 + \dots$</span>
+）复合。</p><h2 id=实际中的数值复杂度 class=heading-anchor>实际中的数值复杂度<a href=#%e5%ae%9e%e9%99%85%e4%b8%ad%e7%9a%84%e6%95%b0%e5%80%bc%e5%a4%8d%e6%9d%82%e5%ba%a6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>PSD 机制直接影响运行时。各操作的代价与主导阶段：</p><div class=table-wrap><table><thead><tr><th>阶段</th><th>代价</th><th>内存</th><th>主导何时</th></tr></thead><tbody><tr><td>建 Gram <span class=math-inline>$G$</span></td><td><span class=math-inline>$O(n^2 d)$</span></td><td><span class=math-inline>$O(n^2)$</span></td><td><span class=math-inline>$n \sim 30{,}000$</span></td></tr><tr><td>Cholesky for KRR</td><td><span class=math-inline>$\tfrac{1}{3} n^3$</span>
+flops</td><td><span class=math-inline>$O(n^2)$</span></td><td><span class=math-inline>$n \sim 10^4$</span></td></tr><tr><td>kernel PCA 特征分解</td><td><span class=math-inline>$O(n^3)$</span></td><td><span class=math-inline>$O(n^2)$</span></td><td><span class=math-inline>$n \sim 5000$</span></td></tr><tr><td>PSD <span class=math-inline>$G$</span>
+上的共轭梯度</td><td><span class=math-inline>$O(n^2 \cdot \kappa(G)^{1/2})$</span>
+per tol</td><td><span class=math-inline>$O(n^2)$</span></td><td><span class=math-inline>$\kappa(G)$</span>
+中等时</td></tr><tr><td>Nystrom rank-<span class=math-inline>$m$</span>
+近似</td><td><span class=math-inline>$O(n m^2 + m^3)$</span></td><td><span class=math-inline>$O(nm)$</span></td><td><span class=math-inline>$n \sim 10^5$</span>
+之上标配</td></tr><tr><td>Random Fourier Features</td><td><span class=math-inline>$O(n m d)$</span></td><td><span class=math-inline>$O(nm)$</span></td><td>仅平稳核</td></tr></tbody></table></div><p>我们一直在讲的特征值谱正是让最后两行可能的关键：<span class=math-inline>$\lambda_k$</span>
+衰减快，<span class=math-inline>$m \ll n$</span>
+的低秩近似就能基本捕获整个核。Part 7 会用这一点把 RBF SVM 从 <span class=math-inline>$10^4$</span>
+推到 <span class=math-inline>$10^7$</span>
+点。</p><p><strong>与神经网络的桥——一段话。</strong> 宽神经网络的"神经正切核"（NTK）是 Mercer 核，特征函数是单位球 <span class=math-inline>$S^{d-1}$</span>
+上的球谐函数，特征值按谐波指标幂律衰减。宽网络在"惰性区"训练——每个权重移动 <span class=math-inline>$O(1/\sqrt{\text{width}})$</span>
+——正是当代关心核理论（超越经典 SVM）的理由。NTK 特征值衰减控制梯度下降拟合目标函数各频率分量的速度，所以低频目标先被学到（&ldquo;谱偏置"现象）。本文所有结论都适用，只需把 <span class=math-inline>$\Phi$</span>
+换成初始化时网络的梯度。</p><h2 id=三个真实场景psd-在生产中的失败 class=heading-anchor>三个真实场景——PSD 在生产中的失败<a href=#%e4%b8%89%e4%b8%aa%e7%9c%9f%e5%ae%9e%e5%9c%ba%e6%99%afpsd-%e5%9c%a8%e7%94%9f%e4%ba%a7%e4%b8%ad%e7%9a%84%e5%a4%b1%e8%b4%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>把理论锚到实例上，三个我亲自踩过的 PSD 失败模式与 Mercer 视角的诊断：</p><p><strong>Case A——sigmoid SVM，金融时序，2018。</strong> tanh-核 SVM 在滚动窗口收益上训练，交叉验证各 fold AUC 离奇震荡。诊断：对偶非凸，Gram 矩阵 250 个特征值里 8 个负。SMO solver 返回的局部极小取决于随机初始化。修复：换 RBF，AUC 稳定，训练时间砍半。教训：solver 不稳定且收紧容忍度无效时，必特征分解 Gram 矩阵。</p><p><strong>Case B——序列核，NLP 关系抽取，2020。</strong> 子树计数和构造的"树核"在长句上 PSD 失败。诊断：实现少了 bag-of-subtrees 内积中的<strong>平方</strong>，实际算的是 <span class=math-inline>$\sum_t \#_t(s) - \sum_t \#_t(t)$</span>
+而非 <span class=math-inline>$\sum_t \#_t(s) \cdot \#_t(t).$</span>
+Gram 矩阵项是无符号的<strong>计数差</strong>，不是相似度。修复：一行补丁把核改回正规规则 5 lift。教训：写自定义核时，把显式特征映射写在核旁边，三个小例上验证 <span class=math-inline>$K(x, y) = \Phi(x)^\top \Phi(y).$</span></p><p><strong>Case C——Nystrom 近似，图像特征，2021。</strong> Nystrom 近似的 RBF SVM 在 CIFAR-10 上正常，在 STL-96 上炸 <code>LinAlgError: leading minor not positive definite</code>。诊断：<span class=math-inline>$m = 500$</span>
+Nystrom landmarks 加 96 维特征，Nystrom 核矩阵 <span class=math-inline>$\hat K_{mm}$</span>
+秩缺，因为多个 landmark 几乎重复。数值上 <span class=math-inline>$\hat K$</span>
+有若干 <span class=math-inline>$10^{-14}$</span>
+量级特征值，低于 jitter 容忍。修复：jitter 提到 <span class=math-inline>$10^{-5}$</span>
+并用最远点采样去重 landmark。教训：低秩近似只在近似条件好时保 PSD；jitter 慷慨给。</p><p><strong>横向教训。</strong> 三个失败都是同一个底层事实的不同表层症状：优化器假设 PSD Gram 矩阵，实际拿到符号不定的。修复总是"用真正 PSD 的核"或"数值上把 Gram 正则化到 PSD&rdquo;。懂 Mercer 故事告诉你该调哪个旋钮。</p><h2 id=对照表核一览 class=heading-anchor>对照表——核一览<a href=#%e5%af%b9%e7%85%a7%e8%a1%a8%e6%a0%b8%e4%b8%80%e8%a7%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>紧急场合选核的一屏总结：</p><div class=table-wrap><table><thead><tr><th>核</th><th>公式</th><th>PSD 论证</th><th>谱</th><th>超参</th><th>最适用</th></tr></thead><tbody><tr><td>Linear</td><td><span class=math-inline>$x^\top y$</span></td><td><span class=math-inline>$A^\top A$</span>
+PSD</td><td>秩 <span class=math-inline>$d$</span></td><td>无</td><td>高维稀疏数据</td></tr><tr><td>Polynomial</td><td><span class=math-inline>$(x^\top y + c)^d$</span></td><td>规则 1、2、3、6</td><td>秩 <span class=math-inline>$\binom{p+d}{d}$</span></td><td><span class=math-inline>$c, d$</span></td><td>图像 patch、ranking</td></tr><tr><td>RBF / Gaussian</td><td><span class=math-inline>$\exp(-\gamma \|x - y\|^2)$</span></td><td>Bochner</td><td>指数衰减</td><td><span class=math-inline>$\gamma$</span></td><td><span class=math-inline>$n &lt; 10^5$</span>
+默认</td></tr><tr><td>Laplace</td><td><span class=math-inline>$\exp(-\gamma \|x - y\|_1)$</span></td><td>Bochner（柯西谱）</td><td><span class=math-inline>$\lambda_k \sim k^{-2}$</span></td><td><span class=math-inline>$\gamma$</span></td><td>粗糙信号</td></tr><tr><td>Matern <span class=math-inline>$\nu$</span></td><td>缩放 Bessel</td><td>Bochner（Matern 谱）</td><td><span class=math-inline>$\lambda_k \sim k^{-(2\nu + d)/d}$</span></td><td><span class=math-inline>$\nu, \ell$</span></td><td>有平滑度控制的 GP 回归</td></tr><tr><td>Periodic</td><td>$\exp(-\tfrac{2 \sin^2(\pi</td><td>x-y</td><td>/p)}{\ell^2})$</td><td>Bochner</td><td><span class=math-inline>$1/p$</span>
+倍数处线谱</td></tr><tr><td>String / spectrum</td><td><span class=math-inline>$\sum_w \#_w(s) \#_w(t)$</span></td><td>规则 5（lift 线性）</td><td>有限，$</td><td>\Sigma</td><td>^k$</td></tr><tr><td>Sigmoid</td><td><span class=math-inline>$\tanh(\alpha x^\top y + c)$</span></td><td><strong>一般非 PSD</strong></td><td>不定</td><td><span class=math-inline>$\alpha, c$</span></td><td>别用</td></tr><tr><td>距离的 cos</td><td><span class=math-inline>$\cos(\alpha \|x - y\|)$</span></td><td><strong>非 PSD</strong></td><td>不定</td><td><span class=math-inline>$\alpha$</span></td><td>仅作反例</td></tr></tbody></table></div><p>&ldquo;PSD 论证"列对理论工作最关键——它告诉你哪条 Mercer / Bochner / 封闭规则保证合法性。&ldquo;谱"列控制有效维度，从而控制 Parts 4 和 5 讲的泛化行为。</p><h2 id=worked-example2-次多项式核的-mercer-展开 class=heading-anchor>worked example——2 次多项式核的 Mercer 展开<a href=#worked-example2-%e6%ac%a1%e5%a4%9a%e9%a1%b9%e5%bc%8f%e6%a0%b8%e7%9a%84-mercer-%e5%b1%95%e5%bc%80 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$K(x, y) = (x_1 y_1 + x_2 y_2 + 1)^2 = x_1^2 y_1^2 + x_2^2 y_2^2 + 2 x_1 x_2 y_1 y_2 + 2 x_1 y_1 + 2 x_2 y_2 + 1.$$</span>
+<span class=math-block>$$\Phi(x) = \big(x_1^2,\; x_2^2,\; \sqrt{2}\, x_1 x_2,\; \sqrt{2}\, x_1,\; \sqrt{2}\, x_2,\; 1\big) \in \mathbb{R}^6.$$</span><p><span class=math-inline>$\sqrt{2}$</span>
+因子在那里是因为展开点积时交叉项被算两次。验证：<span class=math-inline>$\Phi(x)^\top \Phi(y) = x_1^2 y_1^2 + x_2^2 y_2^2 + 2 x_1 x_2 y_1 y_2 + 2 x_1 y_1 + 2 x_2 y_2 + 1,$</span>
+与 <span class=math-inline>$K$</span>
+完全匹配。</p><p>此情形下 Mercer 特征函数是六个归一化单项式 <span class=math-inline>$\{1, x_1, x_2, x_1^2, x_2^2, x_1 x_2\}$</span>
+（差一个 <span class=math-inline>$\mathcal{X}$</span>
+上测度的缩放）；特征值是系数 <span class=math-inline>$\{1, 2, 2, 1, 1, 2\}.$</span>
+这复现了多项式秩公式预测的 <span class=math-inline>$\binom{2 + 2}{2} = 6.$</span>
+<span class=math-inline>$\mathbb{R}^p$</span>
+上 <span class=math-inline>$d$</span>
+次的同样构造给出 <span class=math-inline>$\binom{p + d}{d}$</span>
+维显式特征映射；<span class=math-inline>$p = 100, d = 4$</span>
+时是 400 多万特征——这正是大家用核技巧而不实例化 <span class=math-inline>$\Phi$</span>
+的原因。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>itertools</span> <span class=kn>import</span> <span class=n>combinations_with_replacement</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>poly_feature_map</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>d</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;(x^T y + 1)^d 核在 R^p 上的显式特征映射。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>p</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>feats</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>d</span> <span class=o>+</span> <span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>idx</span> <span class=ow>in</span> <span class=n>combinations_with_replacement</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=n>p</span><span class=p>),</span> <span class=n>k</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=c1># 多项式系数确保 K_explicit 与核匹配</span>
+</span></span><span class=line><span class=cl>            <span class=kn>from</span> <span class=nn>math</span> <span class=kn>import</span> <span class=n>factorial</span>
+</span></span><span class=line><span class=cl>            <span class=n>counts</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>bincount</span><span class=p>(</span><span class=n>idx</span><span class=p>,</span> <span class=n>minlength</span><span class=o>=</span><span class=n>p</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>coef</span> <span class=o>=</span> <span class=n>factorial</span><span class=p>(</span><span class=n>d</span><span class=p>)</span> <span class=o>/</span> <span class=p>(</span><span class=n>factorial</span><span class=p>(</span><span class=n>d</span> <span class=o>-</span> <span class=n>k</span><span class=p>)</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>prod</span><span class=p>([</span><span class=n>factorial</span><span class=p>(</span><span class=n>c</span><span class=p>)</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>counts</span><span class=p>]))</span>
+</span></span><span class=line><span class=cl>            <span class=n>feats</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>coef</span><span class=p>)</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>prod</span><span class=p>([</span><span class=n>x</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>idx</span><span class=p>]))</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>feats</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>x</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mf>0.7</span><span class=p>,</span> <span class=o>-</span><span class=mf>0.3</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=n>y</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mf>1.1</span><span class=p>,</span>  <span class=mf>0.4</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=n>K_direct</span> <span class=o>=</span> <span class=p>(</span><span class=n>x</span> <span class=o>@</span> <span class=n>y</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>**</span> <span class=mi>2</span>
+</span></span><span class=line><span class=cl><span class=n>K_explicit</span> <span class=o>=</span> <span class=n>poly_feature_map</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span> <span class=o>@</span> <span class=n>poly_feature_map</span><span class=p>(</span><span class=n>y</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>K_direct</span><span class=p>,</span> <span class=n>K_explicit</span><span class=p>)</span>            <span class=c1># 应在浮点精度内相同</span>
+</span></span></code></pre></td></tr></table></div></div><p>这是隐式特征映射有限、可以写全的少见情形。RBF 同样的练习不可能——特征映射有无穷多分量，只能退回 Nystrom 或随机特征近似。</p><h2 id=faq学生总会问的几个问题 class=heading-anchor>FAQ——学生总会问的几个问题<a href=#faq%e5%ad%a6%e7%94%9f%e6%80%bb%e4%bc%9a%e9%97%ae%e7%9a%84%e5%87%a0%e4%b8%aa%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>Q：既然正定是条件，为什么教材有时讲"条件正定（CPD）"？</strong> A：CPD 把 PSD 条件松弛为只对 <span class=math-inline>$\sum_i c_i = 0$</span>
+的权重 <span class=math-inline>$c$</span>
+成立。很多距离类函数如 <span class=math-inline>$-\|x - y\|^2$</span>
+是 CPD 但不 PSD。Krein 空间 SVM、&ldquo;不定核学习"在这个松弛设定里 work。初步直觉先把 CPD 当脚注；99% 的核文献用的是 PSD。</p><p><strong>Q：我的 Gram 矩阵 <span class=math-inline>$\lambda_{\min} = -10^{-13}.$</span>
+核坏了吗？</strong> A：几乎不是。这个数低于 <code>float64</code> 相对精度。加 <span class=math-inline>$\epsilon I$</span>
+抖动，<span class=math-inline>$\epsilon \sim 10^{-6},$</span>
+走人。<span class=math-inline>$\lambda_{\min}$</span>
+大于 <span class=math-inline>$-10^{-8} \cdot \|G\|_2$</span>
+就算"浮点意义下 PSD&rdquo;，实操可当 PSD 处理。</p><p><strong>Q：是不是任何对称函数加大的 <span class=math-inline>$\lambda I$</span>
+就能变核？</strong> A：能——叫"核岭正则化"或"谱裁剪&rdquo;，永远可行。代价是你<strong>改了核</strong>：新函数 <span class=math-inline>$K'(x, y) = K(x, y) + \lambda \mathbb{1}[x = y]$</span>
+一般没有自然解释。还是选构造上就 PSD 的核更好。</p><p><strong>Q：Mercer 定理需要 <span class=math-inline>$\mathcal{X}$</span>
+紧吗？</strong> A：经典版本需要。非紧域有推广（Mercer–Hilbert–Schmidt，关于概率测度的积分算子），在核平方可积时给出类似的谱分解。实操上限到一个紧包络盒里没问题。</p><p><strong>Q：PSD 与特征缩放怎么交互？</strong> A：特征缩放 <span class=math-inline>$x \to D x$</span>
+（<span class=math-inline>$D$</span>
+对角）相当于把核从 <span class=math-inline>$K(x, y)$</span>
+改为 <span class=math-inline>$K(Dx, Dy).$</span>
+规则 5 保 PSD。所以特征缩放对核总是安全的——但改变了有效带宽，重缩放后要重新 CV <span class=math-inline>$\gamma.$</span></p><p><strong>Q：为什么 GP 库总有 <code>jitter</code> 或 <code>noise</code> 项？</strong> A：就是上面讲的 <span class=math-inline>$\epsilon I$</span>
+抖动，包装成超参数。GP 里有"观测噪声方差"的贝叶斯解释，操作意义相同：阻止 Cholesky 在近奇异 Gram 矩阵上失败。</p><p><strong>Q：SVM 收敛了但 held-out 分数很差，可能是核的锅吗？</strong> A：按顺序查三件事。一，在小子样本上特征分解 Gram 矩阵看 <span class=math-inline>$\lambda_{\min}.$</span>
+显著为负说明核不定，收敛"解"是对偶的鞍点。二，看条件数 <span class=math-inline>$\kappa(G) = \lambda_{\max} / \lambda_{\min}.$</span>
+<span class=math-inline>$\kappa > 10^{10}$</span>
+solver 在跟数值噪声搏斗；加 jitter 或归一化特征。三，画谱：若除一个外几乎所有特征值都为 0，核塌缩成秩一（如 RBF <span class=math-inline>$\gamma \to 0$</span>
+），不再分类。每个诊断指向不同修复。</p><p><strong>Q：有没有非平凡核有闭式 Mercer 展开？</strong> A：少数几个。<span class=math-inline>$\mathbb{R}$</span>
+上带高斯测度的 RBF，特征函数是 Hermite 多项式，特征值显式（Mehler 公式）。多项式核特征函数是单项式（上面算过）。圆上周期核特征函数是正弦。其他多数核无闭式，需数值或渐近分析。Hermite-RBF 情形研究最多，因为它是高斯分布数据的自然配对。</p><p><strong>Q：现代论文常提的"核均值嵌入（kernel mean embedding）&ldquo;是什么？</strong> A：给 <span class=math-inline>$\mathcal{X}$</span>
+上的概率分布 <span class=math-inline>$P,$</span>
+其均值嵌入 <span class=math-inline>$\mu_P(\cdot) = \int K(\cdot, y) dP(y) \in \mathcal{H}.$</span>
+核"characteristic&rdquo;（RBF <span class=math-inline>$\gamma > 0$</span>
+符合）时，<span class=math-inline>$P \mapsto \mu_P$</span>
+是单射，分布被核均值唯一确定。这是 MMD 双样本检验、kernel ABC 以及一大堆当代贝叶斯推断的基础。它在 Mercer 之下游，正如整个 <span class=math-inline>$L^2$</span>
+分析在谱定理之下游。</p><p><strong>Q：<span class=math-inline>$n = 10^6$</span>
+时还能用 Mercer 思考吗？</strong> A：能，但不再实例化完整 Gram 矩阵。改成采样 <span class=math-inline>$m \ll n$</span>
+个 Mercer 模——Nystrom 采 <span class=math-inline>$G$</span>
+的列，或随机特征从 Bochner 谱密度采频率 <span class=math-inline>$\omega \sim \mu$</span>
+——用得到的 <span class=math-inline>$m$</span>
+维特征表示工作。任一近似的精度由 Mercer 谱的<strong>尾巴</strong>控制：<span class=math-inline>$\sum_{k > m} \lambda_k$</span>
+小，近似就忠实。RBF 在光滑数据上，<span class=math-inline>$m = O(\log n)$</span>
+通常够；Laplace 接近 <span class=math-inline>$m = O(\sqrt{n}).$</span></p><h2 id=实际中-mercer-的收敛 class=heading-anchor>实际中 Mercer 的收敛<a href=#%e5%ae%9e%e9%99%85%e4%b8%ad-mercer-%e7%9a%84%e6%94%b6%e6%95%9b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$\Big\| K - \sum_{k=1}^{r} \lambda_k \phi_k \otimes \phi_k \Big\|_{\text{op}} \;=\; \lambda_{r+1}.$$</span><p>所以速率完全由谱衰减决定。三种值得认识的区段：</p><ul><li><strong>指数衰减</strong>（<span class=math-inline>$\lambda_k \sim e^{-c k},$</span>
+如光滑数据上的 RBF）：每加 <span class=math-inline>$O(1/c)$</span>
+个模，截断误差减半。实操低秩近似 work 得惊人。</li><li><strong>幂律衰减</strong>（<span class=math-inline>$\lambda_k \sim k^{-\alpha},$</span>
+如 Laplace、低 <span class=math-inline>$\nu$</span>
+Matern）：截断误差降得慢，达到目标精度需要更多模。这是 Nystrom / RFF 需要大 <span class=math-inline>$m$</span>
+的警示。</li><li><strong>重尾 / 无衰减</strong>：核在数据上基本满秩。要么数据真高维（想想 one-hot 多 level 类别），要么核选错。</li></ul><p>这个谱图景也是读核学习曲线的正确方式。常见诊断图&rdquo;<span class=math-inline>$\log \lambda_k$</span>
+vs <span class=math-inline>$k$</span>
+" 在 held-out 样本上：直线 = 指数，曲线 = 幂律。两种都信息丰富，平的就是警报。</p><h2 id=收尾思考 class=heading-anchor>收尾思考<a href=#%e6%94%b6%e5%b0%be%e6%80%9d%e8%80%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>本文的两条定理——PSD 核的 Gram 矩阵刻画与 Mercer 谱分解——共同扛起后续核理论的全部重活。下游一切（RKHS、表示定理、核岭界、GP 边际似然、Nystrom 误差分析）都是这两条事实的推论或精炼。如果你能闭眼背出两条，并且不查就能在 2 次多项式上做显式特征映射与核公式的相互转换，你已经具备读三十年内任意核方法论文的能力。</p><p>历史线也值得知道。Mercer 1909 年的论文埋在泛函分析里直到 1990 年代 Vapnik 等人意识到核技巧让 SVM 计算可行。1995–2005 年的"核革命"大体是把每一种经典 ML 方法（PCA、CCA、logistic 回归、ICA）在核框架里重推一遍，每次都发现是同一条 Mercer 定理批准了这步操作。2017 年之后的 NTK 时代是第三波：重新发现宽神经网络也是伪装的核方法。数学没怎么动；对其可能性的欣赏在不断扩展。</p><p>如果你要本系列剩下部分的单一心智模型，就是这个。核是 PSD 函数。Mercer 把它变成带特征值 <span class=math-inline>$\{\lambda_k\}$</span>
+和特征函数 <span class=math-inline>$\{\phi_k\}$</span>
+的正交特征分解。特征值控制容量；特征函数是隐式特征。你将遇到的每个核方法——SVM、KRR、GP、kernel PCA、MMD、特征嵌入——底层都是用 <span class=math-inline>$\{\lambda_k, \phi_k\}$</span>
+的不同方式，只通过 Gram 矩阵 <span class=math-inline>$G_{ij} = K(x_i, x_j)$</span>
+暴露给用户。脑中保持此图景，剩下的系列就是按算法拆解后果。</p><h2 id=接下来 class=heading-anchor>接下来<a href=#%e6%8e%a5%e4%b8%8b%e6%9d%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>你已经知道核<strong>是什么</strong>、<strong>怎么检查</strong>、<strong>隐式特征空间从哪儿来</strong>。Part 3 把同样的 Mercer 展开重新组织成 <strong>再生核希尔伯特空间（RKHS）</strong>——核 SVM、高斯过程、核岭回归实际上在的那个函数空间。RKHS 视角能给出<strong>表示定理（representer theorem）</strong>——核方法尽管隐式工作在（有时是无穷维）特征空间里却仍然计算可行的结构性理由。</p><p>如果只能带走一句话，让它是这句：PSD 不是技术细节，它是核技巧能存在的全部理由。Gram 矩阵搞对了，剩下的——SVM、GP、KRR、核 PCA——都从同一组定理流出来。搞错了，solver 会大声告诉你。本系列后面所有文章都假设你已吸收这两个事实；如果未来哪一篇看不懂了，回这里再读 Mercer 节。</p><hr><p><em>本文是 <a href=/zh/series/kernel-methods/>核方法</a>
 系列的第 2 篇，共 8 篇。
 上一篇: <a href=/zh/kernel-methods/01-%e4%b8%ba%e4%bb%80%e4%b9%88%e9%9c%80%e8%a6%81%e6%a0%b8%e6%96%b9%e6%b3%95/>第 1 篇 — 为什么需要核方法</a>
 ·
@@ -213,7 +582,7 @@ Bochner + 柯西分布傅里叶变换——非负，故 PSD。</p><p><strong>Sig
 <a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E6%25A0%25B8%25E6%2596%25B9%25E6%25B3%2595%25EF%25BC%2588%25E4%25BA%258C%25EF%25BC%2589%25EF%25BC%259A%25E6%2595%25B0%25E5%25AD%25A6%25E5%259F%25BA%25E7%25A1%2580%25E2%2580%2594%25E2%2580%2594%25E6%25AD%25A3%25E5%25AE%259A%25E6%25A0%25B8%25E4%25B8%258E%2bMercer%2b%25E5%25AE%259A%25E7%2590%2586&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fkernel-methods%252F02-%2525E6%2525A0%2525B8%2525E6%252596%2525B9%2525E6%2525B3%252595%2525E7%25259A%252584%2525E6%252595%2525B0%2525E5%2525AD%2525A6%2525E5%25259F%2525BA%2525E7%2525A1%252580%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 </a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fkernel-methods%252F02-%2525E6%2525A0%2525B8%2525E6%252596%2525B9%2525E6%2525B3%252595%2525E7%25259A%252584%2525E6%252595%2525B0%2525E5%2525AD%2525A6%2525E5%25259F%2525BA%2525E7%2525A1%252580%252F&title=%25E6%25A0%25B8%25E6%2596%25B9%25E6%25B3%2595%25EF%25BC%2588%25E4%25BA%258C%25EF%25BC%2589%25EF%25BC%259A%25E6%2595%25B0%25E5%25AD%25A6%25E5%259F%25BA%25E7%25A1%2580%25E2%2580%2594%25E2%2580%2594%25E6%25AD%25A3%25E5%25AE%259A%25E6%25A0%25B8%25E4%25B8%258E%2bMercer%2b%25E5%25AE%259A%25E7%2590%2586" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
 </a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/kernel-methods/02-%E6%A0%B8%E6%96%B9%E6%B3%95%E7%9A%84%E6%95%B0%E5%AD%A6%E5%9F%BA%E7%A1%80/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
-<span class=sig-meta data-days-since=2021-11-29>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#什么样的函数才是合法核>什么样的函数才是合法核</a></li><li><a href=#gram-矩阵正定性的实操判别>Gram 矩阵：正定性的实操判别</a></li><li><a href=#mercer-定理陈述与直觉>Mercer 定理：陈述与直觉</a></li><li><a href=#mercer-定理的几何含义>Mercer 定理的几何含义</a></li><li><a href=#用图看正定性>用图看正定性</a></li><li><a href=#五大核的特征值谱>五大核的特征值谱</a></li><li><a href=#核的组合规则>核的组合规则</a></li><li><a href=#哪些函数不是核三个经典陷阱>哪些函数不是核——三个经典陷阱</a></li><li><a href=#30-秒证明五大经典核>30 秒证明五大经典核</a></li><li><a href=#接下来>接下来</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/kernel-methods/ class=series-name>核方法</a>
+<span class=sig-meta data-days-since=2021-11-29>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#什么样的函数才是合法核>什么样的函数才是合法核</a></li><li><a href=#gram-矩阵正定性的实操判别>Gram 矩阵：正定性的实操判别</a></li><li><a href=#mercer-定理陈述与直觉>Mercer 定理：陈述与直觉</a></li><li><a href=#mercer-定理的几何含义>Mercer 定理的几何含义</a></li><li><a href=#用图看正定性>用图看正定性</a></li><li><a href=#五大核的特征值谱>五大核的特征值谱</a></li><li><a href=#核的组合规则>核的组合规则</a></li><li><a href=#哪些函数不是核三个经典陷阱>哪些函数不是核——三个经典陷阱</a></li><li><a href=#30-秒证明五大经典核>30 秒证明五大经典核</a></li><li><a href=#实际中的数值复杂度>实际中的数值复杂度</a></li><li><a href=#三个真实场景psd-在生产中的失败>三个真实场景——PSD 在生产中的失败</a></li><li><a href=#对照表核一览>对照表——核一览</a></li><li><a href=#worked-example2-次多项式核的-mercer-展开>worked example——2 次多项式核的 Mercer 展开</a></li><li><a href=#faq学生总会问的几个问题>FAQ——学生总会问的几个问题</a></li><li><a href=#实际中-mercer-的收敛>实际中 Mercer 的收敛</a></li><li><a href=#收尾思考>收尾思考</a></li><li><a href=#接下来>接下来</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/kernel-methods/ class=series-name>核方法</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/01-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E6%A0%B8%E6%96%B9%E6%B3%95/><span class=chapter-num>01</span>
 <span class=chapter-title>核方法（一）：为什么需要它——从线性算法的天花板说起</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>02</span>
 <span class=chapter-title>核方法（二）：数学基础——正定核与 Mercer 定理</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/03-rkhs%E7%90%86%E8%AE%BA/><span class=chapter-num>03</span>
@@ -222,5 +591,5 @@ Bochner + 柯西分布傅里叶变换——非负，故 PSD。</p><p><strong>Sig
 <span class=chapter-title>核方法（五）：核 SVM、核 PCA 与核岭回归</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/06-%E9%AB%98%E6%96%AF%E8%BF%87%E7%A8%8B/><span class=chapter-num>06</span>
 <span class=chapter-title>核方法（六）：高斯过程——当核方法遇到贝叶斯推断</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/07-%E5%A4%A7%E8%A7%84%E6%A8%A1%E6%A0%B8%E6%96%B9%E6%B3%95/><span class=chapter-num>07</span>
 <span class=chapter-title>核方法（七）：大规模核方法——Nystrom 近似与随机傅里叶特征</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/08-%E6%B7%B1%E5%BA%A6%E6%A0%B8%E5%AD%A6%E4%B9%A0/><span class=chapter-num>08</span>
-<span class=chapter-title>核方法（八）：深度核学习 vs 深度学习——选择指南与故障排查</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>20 min</strong></div><div class=row><span>字数</span><strong>4617</strong></div><div class=row><span>写于</span><strong>Nov 2021</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>核方法（八）：深度核学习 vs 深度学习——选择指南与故障排查</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>52 min</strong></div><div class=row><span>字数</span><strong>12614</strong></div><div class=row><span>写于</span><strong>Nov 2021</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=关闭>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>在微信里搜索此 ID 即可添加我</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>复制微信号</button></div></div></div></footer></body></html>
