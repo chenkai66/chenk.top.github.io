@@ -900,29 +900,29 @@
 </span><span class=lnt>20
 </span><span class=lnt>21
 </span><span class=lnt>22
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>Example</span><span class=p>:</span><span class=w> </span><span class=l>estimate database size for a SaaS application</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Users</span><span class=p>:</span><span class=w> </span><span class=m>1</span><span class=w> </span><span class=l>million</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Average row size</span><span class=p>:</span><span class=w> </span><span class=m>200</span><span class=w> </span><span class=l>bytes</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Tables</span><span class=p>:</span><span class=w> </span><span class=l>users (1M rows), orders (10M), order_items (30M), products (100K), sessions (5M)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Data size</span><span class=p>:</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>users</span><span class=p>:</span><span class=w>       </span><span class=m>1</span><span class=p>,</span><span class=m>000</span><span class=p>,</span><span class=m>000</span><span class=w> </span><span class=l>× 200 B = 200 MB</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>orders</span><span class=p>:</span><span class=w>     </span><span class=m>10</span><span class=p>,</span><span class=m>000</span><span class=p>,</span><span class=m>000</span><span class=w> </span><span class=l>× 150 B = 1.5 GB</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>order_items</span><span class=p>:</span><span class=w> </span><span class=m>30</span><span class=p>,</span><span class=m>000</span><span class=p>,</span><span class=m>000</span><span class=w> </span><span class=l>× 100 B = 3.0 GB</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>products</span><span class=p>:</span><span class=w>       </span><span class=m>100</span><span class=p>,</span><span class=m>000</span><span class=w> </span><span class=l>× 500 B = 50 MB</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>sessions</span><span class=p>:</span><span class=w>    </span><span class=m>5</span><span class=p>,</span><span class=m>000</span><span class=p>,</span><span class=m>000</span><span class=w> </span><span class=l>× 1 KB  = 5.0 GB</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Total data</span><span class=p>:</span><span class=w> </span><span class=l>~10 GB</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Index overhead</span><span class=p>:</span><span class=w> </span><span class=l>~30-50% of data = 3-5 GB</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>WAL/binlog</span><span class=p>:</span><span class=w> </span><span class=l>~2-5 GB rotating</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Working set (hot data)</span><span class=p>:</span><span class=w> </span><span class=l>maybe 20% = 2 GB</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Recommendation</span><span class=p>:</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>RAM</span><span class=p>:</span><span class=w> </span><span class=m>16</span><span class=w> </span><span class=l>GB (fits entire dataset in buffer pool)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Storage</span><span class=p>:</span><span class=w> </span><span class=m>50</span><span class=w> </span><span class=l>GB SSD (room for growth + backups)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>CPU</span><span class=p>:</span><span class=w> </span><span class=m>4</span><span class=w> </span><span class=l>cores (for a few hundred QPS)</span><span class=w>
-</span></span></span></code></pre></td></tr></table></div></div><h2 id=zero-downtime-schema-migrations class=heading-anchor>Zero-Downtime Schema Migrations<a href=#zero-downtime-schema-migrations class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Regular migrations lock tables and block queries. At scale, even a 30-second lock on a billion-row table causes cascading timeouts. Zero-downtime migrations restructure the database while it serves live traffic.</p><h3 id=the-expand-contract-pattern class=heading-anchor>The Expand-Contract Pattern<a href=#the-expand-contract-pattern class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Instead of one destructive migration, use three safe steps:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Example: estimate database size for a SaaS application
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Users: 1 million
+</span></span><span class=line><span class=cl>Average row size: 200 bytes
+</span></span><span class=line><span class=cl>Tables: users (1M rows), orders (10M), order_items (30M), products (100K), sessions (5M)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Data size:
+</span></span><span class=line><span class=cl>  users:       1,000,000 × 200 B = 200 MB
+</span></span><span class=line><span class=cl>  orders:     10,000,000 × 150 B = 1.5 GB
+</span></span><span class=line><span class=cl>  order_items: 30,000,000 × 100 B = 3.0 GB
+</span></span><span class=line><span class=cl>  products:       100,000 × 500 B = 50 MB
+</span></span><span class=line><span class=cl>  sessions:    5,000,000 × 1 KB  = 5.0 GB
+</span></span><span class=line><span class=cl>  Total data: ~10 GB
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Index overhead: ~30-50% of data = 3-5 GB
+</span></span><span class=line><span class=cl>WAL/binlog: ~2-5 GB rotating
+</span></span><span class=line><span class=cl>Working set (hot data): maybe 20% = 2 GB
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Recommendation:
+</span></span><span class=line><span class=cl>  RAM: 16 GB (fits entire dataset in buffer pool)
+</span></span><span class=line><span class=cl>  Storage: 50 GB SSD (room for growth + backups)
+</span></span><span class=line><span class=cl>  CPU: 4 cores (for a few hundred QPS)
+</span></span></code></pre></td></tr></table></div></div><h2 id=zero-downtime-schema-migrations class=heading-anchor>Zero-Downtime Schema Migrations<a href=#zero-downtime-schema-migrations class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Regular migrations lock tables and block queries. At scale, even a 30-second lock on a billion-row table causes cascading timeouts. Zero-downtime migrations restructure the database while it serves live traffic.</p><h3 id=the-expand-contract-pattern class=heading-anchor>The Expand-Contract Pattern<a href=#the-expand-contract-pattern class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Instead of one destructive migration, use three safe steps:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Step 1: EXPAND — add new structure alongside old
@@ -1069,17 +1069,17 @@
 </span><span class=lnt> 9
 </span><span class=lnt>10
 </span><span class=lnt>11
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># PgBouncer config for connection pooling</span>
-</span></span><span class=line><span class=cl><span class=p>[</span><span class=n>databases</span><span class=p>]</span>
-</span></span><span class=line><span class=cl><span class=n>mydb</span> <span class=o>=</span> <span class=n>host</span><span class=o>=</span><span class=mf>127.0.0.1</span> <span class=n>port</span><span class=o>=</span><span class=mi>5432</span> <span class=n>dbname</span><span class=o>=</span><span class=n>mydb</span>
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-ini data-lang=ini><span class=line><span class=cl><span class=c1># PgBouncer config for connection pooling</span>
+</span></span><span class=line><span class=cl><span class=k>[databases]</span>
+</span></span><span class=line><span class=cl><span class=na>mydb</span> <span class=o>=</span> <span class=s>host=127.0.0.1 port=5432 dbname=mydb</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=p>[</span><span class=n>pgbouncer</span><span class=p>]</span>
-</span></span><span class=line><span class=cl><span class=n>pool_mode</span> <span class=o>=</span> <span class=n>transaction</span>         <span class=c1># release connection after each transaction</span>
-</span></span><span class=line><span class=cl><span class=n>max_client_conn</span> <span class=o>=</span> <span class=mi>1000</span>          <span class=c1># accept many app connections</span>
-</span></span><span class=line><span class=cl><span class=n>default_pool_size</span> <span class=o>=</span> <span class=mi>20</span>          <span class=c1># but only 20 actual DB connections</span>
-</span></span><span class=line><span class=cl><span class=n>reserve_pool_size</span> <span class=o>=</span> <span class=mi>5</span>           <span class=c1># extra for bursts</span>
-</span></span><span class=line><span class=cl><span class=n>reserve_pool_timeout</span> <span class=o>=</span> <span class=mi>3</span>        <span class=c1># seconds before using reserve</span>
-</span></span><span class=line><span class=cl><span class=n>server_idle_timeout</span> <span class=o>=</span> <span class=mi>300</span>       <span class=c1># close idle server connections after 5min</span>
+</span></span><span class=line><span class=cl><span class=k>[pgbouncer]</span>
+</span></span><span class=line><span class=cl><span class=na>pool_mode</span> <span class=o>=</span> <span class=s>transaction         # release connection after each transaction</span>
+</span></span><span class=line><span class=cl><span class=na>max_client_conn</span> <span class=o>=</span> <span class=s>1000          # accept many app connections</span>
+</span></span><span class=line><span class=cl><span class=na>default_pool_size</span> <span class=o>=</span> <span class=s>20          # but only 20 actual DB connections</span>
+</span></span><span class=line><span class=cl><span class=na>reserve_pool_size</span> <span class=o>=</span> <span class=s>5           # extra for bursts</span>
+</span></span><span class=line><span class=cl><span class=na>reserve_pool_timeout</span> <span class=o>=</span> <span class=s>3        # seconds before using reserve</span>
+</span></span><span class=line><span class=cl><span class=na>server_idle_timeout</span> <span class=o>=</span> <span class=s>300       # close idle server connections after 5min</span>
 </span></span></code></pre></td></tr></table></div></div><h3 id=alerting-rules-prometheusgrafana class=heading-anchor>Alerting Rules (Prometheus/Grafana)<a href=#alerting-rules-prometheusgrafana class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
