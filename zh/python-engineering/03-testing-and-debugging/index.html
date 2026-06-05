@@ -1,0 +1,1217 @@
+<!doctype html><html lang=zh data-translation=/en/python-engineering/03-testing-and-debugging/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Python 工程实践（三）：测试——pytest、Fixture 与信心循环 · Chen Kai Blog</title>
+<meta name=description content="借助 pytest fixture、parametrize、mocking 和覆盖率分析，建立对代码的信心。掌握可节省数小时的调试技巧。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/python-engineering/03-testing-and-debugging/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/python-engineering/03-testing-and-debugging/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/python-engineering/03-testing-and-debugging/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/python-engineering/03-testing-and-debugging/><meta property="og:type" content="article"><meta property="og:title" content="Python 工程实践（三）：测试——pytest、Fixture 与信心循环"><meta property="og:description" content="借助 pytest fixture、parametrize、mocking 和覆盖率分析，建立对代码的信心。掌握可节省数小时的调试技巧。"><meta property="og:url" content="https://www.chenk.top/zh/python-engineering/03-testing-and-debugging/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/python-engineering.jpg"><meta property="og:image:alt" content="Python 工程实践（三）：测试——pytest、Fixture 与信心循环"><meta property="article:published_time" content="2022-04-14T09:00:00Z"><meta property="article:modified_time" content="2022-04-14T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Python"><meta property="article:tag" content="Testing"><meta property="article:tag" content="pytest"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Python 工程实践（三）：测试——pytest、Fixture 与信心循环"><meta name=twitter:description content="借助 pytest fixture、parametrize、mocking 和覆盖率分析，建立对代码的信心。掌握可节省数小时的调试技巧。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/python-engineering.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"Python 工程实践（三）：测试——pytest、Fixture 与信心循环","description":"借助 pytest fixture、parametrize、mocking 和覆盖率分析，建立对代码的信心。掌握可节省数小时的调试技巧。","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/python-engineering.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2022-04-14T09:00:00Z","dateModified":"2022-04-14T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/zh/python-engineering/03-testing-and-debugging/"},"inLanguage":"zh"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/03-testing-and-debugging.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/python-engineering/>Python 工程实践</a>
+· 第 3 篇</div><h1>Python 工程实践（三）：测试——pytest、Fixture 与信心循环</h1><p class=deck>借助 pytest fixture、parametrize、mocking 和覆盖率分析，建立对代码的信心。掌握可节省数小时的调试技巧。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2022-04-14>April 14, 2022</time> · 26 分钟 · 6027 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/python/ class=tag>#Python</a><a href=/zh/tags/testing/ class=tag>#Testing</a><a href=/zh/tags/pytest/ class=tag>#pytest</a></div><a class="pill pill-outline" href=/en/python-engineering/03-testing-and-debugging/>Read in English →</a></div></header><div class=prose><p>你只改了一行代码，却导致三个毫不相干的功能崩溃；重构一个函数后，不得不花上两小时手动点击整个应用，只为确认一切是否还正常；周五部署上线，结果半夜就被报警电话叫醒……所有这些，都是同一种病的症状：<strong>没有测试</strong>。</p><p>测试不是繁文缛节，而是<strong>最快验证你的代码是否真如你所想那样工作</strong>的方式。一套优秀的测试套件只需几秒钟就能跑完，却能捕获那些手动排查要耗费数小时才能发现的 bug。</p><hr><h2 id=为何要写测试 class=heading-anchor>为何要写测试<a href=#%e4%b8%ba%e4%bd%95%e8%a6%81%e5%86%99%e6%b5%8b%e8%af%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>写测试前期确实要多花时间，但不写测试，后期付出的代价更大。来看这笔账：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-test-pyramid.png alt=测试金字塔 loading=lazy decoding=async class=content-image></figure></p><div class=table-wrap><table><thead><tr><th>活动</th><th>无测试</th><th>有测试</th></tr></thead><tbody><tr><td>初始开发</td><td>更快（不用写测试）</td><td>稍慢（测试增加 20–40% 时间）</td></tr><tr><td>重构</td><td>提心吊胆（我是不是搞坏了什么？）</td><td>自信从容（测试会揪出回归问题）</td></tr><tr><td>调试</td><td>得通读整个代码库</td><td>运行测试，立刻知道哪里出错了</td></tr><tr><td>新人上手</td><td>“去问 Sarah，只有她懂”</td><td>测试本身就是文档，清晰说明预期行为</td></tr><tr><td>生产部署</td><td>手动 QA，听天由命</td><td>自动化守门，放心上线</td></tr><tr><td>客户报 bug</td><td>手动复现 → 修复 → 再手动验证</td><td>写个复现 bug 的测试 → 修复 → 测试自动确认</td></tr></tbody></table></div><p>真正的回报出现在对任何一段代码进行<strong>第二次修改时</strong>。第一次你刚写完，自然知道它能跑；但之后每次改动，除非有测试兜底，否则你根本无法确定它是否还正常。</p><h2 id=pytest-基础 class=heading-anchor>pytest 基础<a href=#pytest-%e5%9f%ba%e7%a1%80 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>pytest 是 Python 社区事实上的标准测试框架。它直接使用原生 <code>assert</code> 语句，并支持自动发现测试用例。</p><h3 id=安装 class=heading-anchor>安装<a href=#%e5%ae%89%e8%a3%85 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install pytest
+</span></span></code></pre></td></tr></table></div></div><h3 id=你的第一个测试 class=heading-anchor>你的第一个测试<a href=#%e4%bd%a0%e7%9a%84%e7%ac%ac%e4%b8%80%e4%b8%aa%e6%b5%8b%e8%af%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># tests/test_math.py</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_addition</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=mi>1</span> <span class=o>+</span> <span class=mi>1</span> <span class=o>==</span> <span class=mi>2</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_string_upper</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=s2>&#34;hello&#34;</span><span class=o>.</span><span class=n>upper</span><span class=p>()</span> <span class=o>==</span> <span class=s2>&#34;HELLO&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_list_append</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>items</span> <span class=o>=</span> <span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>items</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=mi>4</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>items</span> <span class=o>==</span> <span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>4</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=nb>len</span><span class=p>(</span><span class=n>items</span><span class=p>)</span> <span class=o>==</span> <span class=mi>4</span>
+</span></span></code></pre></td></tr></table></div></div><p>运行它：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ <span class=nv>pytest</span>
+</span></span><span class=line><span class=cl><span class=o>=========================</span> <span class=nb>test</span> session <span class=nv>starts</span> <span class=o>==========================</span>
+</span></span><span class=line><span class=cl>platform linux -- Python 3.11.7, pytest-7.4.4
+</span></span><span class=line><span class=cl>rootdir: /home/user/project
+</span></span><span class=line><span class=cl>collected <span class=m>3</span> items
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>tests/test_math.py ...                                            <span class=o>[</span>100%<span class=o>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>=========================</span> <span class=m>3</span> passed in 0.02s <span class=o>============================</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=测试发现规则 class=heading-anchor>测试发现规则<a href=#%e6%b5%8b%e8%af%95%e5%8f%91%e7%8e%b0%e8%a7%84%e5%88%99 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>pytest 会自动查找符合以下规则的内容：</p><ul><li>文件名以 <code>test_*.py</code> 或 <code>*_test.py</code> 开头</li><li>这些文件中，函数名以 <code>test_*</code> 开头</li><li>类名以 <code>Test*</code> 开头，且其方法名也以 <code>test_*</code> 开头</li></ul><h3 id=实用命令行参数 class=heading-anchor>实用命令行参数<a href=#%e5%ae%9e%e7%94%a8%e5%91%bd%e4%bb%a4%e8%a1%8c%e5%8f%82%e6%95%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 详细输出（显示每个测试名称）</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest -v
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 首次失败即停止</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest -x
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 运行匹配关键词表达式的测试</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest -k <span class=s2>&#34;download&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 运行指定文件中的测试</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest tests/test_core.py
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 运行指定测试函数</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest tests/test_core.py::test_download_file
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 显示 print 输出（不捕获 stdout/stderr）</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest -s
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 在 traceback 中显示局部变量</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest -l
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 仅重跑上一次运行中失败的测试</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest --lf
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 先运行失败的测试，再运行其余测试</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest --ff
+</span></span></code></pre></td></tr></table></div></div><h3 id=测试异常 class=heading-anchor>测试异常<a href=#%e6%b5%8b%e8%af%95%e5%bc%82%e5%b8%b8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>用 <code>pytest.raises</code> 验证代码是否会抛出预期的异常：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>pytest</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>my_tool.utils</span> <span class=kn>import</span> <span class=n>validate_url</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_invalid_url_raises</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>pytest</span><span class=o>.</span><span class=n>raises</span><span class=p>(</span><span class=ne>ValueError</span><span class=p>,</span> <span class=k>match</span><span class=o>=</span><span class=s2>&#34;Invalid URL&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>validate_url</span><span class=p>(</span><span class=s2>&#34;not-a-url&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_empty_url_raises</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>pytest</span><span class=o>.</span><span class=n>raises</span><span class=p>(</span><span class=ne>ValueError</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>validate_url</span><span class=p>(</span><span class=s2>&#34;&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>match</code> 参数通过正则表达式检查异常消息内容。</p><h3 id=测试近似值 class=heading-anchor>测试近似值<a href=#%e6%b5%8b%e8%af%95%e8%bf%91%e4%bc%bc%e5%80%bc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_float_division</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 浮点数比较需容忍误差</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=mf>0.1</span> <span class=o>+</span> <span class=mf>0.2</span> <span class=o>==</span> <span class=n>pytest</span><span class=o>.</span><span class=n>approx</span><span class=p>(</span><span class=mf>0.3</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=mf>3.14</span> <span class=o>==</span> <span class=n>pytest</span><span class=o>.</span><span class=n>approx</span><span class=p>(</span><span class=mf>3.14159</span><span class=p>,</span> <span class=nb>abs</span><span class=o>=</span><span class=mf>0.01</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=fixture可复用的测试准备逻辑 class=heading-anchor>Fixture：可复用的测试准备逻辑<a href=#fixture%e5%8f%af%e5%a4%8d%e7%94%a8%e7%9a%84%e6%b5%8b%e8%af%95%e5%87%86%e5%a4%87%e9%80%bb%e8%be%91 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/03-testing-pyramid-ancient-egyptian-pyramid-with-unit-integrati.jpg alt=测试金字塔，古埃及金字塔与单元集成 loading=lazy decoding=async class=content-image></figure></p><p>Fixture 取代了 unittest 中的 <code>setUp</code>/<code>tearDown</code> 模式，通过函数参数向测试注入依赖。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-fixture-scope.png alt=固定装置范围 loading=lazy decoding=async class=content-image></figure></p><h3 id=基础-fixture class=heading-anchor>基础 Fixture<a href=#%e5%9f%ba%e7%a1%80-fixture class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>pytest</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>my_tool.core</span> <span class=kn>import</span> <span class=n>FileDownloader</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@pytest.fixture</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>downloader</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;创建一个已配置的下载器实例。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>FileDownloader</span><span class=p>(</span><span class=n>timeout</span><span class=o>=</span><span class=mi>5</span><span class=p>,</span> <span class=n>retries</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_download_sets_timeout</span><span class=p>(</span><span class=n>downloader</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>downloader</span><span class=o>.</span><span class=n>timeout</span> <span class=o>==</span> <span class=mi>5</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_download_sets_retries</span><span class=p>(</span><span class=n>downloader</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>downloader</span><span class=o>.</span><span class=n>retries</span> <span class=o>==</span> <span class=mi>1</span>
+</span></span></code></pre></td></tr></table></div></div><p>pytest 发现测试函数参数中有 <code>downloader</code>，就会去找同名的 fixture，调用它，并把返回值传给测试函数。每个测试都会拿到一个全新的实例。</p><h3 id=含清理逻辑的-fixture class=heading-anchor>含清理逻辑的 Fixture<a href=#%e5%90%ab%e6%b8%85%e7%90%86%e9%80%bb%e8%be%91%e7%9a%84-fixture class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>用 <code>yield</code> 在测试结束后执行清理代码（即使测试失败也会执行）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>tempfile</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pathlib</span> <span class=kn>import</span> <span class=n>Path</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>pytest</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@pytest.fixture</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>temp_dir</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;创建临时目录，测试后自动清理。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>path</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>tempfile</span><span class=o>.</span><span class=n>mkdtemp</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>    <span class=k>yield</span> <span class=n>path</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 清理逻辑在测试结束后执行，无论成功或失败</span>
+</span></span><span class=line><span class=cl>    <span class=kn>import</span> <span class=nn>shutil</span>
+</span></span><span class=line><span class=cl>    <span class=n>shutil</span><span class=o>.</span><span class=n>rmtree</span><span class=p>(</span><span class=n>path</span><span class=p>,</span> <span class=n>ignore_errors</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_file_creation</span><span class=p>(</span><span class=n>temp_dir</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>test_file</span> <span class=o>=</span> <span class=n>temp_dir</span> <span class=o>/</span> <span class=s2>&#34;test.txt&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>test_file</span><span class=o>.</span><span class=n>write_text</span><span class=p>(</span><span class=s2>&#34;hello&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>test_file</span><span class=o>.</span><span class=n>read_text</span><span class=p>()</span> <span class=o>==</span> <span class=s2>&#34;hello&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=fixture-作用域scope class=heading-anchor>Fixture 作用域（Scope）<a href=#fixture-%e4%bd%9c%e7%94%a8%e5%9f%9fscope class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>默认情况下，fixture 每次测试都会重新创建。对于开销较大的初始化操作，可以调整作用域：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=nd>@pytest.fixture</span><span class=p>(</span><span class=n>scope</span><span class=o>=</span><span class=s2>&#34;session&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>database_connection</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;创建数据库连接，被全部测试共享。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>conn</span> <span class=o>=</span> <span class=n>create_connection</span><span class=p>(</span><span class=s2>&#34;test.db&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>yield</span> <span class=n>conn</span>
+</span></span><span class=line><span class=cl>    <span class=n>conn</span><span class=o>.</span><span class=n>close</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@pytest.fixture</span><span class=p>(</span><span class=n>scope</span><span class=o>=</span><span class=s2>&#34;module&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>sample_data</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;加载样本数据，在单个测试文件内共享。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>load_test_data</span><span class=p>(</span><span class=s2>&#34;fixtures/sample.json&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@pytest.fixture</span><span class=p>(</span><span class=n>scope</span><span class=o>=</span><span class=s2>&#34;class&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>api_client</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;创建 API 客户端，在单个测试类内共享。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>APIClient</span><span class=p>(</span><span class=n>base_url</span><span class=o>=</span><span class=s2>&#34;http://localhost:8000&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@pytest.fixture</span>  <span class=c1># scope=&#34;function&#34; 是默认值</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>clean_state</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;为每个测试提供干净状态。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{}</span>
+</span></span></code></pre></td></tr></table></div></div><div class=table-wrap><table><thead><tr><th>作用域</th><th>创建时机</th><th>销毁时机</th><th>适用场景</th></tr></thead><tbody><tr><td><code>function</code></td><td>每个测试前</td><td>每个测试后</td><td>默认，适用于大多数 fixture</td></tr><tr><td><code>class</code></td><td>类中首个测试前</td><td>类中最后一个测试后</td><td>测试类内共享状态</td></tr><tr><td><code>module</code></td><td>文件中首个测试前</td><td>文件中最后一个测试后</td><td>开销大的文件级初始化</td></tr><tr><td><code>session</code></td><td>全局首个测试前</td><td>全局最后一个测试后</td><td>数据库连接、服务启动等</td></tr></tbody></table></div><h3 id=conftestpy共享-fixture class=heading-anchor>conftest.py：共享 Fixture<a href=#conftestpy%e5%85%b1%e4%ba%ab-fixture class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>定义在 <code>conftest.py</code> 中的 fixture 会自动对同目录及其所有子目录下的测试可见，无需显式导入：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>tests/
+</span></span><span class=line><span class=cl>  conftest.py          # fixture 对所有测试可用
+</span></span><span class=line><span class=cl>  test_core.py
+</span></span><span class=line><span class=cl>  test_cli.py
+</span></span><span class=line><span class=cl>  integration/
+</span></span><span class=line><span class=cl>    conftest.py        # 为集成测试额外定义的 fixture
+</span></span><span class=line><span class=cl>    test_api.py
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># tests/conftest.py</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>pytest</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@pytest.fixture</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>sample_url</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s2>&#34;https://httpbin.org/get&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@pytest.fixture</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>sample_headers</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span><span class=s2>&#34;User-Agent&#34;</span><span class=p>:</span> <span class=s2>&#34;test-agent/1.0&#34;</span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>tests/</code> 下的任何测试文件都能直接使用 <code>sample_url</code> 和 <code>sample_headers</code>，完全不用 import。</p><h3 id=内置-fixture class=heading-anchor>内置 Fixture<a href=#%e5%86%85%e7%bd%ae-fixture class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>pytest 自带几个实用的内置 fixture：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_capture_output</span><span class=p>(</span><span class=n>capsys</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;capsys 捕获 stdout 和 stderr。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=s2>&#34;hello world&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>captured</span> <span class=o>=</span> <span class=n>capsys</span><span class=o>.</span><span class=n>readouterr</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>captured</span><span class=o>.</span><span class=n>out</span> <span class=o>==</span> <span class=s2>&#34;hello world</span><span class=se>\n</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_temp_path</span><span class=p>(</span><span class=n>tmp_path</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;tmp_path 提供唯一临时目录。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>file</span> <span class=o>=</span> <span class=n>tmp_path</span> <span class=o>/</span> <span class=s2>&#34;data.txt&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>file</span><span class=o>.</span><span class=n>write_text</span><span class=p>(</span><span class=s2>&#34;content&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>file</span><span class=o>.</span><span class=n>read_text</span><span class=p>()</span> <span class=o>==</span> <span class=s2>&#34;content&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_monkeypatch_env</span><span class=p>(</span><span class=n>monkeypatch</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;monkeypatch 为测试临时修改环境变量。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>monkeypatch</span><span class=o>.</span><span class=n>setenv</span><span class=p>(</span><span class=s2>&#34;API_KEY&#34;</span><span class=p>,</span> <span class=s2>&#34;test-key-123&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=kn>import</span> <span class=nn>os</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;API_KEY&#34;</span><span class=p>]</span> <span class=o>==</span> <span class=s2>&#34;test-key-123&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=parametrize批量测试多组用例 class=heading-anchor>Parametrize：批量测试多组用例<a href=#parametrize%e6%89%b9%e9%87%8f%e6%b5%8b%e8%af%95%e5%a4%9a%e7%bb%84%e7%94%a8%e4%be%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/03-pytest-fixture-mechanism-factory-producing-test-data-assembl.jpg alt="Pytest 固定装置机制工厂生成测试数据集" loading=lazy decoding=async class=content-image></figure></p><p>与其为每种输入单独写一个测试函数，不如用 <code>@pytest.mark.parametrize</code>：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-parametrize.png alt=参数化测试 loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>pytest</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>my_tool.utils</span> <span class=kn>import</span> <span class=n>format_size</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@pytest.mark.parametrize</span><span class=p>(</span><span class=s2>&#34;size_bytes,expected&#34;</span><span class=p>,</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=s2>&#34;0.0 B&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=mi>1023</span><span class=p>,</span> <span class=s2>&#34;1023.0 B&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=mi>1024</span><span class=p>,</span> <span class=s2>&#34;1.0 KB&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=mi>1536</span><span class=p>,</span> <span class=s2>&#34;1.5 KB&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=mi>1048576</span><span class=p>,</span> <span class=s2>&#34;1.0 MB&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=mi>1073741824</span><span class=p>,</span> <span class=s2>&#34;1.0 GB&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=mi>5368709120</span><span class=p>,</span> <span class=s2>&#34;5.0 GB&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_format_size</span><span class=p>(</span><span class=n>size_bytes</span><span class=p>,</span> <span class=n>expected</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>format_size</span><span class=p>(</span><span class=n>size_bytes</span><span class=p>)</span> <span class=o>==</span> <span class=n>expected</span>
+</span></span></code></pre></td></tr></table></div></div><p>输出：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest -v tests/test_utils.py::test_format_size
+</span></span><span class=line><span class=cl>tests/test_utils.py::test_format_size<span class=o>[</span>0-0.0 B<span class=o>]</span> PASSED
+</span></span><span class=line><span class=cl>tests/test_utils.py::test_format_size<span class=o>[</span>1023-1023.0 B<span class=o>]</span> PASSED
+</span></span><span class=line><span class=cl>tests/test_utils.py::test_format_size<span class=o>[</span>1024-1.0 KB<span class=o>]</span> PASSED
+</span></span><span class=line><span class=cl>tests/test_utils.py::test_format_size<span class=o>[</span>1536-1.5 KB<span class=o>]</span> PASSED
+</span></span><span class=line><span class=cl>tests/test_utils.py::test_format_size<span class=o>[</span>1048576-1.0 MB<span class=o>]</span> PASSED
+</span></span><span class=line><span class=cl>tests/test_utils.py::test_format_size<span class=o>[</span>1073741824-1.0 GB<span class=o>]</span> PASSED
+</span></span><span class=line><span class=cl>tests/test_utils.py::test_format_size<span class=o>[</span>5368709120-5.0 GB<span class=o>]</span> PASSED
+</span></span></code></pre></td></tr></table></div></div><p>7 组用例，1 个函数。每组用例在输出中都作为独立的测试项出现，各自有独立的通过/失败状态。</p><h3 id=使用-id-命名-parametrize-用例 class=heading-anchor>使用 ID 命名 Parametrize 用例<a href=#%e4%bd%bf%e7%94%a8-id-%e5%91%bd%e5%90%8d-parametrize-%e7%94%a8%e4%be%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>为了让输出更清晰，可以显式指定用例 ID：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=nd>@pytest.mark.parametrize</span><span class=p>(</span><span class=s2>&#34;url,expected_filename&#34;</span><span class=p>,</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=s2>&#34;https://example.com/data.csv&#34;</span><span class=p>,</span> <span class=s2>&#34;data.csv&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=s2>&#34;https://example.com/path/to/file.txt&#34;</span><span class=p>,</span> <span class=s2>&#34;file.txt&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=s2>&#34;https://example.com/&#34;</span><span class=p>,</span> <span class=s2>&#34;download&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=s2>&#34;https://example.com&#34;</span><span class=p>,</span> <span class=s2>&#34;download&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl><span class=p>],</span> <span class=n>ids</span><span class=o>=</span><span class=p>[</span><span class=s2>&#34;simple&#34;</span><span class=p>,</span> <span class=s2>&#34;nested-path&#34;</span><span class=p>,</span> <span class=s2>&#34;trailing-slash&#34;</span><span class=p>,</span> <span class=s2>&#34;no-path&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_filename_from_url</span><span class=p>(</span><span class=n>url</span><span class=p>,</span> <span class=n>expected_filename</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>filename_from_url</span><span class=p>(</span><span class=n>url</span><span class=p>)</span> <span class=o>==</span> <span class=n>expected_filename</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=mocking隔离你的代码 class=heading-anchor>Mocking：隔离你的代码<a href=#mocking%e9%9a%94%e7%a6%bb%e4%bd%a0%e7%9a%84%e4%bb%a3%e7%a0%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>当你测试一个会调用外部服务的函数时，肯定不希望测试真的发起 HTTP 请求。Mocking 就是把代码中的某些部分替换成可控的“假货”。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-mock-architecture.png alt=模拟架构 loading=lazy decoding=async class=content-image></figure></p><h3 id=unittestmockpatch class=heading-anchor>unittest.mock.patch<a href=#unittestmockpatch class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>unittest.mock</span> <span class=kn>import</span> <span class=n>patch</span><span class=p>,</span> <span class=n>MagicMock</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>my_tool.core</span> <span class=kn>import</span> <span class=n>download_file</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@patch</span><span class=p>(</span><span class=s2>&#34;my_tool.core.requests.get&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_download_file_success</span><span class=p>(</span><span class=n>mock_get</span><span class=p>,</span> <span class=n>tmp_path</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 配置 mock 响应</span>
+</span></span><span class=line><span class=cl>    <span class=n>mock_response</span> <span class=o>=</span> <span class=n>MagicMock</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>mock_response</span><span class=o>.</span><span class=n>status_code</span> <span class=o>=</span> <span class=mi>200</span>
+</span></span><span class=line><span class=cl>    <span class=n>mock_response</span><span class=o>.</span><span class=n>headers</span> <span class=o>=</span> <span class=p>{</span><span class=s2>&#34;content-length&#34;</span><span class=p>:</span> <span class=s2>&#34;11&#34;</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=n>mock_response</span><span class=o>.</span><span class=n>iter_content</span><span class=o>.</span><span class=n>return_value</span> <span class=o>=</span> <span class=p>[</span><span class=sa>b</span><span class=s2>&#34;hello world&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>mock_response</span><span class=o>.</span><span class=n>raise_for_status</span><span class=o>.</span><span class=n>return_value</span> <span class=o>=</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>    <span class=n>mock_get</span><span class=o>.</span><span class=n>return_value</span> <span class=o>=</span> <span class=n>mock_response</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>output</span> <span class=o>=</span> <span class=n>tmp_path</span> <span class=o>/</span> <span class=s2>&#34;test.txt&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>result</span> <span class=o>=</span> <span class=n>download_file</span><span class=p>(</span><span class=s2>&#34;https://example.com/test.txt&#34;</span><span class=p>,</span> <span class=nb>str</span><span class=p>(</span><span class=n>output</span><span class=p>),</span> <span class=n>quiet</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>result</span> <span class=o>==</span> <span class=n>output</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>output</span><span class=o>.</span><span class=n>read_bytes</span><span class=p>()</span> <span class=o>==</span> <span class=sa>b</span><span class=s2>&#34;hello world&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>mock_get</span><span class=o>.</span><span class=n>assert_called_once</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@patch</span><span class=p>(</span><span class=s2>&#34;my_tool.core.requests.get&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_download_file_http_error</span><span class=p>(</span><span class=n>mock_get</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>mock_response</span> <span class=o>=</span> <span class=n>MagicMock</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>mock_response</span><span class=o>.</span><span class=n>raise_for_status</span><span class=o>.</span><span class=n>side_effect</span> <span class=o>=</span> <span class=ne>Exception</span><span class=p>(</span><span class=s2>&#34;404 Not Found&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>mock_get</span><span class=o>.</span><span class=n>return_value</span> <span class=o>=</span> <span class=n>mock_response</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>pytest</span><span class=o>.</span><span class=n>raises</span><span class=p>(</span><span class=ne>Exception</span><span class=p>,</span> <span class=k>match</span><span class=o>=</span><span class=s2>&#34;404&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>download_file</span><span class=p>(</span><span class=s2>&#34;https://example.com/missing.txt&#34;</span><span class=p>,</span> <span class=n>quiet</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=何时该-mock class=heading-anchor>何时该 Mock？<a href=#%e4%bd%95%e6%97%b6%e8%af%a5-mock class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>应 Mock</th><th>不应 Mock</th></tr></thead><tbody><tr><td>HTTP 请求</td><td>纯函数</td></tr><tr><td>数据库查询</td><td>业务数据转换</td></tr><tr><td>文件系统（有时）</td><td>字符串处理</td></tr><tr><td>时间相关逻辑</td><td>数学计算</td></tr><tr><td>外部服务 API</td><td>自己的内部逻辑</td></tr></tbody></table></div><p>过度 Mock 是个常见陷阱：如果你把什么都 Mock 了，那测试验证的其实是 Mock 的行为，而不是你自己的代码。<strong>只在边界处 Mock（网络、磁盘、时钟），核心逻辑要用真实代码测试。</strong></p><h3 id=monkeypatch更简洁的替代方案 class=heading-anchor>Monkeypatch：更简洁的替代方案<a href=#monkeypatch%e6%9b%b4%e7%ae%80%e6%b4%81%e7%9a%84%e6%9b%bf%e4%bb%a3%e6%96%b9%e6%a1%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>对于简单场景，<code>monkeypatch</code> 比 <code>patch</code> 更清爽：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_download_with_env_config</span><span class=p>(</span><span class=n>monkeypatch</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>monkeypatch</span><span class=o>.</span><span class=n>setenv</span><span class=p>(</span><span class=s2>&#34;DOWNLOAD_TIMEOUT&#34;</span><span class=p>,</span> <span class=s2>&#34;60&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>monkeypatch</span><span class=o>.</span><span class=n>setattr</span><span class=p>(</span><span class=s2>&#34;my_tool.config.DEFAULT_TIMEOUT&#34;</span><span class=p>,</span> <span class=mi>60</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 测试读取配置的代码</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=coverage衡量测试覆盖度 class=heading-anchor>Coverage：衡量测试覆盖度<a href=#coverage%e8%a1%a1%e9%87%8f%e6%b5%8b%e8%af%95%e8%a6%86%e7%9b%96%e5%ba%a6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>安装 pytest-cov：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-coverage-report.png alt=覆盖率报告 loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install pytest-cov
+</span></span></code></pre></td></tr></table></div></div><p>运行并生成覆盖率报告：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest --cov<span class=o>=</span>my_tool --cov-report<span class=o>=</span>term-missing
+</span></span><span class=line><span class=cl><span class=o>=========================</span> <span class=nb>test</span> session <span class=nv>starts</span> <span class=o>==========================</span>
+</span></span><span class=line><span class=cl>...
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>---------- coverage: platform linux, python 3.11.7 ----------
+</span></span><span class=line><span class=cl>Name                        Stmts   Miss  Cover   Missing
+</span></span><span class=line><span class=cl>---------------------------------------------------------
+</span></span><span class=line><span class=cl>src/my_tool/__init__.py         <span class=m>3</span>      <span class=m>0</span>   100%
+</span></span><span class=line><span class=cl>src/my_tool/cli.py             <span class=m>28</span>      <span class=m>5</span>    82%   41-45
+</span></span><span class=line><span class=cl>src/my_tool/config.py           <span class=m>4</span>      <span class=m>0</span>   100%
+</span></span><span class=line><span class=cl>src/my_tool/core.py            <span class=m>31</span>      <span class=m>3</span>    90%   52-54
+</span></span><span class=line><span class=cl>src/my_tool/utils.py           <span class=m>15</span>      <span class=m>0</span>   100%
+</span></span><span class=line><span class=cl>---------------------------------------------------------
+</span></span><span class=line><span class=cl>TOTAL                          <span class=m>81</span>      <span class=m>8</span>    90%
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>=========================</span> <span class=m>12</span> passed in 0.45s <span class=o>===========================</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>Missing</code> 列会精确告诉你哪些行没被任何测试覆盖到。比如 <code>41-45</code> 表示第 41 到 45 行从未被执行。</p><h3 id=coverage-配置 class=heading-anchor>Coverage 配置<a href=#coverage-%e9%85%8d%e7%bd%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=c># pyproject.toml</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>coverage</span><span class=p>.</span><span class=nx>run</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>source</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;my_tool&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>branch</span> <span class=p>=</span> <span class=kc>true</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>coverage</span><span class=p>.</span><span class=nx>report</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>show_missing</span> <span class=p>=</span> <span class=kc>true</span>
+</span></span><span class=line><span class=cl><span class=nx>fail_under</span> <span class=p>=</span> <span class=mi>80</span>
+</span></span><span class=line><span class=cl><span class=nx>exclude_lines</span> <span class=p>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;pragma: no cover&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;if __name__ == .__main__.&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;if TYPE_CHECKING:&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>branch = true</code> 启用分支覆盖率，确保 <code>if/else</code> 的两个分支都被测到。</p><h3 id=覆盖率目标建议 class=heading-anchor>覆盖率目标建议<a href=#%e8%a6%86%e7%9b%96%e7%8e%87%e7%9b%ae%e6%a0%87%e5%bb%ba%e8%ae%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>覆盖率水平</th><th>含义</th><th>适用场景</th></tr></thead><tbody><tr><td>&lt; 50%</td><td>几乎没测</td><td>正在补测试的遗留代码</td></tr><tr><td>50–70%</td><td>基础覆盖</td><td>内部工具、脚本</td></tr><tr><td>70–85%</td><td>良好覆盖</td><td>大多数应用程序</td></tr><tr><td>85–95%</td><td>强覆盖</td><td>库、关键服务</td></tr><tr><td>95–100%</td><td>接近完整</td><td>支付处理、安全敏感代码</td></tr></tbody></table></div><p><strong>别盲目追求 100% 覆盖率</strong>。有些代码（比如理论上不可能触发的错误处理、<code>__repr__</code> 方法）根本不值得测。重点应该放在业务逻辑和边界情况上。</p><h2 id=测试组织策略 class=heading-anchor>测试组织策略<a href=#%e6%b5%8b%e8%af%95%e7%bb%84%e7%bb%87%e7%ad%96%e7%95%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=单元测试unit-tests class=heading-anchor>单元测试（Unit Tests）<a href=#%e5%8d%95%e5%85%83%e6%b5%8b%e8%af%95unit-tests class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>隔离测试单个函数，快速、专注、数量多。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># tests/test_utils.py</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_format_size_zero</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>format_size</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span> <span class=o>==</span> <span class=s2>&#34;0.0 B&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_format_size_kilobytes</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>format_size</span><span class=p>(</span><span class=mi>1024</span><span class=p>)</span> <span class=o>==</span> <span class=s2>&#34;1.0 KB&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=集成测试integration-tests class=heading-anchor>集成测试（Integration Tests）<a href=#%e9%9b%86%e6%88%90%e6%b5%8b%e8%af%95integration-tests class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>测试多个组件如何协同工作，速度较慢，数量较少。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># tests/integration/test_download.py</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_download_real_file</span><span class=p>(</span><span class=n>tmp_path</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;集成测试：实际从 httpbin 下载文件。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>result</span> <span class=o>=</span> <span class=n>download_file</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;https://httpbin.org/bytes/1024&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nb>str</span><span class=p>(</span><span class=n>tmp_path</span> <span class=o>/</span> <span class=s2>&#34;data.bin&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>quiet</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>result</span><span class=o>.</span><span class=n>stat</span><span class=p>()</span><span class=o>.</span><span class=n>st_size</span> <span class=o>==</span> <span class=mi>1024</span>
+</span></span></code></pre></td></tr></table></div></div><p>给集成测试打上标记，方便在快速运行时跳过它们：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>pytest</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>pytestmark</span> <span class=o>=</span> <span class=n>pytest</span><span class=o>.</span><span class=n>mark</span><span class=o>.</span><span class=n>integration</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_download_real_file</span><span class=p>(</span><span class=n>tmp_path</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=o>...</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 仅运行单元测试（跳过集成测试）</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest -m <span class=s2>&#34;not integration&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 仅运行集成测试</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest -m integration
+</span></span></code></pre></td></tr></table></div></div><p>在 <code>pyproject.toml</code> 中注册自定义标记：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>pytest</span><span class=p>.</span><span class=nx>ini_options</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>markers</span> <span class=p>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;integration: marks tests as integration tests (deselect with &#39;-m \&#34;not integration\&#34;&#39;)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;slow: marks tests as slow (deselect with &#39;-m \&#34;not slow\&#34;&#39;)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=端到端测试end-to-end-tests class=heading-anchor>端到端测试（End-to-End Tests）<a href=#%e7%ab%af%e5%88%b0%e7%ab%af%e6%b5%8b%e8%af%95end-to-end-tests class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>从用户视角测试整个应用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># tests/e2e/test_cli.py</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>click.testing</span> <span class=kn>import</span> <span class=n>CliRunner</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>my_tool.cli</span> <span class=kn>import</span> <span class=n>main</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_cli_download</span><span class=p>(</span><span class=n>tmp_path</span><span class=p>,</span> <span class=n>monkeypatch</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>monkeypatch</span><span class=o>.</span><span class=n>chdir</span><span class=p>(</span><span class=n>tmp_path</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>runner</span> <span class=o>=</span> <span class=n>CliRunner</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>result</span> <span class=o>=</span> <span class=n>runner</span><span class=o>.</span><span class=n>invoke</span><span class=p>(</span><span class=n>main</span><span class=p>,</span> <span class=p>[</span><span class=s2>&#34;https://httpbin.org/bytes/100&#34;</span><span class=p>,</span> <span class=s2>&#34;-o&#34;</span><span class=p>,</span> <span class=s2>&#34;test.bin&#34;</span><span class=p>,</span> <span class=s2>&#34;-q&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>result</span><span class=o>.</span><span class=n>exit_code</span> <span class=o>==</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=p>(</span><span class=n>tmp_path</span> <span class=o>/</span> <span class=s2>&#34;test.bin&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>exists</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_cli_help</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>runner</span> <span class=o>=</span> <span class=n>CliRunner</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>result</span> <span class=o>=</span> <span class=n>runner</span><span class=o>.</span><span class=n>invoke</span><span class=p>(</span><span class=n>main</span><span class=p>,</span> <span class=p>[</span><span class=s2>&#34;--help&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>result</span><span class=o>.</span><span class=n>exit_code</span> <span class=o>==</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=s2>&#34;Download files from URLs&#34;</span> <span class=ow>in</span> <span class=n>result</span><span class=o>.</span><span class=n>output</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=调试当测试失败时 class=heading-anchor>调试：当测试失败时<a href=#%e8%b0%83%e8%af%95%e5%bd%93%e6%b5%8b%e8%af%95%e5%a4%b1%e8%b4%a5%e6%97%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=breakpoint-与-pdb class=heading-anchor><code>breakpoint()</code> 与 <code>pdb</code><a href=#breakpoint-%e4%b8%8e-pdb class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Python 3.7 引入了内置的 <code>breakpoint()</code> 函数：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>download_file</span><span class=p>(</span><span class=n>url</span><span class=p>,</span> <span class=n>output</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span> <span class=n>quiet</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>timeout</span><span class=o>=</span><span class=mi>30</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>response</span> <span class=o>=</span> <span class=n>requests</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>,</span> <span class=n>stream</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>timeout</span><span class=o>=</span><span class=n>timeout</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>breakpoint</span><span class=p>()</span>  <span class=c1># 执行在此暂停，进入调试器</span>
+</span></span><span class=line><span class=cl>    <span class=n>response</span><span class=o>.</span><span class=n>raise_for_status</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=o>...</span>
+</span></span></code></pre></td></tr></table></div></div><p>正常运行测试即可（虽然 pytest 默认会捕获 stdin，但 <code>breakpoint()</code> 会强制打开交互）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest -s tests/test_core.py::test_download_file_success
+</span></span><span class=line><span class=cl>&gt; /home/user/src/my_tool/core.py<span class=o>(</span>15<span class=o>)</span>download_file<span class=o>()</span>
+</span></span><span class=line><span class=cl>-&gt; response.raise_for_status<span class=o>()</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>Pdb<span class=o>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=核心-pdb-命令 class=heading-anchor>核心 pdb 命令<a href=#%e6%a0%b8%e5%bf%83-pdb-%e5%91%bd%e4%bb%a4 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>命令</th><th>缩写</th><th>功能说明</th></tr></thead><tbody><tr><td><code>next</code></td><td><code>n</code></td><td>执行当前行，跳过函数调用（step over）</td></tr><tr><td><code>step</code></td><td><code>s</code></td><td>执行当前行，进入函数调用（step into）</td></tr><tr><td><code>continue</code></td><td><code>c</code></td><td>继续执行直到下一个断点</td></tr><tr><td><code>print expr</code></td><td><code>p expr</code></td><td>打印表达式值</td></tr><tr><td><code>pp expr</code></td><td></td><td>美观打印表达式值</td></tr><tr><td><code>list</code></td><td><code>l</code></td><td>显示当前行附近的源码</td></tr><tr><td><code>where</code></td><td><code>w</code></td><td>显示调用栈</td></tr><tr><td><code>up</code></td><td><code>u</code></td><td>向上调用栈移动一帧</td></tr><tr><td><code>down</code></td><td><code>d</code></td><td>向下调用栈移动一帧</td></tr><tr><td><code>quit</code></td><td><code>q</code></td><td>退出调试器</td></tr><tr><td><code>help</code></td><td><code>h</code></td><td>显示帮助</td></tr></tbody></table></div><h3 id=ipdb更强大的调试器 class=heading-anchor>ipdb：更强大的调试器<a href=#ipdb%e6%9b%b4%e5%bc%ba%e5%a4%a7%e7%9a%84%e8%b0%83%e8%af%95%e5%99%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><code>ipdb</code> 提供语法高亮和 Tab 补全：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install ipdb
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>ipdb</span><span class=p>;</span> <span class=n>ipdb</span><span class=o>.</span><span class=n>set_trace</span><span class=p>()</span>  <span class=c1># 或设置 PYTHONBREAKPOINT=ipdb.set_trace</span>
+</span></span></code></pre></td></tr></table></div></div><p>或者全局启用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>$ <span class=nb>export</span> <span class=nv>PYTHONBREAKPOINT</span><span class=o>=</span>ipdb.set_trace
+</span></span><span class=line><span class=cl>$ pytest -s tests/test_core.py  <span class=c1># 此时 breakpoint() 将使用 ipdb</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=失败后调试post-mortem-debugging class=heading-anchor>失败后调试（Post-Mortem Debugging）<a href=#%e5%a4%b1%e8%b4%a5%e5%90%8e%e8%b0%83%e8%af%95post-mortem-debugging class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>对刚刚失败的测试，在失败点直接进入调试器：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest --pdb tests/test_core.py
+</span></span><span class=line><span class=cl><span class=c1># 在失败点自动进入 pdb</span>
+</span></span></code></pre></td></tr></table></div></div><p>这招极其强大：你完全不用手动加 <code>breakpoint()</code>。只要加上 <code>--pdb</code> 参数，pytest 就会在断言失败的<strong>精确行号</strong>处启动调试器，并保留所有局部变量。</p><h2 id=基于属性的测试hypothesis class=heading-anchor>基于属性的测试：Hypothesis<a href=#%e5%9f%ba%e4%ba%8e%e5%b1%9e%e6%80%a7%e7%9a%84%e6%b5%8b%e8%af%95hypothesis class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>传统测试检查特定输入输出。基于属性的测试验证对<strong>任何有效输入</strong>都成立的不变式。<a href=https://hypothesis.readthedocs.io/ target=_blank rel="noopener noreferrer">Hypothesis <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+自动生成数百个随机输入，发现你永远想不到的边界情况。</p><h3 id=安装-1 class=heading-anchor>安装<a href=#%e5%ae%89%e8%a3%85-1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install hypothesis
+</span></span></code></pre></td></tr></table></div></div><h3 id=基本属性 class=heading-anchor>基本属性<a href=#%e5%9f%ba%e6%9c%ac%e5%b1%9e%e6%80%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>hypothesis</span> <span class=kn>import</span> <span class=n>given</span><span class=p>,</span> <span class=n>assume</span><span class=p>,</span> <span class=n>settings</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>hypothesis</span> <span class=kn>import</span> <span class=n>strategies</span> <span class=k>as</span> <span class=n>st</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@given</span><span class=p>(</span><span class=n>st</span><span class=o>.</span><span class=n>lists</span><span class=p>(</span><span class=n>st</span><span class=o>.</span><span class=n>integers</span><span class=p>()))</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_sort_is_idempotent</span><span class=p>(</span><span class=n>xs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;排序两次和排序一次结果相同。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=nb>sorted</span><span class=p>(</span><span class=nb>sorted</span><span class=p>(</span><span class=n>xs</span><span class=p>))</span> <span class=o>==</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>xs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@given</span><span class=p>(</span><span class=n>st</span><span class=o>.</span><span class=n>lists</span><span class=p>(</span><span class=n>st</span><span class=o>.</span><span class=n>integers</span><span class=p>()))</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_sort_preserves_length</span><span class=p>(</span><span class=n>xs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;排序不增不减元素。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=nb>len</span><span class=p>(</span><span class=nb>sorted</span><span class=p>(</span><span class=n>xs</span><span class=p>))</span> <span class=o>==</span> <span class=nb>len</span><span class=p>(</span><span class=n>xs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@given</span><span class=p>(</span><span class=n>st</span><span class=o>.</span><span class=n>lists</span><span class=p>(</span><span class=n>st</span><span class=o>.</span><span class=n>integers</span><span class=p>(),</span> <span class=n>min_size</span><span class=o>=</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_sort_result_is_ordered</span><span class=p>(</span><span class=n>xs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;结果中每个元素都 &lt;= 下一个。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>result</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>xs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>a</span><span class=p>,</span> <span class=n>b</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>result</span><span class=p>,</span> <span class=n>result</span><span class=p>[</span><span class=mi>1</span><span class=p>:]):</span>
+</span></span><span class=line><span class=cl>        <span class=k>assert</span> <span class=n>a</span> <span class=o>&lt;=</span> <span class=n>b</span>
+</span></span></code></pre></td></tr></table></div></div><p>不再测试 <code>sorted([3, 1, 2]) == [1, 2, 3]</code>，而是测试任何正确排序都必须满足的属性。Hypothesis 会尝试空列表、单元素、重复值、负数、极大值等各种情况。</p><h3 id=自定义策略 class=heading-anchor>自定义策略<a href=#%e8%87%aa%e5%ae%9a%e4%b9%89%e7%ad%96%e7%95%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>dataclasses</span> <span class=kn>import</span> <span class=n>dataclass</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@dataclass</span>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>User</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>name</span><span class=p>:</span> <span class=nb>str</span>
+</span></span><span class=line><span class=cl>    <span class=n>age</span><span class=p>:</span> <span class=nb>int</span>
+</span></span><span class=line><span class=cl>    <span class=n>email</span><span class=p>:</span> <span class=nb>str</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 构建 User 对象的生成策略</span>
+</span></span><span class=line><span class=cl><span class=n>users</span> <span class=o>=</span> <span class=n>st</span><span class=o>.</span><span class=n>builds</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>User</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>name</span><span class=o>=</span><span class=n>st</span><span class=o>.</span><span class=n>text</span><span class=p>(</span><span class=n>min_size</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>max_size</span><span class=o>=</span><span class=mi>50</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=n>age</span><span class=o>=</span><span class=n>st</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>min_value</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>max_value</span><span class=o>=</span><span class=mi>150</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=n>email</span><span class=o>=</span><span class=n>st</span><span class=o>.</span><span class=n>emails</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@given</span><span class=p>(</span><span class=n>users</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_user_serialization_roundtrip</span><span class=p>(</span><span class=n>user</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;序列化 → 反序列化应返回原始对象。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>data</span> <span class=o>=</span> <span class=n>serialize</span><span class=p>(</span><span class=n>user</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>restored</span> <span class=o>=</span> <span class=n>deserialize</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>restored</span> <span class=o>==</span> <span class=n>user</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=有状态测试 class=heading-anchor>有状态测试<a href=#%e6%9c%89%e7%8a%b6%e6%80%81%e6%b5%8b%e8%af%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>对于有状态的系统（数据库、API），Hypothesis 能生成操作序列：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>hypothesis.stateful</span> <span class=kn>import</span> <span class=n>RuleBasedStateMachine</span><span class=p>,</span> <span class=n>rule</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>SetMachine</span><span class=p>(</span><span class=n>RuleBasedStateMachine</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;验证 CustomSet 行为与内置 set 一致。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>         <span class=c1># 参考实现</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>actual</span> <span class=o>=</span> <span class=n>CustomSet</span><span class=p>()</span>  <span class=c1># 被测系统</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@rule</span><span class=p>(</span><span class=n>value</span><span class=o>=</span><span class=n>st</span><span class=o>.</span><span class=n>integers</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>add</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>value</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>actual</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>assert</span> <span class=n>value</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>actual</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@rule</span><span class=p>(</span><span class=n>value</span><span class=o>=</span><span class=n>st</span><span class=o>.</span><span class=n>integers</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>remove</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>value</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>value</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>remove</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>actual</span><span class=o>.</span><span class=n>remove</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>assert</span> <span class=n>value</span> <span class=ow>not</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>actual</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@rule</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>check_length</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>assert</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>actual</span><span class=p>)</span> <span class=o>==</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>TestSet</span> <span class=o>=</span> <span class=n>SetMachine</span><span class=o>.</span><span class=n>TestCase</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=当-hypothesis-发现-bug class=heading-anchor>当 Hypothesis 发现 Bug<a href=#%e5%bd%93-hypothesis-%e5%8f%91%e7%8e%b0-bug class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Hypothesis 会将失败输入收缩至仍能触发 Bug 的最小示例：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Falsifying example: test_parse_date(
+</span></span><span class=line><span class=cl>    s=&#39;0000-00-00&#39;,  # 从 &#39;9812-23-71&#39; 收缩而来
+</span></span><span class=line><span class=cl>)
+</span></span></code></pre></td></tr></table></div></div><p>然后存储在 <code>.hypothesis/</code> 中，后续运行自动重测。将 <code>.hypothesis/examples/</code> 提交到仓库。</p><h3 id=配置与-profile class=heading-anchor>配置与 Profile<a href=#%e9%85%8d%e7%bd%ae%e4%b8%8e-profile class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>hypothesis</span> <span class=kn>import</span> <span class=n>settings</span><span class=p>,</span> <span class=n>Phase</span><span class=p>,</span> <span class=n>Verbosity</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 慢但彻底（CI 环境）</span>
+</span></span><span class=line><span class=cl><span class=nd>@settings</span><span class=p>(</span><span class=n>max_examples</span><span class=o>=</span><span class=mi>1000</span><span class=p>,</span> <span class=n>deadline</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nd>@given</span><span class=p>(</span><span class=n>st</span><span class=o>.</span><span class=n>text</span><span class=p>())</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_thorough</span><span class=p>(</span><span class=n>s</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=o>...</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 快速迭代（开发环境）</span>
+</span></span><span class=line><span class=cl><span class=nd>@settings</span><span class=p>(</span><span class=n>max_examples</span><span class=o>=</span><span class=mi>50</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nd>@given</span><span class=p>(</span><span class=n>st</span><span class=o>.</span><span class=n>text</span><span class=p>())</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_quick</span><span class=p>(</span><span class=n>s</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=o>...</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 在 conftest.py 中全局配置 profile</span>
+</span></span><span class=line><span class=cl><span class=n>settings</span><span class=o>.</span><span class=n>register_profile</span><span class=p>(</span><span class=s2>&#34;ci&#34;</span><span class=p>,</span> <span class=n>max_examples</span><span class=o>=</span><span class=mi>1000</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>settings</span><span class=o>.</span><span class=n>register_profile</span><span class=p>(</span><span class=s2>&#34;dev&#34;</span><span class=p>,</span> <span class=n>max_examples</span><span class=o>=</span><span class=mi>50</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>settings</span><span class=o>.</span><span class=n>load_profile</span><span class=p>(</span><span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;HYPOTHESIS_PROFILE&#34;</span><span class=p>,</span> <span class=s2>&#34;dev&#34;</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=快照测试 class=heading-anchor>快照测试<a href=#%e5%bf%ab%e7%85%a7%e6%b5%8b%e8%af%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>快照测试捕获函数输出并与保存的"黄金"文件比对。适用于：</p><ul><li>CLI 输出格式</li><li>序列化格式（JSON、YAML 响应）</li><li>模板渲染</li><li>代码生成输出</li></ul><h3 id=使用-syrupy class=heading-anchor>使用 syrupy<a href=#%e4%bd%bf%e7%94%a8-syrupy class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install syrupy
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_user_json_format</span><span class=p>(</span><span class=n>snapshot</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>user</span> <span class=o>=</span> <span class=n>User</span><span class=p>(</span><span class=n>name</span><span class=o>=</span><span class=s2>&#34;Alice&#34;</span><span class=p>,</span> <span class=n>age</span><span class=o>=</span><span class=mi>30</span><span class=p>,</span> <span class=n>email</span><span class=o>=</span><span class=s2>&#34;alice@example.com&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>result</span> <span class=o>=</span> <span class=n>user</span><span class=o>.</span><span class=n>to_json</span><span class=p>(</span><span class=n>indent</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>result</span> <span class=o>==</span> <span class=n>snapshot</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_error_message</span><span class=p>(</span><span class=n>snapshot</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>pytest</span><span class=o>.</span><span class=n>raises</span><span class=p>(</span><span class=n>ValidationError</span><span class=p>)</span> <span class=k>as</span> <span class=n>exc_info</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>validate_config</span><span class=p>({</span><span class=s2>&#34;port&#34;</span><span class=p>:</span> <span class=s2>&#34;not_a_number&#34;</span><span class=p>})</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=nb>str</span><span class=p>(</span><span class=n>exc_info</span><span class=o>.</span><span class=n>value</span><span class=p>)</span> <span class=o>==</span> <span class=n>snapshot</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_cli_help_output</span><span class=p>(</span><span class=n>snapshot</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>result</span> <span class=o>=</span> <span class=n>runner</span><span class=o>.</span><span class=n>invoke</span><span class=p>(</span><span class=n>app</span><span class=p>,</span> <span class=p>[</span><span class=s2>&#34;--help&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>result</span><span class=o>.</span><span class=n>output</span> <span class=o>==</span> <span class=n>snapshot</span>
+</span></span></code></pre></td></tr></table></div></div><p>首次运行创建 <code>__snapshots__/</code> 文件。后续运行对比：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 输出有意变更时更新快照</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest --snapshot-update
+</span></span></code></pre></td></tr></table></div></div><h3 id=何时用快照-vs-断言 class=heading-anchor>何时用快照 vs 断言<a href=#%e4%bd%95%e6%97%b6%e7%94%a8%e5%bf%ab%e7%85%a7-vs-%e6%96%ad%e8%a8%80 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>方式</th><th>适用场景</th><th>缺点</th></tr></thead><tbody><tr><td>显式断言</td><td>逻辑、计算、状态转换</td><td>复杂输出时冗长</td></tr><tr><td>快照测试</td><td>格式化、渲染、序列化</td><td>容易过度批准变更</td></tr></tbody></table></div><p>经验法则：当你关心输出的<strong>精确形态</strong>，且手写需要 5 条以上断言时，用快照。</p><h2 id=检测慢测试 class=heading-anchor>检测慢测试<a href=#%e6%a3%80%e6%b5%8b%e6%85%a2%e6%b5%8b%e8%af%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>测试套件增长时，慢测试逐渐累积，破坏反馈循环。尽早发现它们。</p><h3 id=pytest-耗时报告 class=heading-anchor>pytest 耗时报告<a href=#pytest-%e8%80%97%e6%97%b6%e6%8a%a5%e5%91%8a class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 显示最慢的 10 个测试</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest --durations<span class=o>=</span><span class=nv>10</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>=============================</span> slowest <span class=m>10</span> <span class=nv>durations</span> <span class=o>=============================</span>
+</span></span><span class=line><span class=cl>1.23s call     tests/test_api.py::test_database_migration
+</span></span><span class=line><span class=cl>0.89s call     tests/test_export.py::test_large_csv_export
+</span></span><span class=line><span class=cl>0.67s setup    tests/test_integration.py::test_full_pipeline
+</span></span><span class=line><span class=cl>...
+</span></span></code></pre></td></tr></table></div></div><h3 id=强制时间限制 class=heading-anchor>强制时间限制<a href=#%e5%bc%ba%e5%88%b6%e6%97%b6%e9%97%b4%e9%99%90%e5%88%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>pytest</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@pytest.mark.timeout</span><span class=p>(</span><span class=mi>5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_api_response</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;必须在 5 秒内完成。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>response</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;/api/heavy-endpoint&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>response</span><span class=o>.</span><span class=n>status_code</span> <span class=o>==</span> <span class=mi>200</span>
+</span></span></code></pre></td></tr></table></div></div><p>或在 <code>pyproject.toml</code> 中全局配置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>pytest</span><span class=p>.</span><span class=nx>ini_options</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>timeout</span> <span class=p>=</span> <span class=mi>30</span>  <span class=c># 秒——超时的单个测试直接失败</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=并行运行测试 class=heading-anchor>并行运行测试<a href=#%e5%b9%b6%e8%a1%8c%e8%bf%90%e8%a1%8c%e6%b5%8b%e8%af%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install pytest-xdist
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 使用所有 CPU 核心</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest -n auto
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 使用 4 个 worker</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest -n <span class=m>4</span>
+</span></span></code></pre></td></tr></table></div></div><p>测试必须独立（无共享状态、无固定端口）才能并行。使用 fixture 提供唯一临时目录和随机端口。</p><h3 id=ci-优化模式 class=heading-anchor>CI 优化模式<a href=#ci-%e4%bc%98%e5%8c%96%e6%a8%a1%e5%bc%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># .github/workflows/test.yml</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>jobs</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>test</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>strategy</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>matrix</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>shard</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=m>1</span><span class=p>,</span><span class=w> </span><span class=m>2</span><span class=p>,</span><span class=w> </span><span class=m>3</span><span class=p>,</span><span class=w> </span><span class=m>4</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>steps</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>run</span><span class=p>:</span><span class=w> </span><span class=l>pytest --splits 4 --group ${{ matrix.shard }}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>将测试分片到多个 CI runner，大型套件反馈更快。</p><h2 id=真实案例测试日志处理器 class=heading-anchor>真实案例：测试日志处理器<a href=#%e7%9c%9f%e5%ae%9e%e6%a1%88%e4%be%8b%e6%b5%8b%e8%af%95%e6%97%a5%e5%bf%97%e5%a4%84%e7%90%86%e5%99%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>下面是一个处理日志条目的函数：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># src/my_tool/processor.py</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>datetime</span> <span class=kn>import</span> <span class=n>datetime</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>parse_log_entry</span><span class=p>(</span><span class=n>line</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;将日志行解析为结构化数据。
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    预期格式：YYYY-MM-DD HH:MM:SS LEVEL message
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    Args:
+</span></span></span><span class=line><span class=cl><span class=s2>        line: 原始日志行字符串。
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    Returns:
+</span></span></span><span class=line><span class=cl><span class=s2>        包含键值：timestamp、level、message 的字典。
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    Raises:
+</span></span></span><span class=line><span class=cl><span class=s2>        ValueError: 若日志格式无效。
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>parts</span> <span class=o>=</span> <span class=n>line</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=s2>&#34; &#34;</span><span class=p>,</span> <span class=mi>3</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>parts</span><span class=p>)</span> <span class=o>&lt;</span> <span class=mi>4</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Invalid log format: </span><span class=si>{</span><span class=n>line</span><span class=si>!r}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>date_str</span><span class=p>,</span> <span class=n>time_str</span><span class=p>,</span> <span class=n>level</span><span class=p>,</span> <span class=n>message</span> <span class=o>=</span> <span class=n>parts</span>
+</span></span><span class=line><span class=cl>    <span class=n>timestamp</span> <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>fromisoformat</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>date_str</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>time_str</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>level</span> <span class=o>=</span> <span class=n>level</span><span class=o>.</span><span class=n>upper</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>level</span> <span class=ow>not</span> <span class=ow>in</span> <span class=p>(</span><span class=s2>&#34;DEBUG&#34;</span><span class=p>,</span> <span class=s2>&#34;INFO&#34;</span><span class=p>,</span> <span class=s2>&#34;WARNING&#34;</span><span class=p>,</span> <span class=s2>&#34;ERROR&#34;</span><span class=p>,</span> <span class=s2>&#34;CRITICAL&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Unknown log level: </span><span class=si>{</span><span class=n>level</span><span class=si>!r}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;timestamp&#34;</span><span class=p>:</span> <span class=n>timestamp</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;level&#34;</span><span class=p>:</span> <span class=n>level</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;message&#34;</span><span class=p>:</span> <span class=n>message</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>配套的全面测试：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># tests/test_processor.py</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>datetime</span> <span class=kn>import</span> <span class=n>datetime</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>pytest</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>my_tool.processor</span> <span class=kn>import</span> <span class=n>parse_log_entry</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>TestParseLogEntry</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;parse_log_entry 函数的测试集。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>test_valid_info_line</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>result</span> <span class=o>=</span> <span class=n>parse_log_entry</span><span class=p>(</span><span class=s2>&#34;2024-01-15 10:30:00 INFO Server started&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>assert</span> <span class=n>result</span> <span class=o>==</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;timestamp&#34;</span><span class=p>:</span> <span class=n>datetime</span><span class=p>(</span><span class=mi>2024</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>15</span><span class=p>,</span> <span class=mi>10</span><span class=p>,</span> <span class=mi>30</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;level&#34;</span><span class=p>:</span> <span class=s2>&#34;INFO&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;message&#34;</span><span class=p>:</span> <span class=s2>&#34;Server started&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>test_valid_error_line</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>result</span> <span class=o>=</span> <span class=n>parse_log_entry</span><span class=p>(</span><span class=s2>&#34;2024-01-15 10:30:00 ERROR Connection refused&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>assert</span> <span class=n>result</span><span class=p>[</span><span class=s2>&#34;level&#34;</span><span class=p>]</span> <span class=o>==</span> <span class=s2>&#34;ERROR&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=k>assert</span> <span class=n>result</span><span class=p>[</span><span class=s2>&#34;message&#34;</span><span class=p>]</span> <span class=o>==</span> <span class=s2>&#34;Connection refused&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>test_message_with_spaces</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>result</span> <span class=o>=</span> <span class=n>parse_log_entry</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;2024-01-15 10:30:00 WARNING Disk usage at 90</span><span class=si>% o</span><span class=s2>n /dev/sda1&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>assert</span> <span class=n>result</span><span class=p>[</span><span class=s2>&#34;message&#34;</span><span class=p>]</span> <span class=o>==</span> <span class=s2>&#34;Disk usage at 90</span><span class=si>% o</span><span class=s2>n /dev/sda1&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>test_level_case_insensitive</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>result</span> <span class=o>=</span> <span class=n>parse_log_entry</span><span class=p>(</span><span class=s2>&#34;2024-01-15 10:30:00 info lowercase level&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>assert</span> <span class=n>result</span><span class=p>[</span><span class=s2>&#34;level&#34;</span><span class=p>]</span> <span class=o>==</span> <span class=s2>&#34;INFO&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@pytest.mark.parametrize</span><span class=p>(</span><span class=s2>&#34;level&#34;</span><span class=p>,</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;DEBUG&#34;</span><span class=p>,</span> <span class=s2>&#34;INFO&#34;</span><span class=p>,</span> <span class=s2>&#34;WARNING&#34;</span><span class=p>,</span> <span class=s2>&#34;ERROR&#34;</span><span class=p>,</span> <span class=s2>&#34;CRITICAL&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>test_all_valid_levels</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>level</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>line</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>&#34;2024-01-15 10:30:00 </span><span class=si>{</span><span class=n>level</span><span class=si>}</span><span class=s2> test message&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>result</span> <span class=o>=</span> <span class=n>parse_log_entry</span><span class=p>(</span><span class=n>line</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>assert</span> <span class=n>result</span><span class=p>[</span><span class=s2>&#34;level&#34;</span><span class=p>]</span> <span class=o>==</span> <span class=n>level</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>test_empty_string_raises</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>pytest</span><span class=o>.</span><span class=n>raises</span><span class=p>(</span><span class=ne>ValueError</span><span class=p>,</span> <span class=k>match</span><span class=o>=</span><span class=s2>&#34;Invalid log format&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>parse_log_entry</span><span class=p>(</span><span class=s2>&#34;&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>test_incomplete_line_raises</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>pytest</span><span class=o>.</span><span class=n>raises</span><span class=p>(</span><span class=ne>ValueError</span><span class=p>,</span> <span class=k>match</span><span class=o>=</span><span class=s2>&#34;Invalid log format&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>parse_log_entry</span><span class=p>(</span><span class=s2>&#34;2024-01-15 10:30:00&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>test_invalid_level_raises</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>pytest</span><span class=o>.</span><span class=n>raises</span><span class=p>(</span><span class=ne>ValueError</span><span class=p>,</span> <span class=k>match</span><span class=o>=</span><span class=s2>&#34;Unknown log level&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>parse_log_entry</span><span class=p>(</span><span class=s2>&#34;2024-01-15 10:30:00 TRACE message&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>test_invalid_timestamp_raises</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>pytest</span><span class=o>.</span><span class=n>raises</span><span class=p>(</span><span class=ne>ValueError</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>parse_log_entry</span><span class=p>(</span><span class=s2>&#34;not-a-date 10:30:00 INFO message&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>test_strips_whitespace</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>result</span> <span class=o>=</span> <span class=n>parse_log_entry</span><span class=p>(</span><span class=s2>&#34;  2024-01-15 10:30:00 INFO padded  </span><span class=se>\n</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>assert</span> <span class=n>result</span><span class=p>[</span><span class=s2>&#34;level&#34;</span><span class=p>]</span> <span class=o>==</span> <span class=s2>&#34;INFO&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>带详细输出与覆盖率运行：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest -v --cov<span class=o>=</span>my_tool tests/test_processor.py
+</span></span><span class=line><span class=cl>tests/test_processor.py::TestParseLogEntry::test_valid_info_line PASSED
+</span></span><span class=line><span class=cl>tests/test_processor.py::TestParseLogEntry::test_valid_error_line PASSED
+</span></span><span class=line><span class=cl>tests/test_processor.py::TestParseLogEntry::test_message_with_spaces PASSED
+</span></span><span class=line><span class=cl>tests/test_processor.py::TestParseLogEntry::test_level_case_insensitive PASSED
+</span></span><span class=line><span class=cl>tests/test_processor.py::TestParseLogEntry::test_all_valid_levels<span class=o>[</span>DEBUG<span class=o>]</span> PASSED
+</span></span><span class=line><span class=cl>tests/test_processor.py::TestParseLogEntry::test_all_valid_levels<span class=o>[</span>INFO<span class=o>]</span> PASSED
+</span></span><span class=line><span class=cl>tests/test_processor.py::TestParseLogEntry::test_all_valid_levels<span class=o>[</span>WARNING<span class=o>]</span> PASSED
+</span></span><span class=line><span class=cl>tests/test_processor.py::TestParseLogEntry::test_all_valid_levels<span class=o>[</span>ERROR<span class=o>]</span> PASSED
+</span></span><span class=line><span class=cl>tests/test_processor.py::TestParseLogEntry::test_all_valid_levels<span class=o>[</span>CRITICAL<span class=o>]</span> PASSED
+</span></span><span class=line><span class=cl>tests/test_processor.py::TestParseLogEntry::test_empty_string_raises PASSED
+</span></span><span class=line><span class=cl>tests/test_processor.py::TestParseLogEntry::test_incomplete_line_raises PASSED
+</span></span><span class=line><span class=cl>tests/test_processor.py::TestParseLogEntry::test_invalid_level_raises PASSED
+</span></span><span class=line><span class=cl>tests/test_processor.py::TestParseLogEntry::test_invalid_timestamp_raises PASSED
+</span></span><span class=line><span class=cl>tests/test_processor.py::TestParseLogEntry::test_strips_whitespace PASSED
+</span></span><span class=line><span class=cl><span class=m>14</span> passed
+</span></span></code></pre></td></tr></table></div></div><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>测试告诉你<strong>代码是否能跑起来</strong>；类型提示和静态检查则能在你运行之前就告诉你<strong>代码是否写对了</strong>。下一篇文章中，我们将为代码库添加类型注解，配置 mypy 进行静态类型检查，并设置 ruff 和 black，让代码风格问题自动化解决，不再靠争论。</p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/python-engineering/02-project-structure/ data-next-url=https://www.chenk.top/zh/python-engineering/04-type-hints-and-linting/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/python-engineering/>Python 工程实践</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/python-engineering/02-project-structure/><span class=title>Python 工程实践（二）：项目结构 —— 从脚本到包</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/python-engineering/04-type-hints-and-linting/><span class=title>Python 工程实践（四）：类型提示、代码检查与质量保障</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/01-environment-and-toolchain/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Python 工程实践（一）：环境搭建——pyenv、venv 与依赖地狱</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/02-project-structure/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Python 工程实践（二）：项目结构 —— 从脚本到包</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>03</span>
+<span class=series-nav-title>Python 工程实践（三）：测试——pytest、Fixture 与信心循环</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/04-type-hints-and-linting/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Python 工程实践（四）：类型提示、代码检查与质量保障</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/05-io-and-serialization/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Python 工程实践（五）：I/O、序列化与数据格式</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/06-concurrency/><span class=series-nav-num>06</span>
+<span class=series-nav-title>Python 工程实践（六）：并发编程 —— 线程、进程与 asyncio</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/07-packaging-and-distribution/><span class=series-nav-num>07</span>
+<span class=series-nav-title>Python 工程实践（七）：打包分发 —— 从 pip install 到 PyPI</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/08-performance-and-profiling/><span class=series-nav-num>08</span>
+<span class=series-nav-title>Python 工程实践（八）：性能优化 —— 性能分析、缓存与适时收手</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=Python%2b%25E5%25B7%25A5%25E7%25A8%258B%25E5%25AE%259E%25E8%25B7%25B5%25EF%25BC%2588%25E4%25B8%2589%25EF%25BC%2589%25EF%25BC%259A%25E6%25B5%258B%25E8%25AF%2595%25E2%2580%2594%25E2%2580%2594pytest%25E3%2580%2581Fixture%2b%25E4%25B8%258E%25E4%25BF%25A1%25E5%25BF%2583%25E5%25BE%25AA%25E7%258E%25AF&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpython-engineering%252F03-testing-and-debugging%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpython-engineering%252F03-testing-and-debugging%252F&title=Python%2b%25E5%25B7%25A5%25E7%25A8%258B%25E5%25AE%259E%25E8%25B7%25B5%25EF%25BC%2588%25E4%25B8%2589%25EF%25BC%2589%25EF%25BC%259A%25E6%25B5%258B%25E8%25AF%2595%25E2%2580%2594%25E2%2580%2594pytest%25E3%2580%2581Fixture%2b%25E4%25B8%258E%25E4%25BF%25A1%25E5%25BF%2583%25E5%25BE%25AA%25E7%258E%25AF" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/python-engineering/03-testing-and-debugging/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2022-04-14>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#为何要写测试>为何要写测试</a></li><li><a href=#pytest-基础>pytest 基础</a><ul><li><a href=#安装>安装</a></li><li><a href=#你的第一个测试>你的第一个测试</a></li><li><a href=#测试发现规则>测试发现规则</a></li><li><a href=#实用命令行参数>实用命令行参数</a></li><li><a href=#测试异常>测试异常</a></li><li><a href=#测试近似值>测试近似值</a></li></ul></li><li><a href=#fixture可复用的测试准备逻辑>Fixture：可复用的测试准备逻辑</a><ul><li><a href=#基础-fixture>基础 Fixture</a></li><li><a href=#含清理逻辑的-fixture>含清理逻辑的 Fixture</a></li><li><a href=#fixture-作用域scope>Fixture 作用域（Scope）</a></li><li><a href=#conftestpy共享-fixture>conftest.py：共享 Fixture</a></li><li><a href=#内置-fixture>内置 Fixture</a></li></ul></li><li><a href=#parametrize批量测试多组用例>Parametrize：批量测试多组用例</a><ul><li><a href=#使用-id-命名-parametrize-用例>使用 ID 命名 Parametrize 用例</a></li></ul></li><li><a href=#mocking隔离你的代码>Mocking：隔离你的代码</a><ul><li><a href=#unittestmockpatch>unittest.mock.patch</a></li><li><a href=#何时该-mock>何时该 Mock？</a></li><li><a href=#monkeypatch更简洁的替代方案>Monkeypatch：更简洁的替代方案</a></li></ul></li><li><a href=#coverage衡量测试覆盖度>Coverage：衡量测试覆盖度</a><ul><li><a href=#coverage-配置>Coverage 配置</a></li><li><a href=#覆盖率目标建议>覆盖率目标建议</a></li></ul></li><li><a href=#测试组织策略>测试组织策略</a><ul><li><a href=#单元测试unit-tests>单元测试（Unit Tests）</a></li><li><a href=#集成测试integration-tests>集成测试（Integration Tests）</a></li><li><a href=#端到端测试end-to-end-tests>端到端测试（End-to-End Tests）</a></li></ul></li><li><a href=#调试当测试失败时>调试：当测试失败时</a><ul><li><a href=#breakpoint-与-pdb><code>breakpoint()</code> 与 <code>pdb</code></a></li><li><a href=#核心-pdb-命令>核心 pdb 命令</a></li><li><a href=#ipdb更强大的调试器>ipdb：更强大的调试器</a></li><li><a href=#失败后调试post-mortem-debugging>失败后调试（Post-Mortem Debugging）</a></li></ul></li><li><a href=#基于属性的测试hypothesis>基于属性的测试：Hypothesis</a><ul><li><a href=#安装-1>安装</a></li><li><a href=#基本属性>基本属性</a></li><li><a href=#自定义策略>自定义策略</a></li><li><a href=#有状态测试>有状态测试</a></li><li><a href=#当-hypothesis-发现-bug>当 Hypothesis 发现 Bug</a></li><li><a href=#配置与-profile>配置与 Profile</a></li></ul></li><li><a href=#快照测试>快照测试</a><ul><li><a href=#使用-syrupy>使用 syrupy</a></li><li><a href=#何时用快照-vs-断言>何时用快照 vs 断言</a></li></ul></li><li><a href=#检测慢测试>检测慢测试</a><ul><li><a href=#pytest-耗时报告>pytest 耗时报告</a></li><li><a href=#强制时间限制>强制时间限制</a></li><li><a href=#并行运行测试>并行运行测试</a></li><li><a href=#ci-优化模式>CI 优化模式</a></li></ul></li><li><a href=#真实案例测试日志处理器>真实案例：测试日志处理器</a></li><li><a href=#下一步>下一步</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/python-engineering/ class=series-name>Python 工程实践</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/01-environment-and-toolchain/><span class=chapter-num>01</span>
+<span class=chapter-title>Python 工程实践（一）：环境搭建——pyenv、venv 与依赖地狱</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/02-project-structure/><span class=chapter-num>02</span>
+<span class=chapter-title>Python 工程实践（二）：项目结构 —— 从脚本到包</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>03</span>
+<span class=chapter-title>Python 工程实践（三）：测试——pytest、Fixture 与信心循环</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/04-type-hints-and-linting/><span class=chapter-num>04</span>
+<span class=chapter-title>Python 工程实践（四）：类型提示、代码检查与质量保障</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/05-io-and-serialization/><span class=chapter-num>05</span>
+<span class=chapter-title>Python 工程实践（五）：I/O、序列化与数据格式</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/06-concurrency/><span class=chapter-num>06</span>
+<span class=chapter-title>Python 工程实践（六）：并发编程 —— 线程、进程与 asyncio</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/07-packaging-and-distribution/><span class=chapter-num>07</span>
+<span class=chapter-title>Python 工程实践（七）：打包分发 —— 从 pip install 到 PyPI</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/08-performance-and-profiling/><span class=chapter-num>08</span>
+<span class=chapter-title>Python 工程实践（八）：性能优化 —— 性能分析、缓存与适时收手</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>26 min</strong></div><div class=row><span>字数</span><strong>6027</strong></div><div class=row><span>写于</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/product-thinking/>产品思维</a></li><li><a href=https://www.chenk.top/zh/series/personal-finance/>个人理财</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=关闭>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>在微信里搜索此 ID 即可添加我</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>复制微信号</button></div></div></div></footer></body></html>

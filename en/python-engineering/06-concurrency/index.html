@@ -1,0 +1,1522 @@
+<!doctype html><html lang=en data-translation=/zh/python-engineering/06-concurrency/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Python Engineering (6): Concurrency — Threads, Processes, and asyncio · Chen Kai Blog</title>
+<meta name=description content="Understand the GIL, master threading, multiprocessing, and asyncio. Learn which concurrency model to use for I/O-bound vs CPU-bound workloads."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/python-engineering/06-concurrency/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/python-engineering/06-concurrency/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/python-engineering/06-concurrency/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/python-engineering/06-concurrency/><meta property="og:type" content="article"><meta property="og:title" content="Python Engineering (6): Concurrency — Threads, Processes, and asyncio"><meta property="og:description" content="Understand the GIL, master threading, multiprocessing, and asyncio. Learn which concurrency model to use for I/O-bound vs CPU-bound workloads."><meta property="og:url" content="https://www.chenk.top/en/python-engineering/06-concurrency/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/python-engineering.jpg"><meta property="og:image:alt" content="Python Engineering (6): Concurrency — Threads, Processes, and asyncio"><meta property="article:published_time" content="2022-04-21T09:00:00Z"><meta property="article:modified_time" content="2022-04-21T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Python"><meta property="article:tag" content="Concurrency"><meta property="article:tag" content="asyncio"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Python Engineering (6): Concurrency — Threads, Processes, and asyncio"><meta name=twitter:description content="Understand the GIL, master threading, multiprocessing, and asyncio. Learn which concurrency model to use for I/O-bound vs CPU-bound workloads."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/python-engineering.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"Python Engineering (6): Concurrency — Threads, Processes, and asyncio","description":"Understand the GIL, master threading, multiprocessing, and asyncio. Learn which concurrency model to use for I/O-bound vs CPU-bound workloads.","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/python-engineering.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2022-04-21T09:00:00Z","dateModified":"2022-04-21T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/en/python-engineering/06-concurrency/"},"inLanguage":"en"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/06-concurrency.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/python-engineering/>Python Engineering</a>
+· Chapter 6</div><h1>Python Engineering (6): Concurrency — Threads, Processes, and asyncio</h1><p class=deck>Understand the GIL, master threading, multiprocessing, and asyncio. Learn which concurrency model to use for I/O-bound vs CPU-bound workloads.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2022-04-21>April 21, 2022</time> · 38 min read · 3976 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/python/ class=tag>#Python</a><a href=/en/tags/concurrency/ class=tag>#Concurrency</a><a href=/en/tags/asyncio/ class=tag>#asyncio</a></div><a class="pill pill-outline" href=/zh/python-engineering/06-concurrency/>阅读中文版 →</a></div></header><div class=prose><p>Your script downloads 100 files one at a time. Each download takes 2 seconds, mostly waiting for the server to respond. Total time: 200 seconds. Your CPU is idle for 99% of that time, wasting compute and money on network latency. Concurrency can fix this.</p><p>Python has three concurrency models, each designed for different problems. Choosing the wrong one can make your code slow or full of race conditions. This article explains when to use each.</p><hr><h2 id=the-gil-what-it-is-and-why-it-matters class=heading-anchor>The GIL: What It Is and Why It Matters<a href=#the-gil-what-it-is-and-why-it-matters class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>The Global Interpreter Lock (GIL) is a mutex that protects access to Python objects. Only one thread can execute Python bytecode at a time, even on a multi-core machine.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-gil-impact.png alt="GIL impact on parallelism" loading=lazy decoding=async class=content-image></figure></p><h3 id=what-the-gil-prevents class=heading-anchor>What the GIL Prevents<a href=#what-the-gil-prevents class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>threading</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>counter</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>increment</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>global</span> <span class=n>counter</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1_000_000</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>counter</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># This is NOT atomic</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>threads</span> <span class=o>=</span> <span class=p>[</span><span class=n>threading</span><span class=o>.</span><span class=n>Thread</span><span class=p>(</span><span class=n>target</span><span class=o>=</span><span class=n>increment</span><span class=p>)</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>4</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>threads</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span><span class=o>.</span><span class=n>start</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>threads</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span><span class=o>.</span><span class=n>join</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>counter</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># Without GIL: race condition, counter &lt; 4_000_000</span>
+</span></span><span class=line><span class=cl><span class=c1># With GIL: still a race condition! counter &lt; 4_000_000</span>
+</span></span></code></pre></td></tr></table></div></div><p>Wait, the GIL does not prevent this? Correct. <code>counter += 1</code> compiles to multiple bytecodes (LOAD, ADD, STORE), and the GIL can release between them. The GIL protects interpreter internals, not your application logic.</p><h3 id=what-the-gil-does class=heading-anchor>What the GIL Does<a href=#what-the-gil-does class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><ul><li>Prevents multiple threads from corrupting Python&rsquo;s internal data structures (reference counts, object allocation)</li><li>Makes single-threaded code faster (no locking overhead)</li><li>Releases during I/O operations (file reads, network calls, sleep)</li></ul><h3 id=what-the-gil-means-for-you class=heading-anchor>What the GIL Means for You<a href=#what-the-gil-means-for-you class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>Workload Type</th><th>Threading</th><th>Multiprocessing</th></tr></thead><tbody><tr><td>I/O-bound (network, disk)</td><td>Works well (GIL releases during I/O)</td><td>Works but overkill</td></tr><tr><td>CPU-bound (math, parsing)</td><td>No speedup (GIL blocks parallel execution)</td><td>Works well (separate processes, separate GILs)</td></tr><tr><td>Mixed</td><td>Depends on ratio</td><td>Usually the safe choice</td></tr></tbody></table></div><h3 id=the-future-free-threaded-python-313 class=heading-anchor>The Future: Free-Threaded Python (3.13+)<a href=#the-future-free-threaded-python-313 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>PEP 703 introduced an experimental build of CPython without the GIL. Starting with Python 3.13, you can install a &ldquo;free-threaded&rdquo; build (<code>python3.13t</code>) that allows true parallel thread execution:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Install free-threaded build (experimental)</span>
+</span></span><span class=line><span class=cl>$ pyenv install 3.13.0t
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Check if GIL is disabled</span>
+</span></span><span class=line><span class=cl>$ python3.13t -c <span class=s2>&#34;import sys; print(sys._is_gil_enabled())&#34;</span>
+</span></span><span class=line><span class=cl>False
+</span></span></code></pre></td></tr></table></div></div><p>With the GIL disabled, the threading example from above actually achieves true parallel speedup on CPU-bound work. However, as of 2025 the ecosystem is still adapting — many C extensions assume the GIL exists and may crash or produce incorrect results. Use it for experiments, not production. The plan is to make free-threading the default in Python 3.15 or 3.16.</p><p>For now, the practical advice remains unchanged: use threads for I/O, processes for CPU, asyncio for high-concurrency I/O.</p><h2 id=threading-io-bound-concurrency class=heading-anchor>Threading: I/O-Bound Concurrency<a href=#threading-io-bound-concurrency class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Threads share the same memory space and are lightweight. The GIL releases during I/O operations, making them effective for network calls, file operations, and database queries.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-concurrency-models.png alt="Concurrency models comparison" loading=lazy decoding=async class=content-image></figure></p><h3 id=basic-thread-usage class=heading-anchor>Basic Thread Usage<a href=#basic-thread-usage class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>threading</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>requests</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>download</span><span class=p>(</span><span class=n>url</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Download a URL, return response size.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>response</span> <span class=o>=</span> <span class=n>requests</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>,</span> <span class=n>timeout</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nb>len</span><span class=p>(</span><span class=n>response</span><span class=o>.</span><span class=n>content</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>urls</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Sequential: ~4 seconds</span>
+</span></span><span class=line><span class=cl><span class=n>start</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>results</span> <span class=o>=</span> <span class=p>[</span><span class=n>download</span><span class=p>(</span><span class=n>url</span><span class=p>)</span> <span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>sequential_time</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span> <span class=o>-</span> <span class=n>start</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Sequential: </span><span class=si>{</span><span class=n>sequential_time</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>s&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Threaded: ~1 second</span>
+</span></span><span class=line><span class=cl><span class=n>start</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>threads</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span> <span class=o>=</span> <span class=n>threading</span><span class=o>.</span><span class=n>Thread</span><span class=p>(</span><span class=n>target</span><span class=o>=</span><span class=n>download</span><span class=p>,</span> <span class=n>args</span><span class=o>=</span><span class=p>(</span><span class=n>url</span><span class=p>,))</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span><span class=o>.</span><span class=n>start</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>threads</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>t</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>threads</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span><span class=o>.</span><span class=n>join</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>threaded_time</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span> <span class=o>-</span> <span class=n>start</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Threaded: </span><span class=si>{</span><span class=n>threaded_time</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>s&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Output:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Sequential: 4.12s
+</span></span><span class=line><span class=cl>Threaded: 1.08s
+</span></span></code></pre></td></tr></table></div></div><h3 id=threadpoolexecutor class=heading-anchor>ThreadPoolExecutor<a href=#threadpoolexecutor class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><code>concurrent.futures</code> provides a higher-level API with result collection:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent.futures</span> <span class=kn>import</span> <span class=n>ThreadPoolExecutor</span><span class=p>,</span> <span class=n>as_completed</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>requests</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>download</span><span class=p>(</span><span class=n>url</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=n>response</span> <span class=o>=</span> <span class=n>requests</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>,</span> <span class=n>timeout</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>url</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>response</span><span class=o>.</span><span class=n>content</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>urls</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/2&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/3&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>ThreadPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=mi>4</span><span class=p>)</span> <span class=k>as</span> <span class=n>executor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Submit all tasks</span>
+</span></span><span class=line><span class=cl>    <span class=n>futures</span> <span class=o>=</span> <span class=p>{</span><span class=n>executor</span><span class=o>.</span><span class=n>submit</span><span class=p>(</span><span class=n>download</span><span class=p>,</span> <span class=n>url</span><span class=p>):</span> <span class=n>url</span> <span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Process results as they complete</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>future</span> <span class=ow>in</span> <span class=n>as_completed</span><span class=p>(</span><span class=n>futures</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>url</span> <span class=o>=</span> <span class=n>futures</span><span class=p>[</span><span class=n>future</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>result_url</span><span class=p>,</span> <span class=n>size</span> <span class=o>=</span> <span class=n>future</span><span class=o>.</span><span class=n>result</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Downloaded </span><span class=si>{</span><span class=n>result_url</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>size</span><span class=si>}</span><span class=s2> bytes&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Failed </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>e</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=thread-safe-data-structures class=heading-anchor>Thread-Safe Data Structures<a href=#thread-safe-data-structures class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>When threads share data, use locks or thread-safe collections:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>threading</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>collections</span> <span class=kn>import</span> <span class=n>deque</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Lock for protecting shared state</span>
+</span></span><span class=line><span class=cl><span class=n>lock</span> <span class=o>=</span> <span class=n>threading</span><span class=o>.</span><span class=n>Lock</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>results</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>worker</span><span class=p>(</span><span class=n>item</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>processed</span> <span class=o>=</span> <span class=n>expensive_computation</span><span class=p>(</span><span class=n>item</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>lock</span><span class=p>:</span>  <span class=c1># Only one thread can execute this block at a time</span>
+</span></span><span class=line><span class=cl>        <span class=n>results</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>processed</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Queue for producer-consumer patterns</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>queue</span> <span class=kn>import</span> <span class=n>Queue</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>work_queue</span><span class=p>:</span> <span class=n>Queue</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>Queue</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>work_queue</span><span class=o>.</span><span class=n>put</span><span class=p>(</span><span class=n>url</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>consumer</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>url</span> <span class=o>=</span> <span class=n>work_queue</span><span class=o>.</span><span class=n>get</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>url</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># Poison pill</span>
+</span></span><span class=line><span class=cl>            <span class=k>break</span>
+</span></span><span class=line><span class=cl>        <span class=n>download</span><span class=p>(</span><span class=n>url</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>work_queue</span><span class=o>.</span><span class=n>task_done</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Start consumers</span>
+</span></span><span class=line><span class=cl><span class=n>threads</span> <span class=o>=</span> <span class=p>[</span><span class=n>threading</span><span class=o>.</span><span class=n>Thread</span><span class=p>(</span><span class=n>target</span><span class=o>=</span><span class=n>consumer</span><span class=p>)</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>4</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>threads</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span><span class=o>.</span><span class=n>start</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Wait for all work to complete</span>
+</span></span><span class=line><span class=cl><span class=n>work_queue</span><span class=o>.</span><span class=n>join</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Send poison pills</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=n>threads</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>work_queue</span><span class=o>.</span><span class=n>put</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>threads</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span><span class=o>.</span><span class=n>join</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=multiprocessing-cpu-bound-concurrency class=heading-anchor>Multiprocessing: CPU-Bound Concurrency<a href=#multiprocessing-cpu-bound-concurrency class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Each process has its own Python interpreter and GIL, enabling true parallelism on multiple CPU cores.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-decision-tree.png alt="Concurrency decision tree" loading=lazy decoding=async class=content-image></figure></p><h3 id=basic-usage class=heading-anchor>Basic Usage<a href=#basic-usage class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>multiprocessing</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>cpu_intensive</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Simulate CPU-bound work.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>total</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>total</span> <span class=o>+=</span> <span class=n>i</span> <span class=o>*</span> <span class=n>i</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>total</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>numbers</span> <span class=o>=</span> <span class=p>[</span><span class=mi>10_000_000</span><span class=p>]</span> <span class=o>*</span> <span class=mi>4</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Sequential</span>
+</span></span><span class=line><span class=cl><span class=n>start</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>results</span> <span class=o>=</span> <span class=p>[</span><span class=n>cpu_intensive</span><span class=p>(</span><span class=n>n</span><span class=p>)</span> <span class=k>for</span> <span class=n>n</span> <span class=ow>in</span> <span class=n>numbers</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Sequential: </span><span class=si>{</span><span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span> <span class=o>-</span> <span class=n>start</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>s&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Parallel</span>
+</span></span><span class=line><span class=cl><span class=n>start</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>multiprocessing</span><span class=o>.</span><span class=n>Pool</span><span class=p>(</span><span class=n>processes</span><span class=o>=</span><span class=mi>4</span><span class=p>)</span> <span class=k>as</span> <span class=n>pool</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=n>pool</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=n>cpu_intensive</span><span class=p>,</span> <span class=n>numbers</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Parallel:   </span><span class=si>{</span><span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span> <span class=o>-</span> <span class=n>start</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>s&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Output on a 4-core machine:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Sequential: 8.45s
+</span></span><span class=line><span class=cl>Parallel:   2.31s
+</span></span></code></pre></td></tr></table></div></div><h3 id=processpoolexecutor class=heading-anchor>ProcessPoolExecutor<a href=#processpoolexecutor class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Same API as ThreadPoolExecutor, making it easy to switch between the two:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent.futures</span> <span class=kn>import</span> <span class=n>ProcessPoolExecutor</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>factorize</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Find all factors of n.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>factors</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=nb>int</span><span class=p>(</span><span class=n>n</span><span class=o>**</span><span class=mf>0.5</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>n</span> <span class=o>%</span> <span class=n>i</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>factors</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>i</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>i</span> <span class=o>!=</span> <span class=n>n</span> <span class=o>//</span> <span class=n>i</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>factors</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>n</span> <span class=o>//</span> <span class=n>i</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>factors</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>numbers</span> <span class=o>=</span> <span class=p>[</span><span class=mi>112272535095293</span><span class=p>,</span> <span class=mi>112582705942171</span><span class=p>,</span> <span class=mi>115280095190773</span><span class=p>,</span> <span class=mi>115797848077099</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>ProcessPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=mi>4</span><span class=p>)</span> <span class=k>as</span> <span class=n>executor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>executor</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=n>factorize</span><span class=p>,</span> <span class=n>numbers</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>factors</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>numbers</span><span class=p>,</span> <span class=n>results</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>factors</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=multiprocessing-overhead class=heading-anchor>Multiprocessing Overhead<a href=#multiprocessing-overhead class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Processes are heavier than threads:</p><div class=table-wrap><table><thead><tr><th>Aspect</th><th>Threads</th><th>Processes</th></tr></thead><tbody><tr><td>Memory</td><td>Shared (lightweight)</td><td>Separate (each copies data)</td></tr><tr><td>Startup cost</td><td>~1ms</td><td>~50-100ms</td></tr><tr><td>Communication</td><td>Direct (shared memory, but need locks)</td><td>Serialization (pickle via pipes)</td></tr><tr><td>GIL limitation</td><td>Yes (CPU-bound limited)</td><td>No (separate interpreters)</td></tr><tr><td>Debugging</td><td>Harder (shared state bugs)</td><td>Easier (isolated state)</td></tr></tbody></table></div><p>Don&rsquo;t use multiprocessing for small tasks. The serialization and process startup overhead can make it slower than sequential execution.</p><h3 id=sharing-data-between-processes class=heading-anchor>Sharing Data Between Processes<a href=#sharing-data-between-processes class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>multiprocessing</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>worker</span><span class=p>(</span><span class=n>shared_array</span><span class=p>,</span> <span class=n>index</span><span class=p>,</span> <span class=n>value</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>shared_array</span><span class=p>[</span><span class=n>index</span><span class=p>]</span> <span class=o>=</span> <span class=n>value</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>&#34;__main__&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Shared array</span>
+</span></span><span class=line><span class=cl>    <span class=n>arr</span> <span class=o>=</span> <span class=n>multiprocessing</span><span class=o>.</span><span class=n>Array</span><span class=p>(</span><span class=s2>&#34;i&#34;</span><span class=p>,</span> <span class=mi>4</span><span class=p>)</span>  <span class=c1># 4 integers</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>processes</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>4</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>p</span> <span class=o>=</span> <span class=n>multiprocessing</span><span class=o>.</span><span class=n>Process</span><span class=p>(</span><span class=n>target</span><span class=o>=</span><span class=n>worker</span><span class=p>,</span> <span class=n>args</span><span class=o>=</span><span class=p>(</span><span class=n>arr</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=n>i</span> <span class=o>*</span> <span class=mi>10</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>p</span><span class=o>.</span><span class=n>start</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>processes</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>p</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>processes</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>p</span><span class=o>.</span><span class=n>join</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=nb>list</span><span class=p>(</span><span class=n>arr</span><span class=p>))</span>  <span class=c1># [0, 10, 20, 30]</span>
+</span></span></code></pre></td></tr></table></div></div><p>Note the <code>if __name__ == "__main__":</code> guard. This is required on macOS and Windows because multiprocessing uses <code>spawn</code> to create new processes, which re-imports the module.</p><h2 id=concurrentfutures-unified-api class=heading-anchor>concurrent.futures: Unified API<a href=#concurrentfutures-unified-api class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/06-asyncio-event-loop-as-a-spinning-wheel-processing-coroutines.jpg alt="Asyncio event loop as a spinning wheel processing coroutines" loading=lazy decoding=async class=content-image></figure></p><p>The beauty of <code>concurrent.futures</code> is that switching between threads and processes requires changing one line:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent.futures</span> <span class=kn>import</span> <span class=n>ThreadPoolExecutor</span><span class=p>,</span> <span class=n>ProcessPoolExecutor</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>process_item</span><span class=p>(</span><span class=n>item</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># ... some work ...</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>result</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>items</span> <span class=o>=</span> <span class=nb>range</span><span class=p>(</span><span class=mi>100</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># For I/O-bound work:</span>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>ThreadPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span> <span class=k>as</span> <span class=n>executor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>executor</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=n>process_item</span><span class=p>,</span> <span class=n>items</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># For CPU-bound work (change only this line):</span>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>ProcessPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=mi>4</span><span class=p>)</span> <span class=k>as</span> <span class=n>executor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>executor</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=n>process_item</span><span class=p>,</span> <span class=n>items</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=timeout-and-exception-handling class=heading-anchor>Timeout and Exception Handling<a href=#timeout-and-exception-handling class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent.futures</span> <span class=kn>import</span> <span class=n>ThreadPoolExecutor</span><span class=p>,</span> <span class=ne>TimeoutError</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>slow_download</span><span class=p>(</span><span class=n>url</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl>    <span class=n>time</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=sa>f</span><span class=s2>&#34;Done: </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>ThreadPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span> <span class=k>as</span> <span class=n>executor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>future</span> <span class=o>=</span> <span class=n>executor</span><span class=o>.</span><span class=n>submit</span><span class=p>(</span><span class=n>slow_download</span><span class=p>,</span> <span class=s2>&#34;https://example.com&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>result</span> <span class=o>=</span> <span class=n>future</span><span class=o>.</span><span class=n>result</span><span class=p>(</span><span class=n>timeout</span><span class=o>=</span><span class=mi>5</span><span class=p>)</span>  <span class=c1># Wait max 5 seconds</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=ne>TimeoutError</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=s2>&#34;Task timed out!&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>future</span><span class=o>.</span><span class=n>cancel</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Task failed: </span><span class=si>{</span><span class=n>e</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=asyncio-cooperative-concurrency class=heading-anchor>asyncio: Cooperative Concurrency<a href=#asyncio-cooperative-concurrency class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>asyncio uses a single thread with an event loop. Functions voluntarily give up control at <code>await</code> points, allowing other tasks to run. No threads, no locks, no GIL worries.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-asyncio-loop.png alt="asyncio event loop" loading=lazy decoding=async class=content-image></figure></p><h3 id=basic-asyncawait class=heading-anchor>Basic async/await<a href=#basic-asyncawait class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>say_after</span><span class=p>(</span><span class=n>delay</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>message</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Wait, then return a message.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=n>delay</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>message</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Sequential: takes 3 seconds</span>
+</span></span><span class=line><span class=cl>    <span class=n>result1</span> <span class=o>=</span> <span class=k>await</span> <span class=n>say_after</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=s2>&#34;hello&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>result2</span> <span class=o>=</span> <span class=k>await</span> <span class=n>say_after</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=s2>&#34;world&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=n>result1</span><span class=p>,</span> <span class=n>result2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Concurrent: takes 2 seconds (max of delays)</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>say_after</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=s2>&#34;hello&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>say_after</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=s2>&#34;world&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=n>results</span><span class=p>)</span>  <span class=c1># [&#39;hello&#39;, &#39;world&#39;]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=creating-tasks class=heading-anchor>Creating Tasks<a href=#creating-tasks class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>download</span><span class=p>(</span><span class=n>url</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Start: </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span>  <span class=c1># Simulate network I/O</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Done: </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=sa>f</span><span class=s2>&#34;Content of </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Create tasks (start running immediately)</span>
+</span></span><span class=line><span class=cl>    <span class=n>tasks</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=n>asyncio</span><span class=o>.</span><span class=n>create_task</span><span class=p>(</span><span class=n>download</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;https://example.com/</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Wait for all to complete</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>tasks</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Downloaded </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>results</span><span class=p>)</span><span class=si>}</span><span class=s2> pages&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><p>Output:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Start: https://example.com/0
+</span></span><span class=line><span class=cl>Start: https://example.com/1
+</span></span><span class=line><span class=cl>Start: https://example.com/2
+</span></span><span class=line><span class=cl>Start: https://example.com/3
+</span></span><span class=line><span class=cl>Start: https://example.com/4
+</span></span><span class=line><span class=cl>Done: https://example.com/0
+</span></span><span class=line><span class=cl>Done: https://example.com/1
+</span></span><span class=line><span class=cl>Done: https://example.com/2
+</span></span><span class=line><span class=cl>Done: https://example.com/3
+</span></span><span class=line><span class=cl>Done: https://example.com/4
+</span></span><span class=line><span class=cl>Downloaded 5 pages
+</span></span></code></pre></td></tr></table></div></div><p>All five downloads start immediately and complete together after ~1 second.</p><h3 id=aiohttp-for-async-http class=heading-anchor>aiohttp for Async HTTP<a href=#aiohttp-for-async-http class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>The <code>requests</code> library is synchronous. For async HTTP, use <code>aiohttp</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install aiohttp
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>aiohttp</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>download</span><span class=p>(</span><span class=n>session</span><span class=p>:</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientSession</span><span class=p>,</span> <span class=n>url</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>session</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>)</span> <span class=k>as</span> <span class=n>response</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>content</span> <span class=o>=</span> <span class=k>await</span> <span class=n>response</span><span class=o>.</span><span class=n>read</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>len</span><span class=p>(</span><span class=n>content</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>urls</span> <span class=o>=</span> <span class=p>[</span><span class=sa>f</span><span class=s2>&#34;https://httpbin.org/delay/1&#34;</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>10</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientSession</span><span class=p>()</span> <span class=k>as</span> <span class=n>session</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>tasks</span> <span class=o>=</span> <span class=p>[</span><span class=n>download</span><span class=p>(</span><span class=n>session</span><span class=p>,</span> <span class=n>url</span><span class=p>)</span> <span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>start</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>tasks</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>elapsed</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span> <span class=o>-</span> <span class=n>start</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Downloaded </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>results</span><span class=p>)</span><span class=si>}</span><span class=s2> URLs in </span><span class=si>{</span><span class=n>elapsed</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>s&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Total bytes: </span><span class=si>{</span><span class=nb>sum</span><span class=p>(</span><span class=n>results</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><p>Output:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Downloaded 10 URLs in 1.15s
+</span></span><span class=line><span class=cl>Total bytes: 4230
+</span></span></code></pre></td></tr></table></div></div><p>Ten URLs with 1-second delay each, completed in just over 1 second.</p><h3 id=semaphore-controlling-concurrency class=heading-anchor>Semaphore: Controlling Concurrency<a href=#semaphore-controlling-concurrency class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Unlimited concurrency can overwhelm servers or hit rate limits:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>aiohttp</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>download</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>session</span><span class=p>:</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientSession</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>url</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>semaphore</span><span class=p>:</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>Semaphore</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>semaphore</span><span class=p>:</span>  <span class=c1># At most N concurrent downloads</span>
+</span></span><span class=line><span class=cl>        <span class=k>async</span> <span class=k>with</span> <span class=n>session</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>)</span> <span class=k>as</span> <span class=n>response</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>content</span> <span class=o>=</span> <span class=k>await</span> <span class=n>response</span><span class=o>.</span><span class=n>read</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=nb>len</span><span class=p>(</span><span class=n>content</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>urls</span> <span class=o>=</span> <span class=p>[</span><span class=sa>f</span><span class=s2>&#34;https://httpbin.org/delay/1&#34;</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>100</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>    <span class=n>semaphore</span> <span class=o>=</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>Semaphore</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span>  <span class=c1># Max 10 concurrent requests</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientSession</span><span class=p>()</span> <span class=k>as</span> <span class=n>session</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>tasks</span> <span class=o>=</span> <span class=p>[</span><span class=n>download</span><span class=p>(</span><span class=n>session</span><span class=p>,</span> <span class=n>url</span><span class=p>,</span> <span class=n>semaphore</span><span class=p>)</span> <span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>tasks</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Downloaded </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>results</span><span class=p>)</span><span class=si>}</span><span class=s2> URLs&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=timeout-with-asyncio class=heading-anchor>Timeout with asyncio<a href=#timeout-with-asyncio class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>slow_operation</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s2>&#34;done&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>result</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>wait_for</span><span class=p>(</span><span class=n>slow_operation</span><span class=p>(),</span> <span class=n>timeout</span><span class=o>=</span><span class=mf>3.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>TimeoutError</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=s2>&#34;Operation timed out after 3 seconds&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=modern-asyncio-patterns-python-311 class=heading-anchor>Modern asyncio Patterns (Python 3.11+)<a href=#modern-asyncio-patterns-python-311 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Python 3.9–3.11 introduced three features that fundamentally improve async code. If you are on 3.11+, prefer these over the older patterns.</p><h3 id=asyncioto_thread-run-blocking-code-without-boilerplate class=heading-anchor>asyncio.to_thread(): Run Blocking Code Without Boilerplate<a href=#asyncioto_thread-run-blocking-code-without-boilerplate class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Before 3.9, running blocking code in an async context required <code>loop.run_in_executor()</code>. Now there is a simpler way:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>blocking_io</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Simulate a blocking I/O operation (legacy library, file I/O, etc.).&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>time</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s2>&#34;result from blocking call&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Old way (verbose):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># loop = asyncio.get_event_loop()</span>
+</span></span><span class=line><span class=cl>    <span class=c1># result = await loop.run_in_executor(None, blocking_io)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># New way (Python 3.9+):</span>
+</span></span><span class=line><span class=cl>    <span class=n>result</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>to_thread</span><span class=p>(</span><span class=n>blocking_io</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=n>result</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Run multiple blocking calls concurrently:</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>asyncio</span><span class=o>.</span><span class=n>to_thread</span><span class=p>(</span><span class=n>blocking_io</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>asyncio</span><span class=o>.</span><span class=n>to_thread</span><span class=p>(</span><span class=n>blocking_io</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>asyncio</span><span class=o>.</span><span class=n>to_thread</span><span class=p>(</span><span class=n>blocking_io</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Takes ~2s total, not 6s</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><p>Use <code>asyncio.to_thread()</code> when you need to call a synchronous library (database driver, file parser, legacy SDK) from async code without blocking the event loop.</p><h3 id=asynciotaskgroup-structured-concurrency class=heading-anchor>asyncio.TaskGroup: Structured Concurrency<a href=#asynciotaskgroup-structured-concurrency class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><code>asyncio.gather()</code> has a problem: if one task raises an exception, other tasks keep running (or get cancelled inconsistently). <code>TaskGroup</code> (Python 3.11+) fixes this with <strong>structured concurrency</strong> — all tasks in a group are guaranteed to finish before the block exits:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>fetch</span><span class=p>(</span><span class=n>url</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=s2>&#34;bad&#34;</span> <span class=ow>in</span> <span class=n>url</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Bad URL: </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=sa>f</span><span class=s2>&#34;Content of </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>async</span> <span class=k>with</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>TaskGroup</span><span class=p>()</span> <span class=k>as</span> <span class=n>tg</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>task1</span> <span class=o>=</span> <span class=n>tg</span><span class=o>.</span><span class=n>create_task</span><span class=p>(</span><span class=n>fetch</span><span class=p>(</span><span class=s2>&#34;https://example.com/a&#34;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=n>task2</span> <span class=o>=</span> <span class=n>tg</span><span class=o>.</span><span class=n>create_task</span><span class=p>(</span><span class=n>fetch</span><span class=p>(</span><span class=s2>&#34;https://example.com/b&#34;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=n>task3</span> <span class=o>=</span> <span class=n>tg</span><span class=o>.</span><span class=n>create_task</span><span class=p>(</span><span class=n>fetch</span><span class=p>(</span><span class=s2>&#34;https://example.com/bad&#34;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span><span class=o>*</span> <span class=ne>ValueError</span> <span class=k>as</span> <span class=n>eg</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># ExceptionGroup: one handler for all ValueErrors</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>exc</span> <span class=ow>in</span> <span class=n>eg</span><span class=o>.</span><span class=n>exceptions</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Caught: </span><span class=si>{</span><span class=n>exc</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># All tasks succeeded</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=n>task1</span><span class=o>.</span><span class=n>result</span><span class=p>(),</span> <span class=n>task2</span><span class=o>.</span><span class=n>result</span><span class=p>(),</span> <span class=n>task3</span><span class=o>.</span><span class=n>result</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><p>Key differences from <code>gather()</code>:</p><div class=table-wrap><table><thead><tr><th>Feature</th><th><code>asyncio.gather()</code></th><th><code>asyncio.TaskGroup</code></th></tr></thead><tbody><tr><td>Cancel on failure</td><td>Only with <code>return_exceptions=False</code></td><td>Always cancels remaining tasks</td></tr><tr><td>Exception handling</td><td>First exception propagates, rest lost</td><td><code>ExceptionGroup</code> collects all</td></tr><tr><td>Cleanup guarantee</td><td>No — tasks may leak</td><td>Yes — all tasks done when block exits</td></tr><tr><td>Dynamic task creation</td><td>No (fixed list)</td><td>Yes (<code>tg.create_task()</code> inside the block)</td></tr><tr><td>Python version</td><td>3.4+</td><td>3.11+</td></tr></tbody></table></div><p><strong>Prefer <code>TaskGroup</code> over <code>gather()</code> for new code on Python 3.11+.</strong> It prevents the &ldquo;fire-and-forget&rdquo; bugs that plague <code>gather()</code>-based code.</p><h3 id=exception-handling-in-gather class=heading-anchor>Exception Handling in gather()<a href=#exception-handling-in-gather class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>If you must support Python &lt; 3.11, handle failures in <code>gather()</code> explicitly:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>risky_download</span><span class=p>(</span><span class=n>url</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=s2>&#34;fail&#34;</span> <span class=ow>in</span> <span class=n>url</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>raise</span> <span class=ne>ConnectionError</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Cannot reach </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=sa>f</span><span class=s2>&#34;OK: </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>urls</span> <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;https://a.com&#34;</span><span class=p>,</span> <span class=s2>&#34;https://fail.com&#34;</span><span class=p>,</span> <span class=s2>&#34;https://b.com&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Option 1: return_exceptions=True (collect all, check manually)</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=o>*</span><span class=p>[</span><span class=n>risky_download</span><span class=p>(</span><span class=n>url</span><span class=p>)</span> <span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=n>return_exceptions</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>url</span><span class=p>,</span> <span class=n>result</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>urls</span><span class=p>,</span> <span class=n>results</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>result</span><span class=p>,</span> <span class=ne>Exception</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;FAILED </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>result</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;OK </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>result</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Option 2: return_exceptions=False (default) — first exception cancels all</span>
+</span></span><span class=line><span class=cl>    <span class=c1># This is usually NOT what you want for independent tasks</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><p>Output:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>OK https://a.com: OK: https://a.com
+</span></span><span class=line><span class=cl>FAILED https://fail.com: Cannot reach https://fail.com
+</span></span><span class=line><span class=cl>OK https://b.com: OK: https://b.com
+</span></span></code></pre></td></tr></table></div></div><h2 id=production-patterns class=heading-anchor>Production Patterns<a href=#production-patterns class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Real-world async code needs retry logic, rate limiting, and graceful shutdown. These patterns come up in every production service.</p><h3 id=retry-with-exponential-backoff class=heading-anchor>Retry with Exponential Backoff<a href=#retry-with-exponential-backoff class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>random</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>aiohttp</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>fetch_with_retry</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>session</span><span class=p>:</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientSession</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>url</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>max_retries</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>base_delay</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>1.0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Fetch URL with exponential backoff on failure.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>attempt</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_retries</span> <span class=o>+</span> <span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>async</span> <span class=k>with</span> <span class=n>session</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>)</span> <span class=k>as</span> <span class=n>response</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>response</span><span class=o>.</span><span class=n>raise_for_status</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                <span class=k>return</span> <span class=k>await</span> <span class=n>response</span><span class=o>.</span><span class=n>text</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>except</span> <span class=p>(</span><span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientError</span><span class=p>,</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>TimeoutError</span><span class=p>)</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>attempt</span> <span class=o>==</span> <span class=n>max_retries</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>raise</span>
+</span></span><span class=line><span class=cl>            <span class=n>delay</span> <span class=o>=</span> <span class=n>base_delay</span> <span class=o>*</span> <span class=p>(</span><span class=mi>2</span> <span class=o>**</span> <span class=n>attempt</span><span class=p>)</span> <span class=o>+</span> <span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Retry </span><span class=si>{</span><span class=n>attempt</span> <span class=o>+</span> <span class=mi>1</span><span class=si>}</span><span class=s2>/</span><span class=si>{</span><span class=n>max_retries</span><span class=si>}</span><span class=s2> for </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2> in </span><span class=si>{</span><span class=n>delay</span><span class=si>:</span><span class=s2>.1f</span><span class=si>}</span><span class=s2>s: </span><span class=si>{</span><span class=n>e</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=n>delay</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>raise</span> <span class=ne>RuntimeError</span><span class=p>(</span><span class=s2>&#34;unreachable&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>timeout</span> <span class=o>=</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientTimeout</span><span class=p>(</span><span class=n>total</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientSession</span><span class=p>(</span><span class=n>timeout</span><span class=o>=</span><span class=n>timeout</span><span class=p>)</span> <span class=k>as</span> <span class=n>session</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>content</span> <span class=o>=</span> <span class=k>await</span> <span class=n>fetch_with_retry</span><span class=p>(</span><span class=n>session</span><span class=p>,</span> <span class=s2>&#34;https://httpbin.org/status/200&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Got </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>content</span><span class=p>)</span><span class=si>}</span><span class=s2> bytes&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><p>The jitter (<code>random.uniform(0, 1)</code>) prevents thundering herd problems when many clients retry simultaneously.</p><h3 id=rate-limiting-with-token-bucket class=heading-anchor>Rate Limiting with Token Bucket<a href=#rate-limiting-with-token-bucket class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>A semaphore limits concurrency (how many requests run at once). A token bucket limits throughput (how many requests per second):</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>TokenBucket</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Rate limiter: allows N requests per second.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>rate</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>burst</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>rate</span> <span class=o>=</span> <span class=n>rate</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>burst</span> <span class=o>=</span> <span class=n>burst</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>tokens</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>burst</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>last_refill</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>monotonic</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>_lock</span> <span class=o>=</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>Lock</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>acquire</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>async</span> <span class=k>with</span> <span class=bp>self</span><span class=o>.</span><span class=n>_lock</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>now</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>monotonic</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>elapsed</span> <span class=o>=</span> <span class=n>now</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>last_refill</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>tokens</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>burst</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>tokens</span> <span class=o>+</span> <span class=n>elapsed</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>rate</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>last_refill</span> <span class=o>=</span> <span class=n>now</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>tokens</span> <span class=o>&lt;</span> <span class=mi>1</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>wait</span> <span class=o>=</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>tokens</span><span class=p>)</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>rate</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=n>wait</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>tokens</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>            <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>tokens</span> <span class=o>-=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>api_call</span><span class=p>(</span><span class=n>bucket</span><span class=p>:</span> <span class=n>TokenBucket</span><span class=p>,</span> <span class=n>request_id</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>bucket</span><span class=o>.</span><span class=n>acquire</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;[</span><span class=si>{</span><span class=n>time</span><span class=o>.</span><span class=n>strftime</span><span class=p>(</span><span class=s1>&#39;%H:%M:%S&#39;</span><span class=p>)</span><span class=si>}</span><span class=s2>] Request </span><span class=si>{</span><span class=n>request_id</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=sa>f</span><span class=s2>&#34;result-</span><span class=si>{</span><span class=n>request_id</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>bucket</span> <span class=o>=</span> <span class=n>TokenBucket</span><span class=p>(</span><span class=n>rate</span><span class=o>=</span><span class=mi>5</span><span class=p>,</span> <span class=n>burst</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>tasks</span> <span class=o>=</span> <span class=p>[</span><span class=n>api_call</span><span class=p>(</span><span class=n>bucket</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>15</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>tasks</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Completed </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>results</span><span class=p>)</span><span class=si>}</span><span class=s2> requests&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=graceful-shutdown class=heading-anchor>Graceful Shutdown<a href=#graceful-shutdown class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Production services need to finish in-flight work before exiting:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>signal</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>Worker</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>running</span> <span class=o>=</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>tasks</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=n>asyncio</span><span class=o>.</span><span class=n>Task</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>process</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>item</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Processed: </span><span class=si>{</span><span class=n>item</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>run</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>items</span> <span class=o>=</span> <span class=nb>iter</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=mi>100</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>while</span> <span class=bp>self</span><span class=o>.</span><span class=n>running</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>item</span> <span class=o>=</span> <span class=nb>next</span><span class=p>(</span><span class=n>items</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>except</span> <span class=ne>StopIteration</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>break</span>
+</span></span><span class=line><span class=cl>            <span class=n>task</span> <span class=o>=</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>create_task</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>process</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;item-</span><span class=si>{</span><span class=n>item</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>tasks</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>task</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>task</span><span class=o>.</span><span class=n>add_done_callback</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>tasks</span><span class=o>.</span><span class=n>discard</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mf>0.5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>shutdown</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>running</span> <span class=o>=</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>tasks</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Waiting for </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>tasks</span><span class=p>)</span><span class=si>}</span><span class=s2> in-flight tasks...&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=bp>self</span><span class=o>.</span><span class=n>tasks</span><span class=p>,</span> <span class=n>return_exceptions</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=s2>&#34;Shutdown complete.&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>worker</span> <span class=o>=</span> <span class=n>Worker</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>loop</span> <span class=o>=</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>get_event_loop</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>sig</span> <span class=ow>in</span> <span class=p>(</span><span class=n>signal</span><span class=o>.</span><span class=n>SIGINT</span><span class=p>,</span> <span class=n>signal</span><span class=o>.</span><span class=n>SIGTERM</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>loop</span><span class=o>.</span><span class=n>add_signal_handler</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>sig</span><span class=p>,</span> <span class=k>lambda</span><span class=p>:</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>create_task</span><span class=p>(</span><span class=n>worker</span><span class=o>.</span><span class=n>shutdown</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>worker</span><span class=o>.</span><span class=n>run</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>worker</span><span class=o>.</span><span class=n>shutdown</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=async-producer-consumer-with-asyncioqueue class=heading-anchor>Async Producer-Consumer with asyncio.Queue<a href=#async-producer-consumer-with-asyncioqueue class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>random</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>producer</span><span class=p>(</span><span class=n>queue</span><span class=p>:</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>Queue</span><span class=p>[</span><span class=nb>str</span><span class=p>],</span> <span class=n>producer_id</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>5</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>item</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>&#34;P</span><span class=si>{</span><span class=n>producer_id</span><span class=si>}</span><span class=s2>-item-</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=n>queue</span><span class=o>.</span><span class=n>put</span><span class=p>(</span><span class=n>item</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mf>0.1</span><span class=p>,</span> <span class=mf>0.5</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>consumer</span><span class=p>(</span><span class=n>queue</span><span class=p>:</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>Queue</span><span class=p>[</span><span class=nb>str</span><span class=p>],</span> <span class=n>consumer_id</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>count</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>item</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>wait_for</span><span class=p>(</span><span class=n>queue</span><span class=o>.</span><span class=n>get</span><span class=p>(),</span> <span class=n>timeout</span><span class=o>=</span><span class=mf>2.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mf>0.2</span><span class=p>,</span> <span class=mf>0.8</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Consumer </span><span class=si>{</span><span class=n>consumer_id</span><span class=si>}</span><span class=s2> processed: </span><span class=si>{</span><span class=n>item</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>count</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=n>queue</span><span class=o>.</span><span class=n>task_done</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>count</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>queue</span><span class=p>:</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>Queue</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>Queue</span><span class=p>(</span><span class=n>maxsize</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>producers</span> <span class=o>=</span> <span class=p>[</span><span class=n>asyncio</span><span class=o>.</span><span class=n>create_task</span><span class=p>(</span><span class=n>producer</span><span class=p>(</span><span class=n>queue</span><span class=p>,</span> <span class=n>i</span><span class=p>))</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>2</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>    <span class=n>consumers</span> <span class=o>=</span> <span class=p>[</span><span class=n>asyncio</span><span class=o>.</span><span class=n>create_task</span><span class=p>(</span><span class=n>consumer</span><span class=p>(</span><span class=n>queue</span><span class=p>,</span> <span class=n>i</span><span class=p>))</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>3</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>producers</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>queue</span><span class=o>.</span><span class=n>join</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>consumers</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>c</span><span class=o>.</span><span class=n>cancel</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=s2>&#34;All items processed.&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=testing-async-code class=heading-anchor>Testing Async Code<a href=#testing-async-code class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=pytest-asyncio class=heading-anchor>pytest-asyncio<a href=#pytest-asyncio class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install pytest-asyncio
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>pytest</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>fetch_data</span><span class=p>(</span><span class=n>url</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mf>0.1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span><span class=s2>&#34;url&#34;</span><span class=p>:</span> <span class=n>url</span><span class=p>,</span> <span class=s2>&#34;status&#34;</span><span class=p>:</span> <span class=mi>200</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@pytest.mark.asyncio</span>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>test_fetch_data</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>result</span> <span class=o>=</span> <span class=k>await</span> <span class=n>fetch_data</span><span class=p>(</span><span class=s2>&#34;https://example.com&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=n>result</span><span class=p>[</span><span class=s2>&#34;status&#34;</span><span class=p>]</span> <span class=o>==</span> <span class=mi>200</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@pytest.mark.asyncio</span>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>test_concurrent_fetch</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>urls</span> <span class=o>=</span> <span class=p>[</span><span class=sa>f</span><span class=s2>&#34;https://example.com/</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>&#34;</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>5</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=p>[</span><span class=n>fetch_data</span><span class=p>(</span><span class=n>url</span><span class=p>)</span> <span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=nb>len</span><span class=p>(</span><span class=n>results</span><span class=p>)</span> <span class=o>==</span> <span class=mi>5</span>
+</span></span><span class=line><span class=cl>    <span class=k>assert</span> <span class=nb>all</span><span class=p>(</span><span class=n>r</span><span class=p>[</span><span class=s2>&#34;status&#34;</span><span class=p>]</span> <span class=o>==</span> <span class=mi>200</span> <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=n>results</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@pytest.mark.asyncio</span>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>test_timeout</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>pytest</span><span class=o>.</span><span class=n>raises</span><span class=p>(</span><span class=n>asyncio</span><span class=o>.</span><span class=n>TimeoutError</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>wait_for</span><span class=p>(</span><span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mi>10</span><span class=p>),</span> <span class=n>timeout</span><span class=o>=</span><span class=mf>0.1</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=mocking-async-functions class=heading-anchor>Mocking Async Functions<a href=#mocking-async-functions class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>unittest.mock</span> <span class=kn>import</span> <span class=n>AsyncMock</span><span class=p>,</span> <span class=n>patch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>pytest</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>send_notification</span><span class=p>(</span><span class=n>user_id</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>message</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bool</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=o>...</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>process_order</span><span class=p>(</span><span class=n>order_id</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>send_notification</span><span class=p>(</span><span class=n>user_id</span><span class=o>=</span><span class=mi>42</span><span class=p>,</span> <span class=n>message</span><span class=o>=</span><span class=sa>f</span><span class=s2>&#34;Order </span><span class=si>{</span><span class=n>order_id</span><span class=si>}</span><span class=s2> confirmed&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s2>&#34;completed&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@pytest.mark.asyncio</span>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>test_process_order</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>patch</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;myapp.orders.send_notification&#34;</span><span class=p>,</span> <span class=n>new_callable</span><span class=o>=</span><span class=n>AsyncMock</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span> <span class=k>as</span> <span class=n>mock_notify</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>mock_notify</span><span class=o>.</span><span class=n>return_value</span> <span class=o>=</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>        <span class=n>result</span> <span class=o>=</span> <span class=k>await</span> <span class=n>process_order</span><span class=p>(</span><span class=mi>123</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>assert</span> <span class=n>result</span> <span class=o>==</span> <span class=s2>&#34;completed&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>mock_notify</span><span class=o>.</span><span class=n>assert_called_once_with</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>user_id</span><span class=o>=</span><span class=mi>42</span><span class=p>,</span> <span class=n>message</span><span class=o>=</span><span class=s2>&#34;Order 123 confirmed&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>AsyncMock</code> (Python 3.8+) creates a mock that is awaitable, so <code>await mock_notify(...)</code> works correctly in tests.</p><h2 id=when-to-use-which class=heading-anchor>When to Use Which<a href=#when-to-use-which class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>The decision depends on your workload type:</p><p><strong>I/O-bound work (network, disk, database):</strong></p><ul><li>Small number of concurrent tasks (&lt; 50): <code>ThreadPoolExecutor</code></li><li>Large number of concurrent tasks (50+): <code>asyncio</code></li><li>Simple scripts, one-off tasks: <code>ThreadPoolExecutor</code></li><li>Web servers, long-running services: <code>asyncio</code></li><li>Calling a sync library from async code: <code>asyncio.to_thread()</code></li></ul><p><strong>CPU-bound work (math, image processing, parsing):</strong></p><ul><li>Always: <code>ProcessPoolExecutor</code> or <code>multiprocessing.Pool</code></li></ul><p><strong>Mixed workloads:</strong></p><ul><li>Use asyncio for I/O, offload CPU work to <code>ProcessPoolExecutor</code>:</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent.futures</span> <span class=kn>import</span> <span class=n>ProcessPoolExecutor</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>aiohttp</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>cpu_work</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=nb>bytes</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;CPU-intensive processing (runs in separate process).&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Parse, transform, compute...</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span><span class=s2>&#34;result&#34;</span><span class=p>:</span> <span class=nb>len</span><span class=p>(</span><span class=n>data</span><span class=p>)}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>fetch_and_process</span><span class=p>(</span><span class=n>session</span><span class=p>,</span> <span class=n>url</span><span class=p>,</span> <span class=n>process_pool</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Fetch data (async I/O) then process it (CPU in process pool).&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>session</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>)</span> <span class=k>as</span> <span class=n>response</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>data</span> <span class=o>=</span> <span class=k>await</span> <span class=n>response</span><span class=o>.</span><span class=n>read</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Offload CPU work to process pool</span>
+</span></span><span class=line><span class=cl>    <span class=n>loop</span> <span class=o>=</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>get_event_loop</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>result</span> <span class=o>=</span> <span class=k>await</span> <span class=n>loop</span><span class=o>.</span><span class=n>run_in_executor</span><span class=p>(</span><span class=n>process_pool</span><span class=p>,</span> <span class=n>cpu_work</span><span class=p>,</span> <span class=n>data</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>result</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>urls</span> <span class=o>=</span> <span class=p>[</span><span class=sa>f</span><span class=s2>&#34;https://example.com/</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>&#34;</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>20</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>ProcessPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=mi>4</span><span class=p>)</span> <span class=k>as</span> <span class=n>process_pool</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>async</span> <span class=k>with</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientSession</span><span class=p>()</span> <span class=k>as</span> <span class=n>session</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>tasks</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>                <span class=n>fetch_and_process</span><span class=p>(</span><span class=n>session</span><span class=p>,</span> <span class=n>url</span><span class=p>,</span> <span class=n>process_pool</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span>
+</span></span><span class=line><span class=cl>            <span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>tasks</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=real-benchmark-sequential-vs-threaded-vs-async class=heading-anchor>Real Benchmark: Sequential vs Threaded vs Async<a href=#real-benchmark-sequential-vs-threaded-vs-async class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-benchmark.png alt="Concurrency benchmark" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;Benchmark: download 20 URLs with different concurrency models.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent.futures</span> <span class=kn>import</span> <span class=n>ThreadPoolExecutor</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>aiohttp</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>requests</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>URL</span> <span class=o>=</span> <span class=s2>&#34;https://httpbin.org/delay/1&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>COUNT</span> <span class=o>=</span> <span class=mi>20</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>sequential</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>COUNT</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>requests</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>URL</span><span class=p>,</span> <span class=n>timeout</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>threaded</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>download</span><span class=p>(</span><span class=n>url</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>requests</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>,</span> <span class=n>timeout</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>ThreadPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=n>COUNT</span><span class=p>)</span> <span class=k>as</span> <span class=n>executor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>list</span><span class=p>(</span><span class=n>executor</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=n>download</span><span class=p>,</span> <span class=p>[</span><span class=n>URL</span><span class=p>]</span> <span class=o>*</span> <span class=n>COUNT</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>async_download</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientSession</span><span class=p>()</span> <span class=k>as</span> <span class=n>session</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>tasks</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>COUNT</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>tasks</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>session</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>URL</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>responses</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>tasks</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=n>responses</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>await</span> <span class=n>r</span><span class=o>.</span><span class=n>read</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>r</span><span class=o>.</span><span class=n>close</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>benchmark</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=n>func</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>start</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>func</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>elapsed</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span> <span class=o>-</span> <span class=n>start</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>name</span><span class=si>:</span><span class=s2>12s</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>elapsed</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>s&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>benchmark</span><span class=p>(</span><span class=s2>&#34;Sequential&#34;</span><span class=p>,</span> <span class=n>sequential</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>benchmark</span><span class=p>(</span><span class=s2>&#34;Threaded&#34;</span><span class=p>,</span> <span class=n>threaded</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>benchmark</span><span class=p>(</span><span class=s2>&#34;Async&#34;</span><span class=p>,</span> <span class=k>lambda</span><span class=p>:</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>async_download</span><span class=p>()))</span>
+</span></span></code></pre></td></tr></table></div></div><p>Results:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Sequential  : 21.34s
+</span></span><span class=line><span class=cl>Threaded    : 1.18s
+</span></span><span class=line><span class=cl>Async       : 1.09s
+</span></span></code></pre></td></tr></table></div></div><p>Both threaded and async complete in about 1 second (the server delay). Async uses fewer system resources because it doesn&rsquo;t have thread stacks or context switches.</p><h2 id=comparison-table class=heading-anchor>Comparison Table<a href=#comparison-table class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/06-python-gil-bottleneck-single-lane-bridge-with-threads-waitin.jpg alt="Python gil bottleneck single lane bridge with threads waitin" loading=lazy decoding=async class=content-image></figure></p><div class=table-wrap><table><thead><tr><th>Feature</th><th>threading</th><th>multiprocessing</th><th>asyncio</th></tr></thead><tbody><tr><td>Parallelism type</td><td>Concurrent (GIL-limited)</td><td>True parallel</td><td>Concurrent (cooperative)</td></tr><tr><td>Best for</td><td>I/O-bound</td><td>CPU-bound</td><td>I/O-bound (many tasks)</td></tr><tr><td>Memory overhead</td><td>Low (~8KB per thread)</td><td>High (~30MB per process)</td><td>Very low (~1KB per coroutine)</td></tr><tr><td>Max practical tasks</td><td>~100-1000</td><td>CPU core count</td><td>~10,000+</td></tr><tr><td>Shared state</td><td>Yes (need locks)</td><td>No (serialized)</td><td>Yes (no locks needed, single thread)</td></tr><tr><td>Debugging difficulty</td><td>Hard (race conditions)</td><td>Medium (isolation helps)</td><td>Medium (stack traces less clear)</td></tr><tr><td>Library ecosystem</td><td>All libraries work</td><td>All libraries work</td><td>Needs async-compatible libraries</td></tr><tr><td>Startup cost</td><td>~1ms</td><td>~50-100ms</td><td>~0.01ms</td></tr><tr><td>GIL affected</td><td>Yes</td><td>No</td><td>N/A (single thread)</td></tr></tbody></table></div><h2 id=common-pitfalls class=heading-anchor>Common Pitfalls<a href=#common-pitfalls class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=table-wrap><table><thead><tr><th>Pitfall</th><th>Symptom</th><th>Solution</th></tr></thead><tbody><tr><td>Using threads for CPU work</td><td>No speedup, 100% one core</td><td>Switch to ProcessPoolExecutor</td></tr><tr><td>Too many threads</td><td>Memory exhaustion, slow context switching</td><td>Limit thread pool size (10-50 typically)</td></tr><tr><td>Forgetting <code>if __name__ == "__main__":</code></td><td>RuntimeError on macOS/Windows</td><td>Always guard multiprocessing code</td></tr><tr><td>Mixing sync and async</td><td><code>RuntimeError: This event loop is already running</code></td><td>Use <code>asyncio.run()</code> at top level only</td></tr><tr><td>Not awaiting coroutines</td><td><code>RuntimeWarning: coroutine was never awaited</code></td><td>Always <code>await</code> async function calls</td></tr><tr><td>Blocking in async code</td><td>Event loop freezes, other tasks starve</td><td>Offload blocking work to thread/process pool</td></tr><tr><td>Race conditions with shared state</td><td>Inconsistent data, intermittent bugs</td><td>Use locks, queues, or immutable data</td></tr><tr><td>Deadlocks</td><td>Program hangs forever</td><td>Acquire locks in consistent order, use timeouts</td></tr></tbody></table></div><h2 id=whats-next class=heading-anchor>What&rsquo;s Next<a href=#whats-next class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Your code is now concurrent and fast. But before you share it with the world, you need to package it properly. In the next article, we will build distributable Python packages, publish to PyPI, create Docker images, and set up a complete distribution pipeline.</p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/en/python-engineering/05-io-and-serialization/ data-next-url=https://www.chenk.top/en/python-engineering/07-packaging-and-distribution/ aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/python-engineering/>Python Engineering</a> <span class=count>8 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/python-engineering/05-io-and-serialization/><span class=title>Python Engineering (5): I/O, Serialization, and Data Formats</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/python-engineering/07-packaging-and-distribution/><span class=title>Python Engineering (7): Packaging — From pip install to PyPI</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/python-engineering/01-environment-and-toolchain/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Python Engineering (1): Environment Setup — pyenv, venv, and Dependency Hell</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/python-engineering/02-project-structure/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Python Engineering (2): Project Structure — From Script to Package</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/python-engineering/03-testing-and-debugging/><span class=series-nav-num>03</span>
+<span class=series-nav-title>Python Engineering (3): Testing — pytest, Fixtures, and the Confidence Loop</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/python-engineering/04-type-hints-and-linting/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Python Engineering (4): Type Hints, Linting, and Code Quality</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/python-engineering/05-io-and-serialization/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Python Engineering (5): I/O, Serialization, and Data Formats</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>06</span>
+<span class=series-nav-title>Python Engineering (6): Concurrency — Threads, Processes, and asyncio</span>
+<span class=series-nav-here>you are here</span></li><li class=series-nav-item><a href=https://www.chenk.top/en/python-engineering/07-packaging-and-distribution/><span class=series-nav-num>07</span>
+<span class=series-nav-title>Python Engineering (7): Packaging — From pip install to PyPI</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/python-engineering/08-performance-and-profiling/><span class=series-nav-num>08</span>
+<span class=series-nav-title>Python Engineering (8): Performance — Profiling, Caching, and Knowing When to Stop</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>Share</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=Python%2bEngineering%2b%25286%2529%253A%2bConcurrency%2b%25E2%2580%2594%2bThreads%252C%2bProcesses%252C%2band%2basyncio&url=https%253A%252F%252Fwww.chenk.top%252Fen%252Fpython-engineering%252F06-concurrency%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fen%252Fpython-engineering%252F06-concurrency%252F&title=Python%2bEngineering%2b%25286%2529%253A%2bConcurrency%2b%25E2%2580%2594%2bThreads%252C%2bProcesses%252C%2band%2basyncio" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/en/python-engineering/06-concurrency/ aria-label="Copy article link" title="Copy link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2022-04-21>written <span class=days>…</span> days ago</span></div><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-gil-what-it-is-and-why-it-matters>The GIL: What It Is and Why It Matters</a><ul><li><a href=#what-the-gil-prevents>What the GIL Prevents</a></li><li><a href=#what-the-gil-does>What the GIL Does</a></li><li><a href=#what-the-gil-means-for-you>What the GIL Means for You</a></li><li><a href=#the-future-free-threaded-python-313>The Future: Free-Threaded Python (3.13+)</a></li></ul></li><li><a href=#threading-io-bound-concurrency>Threading: I/O-Bound Concurrency</a><ul><li><a href=#basic-thread-usage>Basic Thread Usage</a></li><li><a href=#threadpoolexecutor>ThreadPoolExecutor</a></li><li><a href=#thread-safe-data-structures>Thread-Safe Data Structures</a></li></ul></li><li><a href=#multiprocessing-cpu-bound-concurrency>Multiprocessing: CPU-Bound Concurrency</a><ul><li><a href=#basic-usage>Basic Usage</a></li><li><a href=#processpoolexecutor>ProcessPoolExecutor</a></li><li><a href=#multiprocessing-overhead>Multiprocessing Overhead</a></li><li><a href=#sharing-data-between-processes>Sharing Data Between Processes</a></li></ul></li><li><a href=#concurrentfutures-unified-api>concurrent.futures: Unified API</a><ul><li><a href=#timeout-and-exception-handling>Timeout and Exception Handling</a></li></ul></li><li><a href=#asyncio-cooperative-concurrency>asyncio: Cooperative Concurrency</a><ul><li><a href=#basic-asyncawait>Basic async/await</a></li><li><a href=#creating-tasks>Creating Tasks</a></li><li><a href=#aiohttp-for-async-http>aiohttp for Async HTTP</a></li><li><a href=#semaphore-controlling-concurrency>Semaphore: Controlling Concurrency</a></li><li><a href=#timeout-with-asyncio>Timeout with asyncio</a></li></ul></li><li><a href=#modern-asyncio-patterns-python-311>Modern asyncio Patterns (Python 3.11+)</a><ul><li><a href=#asyncioto_thread-run-blocking-code-without-boilerplate>asyncio.to_thread(): Run Blocking Code Without Boilerplate</a></li><li><a href=#asynciotaskgroup-structured-concurrency>asyncio.TaskGroup: Structured Concurrency</a></li><li><a href=#exception-handling-in-gather>Exception Handling in gather()</a></li></ul></li><li><a href=#production-patterns>Production Patterns</a><ul><li><a href=#retry-with-exponential-backoff>Retry with Exponential Backoff</a></li><li><a href=#rate-limiting-with-token-bucket>Rate Limiting with Token Bucket</a></li><li><a href=#graceful-shutdown>Graceful Shutdown</a></li><li><a href=#async-producer-consumer-with-asyncioqueue>Async Producer-Consumer with asyncio.Queue</a></li></ul></li><li><a href=#testing-async-code>Testing Async Code</a><ul><li><a href=#pytest-asyncio>pytest-asyncio</a></li><li><a href=#mocking-async-functions>Mocking Async Functions</a></li></ul></li><li><a href=#when-to-use-which>When to Use Which</a></li><li><a href=#real-benchmark-sequential-vs-threaded-vs-async>Real Benchmark: Sequential vs Threaded vs Async</a></li><li><a href=#comparison-table>Comparison Table</a></li><li><a href=#common-pitfalls>Common Pitfalls</a></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/python-engineering/ class=series-name>Python Engineering</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/01-environment-and-toolchain/><span class=chapter-num>01</span>
+<span class=chapter-title>Python Engineering (1): Environment Setup — pyenv, venv, and Dependency Hell</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/02-project-structure/><span class=chapter-num>02</span>
+<span class=chapter-title>Python Engineering (2): Project Structure — From Script to Package</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/03-testing-and-debugging/><span class=chapter-num>03</span>
+<span class=chapter-title>Python Engineering (3): Testing — pytest, Fixtures, and the Confidence Loop</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/04-type-hints-and-linting/><span class=chapter-num>04</span>
+<span class=chapter-title>Python Engineering (4): Type Hints, Linting, and Code Quality</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/05-io-and-serialization/><span class=chapter-num>05</span>
+<span class=chapter-title>Python Engineering (5): I/O, Serialization, and Data Formats</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>06</span>
+<span class=chapter-title>Python Engineering (6): Concurrency — Threads, Processes, and asyncio</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/07-packaging-and-distribution/><span class=chapter-num>07</span>
+<span class=chapter-title>Python Engineering (7): Packaging — From pip install to PyPI</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/08-performance-and-profiling/><span class=chapter-num>08</span>
+<span class=chapter-title>Python Engineering (8): Performance — Profiling, Caching, and Knowing When to Stop</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>38 min</strong></div><div class=row><span>Word count</span><strong>3976</strong></div><div class=row><span>Published</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/product-thinking/>Product Thinking</a></li><li><a href=https://www.chenk.top/en/series/personal-finance/>Personal Finance</a></li><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label="Copy WeChat ID">WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=signature>Hangzhou.</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=Close>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>Search this ID inside WeChat to connect</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>Copy ID</button></div></div></div></footer></body></html>

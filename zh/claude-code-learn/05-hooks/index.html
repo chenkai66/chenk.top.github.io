@@ -1,0 +1,722 @@
+<!doctype html><html lang=zh data-translation=/en/claude-code-learn/05-hooks/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Claude Code 实战（五）：Hooks 与 Yolo 安全网 · Chen Kai Blog</title>
+<meta name=description content="Hooks 是每次工具调用前后跑的 shell 脚本。PreToolUse 可以阻止。PostToolUse 可以格式化、Lint、记日志。我每个 Repo 都用的 5 个 Hook，加上一个把所有人都坑过的反模式。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/claude-code-learn/05-hooks/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/claude-code-learn/05-hooks/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/claude-code-learn/05-hooks/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/claude-code-learn/05-hooks/><meta property="og:type" content="article"><meta property="og:title" content="Claude Code 实战（五）：Hooks 与 Yolo 安全网"><meta property="og:description" content="Hooks 是每次工具调用前后跑的 shell 脚本。PreToolUse 可以阻止。PostToolUse 可以格式化、Lint、记日志。我每个 Repo 都用的 5 个 Hook，加上一个把所有人都坑过的反模式。"><meta property="og:url" content="https://www.chenk.top/zh/claude-code-learn/05-hooks/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/claude-code-learn.jpg"><meta property="og:image:alt" content="Claude Code 实战（五）：Hooks 与 Yolo 安全网"><meta property="article:published_time" content="2026-04-22T09:00:00Z"><meta property="article:modified_time" content="2026-04-22T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="claude-code"><meta property="article:tag" content="hooks"><meta property="article:tag" content="safety"><meta property="article:tag" content="automation"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Claude Code 实战（五）：Hooks 与 Yolo 安全网"><meta name=twitter:description content="Hooks 是每次工具调用前后跑的 shell 脚本。PreToolUse 可以阻止。PostToolUse 可以格式化、Lint、记日志。我每个 Repo 都用的 5 个 Hook，加上一个把所有人都坑过的反模式。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/claude-code-learn.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"Claude Code 实战（五）：Hooks 与 Yolo 安全网","description":"Hooks 是每次工具调用前后跑的 shell 脚本。PreToolUse 可以阻止。PostToolUse 可以格式化、Lint、记日志。我每个 Repo 都用的 5 个 Hook，加上一个把所有人都坑过的反模式。","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/claude-code-learn.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2026-04-22T09:00:00Z","dateModified":"2026-04-22T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/zh/claude-code-learn/05-hooks/"},"inLanguage":"zh"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/claude-code-learn/05-hooks.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/claude-code-learn/>Claude Code 实战</a>
+· 第 5 篇</div><h1>Claude Code 实战（五）：Hooks 与 Yolo 安全网</h1><p class=deck>Hooks 是每次工具调用前后跑的 shell 脚本。PreToolUse 可以阻止。PostToolUse 可以格式化、Lint、记日志。我每个 Repo 都用的 5 个 Hook，加上一个把所有人都坑过的反模式。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-04-22>April 22, 2026</time> · 24 分钟 · 5843 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/claude-code/ class=tag>#claude-code</a><a href=/zh/tags/hooks/ class=tag>#hooks</a><a href=/zh/tags/safety/ class=tag>#safety</a><a href=/zh/tags/automation/ class=tag>#automation</a></div><a class="pill pill-outline" href=/en/claude-code-learn/05-hooks/>Read in English →</a></div></header><div class=prose><p>如果说 MCP 是 Claude 向外扩展能力的机制，那么 Hooks 就是你向内施加约束的手段——它强制执行你真正关心的规则，而不只是寄托于模型的自觉。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/illustration_1.png alt="Claude Code 实战 (5)：Hooks，或如何不再担心 Yolo 模式 —— 图解" loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=模型 class=heading-anchor>模型<a href=#%e6%a8%a1%e5%9e%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Hook 本质上是一条 shell 命令，Claude Code 会在特定时机触发。最常用的两个是：</p><ul><li><strong><code>PreToolUse</code></strong> —— 在工具调用前运行。退出码为 0 表示放行；非零则直接拦截。</li><li><strong><code>PostToolUse</code></strong> —— 在工具返回后运行。此时退出码仅作信息用途，不影响流程；可用于格式化文件、运行 linter 或记录日志。</li></ul><p>此外还有 <code>UserPromptSubmit</code>、<code>Stop</code>、<code>Notification</code> 和 <code>SubagentStop</code> 等事件。但在日常开发中，上述两个 Hook 已覆盖 90% 的实用场景。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/fig2_taxonomy.png alt="Claude Code 的 7 个 Hook 事件按触发时机分类如下：" loading=lazy decoding=async class=content-image></figure><em>Claude Code 的 7 个 Hook 事件按触发时机分类。</em></p><h2 id=完整的-hook-生命周期 class=heading-anchor>完整的 Hook 生命周期<a href=#%e5%ae%8c%e6%95%b4%e7%9a%84-hook-%e7%94%9f%e5%91%bd%e5%91%a8%e6%9c%9f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>让我们走一遍 Claude 调用工具且已配置 Hook 时的完整流程。理解这一生命周期，是写出高效可靠 Hook 的关键。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/fig1_lifecycle.png alt="在一次对话轮次中，每个 Hook 的触发时机。" loading=lazy decoding=async class=content-image></figure><em>在一次对话轮次中，每个 Hook 的触发时机。</em></p><h3 id=pretooluse--守门人 class=heading-anchor>PreToolUse —— 守门人<a href=#pretooluse--%e5%ae%88%e9%97%a8%e4%ba%ba class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>当 Claude 决定调用某个工具时，会按以下顺序执行：</p><ol><li>Claude Code 解析出工具名称和输入参数；</li><li>检查 <code>settings.json</code> 中所有 <code>PreToolUse</code> 类型的 Hook，并根据 <code>matcher</code> 筛选出匹配项；</li><li>所有匹配的 Hook <strong>按配置中的顺序依次串行执行</strong>；</li><li>每个 Hook 通过 <strong>stdin 接收 JSON 格式的工具调用详情</strong>；</li><li><strong>只要有一个 Hook 以非零退出码退出，整个工具调用就会被阻断</strong>，其写入 <code>stderr</code> 的内容会作为错误消息返回给模型；</li><li>如果所有 Hook 都以退出码 0 正常结束，工具调用才会继续。</li></ol><p>传入 stdin 的 JSON 结构如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;tool_name&#34;</span><span class=p>:</span> <span class=s2>&#34;Bash&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;tool_input&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;rm -rf /tmp/test&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>Hook 可访问的环境变量包括：</p><div class=table-wrap><table><thead><tr><th>变量</th><th>含义</th></tr></thead><tbody><tr><td><code>CLAUDE_PROJECT_DIR</code></td><td>项目根目录的绝对路径</td></tr><tr><td><code>CLAUDE_SESSION_ID</code></td><td>当前会话的唯一标识符</td></tr><tr><td><code>CLAUDE_TOOL_NAME</code></td><td>正在被调用的工具名称</td></tr></tbody></table></div><h3 id=posttooluse--检查员 class=heading-anchor>PostToolUse —— 检查员<a href=#posttooluse--%e6%a3%80%e6%9f%a5%e5%91%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>工具执行完成后：</p><ol><li>Claude Code 收集工具的原始输出；</li><li>查找匹配 <code>matcher</code> 的 <code>PostToolUse</code> Hook；</li><li>匹配的 Hook 按序串行执行；</li><li>每个 Hook 通过 stdin 接收包含调用与结果的完整 JSON；</li><li>如果 Hook 向 stdout 写入内容，该输出将<strong>完全替代原始工具输出</strong>，供模型后续使用——这是实现过滤、脱敏或标注的核心机制；</li><li>退出码在此仅为信息用途：<strong>非零退出不会撤销已执行的操作</strong>，但 stderr 会被记录，便于调试。</li></ol><p>PostToolUse 的 stdin 输入结构如下（同时包含调用与结果）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;tool_name&#34;</span><span class=p>:</span> <span class=s2>&#34;Read&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;tool_input&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;file_path&#34;</span><span class=p>:</span> <span class=s2>&#34;/home/user/project/config.yml&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;tool_output&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;content&#34;</span><span class=p>:</span> <span class=s2>&#34;database:\n  host: localhost\n  password: s3cr3t\n&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=userpromptsubmit--输入校验器 class=heading-anchor>UserPromptSubmit —— 输入校验器<a href=#userpromptsubmit--%e8%be%93%e5%85%a5%e6%a0%a1%e9%aa%8c%e5%99%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>在用户 prompt 发送给模型前触发，适用于：</p><ul><li>检测并警告包含敏感数据的输入；</li><li>自动为每个 prompt 注入标准上下文（如团队规范）；</li><li>审计日志，记录所有用户输入。</li></ul><p>其 stdin 输入结构为：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;prompt&#34;</span><span class=p>:</span> <span class=s2>&#34;The user&#39;s raw prompt text&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;session_id&#34;</span><span class=p>:</span> <span class=s2>&#34;abc123&#34;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=stop--会话终结器 class=heading-anchor>Stop —— 会话终结器<a href=#stop--%e4%bc%9a%e8%af%9d%e7%bb%88%e7%bb%93%e5%99%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>当 Claude 完成响应、即将交还控制权给用户时触发，可用于：</p><ul><li>生成任务摘要报告；</li><li>清理临时文件；</li><li>发送完成通知（例如：“Claude 已完成该任务”）。</li></ul><h3 id=notification--通知处理器 class=heading-anchor>Notification —— 通知处理器<a href=#notification--%e9%80%9a%e7%9f%a5%e5%a4%84%e7%90%86%e5%99%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>当 Claude Code 触发桌面通知（如长任务结束）时运行，适合将通知转发至 Slack、邮件或 Webhook 等外部通道。</p><h3 id=subagentstop--子代理监视器 class=heading-anchor>SubagentStop —— 子代理监视器<a href=#subagentstop--%e5%ad%90%e4%bb%a3%e7%90%86%e7%9b%91%e8%a7%86%e5%99%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>当主 Agent 启动的子 Agent（用于并行任务）完成时触发，可用于聚合结果或记录子任务状态。</p><h2 id=hook-的执行模型 class=heading-anchor>Hook 的执行模型<a href=#hook-%e7%9a%84%e6%89%a7%e8%a1%8c%e6%a8%a1%e5%9e%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>以下是 Hook 实际运行时的关键细节：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/fig3_exitcodes.png alt="PreToolUse 与 PostToolUse 的退出码语义对比。" loading=lazy decoding=async class=content-image></figure><em>PreToolUse 与 PostToolUse 的退出码语义对比。</em></p><p><strong>Hook 是 shell 命令，不是脚本</strong>。<code>command</code> 字段会被直接传给系统 shell（<code>/bin/sh -c "..."</code>），因此你可以直接使用管道、重定向等特性：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;cat | jq -r &#39;.tool_input.command&#39; | grep -q &#39;rm -rf&#39; &amp;&amp; exit 1 || exit 0&#34;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>但逻辑稍复杂时，请改用外部脚本文件。</p><p><strong>Hook 有超时限制</strong>。默认几秒内必须完成，超时会被 kill。对 <code>PreToolUse</code> 来说，超时等效于阻断；对 <code>PostToolUse</code> 则跳过。<strong>切勿在 Hook 中发起无超时保护的 HTTP 请求</strong>。</p><p><strong>Hook 是同步执行的</strong>。五个各耗 200ms 的 Hook 会让单次工具调用延迟整整一秒。务必保持轻量。</p><p><strong>Hook 继承 Claude Code 的进程环境</strong>，包括 PATH 和环境变量，但<strong>不会加载你的交互式 shell 配置</strong>（如 <code>.bashrc</code> 或别名）。</p><p><strong>stdin 会被完整复制给每个 Hook</strong>。多个 Hook 不会互相干扰输入流。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/fig5_anatomy.png alt="单次 Hook 调用的输入、输出与约束。" loading=lazy decoding=async class=content-image></figure><em>单次 Hook 调用的输入、输出与约束。</em></p><h2 id=hook-存放在哪里 class=heading-anchor>Hook 存放在哪里<a href=#hook-%e5%ad%98%e6%94%be%e5%9c%a8%e5%93%aa%e9%87%8c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>配置位于 <code>.claude/settings.json</code>（或其本地变体 <code>.claude/settings.local.json</code>）。最小示例：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Bash&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;/path/to/check-bash.sh&#34;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>matcher</code> 决定 Hook 作用于哪些工具。<code>"Bash"</code> 匹配内置 Bash 工具，<code>"Write"</code> 匹配文件写入，<code>"mcp__playwright__.*"</code> 匹配所有 Playwright MCP 工具。支持正则表达式，通配符很常见。</p><p>Hook 通过 stdin 接收工具输入（JSON），并通过环境变量获取上下文。最简单的 Hook 就是读取 stdin、做判断、返回合适退出码。</p><h3 id=matcher-模式参考 class=heading-anchor>Matcher 模式参考<a href=#matcher-%e6%a8%a1%e5%bc%8f%e5%8f%82%e8%80%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>Matcher</th><th>匹配范围</th></tr></thead><tbody><tr><td><code>Bash</code></td><td>仅内置 Bash 工具</td></tr><tr><td><code>Write</code></td><td>文件写入工具</td></tr><tr><td><code>Edit</code></td><td>文件编辑工具</td></tr><tr><td><code>Read</code></td><td>文件读取工具</td></tr><tr><td><code>Write|Edit</code></td><td>Write 或 Edit</td></tr><tr><td><code>mcp__playwright__.*</code></td><td>所有 Playwright MCP 工具</td></tr><tr><td><code>mcp__.*</code></td><td>所有 MCP 工具</td></tr><tr><td><code>.*</code></td><td>所有工具调用</td></tr></tbody></table></div><p>请尽量使用最具体的 matcher。<code>.*</code> 会匹配每次 Read、Bash、Edit——单次会话可能触发上百次，开销巨大。</p><h2 id=hook-1禁止危险命令 class=heading-anchor>Hook 1：禁止危险命令<a href=#hook-1%e7%a6%81%e6%ad%a2%e5%8d%b1%e9%99%a9%e5%91%bd%e4%bb%a4 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><code>.claude/hooks/check-bash.sh</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/usr/bin/env bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nv>input</span><span class=o>=</span><span class=k>$(</span>cat<span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nv>cmd</span><span class=o>=</span><span class=k>$(</span><span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$input</span><span class=s2>&#34;</span> <span class=p>|</span> jq -r <span class=s1>&#39;.tool_input.command&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Refuse anything that destroys broadly</span>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$cmd</span><span class=s2>&#34;</span> <span class=p>|</span> grep -E <span class=s1>&#39;(rm -rf /|sudo rm|chmod -R 777)&#39;</span> &gt;/dev/null<span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s2>&#34;Refusing — destructive pattern detected: </span><span class=nv>$cmd</span><span class=s2>&#34;</span> &gt;<span class=p>&amp;</span><span class=m>2</span>
+</span></span><span class=line><span class=cl>  <span class=nb>exit</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span><span class=line><span class=cl><span class=nb>exit</span> <span class=m>0</span>
+</span></span></code></pre></td></tr></table></div></div><p>注册方式：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Bash&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;/path/to/check-bash.sh&#34;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>PreToolUse</code> + <code>matcher: "Bash"</code>。阻断时返回退出码 1，stderr 内容会回传给模型，使其知道原因并调整策略。这正是“代理静默失败”和“代理主动请求许可”之间的关键区别。</p><h3 id=模型如何响应拦截 class=heading-anchor>模型如何响应拦截<a href=#%e6%a8%a1%e5%9e%8b%e5%a6%82%e4%bd%95%e5%93%8d%e5%ba%94%e6%8b%a6%e6%88%aa class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>当 <code>PreToolUse</code> 阻断调用时，模型会收到 stderr 中的错误信息。一条清晰的提示能帮助它快速找到替代方案：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/usr/bin/env bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nv>input</span><span class=o>=</span><span class=k>$(</span>cat<span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nv>cmd</span><span class=o>=</span><span class=k>$(</span><span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$input</span><span class=s2>&#34;</span> <span class=p>|</span> jq -r <span class=s1>&#39;.tool_input.command&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Refuse anything that destroys broadly</span>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$cmd</span><span class=s2>&#34;</span> <span class=p>|</span> grep -E <span class=s1>&#39;(rm -rf /|sudo rm|chmod -R 777)&#39;</span> &gt;/dev/null<span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s2>&#34;Refusing — destructive pattern detected: </span><span class=nv>$cmd</span><span class=s2>&#34;</span> &gt;<span class=p>&amp;</span><span class=m>2</span>
+</span></span><span class=line><span class=cl>  <span class=nb>exit</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span><span class=line><span class=cl><span class=nb>exit</span> <span class=m>0</span>
+</span></span></code></pre></td></tr></table></div></div><p>通常，模型会立即承认限制，并尝试其他方法。如果提示足够明确，往往一次就能成功。</p><h2 id=hook-2写入时自动格式化 class=heading-anchor>Hook 2：写入时自动格式化<a href=#hook-2%e5%86%99%e5%85%a5%e6%97%b6%e8%87%aa%e5%8a%a8%e6%a0%bc%e5%bc%8f%e5%8c%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/fig4_formatflow.png alt="format-on-write：按扩展名路由的 PostToolUse 模式。" loading=lazy decoding=async class=content-image></figure><em>format-on-write：按扩展名路由的 PostToolUse 模式。</em></p><p><code>.claude/hooks/format-on-write.sh</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/usr/bin/env bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nv>input</span><span class=o>=</span><span class=k>$(</span>cat<span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nv>path</span><span class=o>=</span><span class=k>$(</span><span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$input</span><span class=s2>&#34;</span> <span class=p>|</span> jq -r <span class=s1>&#39;.tool_input.file_path&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>case</span> <span class=s2>&#34;</span><span class=nv>$path</span><span class=s2>&#34;</span> in
+</span></span><span class=line><span class=cl>  *.py<span class=o>)</span> ruff format <span class=s2>&#34;</span><span class=nv>$path</span><span class=s2>&#34;</span> 2&gt;/dev/null <span class=p>;;</span>
+</span></span><span class=line><span class=cl>  *.ts<span class=p>|</span>*.tsx<span class=p>|</span>*.js<span class=p>|</span>*.jsx<span class=o>)</span> prettier --write <span class=s2>&#34;</span><span class=nv>$path</span><span class=s2>&#34;</span> 2&gt;/dev/null <span class=p>;;</span>
+</span></span><span class=line><span class=cl>  *.go<span class=o>)</span> gofmt -w <span class=s2>&#34;</span><span class=nv>$path</span><span class=s2>&#34;</span> 2&gt;/dev/null <span class=p>;;</span>
+</span></span><span class=line><span class=cl><span class=k>esac</span>
+</span></span><span class=line><span class=cl><span class=nb>exit</span> <span class=m>0</span>
+</span></span></code></pre></td></tr></table></div></div><p>注册为 <code>PostToolUse</code>，matcher 为 <code>Write|Edit</code>。每次 Claude 修改文件，都会在进入下一轮对话前自动格式化。从此你再也不用提醒它“记得格式化”——代码风格由 Hook 自动保障。</p><p>该 Hook 的几个细节：</p><ul><li>使用 <code>command -v</code> 检查格式化工具是否存在，缺失时静默降级；</li><li>用 <code>2>/dev/null</code> 抑制 formatter 的警告，避免污染模型上下文；</li><li>对 Python 同时运行 <code>ruff format</code>（风格）和 <code>ruff check --fix</code>（自动修复）。</li></ul><p>注册方式：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PostToolUse&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Write|Edit&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;$CLAUDE_PROJECT_DIR/.claude/hooks/format-on-write.sh&#34;</span>
+</span></span><span class=line><span class=cl>          <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=hook-3记录每次工具调用 class=heading-anchor>Hook 3：记录每次工具调用<a href=#hook-3%e8%ae%b0%e5%bd%95%e6%af%8f%e6%ac%a1%e5%b7%a5%e5%85%b7%e8%b0%83%e7%94%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/usr/bin/env bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nv>input</span><span class=o>=</span><span class=k>$(</span>cat<span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;[</span><span class=k>$(</span>date -u +%Y-%m-%dT%H:%M:%SZ<span class=k>)</span><span class=s2>] </span><span class=k>$(</span>jq -c . <span class=o>&lt;&lt;&lt;</span> <span class=s2>&#34;</span><span class=nv>$input</span><span class=s2>&#34;</span><span class=k>)</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  &gt;&gt; <span class=s2>&#34;</span><span class=nv>$CLAUDE_PROJECT_DIR</span><span class=s2>/.claude/tool-log.jsonl&#34;</span>
+</span></span><span class=line><span class=cl><span class=nb>exit</span> <span class=m>0</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>PostToolUse</code> + <code>matcher: ".*"</code>。将每次调用连同时间戳写入 JSONL 文件，一行一记录。无论出错还是成功，你都有完整的审计轨迹。</p><p>我实际用过三次，全是事后复盘——比如搞清楚“那 40 分钟里 Claude 到底干了什么”。这点磁盘开销完全值得。</p><h3 id=日志分析 class=heading-anchor>日志分析<a href=#%e6%97%a5%e5%bf%97%e5%88%86%e6%9e%90 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>JSONL 格式天然适合命令行分析：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 统计今日工具调用次数</span>
+</span></span><span class=line><span class=cl>wc -l .claude/logs/tools-2026-04-22.jsonl
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 统计各工具调用频次（从高到低）</span>
+</span></span><span class=line><span class=cl>jq -r <span class=s1>&#39;.tool&#39;</span> .claude/logs/tools-2026-04-22.jsonl <span class=p>|</span> sort <span class=p>|</span> uniq -c <span class=p>|</span> sort -rn
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 提取所有执行过的 Bash 命令</span>
+</span></span><span class=line><span class=cl>jq -r <span class=s1>&#39;select(.tool == &#34;Bash&#34;) | .data.tool_input.command&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  .claude/logs/tools-2026-04-22.jsonl
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 查找失败的工具调用（含 error 字段）</span>
+</span></span><span class=line><span class=cl>jq <span class=s1>&#39;select(.data.tool_output.error != null)&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  .claude/logs/tools-2026-04-22.jsonl
+</span></span></code></pre></td></tr></table></div></div><h2 id=hook-4提交前强制测试通过 class=heading-anchor>Hook 4：提交前强制测试通过<a href=#hook-4%e6%8f%90%e4%ba%a4%e5%89%8d%e5%bc%ba%e5%88%b6%e6%b5%8b%e8%af%95%e9%80%9a%e8%bf%87 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/usr/bin/env bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nv>input</span><span class=o>=</span><span class=k>$(</span>cat<span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nv>cmd</span><span class=o>=</span><span class=k>$(</span><span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$input</span><span class=s2>&#34;</span> <span class=p>|</span> jq -r <span class=s1>&#39;.tool_input.command&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$cmd</span><span class=s2>&#34;</span> <span class=p>|</span> grep -qE <span class=s1>&#39;^git commit&#39;</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> ! npm <span class=nb>test</span> --silent &gt;/dev/null 2&gt;<span class=p>&amp;</span>1<span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span> <span class=s2>&#34;Refusing commit: tests fail. Run &#39;npm test&#39; to see details.&#34;</span> &gt;<span class=p>&amp;</span><span class=m>2</span>
+</span></span><span class=line><span class=cl>    <span class=nb>exit</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl>  <span class=k>fi</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span><span class=line><span class=cl><span class=nb>exit</span> <span class=m>0</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>PreToolUse</code> + <code>matcher: "Bash"</code>。拦截 <code>git commit</code>，先跑测试套件。测试失败则阻断提交，并告知模型原因。这是给 Agent 自己设的 pre-commit hook。</p><p>听起来激进？确实如此。但好处是：你再也不会<strong>意外</strong>提交坏代码。模型必须主动绕过 Hook 才能犯错，而它通常不会这么做。</p><p>改进版能自动识别测试框架，原生支持 npm、Make、pytest 和 Cargo：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/usr/bin/env bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nb>set</span> -euo pipefail
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nv>input</span><span class=o>=</span><span class=k>$(</span>cat<span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nv>cmd</span><span class=o>=</span><span class=k>$(</span><span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$input</span><span class=s2>&#34;</span> <span class=p>|</span> jq -r <span class=s1>&#39;.tool_input.command&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 仅拦截 git commit 命令</span>
+</span></span><span class=line><span class=cl><span class=k>if</span> ! <span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$cmd</span><span class=s2>&#34;</span> <span class=p>|</span> grep -qE <span class=s1>&#39;^git commit&#39;</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  <span class=nb>exit</span> <span class=m>0</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 根据项目文件推断测试命令</span>
+</span></span><span class=line><span class=cl><span class=nv>project_dir</span><span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>CLAUDE_PROJECT_DIR</span><span class=k>:-$(</span><span class=nb>pwd</span><span class=k>)</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl><span class=nv>test_cmd</span><span class=o>=</span><span class=s2>&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=o>[</span> -f <span class=s2>&#34;</span><span class=nv>$project_dir</span><span class=s2>/package.json&#34;</span> <span class=o>]</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> jq -e <span class=s1>&#39;.scripts.test&#39;</span> <span class=s2>&#34;</span><span class=nv>$project_dir</span><span class=s2>/package.json&#34;</span> <span class=p>&amp;</span>&gt;/dev/null<span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>    <span class=nv>test_cmd</span><span class=o>=</span><span class=s2>&#34;npm test --silent&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=k>fi</span>
+</span></span><span class=line><span class=cl><span class=k>elif</span> <span class=o>[</span> -f <span class=s2>&#34;</span><span class=nv>$project_dir</span><span class=s2>/Makefile&#34;</span> <span class=o>]</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> grep -q <span class=s1>&#39;^test:&#39;</span> <span class=s2>&#34;</span><span class=nv>$project_dir</span><span class=s2>/Makefile&#34;</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>    <span class=nv>test_cmd</span><span class=o>=</span><span class=s2>&#34;make test&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=k>fi</span>
+</span></span><span class=line><span class=cl><span class=k>elif</span> <span class=o>[</span> -f <span class=s2>&#34;</span><span class=nv>$project_dir</span><span class=s2>/pyproject.toml&#34;</span> <span class=o>]</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  <span class=nv>test_cmd</span><span class=o>=</span><span class=s2>&#34;python -m pytest --quiet&#34;</span>
+</span></span><span class=line><span class=cl><span class=k>elif</span> <span class=o>[</span> -f <span class=s2>&#34;</span><span class=nv>$project_dir</span><span class=s2>/Cargo.toml&#34;</span> <span class=o>]</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  <span class=nv>test_cmd</span><span class=o>=</span><span class=s2>&#34;cargo test --quiet&#34;</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=o>[</span> -z <span class=s2>&#34;</span><span class=nv>$test_cmd</span><span class=s2>&#34;</span> <span class=o>]</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  <span class=nb>exit</span> <span class=m>0</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>cd</span> <span class=s2>&#34;</span><span class=nv>$project_dir</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl><span class=k>if</span> ! <span class=nb>eval</span> <span class=s2>&#34;</span><span class=nv>$test_cmd</span><span class=s2>&#34;</span> &gt;/dev/null 2&gt;<span class=p>&amp;</span>1<span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s2>&#34;BLOCKED: Refusing commit because tests fail.&#34;</span> &gt;<span class=p>&amp;</span><span class=m>2</span>
+</span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s2>&#34;Run &#39;</span><span class=nv>$test_cmd</span><span class=s2>&#39; to see the failures.&#34;</span> &gt;<span class=p>&amp;</span><span class=m>2</span>
+</span></span><span class=line><span class=cl>  <span class=nb>exit</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span><span class=line><span class=cl><span class=nb>exit</span> <span class=m>0</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=hook-5脱敏工具输出中的-secrets class=heading-anchor>Hook 5：脱敏工具输出中的 secrets<a href=#hook-5%e8%84%b1%e6%95%8f%e5%b7%a5%e5%85%b7%e8%be%93%e5%87%ba%e4%b8%ad%e7%9a%84-secrets class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/usr/bin/env bash
+</span></span></span><span class=line><span class=cl><span class=cp></span>sed -E <span class=s1>&#39;
+</span></span></span><span class=line><span class=cl><span class=s1>  s/(Bearer|sk-)[A-Za-z0-9_-]{20,}/\1[REDACTED]/g
+</span></span></span><span class=line><span class=cl><span class=s1>  s/(api[_-]?key[&#34;\s:=]+)[&#34;A-Za-z0-9_-]{16,}/\1[REDACTED]/gI
+</span></span></span><span class=line><span class=cl><span class=s1>&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>PostToolUse</code> + <code>matcher: "Read|Bash"</code>。在模型看到前，通过流式过滤器脱敏输出。如果你不小心 <code>cat</code> 了含密钥的文件，模型永远看不到原文——只会看到 <code>[REDACTED]</code>。</p><p>这是在真实代码库中最关键的安全 Hook。</p><p>扩展版覆盖更多模式：GitHub tokens（<code>ghp_</code>, <code>gho_</code> 等）、Slack tokens（<code>xoxb-</code>）、AWS keys（<code>AKIA...</code>）、私钥块、含密码的连接字符串、JWT、配置文件中的 <code>password=</code> 字段等。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/usr/bin/env bash
+</span></span></span><span class=line><span class=cl><span class=cp></span>sed -E <span class=s1>&#39;
+</span></span></span><span class=line><span class=cl><span class=s1>  s/(Bearer |sk-|ghp_|gho_|ghs_|ghr_|xoxb-|xoxp-|xoxs-)[A-Za-z0-9_-]{16,}/\1[REDACTED]/g
+</span></span></span><span class=line><span class=cl><span class=s1>  s/(api[_-]?key[&#34;\s:=]+)[&#34;\x27]?[A-Za-z0-9_-]{16,}[&#34;\x27]?/\1[REDACTED]/gI
+</span></span></span><span class=line><span class=cl><span class=s1>  s/(AKIA)[A-Z0-9]{16}/\1[REDACTED]/g
+</span></span></span><span class=line><span class=cl><span class=s1>  s/(-----BEGIN [A-Z ]*PRIVATE KEY-----).*/\1 [REDACTED]/g
+</span></span></span><span class=line><span class=cl><span class=s1>  s|(://[^:]+:)[^@]+(@)|\1[REDACTED]\2|g
+</span></span></span><span class=line><span class=cl><span class=s1>  s/(password[&#34;\s:=]+)[&#34;\x27]?[^\s&#34;]+[&#34;\x27]?/\1[REDACTED]/gI
+</span></span></span><span class=line><span class=cl><span class=s1>  s/eyJ[A-Za-z0-9_-]*\.eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*/[REDACTED_JWT]/g
+</span></span></span><span class=line><span class=cl><span class=s1>&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><p>可独立测试：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nb>echo</span> <span class=s1>&#39;{&#34;tool_output&#34;: &#34;Bearer sk-abc123456789012345678901234567890 and password=\&#34;mysecret\&#34;&#34;}&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> bash .claude/hooks/redact-secrets.sh
+</span></span></code></pre></td></tr></table></div></div><p>预期输出：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nb>echo</span> <span class=s1>&#39;{&#34;tool_output&#34;: &#34;Bearer sk-abc123456789012345678901234567890 and password=\&#34;mysecret\&#34;&#34;}&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> bash .claude/hooks/redact-secrets.sh
+</span></span></code></pre></td></tr></table></div></div><h2 id=hook-6禁止写入受保护文件 class=heading-anchor>Hook 6：禁止写入受保护文件<a href=#hook-6%e7%a6%81%e6%ad%a2%e5%86%99%e5%85%a5%e5%8f%97%e4%bf%9d%e6%8a%a4%e6%96%87%e4%bb%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>团队项目标配：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/usr/bin/env bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nb>set</span> -euo pipefail
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nv>input</span><span class=o>=</span><span class=k>$(</span>cat<span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nv>path</span><span class=o>=</span><span class=k>$(</span><span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$input</span><span class=s2>&#34;</span> <span class=p>|</span> jq -r <span class=s1>&#39;.tool_input.file_path // .tool_input.path // empty&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=o>[</span> -z <span class=s2>&#34;</span><span class=nv>$path</span><span class=s2>&#34;</span> <span class=o>]</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  <span class=nb>exit</span> <span class=m>0</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nv>PROTECTED</span><span class=o>=(</span>
+</span></span><span class=line><span class=cl>  <span class=s1>&#39;.env&#39;</span> <span class=s1>&#39;.env.local&#39;</span> <span class=s1>&#39;.env.production&#39;</span>
+</span></span><span class=line><span class=cl>  <span class=s1>&#39;credentials.json&#39;</span> <span class=s1>&#39;secrets.yaml&#39;</span>
+</span></span><span class=line><span class=cl>  <span class=s1>&#39;id_rsa&#39;</span> <span class=s1>&#39;id_ed25519&#39;</span> <span class=s1>&#39;*.pem&#39;</span> <span class=s1>&#39;*.key&#39;</span>
+</span></span><span class=line><span class=cl><span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nv>filename</span><span class=o>=</span><span class=k>$(</span>basename <span class=s2>&#34;</span><span class=nv>$path</span><span class=s2>&#34;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> pattern in <span class=s2>&#34;</span><span class=si>${</span><span class=nv>PROTECTED</span><span class=p>[@]</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>;</span> <span class=k>do</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=o>[[</span> <span class=s2>&#34;</span><span class=nv>$filename</span><span class=s2>&#34;</span> <span class=o>==</span> <span class=nv>$pattern</span> <span class=o>]]</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span> <span class=s2>&#34;BLOCKED: Refusing to modify protected file: </span><span class=nv>$path</span><span class=s2>&#34;</span> &gt;<span class=p>&amp;</span><span class=m>2</span>
+</span></span><span class=line><span class=cl>    <span class=nb>exit</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl>  <span class=k>fi</span>
+</span></span><span class=line><span class=cl><span class=k>done</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nv>project_dir</span><span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>CLAUDE_PROJECT_DIR</span><span class=k>:-$(</span><span class=nb>pwd</span><span class=k>)</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl><span class=k>case</span> <span class=s2>&#34;</span><span class=nv>$path</span><span class=s2>&#34;</span> in
+</span></span><span class=line><span class=cl>  <span class=s2>&#34;</span><span class=nv>$project_dir</span><span class=s2>&#34;</span>/*<span class=o>)</span> <span class=p>;;</span>
+</span></span><span class=line><span class=cl>  /tmp/*<span class=p>|</span>/var/tmp/*<span class=o>)</span> <span class=p>;;</span>
+</span></span><span class=line><span class=cl>  *<span class=o>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span> <span class=s2>&#34;BLOCKED: Refusing to write outside project directory: </span><span class=nv>$path</span><span class=s2>&#34;</span> &gt;<span class=p>&amp;</span><span class=m>2</span>
+</span></span><span class=line><span class=cl>    <span class=nb>exit</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl>    <span class=p>;;</span>
+</span></span><span class=line><span class=cl><span class=k>esac</span>
+</span></span><span class=line><span class=cl><span class=nb>exit</span> <span class=m>0</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>PreToolUse</code> + <code>matcher: "Write|Edit"</code>。防止修改 <code>.env</code>、<code>credentials.json</code> 等敏感文件，也禁止写入项目目录之外。这是在内置权限之上再加一层“裤带+背带”式防护。</p><h2 id=hook-7长操作完成通知 class=heading-anchor>Hook 7：长操作完成通知<a href=#hook-7%e9%95%bf%e6%93%8d%e4%bd%9c%e5%ae%8c%e6%88%90%e9%80%9a%e7%9f%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/usr/bin/env bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nb>set</span> -euo pipefail
+</span></span><span class=line><span class=cl><span class=nv>input</span><span class=o>=</span><span class=k>$(</span>cat<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=nb>command</span> -v osascript <span class=p>&amp;</span>&gt;/dev/null<span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  osascript -e <span class=s1>&#39;display notification &#34;Claude has finished the task&#34; with title &#34;Claude Code&#34;&#39;</span>
+</span></span><span class=line><span class=cl><span class=k>elif</span> <span class=nb>command</span> -v notify-send <span class=p>&amp;</span>&gt;/dev/null<span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  notify-send <span class=s2>&#34;Claude Code&#34;</span> <span class=s2>&#34;Claude has finished the task&#34;</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=o>[</span> -n <span class=s2>&#34;</span><span class=si>${</span><span class=nv>SLACK_WEBHOOK_URL</span><span class=k>:-</span><span class=si>}</span><span class=s2>&#34;</span> <span class=o>]</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  curl -s -X POST <span class=s2>&#34;</span><span class=nv>$SLACK_WEBHOOK_URL</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -H <span class=s1>&#39;Content-Type: application/json&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -d <span class=s1>&#39;{&#34;text&#34;:&#34;Claude Code has finished a task in &#39;</span><span class=s2>&#34;</span><span class=nv>$CLAUDE_PROJECT_DIR</span><span class=s2>&#34;</span><span class=s1>&#39;&#34;}&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    &gt;/dev/null 2&gt;<span class=p>&amp;</span><span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span><span class=line><span class=cl><span class=nb>exit</span> <span class=m>0</span>
+</span></span></code></pre></td></tr></table></div></div><p>注册到 <code>Notification</code> 事件：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/usr/bin/env bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nb>set</span> -euo pipefail
+</span></span><span class=line><span class=cl><span class=nv>input</span><span class=o>=</span><span class=k>$(</span>cat<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=nb>command</span> -v osascript <span class=p>&amp;</span>&gt;/dev/null<span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  osascript -e <span class=s1>&#39;display notification &#34;Claude has finished the task&#34; with title &#34;Claude Code&#34;&#39;</span>
+</span></span><span class=line><span class=cl><span class=k>elif</span> <span class=nb>command</span> -v notify-send <span class=p>&amp;</span>&gt;/dev/null<span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  notify-send <span class=s2>&#34;Claude Code&#34;</span> <span class=s2>&#34;Claude has finished the task&#34;</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=o>[</span> -n <span class=s2>&#34;</span><span class=si>${</span><span class=nv>SLACK_WEBHOOK_URL</span><span class=k>:-</span><span class=si>}</span><span class=s2>&#34;</span> <span class=o>]</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  curl -s -X POST <span class=s2>&#34;</span><span class=nv>$SLACK_WEBHOOK_URL</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -H <span class=s1>&#39;Content-Type: application/json&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -d <span class=s1>&#39;{&#34;text&#34;:&#34;Claude Code has finished a task in &#39;</span><span class=s2>&#34;</span><span class=nv>$CLAUDE_PROJECT_DIR</span><span class=s2>&#34;</span><span class=s1>&#39;&#34;}&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    &gt;/dev/null 2&gt;<span class=p>&amp;</span><span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span><span class=line><span class=cl><span class=nb>exit</span> <span class=m>0</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=hook-中的错误处理 class=heading-anchor>Hook 中的错误处理<a href=#hook-%e4%b8%ad%e7%9a%84%e9%94%99%e8%af%af%e5%a4%84%e7%90%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>崩溃的 Hook 比没有更糟。以下是构建健壮 Hook 的方法。</p><h3 id=始终使用-set--euo-pipefail class=heading-anchor>始终使用 <code>set -euo pipefail</code><a href=#%e5%a7%8b%e7%bb%88%e4%bd%bf%e7%94%a8-set--euo-pipefail class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/usr/bin/env bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nb>set</span> -euo pipefail
+</span></span></code></pre></td></tr></table></div></div><p>它能捕获：</p><ul><li><code>set -e</code>：任一命令失败即退出；</li><li><code>set -u</code>：引用未定义变量时报错；</li><li><code>set -o pipefail</code>：管道中任意命令失败都会触发退出。</li></ul><h3 id=优雅处理缺失的-jq class=heading-anchor>优雅处理缺失的 <code>jq</code><a href=#%e4%bc%98%e9%9b%85%e5%a4%84%e7%90%86%e7%bc%ba%e5%a4%b1%e7%9a%84-jq class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>并非所有机器都有 <code>jq</code>。若依赖它，请先检查：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=k>if</span> ! <span class=nb>command</span> -v jq <span class=p>&amp;</span>&gt;/dev/null<span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  <span class=nb>exit</span> <span class=m>0</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=避免静默失败 class=heading-anchor>避免静默失败<a href=#%e9%81%bf%e5%85%8d%e9%9d%99%e9%bb%98%e5%a4%b1%e8%b4%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Hook 崩溃时，Claude Code 会记录错误，但行为因类型而异：</p><ul><li><code>PostToolUse</code>：继续执行；</li><li><code>PreToolUse</code>：<strong>直接阻断</strong>工具调用。</li></ul><p>这意味着一个崩溃的 <code>PreToolUse</code> Hook 会让功能完全失效。务必测试！</p><h3 id=使用-trap-清理临时文件 class=heading-anchor>使用 <code>trap</code> 清理临时文件<a href=#%e4%bd%bf%e7%94%a8-trap-%e6%b8%85%e7%90%86%e4%b8%b4%e6%97%b6%e6%96%87%e4%bb%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>若 Hook 创建了临时文件：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nv>tmp_file</span><span class=o>=</span><span class=k>$(</span>mktemp<span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nb>trap</span> <span class=s2>&#34;rm -f </span><span class=nv>$tmp_file</span><span class=s2>&#34;</span> EXIT
+</span></span></code></pre></td></tr></table></div></div><h2 id=本地测试-hook class=heading-anchor>本地测试 Hook<a href=#%e6%9c%ac%e5%9c%b0%e6%b5%8b%e8%af%95-hook class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>无需启动 Claude Code。Hook 本质就是读 stdin、返回退出码的脚本。</p><h3 id=手动测试 class=heading-anchor>手动测试<a href=#%e6%89%8b%e5%8a%a8%e6%b5%8b%e8%af%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 测试 PreToolUse 钩子</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s1>&#39;{&#34;tool_name&#34;:&#34;Bash&#34;,&#34;tool_input&#34;:{&#34;command&#34;:&#34;rm -rf /&#34;}}&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> bash .claude/hooks/check-bash.sh
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Exit code: </span><span class=nv>$?</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 测试安全命令</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s1>&#39;{&#34;tool_name&#34;:&#34;Bash&#34;,&#34;tool_input&#34;:{&#34;command&#34;:&#34;ls -la&#34;}}&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> bash .claude/hooks/check-bash.sh
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Exit code: </span><span class=nv>$?</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=自动化测试脚本 class=heading-anchor>自动化测试脚本<a href=#%e8%87%aa%e5%8a%a8%e5%8c%96%e6%b5%8b%e8%af%95%e8%84%9a%e6%9c%ac class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>我在 Hook 目录旁维护一个测试文件：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/usr/bin/env bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nb>set</span> -euo pipefail
+</span></span><span class=line><span class=cl><span class=nv>PASS</span><span class=o>=</span>0<span class=p>;</span> <span class=nv>FAIL</span><span class=o>=</span><span class=m>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>assert_blocked<span class=o>()</span> <span class=o>{</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$2</span><span class=s2>&#34;</span> <span class=p>|</span> bash <span class=s2>&#34;</span><span class=nv>$1</span><span class=s2>&#34;</span> &gt;/dev/null 2&gt;<span class=p>&amp;</span>1<span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span> <span class=s2>&#34;FAIL: Expected block — </span><span class=nv>$3</span><span class=s2>&#34;</span><span class=p>;</span> <span class=o>((</span>FAIL++<span class=o>))</span>
+</span></span><span class=line><span class=cl>  <span class=k>else</span>
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span> <span class=s2>&#34;PASS: Correctly blocked — </span><span class=nv>$3</span><span class=s2>&#34;</span><span class=p>;</span> <span class=o>((</span>PASS++<span class=o>))</span>
+</span></span><span class=line><span class=cl>  <span class=k>fi</span>
+</span></span><span class=line><span class=cl><span class=o>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>assert_allowed<span class=o>()</span> <span class=o>{</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$2</span><span class=s2>&#34;</span> <span class=p>|</span> bash <span class=s2>&#34;</span><span class=nv>$1</span><span class=s2>&#34;</span> &gt;/dev/null 2&gt;<span class=p>&amp;</span>1<span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span> <span class=s2>&#34;PASS: Correctly allowed — </span><span class=nv>$3</span><span class=s2>&#34;</span><span class=p>;</span> <span class=o>((</span>PASS++<span class=o>))</span>
+</span></span><span class=line><span class=cl>  <span class=k>else</span>
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span> <span class=s2>&#34;FAIL: Unexpected block — </span><span class=nv>$3</span><span class=s2>&#34;</span><span class=p>;</span> <span class=o>((</span>FAIL++<span class=o>))</span>
+</span></span><span class=line><span class=cl>  <span class=k>fi</span>
+</span></span><span class=line><span class=cl><span class=o>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nv>HOOK</span><span class=o>=</span><span class=s2>&#34;.claude/hooks/check-bash.sh&#34;</span>
+</span></span><span class=line><span class=cl>assert_blocked <span class=s2>&#34;</span><span class=nv>$HOOK</span><span class=s2>&#34;</span> <span class=s1>&#39;{&#34;tool_name&#34;:&#34;Bash&#34;,&#34;tool_input&#34;:{&#34;command&#34;:&#34;rm -rf /&#34;}}&#39;</span> <span class=s2>&#34;rm -rf /&#34;</span>
+</span></span><span class=line><span class=cl>assert_allowed <span class=s2>&#34;</span><span class=nv>$HOOK</span><span class=s2>&#34;</span> <span class=s1>&#39;{&#34;tool_name&#34;:&#34;Bash&#34;,&#34;tool_input&#34;:{&#34;command&#34;:&#34;ls -la&#34;}}&#39;</span> <span class=s2>&#34;ls -la&#34;</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Results: </span><span class=nv>$PASS</span><span class=s2> passed, </span><span class=nv>$FAIL</span><span class=s2> failed&#34;</span>
+</span></span><span class=line><span class=cl><span class=o>[</span> <span class=s2>&#34;</span><span class=nv>$FAIL</span><span class=s2>&#34;</span> -eq <span class=m>0</span> <span class=o>]</span> <span class=o>||</span> <span class=nb>exit</span> <span class=m>1</span>
+</span></span></code></pre></td></tr></table></div></div><p>运行：<code>bash .claude/hooks/test-hooks.sh</code>。建议加入 CI，确保 Hook 持续有效。</p><h2 id=hook-性能考量 class=heading-anchor>Hook 性能考量<a href=#hook-%e6%80%a7%e8%83%bd%e8%80%83%e9%87%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>每个 Hook 都增加延迟。以下是优化建议。</p><h3 id=测量耗时 class=heading-anchor>测量耗时<a href=#%e6%b5%8b%e9%87%8f%e8%80%97%e6%97%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nb>time</span> <span class=nb>echo</span> <span class=s1>&#39;{&#34;tool_name&#34;:&#34;Bash&#34;,&#34;tool_input&#34;:{&#34;command&#34;:&#34;ls&#34;}}&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> bash .claude/hooks/check-bash.sh
+</span></span></code></pre></td></tr></table></div></div><p>目标：<strong>单个 Hook &lt; 50ms</strong>；超过 200ms 用户就能感知卡顿。</p><h3 id=常见性能陷阱 class=heading-anchor>常见性能陷阱<a href=#%e5%b8%b8%e8%a7%81%e6%80%a7%e8%83%bd%e9%99%b7%e9%98%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>陷阱</th><th>开销</th><th>修复</th></tr></thead><tbody><tr><td><code>PreToolUse</code> 中跑 <code>npm test</code></td><td>秒级</td><td>缓存结果，仅文件变更时重跑</td></tr><tr><td>调用外部 API</td><td>100ms–5s</td><td>加超时，或移至异步 PostToolUse</td></tr><tr><td>读大文件</td><td>不定</td><td>用 <code>head</code>/<code>tail</code> 替代全读</td></tr><tr><td>多次调用 <code>jq</code></td><td>每次 ~10ms</td><td>合并为单条 jq 命令</td></tr><tr><td>启动 Python/Node</td><td>100–300ms</td><td>简单逻辑用 bash 实现</td></tr></tbody></table></div><h3 id=性能预算 class=heading-anchor>性能预算<a href=#%e6%80%a7%e8%83%bd%e9%a2%84%e7%ae%97 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>PreToolUse 钩子总耗时： &lt; 200ms  
+</span></span><span class=line><span class=cl>PostToolUse 钩子总耗时： &lt; 500ms（非关键路径，工具调用后执行）
+</span></span></code></pre></td></tr></table></div></div><p>例如：5 个 Hook × 100ms = 单次调用额外 500ms；若会话含 50 次调用，纯 Hook 开销达 <strong>25 秒</strong>。务必精简。</p><h2 id=组合多个-hook class=heading-anchor>组合多个 Hook<a href=#%e7%bb%84%e5%90%88%e5%a4%9a%e4%b8%aa-hook class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>同一事件和 matcher 可配置多个 Hook，按声明顺序执行：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Bash&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;$CLAUDE_PROJECT_DIR/.claude/hooks/check-dangerous.sh&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;$CLAUDE_PROJECT_DIR/.claude/hooks/check-paths.sh&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;$CLAUDE_PROJECT_DIR/.claude/hooks/log-commands.sh&#34;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>对 <code>PreToolUse</code>，顺序至关重要：<strong>快检查放前，慢检查放后</strong>。若前置 Hook 已拦截，后续不会执行。</p><p>也可组合不同 matcher：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Bash&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;$CLAUDE_PROJECT_DIR/.claude/hooks/check-dangerous.sh&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;$CLAUDE_PROJECT_DIR/.claude/hooks/check-paths.sh&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;$CLAUDE_PROJECT_DIR/.claude/hooks/log-commands.sh&#34;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=反模式相对路径 class=heading-anchor>反模式：相对路径<a href=#%e5%8f%8d%e6%a8%a1%e5%bc%8f%e7%9b%b8%e5%af%b9%e8%b7%af%e5%be%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>最常见的 Bug 是使用相对路径：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;./scripts/check.sh&#34;</span> <span class=p>}</span>   <span class=c1>// wrong
+</span></span></span></code></pre></td></tr></table></div></div><p>Claude Code 执行 Hook 时的工作目录不可控。<strong>始终用绝对路径，或借助 <code>$CLAUDE_PROJECT_DIR</code></strong>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;$CLAUDE_PROJECT_DIR/.claude/hooks/check.sh&#34;</span> <span class=p>}</span>  <span class=c1>// right
+</span></span></span></code></pre></td></tr></table></div></div><p>脚本内部也一样：不要 <code>cd</code>，不要用相对路径。</p><h3 id=其他反模式 class=heading-anchor>其他反模式<a href=#%e5%85%b6%e4%bb%96%e5%8f%8d%e6%a8%a1%e5%bc%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>反模式：Hook 修改工具输入</strong><br><code>PreToolUse</code> 只能拦截，不能改参数。如需改写行为，请用 slash 命令包装器。</p><p><strong>反模式：Hook 依赖网络</strong><br>远程 API 调用会拖慢每次工具调用，且易失败。如需远程日志，请本地缓冲 + 异步刷新。</p><p><strong>反模式：Hook 启动重量级进程</strong><br>在热路径 Hook 中启动 Python、Node 或 Docker 开销巨大。优先用 bash、jq、grep、sed。</p><p><strong>反模式：matcher 过于宽泛</strong><br><code>.*</code> 会匹配每次 Read/Bash/Edit——单会话可能执行数百次。请精准匹配。</p><h2 id=完整的生产级-hook-配置 class=heading-anchor>完整的生产级 Hook 配置<a href=#%e5%ae%8c%e6%95%b4%e7%9a%84%e7%94%9f%e4%ba%a7%e7%ba%a7-hook-%e9%85%8d%e7%bd%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>以下是我为新项目初始化的 <code>.claude/settings.json</code> 配置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span> <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Bash&#34;</span><span class=p>,</span> <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;$CLAUDE_PROJECT_DIR/.claude/hooks/check-bash.sh&#34;</span> <span class=p>}]</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span> <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Write|Edit&#34;</span><span class=p>,</span> <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;$CLAUDE_PROJECT_DIR/.claude/hooks/check-protected-files.sh&#34;</span> <span class=p>}]</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PostToolUse&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span> <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Write|Edit&#34;</span><span class=p>,</span> <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;$CLAUDE_PROJECT_DIR/.claude/hooks/format-on-write.sh&#34;</span> <span class=p>}]</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span> <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Read|Bash&#34;</span><span class=p>,</span> <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;$CLAUDE_PROJECT_DIR/.claude/hooks/redact-secrets.sh&#34;</span> <span class=p>}]</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;Notification&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span> <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;.*&#34;</span><span class=p>,</span> <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;$CLAUDE_PROJECT_DIR/.claude/hooks/notify.sh&#34;</span> <span class=p>}]</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>它提供：</p><ol><li>危险命令拦截（PreToolUse on Bash）</li><li>受保护文件防护（PreToolUse on Write/Edit）</li><li>自动格式化（PostToolUse on Write/Edit）</li><li>敏感信息脱敏（PostToolUse on Read/Bash）</li><li>完成通知（Notification）</li></ol><p>五个 Hook，每个不超过 50 行，总开销 &lt; 200ms/调用，覆盖 90% 的安全与自动化需求。</p><h2 id=hook-如何融入团队工作流 class=heading-anchor>Hook 如何融入团队工作流<a href=#hook-%e5%a6%82%e4%bd%95%e8%9e%8d%e5%85%a5%e5%9b%a2%e9%98%9f%e5%b7%a5%e4%bd%9c%e6%b5%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>提交到 <code>.claude/settings.json</code> 的 Hook 对所有人都生效。新成员 clone 仓库后运行 <code>claude</code>，自动继承你的安全护栏和格式策略——无需额外设置，无需手动启用。</p><p>个人专用 Hook（如依赖本地工具的）请放在 <code>.claude/settings.local.json</code>，它们不会被提交。</p><h2 id=hook-不是什么 class=heading-anchor>Hook 不是什么<a href=#hook-%e4%b8%8d%e6%98%af%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li><strong>不是权限的替代品</strong>。Hook 可补充权限，但不应取代。权限是声明式的、明确的；Hook 是可执行的、易误配的。</li><li><strong>不是免费的检查</strong>。每个 Hook 都增加延迟：五个各 100ms 的 Hook = 单次调用 +500ms。请严控性能预算。</li><li><strong>不是图灵完备的配置</strong>。当 Hook 逻辑复杂到像小程序时，该考虑构建 MCP Server 了。</li><li><strong>不是安全边界</strong>。Hook 与 Claude Code 共享进程上下文，足够聪明的模型<strong>可能绕过</strong>它们。它们是护栏（guardrails），不是防火墙（firewalls）。</li></ul><p>下一篇是 SDK 与 GitHub 集成——程序化调用 Claude Code，在 CI 中处理 PR。这是系列的终章，也是最强大的一篇。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/illustration_2.png alt="Claude Code 实操 (5)：Hooks，或如何不再担心 Yolo 模式 —— 视觉呈现" loading=lazy decoding=async class=content-image></figure></p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/claude-code-learn/04-mcp-servers/ data-next-url=https://www.chenk.top/zh/claude-code-learn/06-sdk-and-github/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/claude-code-learn/>Claude Code 实战</a> <span class=count>10 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/claude-code-learn/04-mcp-servers/><span class=title>Claude Code 实战（四）：MCP 服务器连接万物</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/claude-code-learn/06-sdk-and-github/><span class=title>Claude Code 实战（六）：SDK 与 GitHub CI</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/01-install-and-config/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Claude Code 实战（一）：安装、三层配置体系，以及 `#` `@` `/init` 三剑客</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/02-shortcuts-and-modes/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Claude Code 实战（二）：快捷键、四态切换与思考模式</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/03-custom-commands/><span class=series-nav-num>03</span>
+<span class=series-nav-title>Claude Code 实战（三）：自定义斜杠命令与对话控制</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/04-mcp-servers/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Claude Code 实战（四）：MCP 服务器连接万物</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>05</span>
+<span class=series-nav-title>Claude Code 实战（五）：Hooks 与 Yolo 安全网</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/06-sdk-and-github/><span class=series-nav-num>06</span>
+<span class=series-nav-title>Claude Code 实战（六）：SDK 与 GitHub CI</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/07-hooks-deep-dive/><span class=series-nav-num>07</span>
+<span class=series-nav-title>Claude Code 实战（七）：十个实用 Hooks 配方</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/08-subagents-worktrees-plan/><span class=series-nav-num>08</span>
+<span class=series-nav-title>Claude Code 实战（八）：Sub-Agent 与计划模式</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/09-settings-and-permissions/><span class=series-nav-num>09</span>
+<span class=series-nav-title>Claude Code 实战（九）：权限模型与环境变量</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/10-skills-decision-tree/><span class=series-nav-num>10</span>
+<span class=series-nav-title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=Claude%2bCode%2b%25E5%25AE%259E%25E6%2588%2598%25EF%25BC%2588%25E4%25BA%2594%25EF%25BC%2589%25EF%25BC%259AHooks%2b%25E4%25B8%258E%2bYolo%2b%25E5%25AE%2589%25E5%2585%25A8%25E7%25BD%2591&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fclaude-code-learn%252F05-hooks%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fclaude-code-learn%252F05-hooks%252F&title=Claude%2bCode%2b%25E5%25AE%259E%25E6%2588%2598%25EF%25BC%2588%25E4%25BA%2594%25EF%25BC%2589%25EF%25BC%259AHooks%2b%25E4%25B8%258E%2bYolo%2b%25E5%25AE%2589%25E5%2585%25A8%25E7%25BD%2591" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/claude-code-learn/05-hooks/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2026-04-22>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#模型>模型</a></li><li><a href=#完整的-hook-生命周期>完整的 Hook 生命周期</a><ul><li><a href=#pretooluse--守门人>PreToolUse —— 守门人</a></li><li><a href=#posttooluse--检查员>PostToolUse —— 检查员</a></li><li><a href=#userpromptsubmit--输入校验器>UserPromptSubmit —— 输入校验器</a></li><li><a href=#stop--会话终结器>Stop —— 会话终结器</a></li><li><a href=#notification--通知处理器>Notification —— 通知处理器</a></li><li><a href=#subagentstop--子代理监视器>SubagentStop —— 子代理监视器</a></li></ul></li><li><a href=#hook-的执行模型>Hook 的执行模型</a></li><li><a href=#hook-存放在哪里>Hook 存放在哪里</a><ul><li><a href=#matcher-模式参考>Matcher 模式参考</a></li></ul></li><li><a href=#hook-1禁止危险命令>Hook 1：禁止危险命令</a><ul><li><a href=#模型如何响应拦截>模型如何响应拦截</a></li></ul></li><li><a href=#hook-2写入时自动格式化>Hook 2：写入时自动格式化</a></li><li><a href=#hook-3记录每次工具调用>Hook 3：记录每次工具调用</a><ul><li><a href=#日志分析>日志分析</a></li></ul></li><li><a href=#hook-4提交前强制测试通过>Hook 4：提交前强制测试通过</a></li><li><a href=#hook-5脱敏工具输出中的-secrets>Hook 5：脱敏工具输出中的 secrets</a></li><li><a href=#hook-6禁止写入受保护文件>Hook 6：禁止写入受保护文件</a></li><li><a href=#hook-7长操作完成通知>Hook 7：长操作完成通知</a></li><li><a href=#hook-中的错误处理>Hook 中的错误处理</a><ul><li><a href=#始终使用-set--euo-pipefail>始终使用 <code>set -euo pipefail</code></a></li><li><a href=#优雅处理缺失的-jq>优雅处理缺失的 <code>jq</code></a></li><li><a href=#避免静默失败>避免静默失败</a></li><li><a href=#使用-trap-清理临时文件>使用 <code>trap</code> 清理临时文件</a></li></ul></li><li><a href=#本地测试-hook>本地测试 Hook</a><ul><li><a href=#手动测试>手动测试</a></li><li><a href=#自动化测试脚本>自动化测试脚本</a></li></ul></li><li><a href=#hook-性能考量>Hook 性能考量</a><ul><li><a href=#测量耗时>测量耗时</a></li><li><a href=#常见性能陷阱>常见性能陷阱</a></li><li><a href=#性能预算>性能预算</a></li></ul></li><li><a href=#组合多个-hook>组合多个 Hook</a></li><li><a href=#反模式相对路径>反模式：相对路径</a><ul><li><a href=#其他反模式>其他反模式</a></li></ul></li><li><a href=#完整的生产级-hook-配置>完整的生产级 Hook 配置</a></li><li><a href=#hook-如何融入团队工作流>Hook 如何融入团队工作流</a></li><li><a href=#hook-不是什么>Hook 不是什么</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/claude-code-learn/ class=series-name>Claude Code 实战</a>
+<span class=count>10</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/01-install-and-config/><span class=chapter-num>01</span>
+<span class=chapter-title>Claude Code 实战（一）：安装、三层配置体系，以及 `#` `@` `/init` 三剑客</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/02-shortcuts-and-modes/><span class=chapter-num>02</span>
+<span class=chapter-title>Claude Code 实战（二）：快捷键、四态切换与思考模式</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/03-custom-commands/><span class=chapter-num>03</span>
+<span class=chapter-title>Claude Code 实战（三）：自定义斜杠命令与对话控制</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/04-mcp-servers/><span class=chapter-num>04</span>
+<span class=chapter-title>Claude Code 实战（四）：MCP 服务器连接万物</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>05</span>
+<span class=chapter-title>Claude Code 实战（五）：Hooks 与 Yolo 安全网</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/06-sdk-and-github/><span class=chapter-num>06</span>
+<span class=chapter-title>Claude Code 实战（六）：SDK 与 GitHub CI</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/07-hooks-deep-dive/><span class=chapter-num>07</span>
+<span class=chapter-title>Claude Code 实战（七）：十个实用 Hooks 配方</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/08-subagents-worktrees-plan/><span class=chapter-num>08</span>
+<span class=chapter-title>Claude Code 实战（八）：Sub-Agent 与计划模式</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/09-settings-and-permissions/><span class=chapter-num>09</span>
+<span class=chapter-title>Claude Code 实战（九）：权限模型与环境变量</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/10-skills-decision-tree/><span class=chapter-num>10</span>
+<span class=chapter-title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>24 min</strong></div><div class=row><span>字数</span><strong>5843</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/product-thinking/>产品思维</a></li><li><a href=https://www.chenk.top/zh/series/personal-finance/>个人理财</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=关闭>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>在微信里搜索此 ID 即可添加我</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>复制微信号</button></div></div></div></footer></body></html>

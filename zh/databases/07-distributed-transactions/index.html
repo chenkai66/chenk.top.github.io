@@ -1,0 +1,1222 @@
+<!doctype html><html lang=zh data-translation=/en/databases/07-distributed-transactions/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>数据库（七）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难 · Chen Kai Blog</title>
+<meta name=description content="分布式数据库如何跨机器协调事务——两阶段提交（2PC）、Raft 共识、Saga 模式，以及 outbox 和 CDC 等实用模式。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/databases/07-distributed-transactions/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/databases/07-distributed-transactions/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/databases/07-distributed-transactions/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/databases/07-distributed-transactions/><meta property="og:type" content="article"><meta property="og:title" content="数据库（七）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难"><meta property="og:description" content="分布式数据库如何跨机器协调事务——两阶段提交（2PC）、Raft 共识、Saga 模式，以及 outbox 和 CDC 等实用模式。"><meta property="og:url" content="https://www.chenk.top/zh/databases/07-distributed-transactions/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"><meta property="og:image:alt" content="数据库（七）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难"><meta property="article:published_time" content="2024-04-28T09:00:00Z"><meta property="article:modified_time" content="2024-04-28T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Databases"><meta property="article:tag" content="Distributed Systems"><meta property="article:tag" content="Consensus"><meta property="article:tag" content="Transactions"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="数据库（七）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难"><meta name=twitter:description content="分布式数据库如何跨机器协调事务——两阶段提交（2PC）、Raft 共识、Saga 模式，以及 outbox 和 CDC 等实用模式。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"数据库（七）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难","description":"分布式数据库如何跨机器协调事务——两阶段提交（2PC）、Raft 共识、Saga 模式，以及 outbox 和 CDC 等实用模式。","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2024-04-28T09:00:00Z","dateModified":"2024-04-28T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/zh/databases/07-distributed-transactions/"},"inLanguage":"zh"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/07-distributed-transactions.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/databases/>数据库原理与实践</a>
+· 第 7 篇</div><h1>数据库（七）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难</h1><p class=deck>分布式数据库如何跨机器协调事务——两阶段提交（2PC）、Raft 共识、Saga 模式，以及 outbox 和 CDC 等实用模式。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-04-28>April 28, 2024</time> · 34 分钟 · 8475 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/databases/ class=tag>#Databases</a><a href=/zh/tags/distributed-systems/ class=tag>#Distributed Systems</a><a href=/zh/tags/consensus/ class=tag>#Consensus</a><a href=/zh/tags/transactions/ class=tag>#Transactions</a></div><a class="pill pill-outline" href=/en/databases/07-distributed-transactions/>Read in English →</a></div></header><div class=prose><p>第 3 篇文章中关于事务的所有内容，均基于单数据库服务器假设——一台机器、一份事务日志、一个锁管理器。一旦数据分布到多台机器上——例如实施分片（sharding）、采用微服务架构（各服务独享数据库）或启用强一致性复制——便直面分布式系统最棘手的问题：<strong>多台机器如何就某个值达成一致？</strong></p><hr><h2 id=分布式事务问题 class=heading-anchor>分布式事务问题<a href=#%e5%88%86%e5%b8%83%e5%bc%8f%e4%ba%8b%e5%8a%a1%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>考虑一个电商系统，订单服务和库存服务彼此分离，各自拥有独立数据库：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>Order</span><span class=w> </span><span class=n>Service</span><span class=w> </span><span class=p>(</span><span class=n>DB</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span><span class=w>              </span><span class=n>Inventory</span><span class=w> </span><span class=n>Service</span><span class=w> </span><span class=p>(</span><span class=n>DB</span><span class=o>-</span><span class=mi>2</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─────────────────────┐</span><span class=w>          </span><span class=err>┌─────────────────────────┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>orders</span><span class=w>   </span><span class=err>│</span><span class=w>          </span><span class=err>│</span><span class=w> </span><span class=k>UPDATE</span><span class=w> </span><span class=n>products</span><span class=w>          </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span><span class=w> </span><span class=n>total</span><span class=p>)</span><span class=w>     </span><span class=err>│</span><span class=w>          </span><span class=err>│</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>stock</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>stock</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>1</span><span class=w>    </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>99</span><span class=p>.</span><span class=mi>99</span><span class=p>)</span><span class=w>    </span><span class=err>│</span><span class=w>          </span><span class=err>│</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>product_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>42</span><span class=w>    </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────────────────────┘</span><span class=w>          </span><span class=err>└─────────────────────────┘</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>若订单插入成功而库存更新失败（网络故障、约束冲突或进程崩溃），商品便从未被预留；若缺乏协调机制，数据不一致将不可避免。</p><p>在单数据库中，用 <code>BEGIN ... COMMIT</code> 将二者包裹即可解决。但在两个数据库之间，这是不可能的——它们拥有各自独立的事务日志、独立的崩溃恢复机制、独立的时钟。</p><h2 id=两阶段提交2pc class=heading-anchor>两阶段提交（2PC）<a href=#%e4%b8%a4%e9%98%b6%e6%ae%b5%e6%8f%90%e4%ba%a42pc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>分布式事务的经典教科书解法。由一个协调者节点（coordinator）主导协议，多个参与者节点（participants）配合执行。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-two-phase-commit.png alt=两阶段提交协议 loading=lazy decoding=async class=content-image></figure></p><h3 id=协议流程 class=heading-anchor>协议流程<a href=#%e5%8d%8f%e8%ae%ae%e6%b5%81%e7%a8%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Phase 1: PREPARE (投票阶段)
+</span></span><span class=line><span class=cl>  Coordinator → Participant A: &#34;Can you commit transaction T?&#34;
+</span></span><span class=line><span class=cl>  Coordinator → Participant B: &#34;Can you commit transaction T?&#34;
+</span></span><span class=line><span class=cl>  Participant A → Coordinator: &#34;Yes, I&#39;m prepared&#34; (locks held, WAL flushed)
+</span></span><span class=line><span class=cl>  Participant B → Coordinator: &#34;Yes, I&#39;m prepared&#34;
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Phase 2: COMMIT (决策阶段)
+</span></span><span class=line><span class=cl>  Coordinator → Participant A: &#34;COMMIT transaction T&#34;
+</span></span><span class=line><span class=cl>  Coordinator → Participant B: &#34;COMMIT transaction T&#34;
+</span></span><span class=line><span class=cl>  Participant A → Coordinator: &#34;Done&#34;
+</span></span><span class=line><span class=cl>  Participant B → Coordinator: &#34;Done&#34;
+</span></span></code></pre></td></tr></table></div></div><p>若任一参与者在 Phase 1 投“否”票，则协调者向所有参与者发送 ROLLBACK。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Coordinator                   Participant A      Participant B
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    ├──── PREPARE ────────────────►│                   │
+</span></span><span class=line><span class=cl>    ├──── PREPARE ───────────────────────────────────►│
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    │◄─── YES (prepared) ─────────┤                   │
+</span></span><span class=line><span class=cl>    │◄─── YES (prepared) ──────────────────────────────┤
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    │  (writes COMMIT to own log)  │                   │
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    ├──── COMMIT ─────────────────►│                   │
+</span></span><span class=line><span class=cl>    ├──── COMMIT ──────────────────────────────────►│
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    │◄─── ACK ────────────────────┤                   │
+</span></span><span class=line><span class=cl>    │◄─── ACK ─────────────────────────────────────────┤
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span></code></pre></td></tr></table></div></div><h3 id=协调者失效问题the-coordinator-failure-problem class=heading-anchor>协调者失效问题（The Coordinator Failure Problem）<a href=#%e5%8d%8f%e8%b0%83%e8%80%85%e5%a4%b1%e6%95%88%e9%97%ae%e9%a2%98the-coordinator-failure-problem class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>2PC 的关键缺陷是：协调者若在发送 PREPARE 后、 COMMIT 或 ROLLBACK 前崩溃，参与者即陷入僵持——它们已投“是”并持有锁，却无法得知最终决策。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Coordinator                   Participant A      Participant B
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    ├──── PREPARE ────────────────►│                   │
+</span></span><span class=line><span class=cl>    ├──── PREPARE ───────────────────────────────────►│
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    │◄─── YES ────────────────────┤                   │
+</span></span><span class=line><span class=cl>    │◄─── YES ─────────────────────────────────────────┤
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    ╳ CRASH                        │                   │
+</span></span><span class=line><span class=cl>                                   │                   │
+</span></span><span class=line><span class=cl>                               &#34;I voted YES          &#34;I voted YES
+</span></span><span class=line><span class=cl>                                but don&#39;t know        but don&#39;t know
+</span></span><span class=line><span class=cl>                                the decision.         the decision.
+</span></span><span class=line><span class=cl>                                Can&#39;t commit.         Can&#39;t commit.
+</span></span><span class=line><span class=cl>                                Can&#39;t rollback.       Can&#39;t rollback.
+</span></span><span class=line><span class=cl>                                Locks held...&#34;        Locks held...&#34;
+</span></span></code></pre></td></tr></table></div></div><p>这称为 <strong>阻塞问题（blocking problem）</strong>：参与者须等待协调者恢复并揭晓最终决策——可能无限期。实践中这意味着：</p><ul><li>锁被无限期持有，阻塞其他事务；</li><li>可能需要人工干预；</li><li>该协议不具备容错能力。</li></ul><h3 id=2pc-在实践中的应用 class=heading-anchor>2PC 在实践中的应用<a href=#2pc-%e5%9c%a8%e5%ae%9e%e8%b7%b5%e4%b8%ad%e7%9a%84%e5%ba%94%e7%94%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>尽管存在局限性， 2PC 仍在实际系统中被使用。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- PostgreSQL: 预处理事务（2PC 参与者）
+</span></span></span><span class=line><span class=cl><span class=c1>-- 应用程序/协调者调用以下命令：
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Phase 1: Prepare
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>100</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>PREPARE</span><span class=w> </span><span class=k>TRANSACTION</span><span class=w> </span><span class=s1>&#39;transfer_001_debit&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Phase 2: Commit（若所有参与者均成功 prepare）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>COMMIT</span><span class=w> </span><span class=n>PREPARED</span><span class=w> </span><span class=s1>&#39;transfer_001_debit&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 或回滚
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ROLLBACK</span><span class=w> </span><span class=n>PREPARED</span><span class=w> </span><span class=s1>&#39;transfer_001_debit&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 检查孤立的预处理事务（卡住的 2PC）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=n>gid</span><span class=p>,</span><span class=w> </span><span class=n>prepared</span><span class=p>,</span><span class=w> </span><span class=k>owner</span><span class=p>,</span><span class=w> </span><span class=k>database</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_prepared_xacts</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=c1>// Java XA 事务（JTA）—— 2PC 的标准 API</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>UserTransaction</span><span class=w> </span><span class=n>ut</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>(</span><span class=n>UserTransaction</span><span class=p>)</span><span class=w> </span><span class=n>ctx</span><span class=p>.</span><span class=na>lookup</span><span class=p>(</span><span class=s>&#34;java:comp/UserTransaction&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>ut</span><span class=p>.</span><span class=na>begin</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>// 将两个不同数据库纳入同一事务</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Connection</span><span class=w> </span><span class=n>conn1</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>ds1</span><span class=p>.</span><span class=na>getConnection</span><span class=p>();</span><span class=w>  </span><span class=c1>// 订单数据库</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Connection</span><span class=w> </span><span class=n>conn2</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>ds2</span><span class=p>.</span><span class=na>getConnection</span><span class=p>();</span><span class=w>  </span><span class=c1>// 库存数据库</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>conn1</span><span class=p>.</span><span class=na>prepareStatement</span><span class=p>(</span><span class=s>&#34;INSERT INTO orders ...&#34;</span><span class=p>).</span><span class=na>execute</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>conn2</span><span class=p>.</span><span class=na>prepareStatement</span><span class=p>(</span><span class=s>&#34;UPDATE inventory SET stock = stock - 1 ...&#34;</span><span class=p>).</span><span class=na>execute</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>ut</span><span class=p>.</span><span class=na>commit</span><span class=p>();</span><span class=w>  </span><span class=c1>// 事务管理器运行 2PC 协议</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=三阶段提交3pc class=heading-anchor>三阶段提交（3PC）<a href=#%e4%b8%89%e9%98%b6%e6%ae%b5%e6%8f%90%e4%ba%a43pc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/07-distributed-consensus-protocol-servers-voting-in-a-digital-p.jpg alt=分布式共识协议服务器在数字环境中投票 loading=lazy decoding=async class=content-image></figure></p><p>3PC 在 PREPARE 和 COMMIT 之间增加了一个 PRE-COMMIT 阶段，使参与者可在协调者失效时自主恢复：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Phase 1: CAN-COMMIT?  → 参与者检查自身是否可提交
+</span></span><span class=line><span class=cl>Phase 2: PRE-COMMIT   → 协调者通知参与者准备（但暂不提交）
+</span></span><span class=line><span class=cl>Phase 3: DO-COMMIT    → 最终提交
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>若协调者在 PRE-COMMIT 后崩溃：
+</span></span><span class=line><span class=cl>  参与者可超时后直接提交（因已知所有节点均已就绪）
+</span></span></code></pre></td></tr></table></div></div><p>理论上， 3PC 是非阻塞的；但实践中却极少使用，原因在于：</p><ul><li>网络分区仍可能导致不一致（某参与者可能未收到 PRE-COMMIT）；</li><li>额外的一次往返增加了延迟；</li><li>Raft/Paxos 等共识协议更稳健地解决了该问题。</li></ul><h2 id=共识算法consensus-algorithms class=heading-anchor>共识算法（Consensus Algorithms）<a href=#%e5%85%b1%e8%af%86%e7%ae%97%e6%b3%95consensus-algorithms class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>共识问题是：即使部分节点发生故障，多个节点仍需就某个值达成一致，这是强一致性分布式数据库的基石。</p><h3 id=paxos-概念性 class=heading-anchor>Paxos （概念性）<a href=#paxos-%e6%a6%82%e5%bf%b5%e6%80%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Paxos （Leslie Lamport， 1989）是首个经严格证明正确的共识算法。它定义三类角色：</p><ul><li><strong>提议者（Proposers）</strong>：提出值；</li><li><strong>接受者（Acceptors）</strong>：投票批准提议；</li><li><strong>学习者（Learners）</strong>：获知最终选定的值。</li></ul><p>Single-Decree Paxos 的简化视图如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Phase 1: Prepare
+</span></span><span class=line><span class=cl>  Proposer → Acceptors: &#34;Prepare(proposal_number=5)&#34;
+</span></span><span class=line><span class=cl>  Acceptors → Proposer: &#34;Promise: I won&#39;t accept proposals &lt; 5&#34;
+</span></span><span class=line><span class=cl>                          + &#34;Last accepted: (proposal=3, value=&#39;X&#39;)&#34; if any
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Phase 2: Accept
+</span></span><span class=line><span class=cl>  Proposer → Acceptors: &#34;Accept(proposal=5, value=&#39;Y&#39;)&#34;
+</span></span><span class=line><span class=cl>  Acceptors → Proposer: &#34;Accepted&#34; (if no higher proposal seen)
+</span></span><span class=line><span class=cl>  
+</span></span><span class=line><span class=cl>When a majority of acceptors accept → value is decided
+</span></span></code></pre></td></tr></table></div></div><p>Paxos 在理论上正确，但以难以实现而闻名。正如 Lamport 所言，社区花了数年才真正理解他的论文。这种复杂性催生了 Raft。</p><h3 id=raft可理解的共识协议 class=heading-anchor>Raft：可理解的共识协议<a href=#raft%e5%8f%af%e7%90%86%e8%a7%a3%e7%9a%84%e5%85%b1%e8%af%86%e5%8d%8f%e8%ae%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Raft （Diego Ongaro & John Ousterhout， 2014）旨在提供与 Paxos 等价、但更易理解的共识方案。它将共识分解为三个子问题：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-raft-election.png alt="Raft 领导者选举" loading=lazy decoding=async class=content-image></figure></p><ol><li><strong>领导者选举（Leader election）</strong></li><li><strong>日志复制（Log replication）</strong></li><li><strong>安全性（Safety）</strong></li></ol><h4 id=领导者选举 class=heading-anchor>领导者选举<a href=#%e9%a2%86%e5%af%bc%e8%80%85%e9%80%89%e4%b8%be class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>各节点初始均为 <strong>追随者（Follower）</strong>，若在随机超时（如 150–300 ms）内未收到领导者心跳，即转为 <strong>候选人（Candidate）</strong> 并发起选举。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Node States:
+</span></span><span class=line><span class=cl>  Follower  → times out, no heartbeat  → Candidate
+</span></span><span class=line><span class=cl>  Candidate → receives majority votes  → Leader
+</span></span><span class=line><span class=cl>  Candidate → discovers higher-term leader → Follower
+</span></span><span class=line><span class=cl>  Leader    → discovers higher-term leader → Follower
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Election Process:
+</span></span><span class=line><span class=cl>  1. Candidate increments its term number
+</span></span><span class=line><span class=cl>  2. Votes for itself
+</span></span><span class=line><span class=cl>  3. Sends RequestVote RPCs to all other nodes
+</span></span><span class=line><span class=cl>  4. If majority responds with vote: becomes Leader
+</span></span><span class=line><span class=cl>  5. Starts sending periodic heartbeats to prevent new elections
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Term 1: Node A is leader
+</span></span><span class=line><span class=cl>         Node A ──heartbeat──► Node B
+</span></span><span class=line><span class=cl>         Node A ──heartbeat──► Node C
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Term 2: Node A crashes. Node B times out.
+</span></span><span class=line><span class=cl>         Node B: &#34;I&#39;m a candidate for term 2. Vote for me.&#34;
+</span></span><span class=line><span class=cl>         Node C: &#34;OK, you have my vote for term 2.&#34;
+</span></span><span class=line><span class=cl>         Node B: Now leader. Starts sending heartbeats.
+</span></span></code></pre></td></tr></table></div></div><h4 id=日志复制 class=heading-anchor>日志复制<a href=#%e6%97%a5%e5%bf%97%e5%a4%8d%e5%88%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>领导者当选后，接收客户端请求并追加至本地日志，再将日志条目复制给追随者：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Leader Log:   [term1:SET x=1] [term1:SET y=2] [term2:SET x=3]
+</span></span><span class=line><span class=cl>                    │                │               │
+</span></span><span class=line><span class=cl>                    ▼                ▼               ▼
+</span></span><span class=line><span class=cl>Follower B:   [term1:SET x=1] [term1:SET y=2] [term2:SET x=3]  ✓ up to date
+</span></span><span class=line><span class=cl>Follower C:   [term1:SET x=1] [term1:SET y=2]                  ✗ catching up
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>A log entry is &#34;committed&#34; when replicated to a majority of nodes.
+</span></span><span class=line><span class=cl>The leader then applies the entry to its state machine and responds to the client.
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Client ─── &#34;SET x=3&#34; ──► Leader
+</span></span><span class=line><span class=cl>                          │
+</span></span><span class=line><span class=cl>                 1. Append to log
+</span></span><span class=line><span class=cl>                 2. Send AppendEntries RPC to followers
+</span></span><span class=line><span class=cl>                          │
+</span></span><span class=line><span class=cl>                    ┌──────┼──────┐
+</span></span><span class=line><span class=cl>                    ▼      ▼      ▼
+</span></span><span class=line><span class=cl>                 Foll.B  Foll.C  Foll.D
+</span></span><span class=line><span class=cl>                    │      │      │
+</span></span><span class=line><span class=cl>                    └──────┼──────┘
+</span></span><span class=line><span class=cl>                 3. Wait for majority acknowledgment
+</span></span><span class=line><span class=cl>                          │
+</span></span><span class=line><span class=cl>                 4. Commit entry
+</span></span><span class=line><span class=cl>                 5. Apply to state machine
+</span></span><span class=line><span class=cl>                 6. Respond to client: &#34;OK&#34;
+</span></span></code></pre></td></tr></table></div></div><h4 id=raft-的实际应用 class=heading-anchor>Raft 的实际应用<a href=#raft-%e7%9a%84%e5%ae%9e%e9%99%85%e5%ba%94%e7%94%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><div class=table-wrap><table><thead><tr><th>系统</th><th>Raft 使用场景</th></tr></thead><tbody><tr><td>etcd</td><td>键值存储（Kubernetes 后端存储）</td></tr><tr><td>CockroachDB</td><td>每个 range （分区）使用独立的 Raft 组</td></tr><tr><td>TiKV</td><td>TiDB 的存储层</td></tr><tr><td>Consul</td><td>服务发现与配置管理</td></tr><tr><td>RethinkDB</td><td>集群协调</td></tr></tbody></table></div><h2 id=saga-模式 class=heading-anchor>Saga 模式<a href=#saga-%e6%a8%a1%e5%bc%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>当 2PC 成本过高或不切实际——这在微服务架构中几乎总是如此——Saga 模式便成为替代方案。它不依赖跨服务的分布式事务，而是将业务流程拆解为一系列本地事务，每项均配有一个 <strong>补偿事务（compensating transaction）</strong>，用于在后续步骤失败时回退影响。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-saga-pattern.png alt="Saga 模式" loading=lazy decoding=async class=content-image></figure></p><h3 id=编排orchestration-vs-协作choreography class=heading-anchor>编排（Orchestration） vs. 协作（Choreography）<a href=#%e7%bc%96%e6%8e%92orchestration-vs-%e5%8d%8f%e4%bd%9cchoreography class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>协作式（Choreography）</strong>：各服务发布事件，下游服务监听并响应。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Order Service              Inventory Service          Payment Service
+</span></span><span class=line><span class=cl>     │                          │                          │
+</span></span><span class=line><span class=cl>     │ OrderCreated event ──────►                          │
+</span></span><span class=line><span class=cl>     │                          │                          │
+</span></span><span class=line><span class=cl>     │                    InventoryReserved event ─────────►
+</span></span><span class=line><span class=cl>     │                          │                          │
+</span></span><span class=line><span class=cl>     │                          │              PaymentProcessed event
+</span></span><span class=line><span class=cl>     │◄─────────────────────────────────────────────────────┤
+</span></span><span class=line><span class=cl>     │                          │                          │
+</span></span><span class=line><span class=cl>     │ OrderConfirmed           │                          │
+</span></span></code></pre></td></tr></table></div></div><p><strong>编排式（Orchestration）</strong>：由中心化协调器（orchestrator）依次指挥各服务。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Saga Orchestrator
+</span></span><span class=line><span class=cl>     │
+</span></span><span class=line><span class=cl>     ├──── &#34;Create order&#34; ──────► Order Service
+</span></span><span class=line><span class=cl>     │◄─── &#34;Order created&#34; ──────┤
+</span></span><span class=line><span class=cl>     │
+</span></span><span class=line><span class=cl>     ├──── &#34;Reserve inventory&#34; ──► Inventory Service
+</span></span><span class=line><span class=cl>     │◄─── &#34;Inventory reserved&#34; ──┤
+</span></span><span class=line><span class=cl>     │
+</span></span><span class=line><span class=cl>     ├──── &#34;Process payment&#34; ────► Payment Service
+</span></span><span class=line><span class=cl>     │◄─── &#34;Payment failed!&#34; ─────┤
+</span></span><span class=line><span class=cl>     │
+</span></span><span class=line><span class=cl>     │  COMPENSATION:
+</span></span><span class=line><span class=cl>     ├──── &#34;Release inventory&#34; ──► Inventory Service
+</span></span><span class=line><span class=cl>     │◄─── &#34;Inventory released&#34; ──┤
+</span></span><span class=line><span class=cl>     │
+</span></span><span class=line><span class=cl>     ├──── &#34;Cancel order&#34; ──────► Order Service
+</span></span><span class=line><span class=cl>     │◄─── &#34;Order cancelled&#34; ─────┤
+</span></span></code></pre></td></tr></table></div></div><h3 id=补偿事务compensating-transactions class=heading-anchor>补偿事务（Compensating Transactions）<a href=#%e8%a1%a5%e5%81%bf%e4%ba%8b%e5%8a%a1compensating-transactions class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>每个正向操作都需配套一个补偿操作。</p><div class=table-wrap><table><thead><tr><th>步骤</th><th>正向操作</th><th>补偿操作</th></tr></thead><tbody><tr><td>1</td><td>创建订单（状态： pending）</td><td>取消订单（状态： cancelled）</td></tr><tr><td>2</td><td>预留库存（stock - 1）</td><td>释放库存（stock + 1）</td></tr><tr><td>3</td><td>扣款支付</td><td>退款</td></tr><tr><td>4</td><td>发货</td><td>取消发货</td></tr></tbody></table></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Saga 编排器伪代码</span>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>OrderSaga</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>steps</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=n>SagaStep</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>action</span><span class=o>=</span><span class=k>lambda</span> <span class=n>ctx</span><span class=p>:</span> <span class=n>order_service</span><span class=o>.</span><span class=n>create_order</span><span class=p>(</span><span class=n>ctx</span><span class=o>.</span><span class=n>user_id</span><span class=p>,</span> <span class=n>ctx</span><span class=o>.</span><span class=n>items</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>compensation</span><span class=o>=</span><span class=k>lambda</span> <span class=n>ctx</span><span class=p>:</span> <span class=n>order_service</span><span class=o>.</span><span class=n>cancel_order</span><span class=p>(</span><span class=n>ctx</span><span class=o>.</span><span class=n>order_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>SagaStep</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>action</span><span class=o>=</span><span class=k>lambda</span> <span class=n>ctx</span><span class=p>:</span> <span class=n>inventory_service</span><span class=o>.</span><span class=n>reserve</span><span class=p>(</span><span class=n>ctx</span><span class=o>.</span><span class=n>items</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>compensation</span><span class=o>=</span><span class=k>lambda</span> <span class=n>ctx</span><span class=p>:</span> <span class=n>inventory_service</span><span class=o>.</span><span class=n>release</span><span class=p>(</span><span class=n>ctx</span><span class=o>.</span><span class=n>items</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>SagaStep</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>action</span><span class=o>=</span><span class=k>lambda</span> <span class=n>ctx</span><span class=p>:</span> <span class=n>payment_service</span><span class=o>.</span><span class=n>charge</span><span class=p>(</span><span class=n>ctx</span><span class=o>.</span><span class=n>user_id</span><span class=p>,</span> <span class=n>ctx</span><span class=o>.</span><span class=n>total</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>compensation</span><span class=o>=</span><span class=k>lambda</span> <span class=n>ctx</span><span class=p>:</span> <span class=n>payment_service</span><span class=o>.</span><span class=n>refund</span><span class=p>(</span><span class=n>ctx</span><span class=o>.</span><span class=n>payment_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>execute</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>context</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>completed</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>steps</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>result</span> <span class=o>=</span> <span class=n>step</span><span class=o>.</span><span class=n>action</span><span class=p>(</span><span class=n>context</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>completed</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>step</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=c1># 按逆序执行补偿</span>
+</span></span><span class=line><span class=cl>                <span class=k>for</span> <span class=n>completed_step</span> <span class=ow>in</span> <span class=nb>reversed</span><span class=p>(</span><span class=n>completed</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>                    <span class=n>completed_step</span><span class=o>.</span><span class=n>compensation</span><span class=p>(</span><span class=n>context</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>raise</span> <span class=n>SagaFailedError</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Step failed: </span><span class=si>{</span><span class=n>e</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=时钟同步与全局排序 class=heading-anchor>时钟同步与全局排序<a href=#%e6%97%b6%e9%92%9f%e5%90%8c%e6%ad%a5%e4%b8%8e%e5%85%a8%e5%b1%80%e6%8e%92%e5%ba%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>分布式事务需要对操作顺序达成一致。但分布式系统没有共享时钟——每个节点各自维护时钟，而且会漂移。本节解释生产系统如何解决排序问题。</p><h3 id=时钟问题 class=heading-anchor>时钟问题<a href=#%e6%97%b6%e9%92%9f%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>节点 A 的时钟: 14:00:00.000
+</span></span><span class=line><span class=cl>节点 B 的时钟: 14:00:00.003  (快 3ms)
+</span></span><span class=line><span class=cl>节点 C 的时钟: 13:59:59.997  (慢 3ms)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>事务 T1 在节点 A 提交，时间戳 &#34;14:00:00.001&#34;
+</span></span><span class=line><span class=cl>事务 T2 在节点 B 提交，时间戳 &#34;14:00:00.002&#34;
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>T1 真的发生在 T2 之前吗？仅凭时间戳无法判断。
+</span></span><span class=line><span class=cl>如果 A 的时钟偏慢，T2 可能实际上先提交的。
+</span></span></code></pre></td></tr></table></div></div><p>物理时钟不足以确定顺序。三种方案解决这个问题：</p><h3 id=lamport-时钟与向量时钟 class=heading-anchor>Lamport 时钟与向量时钟<a href=#lamport-%e6%97%b6%e9%92%9f%e4%b8%8e%e5%90%91%e9%87%8f%e6%97%b6%e9%92%9f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Lamport 时钟：单一计数器，每个事件递增
+</span></span><span class=line><span class=cl>  - 若事件 A 导致事件 B → L(A) &lt; L(B)
+</span></span><span class=line><span class=cl>  - 但：L(A) &lt; L(B) 不意味着 A 导致了 B（并发事件获得任意顺序）
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>向量时钟：每个节点一个计数器，追踪因果历史
+</span></span><span class=line><span class=cl>  节点 A: [3, 1, 2]  → &#34;看过自己 3 个事件，B 的 1 个，C 的 2 个&#34;
+</span></span><span class=line><span class=cl>  节点 B: [2, 4, 2]  → &#34;看过 A 的 2 个，自己 4 个事件，C 的 2 个&#34;
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  比较：若 VA 的所有分量 ≤ VB → A 因果先于 B
+</span></span><span class=line><span class=cl>       若某些 VA[i] &gt; VB[i] 且某些 VA[j] &lt; VB[j] → 并发
+</span></span></code></pre></td></tr></table></div></div><p>向量时钟能实现因果一致性，但不提供全序。对于可串行化分布式事务，需要更强的机制。</p><h3 id=混合逻辑时钟hlc class=heading-anchor>混合逻辑时钟（HLC）<a href=#%e6%b7%b7%e5%90%88%e9%80%bb%e8%be%91%e6%97%b6%e9%92%9fhlc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>CockroachDB 和 YugabyteDB 使用 HLC——物理时间与逻辑计数器的组合：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>HLC = (physical_time, logical_counter)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>规则：
+</span></span><span class=line><span class=cl>1. 本地事件：hlc.physical = max(hlc.physical, wall_clock); hlc.logical = 0
+</span></span><span class=line><span class=cl>2. 发送消息：在消息中包含 hlc
+</span></span><span class=line><span class=cl>3. 收到消息：hlc.physical = max(local.physical, msg.physical, wall_clock)
+</span></span><span class=line><span class=cl>   若物理时间相等：hlc.logical = max(local.logical, msg.logical) + 1
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>结果：HLC ≈ 物理时钟时间，但具有因果排序保证
+</span></span><span class=line><span class=cl>约束：HLC 始终在 max_clock_offset 内接近真实时间
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=c1>// CockroachDB 的不确定性区间
+</span></span></span><span class=line><span class=cl><span class=c1>// 读取时，事务必须考虑其他节点在时钟不确定窗口内写入的值
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=kd>type</span> <span class=nx>ReadTimestamp</span> <span class=kd>struct</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>ReadTS</span>     <span class=nx>hlc</span><span class=p>.</span><span class=nx>Timestamp</span>  <span class=c1>// &#34;我在此时间开始读&#34;
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=nx>MaxOffset</span>  <span class=nx>time</span><span class=p>.</span><span class=nx>Duration</span>  <span class=c1>// &#34;时钟可能偏差这么多&#34;
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=c1>// 不确定性区间：[ReadTS, ReadTS + MaxOffset]
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=c1>// 此区间内的值可能在我们之前写入
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// 若在不确定性区间内发现值：
+</span></span></span><span class=line><span class=cl><span class=c1>// 方案 1：推进读时间戳（以更高 ts 重启事务）
+</span></span></span><span class=line><span class=cl><span class=c1>// 方案 2：若写事务仍在进行中，等待它完成
+</span></span></span></code></pre></td></tr></table></div></div><p>CockroachDB 的时钟偏移默认值为 500ms。保持 NTP 紧凑（&lt; 250ms）可减少事务重启。</p><h3 id=google-spanner-与-truetime class=heading-anchor>Google Spanner 与 TrueTime<a href=#google-spanner-%e4%b8%8e-truetime class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Spanner 用硬件解决时钟问题：每个数据中心部署 GPS 接收器和原子钟，提供有界不确定性的时间 API。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>TrueTime API：
+</span></span><span class=line><span class=cl>  TT.now() → 返回区间 [earliest, latest]
+</span></span><span class=line><span class=cl>  TT.after(t) → 若 t 确定在过去则返回 true
+</span></span><span class=line><span class=cl>  TT.before(t) → 若 t 确定在未来则返回 true
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>典型不确定性：ε ≈ 1-7ms（平均 ~4ms）
+</span></span><span class=line><span class=cl>  GPS + 原子钟同步将漂移保持在极小范围
+</span></span></code></pre></td></tr></table></div></div><p>Spanner 的提交协议使用 TrueTime 分配全局有意义的时间戳：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Commit-wait 协议：
+</span></span><span class=line><span class=cl>  1. 事务 T 获取所有锁，执行写入
+</span></span><span class=line><span class=cl>  2. 协调者选择提交时间戳 s = TT.now().latest
+</span></span><span class=line><span class=cl>  3. 协调者等待直到 TT.after(s) 为 true
+</span></span><span class=line><span class=cl>     （最多等待 2ε ≈ 7ms，等不确定性过去）
+</span></span><span class=line><span class=cl>  4. 释放锁，响应客户端
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>保证：若 T1 在 T2 开始之前提交（物理时间），
+</span></span><span class=line><span class=cl>     则 T1 的时间戳 &lt; T2 的时间戳
+</span></span><span class=line><span class=cl>     → 外部一致性（线性一致）
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>为什么 commit-wait 有效：
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>T1 在时间 t_commit 以 s1 = TT.now().latest 提交
+</span></span><span class=line><span class=cl>  → 真实提交时间 ≤ s1（因为 s1 是最晚可能时间）
+</span></span><span class=line><span class=cl>  → 等待直到 TT.after(s1)：真实时间现在确定 &gt; s1
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>T2 在时间 t_start &gt; t_commit 开始（物理时间）
+</span></span><span class=line><span class=cl>  → T2 在某个 ≥ t_start 的时刻选取 s2 = TT.now().latest
+</span></span><span class=line><span class=cl>  → s2 ≥ t_start 时的真实时间 &gt; s1（因为我们等待了）
+</span></span><span class=line><span class=cl>  → s1 &lt; s2 有保证！
+</span></span></code></pre></td></tr></table></div></div><div class=table-wrap><table><thead><tr><th>系统</th><th>时钟机制</th><th>不确定性</th><th>排序保证</th></tr></thead><tbody><tr><td>Spanner</td><td>GPS + 原子钟（TrueTime）</td><td>1-7ms</td><td>外部一致性（线性一致）</td></tr><tr><td>CockroachDB</td><td>NTP + HLC</td><td>~250-500ms</td><td>可串行化（非严格线性一致）</td></tr><tr><td>YugabyteDB</td><td>NTP + HLC</td><td>可配置</td><td>可串行化</td></tr><tr><td>TiDB</td><td>TSO（集中式时间戳预言机）</td><td>0（单点）</td><td>线性一致（但 TSO 是瓶颈）</td></tr></tbody></table></div><h3 id=实际影响 class=heading-anchor>实际影响<a href=#%e5%ae%9e%e9%99%85%e5%bd%b1%e5%93%8d class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- CockroachDB：检查时钟偏移健康状态
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=k>CLUSTER</span><span class=w> </span><span class=n>SETTING</span><span class=w> </span><span class=n>server</span><span class=p>.</span><span class=n>clock</span><span class=p>.</span><span class=n>max_offset</span><span class=p>;</span><span class=w>  </span><span class=c1>-- 默认 500ms
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 若时钟漂移超过 max_offset，节点会自行终止以保护正确性
+</span></span></span><span class=line><span class=cl><span class=c1>-- 监控所有节点的 NTP 偏移：
+</span></span></span><span class=line><span class=cl><span class=c1>-- $ chronyc tracking | grep &#34;Last offset&#34;
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Spanner：用户无需关心时钟问题，但要为此付费
+</span></span></span><span class=line><span class=cl><span class=c1>-- 只读事务可通过快照读避免 commit-wait：
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>created_at</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=n>TIMESTAMP_SUB</span><span class=p>(</span><span class=k>CURRENT_TIMESTAMP</span><span class=p>(),</span><span class=w> </span><span class=nb>INTERVAL</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=n>HOUR</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Spanner 自动选择安全的读取时间戳
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=生产级-saga-实现 class=heading-anchor>生产级 Saga 实现<a href=#%e7%94%9f%e4%ba%a7%e7%ba%a7-saga-%e5%ae%9e%e7%8e%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>前面展示的 Saga 伪代码捕获了概念，但生产环境的 Saga 需要：持久化状态、幂等步骤、带退避的重试、超时处理和可观测性。以下是生产级模式。</p><h3 id=状态机设计 class=heading-anchor>状态机设计<a href=#%e7%8a%b6%e6%80%81%e6%9c%ba%e8%ae%be%e8%ae%a1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Saga 状态：
+</span></span><span class=line><span class=cl>┌─────────┐     ┌──────────┐     ┌────────────┐     ┌───────────┐
+</span></span><span class=line><span class=cl>│ STARTED │────►│ RUNNING  │────►│ COMPLETING │────►│ COMPLETED │
+</span></span><span class=line><span class=cl>└─────────┘     └──────────┘     └────────────┘     └───────────┘
+</span></span><span class=line><span class=cl>                     │
+</span></span><span class=line><span class=cl>                     ▼
+</span></span><span class=line><span class=cl>               ┌──────────────┐     ┌────────────┐
+</span></span><span class=line><span class=cl>               │ COMPENSATING │────►│  FAILED    │
+</span></span><span class=line><span class=cl>               └──────────────┘     └────────────┘
+</span></span><span class=line><span class=cl>                     │
+</span></span><span class=line><span class=cl>                     ▼
+</span></span><span class=line><span class=cl>               ┌──────────────┐
+</span></span><span class=line><span class=cl>               │ COMP_FAILED  │  ← 需要人工介入
+</span></span><span class=line><span class=cl>               └──────────────┘
+</span></span></code></pre></td></tr></table></div></div><h3 id=saga-状态数据库-schema class=heading-anchor>Saga 状态数据库 Schema<a href=#saga-%e7%8a%b6%e6%80%81%e6%95%b0%e6%8d%ae%e5%ba%93-schema class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>sagas</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>saga_id</span><span class=w> </span><span class=n>UUID</span><span class=w> </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=n>gen_random_uuid</span><span class=p>(),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>saga_type</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>100</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>,</span><span class=w>      </span><span class=c1>-- &#39;order_creation&#39;, &#39;payment_refund&#39;
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>    </span><span class=k>state</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>20</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=s1>&#39;STARTED&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>context</span><span class=w> </span><span class=n>JSONB</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=s1>&#39;{}&#39;</span><span class=p>,</span><span class=w>  </span><span class=c1>-- 步骤间共享数据
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>    </span><span class=n>current_step</span><span class=w> </span><span class=nb>INT</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=mi>0</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>created_at</span><span class=w> </span><span class=n>TIMESTAMPTZ</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=n>NOW</span><span class=p>(),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>updated_at</span><span class=w> </span><span class=n>TIMESTAMPTZ</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=n>NOW</span><span class=p>(),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>deadline_at</span><span class=w> </span><span class=n>TIMESTAMPTZ</span><span class=p>,</span><span class=w>              </span><span class=c1>-- 全局超时
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>    </span><span class=n>error_message</span><span class=w> </span><span class=nb>TEXT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>saga_steps</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>saga_id</span><span class=w> </span><span class=n>UUID</span><span class=w> </span><span class=k>REFERENCES</span><span class=w> </span><span class=n>sagas</span><span class=p>(</span><span class=n>saga_id</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>step_index</span><span class=w> </span><span class=nb>INT</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>step_name</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>100</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>state</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>20</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=s1>&#39;PENDING&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=c1>-- PENDING → EXECUTING → SUCCEEDED / FAILED
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>    </span><span class=c1>-- COMPENSATING → COMPENSATED / COMP_FAILED
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>    </span><span class=n>request_payload</span><span class=w> </span><span class=n>JSONB</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>response_payload</span><span class=w> </span><span class=n>JSONB</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>attempts</span><span class=w> </span><span class=nb>INT</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=mi>0</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>max_attempts</span><span class=w> </span><span class=nb>INT</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=mi>3</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>last_attempted_at</span><span class=w> </span><span class=n>TIMESTAMPTZ</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>idempotency_key</span><span class=w> </span><span class=n>UUID</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=n>gen_random_uuid</span><span class=p>(),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=w> </span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span><span class=w> </span><span class=n>step_index</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_sagas_stuck</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>sagas</span><span class=w> </span><span class=p>(</span><span class=k>state</span><span class=p>,</span><span class=w> </span><span class=n>updated_at</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>WHERE</span><span class=w> </span><span class=k>state</span><span class=w> </span><span class=k>IN</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;RUNNING&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;COMPENSATING&#39;</span><span class=p>);</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=编排器实现 class=heading-anchor>编排器实现<a href=#%e7%bc%96%e6%8e%92%e5%99%a8%e5%ae%9e%e7%8e%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>uuid</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>datetime</span> <span class=kn>import</span> <span class=n>datetime</span><span class=p>,</span> <span class=n>timedelta</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>dataclasses</span> <span class=kn>import</span> <span class=n>dataclass</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>enum</span> <span class=kn>import</span> <span class=n>Enum</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>typing</span> <span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Any</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>StepState</span><span class=p>(</span><span class=n>Enum</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>PENDING</span> <span class=o>=</span> <span class=s2>&#34;PENDING&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>EXECUTING</span> <span class=o>=</span> <span class=s2>&#34;EXECUTING&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>SUCCEEDED</span> <span class=o>=</span> <span class=s2>&#34;SUCCEEDED&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>FAILED</span> <span class=o>=</span> <span class=s2>&#34;FAILED&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>COMPENSATING</span> <span class=o>=</span> <span class=s2>&#34;COMPENSATING&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>COMPENSATED</span> <span class=o>=</span> <span class=s2>&#34;COMPENSATED&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@dataclass</span>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>SagaStepDef</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>name</span><span class=p>:</span> <span class=nb>str</span>
+</span></span><span class=line><span class=cl>    <span class=n>action</span><span class=p>:</span> <span class=n>Callable</span>  <span class=c1># async (context, idempotency_key) -&gt; result</span>
+</span></span><span class=line><span class=cl>    <span class=n>compensation</span><span class=p>:</span> <span class=n>Callable</span>  <span class=c1># async (context, idempotency_key) -&gt; None</span>
+</span></span><span class=line><span class=cl>    <span class=n>max_attempts</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3</span>
+</span></span><span class=line><span class=cl>    <span class=n>timeout_seconds</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>30</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>SagaOrchestrator</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>db_pool</span><span class=p>,</span> <span class=n>steps</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>SagaStepDef</span><span class=p>]):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>db</span> <span class=o>=</span> <span class=n>db_pool</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>steps</span> <span class=o>=</span> <span class=n>steps</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>execute</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>saga_type</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>initial_context</span><span class=p>:</span> <span class=nb>dict</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>saga_id</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>uuid</span><span class=o>.</span><span class=n>uuid4</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>        <span class=k>async</span> <span class=k>with</span> <span class=bp>self</span><span class=o>.</span><span class=n>db</span><span class=o>.</span><span class=n>acquire</span><span class=p>()</span> <span class=k>as</span> <span class=n>conn</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>await</span> <span class=n>conn</span><span class=o>.</span><span class=n>execute</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>                INSERT INTO sagas (saga_id, saga_type, state, context, deadline_at)
+</span></span></span><span class=line><span class=cl><span class=s2>                VALUES ($1, $2, &#39;RUNNING&#39;, $3, $4)
+</span></span></span><span class=line><span class=cl><span class=s2>            &#34;&#34;&#34;</span><span class=p>,</span> <span class=n>saga_id</span><span class=p>,</span> <span class=n>saga_type</span><span class=p>,</span> <span class=n>initial_context</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>datetime</span><span class=o>.</span><span class=n>utcnow</span><span class=p>()</span> <span class=o>+</span> <span class=n>timedelta</span><span class=p>(</span><span class=n>minutes</span><span class=o>=</span><span class=mi>5</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=n>conn</span><span class=o>.</span><span class=n>execute</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>                    INSERT INTO saga_steps (saga_id, step_index, step_name, max_attempts)
+</span></span></span><span class=line><span class=cl><span class=s2>                    VALUES ($1, $2, $3, $4)
+</span></span></span><span class=line><span class=cl><span class=s2>                &#34;&#34;&#34;</span><span class=p>,</span> <span class=n>saga_id</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=n>step</span><span class=o>.</span><span class=n>name</span><span class=p>,</span> <span class=n>step</span><span class=o>.</span><span class=n>max_attempts</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_run_forward</span><span class=p>(</span><span class=n>saga_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>saga_id</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>_run_forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>saga_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>saga</span> <span class=o>=</span> <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_load_saga</span><span class=p>(</span><span class=n>saga_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>saga</span><span class=p>[</span><span class=s2>&#34;current_step&#34;</span><span class=p>],</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>steps</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>            <span class=n>step_def</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>steps</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>step_row</span> <span class=o>=</span> <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_load_step</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>success</span> <span class=o>=</span> <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_execute_step_with_retry</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                <span class=n>saga_id</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=n>step_def</span><span class=p>,</span> <span class=n>saga</span><span class=p>[</span><span class=s2>&#34;context&#34;</span><span class=p>],</span> <span class=n>step_row</span><span class=p>[</span><span class=s2>&#34;idempotency_key&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=ow>not</span> <span class=n>success</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_compensate</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=n>i</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>return</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_advance_step</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_mark_completed</span><span class=p>(</span><span class=n>saga_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>_execute_step_with_retry</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=p>,</span> <span class=n>saga_id</span><span class=p>,</span> <span class=n>step_index</span><span class=p>,</span> <span class=n>step_def</span><span class=p>,</span> <span class=n>context</span><span class=p>,</span> <span class=n>idempotency_key</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bool</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>attempt</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>step_def</span><span class=o>.</span><span class=n>max_attempts</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_update_step_state</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=n>step_index</span><span class=p>,</span> <span class=s2>&#34;EXECUTING&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>result</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>wait_for</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                    <span class=n>step_def</span><span class=o>.</span><span class=n>action</span><span class=p>(</span><span class=n>context</span><span class=p>,</span> <span class=n>idempotency_key</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                    <span class=n>timeout</span><span class=o>=</span><span class=n>step_def</span><span class=o>.</span><span class=n>timeout_seconds</span>
+</span></span><span class=line><span class=cl>                <span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>context</span><span class=o>.</span><span class=n>update</span><span class=p>(</span><span class=n>result</span> <span class=ow>or</span> <span class=p>{})</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_update_step_state</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                    <span class=n>saga_id</span><span class=p>,</span> <span class=n>step_index</span><span class=p>,</span> <span class=s2>&#34;SUCCEEDED&#34;</span><span class=p>,</span> <span class=n>response</span><span class=o>=</span><span class=n>result</span>
+</span></span><span class=line><span class=cl>                <span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>return</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>            <span class=k>except</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>TimeoutError</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_record_attempt</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=n>step_index</span><span class=p>,</span> <span class=s2>&#34;timeout&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_record_attempt</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=n>step_index</span><span class=p>,</span> <span class=nb>str</span><span class=p>(</span><span class=n>e</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=n>attempt</span> <span class=o>&lt;</span> <span class=n>step_def</span><span class=o>.</span><span class=n>max_attempts</span> <span class=o>-</span> <span class=mi>1</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mi>2</span> <span class=o>**</span> <span class=n>attempt</span><span class=p>)</span>  <span class=c1># 指数退避</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_update_step_state</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=n>step_index</span><span class=p>,</span> <span class=s2>&#34;FAILED&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>_compensate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>saga_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>from_step</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_update_saga_state</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=s2>&#34;COMPENSATING&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>from_step</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>step_def</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>steps</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>step_row</span> <span class=o>=</span> <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_load_step</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>step_row</span><span class=p>[</span><span class=s2>&#34;state&#34;</span><span class=p>]</span> <span class=o>!=</span> <span class=s2>&#34;SUCCEEDED&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>continue</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_update_step_state</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=s2>&#34;COMPENSATING&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>wait_for</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                    <span class=n>step_def</span><span class=o>.</span><span class=n>compensation</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                        <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_load_context</span><span class=p>(</span><span class=n>saga_id</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                        <span class=n>step_row</span><span class=p>[</span><span class=s2>&#34;idempotency_key&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>                    <span class=p>),</span>
+</span></span><span class=line><span class=cl>                    <span class=n>timeout</span><span class=o>=</span><span class=n>step_def</span><span class=o>.</span><span class=n>timeout_seconds</span>
+</span></span><span class=line><span class=cl>                <span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_update_step_state</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=s2>&#34;COMPENSATED&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_update_step_state</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=s2>&#34;COMP_FAILED&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_update_saga_state</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=s2>&#34;COMP_FAILED&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_alert_manual_intervention</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=n>e</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>return</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>_update_saga_state</span><span class=p>(</span><span class=n>saga_id</span><span class=p>,</span> <span class=s2>&#34;FAILED&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=僵死-saga-恢复 class=heading-anchor>僵死 Saga 恢复<a href=#%e5%83%b5%e6%ad%bb-saga-%e6%81%a2%e5%a4%8d class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>如果编排器在执行中途崩溃，Saga 会卡住。后台清扫器负责恢复：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>sweep_stuck_sagas</span><span class=p>(</span><span class=n>db_pool</span><span class=p>,</span> <span class=n>orchestrator</span><span class=p>,</span> <span class=n>interval_seconds</span><span class=o>=</span><span class=mi>60</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;后台任务：恢复卡住的 Saga。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>async</span> <span class=k>with</span> <span class=n>db_pool</span><span class=o>.</span><span class=n>acquire</span><span class=p>()</span> <span class=k>as</span> <span class=n>conn</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>stuck</span> <span class=o>=</span> <span class=k>await</span> <span class=n>conn</span><span class=o>.</span><span class=n>fetch</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>                SELECT saga_id, state, current_step, saga_type
+</span></span></span><span class=line><span class=cl><span class=s2>                FROM sagas
+</span></span></span><span class=line><span class=cl><span class=s2>                WHERE state IN (&#39;RUNNING&#39;, &#39;COMPENSATING&#39;)
+</span></span></span><span class=line><span class=cl><span class=s2>                AND updated_at &lt; NOW() - INTERVAL &#39;2 minutes&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>                FOR UPDATE SKIP LOCKED
+</span></span></span><span class=line><span class=cl><span class=s2>                LIMIT 10
+</span></span></span><span class=line><span class=cl><span class=s2>            &#34;&#34;&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>saga</span> <span class=ow>in</span> <span class=n>stuck</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=n>saga</span><span class=p>[</span><span class=s2>&#34;state&#34;</span><span class=p>]</span> <span class=o>==</span> <span class=s2>&#34;RUNNING&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=k>await</span> <span class=n>orchestrator</span><span class=o>.</span><span class=n>_run_forward</span><span class=p>(</span><span class=n>saga</span><span class=p>[</span><span class=s2>&#34;saga_id&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>                <span class=k>elif</span> <span class=n>saga</span><span class=p>[</span><span class=s2>&#34;state&#34;</span><span class=p>]</span> <span class=o>==</span> <span class=s2>&#34;COMPENSATING&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=k>await</span> <span class=n>orchestrator</span><span class=o>.</span><span class=n>_compensate</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                        <span class=n>saga</span><span class=p>[</span><span class=s2>&#34;saga_id&#34;</span><span class=p>],</span> <span class=n>saga</span><span class=p>[</span><span class=s2>&#34;current_step&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>                    <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=c1># 处理超时的 Saga</span>
+</span></span><span class=line><span class=cl>            <span class=n>expired</span> <span class=o>=</span> <span class=k>await</span> <span class=n>conn</span><span class=o>.</span><span class=n>fetch</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>                UPDATE sagas SET state = &#39;COMPENSATING&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>                WHERE state = &#39;RUNNING&#39; AND deadline_at &lt; NOW()
+</span></span></span><span class=line><span class=cl><span class=s2>                RETURNING saga_id, current_step
+</span></span></span><span class=line><span class=cl><span class=s2>            &#34;&#34;&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>saga</span> <span class=ow>in</span> <span class=n>expired</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=n>orchestrator</span><span class=o>.</span><span class=n>_compensate</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                    <span class=n>saga</span><span class=p>[</span><span class=s2>&#34;saga_id&#34;</span><span class=p>],</span> <span class=n>saga</span><span class=p>[</span><span class=s2>&#34;current_step&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>                <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=n>interval_seconds</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=saga-步骤的幂等性 class=heading-anchor>Saga 步骤的幂等性<a href=#saga-%e6%ad%a5%e9%aa%a4%e7%9a%84%e5%b9%82%e7%ad%89%e6%80%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>每个 Saga 步骤必须幂等——安全重试而无副作用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>charge_payment</span><span class=p>(</span><span class=n>context</span><span class=p>:</span> <span class=nb>dict</span><span class=p>,</span> <span class=n>idempotency_key</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Saga 步骤：向客户收费。通过 idempotency_key 实现幂等。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>response</span> <span class=o>=</span> <span class=k>await</span> <span class=n>payment_api</span><span class=o>.</span><span class=n>create_charge</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>amount</span><span class=o>=</span><span class=n>context</span><span class=p>[</span><span class=s2>&#34;total&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=n>customer_id</span><span class=o>=</span><span class=n>context</span><span class=p>[</span><span class=s2>&#34;user_id&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=n>idempotency_key</span><span class=o>=</span><span class=nb>str</span><span class=p>(</span><span class=n>idempotency_key</span><span class=p>),</span>  <span class=c1># 支付服务端去重</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span><span class=s2>&#34;payment_id&#34;</span><span class=p>:</span> <span class=n>response</span><span class=p>[</span><span class=s2>&#34;id&#34;</span><span class=p>],</span> <span class=s2>&#34;charge_status&#34;</span><span class=p>:</span> <span class=n>response</span><span class=p>[</span><span class=s2>&#34;status&#34;</span><span class=p>]}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>refund_payment</span><span class=p>(</span><span class=n>context</span><span class=p>:</span> <span class=nb>dict</span><span class=p>,</span> <span class=n>idempotency_key</span><span class=p>:</span> <span class=nb>str</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;补偿：退款。同样幂等。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=s2>&#34;payment_id&#34;</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>context</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span>  <span class=c1># 收费从未发生</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>payment_api</span><span class=o>.</span><span class=n>refund</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>payment_id</span><span class=o>=</span><span class=n>context</span><span class=p>[</span><span class=s2>&#34;payment_id&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=n>idempotency_key</span><span class=o>=</span><span class=sa>f</span><span class=s2>&#34;refund-</span><span class=si>{</span><span class=n>idempotency_key</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=saga-可观测性 class=heading-anchor>Saga 可观测性<a href=#saga-%e5%8f%af%e8%a7%82%e6%b5%8b%e6%80%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 仪表板查询：Saga 健康概览
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>saga_type</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>state</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>count</span><span class=p>(</span><span class=o>*</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=k>count</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>avg</span><span class=p>(</span><span class=k>EXTRACT</span><span class=p>(</span><span class=n>EPOCH</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=p>(</span><span class=n>updated_at</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>created_at</span><span class=p>)))</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>avg_duration_sec</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>sagas</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>created_at</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=n>NOW</span><span class=p>()</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=nb>INTERVAL</span><span class=w> </span><span class=s1>&#39;1 hour&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>saga_type</span><span class=p>,</span><span class=w> </span><span class=k>state</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>saga_type</span><span class=p>,</span><span class=w> </span><span class=k>state</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 查找需要人工介入的卡住 Saga
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=n>saga_id</span><span class=p>,</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=n>saga_type</span><span class=p>,</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=k>state</span><span class=p>,</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=n>error_message</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>       </span><span class=n>ss</span><span class=p>.</span><span class=n>step_name</span><span class=p>,</span><span class=w> </span><span class=n>ss</span><span class=p>.</span><span class=n>step_index</span><span class=p>,</span><span class=w> </span><span class=n>ss</span><span class=p>.</span><span class=k>state</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>step_state</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>sagas</span><span class=w> </span><span class=n>s</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>JOIN</span><span class=w> </span><span class=n>saga_steps</span><span class=w> </span><span class=n>ss</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=n>saga_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>ss</span><span class=p>.</span><span class=n>saga_id</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=k>state</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;COMP_FAILED&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=n>created_at</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=线性一致性linearizability-vs-可串行化serializability class=heading-anchor>线性一致性（Linearizability） vs. 可串行化（Serializability）<a href=#%e7%ba%bf%e6%80%a7%e4%b8%80%e8%87%b4%e6%80%a7linearizability-vs-%e5%8f%af%e4%b8%b2%e8%a1%8c%e5%8c%96serializability class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>这两个术语常被混淆，但描述的是完全不同的保证。</p><p><strong>可串行化（Serializability）</strong>（来自事务）：并发执行多个事务的结果，等价于这些事务以某种<strong>串行顺序</strong>执行的结果。它关注的是事务与数据库层面的正确性。</p><p><strong>线性一致性（Linearizability）</strong>（来自分布式系统）：每个操作看起来都在其调用与完成之间的某个瞬时点原子生效；一旦写入被确认，所有后续读取都必须看到该值。它关注的是<strong>单个操作</strong>与实时顺序。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>线性一致系统（寄存器初始值为 0）：
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Client A: write(1)  ─────────────────► OK
+</span></span><span class=line><span class=cl>                                        │ （从此刻起，所有读取必须返回 1）
+</span></span><span class=line><span class=cl>Client B:              read() ──────────► 1  ✓
+</span></span><span class=line><span class=cl>Client C:                     read() ──► 1   ✓
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>非线性一致：
+</span></span><span class=line><span class=cl>Client A: write(1)  ─────────────────► OK
+</span></span><span class=line><span class=cl>Client B:              read() ──────────► 0  ✗ （陈旧！）
+</span></span><span class=line><span class=cl>Client C:                     read() ──► 1   ✓
+</span></span></code></pre></td></tr></table></div></div><div class=table-wrap><table><thead><tr><th>属性</th><th>可串行化（Serializability）</th><th>线性一致性（Linearizability）</th></tr></thead><tbody><tr><td>范围</td><td>多操作事务</td><td>单个操作</td></tr><tr><td>排序要求</td><td>存在某种串行顺序（任意顺序均可）</td><td>实时顺序（real-time order）</td></tr><tr><td>关键场景</td><td>数据库</td><td>分布式键值存储、分布式锁</td></tr><tr><td>示例系统</td><td>任何 SERIALIZABLE 隔离级别的数据库</td><td>ZooKeeper、 etcd、 Spanner</td></tr></tbody></table></div><p><strong>严格可串行化（Strict serializability）</strong> = 可串行化 + 线性一致性。这是最强的一致性保证，也是 Google Spanner 提供的保证。</p><h2 id=最终一致性eventual-consistency class=heading-anchor>最终一致性（Eventual Consistency）<a href=#%e6%9c%80%e7%bb%88%e4%b8%80%e8%87%b4%e6%80%a7eventual-consistency class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/07-saga-pattern-as-a-chain-of-compensating-transactions-domino-.jpg alt="Saga 模式作为补偿事务链的多米诺效应" loading=lazy decoding=async class=content-image></figure></p><p>在线性一致性的另一端是最终一致性：若不再有新的写入，所有副本将<strong>最终</strong>收敛到相同值。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-consistency-spectrum.png alt=一致性谱 loading=lazy decoding=async class=content-image></figure></p><p>“最终”没有明确定义——收敛时间可能短至毫秒，也可能长达数分钟。实践中：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>向 Node A 写入 &#34;x = 5&#34;
+</span></span><span class=line><span class=cl>  t=0ms:  Node A: x=5,  Node B: x=3,  Node C: x=3
+</span></span><span class=line><span class=cl>  t=50ms: Node A: x=5,  Node B: x=5,  Node C: x=3
+</span></span><span class=line><span class=cl>  t=100ms: Node A: x=5, Node B: x=5,  Node C: x=5  ← 收敛完成
+</span></span></code></pre></td></tr></table></div></div><p>默认采用最终一致性的系统包括：</p><ul><li>DynamoDB （除非显式请求强一致性读取）；</li><li>Cassandra （一致性级别设为 ONE）；</li><li>DNS；</li><li>CDN 缓存。</li></ul><p>它适用于以下场景：</p><ul><li>陈旧数据可容忍（社交媒体动态流、商品推荐）；</li><li>系统能检测并解决冲突（购物车、 CRDT）；</li><li>性能比一致性更重要（分析、日志）。</li></ul><h2 id=真实世界常用模式 class=heading-anchor>真实世界常用模式<a href=#%e7%9c%9f%e5%ae%9e%e4%b8%96%e7%95%8c%e5%b8%b8%e7%94%a8%e6%a8%a1%e5%bc%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=outbox-模式 class=heading-anchor>Outbox 模式<a href=#outbox-%e6%a8%a1%e5%bc%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>如何<strong>原子性地</strong>更新数据库 <em>并</em> 向消息中间件（如 Kafka）发布消息？你无法在数据库与 Kafka 之间使用分布式事务。</p><p>Outbox 模式：将消息写入数据库内的一个 “outbox” 表（与业务更新在同一事务中），再由独立进程读取该表并向消息中间件发布。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 单数据库事务（原子性！）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 业务逻辑
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span><span class=w> </span><span class=n>total</span><span class=p>,</span><span class=w> </span><span class=n>status</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>99</span><span class=p>.</span><span class=mi>99</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;created&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Outbox 条目（同事务、同数据库）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>outbox</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>aggregate_type</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>aggregate_id</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>event_type</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>payload</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>created_at</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Order&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>currval</span><span class=p>(</span><span class=s1>&#39;orders_order_id_seq&#39;</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;OrderCreated&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;{&#34;user_id&#34;: 1, &#34;total&#34;: 99.99}&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>NOW</span><span class=p>()</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>一个独立的发布进程（或 Debezium + CDC）持续读取 outbox 表并向 Kafka 发布事件：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Outbox 发布器（持续运行）</span>
+</span></span><span class=line><span class=cl><span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>rows</span> <span class=o>=</span> <span class=n>db</span><span class=o>.</span><span class=n>query</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>        SELECT id, event_type, payload
+</span></span></span><span class=line><span class=cl><span class=s2>        FROM outbox
+</span></span></span><span class=line><span class=cl><span class=s2>        WHERE published_at IS NULL
+</span></span></span><span class=line><span class=cl><span class=s2>        ORDER BY created_at
+</span></span></span><span class=line><span class=cl><span class=s2>        LIMIT 100
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>row</span> <span class=ow>in</span> <span class=n>rows</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>kafka</span><span class=o>.</span><span class=n>produce</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>topic</span><span class=o>=</span><span class=sa>f</span><span class=s2>&#34;events.</span><span class=si>{</span><span class=n>row</span><span class=o>.</span><span class=n>event_type</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>value</span><span class=o>=</span><span class=n>row</span><span class=o>.</span><span class=n>payload</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>db</span><span class=o>.</span><span class=n>execute</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;UPDATE outbox SET published_at = NOW() WHERE id = </span><span class=si>%s</span><span class=s2>&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>row</span><span class=o>.</span><span class=n>id</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=变更数据捕获cdc class=heading-anchor>变更数据捕获（CDC）<a href=#%e5%8f%98%e6%9b%b4%e6%95%b0%e6%8d%ae%e6%8d%95%e8%8e%b7cdc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>不主动写 outbox 表，而是直接从数据库的事务日志（WAL / Binlog）中捕获变更：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Database WAL/Binlog ──► CDC Tool (Debezium) ──► Kafka ──► Consumers
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>PostgreSQL WAL → Debezium → Kafka topic &#34;db.public.orders&#34;
+</span></span><span class=line><span class=cl>MySQL Binlog   → Debezium → Kafka topic &#34;db.inventory.products&#34;
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=c1>// Debezium CDC 事件（来自 PostgreSQL）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;before&#34;</span><span class=p>:</span> <span class=kc>null</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;after&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;order_id&#34;</span><span class=p>:</span> <span class=mi>1234</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;user_id&#34;</span><span class=p>:</span> <span class=mi>1</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;total&#34;</span><span class=p>:</span> <span class=mf>99.99</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;status&#34;</span><span class=p>:</span> <span class=s2>&#34;created&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;source&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;version&#34;</span><span class=p>:</span> <span class=s2>&#34;2.4.0&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;connector&#34;</span><span class=p>:</span> <span class=s2>&#34;postgresql&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;orders-db&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;ts_ms&#34;</span><span class=p>:</span> <span class=mi>1702656000000</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;db&#34;</span><span class=p>:</span> <span class=s2>&#34;ecommerce&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;schema&#34;</span><span class=p>:</span> <span class=s2>&#34;public&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;table&#34;</span><span class=p>:</span> <span class=s2>&#34;orders&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;op&#34;</span><span class=p>:</span> <span class=s2>&#34;c&#34;</span><span class=p>,</span>  <span class=c1>// c=create, u=update, d=delete, r=read (snapshot)
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=nt>&#34;ts_ms&#34;</span><span class=p>:</span> <span class=mi>1702656000123</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>CDC 相较于 Outbox 模式的优点：</p><ul><li>无需修改应用代码或数据库 schema；</li><li>捕获所有变更，而非仅靠人工“记得”写 outbox 的那些；</li><li>更低延迟（直接读 WAL）；</li><li>规避双写风险（dual-write risk）。</li></ul><h2 id=何时应避免分布式事务 class=heading-anchor>何时应避免分布式事务？<a href=#%e4%bd%95%e6%97%b6%e5%ba%94%e9%81%bf%e5%85%8d%e5%88%86%e5%b8%83%e5%bc%8f%e4%ba%8b%e5%8a%a1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>最好的分布式事务，就是你根本不需要的那个。</strong> 替代策略包括：</p><ol><li><p><strong>将需事务协同的数据保留在同一节点</strong>：设计分片键（partition key），使关联数据共置（co-locate）。</p></li><li><p><strong>接受最终一致性</strong>：许多业务流程天然异步（邮件、通知、分析）。</p></li><li><p><strong>使用幂等操作（Idempotent operations）</strong>：设计操作使其重试安全。</p></li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 幂等插入（PostgreSQL）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>processed_events</span><span class=w> </span><span class=p>(</span><span class=n>event_id</span><span class=p>,</span><span class=w> </span><span class=n>processed_at</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;evt-123&#39;</span><span class=p>,</span><span class=w> </span><span class=n>NOW</span><span class=p>())</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ON</span><span class=w> </span><span class=n>CONFLICT</span><span class=w> </span><span class=p>(</span><span class=n>event_id</span><span class=p>)</span><span class=w> </span><span class=k>DO</span><span class=w> </span><span class=k>NOTHING</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 安全重试——重复插入会被静默忽略
+</span></span></span></code></pre></td></tr></table></div></div><ol start=4><li><p><strong>面向补偿设计（Design for compensation）</strong>：不追求预防不一致，而是在事后检测并修复。银行正是这样做的——每日运行对账（reconciliation）流程。</p></li><li><p><strong>使用单数据库</strong>：若你的微服务共享同一数据库（虽属“异端”，但务实），则可直接使用常规事务。</p></li></ol><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>我们已覆盖理论：数据如何存储、查询、复制、分片与事务处理。但仅有理论远远不够。在最后一篇中，我们将走向实战：<strong>生产环境中的数据库</strong>——迁移、监控、连接池、备份、容量规划，以及来自真实线上事故的“战争故事”。</p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/databases/06-replication-and-partitioning/ data-next-url=https://www.chenk.top/zh/databases/08-database-in-practice/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/databases/>数据库原理与实践</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/databases/06-replication-and-partitioning/><span class=title>数据库（六）：复制与分片——突破单机限制的扩展之道</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/databases/08-database-in-practice/><span class=title>数据库（八）：实战中的数据库——迁移、监控与故障案例</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/01-data-models-and-sql/><span class=series-nav-num>01</span>
+<span class=series-nav-title>数据库（一）：数据模型与 SQL —— 为何关系型表结构至今仍占主导地位</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/02-indexing-and-query-planning/><span class=series-nav-num>02</span>
+<span class=series-nav-title>数据库（二）：索引与查询规划——数据库如何找到你的数据</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/03-transactions-and-concurrency/><span class=series-nav-num>03</span>
+<span class=series-nav-title>数据库（三）：事务与并发控制——ACID、隔离级别与锁机制</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/04-storage-engines/><span class=series-nav-num>04</span>
+<span class=series-nav-title>数据库（四）：存储引擎——数据如何落盘</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/05-nosql-landscape/><span class=series-nav-num>05</span>
+<span class=series-nav-title>数据库（五）：NoSQL——文档型、键值型、列式与图数据库</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/06-replication-and-partitioning/><span class=series-nav-num>06</span>
+<span class=series-nav-title>数据库（六）：复制与分片——突破单机限制的扩展之道</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>07</span>
+<span class=series-nav-title>数据库（七）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/08-database-in-practice/><span class=series-nav-num>08</span>
+<span class=series-nav-title>数据库（八）：实战中的数据库——迁移、监控与故障案例</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E6%2595%25B0%25E6%258D%25AE%25E5%25BA%2593%25EF%25BC%2588%25E4%25B8%2583%25EF%25BC%2589%25EF%25BC%259A%25E5%2588%2586%25E5%25B8%2583%25E5%25BC%258F%25E4%25BA%258B%25E5%258A%25A1%25E2%2580%2594%25E2%2580%2594%25E4%25B8%25A4%25E9%2598%25B6%25E6%25AE%25B5%25E6%258F%2590%25E4%25BA%25A4%25E3%2580%2581Saga%2b%25E6%25A8%25A1%25E5%25BC%258F%25EF%25BC%258C%25E4%25BB%25A5%25E5%258F%258A%25E4%25B8%25BA%25E4%25BD%2595%25E5%2585%25B1%25E8%25AF%2586%25E5%25A6%2582%25E6%25AD%25A4%25E5%259B%25B0%25E9%259A%25BE&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fdatabases%252F07-distributed-transactions%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fdatabases%252F07-distributed-transactions%252F&title=%25E6%2595%25B0%25E6%258D%25AE%25E5%25BA%2593%25EF%25BC%2588%25E4%25B8%2583%25EF%25BC%2589%25EF%25BC%259A%25E5%2588%2586%25E5%25B8%2583%25E5%25BC%258F%25E4%25BA%258B%25E5%258A%25A1%25E2%2580%2594%25E2%2580%2594%25E4%25B8%25A4%25E9%2598%25B6%25E6%25AE%25B5%25E6%258F%2590%25E4%25BA%25A4%25E3%2580%2581Saga%2b%25E6%25A8%25A1%25E5%25BC%258F%25EF%25BC%258C%25E4%25BB%25A5%25E5%258F%258A%25E4%25B8%25BA%25E4%25BD%2595%25E5%2585%25B1%25E8%25AF%2586%25E5%25A6%2582%25E6%25AD%25A4%25E5%259B%25B0%25E9%259A%25BE" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/databases/07-distributed-transactions/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2024-04-28>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#分布式事务问题>分布式事务问题</a></li><li><a href=#两阶段提交2pc>两阶段提交（2PC）</a><ul><li><a href=#协议流程>协议流程</a></li><li><a href=#协调者失效问题the-coordinator-failure-problem>协调者失效问题（The Coordinator Failure Problem）</a></li><li><a href=#2pc-在实践中的应用>2PC 在实践中的应用</a></li></ul></li><li><a href=#三阶段提交3pc>三阶段提交（3PC）</a></li><li><a href=#共识算法consensus-algorithms>共识算法（Consensus Algorithms）</a><ul><li><a href=#paxos-概念性>Paxos （概念性）</a></li><li><a href=#raft可理解的共识协议>Raft：可理解的共识协议</a><ul><li><a href=#领导者选举>领导者选举</a></li><li><a href=#日志复制>日志复制</a></li><li><a href=#raft-的实际应用>Raft 的实际应用</a></li></ul></li></ul></li><li><a href=#saga-模式>Saga 模式</a><ul><li><a href=#编排orchestration-vs-协作choreography>编排（Orchestration） vs. 协作（Choreography）</a></li><li><a href=#补偿事务compensating-transactions>补偿事务（Compensating Transactions）</a></li></ul></li><li><a href=#时钟同步与全局排序>时钟同步与全局排序</a><ul><li><a href=#时钟问题>时钟问题</a></li><li><a href=#lamport-时钟与向量时钟>Lamport 时钟与向量时钟</a></li><li><a href=#混合逻辑时钟hlc>混合逻辑时钟（HLC）</a></li><li><a href=#google-spanner-与-truetime>Google Spanner 与 TrueTime</a></li><li><a href=#实际影响>实际影响</a></li></ul></li><li><a href=#生产级-saga-实现>生产级 Saga 实现</a><ul><li><a href=#状态机设计>状态机设计</a></li><li><a href=#saga-状态数据库-schema>Saga 状态数据库 Schema</a></li><li><a href=#编排器实现>编排器实现</a></li><li><a href=#僵死-saga-恢复>僵死 Saga 恢复</a></li><li><a href=#saga-步骤的幂等性>Saga 步骤的幂等性</a></li><li><a href=#saga-可观测性>Saga 可观测性</a></li></ul></li><li><a href=#线性一致性linearizability-vs-可串行化serializability>线性一致性（Linearizability） vs. 可串行化（Serializability）</a></li><li><a href=#最终一致性eventual-consistency>最终一致性（Eventual Consistency）</a></li><li><a href=#真实世界常用模式>真实世界常用模式</a><ul><li><a href=#outbox-模式>Outbox 模式</a></li><li><a href=#变更数据捕获cdc>变更数据捕获（CDC）</a></li></ul></li><li><a href=#何时应避免分布式事务>何时应避免分布式事务？</a></li><li><a href=#下一步>下一步</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/databases/ class=series-name>数据库原理与实践</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/01-data-models-and-sql/><span class=chapter-num>01</span>
+<span class=chapter-title>数据库（一）：数据模型与 SQL —— 为何关系型表结构至今仍占主导地位</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/02-indexing-and-query-planning/><span class=chapter-num>02</span>
+<span class=chapter-title>数据库（二）：索引与查询规划——数据库如何找到你的数据</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/03-transactions-and-concurrency/><span class=chapter-num>03</span>
+<span class=chapter-title>数据库（三）：事务与并发控制——ACID、隔离级别与锁机制</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/04-storage-engines/><span class=chapter-num>04</span>
+<span class=chapter-title>数据库（四）：存储引擎——数据如何落盘</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/05-nosql-landscape/><span class=chapter-num>05</span>
+<span class=chapter-title>数据库（五）：NoSQL——文档型、键值型、列式与图数据库</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/06-replication-and-partitioning/><span class=chapter-num>06</span>
+<span class=chapter-title>数据库（六）：复制与分片——突破单机限制的扩展之道</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
+<span class=chapter-title>数据库（七）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/08-database-in-practice/><span class=chapter-num>08</span>
+<span class=chapter-title>数据库（八）：实战中的数据库——迁移、监控与故障案例</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>34 min</strong></div><div class=row><span>字数</span><strong>8475</strong></div><div class=row><span>写于</span><strong>Apr 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/product-thinking/>产品思维</a></li><li><a href=https://www.chenk.top/zh/series/personal-finance/>个人理财</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=关闭>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>在微信里搜索此 ID 即可添加我</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>复制微信号</button></div></div></div></footer></body></html>

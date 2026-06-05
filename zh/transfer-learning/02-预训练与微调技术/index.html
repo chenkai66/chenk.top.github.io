@@ -1,0 +1,803 @@
+<!doctype html><html lang=zh data-translation=/en/transfer-learning/02-pre-training-and-fine-tuning/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>迁移学习（二）：预训练与微调 · Chen Kai Blog</title>
+<meta name=description content="预训练如何从无标注数据中学到强大的先验，微调如何把它适配到具体任务。涵盖对比学习、掩码语言模型、判别式学习率、层冻结、灾难性遗忘、LoRA，以及一个工业级 BERT 微调实现。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/transfer-learning/02-%E9%A2%84%E8%AE%AD%E7%BB%83%E4%B8%8E%E5%BE%AE%E8%B0%83%E6%8A%80%E6%9C%AF/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/transfer-learning/02-pre-training-and-fine-tuning/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/transfer-learning/02-%E9%A2%84%E8%AE%AD%E7%BB%83%E4%B8%8E%E5%BE%AE%E8%B0%83%E6%8A%80%E6%9C%AF/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/transfer-learning/02-%E9%A2%84%E8%AE%AD%E7%BB%83%E4%B8%8E%E5%BE%AE%E8%B0%83%E6%8A%80%E6%9C%AF/><meta property="og:type" content="article"><meta property="og:title" content="迁移学习（二）：预训练与微调"><meta property="og:description" content="预训练如何从无标注数据中学到强大的先验，微调如何把它适配到具体任务。涵盖对比学习、掩码语言模型、判别式学习率、层冻结、灾难性遗忘、LoRA，以及一个工业级 BERT 微调实现。"><meta property="og:url" content="https://www.chenk.top/zh/transfer-learning/02-%E9%A2%84%E8%AE%AD%E7%BB%83%E4%B8%8E%E5%BE%AE%E8%B0%83%E6%8A%80%E6%9C%AF/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/transfer-learning.jpg"><meta property="og:image:alt" content="迁移学习（二）：预训练与微调"><meta property="article:published_time" content="2025-05-07T09:00:00Z"><meta property="article:modified_time" content="2025-05-07T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Deep Learning"><meta property="article:tag" content="Transfer Learning"><meta property="article:tag" content="BERT"><meta property="article:tag" content="Fine-tuning"><meta property="article:tag" content="Pre-training"><meta property="article:tag" content="Self-Supervised Learning"><meta property="article:tag" content="GPT"><meta property="article:tag" content="LoRA"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="迁移学习（二）：预训练与微调"><meta name=twitter:description content="预训练如何从无标注数据中学到强大的先验，微调如何把它适配到具体任务。涵盖对比学习、掩码语言模型、判别式学习率、层冻结、灾难性遗忘、LoRA，以及一个工业级 BERT 微调实现。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/transfer-learning.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"迁移学习（二）：预训练与微调","description":"预训练如何从无标注数据中学到强大的先验，微调如何把它适配到具体任务。涵盖对比学习、掩码语言模型、判别式学习率、层冻结、灾难性遗忘、LoRA，以及一个工业级 BERT 微调实现。","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/transfer-learning.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2025-05-07T09:00:00Z","dateModified":"2025-05-07T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/zh/transfer-learning/02-%E9%A2%84%E8%AE%AD%E7%BB%83%E4%B8%8E%E5%BE%AE%E8%B0%83%E6%8A%80%E6%9C%AF/"},"inLanguage":"zh"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js onload='document.querySelectorAll(".math-inline,.math-block").forEach(function(e){var t=e.textContent,n=e.classList.contains("math-block"),t=n?t.replace(/^\$\$/,"").replace(/\$\$$/,""):t.replace(/^\$/,"").replace(/\$$/,"");try{katex.render(t,e,{displayMode:n,throwOnError:!1})}catch{}})'></script><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/transfer-learning/02-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/transfer-learning/>迁移学习</a>
+· 第 2 篇</div><h1>迁移学习（二）：预训练与微调</h1><p class=deck>预训练如何从无标注数据中学到强大的先验，微调如何把它适配到具体任务。涵盖对比学习、掩码语言模型、判别式学习率、层冻结、灾难性遗忘、LoRA，以及一个工业级 BERT 微调实现。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-05-07>May 7, 2025</time> · 40 分钟 · 9716 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/deep-learning/ class=tag>#Deep Learning</a><a href=/zh/tags/transfer-learning/ class=tag>#Transfer Learning</a><a href=/zh/tags/bert/ class=tag>#BERT</a><a href=/zh/tags/fine-tuning/ class=tag>#Fine-tuning</a><a href=/zh/tags/pre-training/ class=tag>#Pre-training</a><a href=/zh/tags/self-supervised-learning/ class=tag>#Self-Supervised Learning</a><a href=/zh/tags/gpt/ class=tag>#GPT</a><a href=/zh/tags/lora/ class=tag>#LoRA</a></div><a class="pill pill-outline" href=/en/transfer-learning/02-pre-training-and-fine-tuning/>Read in English →</a></div></header><div class=prose><p>2018 年，BERT 横空出世，几乎一夜之间改变了 NLP 的游戏规则。一个在 Wikipedia 和 BookCorpus 上预训练的模型，只需几千条标注数据进行微调，就能超越研究者们花费数年精心设计的任务专用架构。同样的故事后来在视觉领域（ImageNet 预训练、SimCLR、MAE）、语音领域（wav2vec 2.0）以及代码领域（Codex）不断重演。如今，“一次预训练，到处微调”已经成为现代深度学习的标准做法。</p><p>但预训练为什么有效？何时该冻结部分层，何时该采用 LoRA，学习率又该设为多小？本文将从理论和工程实践两个角度，深入剖析这个目前最成功的迁移范式。</p><hr><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>从贝叶斯和信息论的角度理解预训练为什么有效</li><li>自监督预训练任务：对比学习（SimCLR、MoCo）和掩码语言模型（BERT MLM）</li><li>微调策略：全量微调、层冻结、逐步解冻、线性探测、差异化学习率</li><li>灾难性遗忘以及如何保留源任务知识</li><li>参数高效微调方法：Adapter 和 LoRA</li><li>完整的 BERT 微调实现，包含差异化学习率、梯度累积、混合精度训练和 warmup 调度</li></ul><p><strong>前置知识</strong>：本系列第一篇（或具备相当的迁移学习直觉），熟悉 Transformer 架构的基本概念。</p><hr><h2 id=为什么要预训练 class=heading-anchor>为什么要预训练？<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%a6%81%e9%a2%84%e8%ae%ad%e7%bb%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/02-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/fig1_pretrain_finetune_pipeline.png alt=预训练-微调流水线 loading=lazy decoding=async class=content-image></figure></p><p>这张图把整个思路讲清楚了。第一阶段，用海量无标注数据和大量算力，跑一次自监督预训练，得到通用底座 <span class=math-inline>$\theta_{\mathrm{pre}}$</span>
+。第二阶段，拿少量标注数据把模型调整到具体任务上，成本低，想调几次都行。</p><h3 id=数据的不对称性 class=heading-anchor>数据的不对称性<a href=#%e6%95%b0%e6%8d%ae%e7%9a%84%e4%b8%8d%e5%af%b9%e7%a7%b0%e6%80%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>标注数据太贵了：</p><ul><li><strong>医疗影像</strong>：医生给一张 CT 扫描做标注，收费 100 到 500 美元；</li><li><strong>法律文本</strong>：律师按小时计费审阅文档；</li><li><strong>小语种翻译</strong>：双语平行语料几乎找不到。</li></ul><p>但互联网上存在 PB 级别的无标注文本、图像和视频。预训练正是为了利用这种数据不对称性：先从海量无标注数据中学习通用表征，再用少量标注数据适配具体任务。</p><h3 id=贝叶斯视角预训练就是先验 class=heading-anchor>贝叶斯视角：预训练就是先验<a href=#%e8%b4%9d%e5%8f%b6%e6%96%af%e8%a7%86%e8%a7%92%e9%a2%84%e8%ae%ad%e7%bb%83%e5%b0%b1%e6%98%af%e5%85%88%e9%aa%8c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\theta^{*} = \arg\max_{\theta} \log P(\mathcal{D}_{\mathrm{task}} \mid \theta).$$</span><p>预训练加微调分两步走：</p><ol><li><strong>预训练</strong>：估计先验 <span class=math-inline>$P(\theta \mid \mathcal{D}_{\mathrm{pre}})$</span>
+；</li><li><strong>微调</strong>：用任务似然更新后验
+<span class=math-inline>$P(\theta \mid \mathcal{D}_{\mathrm{task}}, \mathcal{D}_{\mathrm{pre}}) \;\propto\; P(\mathcal{D}_{\mathrm{task}} \mid \theta) \cdot P(\theta \mid \mathcal{D}_{\mathrm{pre}}).$</span>
+如果 <span class=math-inline>$\mathcal{D}_{\mathrm{task}}$</span>
+很少，似然项噪声大，后验基本由先验主导。一个好的先验——能把概率集中在合理参数区域的先验——能显著提升后验质量。预训练得到的模型参数（checkpoint）就充当了这样一个先验。</li></ol><h3 id=信息论视角可迁移的特征 class=heading-anchor>信息论视角：可迁移的特征<a href=#%e4%bf%a1%e6%81%af%e8%ae%ba%e8%a7%86%e8%a7%92%e5%8f%af%e8%bf%81%e7%a7%bb%e7%9a%84%e7%89%b9%e5%be%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$I(f_{\theta}(X); Y_{i})$$</span><p>尽可能高。ImageNet 学到的边缘、纹理、物体部件，不仅对分类有用，还对检测、分割甚至医学影像有帮助。BERT 的句法语义表示在各种 NLP 任务中都很强。<strong>预训练模型本质上是一种数据压缩，目标是保留对下游任务具有可迁移性的信息。</strong></p><h3 id=收敛更快极小点更好 class=heading-anchor>收敛更快、极小点更好<a href=#%e6%94%b6%e6%95%9b%e6%9b%b4%e5%bf%ab%e6%9e%81%e5%b0%8f%e7%82%b9%e6%9b%b4%e5%a5%bd class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>预训练参数已经落在损失曲面的低谷区域，微调只需要做局部调整。所以收敛更快，而且更容易找到平坦、泛化能力强的极小点，比随机初始化效果好得多。</p><h2 id=自监督预训练任务 class=heading-anchor>自监督预训练任务<a href=#%e8%87%aa%e7%9b%91%e7%9d%a3%e9%a2%84%e8%ae%ad%e7%bb%83%e4%bb%bb%e5%8a%a1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>自监督学习的核心在于设计一类任务，其监督信号可直接从原始数据中自动生成。模型通过预测输入的一部分内容来学习另一部分内容。</p><h3 id=对比学习视觉 class=heading-anchor>对比学习（视觉）<a href=#%e5%af%b9%e6%af%94%e5%ad%a6%e4%b9%a0%e8%a7%86%e8%a7%89 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>核心思想：<strong>让相似样本的表示靠近，同时推开不相似样本的表示。</strong></p><h4 id=simclr class=heading-anchor>SimCLR<a href=#simclr class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><span class=math-block>$$\mathcal{L}_{i} = -\log \frac{\exp(\operatorname{sim}(z_{i}, z_{i'}) / \tau)}{\sum_{k \neq i} \exp(\operatorname{sim}(z_{i}, z_{k}) / \tau)},$$</span><p>其中 <span class=math-inline>$\operatorname{sim}$</span>
+表示余弦相似度，<span class=math-inline>$\tau$</span>
+是温度参数。</p><ul><li><strong>分子</strong>：希望正样本对的相似度尽可能高；</li><li><strong>分母</strong>：用 batch 中其他所有样本作为负样本进行归一化；</li><li><strong>温度 <span class=math-inline>$\tau$</span>
+</strong>：较小的 <span class=math-inline>$\tau$</span>
+会让 softmax 更尖锐，损失会集中在<strong>最难区分</strong>的负样本上。</li></ul><p>问题来了：你需要大量负样本。SimCLR 使用 4096 到 8192 的 batch size，还得靠 TPU pod 才能装得下。</p><h4 id=moco动量更新的负样本队列 class=heading-anchor>MoCo：动量更新的负样本队列<a href=#moco%e5%8a%a8%e9%87%8f%e6%9b%b4%e6%96%b0%e7%9a%84%e8%b4%9f%e6%a0%b7%e6%9c%ac%e9%98%9f%e5%88%97 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><span class=math-block>$$\theta_{k} \leftarrow m \cdot \theta_{k} + (1 - m) \cdot \theta_{q}, \qquad m \approx 0.999.$$</span><p>历史 key 被存入一个长度为 65536 的<strong>队列</strong>中。字典足够大，而编码器因为 <span class=math-inline>$f_{k}$</span>
+更新缓慢保持一致性。这样，单块 GPU 就能实现媲美 SimCLR 的对比学习效果。</p><h3 id=掩码语言模型nlp class=heading-anchor>掩码语言模型（NLP）<a href=#%e6%8e%a9%e7%a0%81%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8bnlp class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><h4 id=bert-的-mlm-目标 class=heading-anchor>BERT 的 MLM 目标<a href=#bert-%e7%9a%84-mlm-%e7%9b%ae%e6%a0%87 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><span class=math-block>$$\mathcal{L}_{\mathrm{MLM}} = -\sum_{i \in \mathcal{M}} \log P(x_{i} \mid x_{\setminus \mathcal{M}}).$$</span><p>这 15% 的比例进一步细分为：<strong>80% 替换为 <code>[MASK]</code>、10% 替换为随机 token、10% 保持不变</strong>。这个分配不是为了好看，而是为了缩小训练和推理之间的分布差距。微调时没有 <code>[MASK]</code>，如果模型只见过 <code>[MASK]</code>，泛化能力会打折扣。10% 随机 token 和 10% 保持不变的设计，迫使模型无论某个位置是否被 mask，都能给出可靠的表示。</p><p><strong>为什么是 15%，而不是 5% 或 50%？</strong> 太少的话，每条样本提供的学习信号太弱；太多的话，上下文会被破坏到模型无法预测的程度。经验表明，15% 是最佳点。不过最近的研究（Wettig et al., 2023）发现，在合适的架构下，这个比例可以提升到 40%。</p><h4 id=nsp-及其替代方案 class=heading-anchor>NSP 及其替代方案<a href=#nsp-%e5%8f%8a%e5%85%b6%e6%9b%bf%e4%bb%a3%e6%96%b9%e6%a1%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>BERT 还训练了一个 NSP（Next Sentence Prediction）任务：给定句子 A 和 B，判断 B 是否真的接在 A 后面。后来 RoBERTa 的实验表明，NSP 几乎不起作用：模型仅依靠句子主题相似性就能达到较高准确率，无需建模真正的篇章级关系。ALBERT 提出 SOP（Sentence Order Prediction）作为 NSP 的替代方案：负样本通过对同一文档中相邻两句的顺序进行交换来构造。这种方法逼迫模型真正建模句间关系。</p><h2 id=微调为什么收敛得这么快 class=heading-anchor>微调：为什么收敛得这么快<a href=#%e5%be%ae%e8%b0%83%e4%b8%ba%e4%bb%80%e4%b9%88%e6%94%b6%e6%95%9b%e5%be%97%e8%bf%99%e4%b9%88%e5%bf%ab class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/02-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/fig2_loss_curves_comparison.png alt="从头训练 vs 微调的损失曲线" loading=lazy decoding=async class=content-image></figure></p><p>这张图是贝叶斯观点背后的实证数据。模型、数据集和优化器完全相同的情况下，预训练模型有三个明显优势：</p><ul><li>起点损失更低（先验已经很好）；</li><li>几个 epoch 就能达到从头训练的最佳验证损失；</li><li>最终收敛到一个更低的下界。</li></ul><p>接下来是实际问题：如何在微调时调整上亿参数，又不破坏它们？</p><h3 id=全参微调 class=heading-anchor>全参微调<a href=#%e5%85%a8%e5%8f%82%e5%be%ae%e8%b0%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\theta^{*} = \arg\min_{\theta} \; \mathcal{L}_{\mathrm{task}}(\theta) + \lambda \lVert \theta - \theta_{\mathrm{pre}} \rVert^{2}.$$</span><p>这是 Elastic Weight Consolidation 的简化版。实践中，小学习率加上早停自带的隐式正则通常就足够了。</p><h3 id=分层学习率 class=heading-anchor>分层学习率<a href=#%e5%88%86%e5%b1%82%e5%ad%a6%e4%b9%a0%e7%8e%87 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>不同网络层所学知识具有层次性：</p><ul><li><strong>底层</strong>（embedding、靠前的 Transformer 块）捕捉通用特征——分词、基础语法、低级视觉模式。要轻碰。</li><li><strong>顶层</strong>（分类头、最后几层）是任务专用的。可以大力训。</li></ul><span class=math-block>$$\eta_{\ell} = \frac{\eta_{L}}{\xi^{\,L - \ell}}, \qquad \xi \approx 2.6.$$</span><p>底层学习率比顶层小约 <span class=math-inline>$\xi^{L}$</span>
+倍。</p><h3 id=先-warmup-再衰减 class=heading-anchor>先 warmup 再衰减<a href=#%e5%85%88-warmup-%e5%86%8d%e8%a1%b0%e5%87%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>一套对微调几乎万能的学习率调度策略：</p><ol><li><strong>Warmup</strong>：前 <span class=math-inline>$T_{w}$</span>
+步把学习率从 0 线性增长到 <span class=math-inline>$\eta_{\max}$</span>
+；</li><li><strong>衰减</strong>：用余弦或线性曲线把学习率降到接近 0。</li></ol><p>Warmup 很重要，因为新接的分类头在最初几步会输出高方差梯度。如果直接用大学习率，会破坏预训练权重。Warmup 让分类头先稳定下来，再让骨干网络开始更新。</p><p><strong>经验法则</strong>：微调学习率通常是预训练学习率的 1–2 个数量级。BERT 预训练用 <span class=math-inline>$10^{-4}$</span>
+，微调一般用 <span class=math-inline>$2 \times 10^{-5}$</span>
+。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/02-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/fig6_lr_schedules.png alt=学习率调度与分层学习率 loading=lazy decoding=async class=content-image></figure></p><h3 id=层冻结 class=heading-anchor>层冻结<a href=#%e5%b1%82%e5%86%bb%e7%bb%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/02-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/fig3_layer_freezing_strategies.png alt=层冻结策略 loading=lazy decoding=async class=content-image></figure></p><p>冻结某层就是把它的参数 <code>requires_grad = False</code>。前向计算照常进行，但优化器看不到它。从数学上看，冻结是 L2 锚的极限情况：被冻参数子集上 <span class=math-inline>$\lambda \to \infty$</span>
+。</p><p><strong>四种常见模式</strong>：</p><ol><li><strong>全参微调</strong>：全部可训。数据多的时候最优。</li><li><strong>冻底训顶</strong>：小数据集且任务接近预训练域时的默认选择。</li><li><strong>逐层解冻（ULMFiT）</strong>：先只解冻分类头，每个 epoch 自顶向下多解冻一层。对灾难性遗忘最稳。</li><li><strong>线性探测</strong>：只训分类头，骨干完全冻住。最便宜的微调形式，常常是个很强的基线。</li></ol><p>快速决策表：</p><div class=table-wrap><table><thead><tr><th>任务与预训练相似度</th><th>标注样本数</th><th>推荐策略</th></tr></thead><tbody><tr><td>高</td><td>少（&lt; 1k/类）</td><td>冻底层、微调顶层</td></tr><tr><td>高</td><td>多</td><td>全参微调</td></tr><tr><td>低</td><td>少</td><td>冻中间层、微调底+顶，或用 LoRA</td></tr><tr><td>低</td><td>多</td><td>全参微调 + 分层学习率</td></tr></tbody></table></div><h3 id=线性探测-vs-全参微调 class=heading-anchor>线性探测 vs 全参微调<a href=#%e7%ba%bf%e6%80%a7%e6%8e%a2%e6%b5%8b-vs-%e5%85%a8%e5%8f%82%e5%be%ae%e8%b0%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/02-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/fig4_linear_probe_vs_full.png alt="线性探测 vs 全参微调" loading=lazy decoding=async class=content-image></figure></p><p>线性探测仅在冻结的骨干特征上训练一个线性分类器，是对模型表征质量最直接的评估方式：在极小样本场景下，它常优于全参数微调，因为标注数据远不足以安全地更新全部 1.1 亿参数。数据量增加后，全参微调反超并拉开差距。上线前花几次实验找到交叉点，往往很值得。</p><h3 id=灾难性遗忘 class=heading-anchor>灾难性遗忘<a href=#%e7%81%be%e9%9a%be%e6%80%a7%e9%81%97%e5%bf%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/02-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/fig5_catastrophic_forgetting.png alt=微调过程中的灾难性遗忘 loading=lazy decoding=async class=content-image></figure></p><p>激进的微调具有单向性：下游任务性能每提升 1 个百分点，源任务性能可能下降 1–2 个百分点。McCloskey 和 Cohen 在 1989 年把这个现象命名为<strong>灾难性遗忘</strong>，至今仍是序贯迁移的核心痛点。</p><p>三类常见对策：</p><ul><li><strong>正则化（EWC）</strong>：用 Fisher 信息的对角线给“对源任务重要的参数”加高权重二次惩罚，尽量不让它们动；</li><li><strong>回放（Replay）</strong>：保留一小批源任务样本，每个微调 batch 里掺一点；</li><li><strong>结构隔离</strong>：骨干彻底冻住，每个任务挂自己的 Adapter 或 LoRA——源任务权重没被碰过，自然忘不掉。</li></ul><h3 id=adapter参数高效微调 class=heading-anchor>Adapter：参数高效微调<a href=#adapter%e5%8f%82%e6%95%b0%e9%ab%98%e6%95%88%e5%be%ae%e8%b0%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\operatorname{Adapter}(h) = h + W_{\mathrm{up}}\, \sigma\big(W_{\mathrm{down}}\, h\big),$$</span><p>其中 <span class=math-inline>$W_{\mathrm{down}} \in \mathbb{R}^{m \times d}$</span>
+，<span class=math-inline>$W_{\mathrm{up}} \in \mathbb{R}^{d \times m}$</span>
+，且 <span class=math-inline>$m \ll d$</span>
+（典型值 <span class=math-inline>$m = 64$</span>
+、<span class=math-inline>$d = 768$</span>
+）。残差连接保证未训练的 Adapter 等于恒等映射，所以训练起点和预训练模型完全一致。你只训 Adapter，每个任务只需保存 <span class=math-inline>$\sim 1\%$</span>
+的参数。</p><h3 id=lora低秩权重更新 class=heading-anchor>LoRA：低秩权重更新<a href=#lora%e4%bd%8e%e7%a7%a9%e6%9d%83%e9%87%8d%e6%9b%b4%e6%96%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$W' = W_{0} + \Delta W = W_{0} + B A, \qquad A \in \mathbb{R}^{r \times d}, \; B \in \mathbb{R}^{d \times r}, \; r \ll d.$$</span><p>微调时 <span class=math-inline>$W_{0}$</span>
+冻住，只训 <span class=math-inline>$A, B$</span>
+。三个特性让 LoRA 成为今天事实上的 PEFT 标准：</p><ul><li><strong>极小</strong>：每个被适配的矩阵只新增 <span class=math-inline>$2dr$</span>
+个参数，常用 <span class=math-inline>$r = 4$</span>
+–<span class=math-inline>$16$</span>
+；</li><li><strong>零推理开销</strong>：部署时把 <span class=math-inline>$BA$</span>
+合并到 <span class=math-inline>$W_{0}$</span>
+，对外只暴露一个矩阵；</li><li><strong>可组合</strong>：换任务就是换一个十几兆的 delta，而不是 reload 一个 GB 级 checkpoint。</li></ul><p>它隐含的假设——而且经验证明常常成立——是：<strong>任务适配只发生在权重空间的一个低维子空间里。</strong></p><hr><h2 id=到底需要多少标注数据 class=heading-anchor>到底需要多少标注数据？<a href=#%e5%88%b0%e5%ba%95%e9%9c%80%e8%a6%81%e5%a4%9a%e5%b0%91%e6%a0%87%e6%b3%a8%e6%95%b0%e6%8d%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/02-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/fig7_data_size_scaling.png alt="性能 vs 目标数据集大小" loading=lazy decoding=async class=content-image></figure></p><p>这张图总结了实际选择。同样的目标任务，同样的骨干网络：</p><ul><li><strong>从头训练</strong>在标注数量达到几千之前几乎没变化。低于这个数量，模型基本上只是在记噪声。</li><li><strong>线性探测</strong>一开始就占优——预训练特征已经把类别分得挺清楚了，只需要学一个超平面。</li><li><strong>LoRA</strong> 和全参微调的表现差不多，差距很小，但只用了很少一部分可调参数。</li><li><strong>全参微调</strong>的上限最高，但只有在标注数据足够多、能安全调整每个参数时才划算。</li></ul><p>横向箭头是重点：预训练让数据效率曲线向左上方移动了一个数量级——同样的精度，标注量少了 10 倍。</p><hr><h2 id=bert-实战 class=heading-anchor>BERT 实战<a href=#bert-%e5%ae%9e%e6%88%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=架构回顾 class=heading-anchor>架构回顾<a href=#%e6%9e%b6%e6%9e%84%e5%9b%9e%e9%a1%be class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>BERT 由多层双向 Transformer 编码器堆叠而成。输入 token 后，每个编码器块通过多头自注意力机制和前馈网络生成上下文表示，同时加入残差连接和 LayerNorm。</p><h3 id=适配不同任务 class=heading-anchor>适配不同任务<a href=#%e9%80%82%e9%85%8d%e4%b8%8d%e5%90%8c%e4%bb%bb%e5%8a%a1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>任务</th><th>BERT 的处理方式</th></tr></thead><tbody><tr><td>文本分类</td><td>提取 <code>[CLS]</code> 表示，送入线性分类头</td></tr><tr><td>序列标注（NER）</td><td>在最后一层为每个 token 添加线性分类头</td></tr><tr><td>问答（SQuAD）</td><td>使用两个分类头分别预测答案片段的起始和结束位置</td></tr><tr><td>句对任务（NLI）</td><td>用 <code>[SEP]</code> 拼接句子，在 <code>[CLS]</code> 上进行分类</td></tr></tbody></table></div><h3 id=gpt自回归的表亲 class=heading-anchor>GPT：自回归的表亲<a href=#gpt%e8%87%aa%e5%9b%9e%e5%bd%92%e7%9a%84%e8%a1%a8%e4%ba%b2 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\mathcal{L}_{\mathrm{GPT}} = -\sum_{t} \log P(x_{t} \mid x_{&lt; t}).$$</span><p>在理解类任务中，BERT 的双向上下文更具优势；而在生成类任务中，GPT 的自回归结构更符合需求。如今的 decoder-only 大模型（LLaMA、Qwen、GPT-4）都继承了 GPT 的血脉。本文提到的微调原则几乎可以直接套用，只是学习率需要更小，同时更加依赖 LoRA。</p><hr><h2 id=完整实现bert-微调 class=heading-anchor>完整实现：BERT 微调<a href=#%e5%ae%8c%e6%95%b4%e5%ae%9e%e7%8e%b0bert-%e5%be%ae%e8%b0%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>一个工业级的训练器，支持判别式学习率、梯度累积、混合精度以及 warmup + 线性衰减调度。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span><span class=lnt>132
+</span><span class=lnt>133
+</span><span class=lnt>134
+</span><span class=lnt>135
+</span><span class=lnt>136
+</span><span class=lnt>137
+</span><span class=lnt>138
+</span><span class=lnt>139
+</span><span class=lnt>140
+</span><span class=lnt>141
+</span><span class=lnt>142
+</span><span class=lnt>143
+</span><span class=lnt>144
+</span><span class=lnt>145
+</span><span class=lnt>146
+</span><span class=lnt>147
+</span><span class=lnt>148
+</span><span class=lnt>149
+</span><span class=lnt>150
+</span><span class=lnt>151
+</span><span class=lnt>152
+</span><span class=lnt>153
+</span><span class=lnt>154
+</span><span class=lnt>155
+</span><span class=lnt>156
+</span><span class=lnt>157
+</span><span class=lnt>158
+</span><span class=lnt>159
+</span><span class=lnt>160
+</span><span class=lnt>161
+</span><span class=lnt>162
+</span><span class=lnt>163
+</span><span class=lnt>164
+</span><span class=lnt>165
+</span><span class=lnt>166
+</span><span class=lnt>167
+</span><span class=lnt>168
+</span><span class=lnt>169
+</span><span class=lnt>170
+</span><span class=lnt>171
+</span><span class=lnt>172
+</span><span class=lnt>173
+</span><span class=lnt>174
+</span><span class=lnt>175
+</span><span class=lnt>176
+</span><span class=lnt>177
+</span><span class=lnt>178
+</span><span class=lnt>179
+</span><span class=lnt>180
+</span><span class=lnt>181
+</span><span class=lnt>182
+</span><span class=lnt>183
+</span><span class=lnt>184
+</span><span class=lnt>185
+</span><span class=lnt>186
+</span><span class=lnt>187
+</span><span class=lnt>188
+</span><span class=lnt>189
+</span><span class=lnt>190
+</span><span class=lnt>191
+</span><span class=lnt>192
+</span><span class=lnt>193
+</span><span class=lnt>194
+</span><span class=lnt>195
+</span><span class=lnt>196
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.utils.data</span> <span class=kn>import</span> <span class=n>DataLoader</span><span class=p>,</span> <span class=n>Dataset</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>BertTokenizer</span><span class=p>,</span> <span class=n>BertModel</span><span class=p>,</span> <span class=n>AdamW</span><span class=p>,</span> <span class=n>get_linear_schedule_with_warmup</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.cuda.amp</span> <span class=kn>import</span> <span class=n>autocast</span><span class=p>,</span> <span class=n>GradScaler</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>tqdm</span> <span class=kn>import</span> <span class=n>tqdm</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.metrics</span> <span class=kn>import</span> <span class=n>accuracy_score</span><span class=p>,</span> <span class=n>f1_score</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>BERTClassifier</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;BERT 主干网络 + [CLS] 上的线性分类头。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>bert_model_name</span><span class=o>=</span><span class=s2>&#34;bert-base-uncased&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>num_classes</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>dropout</span><span class=o>=</span><span class=mf>0.1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>bert</span> <span class=o>=</span> <span class=n>BertModel</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=n>bert_model_name</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>dropout</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>classifier</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>bert</span><span class=o>.</span><span class=n>config</span><span class=o>.</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>num_classes</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>input_ids</span><span class=p>,</span> <span class=n>attention_mask</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>outputs</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>bert</span><span class=p>(</span><span class=n>input_ids</span><span class=o>=</span><span class=n>input_ids</span><span class=p>,</span> <span class=n>attention_mask</span><span class=o>=</span><span class=n>attention_mask</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>pooled</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>dropout</span><span class=p>(</span><span class=n>outputs</span><span class=o>.</span><span class=n>pooler_output</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>classifier</span><span class=p>(</span><span class=n>pooled</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>TextDataset</span><span class=p>(</span><span class=n>Dataset</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;对文本进行分词和填充，适配 BERT 输入格式。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>texts</span><span class=p>,</span> <span class=n>labels</span><span class=p>,</span> <span class=n>tokenizer</span><span class=p>,</span> <span class=n>max_length</span><span class=o>=</span><span class=mi>128</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>texts</span> <span class=o>=</span> <span class=n>texts</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>labels</span> <span class=o>=</span> <span class=n>labels</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>tokenizer</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>max_length</span> <span class=o>=</span> <span class=n>max_length</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__len__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>texts</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__getitem__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>idx</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>encoding</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>tokenizer</span><span class=o>.</span><span class=n>encode_plus</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=nb>str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>texts</span><span class=p>[</span><span class=n>idx</span><span class=p>]),</span>
+</span></span><span class=line><span class=cl>            <span class=n>add_special_tokens</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>max_length</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>max_length</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>padding</span><span class=o>=</span><span class=s2>&#34;max_length&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>truncation</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>return_attention_mask</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>return_tensors</span><span class=o>=</span><span class=s2>&#34;pt&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;input_ids&#34;</span><span class=p>:</span> <span class=n>encoding</span><span class=p>[</span><span class=s2>&#34;input_ids&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>flatten</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;attention_mask&#34;</span><span class=p>:</span> <span class=n>encoding</span><span class=p>[</span><span class=s2>&#34;attention_mask&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>flatten</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;label&#34;</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>tensor</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>labels</span><span class=p>[</span><span class=n>idx</span><span class=p>],</span> <span class=n>dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>long</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>BERTFineTuner</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;支持判别式学习率、梯度累积和混合精度的训练器。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>model</span><span class=p>,</span> <span class=n>train_loader</span><span class=p>,</span> <span class=n>val_loader</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>num_epochs</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span> <span class=n>learning_rate</span><span class=o>=</span><span class=mf>2e-5</span><span class=p>,</span> <span class=n>warmup_ratio</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>gradient_accumulation_steps</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>max_grad_norm</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>device</span><span class=o>=</span><span class=s2>&#34;cuda&#34;</span><span class=p>,</span> <span class=n>use_amp</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>discriminative_lr</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>lr_decay</span><span class=o>=</span><span class=mf>2.6</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>train_loader</span> <span class=o>=</span> <span class=n>train_loader</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>val_loader</span> <span class=o>=</span> <span class=n>val_loader</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>num_epochs</span> <span class=o>=</span> <span class=n>num_epochs</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>device</span> <span class=o>=</span> <span class=n>device</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>use_amp</span> <span class=o>=</span> <span class=n>use_amp</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>gradient_accumulation_steps</span> <span class=o>=</span> <span class=n>gradient_accumulation_steps</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>max_grad_norm</span> <span class=o>=</span> <span class=n>max_grad_norm</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>total_steps</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>train_loader</span><span class=p>)</span> <span class=o>*</span> <span class=n>num_epochs</span> <span class=o>//</span> <span class=n>gradient_accumulation_steps</span>
+</span></span><span class=line><span class=cl>        <span class=n>warmup_steps</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>total_steps</span> <span class=o>*</span> <span class=n>warmup_ratio</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>discriminative_lr</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_discriminative_optimizer</span><span class=p>(</span><span class=n>learning_rate</span><span class=p>,</span> <span class=n>lr_decay</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span> <span class=o>=</span> <span class=n>AdamW</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=n>learning_rate</span><span class=p>,</span> <span class=n>eps</span><span class=o>=</span><span class=mf>1e-8</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>scheduler</span> <span class=o>=</span> <span class=n>get_linear_schedule_with_warmup</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span><span class=p>,</span> <span class=n>warmup_steps</span><span class=p>,</span> <span class=n>total_steps</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>scaler</span> <span class=o>=</span> <span class=n>GradScaler</span><span class=p>()</span> <span class=k>if</span> <span class=n>use_amp</span> <span class=k>else</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>criterion</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>CrossEntropyLoss</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_discriminative_optimizer</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>lr</span><span class=p>,</span> <span class=n>decay</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;底层学习率指数级递减，顶层保持最大学习率。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>num_layers</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>bert</span><span class=o>.</span><span class=n>encoder</span><span class=o>.</span><span class=n>layer</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>groups</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Embedding 层 —— 学习率最小</span>
+</span></span><span class=line><span class=cl>        <span class=n>groups</span><span class=o>.</span><span class=n>append</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;params&#34;</span><span class=p>:</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>bert</span><span class=o>.</span><span class=n>embeddings</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;lr&#34;</span><span class=p>:</span> <span class=n>lr</span> <span class=o>/</span> <span class=p>(</span><span class=n>decay</span> <span class=o>**</span> <span class=n>num_layers</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>})</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 每个 Transformer 层</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>num_layers</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>groups</span><span class=o>.</span><span class=n>append</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;params&#34;</span><span class=p>:</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>bert</span><span class=o>.</span><span class=n>encoder</span><span class=o>.</span><span class=n>layer</span><span class=p>[</span><span class=n>i</span><span class=p>]</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;lr&#34;</span><span class=p>:</span> <span class=n>lr</span> <span class=o>/</span> <span class=p>(</span><span class=n>decay</span> <span class=o>**</span> <span class=p>(</span><span class=n>num_layers</span> <span class=o>-</span> <span class=n>i</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)),</span>
+</span></span><span class=line><span class=cl>            <span class=p>})</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Pooler + 分类头 —— 学习率最大</span>
+</span></span><span class=line><span class=cl>        <span class=n>groups</span><span class=o>.</span><span class=n>append</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;params&#34;</span><span class=p>:</span> <span class=nb>list</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>bert</span><span class=o>.</span><span class=n>pooler</span><span class=o>.</span><span class=n>parameters</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>                      <span class=o>+</span> <span class=nb>list</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>classifier</span><span class=o>.</span><span class=n>parameters</span><span class=p>()),</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;lr&#34;</span><span class=p>:</span> <span class=n>lr</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>})</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>AdamW</span><span class=p>(</span><span class=n>groups</span><span class=p>,</span> <span class=n>eps</span><span class=o>=</span><span class=mf>1e-8</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>train_epoch</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>total_loss</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>step</span><span class=p>,</span> <span class=n>batch</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>tqdm</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>train_loader</span><span class=p>,</span> <span class=n>desc</span><span class=o>=</span><span class=s2>&#34;训练中&#34;</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>            <span class=n>input_ids</span> <span class=o>=</span> <span class=n>batch</span><span class=p>[</span><span class=s2>&#34;input_ids&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>mask</span> <span class=o>=</span> <span class=n>batch</span><span class=p>[</span><span class=s2>&#34;attention_mask&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>labels</span> <span class=o>=</span> <span class=n>batch</span><span class=p>[</span><span class=s2>&#34;label&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>use_amp</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>with</span> <span class=n>autocast</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>                    <span class=n>loss</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>criterion</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=p>(</span><span class=n>input_ids</span><span class=p>,</span> <span class=n>mask</span><span class=p>),</span> <span class=n>labels</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>loss</span> <span class=o>=</span> <span class=n>loss</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>gradient_accumulation_steps</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>scaler</span><span class=o>.</span><span class=n>scale</span><span class=p>(</span><span class=n>loss</span><span class=p>)</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>loss</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>criterion</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=p>(</span><span class=n>input_ids</span><span class=p>,</span> <span class=n>mask</span><span class=p>),</span> <span class=n>labels</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>loss</span> <span class=o>=</span> <span class=n>loss</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>gradient_accumulation_steps</span>
+</span></span><span class=line><span class=cl>                <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=p>(</span><span class=n>step</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>%</span> <span class=bp>self</span><span class=o>.</span><span class=n>gradient_accumulation_steps</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>use_amp</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=bp>self</span><span class=o>.</span><span class=n>scaler</span><span class=o>.</span><span class=n>unscale_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                    <span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>clip_grad_norm_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                                             <span class=bp>self</span><span class=o>.</span><span class=n>max_grad_norm</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                    <span class=bp>self</span><span class=o>.</span><span class=n>scaler</span><span class=o>.</span><span class=n>step</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                    <span class=bp>self</span><span class=o>.</span><span class=n>scaler</span><span class=o>.</span><span class=n>update</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>clip_grad_norm_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                                             <span class=bp>self</span><span class=o>.</span><span class=n>max_grad_norm</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                    <span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>scheduler</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>total_loss</span> <span class=o>+=</span> <span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>gradient_accumulation_steps</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>total_loss</span> <span class=o>/</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>train_loader</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>all_preds</span><span class=p>,</span> <span class=n>all_labels</span><span class=p>,</span> <span class=n>total_loss</span> <span class=o>=</span> <span class=p>[],</span> <span class=p>[],</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>batch</span> <span class=ow>in</span> <span class=n>tqdm</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>val_loader</span><span class=p>,</span> <span class=n>desc</span><span class=o>=</span><span class=s2>&#34;评估中&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>input_ids</span> <span class=o>=</span> <span class=n>batch</span><span class=p>[</span><span class=s2>&#34;input_ids&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>mask</span> <span class=o>=</span> <span class=n>batch</span><span class=p>[</span><span class=s2>&#34;attention_mask&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>labels</span> <span class=o>=</span> <span class=n>batch</span><span class=p>[</span><span class=s2>&#34;label&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>logits</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=p>(</span><span class=n>input_ids</span><span class=p>,</span> <span class=n>mask</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>total_loss</span> <span class=o>+=</span> <span class=bp>self</span><span class=o>.</span><span class=n>criterion</span><span class=p>(</span><span class=n>logits</span><span class=p>,</span> <span class=n>labels</span><span class=p>)</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>all_preds</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>logits</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>cpu</span><span class=p>()</span><span class=o>.</span><span class=n>numpy</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>            <span class=n>all_labels</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>labels</span><span class=o>.</span><span class=n>cpu</span><span class=p>()</span><span class=o>.</span><span class=n>numpy</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>total_loss</span> <span class=o>/</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>val_loader</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>accuracy_score</span><span class=p>(</span><span class=n>all_labels</span><span class=p>,</span> <span class=n>all_preds</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>f1_score</span><span class=p>(</span><span class=n>all_labels</span><span class=p>,</span> <span class=n>all_preds</span><span class=p>,</span> <span class=n>average</span><span class=o>=</span><span class=s2>&#34;weighted&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>train</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>best_val_loss</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=s2>&#34;inf&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>num_epochs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>train_loss</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>train_epoch</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>val_loss</span><span class=p>,</span> <span class=n>val_acc</span><span class=p>,</span> <span class=n>val_f1</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>evaluate</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Epoch </span><span class=si>{</span><span class=n>epoch</span> <span class=o>+</span> <span class=mi>1</span><span class=si>}</span><span class=s2>: train_loss=</span><span class=si>{</span><span class=n>train_loss</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>  &#34;</span>
+</span></span><span class=line><span class=cl>                  <span class=sa>f</span><span class=s2>&#34;val_loss=</span><span class=si>{</span><span class=n>val_loss</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>  acc=</span><span class=si>{</span><span class=n>val_acc</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>  f1=</span><span class=si>{</span><span class=n>val_f1</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>val_loss</span> <span class=o>&lt;</span> <span class=n>best_val_loss</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>best_val_loss</span> <span class=o>=</span> <span class=n>val_loss</span>
+</span></span><span class=line><span class=cl>                <span class=n>torch</span><span class=o>.</span><span class=n>save</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>state_dict</span><span class=p>(),</span> <span class=s2>&#34;best_model.pt&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  -&gt; 已保存最佳模型&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>BERT_MODEL</span> <span class=o>=</span> <span class=s2>&#34;bert-base-uncased&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>tokenizer</span> <span class=o>=</span> <span class=n>BertTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=n>BERT_MODEL</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 假数据，请替换为真实数据集</span>
+</span></span><span class=line><span class=cl>    <span class=n>texts</span> <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;This movie is great!&#34;</span><span class=p>]</span> <span class=o>*</span> <span class=mi>500</span> <span class=o>+</span> <span class=p>[</span><span class=s2>&#34;This movie is terrible!&#34;</span><span class=p>]</span> <span class=o>*</span> <span class=mi>500</span>
+</span></span><span class=line><span class=cl>    <span class=n>labels</span> <span class=o>=</span> <span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>*</span> <span class=mi>500</span> <span class=o>+</span> <span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=mi>500</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>dataset</span> <span class=o>=</span> <span class=n>TextDataset</span><span class=p>(</span><span class=n>texts</span><span class=p>,</span> <span class=n>labels</span><span class=p>,</span> <span class=n>tokenizer</span><span class=p>,</span> <span class=n>max_length</span><span class=o>=</span><span class=mi>128</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>train_loader</span> <span class=o>=</span> <span class=n>DataLoader</span><span class=p>(</span><span class=n>dataset</span><span class=p>,</span> <span class=n>batch_size</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>shuffle</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>val_loader</span> <span class=o>=</span> <span class=n>DataLoader</span><span class=p>(</span><span class=n>dataset</span><span class=p>,</span> <span class=n>batch_size</span><span class=o>=</span><span class=mi>16</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>model</span> <span class=o>=</span> <span class=n>BERTClassifier</span><span class=p>(</span><span class=n>BERT_MODEL</span><span class=p>,</span> <span class=n>num_classes</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>trainer</span> <span class=o>=</span> <span class=n>BERTFineTuner</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=p>,</span> <span class=n>train_loader</span><span class=p>,</span> <span class=n>val_loader</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>num_epochs</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span> <span class=n>learning_rate</span><span class=o>=</span><span class=mf>2e-5</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>gradient_accumulation_steps</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>discriminative_lr</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>use_amp</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>trainer</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>&#34;__main__&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>main</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=关键技巧速查 class=heading-anchor>关键技巧速查<a href=#%e5%85%b3%e9%94%ae%e6%8a%80%e5%b7%a7%e9%80%9f%e6%9f%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>技巧</th><th>功能</th><th>使用场景</th></tr></thead><tbody><tr><td>判别式 LR</td><td>Embedding 层学习率为 LR / <span class=math-inline>$2.6^{12}$</span>
+，分类头使用完整 LR</td><td>BERT 类模型微调时始终开启；底层参数通常不需要大幅调整</td></tr><tr><td>梯度累积</td><td>小显存模拟大 batch 效果</td><td>单 batch 显存不足（OOM）时</td></tr><tr><td>混合精度（AMP）</td><td>FP16 前向计算 + FP32 主权重，速度提升 ~2 倍，显存节省 ~50%</td><td>Volta 及以上 GPU 推荐始终开启</td></tr><tr><td>Warmup + 衰减</td><td>稳定前几百步训练，后期逐步降低学习率</td><td>微调时始终开启</td></tr><tr><td>梯度裁剪</td><td>限制全局梯度范数，防止梯度爆炸</td><td>始终开启，性能开销可忽略</td></tr></tbody></table></div><h2 id=elastic-weight-consolidationfisher-加权锚定 class=heading-anchor>Elastic Weight Consolidation：Fisher 加权锚定<a href=#elastic-weight-consolidationfisher-%e5%8a%a0%e6%9d%83%e9%94%9a%e5%ae%9a class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/02-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/fig02_finetune_landscape.png alt="微调损失曲面：warmup + 小学习率 vs 朴素跳跃。" loading=lazy decoding=async class=content-image></figure></p><p>上一节中的 L2 锚定将每个参数视为同等重要，这显然是一种浪费。预训练网络中的大多数权重对源任务几乎无关紧要；只有少数几个承载了绝大部分能力。对它们施加统一的惩罚，要么对关键参数太宽松，要么对其他参数太严苛。</p><p>Elastic Weight Consolidation（EWC，Kirkpatrick 等，2017）用一个<strong>各向异性</strong>的约束替代了均匀的 L2 球。该惩罚在源任务不敏感的方向上拉伸，在敏感方向上收缩。只有当你推动一个“刚硬”的方向时，遗忘才会发生。</p><h3 id=从贝叶斯后验推导 class=heading-anchor>从贝叶斯后验推导<a href=#%e4%bb%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e5%90%8e%e9%aa%8c%e6%8e%a8%e5%af%bc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\log P(\theta \mid \mathcal{D}_{1}, \mathcal{D}_{2}) = \log P(\mathcal{D}_{2} \mid \theta) + \log P(\theta \mid \mathcal{D}_{1}) + \text{const}.$$</span>
+<span class=math-block>$$\log P(\theta \mid \mathcal{D}_{1}) \approx -\frac{1}{2} (\theta - \theta^{*})^{\top} F (\theta - \theta^{*}) + \text{const}.$$</span>
+<span class=math-block>$$\mathcal{L}_{\mathrm{EWC}}(\theta) = \mathcal{L}_{\mathrm{task2}}(\theta) + \frac{\lambda}{2} \sum_{i} F_{i} (\theta_{i} - \theta^{*}_{i})^{2},$$</span>
+<span class=math-block>$$F_{i} = \mathbb{E}_{x \sim \mathcal{D}_{1}} \left[ \left( \frac{\partial \log p(y \mid x; \theta^{*})}{\partial \theta_{i}} \right)^{2} \right].$$</span><p><span class=math-inline>$F_{i}$</span>
+<strong>恰好</strong>是源任务最优解处梯度的期望平方。若某参数在任务 1 中梯度已接近零，则 <span class=math-inline>$F_{i} \approx 0$</span>
+——可自由移动；若其梯度较大（损失对其敏感），则 <span class=math-inline>$F_{i}$</span>
+很大——被牢牢固定。</p><h3 id=从零实现 class=heading-anchor>从零实现<a href=#%e4%bb%8e%e9%9b%b6%e5%ae%9e%e7%8e%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.utils.data</span> <span class=kn>import</span> <span class=n>DataLoader</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>compute_fisher</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>dataloader</span><span class=p>,</span> <span class=n>n_samples</span><span class=o>=</span><span class=mi>500</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=s2>&#34;cuda&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;在当前参数处计算对角 Fisher 信息。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>fisher</span> <span class=o>=</span> <span class=p>{</span><span class=n>n</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros_like</span><span class=p>(</span><span class=n>p</span><span class=p>)</span> <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>              <span class=k>if</span> <span class=n>p</span><span class=o>.</span><span class=n>requires_grad</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=n>seen</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=ow>in</span> <span class=n>dataloader</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>y</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>logits</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 从模型预测分布中采样 y_hat。</span>
+</span></span><span class=line><span class=cl>        <span class=n>log_probs</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>log_softmax</span><span class=p>(</span><span class=n>logits</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>y_hat</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>multinomial</span><span class=p>(</span><span class=n>log_probs</span><span class=o>.</span><span class=n>exp</span><span class=p>(),</span> <span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>loss</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>nll_loss</span><span class=p>(</span><span class=n>log_probs</span><span class=p>,</span> <span class=n>y_hat</span><span class=p>,</span> <span class=n>reduction</span><span class=o>=</span><span class=s2>&#34;sum&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>p</span><span class=o>.</span><span class=n>grad</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>fisher</span><span class=p>[</span><span class=n>n</span><span class=p>]</span> <span class=o>+=</span> <span class=n>p</span><span class=o>.</span><span class=n>grad</span><span class=o>.</span><span class=n>detach</span><span class=p>()</span> <span class=o>**</span> <span class=mi>2</span>
+</span></span><span class=line><span class=cl>        <span class=n>seen</span> <span class=o>+=</span> <span class=n>x</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>seen</span> <span class=o>&gt;=</span> <span class=n>n_samples</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>break</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>n</span> <span class=ow>in</span> <span class=n>fisher</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>fisher</span><span class=p>[</span><span class=n>n</span><span class=p>]</span> <span class=o>/=</span> <span class=nb>max</span><span class=p>(</span><span class=n>seen</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>fisher</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>ewc_penalty</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>theta_star</span><span class=p>,</span> <span class=n>fisher</span><span class=p>,</span> <span class=n>lam</span><span class=o>=</span><span class=mf>400.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;使用对角 Fisher 加权的二次锚定惩罚。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>loss</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>n</span> <span class=ow>in</span> <span class=n>fisher</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span> <span class=o>=</span> <span class=n>loss</span> <span class=o>+</span> <span class=p>(</span><span class=n>fisher</span><span class=p>[</span><span class=n>n</span><span class=p>]</span> <span class=o>*</span> <span class=p>(</span><span class=n>p</span> <span class=o>-</span> <span class=n>theta_star</span><span class=p>[</span><span class=n>n</span><span class=p>])</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>lam</span> <span class=o>*</span> <span class=n>loss</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>finetune_with_ewc</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>source_loader</span><span class=p>,</span> <span class=n>target_loader</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                      <span class=n>epochs</span><span class=o>=</span><span class=mi>10</span><span class=p>,</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>,</span> <span class=n>lam</span><span class=o>=</span><span class=mf>400.0</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=s2>&#34;cuda&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;两阶段：保存 theta*，在任务 1 上计算 Fisher，然后在任务 2 上微调。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>theta_star</span> <span class=o>=</span> <span class=p>{</span><span class=n>n</span><span class=p>:</span> <span class=n>p</span><span class=o>.</span><span class=n>detach</span><span class=p>()</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                  <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>()</span> <span class=k>if</span> <span class=n>p</span><span class=o>.</span><span class=n>requires_grad</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=n>fisher</span> <span class=o>=</span> <span class=n>compute_fisher</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>source_loader</span><span class=p>,</span> <span class=n>n_samples</span><span class=o>=</span><span class=mi>500</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>SGD</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=n>lr</span><span class=p>,</span> <span class=n>momentum</span><span class=o>=</span><span class=mf>0.9</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>epochs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=ow>in</span> <span class=n>target_loader</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>y</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>logits</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>cross_entropy</span><span class=p>(</span><span class=n>logits</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span> \
+</span></span><span class=line><span class=cl>                 <span class=o>+</span> <span class=n>ewc_penalty</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>theta_star</span><span class=p>,</span> <span class=n>fisher</span><span class=p>,</span> <span class=n>lam</span><span class=o>=</span><span class=n>lam</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>model</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=ewc-与均匀-l2-的实际对比 class=heading-anchor>EWC 与均匀 L2 的实际对比<a href=#ewc-%e4%b8%8e%e5%9d%87%e5%8c%80-l2-%e7%9a%84%e5%ae%9e%e9%99%85%e5%af%b9%e6%af%94 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>在同一设置下分别运行 <span class=math-inline>$F_{i} \equiv 1$</span>
+（即 L2-SP，&ldquo;所有参数同等锚定"基线）和真实对角 Fisher。在 CIFAR-10 到 STL-10 的小 ResNet 顺序迁移任务中，典型结果如下：</p><div class=table-wrap><table><thead><tr><th>方法</th><th>微调后任务 1 准确率</th><th>任务 2 准确率</th><th>平均</th></tr></thead><tbody><tr><td>无正则化</td><td>41.2</td><td>78.5</td><td>59.9</td></tr><tr><td>L2-SP (<span class=math-inline>$F_{i} = 1$</span>
+, <span class=math-inline>$\lambda$</span>
+调优)</td><td>72.0</td><td>76.8</td><td>74.4</td></tr><tr><td>EWC (<span class=math-inline>$\lambda = 400$</span>
+)</td><td>88.1</td><td>76.2</td><td>82.2</td></tr></tbody></table></div><p>EWC 比 L2-SP 多保留了 16 个百分点的源任务准确率，仅在目标任务上损失约 0.6 分。原因在于结构差异：L2-SP 必须使用较小的 <span class=math-inline>$\lambda$</span>
+以允许无关参数自由移动，但这恰恰不足以保护关键参数。而 EWC 对每个参数单独决策。</p><h3 id=注意事项 class=heading-anchor>注意事项<a href=#%e6%b3%a8%e6%84%8f%e4%ba%8b%e9%a1%b9 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><ul><li>Fisher 在 <span class=math-inline>$\theta^{*}$</span>
+处计算一次后不再更新。对于长任务序列，需使用 <strong>online EWC</strong>（Schwarz 等，2018），维护 Fisher 的滑动平均。</li><li>对角 <span class=math-inline>$F$</span>
+忽略了参数间的相关性。虽有 K-FAC 和全矩阵变体，但很少值得其计算开销。</li><li><span class=math-inline>$\lambda$</span>
+是唯一超参；应在源任务的验证集上调优，而非任务 2 上。</li></ul><p>EWC 是应对遗忘的一种原则性方法——向过去正则化。下一个问题是其对偶问题：当<strong>特征本身</strong>必须从未标注数据中学习时，如何让对比目标足够稳定以学到有用表示？</p><hr><h2 id=对比损失稳定性温度与批次大小 class=heading-anchor>对比损失稳定性：温度与批次大小<a href=#%e5%af%b9%e6%af%94%e6%8d%9f%e5%a4%b1%e7%a8%b3%e5%ae%9a%e6%80%a7%e6%b8%a9%e5%ba%a6%e4%b8%8e%e6%89%b9%e6%ac%a1%e5%a4%a7%e5%b0%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>NT-Xent 在纸面上看起来很简单。但在实践中，两个超参数——温度 <span class=math-inline>$\tau$</span>
+和批次大小——决定了 SimCLR 是教会编码器有用表示，还是训练它输出噪声。</p><span class=math-block>$$\mathcal{L}_{i} = -\log \frac{\exp(s_{i, i^{+}} / \tau)}{\sum_{j \neq i} \exp(s_{i, j} / \tau)}, \qquad s_{i, j} = \frac{z_{i}^{\top} z_{j}}{\lVert z_{i} \rVert \lVert z_{j} \rVert}.$$</span><h3 id=为何温度很敏感 class=heading-anchor>为何温度很敏感<a href=#%e4%b8%ba%e4%bd%95%e6%b8%a9%e5%ba%a6%e5%be%88%e6%95%8f%e6%84%9f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\frac{\partial \mathcal{L}_{i}}{\partial z_{i}} = \frac{1}{\tau} \left( \sum_{j \neq i} p_{i, j} \cdot \frac{\partial s_{i, j}}{\partial z_{i}} - \frac{\partial s_{i, i^{+}}}{\partial z_{i}} \right),$$</span><p>其中 <span class=math-inline>$p_{i, j} = \exp(s_{i, j} / \tau) / \sum_{k} \exp(s_{i, k} / \tau)$</span>
+是负例 <span class=math-inline>$j$</span>
+的 softmax 权重。立即可得两种情形：</p><ul><li><strong>小 <span class=math-inline>$\tau$</span>
+（如 <span class=math-inline>$0.05$</span>
+）</strong>：softmax 尖锐，<span class=math-inline>$p_{i, j}$</span>
+集中在<strong>最难</strong>的负例上——即与 <span class=math-inline>$z_{i}$</span>
+最相似的少数样本。<span class=math-inline>$1 / \tau$</span>
+因子放大其梯度。训练初期，编码器输出近乎随机嵌入，“最难”毫无意义，导致噪声梯度爆炸。</li><li><strong>大 <span class=math-inline>$\tau$</span>
+（如 <span class=math-inline>$1.0$</span>
+）</strong>：softmax 平坦，所有 <span class=math-inline>$p_{i, j}$</span>
+约为 <span class=math-inline>$1 / (B - 1)$</span>
+，损失对 <span class=math-inline>$z_{i}$</span>
+几乎恒定。同时 <span class=math-inline>$1 / \tau$</span>
+因子缩小。模型学不到东西。</li></ul><p>SimCLR 的最佳 <span class=math-inline>$\tau$</span>
+范围是 <span class=math-inline>$0.07$</span>
+–<span class=math-inline>$0.5$</span>
+，但前提是编码器已初步稳定。若冷启动直接用 <span class=math-inline>$\tau = 0.07$</span>
+，极易引发梯度爆炸。</p><h3 id=为何批次大小重要infonce-的方差 class=heading-anchor>为何批次大小重要：InfoNCE 的方差<a href=#%e4%b8%ba%e4%bd%95%e6%89%b9%e6%ac%a1%e5%a4%a7%e5%b0%8f%e9%87%8d%e8%a6%81infonce-%e7%9a%84%e6%96%b9%e5%b7%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$I(z; z^{+}) \geq \log K - \mathcal{L}_{\mathrm{NCE}}^{(K)},$$</span><p>其中 <span class=math-inline>$K$</span>
+为负例数量。随着 <span class=math-inline>$K$</span>
+增大，下界收紧；同时估计量的<strong>方差</strong>大致以 <span class=math-inline>$1 / K$</span>
+速率下降。小批次会带来高噪声信号，使编码器偏向本步恰好采样的五六个负例。SimCLR 使用 4096–8192 的大批次并非炫技，而是方差控制的必需。</p><h3 id=温度预热与稳定性监控 class=heading-anchor>温度预热与稳定性监控<a href=#%e6%b8%a9%e5%ba%a6%e9%a2%84%e7%83%ad%e4%b8%8e%e7%a8%b3%e5%ae%9a%e6%80%a7%e7%9b%91%e6%8e%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>math</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>nt_xent</span><span class=p>(</span><span class=n>z1</span><span class=p>,</span> <span class=n>z2</span><span class=p>,</span> <span class=n>tau</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;带可配置温度的 SimCLR 损失。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>z</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>z1</span><span class=p>,</span> <span class=n>z2</span><span class=p>],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>                  <span class=c1># 2B x d</span>
+</span></span><span class=line><span class=cl>    <span class=n>z</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>normalize</span><span class=p>(</span><span class=n>z</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>sim</span> <span class=o>=</span> <span class=n>z</span> <span class=o>@</span> <span class=n>z</span><span class=o>.</span><span class=n>t</span><span class=p>()</span> <span class=o>/</span> <span class=n>tau</span>                           <span class=c1># 2B x 2B</span>
+</span></span><span class=line><span class=cl>    <span class=n>B</span> <span class=o>=</span> <span class=n>z1</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>mask</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>eye</span><span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>B</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=n>z</span><span class=o>.</span><span class=n>device</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>bool</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>sim</span><span class=o>.</span><span class=n>masked_fill_</span><span class=p>(</span><span class=n>mask</span><span class=p>,</span> <span class=o>-</span><span class=mf>1e9</span><span class=p>)</span>                    <span class=c1># 去除自相似</span>
+</span></span><span class=line><span class=cl>    <span class=n>targets</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>torch</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=mi>2</span> <span class=o>*</span> <span class=n>B</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                         <span class=n>torch</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>B</span><span class=p>)])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>z</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>F</span><span class=o>.</span><span class=n>cross_entropy</span><span class=p>(</span><span class=n>sim</span><span class=p>,</span> <span class=n>targets</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>tau_schedule</span><span class=p>(</span><span class=n>step</span><span class=p>,</span> <span class=n>total_steps</span><span class=p>,</span> <span class=n>tau_start</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span> <span class=n>tau_end</span><span class=o>=</span><span class=mf>0.07</span><span class=p>,</span> <span class=n>warmup_frac</span><span class=o>=</span><span class=mf>0.1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;温度余弦预热：初始较大，快速退火。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>warmup_steps</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>total_steps</span> <span class=o>*</span> <span class=n>warmup_frac</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>step</span> <span class=o>&gt;=</span> <span class=n>warmup_steps</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>tau_end</span>
+</span></span><span class=line><span class=cl>    <span class=n>progress</span> <span class=o>=</span> <span class=n>step</span> <span class=o>/</span> <span class=nb>max</span><span class=p>(</span><span class=n>warmup_steps</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>tau_end</span> <span class=o>+</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>tau_start</span> <span class=o>-</span> <span class=n>tau_end</span><span class=p>)</span> <span class=o>*</span> <span class=p>(</span><span class=mi>1</span> <span class=o>+</span> <span class=n>math</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>pi</span> <span class=o>*</span> <span class=n>progress</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>train_step</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>x1</span><span class=p>,</span> <span class=n>x2</span><span class=p>,</span> <span class=n>opt</span><span class=p>,</span> <span class=n>step</span><span class=p>,</span> <span class=n>total_steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>tau</span> <span class=o>=</span> <span class=n>tau_schedule</span><span class=p>(</span><span class=n>step</span><span class=p>,</span> <span class=n>total_steps</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>z1</span><span class=p>,</span> <span class=n>z2</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>x1</span><span class=p>),</span> <span class=n>model</span><span class=p>(</span><span class=n>x2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>loss</span> <span class=o>=</span> <span class=n>nt_xent</span><span class=p>(</span><span class=n>z1</span><span class=p>,</span> <span class=n>z2</span><span class=p>,</span> <span class=n>tau</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>grad_norm</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>clip_grad_norm_</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>max_norm</span><span class=o>=</span><span class=mf>1e9</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>step</span> <span class=o>%</span> <span class=mi>50</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;step </span><span class=si>{</span><span class=n>step</span><span class=si>}</span><span class=s2>  tau=</span><span class=si>{</span><span class=n>tau</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2>  loss=</span><span class=si>{</span><span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2>  &#34;</span>
+</span></span><span class=line><span class=cl>              <span class=sa>f</span><span class=s2>&#34;grad_norm=</span><span class=si>{</span><span class=n>grad_norm</span><span class=o>.</span><span class=n>item</span><span class=p>()</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>(),</span> <span class=n>grad_norm</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><p>观察前几百步的 <code>grad_norm</code> 可立即判断 <span class=math-inline>$\tau$</span>
+是否过低。健康训练的梯度范数通常在 <span class=math-inline>$1$</span>
+–<span class=math-inline>$10$</span>
+之间；若第一轮就出现超过 <span class=math-inline>$100$</span>
+的尖峰，说明预热时间太短。</p><h3 id=数值示例 class=heading-anchor>数值示例<a href=#%e6%95%b0%e5%80%bc%e7%a4%ba%e4%be%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>在 CIFAR-10 上运行 SimCLR 风格实验：ResNet-18 主干，批次 1024，预训练 200 轮，然后在标注集上训练冻结特征的线性探针：</p><div class=table-wrap><table><thead><tr><th><span class=math-inline>$\tau$</span>
+调度策略</th><th>线性探针准确率</th></tr></thead><tbody><tr><td>固定 <span class=math-inline>$\tau = 0.5$</span></td><td>79.0</td></tr><tr><td>固定 <span class=math-inline>$\tau = 0.07$</span></td><td>86.0（需两次重启尝试）</td></tr><tr><td>前 10% 步骤余弦退火 <span class=math-inline>$\tau = 0.5 \to 0.07$</span></td><td>87.5</td></tr></tbody></table></div><p>模型和数据完全相同。差异仅在于损失何时以及多快聚焦于难负例。</p><p>至此，自监督训练的稳定性问题已覆盖。有了稳固的先验，下一个实际问题是：如何<strong>低成本</strong>地适配它？这又回到了 LoRA，以及其秩应设为多大的问题。</p><hr><h2 id=lora-秩选择与适配器组合 class=heading-anchor>LoRA 秩选择与适配器组合<a href=#lora-%e7%a7%a9%e9%80%89%e6%8b%a9%e4%b8%8e%e9%80%82%e9%85%8d%e5%99%a8%e7%bb%84%e5%90%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>LoRA 的核心主张是“低秩更新已足够”。但这留给实践者两个原论文刻意模糊的问题：实际应选多大秩？能否在不重新训练的情况下堆叠多个 LoRA？</p><h3 id=秩选择经验扫描 class=heading-anchor>秩选择：经验扫描<a href=#%e7%a7%a9%e9%80%89%e6%8b%a9%e7%bb%8f%e9%aa%8c%e6%89%ab%e6%8f%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>以 BERT-base 为例，仅用 LoRA 微调 SST-2（二分类情感任务）——主干权重冻结，每个注意力投影层训练 <span class=math-inline>$A$</span>
+和 <span class=math-inline>$B$</span>
+。扫描 <span class=math-inline>$r \in \{1, 2, 4, 8, 16\}$</span>
+，其余设置固定（学习率 <span class=math-inline>$3 \times 10^{-4}$</span>
+，3 轮，批次 32）：</p><div class=table-wrap><table><thead><tr><th><span class=math-inline>$r$</span></th><th>可训练参数量</th><th>开发集准确率</th></tr></thead><tbody><tr><td>1</td><td>0.07 M</td><td>89.1</td></tr><tr><td>2</td><td>0.15 M</td><td>91.2</td></tr><tr><td>4</td><td>0.29 M</td><td>92.0</td></tr><tr><td>8</td><td>0.59 M</td><td>92.3</td></tr><tr><td>16</td><td>1.18 M</td><td>92.4</td></tr></tbody></table></div><p>两点观察：首先，秩 1 确实太小——瓶颈丢失了真实信息；其次，曲线在 <span class=math-inline>$r = 4$</span>
+后急剧平缓：翻倍至 <span class=math-inline>$r = 8$</span>
+仅提升 0.3 分，再翻倍仅得 0.1 分。此任务的拐点在 <span class=math-inline>$r = 4$</span>
+。实用启发法可推广：从 <span class=math-inline>$r = 4$</span>
+开始，若快速实验表明有效，可增至 <span class=math-inline>$r = 8$</span>
+；仅当目标任务与预训练分布显著不同时才考虑更高秩。</p><p>这与 LoRA 假设一致：若任务适配存在于低维子空间，只需张成该子空间。一旦满足，增加秩便无益。</p><h3 id=适配器组合增量的线性运算 class=heading-anchor>适配器组合：增量的线性运算<a href=#%e9%80%82%e9%85%8d%e5%99%a8%e7%bb%84%e5%90%88%e5%a2%9e%e9%87%8f%e7%9a%84%e7%ba%bf%e6%80%a7%e8%bf%90%e7%ae%97 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$W = W_{0} + \alpha_{1} (B_{1} A_{1}) + \alpha_{2} (B_{2} A_{2}).$$</span><p>这就是<strong>无需训练</strong>的多任务适配方法。已有情感 LoRA 和金融领域 LoRA？加权融合常能直接得到可用的金融情感分类器，无需专门训练。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>LoRALinear</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;冻结的 Linear 层，在前向时叠加一个或多个 LoRA 增量。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>base</span><span class=p>:</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>base</span> <span class=o>=</span> <span class=n>base</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=o>.</span><span class=n>parameters</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>p</span><span class=o>.</span><span class=n>requires_grad</span> <span class=o>=</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>adapters</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>ModuleList</span><span class=p>()</span>  <span class=c1># 每个为 (A, B) 对</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>weights</span> <span class=o>=</span> <span class=p>[]</span>                <span class=c1># 每个适配器的 alpha</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>add_adapter</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>A</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>,</span> <span class=n>B</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>,</span> <span class=n>alpha</span><span class=p>:</span> <span class=nb>float</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>ad</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>ParameterDict</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;A&#34;</span><span class=p>:</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>A</span><span class=p>,</span> <span class=n>requires_grad</span><span class=o>=</span><span class=kc>False</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;B&#34;</span><span class=p>:</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=n>requires_grad</span><span class=o>=</span><span class=kc>False</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>})</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>adapters</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>ad</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>weights</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>alpha</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>ad</span><span class=p>,</span> <span class=n>alpha</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>adapters</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>weights</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>out</span> <span class=o>=</span> <span class=n>out</span> <span class=o>+</span> <span class=n>alpha</span> <span class=o>*</span> <span class=p>(</span><span class=n>x</span> <span class=o>@</span> <span class=n>ad</span><span class=p>[</span><span class=s2>&#34;A&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>t</span><span class=p>()</span> <span class=o>@</span> <span class=n>ad</span><span class=p>[</span><span class=s2>&#34;B&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>t</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>out</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>compose_loras</span><span class=p>(</span><span class=n>base_model</span><span class=p>,</span> <span class=n>lora_list</span><span class=p>,</span> <span class=n>weights</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;将 lora_list 中指定的 Linear 层替换为 LoRALinear，
+</span></span></span><span class=line><span class=cl><span class=s2>    并按给定权重叠加提供的 (A, B) 增量。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>name_to_loras</span> <span class=o>=</span> <span class=p>{}</span>  <span class=c1># layer_name -&gt; (A, B) 列表</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>lora</span> <span class=ow>in</span> <span class=n>lora_list</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>name</span><span class=p>,</span> <span class=p>(</span><span class=n>A</span><span class=p>,</span> <span class=n>B</span><span class=p>)</span> <span class=ow>in</span> <span class=n>lora</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>name_to_loras</span><span class=o>.</span><span class=n>setdefault</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=p>[])</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=n>A</span><span class=p>,</span> <span class=n>B</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>name</span><span class=p>,</span> <span class=n>mod</span> <span class=ow>in</span> <span class=nb>list</span><span class=p>(</span><span class=n>base_model</span><span class=o>.</span><span class=n>named_modules</span><span class=p>()):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>name</span> <span class=ow>in</span> <span class=n>name_to_loras</span> <span class=ow>and</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>mod</span><span class=p>,</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>wrapped</span> <span class=o>=</span> <span class=n>LoRALinear</span><span class=p>(</span><span class=n>mod</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=p>(</span><span class=n>A</span><span class=p>,</span> <span class=n>B</span><span class=p>),</span> <span class=n>alpha</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>name_to_loras</span><span class=p>[</span><span class=n>name</span><span class=p>],</span> <span class=n>weights</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>                <span class=n>wrapped</span><span class=o>.</span><span class=n>add_adapter</span><span class=p>(</span><span class=n>A</span><span class=p>,</span> <span class=n>B</span><span class=p>,</span> <span class=n>alpha</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>parent</span> <span class=o>=</span> <span class=n>base_model</span>
+</span></span><span class=line><span class=cl>            <span class=o>*</span><span class=n>path</span><span class=p>,</span> <span class=n>last</span> <span class=o>=</span> <span class=n>name</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=s2>&#34;.&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>path</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>parent</span> <span class=o>=</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>parent</span><span class=p>,</span> <span class=n>p</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=nb>setattr</span><span class=p>(</span><span class=n>parent</span><span class=p>,</span> <span class=n>last</span><span class=p>,</span> <span class=n>wrapped</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>base_model</span>
+</span></span></code></pre></td></tr></table></div></div><p>实例：在 SST-2 上训练 <code>sentiment_lora</code>，在金融文本 MLM 任务上训练 <code>domain_lora</code>。以权重 <span class=math-inline>$(0.7, 0.3)$</span>
+组合，在留出的金融情感测试集上评估：</p><div class=table-wrap><table><thead><tr><th>设置</th><th>F1</th></tr></thead><tbody><tr><td>基础 BERT，无 LoRA</td><td>71.4</td></tr><tr><td>仅 <code>sentiment_lora</code></td><td>78.9</td></tr><tr><td>仅 <code>domain_lora</code></td><td>73.0</td></tr><tr><td>组合 <span class=math-inline>$(0.7, 0.3)$</span></td><td>80.6</td></tr><tr><td>在联合数据上训练单个 LoRA</td><td>81.8</td></tr></tbody></table></div><p>组合方法以零训练成本达到联合训练模型 1.2 F1 以内的性能。在小验证集上快速网格搜索调优权重，可进一步缩小差距。</p><p>两点警告：组合要求两个 LoRA 基于<strong>相同</strong>基模型检查点训练——跨基模型混合无定义。此外，若适配器包含非线性（如原始 Houlsby 适配器），权重线性运算性质即失效，这也是 LoRA 主导 PEFT 领域的又一原因。</p><p>至此，适配策略闭环完成：我们有了贝叶斯先验、无标签学习它的稳定方法、微调时保护它的原则性手段，以及在其上高效堆叠多任务增量的参数高效方式。剩下的失败模式正是此前被忽略的假设：预训练与部署数据同分布。一旦该假设不成立，再巧妙的微调也无济于事——这正是领域自适应（domain adaptation）的用武之地。</p><h2 id=常见问题 class=heading-anchor>常见问题<a href=#%e5%b8%b8%e8%a7%81%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=为什么微调时-warmup-效果这么好 class=heading-anchor>为什么微调时 warmup 效果这么好？<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e5%be%ae%e8%b0%83%e6%97%b6-warmup-%e6%95%88%e6%9e%9c%e8%bf%99%e4%b9%88%e5%a5%bd class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>新接的分类头在刚开始几步会产生很多噪声梯度。如果直接用全学习率把这些梯度推到预训练骨干里，就会在分类头还没稳定之前覆盖掉一些有用的权重。Warmup 的作用是让学习率在分类头逐渐稳定的过程中保持较低水平，之后再慢慢提升。</p><h3 id=预训练需要多少数据 class=heading-anchor>预训练需要多少数据？<a href=#%e9%a2%84%e8%ae%ad%e7%bb%83%e9%9c%80%e8%a6%81%e5%a4%9a%e5%b0%91%e6%95%b0%e6%8d%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>最低要求是：NLP 领域几百 MB 的文本，或者视觉领域几百万张图片。但<strong>多样性</strong>比数据量更重要。1000 万张同一物种的图片，效果远不如 100 万张涵盖多种类别的图片。Kaplan 等人（2020）提出的扩展定律表明，性能大致随语料规模呈幂律增长，但这只有在数据保持多样性和模型同步扩大的情况下才成立。</p><h3 id=如何判断微调是否过拟合 class=heading-anchor>如何判断微调是否过拟合？<a href=#%e5%a6%82%e4%bd%95%e5%88%a4%e6%96%ad%e5%be%ae%e8%b0%83%e6%98%af%e5%90%a6%e8%bf%87%e6%8b%9f%e5%90%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>有三个信号：（1）训练损失下降，但验证损失上升；（2）训练准确率很高，但验证准确率停滞不前；（3）模型变得过于自信，预测概率集中在 0 或 1 附近。解决办法包括：增加 dropout、使用早停、进行数据增强、冻结更多层，或者改用 LoRA。</p><h3 id=lora-和全参微调什么时候该用哪个 class=heading-anchor>LoRA 和全参微调，什么时候该用哪个？<a href=#lora-%e5%92%8c%e5%85%a8%e5%8f%82%e5%be%ae%e8%b0%83%e4%bb%80%e4%b9%88%e6%97%b6%e5%80%99%e8%af%a5%e7%94%a8%e5%93%aa%e4%b8%aa class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>如果你需要在一个基础模型上支持多个任务（每个任务加载一个小 delta）、显存有限，或者想快速迭代，那就用 LoRA。如果你只有一个目标任务、标注数据充足，并且追求精度的最后几个百分点，那就选择全参微调。</p><h3 id=为什么判别式微调会给底层设置这么小的学习率 class=heading-anchor>为什么判别式微调会给底层设置这么小的学习率？<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e5%88%a4%e5%88%ab%e5%bc%8f%e5%be%ae%e8%b0%83%e4%bc%9a%e7%bb%99%e5%ba%95%e5%b1%82%e8%ae%be%e7%bd%ae%e8%bf%99%e4%b9%88%e5%b0%8f%e7%9a%84%e5%ad%a6%e4%b9%a0%e7%8e%87 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>底层学到的是几乎与任务无关的特征，比如子词统计、低级语法、简单的视觉原语。调整这些层对目标任务的提升很小，反而会降低模型的可迁移性。任务相关的决策主要发生在顶层，因此大部分学习应该集中在顶层。</p><h2 id=总结 class=heading-anchor>总结<a href=#%e6%80%bb%e7%bb%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>预训练把全世界的无标注数据压缩成一个强大的先验。微调则是用你能拿到的标注数据，在这个先验基础上做贝叶斯更新。两者结合，让深度学习从“每个任务需要几百万标注”变成了“一个基础模型服务上千种专门化任务”。</p><p>关键点：</p><ul><li><strong>自监督目标</strong>（对比学习、MLM）能自动产生监督信号——这是解锁海量无标注数据的关键。</li><li><strong>判别式学习率</strong>和<strong>逐层解冻</strong>让不同层以合适的速度进行调整。</li><li><strong>线性探测</strong>是一个简单又高效的基线方法；如果数据充足，<strong>全参微调</strong>效果最好。</li><li><strong>LoRA 和 Adapter</strong> 让微调既节省参数，又能轻松组合。</li><li><strong>Warmup、衰减、梯度裁剪</strong>是几乎所有微调方案中必备的三板斧，用来保证训练稳定。</li><li><strong>灾难性遗忘</strong>确实存在——用正则化、回放或隔离策略来保护源任务的能力。</li></ul><p>下一篇：<a href=/zh/transfer-learning/03-%e5%9f%9f%e9%80%82%e5%ba%94%e6%96%b9%e6%b3%95/>第三篇 —— 域适应</a>
+。当预训练数据和部署数据分布不同时，光靠本文提到的微调技巧已经不够，还需要专门的对齐方法。</p><h2 id=参考文献 class=heading-anchor>参考文献<a href=#%e5%8f%82%e8%80%83%e6%96%87%e7%8c%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ol><li>Devlin et al. (2019). <em>BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding.</em> NAACL. <a href=https://arxiv.org/abs/1810.04805 target=_blank rel="noopener noreferrer">arXiv:1810.04805 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Chen et al. (2020). <em>A Simple Framework for Contrastive Learning of Visual Representations (SimCLR).</em> ICML. <a href=https://arxiv.org/abs/2002.05709 target=_blank rel="noopener noreferrer">arXiv:2002.05709 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>He et al. (2020). <em>Momentum Contrast for Unsupervised Visual Representation Learning (MoCo).</em> CVPR. <a href=https://arxiv.org/abs/1911.05722 target=_blank rel="noopener noreferrer">arXiv:1911.05722 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Howard and Ruder (2018). <em>Universal Language Model Fine-tuning for Text Classification (ULMFiT).</em> ACL. <a href=https://arxiv.org/abs/1801.06146 target=_blank rel="noopener noreferrer">arXiv:1801.06146 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Hu et al. (2022). <em>LoRA: Low-Rank Adaptation of Large Language Models.</em> ICLR. <a href=https://arxiv.org/abs/2106.09685 target=_blank rel="noopener noreferrer">arXiv:2106.09685 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Liu et al. (2019). <em>RoBERTa: A Robustly Optimized BERT Pretraining Approach.</em> <a href=https://arxiv.org/abs/1907.11692 target=_blank rel="noopener noreferrer">arXiv:1907.11692 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Houlsby et al. (2019). <em>Parameter-Efficient Transfer Learning for NLP (Adapters).</em> ICML. <a href=https://arxiv.org/abs/1902.00751 target=_blank rel="noopener noreferrer">arXiv:1902.00751 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Kirkpatrick et al. (2017). <em>Overcoming Catastrophic Forgetting in Neural Networks (EWC).</em> PNAS. <a href=https://arxiv.org/abs/1612.00796 target=_blank rel="noopener noreferrer">arXiv:1612.00796 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Kaplan et al. (2020). <em>Scaling Laws for Neural Language Models.</em> <a href=https://arxiv.org/abs/2001.08361 target=_blank rel="noopener noreferrer">arXiv:2001.08361 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Wettig et al. (2023). <em>Should You Mask 15 % in Masked Language Modeling?</em> EACL. <a href=https://arxiv.org/abs/2202.08005 target=_blank rel="noopener noreferrer">arXiv:2202.08005 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li></ol></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/transfer-learning/01-%E5%9F%BA%E7%A1%80%E4%B8%8E%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5/ data-next-url=https://www.chenk.top/zh/transfer-learning/03-%E5%9F%9F%E9%80%82%E5%BA%94%E6%96%B9%E6%B3%95/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/transfer-learning/>迁移学习</a> <span class=count>12 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/transfer-learning/01-%E5%9F%BA%E7%A1%80%E4%B8%8E%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5/><span class=title>迁移学习（一）：基础与核心概念</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/transfer-learning/03-%E5%9F%9F%E9%80%82%E5%BA%94%E6%96%B9%E6%B3%95/><span class=title>迁移学习（三）：域适应</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/transfer-learning/01-%E5%9F%BA%E7%A1%80%E4%B8%8E%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5/><span class=series-nav-num>01</span>
+<span class=series-nav-title>迁移学习（一）：基础与核心概念</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>02</span>
+<span class=series-nav-title>迁移学习（二）：预训练与微调</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/transfer-learning/03-%E5%9F%9F%E9%80%82%E5%BA%94%E6%96%B9%E6%B3%95/><span class=series-nav-num>03</span>
+<span class=series-nav-title>迁移学习（三）：域适应</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/transfer-learning/04-few-shot-learning/><span class=series-nav-num>04</span>
+<span class=series-nav-title>迁移学习（四）：小样本学习</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/transfer-learning/05-%E7%9F%A5%E8%AF%86%E8%92%B8%E9%A6%8F/><span class=series-nav-num>05</span>
+<span class=series-nav-title>迁移学习（五）：知识蒸馏</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/transfer-learning/06-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0/><span class=series-nav-num>06</span>
+<span class=series-nav-title>迁移学习（六）：多任务学习</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/transfer-learning/07-%E9%9B%B6%E6%A0%B7%E6%9C%AC%E5%AD%A6%E4%B9%A0/><span class=series-nav-num>07</span>
+<span class=series-nav-title>迁移学习（七）：零样本学习</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/transfer-learning/08-%E5%A4%9A%E6%A8%A1%E6%80%81%E8%BF%81%E7%A7%BB/><span class=series-nav-num>08</span>
+<span class=series-nav-title>迁移学习（八）：多模态迁移</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/><span class=series-nav-num>09</span>
+<span class=series-nav-title>迁移学习（九）：参数高效微调</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/transfer-learning/10-%E6%8C%81%E7%BB%AD%E5%AD%A6%E4%B9%A0/><span class=series-nav-num>10</span>
+<span class=series-nav-title>迁移学习（十）：持续学习</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/><span class=series-nav-num>11</span>
+<span class=series-nav-title>迁移学习（十一）：跨语言迁移</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/transfer-learning/12-%E5%B7%A5%E4%B8%9A%E5%BA%94%E7%94%A8%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/><span class=series-nav-num>12</span>
+<span class=series-nav-title>迁移学习（十二）：工业应用与最佳实践</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E8%25BF%2581%25E7%25A7%25BB%25E5%25AD%25A6%25E4%25B9%25A0%25EF%25BC%2588%25E4%25BA%258C%25EF%25BC%2589%25EF%25BC%259A%25E9%25A2%2584%25E8%25AE%25AD%25E7%25BB%2583%25E4%25B8%258E%25E5%25BE%25AE%25E8%25B0%2583&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Ftransfer-learning%252F02-%2525E9%2525A2%252584%2525E8%2525AE%2525AD%2525E7%2525BB%252583%2525E4%2525B8%25258E%2525E5%2525BE%2525AE%2525E8%2525B0%252583%2525E6%25258A%252580%2525E6%25259C%2525AF%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Ftransfer-learning%252F02-%2525E9%2525A2%252584%2525E8%2525AE%2525AD%2525E7%2525BB%252583%2525E4%2525B8%25258E%2525E5%2525BE%2525AE%2525E8%2525B0%252583%2525E6%25258A%252580%2525E6%25259C%2525AF%252F&title=%25E8%25BF%2581%25E7%25A7%25BB%25E5%25AD%25A6%25E4%25B9%25A0%25EF%25BC%2588%25E4%25BA%258C%25EF%25BC%2589%25EF%25BC%259A%25E9%25A2%2584%25E8%25AE%25AD%25E7%25BB%2583%25E4%25B8%258E%25E5%25BE%25AE%25E8%25B0%2583" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/transfer-learning/02-%E9%A2%84%E8%AE%AD%E7%BB%83%E4%B8%8E%E5%BE%AE%E8%B0%83%E6%8A%80%E6%9C%AF/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2025-05-07>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#为什么要预训练>为什么要预训练？</a><ul><li><a href=#数据的不对称性>数据的不对称性</a></li><li><a href=#贝叶斯视角预训练就是先验>贝叶斯视角：预训练就是先验</a></li><li><a href=#信息论视角可迁移的特征>信息论视角：可迁移的特征</a></li><li><a href=#收敛更快极小点更好>收敛更快、极小点更好</a></li></ul></li><li><a href=#自监督预训练任务>自监督预训练任务</a><ul><li><a href=#对比学习视觉>对比学习（视觉）</a><ul><li><a href=#simclr>SimCLR</a></li><li><a href=#moco动量更新的负样本队列>MoCo：动量更新的负样本队列</a></li></ul></li><li><a href=#掩码语言模型nlp>掩码语言模型（NLP）</a><ul><li><a href=#bert-的-mlm-目标>BERT 的 MLM 目标</a></li><li><a href=#nsp-及其替代方案>NSP 及其替代方案</a></li></ul></li></ul></li><li><a href=#微调为什么收敛得这么快>微调：为什么收敛得这么快</a><ul><li><a href=#全参微调>全参微调</a></li><li><a href=#分层学习率>分层学习率</a></li><li><a href=#先-warmup-再衰减>先 warmup 再衰减</a></li><li><a href=#层冻结>层冻结</a></li><li><a href=#线性探测-vs-全参微调>线性探测 vs 全参微调</a></li><li><a href=#灾难性遗忘>灾难性遗忘</a></li><li><a href=#adapter参数高效微调>Adapter：参数高效微调</a></li><li><a href=#lora低秩权重更新>LoRA：低秩权重更新</a></li></ul></li><li><a href=#到底需要多少标注数据>到底需要多少标注数据？</a></li><li><a href=#bert-实战>BERT 实战</a><ul><li><a href=#架构回顾>架构回顾</a></li><li><a href=#适配不同任务>适配不同任务</a></li><li><a href=#gpt自回归的表亲>GPT：自回归的表亲</a></li></ul></li><li><a href=#完整实现bert-微调>完整实现：BERT 微调</a><ul><li><a href=#关键技巧速查>关键技巧速查</a></li></ul></li><li><a href=#elastic-weight-consolidationfisher-加权锚定>Elastic Weight Consolidation：Fisher 加权锚定</a><ul><li><a href=#从贝叶斯后验推导>从贝叶斯后验推导</a></li><li><a href=#从零实现>从零实现</a></li><li><a href=#ewc-与均匀-l2-的实际对比>EWC 与均匀 L2 的实际对比</a></li><li><a href=#注意事项>注意事项</a></li></ul></li><li><a href=#对比损失稳定性温度与批次大小>对比损失稳定性：温度与批次大小</a><ul><li><a href=#为何温度很敏感>为何温度很敏感</a></li><li><a href=#为何批次大小重要infonce-的方差>为何批次大小重要：InfoNCE 的方差</a></li><li><a href=#温度预热与稳定性监控>温度预热与稳定性监控</a></li><li><a href=#数值示例>数值示例</a></li></ul></li><li><a href=#lora-秩选择与适配器组合>LoRA 秩选择与适配器组合</a><ul><li><a href=#秩选择经验扫描>秩选择：经验扫描</a></li><li><a href=#适配器组合增量的线性运算>适配器组合：增量的线性运算</a></li></ul></li><li><a href=#常见问题>常见问题</a><ul><li><a href=#为什么微调时-warmup-效果这么好>为什么微调时 warmup 效果这么好？</a></li><li><a href=#预训练需要多少数据>预训练需要多少数据？</a></li><li><a href=#如何判断微调是否过拟合>如何判断微调是否过拟合？</a></li><li><a href=#lora-和全参微调什么时候该用哪个>LoRA 和全参微调，什么时候该用哪个？</a></li><li><a href=#为什么判别式微调会给底层设置这么小的学习率>为什么判别式微调会给底层设置这么小的学习率？</a></li></ul></li><li><a href=#总结>总结</a></li><li><a href=#参考文献>参考文献</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/transfer-learning/ class=series-name>迁移学习</a>
+<span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/transfer-learning/01-%E5%9F%BA%E7%A1%80%E4%B8%8E%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5/><span class=chapter-num>01</span>
+<span class=chapter-title>迁移学习（一）：基础与核心概念</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>02</span>
+<span class=chapter-title>迁移学习（二）：预训练与微调</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/transfer-learning/03-%E5%9F%9F%E9%80%82%E5%BA%94%E6%96%B9%E6%B3%95/><span class=chapter-num>03</span>
+<span class=chapter-title>迁移学习（三）：域适应</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/transfer-learning/04-few-shot-learning/><span class=chapter-num>04</span>
+<span class=chapter-title>迁移学习（四）：小样本学习</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/transfer-learning/05-%E7%9F%A5%E8%AF%86%E8%92%B8%E9%A6%8F/><span class=chapter-num>05</span>
+<span class=chapter-title>迁移学习（五）：知识蒸馏</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/transfer-learning/06-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0/><span class=chapter-num>06</span>
+<span class=chapter-title>迁移学习（六）：多任务学习</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/transfer-learning/07-%E9%9B%B6%E6%A0%B7%E6%9C%AC%E5%AD%A6%E4%B9%A0/><span class=chapter-num>07</span>
+<span class=chapter-title>迁移学习（七）：零样本学习</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/transfer-learning/08-%E5%A4%9A%E6%A8%A1%E6%80%81%E8%BF%81%E7%A7%BB/><span class=chapter-num>08</span>
+<span class=chapter-title>迁移学习（八）：多模态迁移</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/><span class=chapter-num>09</span>
+<span class=chapter-title>迁移学习（九）：参数高效微调</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/transfer-learning/10-%E6%8C%81%E7%BB%AD%E5%AD%A6%E4%B9%A0/><span class=chapter-num>10</span>
+<span class=chapter-title>迁移学习（十）：持续学习</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/><span class=chapter-num>11</span>
+<span class=chapter-title>迁移学习（十一）：跨语言迁移</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/transfer-learning/12-%E5%B7%A5%E4%B8%9A%E5%BA%94%E7%94%A8%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/><span class=chapter-num>12</span>
+<span class=chapter-title>迁移学习（十二）：工业应用与最佳实践</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>40 min</strong></div><div class=row><span>字数</span><strong>9716</strong></div><div class=row><span>写于</span><strong>May 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/product-thinking/>产品思维</a></li><li><a href=https://www.chenk.top/zh/series/personal-finance/>个人理财</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=关闭>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>在微信里搜索此 ID 即可添加我</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>复制微信号</button></div></div></div></footer></body></html>

@@ -1,0 +1,789 @@
+<!doctype html><html lang=zh data-translation=/en/databases/06-replication-and-partitioning/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>数据库（六）：复制与分片——突破单机限制的扩展之道 · Chen Kai Blog</title>
+<meta name=description content="数据库如何通过复制保障高可用性，又如何通过分片实现水平扩展——涵盖主从复制、多主复制、无主复制、分片策略及一致性哈希。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/databases/06-replication-and-partitioning/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/databases/06-replication-and-partitioning/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/databases/06-replication-and-partitioning/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/databases/06-replication-and-partitioning/><meta property="og:type" content="article"><meta property="og:title" content="数据库（六）：复制与分片——突破单机限制的扩展之道"><meta property="og:description" content="数据库如何通过复制保障高可用性，又如何通过分片实现水平扩展——涵盖主从复制、多主复制、无主复制、分片策略及一致性哈希。"><meta property="og:url" content="https://www.chenk.top/zh/databases/06-replication-and-partitioning/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"><meta property="og:image:alt" content="数据库（六）：复制与分片——突破单机限制的扩展之道"><meta property="article:published_time" content="2024-04-26T09:00:00Z"><meta property="article:modified_time" content="2024-04-26T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Databases"><meta property="article:tag" content="Replication"><meta property="article:tag" content="Sharding"><meta property="article:tag" content="Distributed Systems"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="数据库（六）：复制与分片——突破单机限制的扩展之道"><meta name=twitter:description content="数据库如何通过复制保障高可用性，又如何通过分片实现水平扩展——涵盖主从复制、多主复制、无主复制、分片策略及一致性哈希。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"数据库（六）：复制与分片——突破单机限制的扩展之道","description":"数据库如何通过复制保障高可用性，又如何通过分片实现水平扩展——涵盖主从复制、多主复制、无主复制、分片策略及一致性哈希。","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2024-04-26T09:00:00Z","dateModified":"2024-04-26T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/zh/databases/06-replication-and-partitioning/"},"inLanguage":"zh"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js onload='document.querySelectorAll(".math-inline,.math-block").forEach(function(e){var t=e.textContent,n=e.classList.contains("math-block"),t=n?t.replace(/^\$\$/,"").replace(/\$\$$/,""):t.replace(/^\$/,"").replace(/\$$/,"");try{katex.render(t,e,{displayMode:n,throwOnError:!1})}catch{}})'></script><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-replication-and-partitioning.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/databases/>数据库原理与实践</a>
+· 第 6 篇</div><h1>数据库（六）：复制与分片——突破单机限制的扩展之道</h1><p class=deck>数据库如何通过复制保障高可用性，又如何通过分片实现水平扩展——涵盖主从复制、多主复制、无主复制、分片策略及一致性哈希。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-04-26>April 26, 2024</time> · 28 分钟 · 6924 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/databases/ class=tag>#Databases</a><a href=/zh/tags/replication/ class=tag>#Replication</a><a href=/zh/tags/sharding/ class=tag>#Sharding</a><a href=/zh/tags/distributed-systems/ class=tag>#Distributed Systems</a></div><a class="pill pill-outline" href=/en/databases/06-replication-and-partitioning/>Read in English →</a></div></header><div class=prose><p>一台数据库服务器能承载惊人的负载——一个调优良好的 PostgreSQL 实例每秒可处理数万次查询。但终究会遇到瓶颈：可能是读吞吐量超出了单颗 CPU 的能力，需要数据在数据中心火灾中幸存，又或者数据集已经超出单块磁盘的容量。此时，你就需要<strong>复制（Replication）<strong>与</strong>分片（Partitioning / Sharding）</strong>。</p><p>这是两种正交的扩展策略：</p><ul><li><strong>复制</strong>：将<strong>相同的数据</strong>拷贝到多台机器上（提升可用性与读扩展能力）</li><li><strong>分片</strong>（Sharding）：将<strong>不同的数据</strong>切分为多个片段，每个片段存储在不同机器上（提升写扩展能力与总数据容量）</li></ul><p>绝大多数生产环境数据库同时采用这两种策略。</p><hr><h2 id=复制维护数据的多份副本 class=heading-anchor>复制：维护数据的多份副本<a href=#%e5%a4%8d%e5%88%b6%e7%bb%b4%e6%8a%a4%e6%95%b0%e6%8d%ae%e7%9a%84%e5%a4%9a%e4%bb%bd%e5%89%af%e6%9c%ac class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=为何要复制 class=heading-anchor>为何要复制？<a href=#%e4%b8%ba%e4%bd%95%e8%a6%81%e5%a4%8d%e5%88%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>目标</th><th>复制如何帮助实现</th></tr></thead><tbody><tr><td><strong>高可用性（High availability）</strong></td><td>若某台服务器宕机，另一台可立即接管</td></tr><tr><td><strong>读扩展（Read scaling）</strong></td><td>将读请求分散至多个副本节点</td></tr><tr><td><strong>地理分布（Geographic distribution）</strong></td><td>将数据部署在离不同地区用户更近的位置</td></tr><tr><td><strong>灾难恢复（Disaster recovery）</strong></td><td>在另一个数据中心保留一份副本</td></tr></tbody></table></div><h3 id=主从复制leader-follower--master-slave class=heading-anchor>主从复制（Leader-Follower / Master-Slave）<a href=#%e4%b8%bb%e4%bb%8e%e5%a4%8d%e5%88%b6leader-follower--master-slave class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>最常用的复制拓扑结构是主节点（Leader/Master/Primary）负责全部写操作，一个或多个从节点（Follower/Slave/Replica/Standby）接收所有写入的副本并可服务读请求。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-leader-follower.png alt=主从复制 loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>                    Writes
+</span></span><span class=line><span class=cl>Client ────────────► Leader (Primary)
+</span></span><span class=line><span class=cl>                       │
+</span></span><span class=line><span class=cl>              ┌────────┼────────┐
+</span></span><span class=line><span class=cl>              ▼        ▼        ▼
+</span></span><span class=line><span class=cl>          Follower  Follower  Follower
+</span></span><span class=line><span class=cl>          (Replica) (Replica) (Replica)
+</span></span><span class=line><span class=cl>              ▲        ▲        ▲
+</span></span><span class=line><span class=cl>              └────────┼────────┘
+</span></span><span class=line><span class=cl>                    Reads
+</span></span></code></pre></td></tr></table></div></div><h4 id=同步复制-vs-异步复制 class=heading-anchor>同步复制 vs 异步复制<a href=#%e5%90%8c%e6%ad%a5%e5%a4%8d%e5%88%b6-vs-%e5%bc%82%e6%ad%a5%e5%a4%8d%e5%88%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><div class=table-wrap><table><thead><tr><th>维度</th><th>同步复制</th><th>异步复制</th></tr></thead><tbody><tr><td>写入确认时机</td><td>主节点 <strong>和</strong> 从节点均完成写入后才返回成功</td><td>仅主节点完成写入即返回成功</td></tr><tr><td>数据丢失风险</td><td>零风险（只要同步副本存活）</td><td>主节点崩溃时最多丢失数秒数据</td></tr><tr><td>写入延迟</td><td>更高（需等待从节点响应）</td><td>更低（立即返回）</td></tr><tr><td>对可用性影响</td><td>任一同步从节点故障将阻塞写入</td><td>从节点故障不影响写入</td></tr><tr><td>常见默认配置</td><td>PostgreSQL：支持配置至少一个同步副本</td><td>MySQL：默认异步</td></tr></tbody></table></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- PostgreSQL：配置同步复制
+</span></span></span><span class=line><span class=cl><span class=c1>-- postgresql.conf on primary
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>synchronous_standby_names</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;FIRST 1 (replica1, replica2)&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- FIRST 1 = 等待列表中至少 1 个副本确认
+</span></span></span><span class=line><span class=cl><span class=c1>-- 即写入将阻塞，直到 replica1 或 replica2 中任意一个确认
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 检查复制状态
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>client_addr</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>state</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>sync_state</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>sent_lsn</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>write_lsn</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>flush_lsn</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>replay_lsn</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>(</span><span class=n>sent_lsn</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>replay_lsn</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>replication_lag_bytes</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_stat_replication</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>实践中，多数部署采用<strong>半同步复制（semi-synchronous）</strong>：指定一个从节点为同步以确保零数据丢失，其余为异步以用于读扩展。</p><h3 id=复制延迟replication-lag class=heading-anchor>复制延迟（Replication Lag）<a href=#%e5%a4%8d%e5%88%b6%e5%bb%b6%e8%bf%9freplication-lag class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>在异步复制下，从节点可能略微落后于主节点，从而引发一致性异常：</p><h4 id=读己所写一致性read-after-write-consistency class=heading-anchor>读己所写一致性（Read-After-Write Consistency）<a href=#%e8%af%bb%e5%b7%b1%e6%89%80%e5%86%99%e4%b8%80%e8%87%b4%e6%80%a7read-after-write-consistency class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>用户刚写入数据，随即发起读取，但该读请求被路由到了尚未收到该写入的从节点。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>时间线：
+</span></span><span class=line><span class=cl>1. 用户发布一条评论（请求发往主节点）
+</span></span><span class=line><span class=cl>2. 主节点写入成功：OK
+</span></span><span class=line><span class=cl>3. 用户刷新页面（请求发往从节点）
+</span></span><span class=line><span class=cl>4. 该从节点尚未收到第 2 步的写入
+</span></span><span class=line><span class=cl>5. 用户看到：“暂无评论”——自己的评论“消失”了！
+</span></span></code></pre></td></tr></table></div></div><p>解决方案：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># 方案 1：对近期写入的数据，强制从主节点读取</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>get_user_profile</span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span> <span class=n>requesting_user_id</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>user_id</span> <span class=o>==</span> <span class=n>requesting_user_id</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 用户查看自己资料 → 从主节点读</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>db_leader</span><span class=o>.</span><span class=n>query</span><span class=p>(</span><span class=s2>&#34;SELECT * FROM users WHERE id = </span><span class=si>%s</span><span class=s2>&#34;</span><span class=p>,</span> <span class=n>user_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 查看他人资料 → 从副本读即可</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>db_replica</span><span class=o>.</span><span class=n>query</span><span class=p>(</span><span class=s2>&#34;SELECT * FROM users WHERE id = </span><span class=si>%s</span><span class=s2>&#34;</span><span class=p>,</span> <span class=n>user_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 方案 2：记录写入时间戳</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>get_comments</span><span class=p>(</span><span class=n>post_id</span><span class=p>,</span> <span class=n>last_write_ts</span><span class=o>=</span><span class=kc>None</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>last_write_ts</span> <span class=ow>and</span> <span class=p>(</span><span class=n>time</span><span class=o>.</span><span class=n>time</span><span class=p>()</span> <span class=o>-</span> <span class=n>last_write_ts</span><span class=p>)</span> <span class=o>&lt;</span> <span class=mi>5</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 5 秒内写入 → 从主节点读</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>db_leader</span><span class=o>.</span><span class=n>query</span><span class=p>(</span><span class=s2>&#34;SELECT * FROM comments WHERE post_id = </span><span class=si>%s</span><span class=s2>&#34;</span><span class=p>,</span> <span class=n>post_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>db_replica</span><span class=o>.</span><span class=n>query</span><span class=p>(</span><span class=s2>&#34;SELECT * FROM comments WHERE post_id = </span><span class=si>%s</span><span class=s2>&#34;</span><span class=p>,</span> <span class=n>post_id</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=单调读monotonic-reads class=heading-anchor>单调读（Monotonic Reads）<a href=#%e5%8d%95%e8%b0%83%e8%af%bbmonotonic-reads class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>用户连续发起两次读请求：第一次命中了最新副本，第二次却命中了一个滞后的副本，导致用户看到数据“倒退”。</p><p>解决方案：为每个用户固定路由到同一副本（例如，对用户 ID 做哈希后选择副本）。</p><h3 id=多主复制multi-leader-replication class=heading-anchor>多主复制（Multi-Leader Replication）<a href=#%e5%a4%9a%e4%b8%bb%e5%a4%8d%e5%88%b6multi-leader-replication class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>多个主节点均可独立接受写入，彼此之间双向同步变更。常见于多数据中心架构。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-multi-leader.png alt=多主复制 loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>数据中心 A              数据中心 B
+</span></span><span class=line><span class=cl>┌──────────────┐          ┌──────────────┐
+</span></span><span class=line><span class=cl>│   主节点 A   │◄────────►│   主节点 B   │
+</span></span><span class=line><span class=cl>│  （读/写）   │          │  （读/写）   │
+</span></span><span class=line><span class=cl>│      │       │          │      │       │
+</span></span><span class=line><span class=cl>│  从节点      │          │  从节点      │
+</span></span><span class=line><span class=cl>└──────────────┘          └──────────────┘
+</span></span></code></pre></td></tr></table></div></div><p>难点在于：<strong>冲突解决（Conflict resolution）</strong>。若用户 A 在 DC-A 更新某行，用户 B 在 DC-B 几乎同时更新同一行，谁的写入胜出？</p><div class=table-wrap><table><thead><tr><th>策略</th><th>工作原理</th><th>权衡</th></tr></thead><tbody><tr><td><strong>最后写入者胜出（LWW）</strong></td><td>时间戳最大的写入胜出</td><td>简单，但静默丢弃旧数据</td></tr><tr><td><strong>值合并（Merge values）</strong></td><td>应用层定义合并逻辑（如合并 JSON 字段）</td><td>复杂，但可保留双方变更</td></tr><tr><td><strong>无冲突复制数据类型（CRDT）</strong></td><td>使用天然支持自动合并的数据结构（计数器、集合等）</td><td>仅适用于特定操作类型</td></tr><tr><td><strong>人工干预（Manual resolution）</strong></td><td>标记冲突，交由人工审核</td><td>缓慢但准确</td></tr></tbody></table></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 示例：基于时间戳的 LWW 策略
+</span></span></span><span class=line><span class=cl><span class=c1>-- 两个主节点均可独立接受更新
+</span></span></span><span class=line><span class=cl><span class=c1>-- 同步时，`updated_at` 时间戳最新的行获胜
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 主节点 A：用户更新姓名
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>UPDATE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;Alice Chen&#39;</span><span class=p>,</span><span class=w> </span><span class=n>updated_at</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;2023-12-15T10:00:01Z&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>user_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 主节点 B：同一用户几乎同时更新姓名
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>UPDATE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;Alice C.&#39;</span><span class=p>,</span><span class=w> </span><span class=n>updated_at</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;2023-12-15T10:00:02Z&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>user_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 同步完成后：主节点 B 的更新胜出（时间戳更新）
+</span></span></span><span class=line><span class=cl><span class=c1>-- 但主节点 A 的变更被静默丢弃
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=无主复制leaderless-replicationdynamo-风格 class=heading-anchor>无主复制（Leaderless Replication，Dynamo 风格）<a href=#%e6%97%a0%e4%b8%bb%e5%a4%8d%e5%88%b6leaderless-replicationdynamo-%e9%a3%8e%e6%a0%bc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>完全不设主节点，任何节点均可接受读写请求。Amazon DynamoDB、Apache Cassandra 和 Riak 均采用此模型。</p><h4 id=法定人数读写quorum-reads-and-writes class=heading-anchor>法定人数读写（Quorum Reads and Writes）<a href=#%e6%b3%95%e5%ae%9a%e4%ba%ba%e6%95%b0%e8%af%bb%e5%86%99quorum-reads-and-writes class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>设总副本数为 <code>N</code>，配置：</p><ul><li><strong>W</strong> = 写入必须获得确认的最小节点数</li><li><strong>R</strong> = 读取必须响应的最小节点数</li></ul><p>核心规则：<strong>W + R > N</strong> 可保证至少一次读取能命中包含最新写入的节点。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>N = 3（每份数据有 3 个副本）
+</span></span><span class=line><span class=cl>W = 2（写入需获 2 个节点确认）
+</span></span><span class=line><span class=cl>R = 2（读取需从 2 个节点获取响应）
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>向 key &#34;account:1&#34; 写入 &#34;balance = 500&#34;：
+</span></span><span class=line><span class=cl>  节点 1：✓ 已确认（balance = 500）
+</span></span><span class=line><span class=cl>  节点 2：✓ 已确认（balance = 500）
+</span></span><span class=line><span class=cl>  节点 3：✗ 不可达（仍为 balance = 1000）
+</span></span><span class=line><span class=cl>  --&gt; 写入成功（满足 W=2）
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>读取 key &#34;account:1&#34;：
+</span></span><span class=line><span class=cl>  节点 1：balance = 500（版本 2）
+</span></span><span class=line><span class=cl>  节点 2：balance = 500（版本 2）
+</span></span><span class=line><span class=cl>  --&gt; 返回 500（最新版本）
+</span></span><span class=line><span class=cl>  或
+</span></span><span class=line><span class=cl>  节点 2：balance = 500（版本 2）
+</span></span><span class=line><span class=cl>  节点 3：balance = 1000（版本 1）
+</span></span><span class=line><span class=cl>  --&gt; 返回 500（客户端选取最高版本）
+</span></span></code></pre></td></tr></table></div></div><p>常见配置：</p><div class=table-wrap><table><thead><tr><th>配置</th><th>特性</th></tr></thead><tbody><tr><td>W=N, R=1</td><td>强一致性写入，快速读取（写入代价高）</td></tr><tr><td>W=1, R=N</td><td>快速写入，强一致性读取（读取代价高）</td></tr><tr><td>W=2, R=2 （N=3）</td><td>平衡型 —— 可容忍 1 个节点故障</td></tr><tr><td>W=1, R=1</td><td>快速但无一致性保证</td></tr></tbody></table></div><h4 id=读修复read-repair与反熵anti-entropy class=heading-anchor>读修复（Read Repair）与反熵（Anti-Entropy）<a href=#%e8%af%bb%e4%bf%ae%e5%a4%8dread-repair%e4%b8%8e%e5%8f%8d%e7%86%b5anti-entropy class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>当读取发现某节点数据陈旧时，客户端可将最新值回写至该节点，称为<strong>读修复</strong>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>读取 key &#34;account:1&#34;：
+</span></span><span class=line><span class=cl>  节点 1：balance = 500（版本 2）✓ 最新
+</span></span><span class=line><span class=cl>  节点 3：balance = 1000（版本 1）✗ 陈旧
+</span></span><span class=line><span class=cl>  --&gt; 向客户端返回 500
+</span></span><span class=line><span class=cl>  --&gt; 后台：将 balance=500 写回节点 3（读修复）
+</span></span></code></pre></td></tr></table></div></div><p>对于极少被读取的键，系统后台运行<strong>反熵进程（anti-entropy process）</strong>，定期比对副本间数据并修复差异。</p><h2 id=多主复制中的冲突解决 class=heading-anchor>多主复制中的冲突解决<a href=#%e5%a4%9a%e4%b8%bb%e5%a4%8d%e5%88%b6%e4%b8%ad%e7%9a%84%e5%86%b2%e7%aa%81%e8%a7%a3%e5%86%b3 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>当多个节点同时接受写入时，冲突不可避免。问题不是冲突<em>是否</em>发生，而是<em>如何解决</em>。</p><h3 id=写冲突类型 class=heading-anchor>写冲突类型<a href=#%e5%86%99%e5%86%b2%e7%aa%81%e7%b1%bb%e5%9e%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>冲突类型</th><th>示例</th><th>难度</th></tr></thead><tbody><tr><td>更新-更新</td><td>两用户同时编辑同一产品描述</td><td>常见，困难</td></tr><tr><td>插入-插入</td><td>两节点创建相同自然键的记录</td><td>中等</td></tr><tr><td>删除-更新</td><td>节点 A 删除行，节点 B 更新它</td><td>中等</td></tr><tr><td>模式冲突</td><td>节点 A 加列，节点 B 加不同列</td><td>罕见，需人工处理</td></tr></tbody></table></div><h3 id=解决策略 class=heading-anchor>解决策略<a href=#%e8%a7%a3%e5%86%b3%e7%ad%96%e7%95%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><h4 id=最后写入者胜出lww class=heading-anchor>最后写入者胜出（LWW）<a href=#%e6%9c%80%e5%90%8e%e5%86%99%e5%85%a5%e8%80%85%e8%83%9c%e5%87%balww class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>最简单的策略：每次写入携带时间戳，最新的获胜。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>products</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>product_id</span><span class=w> </span><span class=nb>INT</span><span class=w> </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>200</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>price</span><span class=w> </span><span class=nb>DECIMAL</span><span class=p>(</span><span class=mi>10</span><span class=p>,</span><span class=mi>2</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>updated_at</span><span class=w> </span><span class=n>TIMESTAMPTZ</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=n>NOW</span><span class=p>()</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 冲突时保留较新的写入
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>products</span><span class=w> </span><span class=p>(</span><span class=n>product_id</span><span class=p>,</span><span class=w> </span><span class=n>name</span><span class=p>,</span><span class=w> </span><span class=n>price</span><span class=p>,</span><span class=w> </span><span class=n>updated_at</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>42</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;Widget&#39;</span><span class=p>,</span><span class=w> </span><span class=mi>19</span><span class=p>.</span><span class=mi>99</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;2024-03-15 10:30:00+00&#39;</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ON</span><span class=w> </span><span class=n>CONFLICT</span><span class=w> </span><span class=p>(</span><span class=n>product_id</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>DO</span><span class=w> </span><span class=k>UPDATE</span><span class=w> </span><span class=k>SET</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>EXCLUDED</span><span class=p>.</span><span class=n>name</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>price</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>EXCLUDED</span><span class=p>.</span><span class=n>price</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>updated_at</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>EXCLUDED</span><span class=p>.</span><span class=n>updated_at</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>products</span><span class=p>.</span><span class=n>updated_at</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>EXCLUDED</span><span class=p>.</span><span class=n>updated_at</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>问题：</strong> LWW 静默丢弃"失败"的写入。两个用户同时更新同一行的不同字段时，一个更新会完全丢失。</p><h4 id=crdt无冲突复制数据类型 class=heading-anchor>CRDT（无冲突复制数据类型）<a href=#crdt%e6%97%a0%e5%86%b2%e7%aa%81%e5%a4%8d%e5%88%b6%e6%95%b0%e6%8d%ae%e7%b1%bb%e5%9e%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>CRDT 是设计上保证可无冲突合并的数据结构：</p><div class=table-wrap><table><thead><tr><th>CRDT 类型</th><th>行为</th><th>用途</th></tr></thead><tbody><tr><td>G-Counter</td><td>只增不减，合并取各节点最大值</td><td>页面访问量、点赞数</td></tr><tr><td>PN-Counter</td><td>可增可减</td><td>购物车数量</td></tr><tr><td>LWW-Register</td><td>单值，最后写入获胜</td><td>用户资料字段</td></tr><tr><td>OR-Set</td><td>添加/删除元素，并发添加存活</td><td>标签、功能开关</td></tr></tbody></table></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>GCounter</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;G-Counter：每个节点维护自己的计数器。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>node_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>node_id</span> <span class=o>=</span> <span class=n>node_id</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>counts</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>increment</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>counts</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>node_id</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>counts</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>node_id</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>value</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>sum</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>counts</span><span class=o>.</span><span class=n>values</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>merge</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>other</span><span class=p>:</span> <span class=s2>&#34;GCounter&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;合并满足交换律、结合律、幂等性。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>node</span><span class=p>,</span> <span class=n>count</span> <span class=ow>in</span> <span class=n>other</span><span class=o>.</span><span class=n>counts</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>counts</span><span class=p>[</span><span class=n>node</span><span class=p>]</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>counts</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>node</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=n>count</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=应用层解决 class=heading-anchor>应用层解决<a href=#%e5%ba%94%e7%94%a8%e5%b1%82%e8%a7%a3%e5%86%b3 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>复杂业务场景下，存储所有冲突版本让应用（或用户）决定：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>document_versions</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>doc_id</span><span class=w> </span><span class=nb>INT</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>version_id</span><span class=w> </span><span class=n>UUID</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=n>gen_random_uuid</span><span class=p>(),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>content</span><span class=w> </span><span class=nb>TEXT</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>author</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>50</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>written_at</span><span class=w> </span><span class=n>TIMESTAMPTZ</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>is_conflict</span><span class=w> </span><span class=nb>BOOLEAN</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=k>FALSE</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=w> </span><span class=p>(</span><span class=n>doc_id</span><span class=p>,</span><span class=w> </span><span class=n>version_id</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>);</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=读副本使用模式 class=heading-anchor>读副本使用模式<a href=#%e8%af%bb%e5%89%af%e6%9c%ac%e4%bd%bf%e7%94%a8%e6%a8%a1%e5%bc%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>读副本处理查询扩展，但正确使用需要理解复制延迟。</p><h3 id=连接路由 class=heading-anchor>连接路由<a href=#%e8%bf%9e%e6%8e%a5%e8%b7%af%e7%94%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>random</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>DatabaseRouter</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>primary</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>replicas</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>primary</span> <span class=o>=</span> <span class=n>primary</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>replicas</span> <span class=o>=</span> <span class=n>replicas</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>get_connection</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>operation</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>consistency</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>&#34;eventual&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>operation</span> <span class=ow>in</span> <span class=p>(</span><span class=s2>&#34;INSERT&#34;</span><span class=p>,</span> <span class=s2>&#34;UPDATE&#34;</span><span class=p>,</span> <span class=s2>&#34;DELETE&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>primary</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>consistency</span> <span class=o>==</span> <span class=s2>&#34;strong&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>primary</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>random</span><span class=o>.</span><span class=n>choice</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>replicas</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=处理复制延迟 class=heading-anchor>处理复制延迟<a href=#%e5%a4%84%e7%90%86%e5%a4%8d%e5%88%b6%e5%bb%b6%e8%bf%9f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>关键问题：用户写入数据后立即读取——但读请求命中了尚未收到该写入的副本。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>SessionConsistency</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;保证每个会话的读自己写。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>router</span><span class=p>:</span> <span class=n>DatabaseRouter</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>router</span> <span class=o>=</span> <span class=n>router</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>last_write_time</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lag_threshold</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>2.0</span>  <span class=c1># 秒</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>get_read_connection</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>time</span><span class=o>.</span><span class=n>time</span><span class=p>()</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>last_write_time</span> <span class=o>&lt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>lag_threshold</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>router</span><span class=o>.</span><span class=n>primary</span>  <span class=c1># 太近，用主库</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>router</span><span class=o>.</span><span class=n>get_connection</span><span class=p>(</span><span class=s2>&#34;SELECT&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>record_write</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>last_write_time</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>time</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=副本延迟监控 class=heading-anchor>副本延迟监控<a href=#%e5%89%af%e6%9c%ac%e5%bb%b6%e8%bf%9f%e7%9b%91%e6%8e%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- PostgreSQL：检查复制延迟
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>client_addr</span><span class=p>,</span><span class=w> </span><span class=k>state</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>pg_wal_lsn_diff</span><span class=p>(</span><span class=n>sent_lsn</span><span class=p>,</span><span class=w> </span><span class=n>replay_lsn</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>replay_lag_bytes</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_stat_replication</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- MySQL：检查落后秒数
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>SLAVE</span><span class=w> </span><span class=n>STATUS</span><span class=err>\</span><span class=k>G</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 关注: Seconds_Behind_Master
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=自动化故障切换 class=heading-anchor>自动化故障切换<a href=#%e8%87%aa%e5%8a%a8%e5%8c%96%e6%95%85%e9%9a%9c%e5%88%87%e6%8d%a2 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>凌晨 3 点手动切换是噩梦场景。生产数据库需要最小停机时间的自动提升。</p><h3 id=postgresql-patroni class=heading-anchor>PostgreSQL: Patroni<a href=#postgresql-patroni class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><a href=https://github.com/patroni/patroni target=_blank rel="noopener noreferrer">Patroni <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+使用共识（etcd/ZooKeeper）管理 PostgreSQL 高可用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># patroni.yml</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>scope</span><span class=p>:</span><span class=w> </span><span class=l>my-cluster</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>node1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>etcd3</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>hosts</span><span class=p>:</span><span class=w> </span><span class=l>etcd1:2379,etcd2:2379,etcd3:2379</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>bootstrap</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>dcs</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>ttl</span><span class=p>:</span><span class=w> </span><span class=m>30</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>loop_wait</span><span class=p>:</span><span class=w> </span><span class=m>10</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>maximum_lag_on_failover</span><span class=p>:</span><span class=w> </span><span class=m>1048576</span><span class=w>  </span><span class=c># 提升时最大允许 1MB 延迟</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>postgresql</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>listen</span><span class=p>:</span><span class=w> </span><span class=m>0.0.0.0</span><span class=p>:</span><span class=m>5432</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>parameters</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>max_connections</span><span class=p>:</span><span class=w> </span><span class=m>200</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>synchronous_commit</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;on&#34;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>故障切换序列：</p><ol><li>主节点健康检查失败 → etcd 租约过期（30s TTL）</li><li>Patroni 候选节点检查各自复制延迟</li><li>延迟最小的副本获取 etcd 领导锁</li><li>新主节点自我提升（<code>pg_promote()</code>）</li><li>其他副本重新配置为跟随新主节点</li><li>HAProxy/PgBouncer 将流量路由到新主库</li></ol><h3 id=故障切换检查清单 class=heading-anchor>故障切换检查清单<a href=#%e6%95%85%e9%9a%9c%e5%88%87%e6%8d%a2%e6%a3%80%e6%9f%a5%e6%b8%85%e5%8d%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>步骤</th><th>动作</th><th>是否自动化</th></tr></thead><tbody><tr><td>检测</td><td>健康检查 N 次失败</td><td>是</td></tr><tr><td>隔离</td><td>防止脑裂（STONITH）</td><td>是</td></tr><tr><td>提升</td><td>副本变主节点</td><td>是</td></tr><tr><td>路由</td><td>更新 DNS/代理</td><td>是（HAProxy/Consul）</td></tr><tr><td>通知</td><td>告警值班人员</td><td>是</td></tr><tr><td>追赶</td><td>其他副本跟随新主</td><td>是</td></tr><tr><td>验证</td><td>确认新主写入成功</td><td>半自动</td></tr><tr><td>复盘</td><td>调查根因</td><td>人工</td></tr></tbody></table></div><h2 id=分片partitioning--sharding class=heading-anchor>分片（Partitioning / Sharding）<a href=#%e5%88%86%e7%89%87partitioning--sharding class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>复制将<strong>相同数据</strong>放在多台机器上；分片则将<strong>不同数据</strong>放在不同机器上。这使你能够：</p><ul><li>存储远超单机容量的数据</li><li>将写负载分散至多台机器</li><li>将热点数据就近部署给特定用户（地理分片）</li></ul><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-partition-strategies.png alt=分区策略 loading=lazy decoding=async class=content-image></figure></p><h3 id=基于范围的分片range-based-partitioning class=heading-anchor>基于范围的分片（Range-Based Partitioning）<a href=#%e5%9f%ba%e4%ba%8e%e8%8c%83%e5%9b%b4%e7%9a%84%e5%88%86%e7%89%87range-based-partitioning class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>按分区键的连续区间分配数据至各分片：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>分片 1：user_id    1 - 1,000,000
+</span></span><span class=line><span class=cl>分片 2：user_id    1,000,001 - 2,000,000
+</span></span><span class=line><span class=cl>分片 3：user_id    2,000,001 - 3,000,000
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- PostgreSQL 声明式分区（按范围）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>order_id</span><span class=w>    </span><span class=n>BIGSERIAL</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>user_id</span><span class=w>     </span><span class=nb>INT</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>created_at</span><span class=w>  </span><span class=k>TIMESTAMP</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>total</span><span class=w>       </span><span class=nb>DECIMAL</span><span class=p>(</span><span class=mi>10</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>PARTITION</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>RANGE</span><span class=w> </span><span class=p>(</span><span class=n>created_at</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders_2023_q4</span><span class=w> </span><span class=n>PARTITION</span><span class=w> </span><span class=k>OF</span><span class=w> </span><span class=n>orders</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>FOR</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;2023-10-01&#39;</span><span class=p>)</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;2024-01-01&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders_2024_q1</span><span class=w> </span><span class=n>PARTITION</span><span class=w> </span><span class=k>OF</span><span class=w> </span><span class=n>orders</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>FOR</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;2024-01-01&#39;</span><span class=p>)</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;2024-04-01&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders_2024_q2</span><span class=w> </span><span class=n>PARTITION</span><span class=w> </span><span class=k>OF</span><span class=w> </span><span class=n>orders</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>FOR</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;2024-04-01&#39;</span><span class=p>)</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;2024-07-01&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 查询自动路由至正确分区
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>created_at</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;2023-11-15&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 仅扫描 orders_2023_q4，跳过其他分区
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>优势</strong>：范围扫描高效（相邻键位于同一分片）。<br><strong>劣势</strong>：热点问题——若大量写入集中在最近时间戳，则最新分区将承受全部写压力。</p><h3 id=基于哈希的分片hash-based-partitioning class=heading-anchor>基于哈希的分片（Hash-Based Partitioning）<a href=#%e5%9f%ba%e4%ba%8e%e5%93%88%e5%b8%8c%e7%9a%84%e5%88%86%e7%89%87hash-based-partitioning class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>对分区键应用哈希函数，再按哈希值取模分配至分片：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>分片编号 = hash(user_id) % 分片总数
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>hash(&#34;user:1&#34;)  = 0x3A2B... → 分片 2
+</span></span><span class=line><span class=cl>hash(&#34;user:2&#34;)  = 0x8F1C... → 分片 0
+</span></span><span class=line><span class=cl>hash(&#34;user:3&#34;)  = 0x12D4... → 分片 1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- PostgreSQL 哈希分区
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>sessions</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>session_id</span><span class=w>  </span><span class=n>UUID</span><span class=w> </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>user_id</span><span class=w>     </span><span class=nb>INT</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>data</span><span class=w>        </span><span class=n>JSONB</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>expires_at</span><span class=w>  </span><span class=k>TIMESTAMP</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>PARTITION</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>HASH</span><span class=w> </span><span class=p>(</span><span class=n>session_id</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>sessions_p0</span><span class=w> </span><span class=n>PARTITION</span><span class=w> </span><span class=k>OF</span><span class=w> </span><span class=n>sessions</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>FOR</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=k>WITH</span><span class=w> </span><span class=p>(</span><span class=n>MODULUS</span><span class=w> </span><span class=mi>4</span><span class=p>,</span><span class=w> </span><span class=n>REMAINDER</span><span class=w> </span><span class=mi>0</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>sessions_p1</span><span class=w> </span><span class=n>PARTITION</span><span class=w> </span><span class=k>OF</span><span class=w> </span><span class=n>sessions</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>FOR</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=k>WITH</span><span class=w> </span><span class=p>(</span><span class=n>MODULUS</span><span class=w> </span><span class=mi>4</span><span class=p>,</span><span class=w> </span><span class=n>REMAINDER</span><span class=w> </span><span class=mi>1</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>sessions_p2</span><span class=w> </span><span class=n>PARTITION</span><span class=w> </span><span class=k>OF</span><span class=w> </span><span class=n>sessions</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>FOR</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=k>WITH</span><span class=w> </span><span class=p>(</span><span class=n>MODULUS</span><span class=w> </span><span class=mi>4</span><span class=p>,</span><span class=w> </span><span class=n>REMAINDER</span><span class=w> </span><span class=mi>2</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>sessions_p3</span><span class=w> </span><span class=n>PARTITION</span><span class=w> </span><span class=k>OF</span><span class=w> </span><span class=n>sessions</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>FOR</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=k>WITH</span><span class=w> </span><span class=p>(</span><span class=n>MODULUS</span><span class=w> </span><span class=mi>4</span><span class=p>,</span><span class=w> </span><span class=n>REMAINDER</span><span class=w> </span><span class=mi>3</span><span class=p>);</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>优势</strong>：数据与负载分布均匀。<br><strong>劣势</strong>：范围查询需访问所有分片（哈希破坏了顺序性）。</p><h3 id=一致性哈希consistent-hashing class=heading-anchor>一致性哈希（Consistent Hashing）<a href=#%e4%b8%80%e8%87%b4%e6%80%a7%e5%93%88%e5%b8%8cconsistent-hashing class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>传统 <code>hash(key) % N</code> 的问题在于：增减分片时，几乎所有键都会映射到新分片，引发海量数据迁移。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-consistent-hashing.png alt=一致性哈希环 loading=lazy decoding=async class=content-image></figure></p><p>一致性哈希通过将键与节点共同映射到一个环（0 到 2^32）来解决：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>                    0 / 2^32
+</span></span><span class=line><span class=cl>                      │
+</span></span><span class=line><span class=cl>              节点 C  ●
+</span></span><span class=line><span class=cl>                     ╱  ╲
+</span></span><span class=line><span class=cl>                    ╱    ╲
+</span></span><span class=line><span class=cl>           ●──────╱──────●
+</span></span><span class=line><span class=cl>         节点 A  ╱      节点 B
+</span></span><span class=line><span class=cl>                ╱
+</span></span><span class=line><span class=cl>               ╱
+</span></span><span class=line><span class=cl>键 &#34;user:42&#34; 哈希至位置 X
+</span></span><span class=line><span class=cl>→ 顺时针遍历 → 首个遇到的节点即为归属者
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>新增节点 D：
+</span></span><span class=line><span class=cl>  仅节点 C 与 D 之间的键需迁移
+</span></span><span class=line><span class=cl>  （而非全集群所有键）
+</span></span></code></pre></td></tr></table></div></div><p>引入<strong>虚拟节点（vnodes）</strong>：每个物理节点在环上占据多个位置，显著提升负载均衡：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>物理节点 A → 虚拟节点：A1, A2, A3, A4, A5（环上 5 个位置）
+</span></span><span class=line><span class=cl>物理节点 B → 虚拟节点：B1, B2, B3, B4, B5
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>虚拟节点越多 → 分布越均衡
+</span></span><span class=line><span class=cl>Cassandra 默认：每物理节点 256 个 vnode
+</span></span></code></pre></td></tr></table></div></div><h3 id=重新平衡策略rebalancing-strategies class=heading-anchor>重新平衡策略（Rebalancing Strategies）<a href=#%e9%87%8d%e6%96%b0%e5%b9%b3%e8%a1%a1%e7%ad%96%e7%95%a5rebalancing-strategies class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>增删节点时需迁移数据。主流方案有两种：</p><p><strong>固定分区数（Fixed number of partitions）</strong>：预先创建远超当前节点数的分区（如 1000 个分区配 10 个节点）。扩容时，将部分完整分区迁移至新节点。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>扩容前（10 节点，1000 分区）：
+</span></span><span class=line><span class=cl>  节点 1：分区 0–99
+</span></span><span class=line><span class=cl>  节点 2：分区 100–199
+</span></span><span class=line><span class=cl>  ...
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>新增节点 11 后：
+</span></span><span class=line><span class=cl>  节点 1：分区 0–89（让出 10 个）
+</span></span><span class=line><span class=cl>  节点 2：分区 100–189（让出 10 个）
+</span></span><span class=line><span class=cl>  ...
+</span></span><span class=line><span class=cl>  节点 11：分区 90–99, 190–199, ...（共接收约 91 个分区）
+</span></span></code></pre></td></tr></table></div></div><p><strong>动态分区（Dynamic partitioning）</strong>：初始仅设少量分区；当分区过大时分裂，过小时合并。HBase 和 MongoDB 采用此方式。</p><h3 id=分片数据库中的二级索引secondary-indexes class=heading-anchor>分片数据库中的二级索引（Secondary Indexes）<a href=#%e5%88%86%e7%89%87%e6%95%b0%e6%8d%ae%e5%ba%93%e4%b8%ad%e7%9a%84%e4%ba%8c%e7%ba%a7%e7%b4%a2%e5%bc%95secondary-indexes class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>主键查询简单直接——哈希或范围定位后直达目标分片。但二级索引（如按 email 查询）呢？</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 表按 user_id 分片
+</span></span></span><span class=line><span class=cl><span class=c1>-- 但我们还需按 email 查询
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>email</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;alice@example.com&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 这个用户在哪一分片？无法得知，只能遍历全部分片。
+</span></span></span></code></pre></td></tr></table></div></div><p>两种方案：</p><p><strong>本地索引（Local / document-partitioned index）</strong>：每个分片仅维护自身数据的二级索引。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>分片 1：email 本地索引 → {alice@...: row 1, bob@...: row 2}
+</span></span><span class=line><span class=cl>分片 2：email 本地索引 → {carol@...: row 3, dave@...: row 4}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>按 email 查询 → 向**所有分片**广播请求，聚合结果
+</span></span><span class=line><span class=cl>（即 “scatter-gather” —— 扇出成本高昂）
+</span></span></code></pre></td></tr></table></div></div><p><strong>全局索引（Global / term-partitioned index）</strong>：二级索引本身也按某种规则（如 email 字母范围）分片。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Email 索引分片 A（a–m）：alice@... → 分片 1，carol@... → 分片 2
+</span></span><span class=line><span class=cl>Email 索引分片 B（n–z）：zara@... → 分片 3
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>按 email 查询 → 先查索引分片 → 再查数据分片
+</span></span><span class=line><span class=cl>（2 次跳转，但无需 scatter-gather）
+</span></span></code></pre></td></tr></table></div></div><div class=table-wrap><table><thead><tr><th>方案</th><th>读开销</th><th>写开销</th><th>一致性</th></tr></thead><tbody><tr><td>本地索引</td><td>向所有分片广播</td><td>仅更新本地索引</td><td>始终强一致</td></tr><tr><td>全局索引</td><td>单分片查询</td><td>需跨网络更新远程索引分片</td><td>最终一致</td></tr></tbody></table></div><h2 id=mysql-主从复制实操指南 class=heading-anchor>MySQL 主从复制实操指南<a href=#mysql-%e4%b8%bb%e4%bb%8e%e5%a4%8d%e5%88%b6%e5%ae%9e%e6%93%8d%e6%8c%87%e5%8d%97 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-consistent-hashing-ring-as-a-futuristic-carousel-with-data-d.jpg alt=一致性哈希环，形如带有数据的未来旋转木马 loading=lazy decoding=async class=content-image></figure></p><p>下面我们搭建一个基础的 MySQL 主从复制环境。</p><h3 id=主节点leader配置 class=heading-anchor>主节点（Leader）配置<a href=#%e4%b8%bb%e8%8a%82%e7%82%b9leader%e9%85%8d%e7%bd%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># /etc/mysql/mysql.conf.d/mysqld.cnf on the leader</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>mysqld<span class=o>]</span>
+</span></span><span class=line><span class=cl>server-id           <span class=o>=</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=nv>log_bin</span>              <span class=o>=</span> /var/log/mysql/mysql-bin
+</span></span><span class=line><span class=cl><span class=nv>binlog_format</span>        <span class=o>=</span> ROW          <span class=c1># 最安全格式</span>
+</span></span><span class=line><span class=cl><span class=nv>binlog_expire_logs_seconds</span> <span class=o>=</span> <span class=m>604800</span> <span class=c1># 7 天日志保留</span>
+</span></span><span class=line><span class=cl><span class=nv>sync_binlog</span>          <span class=o>=</span> <span class=m>1</span>            <span class=c1># 每次提交均刷盘 binlog</span>
+</span></span><span class=line><span class=cl><span class=nv>innodb_flush_log_at_trx_commit</span> <span class=o>=</span> <span class=m>1</span>  <span class=c1># 完整持久化</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 在主节点创建复制用户
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>USER</span><span class=w> </span><span class=s1>&#39;repl_user&#39;</span><span class=o>@</span><span class=s1>&#39;%&#39;</span><span class=w> </span><span class=n>IDENTIFIED</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=s1>&#39;strong_password_here&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>GRANT</span><span class=w> </span><span class=n>REPLICATION</span><span class=w> </span><span class=n>SLAVE</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=o>*</span><span class=p>.</span><span class=o>*</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=s1>&#39;repl_user&#39;</span><span class=o>@</span><span class=s1>&#39;%&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>FLUSH</span><span class=w> </span><span class=k>PRIVILEGES</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 获取当前 binlog 位置
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>MASTER</span><span class=w> </span><span class=n>STATUS</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- +------------------+----------+
+</span></span></span><span class=line><span class=cl><span class=c1>-- | File             | Position |
+</span></span></span><span class=line><span class=cl><span class=c1>-- +------------------+----------+
+</span></span></span><span class=line><span class=cl><span class=c1>-- | mysql-bin.000003 |      785 |
+</span></span></span><span class=line><span class=cl><span class=c1>-- +------------------+----------+
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=获取一致性备份 class=heading-anchor>获取一致性备份<a href=#%e8%8e%b7%e5%8f%96%e4%b8%80%e8%87%b4%e6%80%a7%e5%a4%87%e4%bb%bd class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 方案 1：mysqldump + 一致性快照</span>
+</span></span><span class=line><span class=cl>mysqldump --all-databases --single-transaction <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --source-data<span class=o>=</span><span class=m>2</span> --routines --triggers <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -u root -p &gt; leader_backup.sql
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 方案 2：大数据量场景使用 xtrabackup</span>
+</span></span><span class=line><span class=cl>xtrabackup --backup --target-dir<span class=o>=</span>/backup/full <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --user<span class=o>=</span>root --password<span class=o>=</span>xxx
+</span></span></code></pre></td></tr></table></div></div><h3 id=从节点follower配置 class=heading-anchor>从节点（Follower）配置<a href=#%e4%bb%8e%e8%8a%82%e7%82%b9follower%e9%85%8d%e7%bd%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># /etc/mysql/mysql.conf.d/mysqld.cnf on the follower</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>mysqld<span class=o>]</span>
+</span></span><span class=line><span class=cl>server-id            <span class=o>=</span> <span class=m>2</span>       <span class=c1># 必须唯一</span>
+</span></span><span class=line><span class=cl><span class=nv>relay_log</span>            <span class=o>=</span> /var/log/mysql/mysql-relay
+</span></span><span class=line><span class=cl><span class=nv>read_only</span>            <span class=o>=</span> ON      <span class=c1># 防止误写</span>
+</span></span><span class=line><span class=cl><span class=nv>super_read_only</span>      <span class=o>=</span> ON      <span class=c1># 连 root 也无法写</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 在从节点恢复备份
+</span></span></span><span class=line><span class=cl><span class=c1>-- 然后配置复制源
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>CHANGE</span><span class=w> </span><span class=n>REPLICATION</span><span class=w> </span><span class=k>SOURCE</span><span class=w> </span><span class=k>TO</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>SOURCE_HOST</span><span class=o>=</span><span class=s1>&#39;leader-hostname&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>SOURCE_USER</span><span class=o>=</span><span class=s1>&#39;repl_user&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>SOURCE_PASSWORD</span><span class=o>=</span><span class=s1>&#39;strong_password_here&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>SOURCE_LOG_FILE</span><span class=o>=</span><span class=s1>&#39;mysql-bin.000003&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>SOURCE_LOG_POS</span><span class=o>=</span><span class=mi>785</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 启动复制
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>START</span><span class=w> </span><span class=n>REPLICA</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 检查复制状态
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>REPLICA</span><span class=w> </span><span class=n>STATUS</span><span class=err>\</span><span class=k>G</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 关键字段检查：
+</span></span></span><span class=line><span class=cl><span class=c1>--   Replica_IO_Running: Yes
+</span></span></span><span class=line><span class=cl><span class=c1>--   Replica_SQL_Running: Yes
+</span></span></span><span class=line><span class=cl><span class=c1>--   Seconds_Behind_Source: 0
+</span></span></span><span class=line><span class=cl><span class=c1>--   Last_Error: （应为空）
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=复制健康监控 class=heading-anchor>复制健康监控<a href=#%e5%a4%8d%e5%88%b6%e5%81%a5%e5%ba%b7%e7%9b%91%e6%8e%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 在从节点：检查延迟
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>REPLICA</span><span class=w> </span><span class=n>STATUS</span><span class=err>\</span><span class=k>G</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Seconds_Behind_Source: 0  &lt;-- 健康
+</span></span></span><span class=line><span class=cl><span class=c1>-- Seconds_Behind_Source: 45 &lt;-- 需关注
+</span></span></span><span class=line><span class=cl><span class=c1>-- Seconds_Behind_Source: NULL &lt;-- 复制已中断！
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 在主节点：查看已连接的从节点
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>REPLICAS</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 或旧语法：SHOW SLAVE HOSTS;
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 快速健康检查脚本</span>
+</span></span><span class=line><span class=cl><span class=c1>#!/bin/bash</span>
+</span></span><span class=line><span class=cl><span class=nv>LAG</span><span class=o>=</span><span class=k>$(</span>mysql -e <span class=s2>&#34;SHOW REPLICA STATUS\G&#34;</span> <span class=p>|</span> grep <span class=s2>&#34;Seconds_Behind_Source&#34;</span> <span class=p>|</span> awk <span class=s1>&#39;{print $2}&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nv>IO_RUNNING</span><span class=o>=</span><span class=k>$(</span>mysql -e <span class=s2>&#34;SHOW REPLICA STATUS\G&#34;</span> <span class=p>|</span> grep <span class=s2>&#34;Replica_IO_Running&#34;</span> <span class=p>|</span> awk <span class=s1>&#39;{print $2}&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nv>SQL_RUNNING</span><span class=o>=</span><span class=k>$(</span>mysql -e <span class=s2>&#34;SHOW REPLICA STATUS\G&#34;</span> <span class=p>|</span> grep <span class=s2>&#34;Replica_SQL_Running&#34;</span> <span class=p>|</span> awk <span class=s1>&#39;{print $2}&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Replication Lag: </span><span class=si>${</span><span class=nv>LAG</span><span class=si>}</span><span class=s2>s&#34;</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;IO Thread: </span><span class=nv>$IO_RUNNING</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;SQL Thread: </span><span class=nv>$SQL_RUNNING</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=o>[</span> <span class=s2>&#34;</span><span class=nv>$LAG</span><span class=s2>&#34;</span> -gt <span class=m>60</span> <span class=o>]</span> <span class=o>||</span> <span class=o>[</span> <span class=s2>&#34;</span><span class=nv>$IO_RUNNING</span><span class=s2>&#34;</span> !<span class=o>=</span> <span class=s2>&#34;Yes&#34;</span> <span class=o>]</span> <span class=o>||</span> <span class=o>[</span> <span class=s2>&#34;</span><span class=nv>$SQL_RUNNING</span><span class=s2>&#34;</span> !<span class=o>=</span> <span class=s2>&#34;Yes&#34;</span> <span class=o>]</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span> <span class=s2>&#34;ALERT: Replication unhealthy!&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=nb>exit</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=故障转移failover提升从节点为主节点 class=heading-anchor>故障转移（Failover）：提升从节点为主节点<a href=#%e6%95%85%e9%9a%9c%e8%bd%ac%e7%a7%bbfailover%e6%8f%90%e5%8d%87%e4%bb%8e%e8%8a%82%e7%82%b9%e4%b8%ba%e4%b8%bb%e8%8a%82%e7%82%b9 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>当主节点宕机时，将某个从节点提升为主节点：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 在待提升的从节点上执行：
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>STOP</span><span class=w> </span><span class=n>REPLICA</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>RESET</span><span class=w> </span><span class=n>REPLICA</span><span class=w> </span><span class=k>ALL</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 该节点现已成为独立服务器
+</span></span></span><span class=line><span class=cl><span class=c1>-- 重新配置其余从节点，使其指向新主节点
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 在剩余从节点上执行：
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>STOP</span><span class=w> </span><span class=n>REPLICA</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>CHANGE</span><span class=w> </span><span class=n>REPLICATION</span><span class=w> </span><span class=k>SOURCE</span><span class=w> </span><span class=k>TO</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>SOURCE_HOST</span><span class=o>=</span><span class=s1>&#39;new-leader-hostname&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>SOURCE_LOG_FILE</span><span class=o>=</span><span class=s1>&#39;...&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>SOURCE_LOG_POS</span><span class=o>=</span><span class=p>...;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>START</span><span class=w> </span><span class=n>REPLICA</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 应用程序配置也需更新
+</span></span></span><span class=line><span class=cl><span class=c1>-- （或使用 ProxySQL / HAProxy 等代理层）
+</span></span></span></code></pre></td></tr></table></div></div><p>生产环境中，应使用编排工具实现自动化故障转移：</p><ul><li><strong>Orchestrator</strong>（MySQL）：自动检测主节点故障、提升从节点、重配复制拓扑</li><li><strong>Patroni</strong>（PostgreSQL）：基于 etcd/ZooKeeper/Consul 实现主节点选举与高可用管理</li><li><strong>pg_auto_failover</strong>：PostgreSQL 的轻量级高可用替代方案</li></ul><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-distributed-database-replication-data-streams-flowing-betwee.jpg alt=分布式数据库复制数据流在节点间流动 loading=lazy decoding=async class=content-image></figure></p><p>复制与分片解决了数据跨多机部署的问题。但当一个事务需要同时更新多个机器上的数据时，又该如何保证原子性与一致性？这就是<strong>分布式事务（Distributed Transactions）</strong> 的挑战——两阶段提交（2PC）、Saga 模式、共识算法（Consensus），以及为何大多数工程师在可行时都尽量规避它。我们将在下一篇文章中深入探讨。</p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/databases/05-nosql-landscape/ data-next-url=https://www.chenk.top/zh/databases/07-distributed-transactions/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/databases/>数据库原理与实践</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/databases/05-nosql-landscape/><span class=title>数据库（五）：NoSQL——文档型、键值型、列式与图数据库</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/databases/07-distributed-transactions/><span class=title>数据库（七）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/01-data-models-and-sql/><span class=series-nav-num>01</span>
+<span class=series-nav-title>数据库（一）：数据模型与 SQL —— 为何关系型表结构至今仍占主导地位</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/02-indexing-and-query-planning/><span class=series-nav-num>02</span>
+<span class=series-nav-title>数据库（二）：索引与查询规划——数据库如何找到你的数据</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/03-transactions-and-concurrency/><span class=series-nav-num>03</span>
+<span class=series-nav-title>数据库（三）：事务与并发控制——ACID、隔离级别与锁机制</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/04-storage-engines/><span class=series-nav-num>04</span>
+<span class=series-nav-title>数据库（四）：存储引擎——数据如何落盘</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/05-nosql-landscape/><span class=series-nav-num>05</span>
+<span class=series-nav-title>数据库（五）：NoSQL——文档型、键值型、列式与图数据库</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>06</span>
+<span class=series-nav-title>数据库（六）：复制与分片——突破单机限制的扩展之道</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/07-distributed-transactions/><span class=series-nav-num>07</span>
+<span class=series-nav-title>数据库（七）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/08-database-in-practice/><span class=series-nav-num>08</span>
+<span class=series-nav-title>数据库（八）：实战中的数据库——迁移、监控与故障案例</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E6%2595%25B0%25E6%258D%25AE%25E5%25BA%2593%25EF%25BC%2588%25E5%2585%25AD%25EF%25BC%2589%25EF%25BC%259A%25E5%25A4%258D%25E5%2588%25B6%25E4%25B8%258E%25E5%2588%2586%25E7%2589%2587%25E2%2580%2594%25E2%2580%2594%25E7%25AA%2581%25E7%25A0%25B4%25E5%258D%2595%25E6%259C%25BA%25E9%2599%2590%25E5%2588%25B6%25E7%259A%2584%25E6%2589%25A9%25E5%25B1%2595%25E4%25B9%258B%25E9%2581%2593&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fdatabases%252F06-replication-and-partitioning%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fdatabases%252F06-replication-and-partitioning%252F&title=%25E6%2595%25B0%25E6%258D%25AE%25E5%25BA%2593%25EF%25BC%2588%25E5%2585%25AD%25EF%25BC%2589%25EF%25BC%259A%25E5%25A4%258D%25E5%2588%25B6%25E4%25B8%258E%25E5%2588%2586%25E7%2589%2587%25E2%2580%2594%25E2%2580%2594%25E7%25AA%2581%25E7%25A0%25B4%25E5%258D%2595%25E6%259C%25BA%25E9%2599%2590%25E5%2588%25B6%25E7%259A%2584%25E6%2589%25A9%25E5%25B1%2595%25E4%25B9%258B%25E9%2581%2593" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/databases/06-replication-and-partitioning/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2024-04-26>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#复制维护数据的多份副本>复制：维护数据的多份副本</a><ul><li><a href=#为何要复制>为何要复制？</a></li><li><a href=#主从复制leader-follower--master-slave>主从复制（Leader-Follower / Master-Slave）</a><ul><li><a href=#同步复制-vs-异步复制>同步复制 vs 异步复制</a></li></ul></li><li><a href=#复制延迟replication-lag>复制延迟（Replication Lag）</a><ul><li><a href=#读己所写一致性read-after-write-consistency>读己所写一致性（Read-After-Write Consistency）</a></li><li><a href=#单调读monotonic-reads>单调读（Monotonic Reads）</a></li></ul></li><li><a href=#多主复制multi-leader-replication>多主复制（Multi-Leader Replication）</a></li><li><a href=#无主复制leaderless-replicationdynamo-风格>无主复制（Leaderless Replication，Dynamo 风格）</a><ul><li><a href=#法定人数读写quorum-reads-and-writes>法定人数读写（Quorum Reads and Writes）</a></li><li><a href=#读修复read-repair与反熵anti-entropy>读修复（Read Repair）与反熵（Anti-Entropy）</a></li></ul></li></ul></li><li><a href=#多主复制中的冲突解决>多主复制中的冲突解决</a><ul><li><a href=#写冲突类型>写冲突类型</a></li><li><a href=#解决策略>解决策略</a><ul><li><a href=#最后写入者胜出lww>最后写入者胜出（LWW）</a></li><li><a href=#crdt无冲突复制数据类型>CRDT（无冲突复制数据类型）</a></li><li><a href=#应用层解决>应用层解决</a></li></ul></li></ul></li><li><a href=#读副本使用模式>读副本使用模式</a><ul><li><a href=#连接路由>连接路由</a></li><li><a href=#处理复制延迟>处理复制延迟</a></li><li><a href=#副本延迟监控>副本延迟监控</a></li></ul></li><li><a href=#自动化故障切换>自动化故障切换</a><ul><li><a href=#postgresql-patroni>PostgreSQL: Patroni</a></li><li><a href=#故障切换检查清单>故障切换检查清单</a></li></ul></li><li><a href=#分片partitioning--sharding>分片（Partitioning / Sharding）</a><ul><li><a href=#基于范围的分片range-based-partitioning>基于范围的分片（Range-Based Partitioning）</a></li><li><a href=#基于哈希的分片hash-based-partitioning>基于哈希的分片（Hash-Based Partitioning）</a></li><li><a href=#一致性哈希consistent-hashing>一致性哈希（Consistent Hashing）</a></li><li><a href=#重新平衡策略rebalancing-strategies>重新平衡策略（Rebalancing Strategies）</a></li><li><a href=#分片数据库中的二级索引secondary-indexes>分片数据库中的二级索引（Secondary Indexes）</a></li></ul></li><li><a href=#mysql-主从复制实操指南>MySQL 主从复制实操指南</a><ul><li><a href=#主节点leader配置>主节点（Leader）配置</a></li><li><a href=#获取一致性备份>获取一致性备份</a></li><li><a href=#从节点follower配置>从节点（Follower）配置</a></li><li><a href=#复制健康监控>复制健康监控</a></li><li><a href=#故障转移failover提升从节点为主节点>故障转移（Failover）：提升从节点为主节点</a></li></ul></li><li><a href=#下一步>下一步</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/databases/ class=series-name>数据库原理与实践</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/01-data-models-and-sql/><span class=chapter-num>01</span>
+<span class=chapter-title>数据库（一）：数据模型与 SQL —— 为何关系型表结构至今仍占主导地位</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/02-indexing-and-query-planning/><span class=chapter-num>02</span>
+<span class=chapter-title>数据库（二）：索引与查询规划——数据库如何找到你的数据</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/03-transactions-and-concurrency/><span class=chapter-num>03</span>
+<span class=chapter-title>数据库（三）：事务与并发控制——ACID、隔离级别与锁机制</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/04-storage-engines/><span class=chapter-num>04</span>
+<span class=chapter-title>数据库（四）：存储引擎——数据如何落盘</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/05-nosql-landscape/><span class=chapter-num>05</span>
+<span class=chapter-title>数据库（五）：NoSQL——文档型、键值型、列式与图数据库</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>06</span>
+<span class=chapter-title>数据库（六）：复制与分片——突破单机限制的扩展之道</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/07-distributed-transactions/><span class=chapter-num>07</span>
+<span class=chapter-title>数据库（七）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/08-database-in-practice/><span class=chapter-num>08</span>
+<span class=chapter-title>数据库（八）：实战中的数据库——迁移、监控与故障案例</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>28 min</strong></div><div class=row><span>字数</span><strong>6924</strong></div><div class=row><span>写于</span><strong>Apr 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/product-thinking/>产品思维</a></li><li><a href=https://www.chenk.top/zh/series/personal-finance/>个人理财</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=关闭>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>在微信里搜索此 ID 即可添加我</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>复制微信号</button></div></div></div></footer></body></html>

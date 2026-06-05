@@ -1,0 +1,438 @@
+<!doctype html><html lang=zh data-translation=/en/kernel-methods/06-gaussian-processes/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>核方法（六）：高斯过程——当核方法遇到贝叶斯推断 · Chen Kai Blog</title>
+<meta name=description content="高斯过程把核变成一个贝叶斯模型——后验自带不确定性、边际似然自动选超参、核就是函数空间上的先验。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/kernel-methods/06-%E9%AB%98%E6%96%AF%E8%BF%87%E7%A8%8B/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/kernel-methods/06-gaussian-processes/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/kernel-methods/06-%E9%AB%98%E6%96%AF%E8%BF%87%E7%A8%8B/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/kernel-methods/06-%E9%AB%98%E6%96%AF%E8%BF%87%E7%A8%8B/><meta property="og:type" content="article"><meta property="og:title" content="核方法（六）：高斯过程——当核方法遇到贝叶斯推断"><meta property="og:description" content="高斯过程把核变成一个贝叶斯模型——后验自带不确定性、边际似然自动选超参、核就是函数空间上的先验。"><meta property="og:url" content="https://www.chenk.top/zh/kernel-methods/06-%E9%AB%98%E6%96%AF%E8%BF%87%E7%A8%8B/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/kernel-methods.jpg"><meta property="og:image:alt" content="核方法（六）：高斯过程——当核方法遇到贝叶斯推断"><meta property="article:published_time" content="2021-12-19T09:00:00Z"><meta property="article:modified_time" content="2021-12-19T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="ML"><meta property="article:tag" content="核方法"><meta property="article:tag" content="高斯过程"><meta property="article:tag" content="贝叶斯"><meta property="article:tag" content="数学"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="核方法（六）：高斯过程——当核方法遇到贝叶斯推断"><meta name=twitter:description content="高斯过程把核变成一个贝叶斯模型——后验自带不确定性、边际似然自动选超参、核就是函数空间上的先验。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/kernel-methods.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"核方法（六）：高斯过程——当核方法遇到贝叶斯推断","description":"高斯过程把核变成一个贝叶斯模型——后验自带不确定性、边际似然自动选超参、核就是函数空间上的先验。","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/kernel-methods.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2021-12-19T09:00:00Z","dateModified":"2021-12-19T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/zh/kernel-methods/06-%E9%AB%98%E6%96%AF%E8%BF%87%E7%A8%8B/"},"inLanguage":"zh"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js onload='document.querySelectorAll(".math-inline,.math-block").forEach(function(e){var t=e.textContent,n=e.classList.contains("math-block"),t=n?t.replace(/^\$\$/,"").replace(/\$\$$/,""):t.replace(/^\$/,"").replace(/\$$/,"");try{katex.render(t,e,{displayMode:n,throwOnError:!1})}catch{}})'></script><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/kernel-methods/06-%e9%ab%98%e6%96%af%e8%bf%87%e7%a8%8b.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/kernel-methods/>核方法</a>
+· 第 6 篇</div><h1>核方法（六）：高斯过程——当核方法遇到贝叶斯推断</h1><p class=deck>高斯过程把核变成一个贝叶斯模型——后验自带不确定性、边际似然自动选超参、核就是函数空间上的先验。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2021-12-19>December 19, 2021</time> · 54 分钟 · 13035 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/%E6%A0%B8%E6%96%B9%E6%B3%95/ class=tag>#核方法</a><a href=/zh/tags/%E9%AB%98%E6%96%AF%E8%BF%87%E7%A8%8B/ class=tag>#高斯过程</a><a href=/zh/tags/%E8%B4%9D%E5%8F%B6%E6%96%AF/ class=tag>#贝叶斯</a><a href=/zh/tags/%E6%95%B0%E5%AD%A6/ class=tag>#数学</a></div><a class="pill pill-outline" href=/en/kernel-methods/06-gaussian-processes/>Read in English →</a></div></header><div class=prose><p>核岭回归给你一个数。喂进 <span class=math-inline>$x_*$</span>
+，它返回 <span class=math-inline>$\hat{y}_* = 23.7$</span>
+。完。但你接下来要<em>用</em>这个预测做事——安排发货、调整剂量、下注——光一个数字不够用。&ldquo;明天 25 度"是一句话；&ldquo;很可能 25 度，95% 的概率落在 22 到 28 之间"才是可以<em>行动</em>的信息。任何在不确定性下的决策都需要后一种。高斯过程是把核方法从"点预测器"升级到"分布预测器"最干净的路径，且不需要扔掉前五篇里任何一行核函数的代数。这一升级的代价仅仅是一次 Cholesky——同样的 <span class=math-inline>$O(n^3)$</span>
+、同样的 Gram 矩阵——却额外白送了后验协方差和边际似然两件相当昂贵的礼物。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/06-gaussian-processes/cover.png alt=函数上的贝叶斯推断：先验的丝带在观测点上收紧 loading=lazy decoding=async class=content-image></figure></p><p>Part 5 关上了<em>频率派</em>核工具箱的门：SVM、PCA、岭回归——都是点估计、都在最小化某个损失。这一篇打开<em>贝叶斯派</em>的门。核变成函数空间上的先验；数据把先验更新成后验；后验在每个测试点不仅给均值，还给一个完整的分布。神奇之处在于所有东西都是高斯的，所以一切都保留闭式解。不用 MCMC，不用变分下界，不用蒙特卡洛误差——只要一次矩阵求逆，你就有解析的后验均值、方差，甚至连选超参的边际似然都顺带送你。本篇的全部技术内容追溯到 Rasmussen & Williams 2006《Gaussian Processes for Machine Learning》——那本书是 GP 的圣经，中文世界里没有真正的替代品，下文凡涉及"经典公式"基本都来自其第 2-5 章。</p><p>如果只能拿一句话概括 GP 相对 KRR 的增量：<strong>&ldquo;同样的代数、同样的代价，外加一份诚实的不确定性&rdquo;</strong>。这份不确定性不是装饰——它推动了贝叶斯优化、主动学习、序贯决策三个完整的领域。本篇剩下的全部内容都在解释这句话的每一个细节。</p><h2 id=什么是高斯过程函数空间上的高斯分布 class=heading-anchor>什么是高斯过程：函数空间上的高斯分布<a href=#%e4%bb%80%e4%b9%88%e6%98%af%e9%ab%98%e6%96%af%e8%bf%87%e7%a8%8b%e5%87%bd%e6%95%b0%e7%a9%ba%e9%97%b4%e4%b8%8a%e7%9a%84%e9%ab%98%e6%96%af%e5%88%86%e5%b8%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$f(\cdot) \sim \mathcal{GP}\!\left(m(\cdot),\; K(\cdot, \cdot)\right),$$</span>
+<span class=math-block>$$\mathbf{f} \;\sim\; \mathcal{N}\!\big(m(X),\; K(X, X)\big),$$</span><p>其中 <span class=math-inline>$m(X)_i = m(x_i)$</span>
+，<span class=math-inline>$K(X, X)_{ij} = K(x_i, x_j).$</span>
+就这样。&ldquo;一个随机函数"这个无穷维的对象，每次你真去取值，都退化成一个有限维高斯。这种"无限承诺、有限验证"的结构，是 Kolmogorov 一致性定理保证的——任意一组有限维边缘分布只要自洽（边缘化和置换都对得上），就能确实拼成一个无穷维过程。</p><p><strong>为什么这是个能用的模型。</strong> 有限维高斯是数学上研究得最透的概率分布。边缘化、条件化、积分都保留高斯，且都有闭式解。"<span class=math-inline>$f$</span>
+是 GP&rdquo; 等价于承诺"你对 <span class=math-inline>$f$</span>
+在有限多个点上提的任何问题，都是一个高斯问题&rdquo;。这个承诺足够慷慨，可以建模几乎任何光滑函数；又足够严格，能给出解析答案。对照之下，"<span class=math-inline>$f$</span>
+是神经网络"这个承诺极其宽松，可以拟合任何东西，但你拿不到一个干净的后验——除非走 Bayesian NN 那条非常陡的路。</p><span class=math-block>$$f \sim \mathcal{GP}(0, K) \quad\Longleftrightarrow\quad \text{一切都在 } K \text{ 里}.$$</span><p>更精细的做法是把 <span class=math-inline>$m(\cdot)$</span>
+也参数化——例如 <span class=math-inline>$m(x) = \beta_0 + \beta^\top x$</span>
+让 GP 在线性趋势上加波动。但只要你愿意先减后加，零均值并不损失任何东西；多数 GP 库（包括 sklearn 的 <code>GaussianProcessRegressor</code> 的 <code>normalize_y=True</code>）默认就做这件事。一个常见的反例：当你的目标变量有强非线性趋势（例如年增长 10% 的销售时间序列），仅减均值不够，最好先做一次对数变换或 detrend 再喂给 GP；否则 GP 会被迫用核的"长尺度成分"去解释趋势，把长度尺度学到非常大、外推区域的不确定性又被低估。</p><p><strong>核就是先验。</strong> 选 RBF 核，等于宣告 <span class=math-inline>$f$</span>
+是光滑的、无限可微的、有特征长度尺度 <span class=math-inline>$\ell$</span>
+。选 Matérn-1/2，等于宣告 <span class=math-inline>$f$</span>
+连续但不可微。选周期核，等于宣告 <span class=math-inline>$f$</span>
+每 <span class=math-inline>$p$</span>
+单位重复一次。每种核选择把非零概率质量放在不同的<em>函数类</em>上；数据再从这个类里挑出最可能的成员。Part 4 是先验的菜单；Part 6 教你拿这些先验做什么。换句话说：把核当作"对函数粗糙度、长度尺度、周期性的语义化承诺&rdquo;。一旦承诺给了 GP，剩下的事——后验、不确定性、超参——全是机械的代数。</p><p><strong>与贝叶斯线性回归的关系。</strong> GP 是贝叶斯线性回归在"无穷多基函数"上的极限。如果你在 <span class=math-inline>$\phi(x) = (\phi_1(x), \dots, \phi_d(x))$</span>
+这组特征上做贝叶斯线性回归 <span class=math-inline>$y = \mathbf{w}^\top \phi(x) + \varepsilon$</span>
+，权重先验 <span class=math-inline>$\mathbf{w} \sim \mathcal{N}(0, \Sigma_w)$</span>
+，那么 <span class=math-inline>$f(x) = \mathbf{w}^\top \phi(x)$</span>
+就是 GP，其核为 <span class=math-inline>$K(x, x') = \phi(x)^\top \Sigma_w \phi(x').$</span>
+把 <span class=math-inline>$d \to \infty$</span>
+，对应的核就是 RBF——这正是 Mercer 定理保证的反向构造。所以 GP <em>不是</em>另一个新模型，而是贝叶斯线性回归在"特征空间无穷大"时仍能闭式表达的奇迹。</p><div class=table-wrap><table><thead><tr><th>视角</th><th>模型对象</th><th>求解方式</th><th>不确定性来源</th></tr></thead><tbody><tr><td>贝叶斯线性回归</td><td>权重 <span class=math-inline>$\mathbf{w}$</span></td><td>对 <span class=math-inline>$\mathbf{w}$</span>
+后验</td><td>权重的方差</td></tr><tr><td>核岭回归（KRR）</td><td>RKHS 上的 <span class=math-inline>$f$</span></td><td>最小化带正则平方损失</td><td>无</td></tr><tr><td>高斯过程（GP）</td><td>函数 <span class=math-inline>$f$</span></td><td>对 <span class=math-inline>$f$</span>
+后验</td><td>函数本身的方差</td></tr></tbody></table></div><p>三行其实是同一件事，只是把不确定性放在了不同的对象上：BLR 把它放在权重、KRR 干脆扔掉、GP 把它放回函数。一旦你接受"函数"也可以是随机变量，GP 就成了 BLR 的自然终点。</p><h2 id=gp-先验在看到数据前采样函数 class=heading-anchor>GP 先验：在看到数据前采样函数<a href=#gp-%e5%85%88%e9%aa%8c%e5%9c%a8%e7%9c%8b%e5%88%b0%e6%95%b0%e6%8d%ae%e5%89%8d%e9%87%87%e6%a0%b7%e5%87%bd%e6%95%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$\mathbf{f}_* \sim \mathcal{N}(0, K(X_*, X_*)).$$</span><p>采样就退化成从多元高斯采样：Cholesky 分解 <span class=math-inline>$K(X_*, X_*) = LL^\top$</span>
+，抽 <span class=math-inline>$\mathbf{z} \sim \mathcal{N}(0, I)$</span>
+，返回 <span class=math-inline>$L\mathbf{z}$</span>
+。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>rbf</span><span class=p>(</span><span class=n>x1</span><span class=p>,</span> <span class=n>x2</span><span class=p>,</span> <span class=n>length</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>var</span><span class=o>=</span><span class=mf>1.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>d</span> <span class=o>=</span> <span class=n>x1</span><span class=p>[:,</span> <span class=kc>None</span><span class=p>]</span> <span class=o>-</span> <span class=n>x2</span><span class=p>[</span><span class=kc>None</span><span class=p>,</span> <span class=p>:]</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>var</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=o>-</span><span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>d</span> <span class=o>/</span> <span class=n>length</span><span class=p>)</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>x</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=o>-</span><span class=mi>3</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>300</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>K</span> <span class=o>=</span> <span class=n>rbf</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>length</span><span class=o>=</span><span class=mf>0.8</span><span class=p>)</span> <span class=o>+</span> <span class=mf>1e-6</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>eye</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>))</span>   <span class=c1># jitter，数值稳定</span>
+</span></span><span class=line><span class=cl><span class=n>L</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>cholesky</span><span class=p>(</span><span class=n>K</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>samples</span> <span class=o>=</span> <span class=n>L</span> <span class=o>@</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>),</span> <span class=mi>5</span><span class=p>)</span>             <span class=c1># 5 条样本函数</span>
+</span></span></code></pre></td></tr></table></div></div><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/06-gaussian-processes/fig1_gp_prior_samples.png alt="三种核下的 GP 先验采样——核就是函数空间上的先验" loading=lazy decoding=async class=content-image></figure></p><p>从图里可以读出三件事。第一，所有采样<em>平均来说都过零均值</em>——先验没有偏好位置。第二，<em>粗糙度</em>由核决定：RBF 的样本丝绸般光滑，Matérn-5/2 有明显纹理，周期核的样本真的会重复。第三，<em>振幅</em>由核的输出方差 <span class=math-inline>$\sigma_f^2$</span>
+控制（这里 <span class=math-inline>$\sigma_f^2 = 1$</span>
+，所以样本大多落在 <span class=math-inline>$\pm 2$</span>
+内）。换个核就换一种"宇宙观"——同样的横坐标网格、同样的 Cholesky 流程，曲线的"性格"完全不同。这是核作为先验最直观的一次展示。</p><p><strong>数值 jitter。</strong> <code>K += 1e-6 * np.eye(n)</code> 这行不是可选的。Mercer 特征值衰减很快，所以 <span class=math-inline>$K$</span>
+几乎总是<em>病态</em>或数值上秩亏。加一点点对角项——&ldquo;jitter&rdquo;——保证 Cholesky 不挂掉，且不实质改变模型含义。标准值是双精度下 <span class=math-inline>$10^{-6}$</span>
+；如果 Cholesky 还是失败，就提到 <span class=math-inline>$10^{-4}.$</span>
+这是任何 GP 代码（包括贵的库）里最常见的调试动作。一个量化的直觉：300 个等距点上的 RBF 核（<span class=math-inline>$\ell = 0.8$</span>
+）的条件数大约在 <span class=math-inline>$10^{16}$</span>
+量级，几乎就是双精度浮点的极限；jitter <span class=math-inline>$10^{-6}$</span>
+把条件数压到 <span class=math-inline>$10^{10}$</span>
+上下，Cholesky 才能稳定走完。这不是"作弊"——它等价于承认"我的核函数总有一点点噪声"，而真实系统里这总是对的。</p><p><strong>把先验当一种信念去读。</strong> 画先验采样不只是可视化技巧——它是<em>核选择的合理性检查</em>。如果你的先验采样在定义域上抖动 50 次，那是长度尺度选小了。如果几乎是直线，那是选大了。拟合之前总是先画几条先验样本；如果它们长得跟你预期的函数毫无关系，先换核再换别的。这一步在工程上能省掉几天的"为什么 GP 拟合不出来"的死磕：核选错了，再多的边际似然优化也救不回来。</p><p><strong>与频率派的对比。</strong> 频率派的核岭回归（Part 5）也用同一个 <span class=math-inline>$K$</span>
+，但它把 <span class=math-inline>$K$</span>
+解读为 RKHS 上的内积矩阵；它不画先验样本，因为它根本没有先验。这是同一个数学对象的两种语义解读：在贝叶斯眼里 <span class=math-inline>$K$</span>
+是协方差，在频率派眼里 <span class=math-inline>$K$</span>
+是内积。下文还会回到这点——它们在均值层面会给出同一个数。</p><p>一句话总结这两条文化的差异：</p><ul><li><strong>频率派 (KRR)</strong>：核 = 内积 → RKHS 范数 = 复杂度度量 → 正则化最小二乘 → 点估计。</li><li><strong>贝叶斯派 (GP)</strong>：核 = 协方差 → 函数先验 → 高斯条件化 → 全后验。</li></ul><p>两条路径的代码量、数值流程、最终的 <span class=math-inline>$\boldsymbol{\alpha}$</span>
+都一样；分歧只在你愿意把"不确定性"放进模型里到什么深度。这是机器学习里少见的"同一组方程、两种世界观"的优雅例子。</p><h2 id=gp-后验在观测数据上条件化 class=heading-anchor>GP 后验：在观测数据上条件化<a href=#gp-%e5%90%8e%e9%aa%8c%e5%9c%a8%e8%a7%82%e6%b5%8b%e6%95%b0%e6%8d%ae%e4%b8%8a%e6%9d%a1%e4%bb%b6%e5%8c%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$\begin{bmatrix} \mathbf{y} \\ \mathbf{f}_* \end{bmatrix} \;\sim\; \mathcal{N}\!\left(\mathbf{0},\; \begin{bmatrix} K + \sigma_n^2 I & K_* \\ K_*^\top & K_{**} \end{bmatrix}\right),$$</span><p>其中 <span class=math-inline>$K = K(X, X)$</span>
+是 <span class=math-inline>$n \times n$</span>
+，<span class=math-inline>$K_* = K(X, X_*)$</span>
+是 <span class=math-inline>$n \times m$</span>
+，<span class=math-inline>$K_{**} = K(X_*, X_*)$</span>
+是 <span class=math-inline>$m \times m$</span>
+，<span class=math-inline>$\sigma_n^2 I$</span>
+那一块代表独立同分布的观测噪声。</p><span class=math-block>$$\begin{bmatrix} \mathbf{a} \\ \mathbf{b} \end{bmatrix} \sim \mathcal{N}\!\left(\begin{bmatrix} \mu_a \\ \mu_b \end{bmatrix}, \begin{bmatrix} \Sigma_{aa} & \Sigma_{ab} \\ \Sigma_{ba} & \Sigma_{bb} \end{bmatrix}\right),$$</span>
+<span class=math-block>$$\mu_{b|a} = \mu_b + \Sigma_{ba} \Sigma_{aa}^{-1}(\mathbf{a} - \mu_a), \qquad \Sigma_{b|a} = \Sigma_{bb} - \Sigma_{ba} \Sigma_{aa}^{-1} \Sigma_{ab}.$$</span>
+<span class=math-block>$$\boxed{\;\mu_* = K_*^\top (K + \sigma_n^2 I)^{-1} \mathbf{y}, \qquad \Sigma_* = K_{**} - K_*^\top (K + \sigma_n^2 I)^{-1} K_*.\;}$$</span><p>这两行是 GP 回归的<em>核心</em>等式。剩下的全是实现细节。Rasmussen & Williams 2006 第 2.2 节用半页推完了它们；任何看起来更复杂的 GP 公式，要么是同一对等式换了个矩阵恒等式（例如 Woodbury 形式），要么是为稀疏近似把它们改写成了 <span class=math-inline>$m \ll n$</span>
+的形式。</p><p><strong>每一块的含义。</strong></p><ul><li><span class=math-inline>$(K + \sigma_n^2 I)^{-1} \mathbf{y}$</span>
+是一个长度 <span class=math-inline>$n$</span>
+的向量——记作 <span class=math-inline>$\boldsymbol{\alpha}$</span>
+。它<em>不依赖于测试点</em>。</li><li><span class=math-inline>$\mu_*(x) = \sum_i \alpha_i K(x_i, x)$</span>
+——训练点上核求值的加权和，和核岭回归一模一样。</li><li><span class=math-inline>$\Sigma_*$</span>
+在先验 <span class=math-inline>$K_{**}$</span>
+的基础上<em>收缩</em>，收缩量取决于训练集对测试点携带多少信息。</li><li><span class=math-inline>$\Sigma_*$</span>
+的对角线给出每个测试点的预测方差——这正是核岭回归<em>不会给你</em>的东西。</li><li><span class=math-inline>$\Sigma_*$</span>
+的<em>非</em>对角线给出测试点之间的协方差，可以用来从后验里采样<em>整条曲线</em>而不是孤立点。这一条在贝叶斯优化的 Thompson sampling 里至关重要。</li></ul><span class=math-block>$$K + \sigma_n^2 I = \begin{bmatrix} 1.1 & 0.607 \\ 0.607 & 1.1 \end{bmatrix}, \qquad K_* = \begin{bmatrix} 0.882 \\ 0.882 \end{bmatrix}.$$</span><p>求逆得 <span class=math-inline>$\boldsymbol{\alpha} = (K + \sigma_n^2 I)^{-1} \mathbf{y} \approx (-0.323, 1.087)^\top,$</span>
+后验均值
+<span class=math-inline>$\mu_* = K_*^\top \boldsymbol{\alpha} \approx 0.882 \times (-0.323 + 1.087) \approx 0.674.$</span>
+后验方差 <span class=math-inline>$\Sigma_* = 1 - K_*^\top (K + \sigma_n^2 I)^{-1} K_* \approx 0.219,$</span>
+标准差约 <span class=math-inline>$0.47.$</span>
+也就是说 GP 给出"95% 置信区间约 <span class=math-inline>$[-0.27, 1.61]$</span>
+"，比中点 <span class=math-inline>$0.5$</span>
+略偏右，因为右端点 <span class=math-inline>$y_2 = 1$</span>
+把均值拽了一下。这就是 GP 推断的全部机制；放大到 <span class=math-inline>$n = 10000$</span>
+也只是矩阵更大而已。</p><p>把这个最小例子的几个特征记下来很有用：</p><ul><li>后验均值在测试点 <span class=math-inline>$x_* = 0.5$</span>
+<em>不在</em> <span class=math-inline>$(y_1 + y_2)/2 = 0.5$</span>
+上，而是 <span class=math-inline>$0.674$</span>
+——稍偏向距离更近、信息更可靠的那一侧。注意"距离"在这里是核诱导的，而非欧氏。</li><li>后验方差 <span class=math-inline>$0.219$</span>
+严格小于先验方差 <span class=math-inline>$1.0$</span>
+——观测确实"减少了"我们对 <span class=math-inline>$f(0.5)$</span>
+的不确定性。</li><li>如果把 <span class=math-inline>$\sigma_n^2$</span>
+从 <span class=math-inline>$0.1$</span>
+降到 <span class=math-inline>$0.001,$</span>
+后验均值会更紧地贴近两个观测的"中点"且方差更小；这是噪声超参对预测均值的直接杠杆效应。</li></ul><p>这种"小数手算 GP"是把公式记牢的最快办法——一次纸笔就能把所有矩阵记号在大脑里编上索引。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/06-gaussian-processes/fig2_gp_posterior_update.png alt="加入观测后 GP 后验的更新——均值贴住数据，不确定性在数据处坍缩、在远处涨回去" loading=lazy decoding=async class=content-image></figure></p><p>图里展示了 <span class=math-inline>$n = 0, 2, 4, 7$</span>
+个观测下的后验。没有数据时，后验就是先验——一条宽宽的、中心在零的带子。点逐个加入，均值卡到点上、方差在局部捏到接近零。远离数据的地方，方差又长回先验水平——模型诚实告诉你"我不知道"。这种<em>不确定性的生长</em>让 GP 在<em>贝叶斯优化</em>、<em>主动学习</em>以及任何"这块需不需要再采点数据？&ldquo;的问题上独一无二。神经网络的 dropout 或 ensembling 也能给出方差估计，但既不校准也没有理论保证；GP 在高斯似然下给的是字面意义上的后验，与你给的先验完全一致。</p><p>把"GP 后验方差"的几个典型用法收一张清单：</p><ul><li><strong>贝叶斯优化的 acquisition function</strong>：Expected Improvement、Upper Confidence Bound、Thompson Sampling 全都需要 <span class=math-inline>$\Sigma_*$</span>
+来权衡探索（exploration）与利用（exploitation）。没有 GP 给的解析方差，BO 退化成随机搜索。</li><li><strong>主动学习的查询策略</strong>：在 <span class=math-inline>$\Sigma_*$</span>
+最大的输入点采下一条数据，能用极少标注追上全监督性能。</li><li><strong>拒答机制（reject option）</strong>：当预测熵 / 方差超过阈值时让模型说"我不知道&rdquo;，再交给人或更强的模型。</li><li><strong>下游不确定性传播</strong>：把 <span class=math-inline>$\mu_*, \Sigma_*$</span>
+喂给下一个贝叶斯模型，整条管线的不确定性保持自洽。</li><li><strong>A/B 测试样本量规划</strong>：根据 GP 拟合出的效应量方差反推还需要多少样本。</li></ul><p>任何一条都把 <span class=math-inline>$\Sigma_*$</span>
+从"画图好看"升级成"产品里真的有用"。</p><h2 id=gp-回归实战完整例子 class=heading-anchor>GP 回归实战：完整例子<a href=#gp-%e5%9b%9e%e5%bd%92%e5%ae%9e%e6%88%98%e5%ae%8c%e6%95%b4%e4%be%8b%e5%ad%90 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>来真拟合一次。我们直接用闭式公式——不依赖库——这样每个零件都看得见。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>matplotlib.pyplot</span> <span class=k>as</span> <span class=nn>plt</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>rbf</span><span class=p>(</span><span class=n>x1</span><span class=p>,</span> <span class=n>x2</span><span class=p>,</span> <span class=n>length</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>var</span><span class=o>=</span><span class=mf>1.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>d</span> <span class=o>=</span> <span class=n>x1</span><span class=p>[:,</span> <span class=kc>None</span><span class=p>]</span> <span class=o>-</span> <span class=n>x2</span><span class=p>[</span><span class=kc>None</span><span class=p>,</span> <span class=p>:]</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>var</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=o>-</span><span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>d</span> <span class=o>/</span> <span class=n>length</span><span class=p>)</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>gp_posterior</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>X_star</span><span class=p>,</span> <span class=n>length</span><span class=p>,</span> <span class=n>var</span><span class=p>,</span> <span class=n>sigma_n</span><span class=p>,</span> <span class=n>jitter</span><span class=o>=</span><span class=mf>1e-8</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>K</span>   <span class=o>=</span> <span class=n>rbf</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>X</span><span class=p>,</span> <span class=n>length</span><span class=p>,</span> <span class=n>var</span><span class=p>)</span> <span class=o>+</span> <span class=n>sigma_n</span><span class=o>**</span><span class=mi>2</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>eye</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>X</span><span class=p>))</span> <span class=o>+</span> <span class=n>jitter</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>eye</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>X</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=n>Ks</span>  <span class=o>=</span> <span class=n>rbf</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>X_star</span><span class=p>,</span> <span class=n>length</span><span class=p>,</span> <span class=n>var</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>Kss</span> <span class=o>=</span> <span class=n>rbf</span><span class=p>(</span><span class=n>X_star</span><span class=p>,</span> <span class=n>X_star</span><span class=p>,</span> <span class=n>length</span><span class=p>,</span> <span class=n>var</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>L</span>   <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>cholesky</span><span class=p>(</span><span class=n>K</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>alpha</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>solve</span><span class=p>(</span><span class=n>L</span><span class=o>.</span><span class=n>T</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>solve</span><span class=p>(</span><span class=n>L</span><span class=p>,</span> <span class=n>y</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=n>mu</span>   <span class=o>=</span> <span class=n>Ks</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=n>alpha</span>
+</span></span><span class=line><span class=cl>    <span class=n>v</span>    <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>solve</span><span class=p>(</span><span class=n>L</span><span class=p>,</span> <span class=n>Ks</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>cov</span>  <span class=o>=</span> <span class=n>Kss</span> <span class=o>-</span> <span class=n>v</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=n>v</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>mu</span><span class=p>,</span> <span class=n>cov</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 合成数据：带轻噪声的 sin 加两个异常点</span>
+</span></span><span class=line><span class=cl><span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>seed</span><span class=p>(</span><span class=mi>5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>true_f</span>  <span class=o>=</span> <span class=k>lambda</span> <span class=n>t</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=mf>1.5</span> <span class=o>*</span> <span class=n>t</span><span class=p>)</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=o>-</span><span class=mf>0.1</span> <span class=o>*</span> <span class=n>t</span><span class=o>**</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>X_train</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sort</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=o>-</span><span class=mi>4</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=mi>18</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>y_train</span> <span class=o>=</span> <span class=n>true_f</span><span class=p>(</span><span class=n>X_train</span><span class=p>)</span> <span class=o>+</span> <span class=mf>0.2</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>X_train</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>y_train</span><span class=p>[</span><span class=mi>3</span><span class=p>]</span>  <span class=o>+=</span> <span class=mf>1.2</span>     <span class=c1># 偏高的异常点</span>
+</span></span><span class=line><span class=cl><span class=n>y_train</span><span class=p>[</span><span class=mi>12</span><span class=p>]</span> <span class=o>-=</span> <span class=mf>1.1</span>     <span class=c1># 偏低的异常点</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>X_star</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=o>-</span><span class=mi>5</span><span class=p>,</span> <span class=mi>5</span><span class=p>,</span> <span class=mi>400</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>mu</span><span class=p>,</span> <span class=n>cov</span> <span class=o>=</span> <span class=n>gp_posterior</span><span class=p>(</span><span class=n>X_train</span><span class=p>,</span> <span class=n>y_train</span><span class=p>,</span> <span class=n>X_star</span><span class=p>,</span> <span class=n>length</span><span class=o>=</span><span class=mf>1.1</span><span class=p>,</span> <span class=n>var</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>sigma_n</span><span class=o>=</span><span class=mf>0.4</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>std</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>diag</span><span class=p>(</span><span class=n>cov</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/06-gaussian-processes/fig3_gp_credible_intervals.png alt="GP 回归：噪声 σₙ 控制均值多紧地咬住每个点" loading=lazy decoding=async class=content-image></figure></p><p>图里有两个关键观察。左图用 <span class=math-inline>$\sigma_n = 0.1$</span>
+——模型相信数据几乎无噪声，所以把后验均值掰过去去咬每一个点，包括两个异常点。右图用 <span class=math-inline>$\sigma_n = 0.4$</span>
+——模型接受观测有噪声、把异常点当噪声处理，恢复出一条平滑得多、和真函数更贴合的估计。95% 可信区间（<span class=math-inline>$\mu_* \pm 2\sigma_*$</span>
+）在右图更宽，诚实反映了更大的噪声。这正是为什么"先把 <span class=math-inline>$\sigma_n$</span>
+留给数据自己学"几乎总是比"凭感觉钉死 <span class=math-inline>$\sigma_n$</span>
+&ldquo;更稳——后者经常踩到上图左侧那种过拟合陷阱。</p><p><strong>Cholesky 模式。</strong> 注意我们<em>从未</em>对 <span class=math-inline>$K + \sigma_n^2 I$</span>
+直接 <code>np.linalg.inv</code>。而是先 Cholesky 分解一次，再解两个三角系统。这比显式求逆快 3 倍左右，<em>数值上稳定得多</em>。它还能复用：<span class=math-inline>$\boldsymbol{\alpha}$</span>
+不依赖测试点 <span class=math-inline>$x_*$</span>
+，所以训练时算一次，之后每次预测均值只要 <span class=math-inline>$O(n)$</span>
+，整套测试集的协方差则要 <span class=math-inline>$O(nm + n^2 m).$</span>
+一个工程经验：把 <code>np.linalg.inv</code> 出现在 GP 代码里当成一种"代码异味&rdquo;，几乎一定有更好的写法（要么 Cholesky，要么 <code>scipy.linalg.cho_solve</code>）。</p><p>把"训练 / 预测均值 / 预测方差"的代价分开看：</p><div class=table-wrap><table><thead><tr><th>阶段</th><th>计算</th><th>主要操作</th><th>备注</th></tr></thead><tbody><tr><td>训练（Cholesky + <span class=math-inline>$\boldsymbol{\alpha}$</span>
+）</td><td><span class=math-inline>$O(n^3) + O(n^2)$</span></td><td><span class=math-inline>$L = \text{chol}(K + \sigma_n^2 I)$</span>
+，两次三角求解</td><td>仅与 <span class=math-inline>$n$</span>
+有关</td></tr><tr><td>预测均值（单点）</td><td><span class=math-inline>$O(n)$</span></td><td><span class=math-inline>$\sum_i \alpha_i K(x_i, x_*)$</span></td><td>不需要再 Cholesky</td></tr><tr><td>预测方差（单点）</td><td><span class=math-inline>$O(n^2)$</span></td><td><span class=math-inline>$K_{**} - v^\top v,$</span>
+<span class=math-inline>$v = L^{-1}K_*$</span></td><td>一次三角求解</td></tr><tr><td>边际似然 + 梯度</td><td><span class=math-inline>$O(n^3)$</span></td><td>复用 <span class=math-inline>$L,$</span>
+加一次 <span class=math-inline>$\partial K/\partial \theta$</span>
+求和</td><td>L-BFGS 一次迭代</td></tr></tbody></table></div><p>预测均值的 <span class=math-inline>$O(n)$</span>
+这件事经常被忽略：意味着 GP 训练完之后 <em>在线推断</em> 极便宜，只要把 <span class=math-inline>$\boldsymbol{\alpha}$</span>
+缓存住。这对"训练慢、推断快"的产品场景（贝叶斯优化、主动学习的 acquisition function 求值）非常友好。</p><p><strong>三个旋钮。</strong></p><ul><li><strong>长度尺度 <span class=math-inline>$\ell$</span>
+。</strong> <span class=math-inline>$\ell$</span>
+越大→预测越平滑、相关性距离越长、外推区域越宽。<span class=math-inline>$\ell$</span>
+越小→抖得越快、远离训练点的不确定性长得越快。直观地，<span class=math-inline>$\ell$</span>
+是"两个点要离多远才会被模型当成无关"。</li><li><strong>信号方差 <span class=math-inline>$\sigma_f^2$</span>
+。</strong> 设定先验的振幅。如果数据范围在 <span class=math-inline>$\pm 5$</span>
+，<span class=math-inline>$\sigma_f^2 \approx 25$</span>
+是合理的；如果在 <span class=math-inline>$\pm 0.1$</span>
+，<span class=math-inline>$\sigma_f^2 \approx 0.01.$</span>
+这是"先验上 <span class=math-inline>$f$</span>
+能跑到多高"的量。</li><li><strong>噪声方差 <span class=math-inline>$\sigma_n^2$</span>
+。</strong> 你有多信任每个观测。直接决定均值贴单个点的激进程度。也是 GP 后验在训练点上<em>不会</em>坍缩到零方差的那一项——后验在 <span class=math-inline>$x_i$</span>
+处的方差恒 <span class=math-inline>$\ge \sigma_n^2.$</span></li></ul><p>三个超参的几何意义还能用一句口诀记住："<span class=math-inline>$\ell$</span>
+管横轴上多远算近邻，<span class=math-inline>$\sigma_f^2$</span>
+管纵轴上能波动多高，<span class=math-inline>$\sigma_n^2$</span>
+管观测点周围留多大的安全垫"。任何 GP 调参的反直觉行为，几乎都可以套这个口诀诊断。</p><p>按 Part 5 的方法，我们<em>可以</em>用交叉验证设这三个。但 GP 自带一件远比 CV 优雅的工具。</p><p><strong>与 KRR 的微妙差别。</strong> 核岭回归（Part 5）的正则化 <span class=math-inline>$\lambda$</span>
+和 GP 的噪声 <span class=math-inline>$\sigma_n^2$</span>
+在均值公式上完全可以对换：<span class=math-inline>$\lambda \equiv \sigma_n^2.$</span>
+区别在<em>怎么选</em>这个数。KRR 用 <span class=math-inline>$k$</span>
+-折 CV 在小数据集上要重复拟合 <span class=math-inline>$k$</span>
+次、付 <span class=math-inline>$k \cdot O(n^3);$</span>
+GP 用边际似然只算一次 <span class=math-inline>$O(n^3),$</span>
+还顺便学了 <span class=math-inline>$\ell$</span>
+和 <span class=math-inline>$\sigma_f.$</span>
+当 <span class=math-inline>$n \le 1000$</span>
+时 GP 的 hyperparameter learning 完胜 CV；当 <span class=math-inline>$n$</span>
+大到 GP 都吃不消时，可能需要稀疏 GP 或者干脆退回 KRR + 单点 CV。</p><p>GP 拟合一次的完整流水线很短：</p><ol><li><strong>训练</strong>：构造 <span class=math-inline>$K + \sigma_n^2 I,$</span>
+Cholesky，得到 <span class=math-inline>$L$</span>
+和 <span class=math-inline>$\boldsymbol{\alpha}.$</span></li><li><strong>超参学习</strong>（可选但强推）：边际似然 + L-BFGS 优化 <span class=math-inline>$\theta = (\ell, \sigma_f, \sigma_n),$</span>
+每次迭代重做一次 Cholesky。</li><li><strong>推断</strong>：每个测试点 <span class=math-inline>$x_*,$</span>
+算 <span class=math-inline>$K_*,$</span>
+得到 <span class=math-inline>$\mu_*$</span>
+和 <span class=math-inline>$\Sigma_*.$</span></li><li><strong>下游消费</strong>：把 <span class=math-inline>$\mu_*, \Sigma_*$</span>
+喂给 BO 的 acquisition function、主动学习的查询策略或拒答机制。</li></ol><p>这四步在所有 GP 应用里几乎不变；理解这条流水线后再看 GPyTorch / GPflow / sklearn 的高层接口都会顺手。</p><h2 id=超参数学习边际似然 class=heading-anchor>超参数学习：边际似然<a href=#%e8%b6%85%e5%8f%82%e6%95%b0%e5%ad%a6%e4%b9%a0%e8%be%b9%e9%99%85%e4%bc%bc%e7%84%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$p(\mathbf{y} \mid X, \theta) \;=\; \int p(\mathbf{y} \mid \mathbf{f}) \, p(\mathbf{f} \mid X, \theta) \, d\mathbf{f}.$$</span>
+<span class=math-block>$$\mathbf{y} \mid X, \theta \;\sim\; \mathcal{N}\!\big(\mathbf{0},\; K_\theta + \sigma_n^2 I\big),$$</span>
+<span class=math-block>$$\boxed{\;\log p(\mathbf{y} \mid X, \theta) \;=\; -\tfrac{1}{2} \mathbf{y}^\top (K_\theta + \sigma_n^2 I)^{-1} \mathbf{y} \;-\; \tfrac{1}{2} \log |K_\theta + \sigma_n^2 I| \;-\; \tfrac{n}{2} \log 2\pi.\;}$$</span><p>这一个关于 <span class=math-inline>$\theta$</span>
+的标量函数就是你要最大化的对象。不用切验证集。不用 k 折 CV。直接调优化器即可。</p><p><strong>三项分解。</strong> 按顺序读三项：</p><ul><li><strong>数据拟合项</strong> <span class=math-inline>$-\tfrac{1}{2} \mathbf{y}^\top (K + \sigma_n^2 I)^{-1} \mathbf{y}.$</span>
+当核能解释残差时这一项更大（更接近零）。推向<em>更灵活</em>的模型。</li><li><strong>复杂度惩罚项</strong> <span class=math-inline>$-\tfrac{1}{2} \log |K + \sigma_n^2 I|.$</span>
+对数行列式越大代表核允许的函数越多样。推向<em>更简单</em>的模型。</li><li><strong>归一化项</strong> <span class=math-inline>$-\tfrac{n}{2} \log 2\pi.$</span>
+是 <span class=math-inline>$\theta$</span>
+的常数，对优化无关。</li></ul><p>每项的几何意义都可以盯着 Cholesky 因子 <span class=math-inline>$L$</span>
+看：拟合项是 <span class=math-inline>$\tfrac{1}{2}\|L^{-1}\mathbf{y}\|^2,$</span>
+复杂度项是 <span class=math-inline>$\sum_i \log L_{ii}.$</span>
+一个数值实现技巧：哪怕你只想画 landscape，也务必这样写——直接 <code>np.log(np.linalg.det(K))</code> 在 <span class=math-inline>$n \ge 200$</span>
+时会下溢到 <span class=math-inline>$-\infty,$</span>
+而 <code>2 * np.sum(np.log(np.diag(L)))</code> 在 <span class=math-inline>$n = 10^4$</span>
+上还能稳定算出准确值。</p><p>拟合项和复杂度项<em>往相反方向拉</em>。最优值落在两者平衡处——也就是 Occam&rsquo;s razor 的甜点。这正是贝叶斯模型选择和 AIC/BIC 这类频率派准则的根本区别：AIC 在似然外手工减去一个"参数数目"惩罚，BIC 减一个 <span class=math-inline>$\log n$</span>
+量级的惩罚；边际似然不需要手工，它直接积分掉所有未知量，复杂度惩罚自然以 <span class=math-inline>$-\tfrac{1}{2}\log|K+\sigma_n^2 I|$</span>
+的形式涌现。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/06-gaussian-processes/fig4_marginal_likelihood_landscape.png alt="log 边际似然在（长度尺度，噪声）上的地形——梯度上升找到 ★" loading=lazy decoding=async class=content-image></figure></p><p>图里画的是 25 个带噪 sin 样本上、RBF 核下，<span class=math-inline>$\log p(\mathbf{y} \mid \theta)$</span>
+在 <span class=math-inline>$(\log \ell, \log \sigma_n)$</span>
+平面上的地形。能看到清晰的脊：<span class=math-inline>$\ell \in [0.5, 1.5]$</span>
+、<span class=math-inline>$\sigma_n \in [0.2, 0.5]$</span>
+，唯一极大值在 <span class=math-inline>$(\ell, \sigma_n) \approx (0.9, 0.3)$</span>
+附近——和真噪声接近。任何标准优化器（L-BFGS）几十次迭代就能找到。值得留意的是，这个曲面在"小 <span class=math-inline>$\ell$</span>
+加小 <span class=math-inline>$\sigma_n$</span>
+" 的角上会出现一条次峰——对应"非常抖的函数 + 几乎无噪声"的另一种解释。数据稀少时次峰可能高过真正的峰，所以多起点重启对 GP 实践来说几乎是必修。</p><span class=math-block>$$\frac{\partial \log p(\mathbf{y} \mid \theta)}{\partial \theta_k} \;=\; \tfrac{1}{2} \boldsymbol{\alpha}^\top \frac{\partial K}{\partial \theta_k} \boldsymbol{\alpha} \;-\; \tfrac{1}{2} \operatorname{tr}\!\left((K + \sigma_n^2 I)^{-1} \frac{\partial K}{\partial \theta_k}\right),$$</span><p>其中 <span class=math-inline>$\boldsymbol{\alpha} = (K + \sigma_n^2 I)^{-1} \mathbf{y}$</span>
+。两项都可以复用 Cholesky 分解，所以一次梯度求值的代价和一次似然求值相同——都是 <span class=math-inline>$O(n^3).$</span>
+把似然和梯度喂给 <code>scipy.optimize.minimize(method='L-BFGS-B')</code>，就完事了。</p><p>梯度的两项有一个漂亮的对偶解释：</p><ul><li>第一项 <span class=math-inline>$\tfrac{1}{2} \boldsymbol{\alpha}^\top (\partial K / \partial \theta_k) \boldsymbol{\alpha}$</span>
+是"沿 <span class=math-inline>$\theta_k$</span>
+方向微动核时，对<em>当前残差解释</em>的边际收益"。把它读成"灵活度对拟合的好处"。</li><li>第二项 <span class=math-inline>$-\tfrac{1}{2} \operatorname{tr}((K+\sigma_n^2 I)^{-1} \partial K / \partial \theta_k)$</span>
+是"沿同方向微动时，对<em>函数空间体积</em>的边际增长"。把它读成"灵活度的复杂度代价"。</li></ul><p>L-BFGS 找到的最优点就是两项的边际成本恰好抵消的地方。这给"自动 Occam&rsquo;s razor" 一个微观经济学解读：复杂度的边际收益等于边际成本，正如供需平衡。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>scipy.optimize</span> <span class=kn>import</span> <span class=n>minimize</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>neg_log_marg_lik</span><span class=p>(</span><span class=n>log_theta</span><span class=p>,</span> <span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>log_l</span><span class=p>,</span> <span class=n>log_var</span><span class=p>,</span> <span class=n>log_sn</span> <span class=o>=</span> <span class=n>log_theta</span>
+</span></span><span class=line><span class=cl>    <span class=n>l</span><span class=p>,</span> <span class=n>var</span><span class=p>,</span> <span class=n>sn</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=n>log_l</span><span class=p>),</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=n>log_var</span><span class=p>),</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=n>log_sn</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>n</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>X</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>K</span> <span class=o>=</span> <span class=n>rbf</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>X</span><span class=p>,</span> <span class=n>l</span><span class=p>,</span> <span class=n>var</span><span class=p>)</span> <span class=o>+</span> <span class=p>(</span><span class=n>sn</span><span class=o>**</span><span class=mi>2</span> <span class=o>+</span> <span class=mf>1e-8</span><span class=p>)</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>eye</span><span class=p>(</span><span class=n>n</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>L</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>cholesky</span><span class=p>(</span><span class=n>K</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>alpha</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>solve</span><span class=p>(</span><span class=n>L</span><span class=o>.</span><span class=n>T</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>solve</span><span class=p>(</span><span class=n>L</span><span class=p>,</span> <span class=n>y</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>y</span> <span class=o>@</span> <span class=n>alpha</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>diag</span><span class=p>(</span><span class=n>L</span><span class=p>)))</span> <span class=o>+</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>n</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>pi</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>res</span> <span class=o>=</span> <span class=n>minimize</span><span class=p>(</span><span class=n>neg_log_marg_lik</span><span class=p>,</span> <span class=n>x0</span><span class=o>=</span><span class=p>[</span><span class=mf>0.</span><span class=p>,</span> <span class=mf>0.</span><span class=p>,</span> <span class=o>-</span><span class=mf>1.</span><span class=p>],</span> <span class=n>args</span><span class=o>=</span><span class=p>(</span><span class=n>X_train</span><span class=p>,</span> <span class=n>y_train</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>               <span class=n>method</span><span class=o>=</span><span class=s1>&#39;L-BFGS-B&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>l_opt</span><span class=p>,</span> <span class=n>var_opt</span><span class=p>,</span> <span class=n>sn_opt</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=n>res</span><span class=o>.</span><span class=n>x</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>为什么参数要走 log 空间。</strong> 三个参数都必须是正的（长度不能负，方差也不能负）。用 <span class=math-inline>$\log \theta$</span>
+做参数，L-BFGS 就能在无约束的 <span class=math-inline>$\mathbb{R}^3$</span>
+上跑，而实际超参始终保持为正。这是一个标准技巧，能挡掉 90% 的"GP 拟合不出来"的问题。另外 log 空间下的"一个数量级"刚好对应 <span class=math-inline>$\log\theta$</span>
+移动 <span class=math-inline>$\ln 10 \approx 2.3,$</span>
+L-BFGS 的步长在这个尺度下行为均匀——而在原始 <span class=math-inline>$\theta$</span>
+空间下，&ldquo;从 0.01 走到 0.1&rdquo; 和"从 100 走到 1000" 是完全不同的步长，优化器很容易在前者抖动、在后者卡死。</p><p>实践里再加两个微优化让边际似然优化更稳：</p><ul><li><strong>超参的硬界</strong>。即便在 log 空间，也给 <span class=math-inline>$\log\ell, \log\sigma_f, \log\sigma_n$</span>
+各设一个 <code>[-10, 10]</code> 之类的硬界。优化器偶尔会被陡峭梯度推到 <span class=math-inline>$\theta \to 0$</span>
+或 <span class=math-inline>$\theta \to \infty$</span>
+（对应核退化或噪声爆炸），有界能挡住这种"失控逃逸"。</li><li><strong>梯度数值校验</strong>。第一次写 GP 优化的时候，对着 <code>scipy.optimize.check_grad</code> 跑一次手算梯度 vs 数值梯度，差异 <span class=math-inline>$&lt; 10^{-5}$</span>
+才认为代码对。GP 的解析梯度公式里少一个负号或者一个 1/2 都不会让程序崩，只会让收敛慢 10 倍——很难调试。</li><li><strong>优化器选择</strong>。L-BFGS-B 是默认；遇到曲面恶劣时换 trust-constr 或带 line search 的 BFGS 更稳。Adam 在 GP 上不好用，因为它默认假设大批量随机梯度，而 GP 的梯度是全批量的、噪声小。</li></ul><h2 id=occams-razor机械式地 class=heading-anchor>Occam&rsquo;s razor，机械式地<a href=#occams-razor%e6%9c%ba%e6%a2%b0%e5%bc%8f%e5%9c%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>边际似然<em>自动</em>实现 Occam&rsquo;s razor。不用你告诉它；这是数学层面就出来的。要看清楚，用同样的数据、三种不同 RBF 长度尺度拟合：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/06-gaussian-processes/fig5_occams_razor.png alt=边际似然自动偏好中庸：拟合项一路涨，复杂度项把它惩罚回来 loading=lazy decoding=async class=content-image></figure></p><p>上排：20 个 sin 类的点上、三种 RBF 长度尺度的 GP 回归——<span class=math-inline>$\ell = 0.1$</span>
+（抖得过拟合）、<span class=math-inline>$\ell = 0.7$</span>
+（刚好）、<span class=math-inline>$\ell = 4.0$</span>
+（几乎是直线）。下排：每种情况下边际似然的分解。</p><p>三种情形一一对照：</p><ul><li><strong><span class=math-inline>$\ell = 0.1$</span>
+（过拟合）。</strong> 数据拟合项<em>高</em>——模型穿过每个点，残差极小。但复杂度惩罚<em>极低</em>（<span class=math-inline>$\log |K + \sigma_n^2 I|$</span>
+很大）——核矩阵接近单位阵，行列式巨大。总和：低。</li><li><strong><span class=math-inline>$\ell = 0.7$</span>
+（刚好）。</strong> 拟合项还是高（光滑模型能解释趋势），复杂度惩罚适中。总和：最高。</li><li><strong><span class=math-inline>$\ell = 4.0$</span>
+（欠拟合）。</strong> 拟合项崩——模型解释不了波动。复杂度惩罚高（小的对数行列式），但补不回来。总和：低。</li></ul><p>这<em>不是</em>一个你需要手工设计的折衷。是函数空间上的积分<em>替你做的</em>。能表示太多函数的模型被对数行列式惩罚；能表示太少函数的被残差惩罚。最优解是"函数类恰好够用"的那个模型。MacKay 1992 在 neural network 的 evidence framework 里给过同样论证：&ldquo;a model that is too flexible spreads its predictive probability too thin&rdquo;——花到任何特定数据集上的概率都很小，于是被边际似然自动否决。这是贝叶斯模型选择最优雅的一面：不需要 dropout、不需要 weight decay、不需要早停，复杂度控制内生在概率公理里。</p><p><strong>与交叉验证比较。</strong> CV 需要切验证集并重复拟合多次——很贵，小数据集尤甚。边际似然<em>用全部数据</em>、不用切折、还附带梯度。代价：超参很多、数据噪且少时，边际似然曲面可能有多个局部极值。标准应对手段：多随机起点重启优化器；或给长度尺度加弱先验（log-normal）正则化搜索。一个实践数字：<span class=math-inline>$n \le 200$</span>
+时强烈建议 `n_restarts_optimizer >= 10;<span class=math-inline>$ $</span>
+n \ge 2000$ 时曲面一般已经够凸，3-5 个起点就够；介于其间按预算定。</p><p>把两种调参方式并排：</p><div class=table-wrap><table><thead><tr><th>维度</th><th>边际似然 (MLE-II)</th><th><span class=math-inline>$k$</span>
+-折 CV</th></tr></thead><tbody><tr><td>训练数据使用率</td><td>100%</td><td><span class=math-inline>$(k-1)/k$</span></td></tr><tr><td>拟合次数</td><td>一次（带优化器迭代）</td><td><span class=math-inline>$k$</span>
+次 × 每个超参网格点</td></tr><tr><td>自动梯度</td><td>是</td><td>否</td></tr><tr><td>局部极值风险</td><td>中（多重启缓解）</td><td>低（网格搜索）</td></tr><tr><td>对模型设定的依赖</td><td>高（错误先验会被惩罚）</td><td>低（直接打靶预测精度）</td></tr><tr><td>何时优</td><td><span class=math-inline>$n$</span>
+小、超参多</td><td><span class=math-inline>$n$</span>
+大、超参少</td></tr></tbody></table></div><p>经验法则：能用边际似然就用，CV 只在你怀疑模型设定本身有问题（例如非高斯似然 + Laplace 近似下，边际似然只是一个近似）时才回退。</p><h2 id=gp-分类从高斯到非高斯似然 class=heading-anchor>GP 分类：从高斯到非高斯似然<a href=#gp-%e5%88%86%e7%b1%bb%e4%bb%8e%e9%ab%98%e6%96%af%e5%88%b0%e9%9d%9e%e9%ab%98%e6%96%af%e4%bc%bc%e7%84%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$p(y_i = 1 \mid f_i) = \sigma(f_i) = \frac{1}{1 + e^{-f_i}}.$$</span><p>后验 <span class=math-inline>$p(f \mid \mathbf{y})$</span>
+也不再是高斯了。三种标准应对：</p><ul><li><strong>Laplace 近似。</strong> 用 Newton 迭代找后验众数 <span class=math-inline>$\hat{\mathbf{f}}$</span>
+，然后用一个以 <span class=math-inline>$\hat{\mathbf{f}}$</span>
+为中心、协方差等于对数后验 Hessian 之逆的高斯近似后验。快、确定性、常常出奇准。</li><li><strong>Expectation Propagation (EP)。</strong> 迭代地把每个 Bernoulli 因子换成一个能匹配完整后验前两阶矩的高斯。比 Laplace 准，慢一些，偶尔不稳定。</li><li><strong>MCMC。</strong> 在完整后验上跑 Hamiltonian Monte Carlo。最准、最慢，前两个吵架时才用。</li><li><strong>变分推断 (SVGP)。</strong> 用一族可参数化的高斯近似后验，最大化 ELBO。适合大数据 + mini-batch 训练。</li></ul><p>四种方案的速度-精度权衡如下：</p><div class=table-wrap><table><thead><tr><th>方法</th><th>一次拟合</th><th>精度（与 HMC 比）</th><th>是否带梯度</th><th>实现复杂度</th></tr></thead><tbody><tr><td>Laplace</td><td>秒</td><td>80–95%</td><td>是</td><td>低</td></tr><tr><td>EP</td><td>分钟</td><td>95–99%</td><td>是</td><td>中</td></tr><tr><td>SVGP</td><td>分钟（GPU）</td><td>90–98%</td><td>是</td><td>中-高</td></tr><tr><td>HMC</td><td>小时</td><td>100%（基准）</td><td>否（采样）</td><td>高</td></tr></tbody></table></div><p>Rasmussen & Williams 第 3 章用了 50 页比较三者；一个粗线条结论：Laplace 在类不太重叠时已经够准，EP 在重叠区域显著更准但代码复杂度翻倍，HMC 只在你需要发表论文级别可重复结果时才值得调。</p><p>scikit-learn 的 <code>GaussianProcessClassifier</code> 默认用 Laplace，绝大多数场景够用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.gaussian_process</span> <span class=kn>import</span> <span class=n>GaussianProcessClassifier</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.gaussian_process.kernels</span> <span class=kn>import</span> <span class=n>RBF</span><span class=p>,</span> <span class=n>ConstantKernel</span> <span class=k>as</span> <span class=n>C</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>kernel</span> <span class=o>=</span> <span class=n>C</span><span class=p>(</span><span class=mf>1.0</span><span class=p>)</span> <span class=o>*</span> <span class=n>RBF</span><span class=p>(</span><span class=n>length_scale</span><span class=o>=</span><span class=mf>0.5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>gpc</span> <span class=o>=</span> <span class=n>GaussianProcessClassifier</span><span class=p>(</span><span class=n>kernel</span><span class=o>=</span><span class=n>kernel</span><span class=p>,</span> <span class=n>n_restarts_optimizer</span><span class=o>=</span><span class=mi>5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>gpc</span><span class=o>.</span><span class=n>fit</span><span class=p>(</span><span class=n>X_train</span><span class=p>,</span> <span class=n>y_train</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 带不确定性的概率预测</span>
+</span></span><span class=line><span class=cl><span class=n>proba</span> <span class=o>=</span> <span class=n>gpc</span><span class=o>.</span><span class=n>predict_proba</span><span class=p>(</span><span class=n>X_test</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/06-gaussian-processes/fig6_gp_classification.png alt="GP 分类：2D moons 类数据集上的概率和熵" loading=lazy decoding=async class=content-image></figure></p><p>左图是预测的 <span class=math-inline>$P(y=1 \mid x)$</span>
+——一条光滑的概率决策边界。右图是预测<em>熵</em>：在决策边界附近高、在每个类的核心区域低、<em>在远离任何训练点的输入空间区域也高</em>。最后这条性质是 SVM 给不了的。SVM 会给 <span class=math-inline>$\mathbb{R}^2$</span>
+上每个点一个自信的标签，哪怕这个点离训练数据有一百万单位远；GP 会说"我不知道"。对安全关键应用——医疗诊断、自动驾驶、风控——这个区分至关重要。这也是过去几年自动驾驶感知栈里 GP（或其近似变体如 deep kernel learning）始终留有一席之地的原因：检测器要的是"高置信"，规划器要的是"高置信 <em>并且</em> 确信自己高置信"，GP 的第二层保证比任何 softmax 都更可信。</p><h2 id=gp-回归等于核岭回归但白送你不确定性 class=heading-anchor>GP 回归等于核岭回归——但白送你不确定性<a href=#gp-%e5%9b%9e%e5%bd%92%e7%ad%89%e4%ba%8e%e6%a0%b8%e5%b2%ad%e5%9b%9e%e5%bd%92%e4%bd%86%e7%99%bd%e9%80%81%e4%bd%a0%e4%b8%8d%e7%a1%ae%e5%ae%9a%e6%80%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$\mu_*(x) = K_*^\top (K + \sigma_n^2 I)^{-1} \mathbf{y} \;\;\equiv\;\; \hat{f}_{\mathrm{KRR}}(x).$$</span><p>两种方法算的是同一个数。从<em>点预测</em>角度看，高斯噪声下的 GP 回归和核岭回归是可互换的；矩阵求逆同样、答案同样、代价同样。</p><p>不同的是<em>顺便给你什么</em>。核岭回归到 <span class=math-inline>$\mu_*$</span>
+就停了。GP 还返回 <span class=math-inline>$\Sigma_*$</span>
+——预测协方差——<em>同样 <span class=math-inline>$O(n^3)$</span>
+代价</em>。GP 额外送你一种有理有据的方式去学 <span class=math-inline>$\lambda$</span>
+（边际似然），不必交叉验证。</p><p><strong>概念上的收获。</strong> GP 和 KRR 是同一个回归器穿着两套衣服。KRR 从"在 RKHS 上最小化带正则的平方损失"导出答案。GP 从"在带噪声观测下计算高斯过程先验的后验均值"导出答案。同样的终点，不同的路。贝叶斯这条路顺手带的行李多——后验协方差、边际似然——还不花额外算力。所以任何关心不确定性的应用，GP 表述严格地更可取。</p><p><strong>为什么数学上一致并不偶然。</strong> RKHS 范数 <span class=math-inline>$\|f\|_\mathcal{H}^2$</span>
+就是 GP 先验的负对数密度（去掉常数）的某种"有限维投影"——representer 定理把 KRR 的最优 <span class=math-inline>$f$</span>
+表示成 <span class=math-inline>$\sum_i \alpha_i K(x_i, \cdot),$</span>
+系数解的是同一个线性系统 <span class=math-inline>$(K + \lambda I)\boldsymbol{\alpha} = \mathbf{y}.$</span>
+频率派把它看成正则化最小二乘的对偶；贝叶斯派把它看成共轭高斯先验下的 MAP / 后验均值。两套语言指向同一组方程并非偶然，是因为高斯先验和 RKHS 平方范数本来就是同一对象的两副面孔。一旦理解这点，你看任何 GP 论文都会自动把 <span class=math-inline>$\lambda$</span>
+和 <span class=math-inline>$\sigma_n^2,$</span>
+&ldquo;正则化"和"先验方差"互相翻译。</p><p>并列对比，让翻译表更明确：</p><div class=table-wrap><table><thead><tr><th>KRR 术语</th><th>GP 术语</th><th>备注</th></tr></thead><tbody><tr><td>正则化强度 <span class=math-inline>$\lambda$</span></td><td>噪声方差 <span class=math-inline>$\sigma_n^2$</span></td><td>数值上相等</td></tr><tr><td>解 <span class=math-inline>$\hat{f}(x) = \sum_i \alpha_i K(x_i, x)$</span></td><td>后验均值 <span class=math-inline>$\mu_*(x) = \sum_i \alpha_i K(x_i, x)$</span></td><td>完全相同</td></tr><tr><td>RKHS 范数 <span class=math-inline>$\|f\|_\mathcal{H}^2$</span></td><td>先验 <span class=math-inline>$-2\log p(f)$</span></td><td>同一二次型</td></tr><tr><td>交叉验证选 <span class=math-inline>$\lambda$</span></td><td>边际似然选 <span class=math-inline>$\sigma_n^2$</span></td><td>两条不同路径</td></tr><tr><td>无后验协方差</td><td><span class=math-inline>$\Sigma_*$</span>
+解析可得</td><td>GP 的"附赠&rdquo;</td></tr><tr><td>Representer 定理保证有限维解</td><td>Kolmogorov 一致性保证 GP 存在</td><td>不同的基础</td></tr></tbody></table></div><p>理解这张表后，&ldquo;KRR 给点估、GP 给分布"这一句口诀就再也不会忘了。</p><h2 id=on3-的墙 class=heading-anchor><span class=math-inline>$O(n^3)$</span>
+的墙<a href=#on3-%e7%9a%84%e5%a2%99 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>我们写过的每一条 GP 公式都涉及 <span class=math-inline>$(K + \sigma_n^2 I)^{-1}$</span>
+——一个 <span class=math-inline>$n \times n$</span>
+矩阵的 Cholesky。代价是：</p><ul><li><strong>计算：</strong> Cholesky <span class=math-inline>$O(n^3)$</span>
+，每次预测 <span class=math-inline>$O(n^2).$</span></li><li><strong>内存：</strong> 存 <span class=math-inline>$K$</span>
+要 <span class=math-inline>$O(n^2).$</span></li></ul><p><span class=math-inline>$n = 1{,}000$</span>
+时舒服：<span class=math-inline>$10^9$</span>
+浮点运算几秒钟，<span class=math-inline>$8\,\mathrm{MB}$</span>
+的 Gram 矩阵塞进缓存。<span class=math-inline>$n = 10{,}000$</span>
+时是 <span class=math-inline>$10^{12}$</span>
+浮点和 <span class=math-inline>$800\,\mathrm{MB}$</span>
+——还能跑，但优化器一次迭代要分钟级别，整轮超参学习要几小时。<span class=math-inline>$n = 100{,}000$</span>
+以上，矩阵塞不进内存，cubic 代价怎么都不能接受。一个具体数字：在 2026 年中端 CPU（单线程 ~50 GFLOPS double）上，<span class=math-inline>$n = 30000$</span>
+的一次 Cholesky 约 9 万亿浮点、需要约 3 分钟；L-BFGS 跑 30 步就是一个半小时——这是 vanilla GP 在没有结构假设下的硬上限。</p><p>这是 GP 作为通用模型<em>唯一</em>严肃的反对意见。神经网络能撑十亿条样本；vanilla GP 撑到几万条就挂。<strong>稀疏 GP 与可扩展 GP</strong> 这个完整的子领域，存在的全部目的就是把这堵墙推后：</p><p>把&rdquo;<span class=math-inline>$n$</span>
+增大一个数量级"的代价直观感受一下：</p><ul><li><span class=math-inline>$n = 10^3 \to 10^4$</span>
+：Cholesky 从毫秒到秒级，内存从 8 MB 到 800 MB。还能在笔记本上跑。</li><li><span class=math-inline>$n = 10^4 \to 10^5$</span>
+：Cholesky 从秒到 <span class=math-inline>$10^3$</span>
+秒（约 17 分钟），内存 80 GB——单机塞不下，必须换稀疏 GP 或分布式 Cholesky。</li><li><span class=math-inline>$n = 10^5 \to 10^6$</span>
+：单纯 Cholesky 需要 <span class=math-inline>$10^6$</span>
+秒（约 12 天），内存 8 TB——精确 GP 在这一档完全不可行，工业界的所有"百万样本 GP"实际上都是稀疏近似。</li></ul><p>这条非线性放大曲线就是 Part 7 整章存在的根本原因。</p><ul><li><strong>归纳点方法</strong>（FITC、VFE、SVGP）把 <span class=math-inline>$K$</span>
+压成秩 <span class=math-inline>$m \ll n$</span>
+的近似，代价掉到 <span class=math-inline>$O(nm^2)$</span>
+计算、<span class=math-inline>$O(nm)$</span>
+内存。</li><li><strong>随机特征近似</strong>（Random Fourier Features）把核换成显式有限维特征映射，对许多核能把代价降到 <span class=math-inline>$n$</span>
+的线性。</li><li><strong>Kronecker / Toeplitz 结构</strong>利用网格化输入对 Gram 矩阵做因子化。</li><li><strong>迭代解法</strong>（共轭梯度）避开 Cholesky、用 GPU 友好的矩阵向量乘近似求解。</li><li><strong>黑盒矩阵-向量乘</strong>（GPyTorch 的 KISS-GP、CIQ）把整套 GP 改写成只依赖 <span class=math-inline>$K\mathbf{v}$</span>
+的算子，进一步压低常数。</li></ul><p>各方案的代价与适用场景一目了然：</p><div class=table-wrap><table><thead><tr><th>方案</th><th>计算</th><th>内存</th><th>何时用</th></tr></thead><tbody><tr><td>精确 Cholesky</td><td><span class=math-inline>$O(n^3)$</span></td><td><span class=math-inline>$O(n^2)$</span></td><td><span class=math-inline>$n \le 5\,000$</span></td></tr><tr><td>Nyström / RFF</td><td><span class=math-inline>$O(nm^2)$</span></td><td><span class=math-inline>$O(nm)$</span></td><td><span class=math-inline>$n \in [10^4, 10^6]$</span></td></tr><tr><td>SVGP（变分稀疏）</td><td><span class=math-inline>$O(nm^2)$</span></td><td><span class=math-inline>$O(m^2)$</span></td><td><span class=math-inline>$n \ge 10^5,$</span>
+流式数据</td></tr><tr><td>Kronecker</td><td><span class=math-inline>$O(n^{1.5})$</span></td><td><span class=math-inline>$O(n)$</span></td><td>输入在网格上</td></tr><tr><td>共轭梯度 + GPU</td><td><span class=math-inline>$O(n^2)$</span>
+/ 迭代</td><td><span class=math-inline>$O(n)$</span></td><td>想用 GPU、对精度容忍</td></tr></tbody></table></div><p>这些是 <strong>Part 7</strong> 的主题。框架和这里完全一样——只换线性代数那一段。</p><h2 id=实践陷阱 class=heading-anchor>实践陷阱<a href=#%e5%ae%9e%e8%b7%b5%e9%99%b7%e9%98%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>真实 GP 代码里翻车的清单：</p><ul><li><strong>输入不标准化。</strong> RBF 的长度尺度是和输入同量纲的。如果 <span class=math-inline>$x$</span>
+在 <span class=math-inline>$[0, 10^6]$</span>
+，默认 <span class=math-inline>$\ell = 1$</span>
+让每对点看起来一模一样。<em>一定</em>把输入和输出都标准化到零均值单位方差再拟合。</li><li><strong>忘了 jitter。</strong> Cholesky 失败、看到"matrix is not positive definite"这种谜之报错，几乎一定是给 <span class=math-inline>$K$</span>
+加 <span class=math-inline>$10^{-6} I$</span>
+就能解决。</li><li><strong>每维一个长度尺度（ARD）。</strong> 多维输入时给每一维一个独立长度尺度：<span class=math-inline>$K(x, y) = \exp(-\sum_d (x_d - y_d)^2 / (2 \ell_d^2)).$</span>
+这叫自动相关性判定，学出来的 <span class=math-inline>$\ell_d$</span>
+告诉你模型认为哪些特征重要。</li><li><strong>只跑一次优化。</strong> 小 <span class=math-inline>$n$</span>
+时边际似然有多个局部极值。一定从 <span class=math-inline>$\geq 5$</span>
+个随机起点跑，留最优。</li><li><strong>只用预测均值。</strong> 你都用 GP 了，扔掉方差是干嘛的？<span class=math-inline>$O(n^3)$</span>
+的代价你付了——<em>用上</em>。</li><li><strong>没有噪声项。</strong> <span class=math-inline>$\sigma_n^2 = 0$</span>
+让核矩阵奇异、模型过分自信。哪怕你的数据"是确定的"（例如计算机模拟输出），也要把 <span class=math-inline>$\sigma_n^2 \geq 10^{-4}$</span>
+作为数值稳定项。</li><li><strong>把核行列式误用作对数似然。</strong> 真实代码里偶尔看到把 <span class=math-inline>$|K|$</span>
+直接传给 <code>np.log</code>——双精度下 <span class=math-inline>$n = 200$</span>
+起 <span class=math-inline>$|K|$</span>
+就下溢到 0，应当用 <span class=math-inline>$\sum_i \log L_{ii} \cdot 2$</span>
+计算（<span class=math-inline>$L$</span>
+是 Cholesky 因子），数值上稳定多个数量级。</li><li><strong>优化超参时混用真实 <span class=math-inline>$\theta$</span>
+和 <span class=math-inline>$\log\theta$</span>
+。</strong> 一边传 <span class=math-inline>$\theta$</span>
+给似然函数，一边在 <span class=math-inline>$\log\theta$</span>
+空间画 landscape，常常画出一片错的曲面。统一在 log 空间里思考，公开接口出去之前再 <code>exp</code> 一次。</li><li><strong>拿 RBF 套金融收益序列。</strong> RBF 的"无限光滑"假设和金融收益的尖角特征严重不匹配；预测均值会被外推得平滑过头，方差被低估。这种场景请改用 Matern-1/2 或直接 KRR + Huber 损失。</li><li><strong>把测试集和训练集放进同一个标准化器后再切分。</strong> 经典数据泄漏——标准化参数（均值、方差）会包含未来信息。<code>fit_transform(X_train)</code> 然后 <code>transform(X_test)</code>，永远分开。</li><li><strong>遗忘"预测均值 vs 后验中位数"在非高斯似然下的差别。</strong> GP 分类的 <span class=math-inline>$\mathbb{E}[\sigma(f_*)]$</span>
+和 <span class=math-inline>$\sigma(\mathbb{E}[f_*])$</span>
+是两个数；sklearn 的 <code>predict_proba</code> 默认前者，但有些库给的是后者。在校准敏感的应用里一定核对。</li></ul><h2 id=什么时候用-gp什么时候别用 class=heading-anchor>什么时候用 GP（什么时候别用）<a href=#%e4%bb%80%e4%b9%88%e6%97%b6%e5%80%99%e7%94%a8-gp%e4%bb%80%e4%b9%88%e6%97%b6%e5%80%99%e5%88%ab%e7%94%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>用 GP 当：</strong></p><ul><li><span class=math-inline>$n \lesssim 10^4$</span>
+而且你需要<em>校准过的不确定性</em>。</li><li>在做贝叶斯优化、主动学习、或者任何序贯决策。</li><li>数据很少而你需要一个强归纳偏置（核）外加诚实的误差棒。</li><li>想从数据里学超参，又不想做交叉验证。</li><li>多任务 / 多保真度回归——GP 天然支持把多组相关观测拼成一个联合核。</li><li>物理仿真的"surrogate model"，需要在 <span class=math-inline>$10^3$</span>
+个昂贵样本上拟合并支持后续 BO。</li></ul><p><strong>不用 GP 当：</strong></p><ul><li><span class=math-inline>$n \gg 10^4$</span>
+而且问题没有可利用的结构（网格、低秩核等）。用稀疏 GP（Part 7）或神经网络。</li><li>函数在输入空间里高度多峰（深度神经网络更自然地建模这种）。</li><li>似然很 exotic 而打破了共轭性。用 Stan/PyMC 加自定义模型可能比硬塞进 GP 框架更舒服。</li><li>特征非常巨大（图像、文本）。用深度网络学嵌入，再可选地在上面叠 GP（深度核学习——Part 8）。</li><li>在线学习场景下数据每秒涌进 <span class=math-inline>$10^6$</span>
+条——cubic 代价根本追不上。</li></ul><p>下表把"GP vs 几个常见替代"再压一下：</p><div class=table-wrap><table><thead><tr><th>维度</th><th>GP</th><th>核岭回归 KRR</th><th>贝叶斯神经网络</th><th>随机森林</th></tr></thead><tbody><tr><td>可校准不确定性</td><td>是（解析）</td><td>否</td><td>近似</td><td>启发式</td></tr><tr><td>超参选择</td><td>边际似然</td><td>CV</td><td>ELBO / SGLD</td><td>OOB / CV</td></tr><tr><td>训练复杂度</td><td><span class=math-inline>$O(n^3)$</span></td><td><span class=math-inline>$O(n^3)$</span></td><td><span class=math-inline>$O(n d)$</span>
+每步</td><td><span class=math-inline>$O(n \log n)$</span></td></tr><tr><td><span class=math-inline>$n = 10^6$</span>
+可用</td><td>否（要稀疏化）</td><td>否（要近似）</td><td>是</td><td>是</td></tr><tr><td>外推区域诚实度</td><td>高（方差涨回先验）</td><td>低</td><td>中</td><td>低</td></tr></tbody></table></div><p>一句话决策：<em>&ldquo;我的不确定性会被下游消费&rdquo;</em> 是 GP 的最强信号；如果下游只看 argmax / 点估计，KRR 或随机森林几乎都更划算。</p><h2 id=接下来 class=heading-anchor>接下来<a href=#%e6%8e%a5%e4%b8%8b%e6%9d%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Part 6 把核变成了一个贝叶斯模型：函数空间上的先验、带不确定性的后验、自动学超参的边际似然。代数和 Part 5 一样——Gram 矩阵上一次 Cholesky——额外代价为零。你付的代价是 <span class=math-inline>$O(n^3)$</span>
+的尺度限制，在一万个点以上就开始啃人。</p><p>把整篇的关键收获收成一个清单，方便复习时直接对照：</p><ul><li><strong>核就是先验</strong>：选 RBF / Matern / 周期，等价于选函数光滑度、长度尺度、周期结构。</li><li><strong>后验有闭式解</strong>：均值 <span class=math-inline>$\mu_*$</span>
+等于 KRR 预测，方差 <span class=math-inline>$\Sigma_*$</span>
+白送。</li><li><strong>边际似然自动选超参</strong>：拟合项与复杂度项平衡，对应 Occam&rsquo;s razor。</li><li><strong>数值实现的三件事</strong>：Cholesky、jitter、log 空间超参，缺一不可。</li><li><strong>唯一硬上限</strong>：<span class=math-inline>$O(n^3)$</span>
+Cholesky，<span class=math-inline>$n \gtrsim 10^4$</span>
+必须换稀疏 GP。</li><li><strong>下游用法</strong>：贝叶斯优化、主动学习、拒答、误差棒；任何下游消费"不确定性"的场景。</li></ul><p><strong>Part 7</strong> 推倒这堵墙。两个算法——Nyström 近似与随机傅立叶特征（RFF）——把核方法（包括 GP）从 <span class=math-inline>$O(n^3)$</span>
+拉到 <span class=math-inline>$O(n)$</span>
+或 <span class=math-inline>$O(nm^2)$</span>
+，让百万样本规模的数据集也能用核方法处理而不放弃整个框架。代价是一个显式的近似旋钮 <span class=math-inline>$m$</span>
+，控制你离精确核解有多近。我们会逐个推导两个算法、推清楚什么时候每种近似紧、并在真实规模问题上比较。</p><hr><p><em>本文是 <a href=/zh/series/kernel-methods/>核方法</a>
+系列的第 6 篇，共 8 篇。
+上一篇: <a href=/zh/kernel-methods/05-%e6%a0%b8svm%e6%a0%b8pca%e6%a0%b8%e5%b2%ad%e5%9b%9e%e5%bd%92/>第 5 篇 — 核 SVM / 核 PCA / 核岭回归</a>
+·
+下一篇: <a href=/zh/kernel-methods/07-%e5%a4%a7%e8%a7%84%e6%a8%a1%e6%a0%b8%e6%96%b9%e6%b3%95/>第 7 篇 — 大规模核方法（Nystrom + RFF）</a></em></p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/kernel-methods/05-%E6%A0%B8svm%E6%A0%B8pca%E6%A0%B8%E5%B2%AD%E5%9B%9E%E5%BD%92/ data-next-url=https://www.chenk.top/zh/kernel-methods/07-%E5%A4%A7%E8%A7%84%E6%A8%A1%E6%A0%B8%E6%96%B9%E6%B3%95/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/kernel-methods/>核方法</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/kernel-methods/05-%E6%A0%B8svm%E6%A0%B8pca%E6%A0%B8%E5%B2%AD%E5%9B%9E%E5%BD%92/><span class=title>核方法（五）：核 SVM、核 PCA 与核岭回归</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/kernel-methods/07-%E5%A4%A7%E8%A7%84%E6%A8%A1%E6%A0%B8%E6%96%B9%E6%B3%95/><span class=title>核方法（七）：大规模核方法——Nystrom 近似与随机傅里叶特征</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/kernel-methods/01-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E6%A0%B8%E6%96%B9%E6%B3%95/><span class=series-nav-num>01</span>
+<span class=series-nav-title>核方法（一）：为什么需要它——从线性算法的天花板说起</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/kernel-methods/02-%E6%A0%B8%E6%96%B9%E6%B3%95%E7%9A%84%E6%95%B0%E5%AD%A6%E5%9F%BA%E7%A1%80/><span class=series-nav-num>02</span>
+<span class=series-nav-title>核方法（二）：数学基础——正定核与 Mercer 定理</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/kernel-methods/03-rkhs%E7%90%86%E8%AE%BA/><span class=series-nav-num>03</span>
+<span class=series-nav-title>核方法（三）：RKHS——核方法的理论灵魂</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/kernel-methods/04-%E5%B8%B8%E8%A7%81%E6%A0%B8%E5%87%BD%E6%95%B0%E6%97%8F/><span class=series-nav-num>04</span>
+<span class=series-nav-title>核方法（四）：常见核函数族——RBF、Matern、多项式、周期与更多</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/kernel-methods/05-%E6%A0%B8svm%E6%A0%B8pca%E6%A0%B8%E5%B2%AD%E5%9B%9E%E5%BD%92/><span class=series-nav-num>05</span>
+<span class=series-nav-title>核方法（五）：核 SVM、核 PCA 与核岭回归</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>06</span>
+<span class=series-nav-title>核方法（六）：高斯过程——当核方法遇到贝叶斯推断</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/kernel-methods/07-%E5%A4%A7%E8%A7%84%E6%A8%A1%E6%A0%B8%E6%96%B9%E6%B3%95/><span class=series-nav-num>07</span>
+<span class=series-nav-title>核方法（七）：大规模核方法——Nystrom 近似与随机傅里叶特征</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/kernel-methods/08-%E6%B7%B1%E5%BA%A6%E6%A0%B8%E5%AD%A6%E4%B9%A0/><span class=series-nav-num>08</span>
+<span class=series-nav-title>核方法（八）：深度核学习 vs 深度学习——选择指南与故障排查</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E6%25A0%25B8%25E6%2596%25B9%25E6%25B3%2595%25EF%25BC%2588%25E5%2585%25AD%25EF%25BC%2589%25EF%25BC%259A%25E9%25AB%2598%25E6%2596%25AF%25E8%25BF%2587%25E7%25A8%258B%25E2%2580%2594%25E2%2580%2594%25E5%25BD%2593%25E6%25A0%25B8%25E6%2596%25B9%25E6%25B3%2595%25E9%2581%2587%25E5%2588%25B0%25E8%25B4%259D%25E5%258F%25B6%25E6%2596%25AF%25E6%258E%25A8%25E6%2596%25AD&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fkernel-methods%252F06-%2525E9%2525AB%252598%2525E6%252596%2525AF%2525E8%2525BF%252587%2525E7%2525A8%25258B%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fkernel-methods%252F06-%2525E9%2525AB%252598%2525E6%252596%2525AF%2525E8%2525BF%252587%2525E7%2525A8%25258B%252F&title=%25E6%25A0%25B8%25E6%2596%25B9%25E6%25B3%2595%25EF%25BC%2588%25E5%2585%25AD%25EF%25BC%2589%25EF%25BC%259A%25E9%25AB%2598%25E6%2596%25AF%25E8%25BF%2587%25E7%25A8%258B%25E2%2580%2594%25E2%2580%2594%25E5%25BD%2593%25E6%25A0%25B8%25E6%2596%25B9%25E6%25B3%2595%25E9%2581%2587%25E5%2588%25B0%25E8%25B4%259D%25E5%258F%25B6%25E6%2596%25AF%25E6%258E%25A8%25E6%2596%25AD" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/kernel-methods/06-%E9%AB%98%E6%96%AF%E8%BF%87%E7%A8%8B/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2021-12-19>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#什么是高斯过程函数空间上的高斯分布>什么是高斯过程：函数空间上的高斯分布</a></li><li><a href=#gp-先验在看到数据前采样函数>GP 先验：在看到数据前采样函数</a></li><li><a href=#gp-后验在观测数据上条件化>GP 后验：在观测数据上条件化</a></li><li><a href=#gp-回归实战完整例子>GP 回归实战：完整例子</a></li><li><a href=#超参数学习边际似然>超参数学习：边际似然</a></li><li><a href=#occams-razor机械式地>Occam&rsquo;s razor，机械式地</a></li><li><a href=#gp-分类从高斯到非高斯似然>GP 分类：从高斯到非高斯似然</a></li><li><a href=#gp-回归等于核岭回归但白送你不确定性>GP 回归等于核岭回归——但白送你不确定性</a></li><li><a href=#on3-的墙>的墙</a></li><li><a href=#实践陷阱>实践陷阱</a></li><li><a href=#什么时候用-gp什么时候别用>什么时候用 GP（什么时候别用）</a></li><li><a href=#接下来>接下来</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/kernel-methods/ class=series-name>核方法</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/01-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E6%A0%B8%E6%96%B9%E6%B3%95/><span class=chapter-num>01</span>
+<span class=chapter-title>核方法（一）：为什么需要它——从线性算法的天花板说起</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/02-%E6%A0%B8%E6%96%B9%E6%B3%95%E7%9A%84%E6%95%B0%E5%AD%A6%E5%9F%BA%E7%A1%80/><span class=chapter-num>02</span>
+<span class=chapter-title>核方法（二）：数学基础——正定核与 Mercer 定理</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/03-rkhs%E7%90%86%E8%AE%BA/><span class=chapter-num>03</span>
+<span class=chapter-title>核方法（三）：RKHS——核方法的理论灵魂</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/04-%E5%B8%B8%E8%A7%81%E6%A0%B8%E5%87%BD%E6%95%B0%E6%97%8F/><span class=chapter-num>04</span>
+<span class=chapter-title>核方法（四）：常见核函数族——RBF、Matern、多项式、周期与更多</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/05-%E6%A0%B8svm%E6%A0%B8pca%E6%A0%B8%E5%B2%AD%E5%9B%9E%E5%BD%92/><span class=chapter-num>05</span>
+<span class=chapter-title>核方法（五）：核 SVM、核 PCA 与核岭回归</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>06</span>
+<span class=chapter-title>核方法（六）：高斯过程——当核方法遇到贝叶斯推断</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/07-%E5%A4%A7%E8%A7%84%E6%A8%A1%E6%A0%B8%E6%96%B9%E6%B3%95/><span class=chapter-num>07</span>
+<span class=chapter-title>核方法（七）：大规模核方法——Nystrom 近似与随机傅里叶特征</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/08-%E6%B7%B1%E5%BA%A6%E6%A0%B8%E5%AD%A6%E4%B9%A0/><span class=chapter-num>08</span>
+<span class=chapter-title>核方法（八）：深度核学习 vs 深度学习——选择指南与故障排查</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>54 min</strong></div><div class=row><span>字数</span><strong>13035</strong></div><div class=row><span>写于</span><strong>Dec 2021</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/product-thinking/>产品思维</a></li><li><a href=https://www.chenk.top/zh/series/personal-finance/>个人理财</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=关闭>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>在微信里搜索此 ID 即可添加我</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>复制微信号</button></div></div></div></footer></body></html>

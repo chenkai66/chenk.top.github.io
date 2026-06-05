@@ -1,0 +1,600 @@
+<!doctype html><html lang=zh data-translation=/en/claude-code-learn/03-custom-commands/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Claude Code 实战（三）：自定义斜杠命令与对话控制 · Chen Kai Blog</title>
+<meta name=description content="斜杠命令将重复性工作流压缩为一行调用；$ARGUMENTS 让它支持参数化；而真正优秀的命令，会自然演变为团队共享的协作语言。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/claude-code-learn/03-custom-commands/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/claude-code-learn/03-custom-commands/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/claude-code-learn/03-custom-commands/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/claude-code-learn/03-custom-commands/><meta property="og:type" content="article"><meta property="og:title" content="Claude Code 实战（三）：自定义斜杠命令与对话控制"><meta property="og:description" content="斜杠命令将重复性工作流压缩为一行调用；$ARGUMENTS 让它支持参数化；而真正优秀的命令，会自然演变为团队共享的协作语言。"><meta property="og:url" content="https://www.chenk.top/zh/claude-code-learn/03-custom-commands/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/claude-code-learn.jpg"><meta property="og:image:alt" content="Claude Code 实战（三）：自定义斜杠命令与对话控制"><meta property="article:published_time" content="2026-04-20T09:00:00Z"><meta property="article:modified_time" content="2026-04-20T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="claude-code"><meta property="article:tag" content="slash-commands"><meta property="article:tag" content="Workflow"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Claude Code 实战（三）：自定义斜杠命令与对话控制"><meta name=twitter:description content="斜杠命令将重复性工作流压缩为一行调用；$ARGUMENTS 让它支持参数化；而真正优秀的命令，会自然演变为团队共享的协作语言。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/claude-code-learn.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"Claude Code 实战（三）：自定义斜杠命令与对话控制","description":"斜杠命令将重复性工作流压缩为一行调用；$ARGUMENTS 让它支持参数化；而真正优秀的命令，会自然演变为团队共享的协作语言。","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/claude-code-learn.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2026-04-20T09:00:00Z","dateModified":"2026-04-20T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/zh/claude-code-learn/03-custom-commands/"},"inLanguage":"zh"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/claude-code-learn/03-custom-commands.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/claude-code-learn/>Claude Code 实战</a>
+· 第 3 篇</div><h1>Claude Code 实战（三）：自定义斜杠命令与对话控制</h1><p class=deck>斜杠命令将重复性工作流压缩为一行调用；$ARGUMENTS 让它支持参数化；而真正优秀的命令，会自然演变为团队共享的协作语言。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-04-20>April 20, 2026</time> · 32 分钟 · 7674 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/claude-code/ class=tag>#claude-code</a><a href=/zh/tags/slash-commands/ class=tag>#slash-commands</a><a href=/zh/tags/workflow/ class=tag>#Workflow</a></div><a class="pill pill-outline" href=/en/claude-code-learn/03-custom-commands/>Read in English →</a></div></header><div class=prose><p><code>/clear</code> 和 <code>/init</code> 这类内置斜杠命令，只是冰山一角。整个系统的核心设计，正是让你<strong>亲手编写属于自己的命令</strong>——它们就存放在你的代码仓库里。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/illustration_1.png alt="Claude Code 实战指南（三）：自定义斜杠命令与对话控制 — 示意图" loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=什么是斜杠命令 class=heading-anchor>什么是斜杠命令？<a href=#%e4%bb%80%e4%b9%88%e6%98%af%e6%96%9c%e6%9d%a0%e5%91%bd%e4%bb%a4 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>一个位于 <code>.claude/commands/&lt;name>.md</code> 的 Markdown 文件。文件内容即为向 Claude 发送的提示词（prompt），文件名就是命令名。创建后需重启 Claude Code（这是少数几个不支持热重载的功能）。</p><p>最简示例：新建 <code>.claude/commands/audit.md</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>运行 <span class=sb>`npm audit`</span> 查找已安装包中的安全漏洞。
+</span></span><span class=line><span class=cl>运行 <span class=sb>`npm audit fix`</span> 应用非破坏性修复。
+</span></span><span class=line><span class=cl>运行 <span class=sb>`npm test`</span> 确认修复未引入新问题。
+</span></span><span class=line><span class=cl>报告哪些 CVE 已被修复、哪些仍待处理。
+</span></span></code></pre></td></tr></table></div></div><p>重启后，在任意会话中输入：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>/audit
+</span></span></code></pre></td></tr></table></div></div><p>整段提示词会立即执行，你将直接获得一份结构清晰的安全审计报告，无需手动回忆和逐条输入命令。</p><p>注意两点：</p><ol><li><strong>命令本质就是 prompt</strong>：没有 DSL，没有特殊语法，极简表面积，极大灵活性。</li><li><strong>一次编写，全员复用</strong>：下次团队中任何人需要做安全审计，只需输入 <code>/audit</code>。</li></ol><h3 id=斜杠命令的内部工作机制 class=heading-anchor>斜杠命令的内部工作机制<a href=#%e6%96%9c%e6%9d%a0%e5%91%bd%e4%bb%a4%e7%9a%84%e5%86%85%e9%83%a8%e5%b7%a5%e4%bd%9c%e6%9c%ba%e5%88%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>当你输入 <code>/audit</code> 时，Claude Code 会执行以下步骤：</p><ol><li>在当前项目中查找 <code>.claude/commands/audit.md</code></li><li>同时检查 <code>~/.claude/commands/audit.md</code>（个人全局命令目录）</li><li>读取文件内容</li><li>将其作为 prompt 发送给 Claude，效果等同于你亲手输入了这段文字</li></ol><p><strong>项目级命令的优先级高于全局命令</strong>。这意味着团队可直接在项目中覆盖你个人的 <code>/audit</code>，提供更贴合当前项目的版本。</p><p>命令内容就是一段普通 prompt，因此支持以下能力：</p><ul><li>使用 <code>@</code> 引用项目内文件</li><li>插入思考层级指令（如 “think a lot”）</li><li>通过 <code>$ARGUMENTS</code> 实现参数化</li><li>编写多步骤复杂指令</li><li>完整保留 Markdown 格式（加粗、列表、表格等）</li></ul><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/fig3.png alt=斜杠命令查找顺序：项目命令优先、其次用户命令、最后内置命令 loading=lazy decoding=async class=content-image></figure><em>图：Claude Code 解析斜杠命令时的查找顺序——先项目级，再用户级，最后内置命令。</em></p><h2 id=目录结构规范 class=heading-anchor>目录结构规范<a href=#%e7%9b%ae%e5%bd%95%e7%bb%93%e6%9e%84%e8%a7%84%e8%8c%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>一个成熟项目的 <code>.claude/</code> 目录结构如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>.claude/
+</span></span><span class=line><span class=cl>├── commands/               # 项目级命令（提交至 Git）
+</span></span><span class=line><span class=cl>│   ├── audit.md
+</span></span><span class=line><span class=cl>│   ├── review.md
+</span></span><span class=line><span class=cl>│   ├── test.md
+</span></span><span class=line><span class=cl>│   ├── deploy.md
+</span></span><span class=line><span class=cl>│   ├── explain.md
+</span></span><span class=line><span class=cl>│   ├── document.md
+</span></span><span class=line><span class=cl>│   ├── onboard.md
+</span></span><span class=line><span class=cl>│   └── debug.md
+</span></span><span class=line><span class=cl>├── settings.json           # 项目配置（提交至 Git）
+</span></span><span class=line><span class=cl>├── settings.local.json     # 个人配置（.gitignore 排除）
+</span></span><span class=line><span class=cl>└── CLAUDE.md               # 项目记忆文件（建议提交至 Git，或置于仓库根目录）
+</span></span></code></pre></td></tr></table></div></div><p>个人全局命令则存放于：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>~/.claude/
+</span></span><span class=line><span class=cl>├── commands/               # 个人全局命令
+</span></span><span class=line><span class=cl>│   ├── standup.md
+</span></span><span class=line><span class=cl>│   ├── changelog.md
+</span></span><span class=line><span class=cl>│   └── quicktest.md
+</span></span><span class=line><span class=cl>├── settings.json           # 全局配置
+</span></span><span class=line><span class=cl>└── auth.json               # 认证 token
+</span></span></code></pre></td></tr></table></div></div><p><strong>两者的核心区别在于作用域</strong>：<br>✅ 团队命令 → 放在项目 <code>.claude/commands/</code> 下 → 仅对该仓库生效<br>✅ 个人命令 → 放在 <code>~/.claude/commands/</code> 下 → 在所有项目中均可使用</p><h3 id=命名规范短直准 class=heading-anchor>命名规范：短、直、准<a href=#%e5%91%bd%e5%90%8d%e8%a7%84%e8%8c%83%e7%9f%ad%e7%9b%b4%e5%87%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>命令名即斜杠后的字符串，应简洁明确：</p><div class=table-wrap><table><thead><tr><th>推荐</th><th>不推荐</th><th>原因</th></tr></thead><tbody><tr><td><code>/review</code></td><td><code>/code-review-for-pr</code></td><td>过长，影响输入效率</td></tr><tr><td><code>/test</code></td><td><code>/run-all-tests-and-report</code></td><td>冗余，违背“一词一意”原则</td></tr><tr><td><code>/deploy</code></td><td><code>/deploy-to-staging-env</code></td><td>环境应通过 <code>$ARGUMENTS</code> 指定，而非硬编码进命令名</td></tr><tr><td><code>/explain</code></td><td><code>/e</code></td><td>对队友不友好，缺乏可发现性</td></tr><tr><td><code>/debug</code></td><td><code>/dbg</code></td><td>新成员无法直观理解含义</td></tr></tbody></table></div><p><strong>黄金标准</strong>：单个英文单词，4–8 字符，团队新人第一次见就能猜中用途。如果有人看到 <code>/review</code> 却想不到是“代码评审”，那命名就失败了。</p><p>🚫 避免在名称中加入版本号（如 <code>/review-v2</code>、<code>/test-new</code>）。需要升级时，直接替换原文件即可。Git 历史会自动保留旧版本，随时可回溯。</p><h2 id=arguments让命令支持参数化 class=heading-anchor><code>$ARGUMENTS</code>：让命令支持参数化<a href=#arguments%e8%ae%a9%e5%91%bd%e4%bb%a4%e6%94%af%e6%8c%81%e5%8f%82%e6%95%b0%e5%8c%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/illustration_2.png alt="Claude Code 实战指南（三）：自定义斜杠命令与对话控制 — 参数化示意" loading=lazy decoding=async class=content-image></figure></p><p>斜杠命令内置一个魔法变量 <code>$ARGUMENTS</code> —— 它会被自动替换成你在命令名后输入的全部内容。例如，<code>.claude/commands/explain.md</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>请从三个层面解释 $ARGUMENTS：
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>1.</span> <span class=gs>**一句话定义**</span>：用大白话说明它是什么，禁用术语。
+</span></span><span class=line><span class=cl><span class=k>2.</span> <span class=gs>**一段原理**</span>：它如何工作？核心组件有哪些？为何存在？可辅以类比。
+</span></span><span class=line><span class=cl><span class=k>3.</span> <span class=gs>**代码级定位**</span>：指出它在本仓库中的具体实现位置（含文件路径与行号）。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>若该术语在本代码库中存在歧义，请先列出可能含义，并询问我具体想了解哪一种。
+</span></span></code></pre></td></tr></table></div></div><p>然后输入：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>/explain rate limiter
+</span></span></code></pre></td></tr></table></div></div><p><code>$ARGUMENTS</code> 即被替换为 <code>rate limiter</code>，Claude 将基于真实代码库生成一份三层嵌套的精准解释。</p><p>![<span class=math-inline>$ARGUMENTS 替换流程：命令文件 + 用户输入 -> 最终发送给 Claude 的 prompt](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/fig4.png)
+*图：`$</span>
+ARGUMENTS` 仅做纯字符串替换——命令名后的全部内容会原样拼入 prompt。*</p><h3 id=arguments-的典型用法模式 class=heading-anchor><code>$ARGUMENTS</code> 的典型用法模式<a href=#arguments-%e7%9a%84%e5%85%b8%e5%9e%8b%e7%94%a8%e6%b3%95%e6%a8%a1%e5%bc%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><code>$ARGUMENTS</code> 本质是纯字符串替换 —— 命令名后所有内容原样填入。这种简单性正是其优势所在。以下是几种经实战验证的高效模式：</p><p><strong>单参数：标识符或名称</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/find.md --&gt;</span>
+</span></span><span class=line><span class=cl>在代码库中查找所有对 $ARGUMENTS 的引用。
+</span></span><span class=line><span class=cl>按以下三类分组呈现：
+</span></span><span class=line><span class=cl><span class=k>-</span> 直接调用
+</span></span><span class=line><span class=cl><span class=k>-</span> 重新导出（re-export）
+</span></span><span class=line><span class=cl><span class=k>-</span> 测试中使用
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>每处引用均标注文件路径与行号。
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>/find UserService
+</span></span></code></pre></td></tr></table></div></div><p><strong>多参数：自然语言句子</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/compare.md --&gt;</span>
+</span></span><span class=line><span class=cl>对比 $ARGUMENTS。
+</span></span><span class=line><span class=cl>以表格形式呈现关键差异，包含：
+</span></span><span class=line><span class=cl><span class=k>-</span> API 表面（API surface）
+</span></span><span class=line><span class=cl><span class=k>-</span> 性能影响（perf impact）
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>最后给出建议：针对本项目，应选用哪一个？为什么？
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>/compare axios vs fetch vs ky for HTTP requests
+</span></span></code></pre></td></tr></table></div></div><p><code>/compare</code> 后的所有内容（<code>axios vs fetch vs ky for HTTP requests</code>）整体成为 <code>$ARGUMENTS</code>，Claude 将其视为一条自然语言指令处理。</p><p><strong>参数为文件路径</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/coverage.md --&gt;</span>
+</span></span><span class=line><span class=cl>分析 $ARGUMENTS 模块的测试覆盖率。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>1.</span> 找出测试该模块的测试文件；
+</span></span><span class=line><span class=cl><span class=k>2.</span> 列出该模块导出的所有函数/类；
+</span></span><span class=line><span class=cl><span class=k>3.</span> 对每个导出项，标明是否已有测试覆盖；
+</span></span><span class=line><span class=cl><span class=k>4.</span> 对未覆盖的函数，生成测试桩（stub）。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>⚠️ 不得修改现有测试，仅允许新增。
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>/coverage src/services/payment.ts
+</span></span></code></pre></td></tr></table></div></div><p><strong>无参数：默认行为兜底</strong></p><p>若用户只输入 <code>/coverage</code> 而未带任何后续内容，<code>$ARGUMENTS</code> 将为空字符串。请在 prompt 中优雅处理：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/status.md --&gt;</span>
+</span></span><span class=line><span class=cl>展示项目当前状态。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>若指定了具体领域：$ARGUMENTS → 聚焦该领域分析；
+</span></span><span class=line><span class=cl>否则 → 提供全局概览：
+</span></span><span class=line><span class=cl><span class=k>1.</span> Git 状态（未提交变更、当前分支、落后/超前提交数）
+</span></span><span class=line><span class=cl><span class=k>2.</span> 最近 5 条提交（每条一行）
+</span></span><span class=line><span class=cl><span class=k>3.</span> 是否存在失败的测试
+</span></span><span class=line><span class=cl><span class=k>4.</span> 是否存在 lint 错误
+</span></span><span class=line><span class=cl><span class=k>5.</span> 近一周新增的 TODO 注释
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>/status                    # 全局概览
+</span></span><span class=line><span class=cl>/status authentication     # 聚焦鉴权模块
+</span></span></code></pre></td></tr></table></div></div><p>这种“有参则聚焦，无参则全量”的设计，让一条命令同时满足通用与专用场景，无需拆分成多个命令。</p><h2 id=我在每个项目中必配的核心命令集 class=heading-anchor>我在每个项目中必配的核心命令集<a href=#%e6%88%91%e5%9c%a8%e6%af%8f%e4%b8%aa%e9%a1%b9%e7%9b%ae%e4%b8%ad%e5%bf%85%e9%85%8d%e7%9a%84%e6%a0%b8%e5%bf%83%e5%91%bd%e4%bb%a4%e9%9b%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>经过两年的实践沉淀，我提炼出一套高复用率的命令模板，以下是完整的 prompt 内容：</p><h3 id=audit--安全审计 class=heading-anchor><code>/audit</code> —— 安全审计<a href=#audit--%e5%ae%89%e5%85%a8%e5%ae%a1%e8%ae%a1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>运行 <span class=sb>`npm audit`</span>（或本项目实际包管理器的等效命令），
+</span></span><span class=line><span class=cl>查找已安装依赖中的安全漏洞。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>输出报告需包含：
+</span></span><span class=line><span class=cl><span class=k>1.</span> 按严重等级（critical / high / moderate / low）统计漏洞总数；
+</span></span><span class=line><span class=cl><span class=k>2.</span> 对每个 critical/high 级别漏洞：列出包名、CVE 编号、是否存在可用修复；
+</span></span><span class=line><span class=cl><span class=k>3.</span> 对非破坏性更新，自动执行修复命令；
+</span></span><span class=line><span class=cl><span class=k>4.</span> 运行测试确认修复未引发回归；
+</span></span><span class=line><span class=cl><span class=k>5.</span> 列出仍需人工干预的剩余漏洞。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>若项目不使用 npm，请根据 <span class=sb>`CLAUDE.md`</span> 中的指引，适配 pip / cargo 等对应工具。
+</span></span></code></pre></td></tr></table></div></div><h3 id=test--测试运行与分析 class=heading-anchor><code>/test</code> —— 测试运行与分析<a href=#test--%e6%b5%8b%e8%af%95%e8%bf%90%e8%a1%8c%e4%b8%8e%e5%88%86%e6%9e%90 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>运行项目测试套件（具体命令见 <span class=sb>`CLAUDE.md`</span>）。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>对每个失败用例：
+</span></span><span class=line><span class=cl>  <span class=k>-</span> 引用失败的测试名及断言；
+</span></span><span class=line><span class=cl>  <span class=k>-</span> 展示相关代码（含测试代码与被测代码）；
+</span></span><span class=line><span class=cl>  <span class=k>-</span> 提出最小可行修复方案；
+</span></span><span class=line><span class=cl>  <span class=k>-</span> 明确标注应修改测试还是业务代码；
+</span></span><span class=line><span class=cl>  <span class=k>-</span> 给出置信度评级：high / medium / low。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>最终汇总：
+</span></span><span class=line><span class=cl>  <span class=k>-</span> 总计：X 通过，Y 失败，Z 跳过；
+</span></span><span class=line><span class=cl>  <span class=k>-</span> 若全部通过，仅输出 “All tests pass” —— 无需冗余格式。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>⚠️ 本命令仅作诊断报告，禁止实际修改代码。
+</span></span></code></pre></td></tr></table></div></div><h3 id=review--代码评审 class=heading-anchor><code>/review</code> —— 代码评审<a href=#review--%e4%bb%a3%e7%a0%81%e8%af%84%e5%ae%a1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>评审暂存区变更（`git diff --staged`）。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>若暂存区为空，则评审工作区变更（`git diff`）；
+</span></span><span class=line><span class=cl>若无任何变更，则直接说明并终止。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>评审重点（按优先级排序）：
+</span></span><span class=line><span class=cl><span class=k>1.</span> <span class=gs>**正确性**</span>：是否会引发崩溃或逻辑错误？
+</span></span><span class=line><span class=cl><span class=k>2.</span> <span class=gs>**边界情况**</span>：哪些输入/状态未被处理？
+</span></span><span class=line><span class=cl><span class=k>3.</span> <span class=gs>**命名规范**</span>：变量/函数名是否清晰、一致？
+</span></span><span class=line><span class=cl><span class=k>4.</span> <span class=ge>**</span><span class=sb>`CLAUDE.md`</span> 约定**：是否遵循项目约定？
+</span></span><span class=line><span class=cl><span class=k>5.</span> <span class=gs>**性能**</span>：是否存在明显 N+1 查询、冗余循环等？
+</span></span><span class=line><span class=cl><span class=k>6.</span> <span class=gs>**安全**</span>：是否有注入、权限绕过、数据泄露风险？
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>输出格式要求：
+</span></span><span class=line><span class=cl><span class=k>-</span> 编号条目式呈现；
+</span></span><span class=line><span class=cl><span class=k>-</span> 每条标注严重等级：🔴 必须修复 / 🟡 建议修复 / 🟢 微小建议 / 👍 值得表扬；
+</span></span><span class=line><span class=cl><span class=k>-</span> 结尾附一段总结：此 PR 是否可直接合并？
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Think a lot before responding.
+</span></span></code></pre></td></tr></table></div></div><h3 id=explain--三层解释法 class=heading-anchor><code>/explain</code> —— 三层解释法<a href=#explain--%e4%b8%89%e5%b1%82%e8%a7%a3%e9%87%8a%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>请从三个层面解释 $ARGUMENTS：
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>1.</span> <span class=gs>**一句话定义**</span>：用大白话说明它是什么，禁用术语。
+</span></span><span class=line><span class=cl><span class=k>2.</span> <span class=gs>**一段原理**</span>：它如何工作？核心组件有哪些？为何存在？可辅以类比。
+</span></span><span class=line><span class=cl><span class=k>3.</span> <span class=gs>**代码级定位**</span>：指出它在本仓库中的具体实现位置（含文件路径与行号），并梳理关键逻辑。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>若该术语在本代码库中存在歧义，请先列出可能含义，并询问我具体想了解哪一种。
+</span></span><span class=line><span class=cl>若代码库中未实现该概念，请作通用解释，并注明 “未在本项目中找到实现”。
+</span></span></code></pre></td></tr></table></div></div><h3 id=onboard--新工程师入职指南 class=heading-anchor><code>/onboard</code> —— 新工程师入职指南<a href=#onboard--%e6%96%b0%e5%b7%a5%e7%a8%8b%e5%b8%88%e5%85%a5%e8%81%8c%e6%8c%87%e5%8d%97 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>为即将加入本仓库的新工程师撰写一份一页纸的入职文档。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>以 <span class=sb>`CLAUDE.md`</span> 为唯一权威来源，辅以关键文件阅读。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>必须包含：
+</span></span><span class=line><span class=cl><span class=k>1.</span> <span class=gs>**功能定位**</span>：一句话讲清本项目是做什么的（禁用黑话）；
+</span></span><span class=line><span class=cl><span class=k>2.</span> <span class=gs>**本地搭建**</span>：从 clone 到成功运行的完整步骤；
+</span></span><span class=line><span class=cl><span class=k>3.</span> <span class=gs>**运行测试**</span>：精确命令与预期输出；
+</span></span><span class=line><span class=cl><span class=k>4.</span> <span class=gs>**架构概览**</span>：最重要的 3–5 个目录及其职责；
+</span></span><span class=line><span class=cl><span class=k>5.</span> <span class=gs>**高频雷区**</span>：新人最容易踩坑的三件事；
+</span></span><span class=line><span class=cl><span class=k>6.</span> <span class=gs>**调试起点**</span>：遇到问题时，第一步该看哪里？
+</span></span><span class=line><span class=cl><span class=k>7.</span> <span class=gs>**关键联系人**</span>：各模块负责人（若 <span class=sb>`CLAUDE.md`</span> 中有记录）。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>严格控制在一页内，拒绝注水。目标：新人 10 分钟内通读，即可上手开发。
+</span></span></code></pre></td></tr></table></div></div><h3 id=deploy--部署前检查清单 class=heading-anchor><code>/deploy</code> —— 部署前检查清单<a href=#deploy--%e9%83%a8%e7%bd%b2%e5%89%8d%e6%a3%80%e6%9f%a5%e6%b8%85%e5%8d%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>准备部署至 $ARGUMENTS（默认为 staging）。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>检查清单：
+</span></span><span class=line><span class=cl><span class=k>1.</span> 测试全部通过；
+</span></span><span class=line><span class=cl><span class=k>2.</span> Lint 无错误（警告可接受）；
+</span></span><span class=line><span class=cl><span class=k>3.</span> 无未提交变更（如有则预警）；
+</span></span><span class=line><span class=cl><span class=k>4.</span> 当前分支为 main/master（否则预警）；
+</span></span><span class=line><span class=cl><span class=k>5.</span> 展示本次将部署的提交（对比上次部署 tag）；
+</span></span><span class=line><span class=cl><span class=k>6.</span> 检查变更文件中是否存在 TODO / FIXME 注释；
+</span></span><span class=line><span class=cl><span class=k>7.</span> 核对环境变量是否完备（对比 <span class=sb>`.env.example`</span> 与 <span class=sb>`.env`</span>）。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>结尾输出明确的 “Go / No-Go” 决策摘要。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>⚠️ 本命令仅为预检，禁止实际执行部署。
+</span></span></code></pre></td></tr></table></div></div><h3 id=debug--结构化调试 class=heading-anchor><code>/debug</code> —— 结构化调试<a href=#debug--%e7%bb%93%e6%9e%84%e5%8c%96%e8%b0%83%e8%af%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>请结构化调试以下问题：
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>$ARGUMENTS
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>执行流程：
+</span></span><span class=line><span class=cl><span class=k>1.</span> <span class=gs>**复现**</span>：明确触发该问题的精确步骤或条件；
+</span></span><span class=line><span class=cl><span class=k>2.</span> <span class=gs>**定位**</span>：找出相关代码。从报错信息、堆栈追踪或描述中提到的模块名入手；
+</span></span><span class=line><span class=cl><span class=k>3.</span> <span class=gs>**假设**</span>：列出 2–3 种可能原因，按可能性排序；
+</span></span><span class=line><span class=cl><span class=k>4.</span> <span class=gs>**验证**</span>：对最可能原因，追踪代码路径并确认；
+</span></span><span class=line><span class=cl><span class=k>5.</span> <span class=gs>**修复**</span>：提出最小改动方案，以 diff 形式呈现；
+</span></span><span class=line><span class=cl><span class=k>6.</span> <span class=gs>**验证**</span>：说明如何测试该修复是否生效。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>⚠️ 禁止实际应用修复，仅提供待审阅方案。
+</span></span><span class=line><span class=cl>Think a lot before responding.
+</span></span></code></pre></td></tr></table></div></div><h3 id=document--自动生成文档 class=heading-anchor><code>/document</code> —— 自动生成文档<a href=#document--%e8%87%aa%e5%8a%a8%e7%94%9f%e6%88%90%e6%96%87%e6%a1%a3 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>为 $ARGUMENTS 生成文档。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>若为文件路径 → 文档化该文件的导出项（函数/类/类型）；  
+</span></span><span class=line><span class=cl>若为模块名 → 文档化该模块的公共 API；  
+</span></span><span class=line><span class=cl>若为概念 → 解释其在本代码库中的实现方式。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>对每个函数/方法，需包含：
+</span></span><span class=line><span class=cl><span class=k>-</span> 一句话简介（单行）；
+</span></span><span class=line><span class=cl><span class=k>-</span> 参数（含类型与说明）；
+</span></span><span class=line><span class=cl><span class=k>-</span> 返回值；
+</span></span><span class=line><span class=cl><span class=k>-</span> 示例用法；
+</span></span><span class=line><span class=cl><span class=k>-</span> 边界情况或注意事项。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>输出格式为可直接粘贴到代码中的 JSDoc/docstring 注释，风格需与项目现有文档保持一致。
+</span></span></code></pre></td></tr></table></div></div><h2 id=构建团队级命令库 class=heading-anchor>构建团队级命令库<a href=#%e6%9e%84%e5%bb%ba%e5%9b%a2%e9%98%9f%e7%ba%a7%e5%91%bd%e4%bb%a4%e5%ba%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>斜杠命令是<strong>传播团队协作规范最轻量、最有效的方式</strong>，落地流程极其简单：</p><ol><li>编写一个实用命令；</li><li>放入 <code>.claude/commands/</code>；</li><li>提交至主干分支；</li><li><strong>无需通知任何人</strong>。</li></ol><p>第 4 步并非夸张。下一位同事在该仓库中启动 Claude Code，输入 <code>/</code> 时，命令会自动出现在补全列表中。他尝试输入 <code>/audit</code>，结果完美运行 —— 无需培训文档、无需 Confluence 页面、无需入职会议。</p><h3 id=命令库的自然演化路径 class=heading-anchor>命令库的自然演化路径<a href=#%e5%91%bd%e4%bb%a4%e5%ba%93%e7%9a%84%e8%87%aa%e7%84%b6%e6%bc%94%e5%8c%96%e8%b7%af%e5%be%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>我观察过三个团队的命令库成长过程，规律高度一致：</p><p><strong>第 1–2 周</strong>：一人添加 2–3 个基础命令，通常是 <code>/test</code>、<code>/review</code> 及一个项目专属命令（如 <code>/api-docs</code>）。<br><strong>第 3–4 周</strong>：其他成员陆续发现并开始使用这些命令；有人主动补充 <code>/deploy</code>。<br><strong>第 2 个月</strong>：命令开始精细化迭代 —— <code>/review</code> 的评审维度更全面；有人因频繁提问而新增 <code>/explain</code>。<br><strong>第 3 个月起</strong>：命令库稳定在 5–10 个，新增极少，优化为主。此时，这些命令已成为团队与 AI 协作的<strong>事实标准语言</strong>。</p><h3 id=命令即文档隐性的团队知识库 class=heading-anchor>命令即文档：隐性的团队知识库<a href=#%e5%91%bd%e4%bb%a4%e5%8d%b3%e6%96%87%e6%a1%a3%e9%9a%90%e6%80%a7%e7%9a%84%e5%9b%a2%e9%98%9f%e7%9f%a5%e8%af%86%e5%ba%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>一个常被忽视的价值：<strong>命令库本身就是团队工作流的活文档</strong>。新人只需浏览 <code>.claude/commands/</code> 目录，即可快速掌握：</p><ul><li>部署流程长什么样（<code>/deploy</code>）</li><li>团队代码评审关注什么（<code>/review</code>）</li><li>测试策略如何执行（<code>/test</code>）</li><li>调试问题的标准路径（<code>/debug</code>）</li></ul><p>每个 <code>.md</code> 文件都是一份<strong>可执行的流程说明书</strong>。它比 Wiki 页面更有价值，因为永远与实践同步 —— 一旦过时，使用者当天就会更新它。</p><h3 id=个人命令-vs-团队命令边界必须清晰 class=heading-anchor>个人命令 vs 团队命令：边界必须清晰<a href=#%e4%b8%aa%e4%ba%ba%e5%91%bd%e4%bb%a4-vs-%e5%9b%a2%e9%98%9f%e5%91%bd%e4%bb%a4%e8%be%b9%e7%95%8c%e5%bf%85%e9%a1%bb%e6%b8%85%e6%99%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/fig5.png alt="项目作用域 vs 用户作用域：位置、Git 跟踪、可见性、生命周期对比" loading=lazy decoding=async class=content-image></figure><em>图：项目命令随仓库流转，个人命令随机器流转。同名冲突时，项目命令胜出。</em></p><div class=table-wrap><table><thead><tr><th>类型</th><th>存放位置</th><th>是否提交 Git</th><th>示例</th></tr></thead><tbody><tr><td>团队命令</td><td><code>.claude/commands/</code></td><td>✅ 是</td><td><code>/review</code>, <code>/test</code>, <code>/deploy</code></td></tr><tr><td>个人命令</td><td><code>~/.claude/commands/</code></td><td>❌ 否</td><td><code>/standup</code>, <code>/journal</code>, <code>/quickfix</code></td></tr></tbody></table></div><p>个人命令服务于你的工作习惯。以下是我的两个常用命令：</p><p><strong><code>~/.claude/commands/standup.md</code>:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>帮我准备每日站会发言。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>1.</span> 昨日工作：执行 <span class=sb>`git log --author=&#34;$(git config user.name)&#34; --since=&#34;yesterday&#34; --oneline`</span>  
+</span></span><span class=line><span class=cl><span class=k>2.</span> 今日计划：检查近期添加的 TODO 注释及当前打开的分支  
+</span></span><span class=line><span class=cl><span class=k>3.</span> 阻塞问题：检查失败的测试或 lint 错误  
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>输出格式：三个项目符号，分别对应「昨日」「今日」「阻塞」。
+</span></span></code></pre></td></tr></table></div></div><p><strong><code>~/.claude/commands/changelog.md</code>:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>为上次 tag 至今的变更生成符合规范的更新日志。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>1.</span> 查找最近 git tag  
+</span></span><span class=line><span class=cl><span class=k>2.</span> 列出该 tag 后的所有提交  
+</span></span><span class=line><span class=cl><span class=k>3.</span> 按类别分组：Features / Fixes / Breaking Changes / Other  
+</span></span><span class=line><span class=cl><span class=k>4.</span> 采用 keepachangelog.com 格式书写 
+</span></span><span class=line><span class=cl><span class=k>5.</span> 基于变更内容建议下一个版本号（遵循 SemVer）
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>⚠️ 仅输出日志内容，禁止修改任何文件。
+</span></span></code></pre></td></tr></table></div></div><p>这些命令是“个人化”的：描述个人工作节奏，而非团队共识；另一位同事的站会格式可能完全不同。</p><h2 id=高级命令模式 class=heading-anchor>高级命令模式<a href=#%e9%ab%98%e7%ba%a7%e5%91%bd%e4%bb%a4%e6%a8%a1%e5%bc%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=命令链式调用组合其他命令 class=heading-anchor>命令链式调用（组合其他命令）<a href=#%e5%91%bd%e4%bb%a4%e9%93%be%e5%bc%8f%e8%b0%83%e7%94%a8%e7%bb%84%e5%90%88%e5%85%b6%e4%bb%96%e5%91%bd%e4%bb%a4 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>一个命令可在 prompt 中直接引用其他命令名，实现逻辑复用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/morning.md --&gt;</span>
+</span></span><span class=line><span class=cl>按顺序执行以下晨间检查：
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>1.</span> 检查 Git 状态，确认昨日无未提交变更  
+</span></span><span class=line><span class=cl><span class=k>2.</span> 从 main 分支拉取最新代码  
+</span></span><span class=line><span class=cl><span class=k>3.</span> 运行测试套件（同 <span class=sb>`/test`</span> 行为）  
+</span></span><span class=line><span class=cl><span class=k>4.</span> 列出昨日至今 main 分支新增的 TODO / FIXME 注释  
+</span></span><span class=line><span class=cl><span class=k>5.</span> 总结：有何变更？有何问题？需关注什么？
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>这是我每日启动工作的完整快照，请一次性返回全部信息。
+</span></span></code></pre></td></tr></table></div></div><p>这并非技术上“调用子命令”，而是让 Claude 基于已读取的 <code>/test</code> 命令内容，复现其行为。效果等同于真实调用。</p><h3 id=结构化输出命令 class=heading-anchor>结构化输出命令<a href=#%e7%bb%93%e6%9e%84%e5%8c%96%e8%be%93%e5%87%ba%e5%91%bd%e4%bb%a4 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/deps.md --&gt;</span>
+</span></span><span class=line><span class=cl>分析 $ARGUMENTS 的依赖图谱。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>输出结构化报告：
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gu>## 直接依赖
+</span></span></span><span class=line><span class=cl><span class=gu></span>| 包名 | 版本 | 使用位置 | 用途 |
+</span></span><span class=line><span class=cl>|------|------|----------|------|
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gu>## 重要传递依赖（需关注）
+</span></span></span><span class=line><span class=cl><span class=gu></span>列出满足任一条件的传递依赖：
+</span></span><span class=line><span class=cl><span class=k>-</span> 已知存在安全漏洞  
+</span></span><span class=line><span class=cl><span class=k>-</span> 体积过大（&gt;1MB）  
+</span></span><span class=line><span class=cl><span class=k>-</span> 多版本共存（duplicated at different versions）
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gu>## 优化建议
+</span></span></span><span class=line><span class=cl><span class=gu></span><span class=k>-</span> 哪些包可移除？  
+</span></span><span class=line><span class=cl><span class=k>-</span> 哪些包应升级？  
+</span></span><span class=line><span class=cl><span class=k>-</span> 哪些包有更优替代方案？
+</span></span></code></pre></td></tr></table></div></div><h3 id=面向特定工作流的命令 class=heading-anchor>面向特定工作流的命令<a href=#%e9%9d%a2%e5%90%91%e7%89%b9%e5%ae%9a%e5%b7%a5%e4%bd%9c%e6%b5%81%e7%9a%84%e5%91%bd%e4%bb%a4 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>PR 提交前检查清单：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/pre-pr.md --&gt;</span>
+</span></span><span class=line><span class=cl>我即将提交 PR，请执行以下检查：
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>1.</span> [ ] 所有测试通过  
+</span></span><span class=line><span class=cl><span class=k>2.</span> [ ] 无 lint 错误  
+</span></span><span class=line><span class=cl><span class=k>3.</span> [ ] 无 TypeScript 错误（`npx tsc --noEmit`）  
+</span></span><span class=line><span class=cl><span class=k>4.</span> [ ] 生产代码中无 <span class=sb>`console.log`</span>  
+</span></span><span class=line><span class=cl><span class=k>5.</span> [ ] 所有新函数均有 docstring/JSDoc  
+</span></span><span class=line><span class=cl><span class=k>6.</span> [ ] 无硬编码密钥或 API Key  
+</span></span><span class=line><span class=cl><span class=k>7.</span> [ ] 若架构变更，`CLAUDE.md` 已同步更新  
+</span></span><span class=line><span class=cl><span class=k>8.</span> [ ] 提交信息清晰明确  
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>对每项检查，明确标注通过/失败。  
+</span></span><span class=line><span class=cl>若全部通过，基于提交信息草拟 PR 标题与描述。
+</span></span></code></pre></td></tr></table></div></div><p><strong>数据库迁移审查：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/migration-check.md --&gt;</span>
+</span></span><span class=line><span class=cl>审查待执行的数据库迁移脚本。
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>检查要点：
+</span></span><span class=line><span class=cl><span class=k>1.</span> <span class=gs>**可逆性**</span>：是否存在 down 迁移？能否正常执行？  
+</span></span><span class=line><span class=cl><span class=k>2.</span> <span class=gs>**数据丢失**</span>：是否有步骤会删除含数据的列或表？  
+</span></span><span class=line><span class=cl><span class=k>3.</span> <span class=gs>**锁表风险**</span>：是否有步骤会在大表上执行耗时操作（如 <span class=sb>`ALTER TABLE`</span>）？  
+</span></span><span class=line><span class=cl><span class=k>4.</span> <span class=gs>**索引影响**</span>：新索引是否并发创建？  
+</span></span><span class=line><span class=cl><span class=k>5.</span> <span class=gs>**默认值**</span>：新增的 <span class=sb>`NOT NULL`</span> 列是否为历史数据提供了默认值？  
+</span></span><span class=line><span class=cl><span class=k>6.</span> <span class=gs>**外键约束**</span>：新增外键是否启用校验（validated）？
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Think a lot. 数据库迁移不可逆。
+</span></span></code></pre></td></tr></table></div></div><h2 id=命令调试指南 class=heading-anchor>命令调试指南<a href=#%e5%91%bd%e4%bb%a4%e8%b0%83%e8%af%95%e6%8c%87%e5%8d%97 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>当命令未按预期工作时，按此流程排查：</p><p><strong>命令未出现在补全列表中？</strong><br>→ 检查文件路径是否严格为 <code>.claude/commands/&lt;name>.md</code>（注意复数 <code>commands</code>，且扩展名为 <code>.md</code>）；<br>→ 创建后务必重启 Claude Code。</p><p><strong>命令能运行但输出异常？</strong><br>→ 最常见原因是 prompt 表述模糊。将命令内容<strong>直接粘贴为普通消息发送给 Claude</strong>，测试其独立表现。若 prompt 本身效果差，作为命令必然更差。</p><p><strong><code>$ARGUMENTS</code> 未被替换？</strong><br>→ 确保你在命令后输入了内容（如 <code>/explain foo</code>）。仅输入 <code>/explain</code> 会导致 <code>$ARGUMENTS</code> 为空字符串。<br>→ 若命令强制要求参数，可在文件顶部添加说明性 HTML 注释（不影响 prompt 执行）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/explain.md --&gt;</span>
+</span></span><span class=line><span class=cl><span class=c>&lt;!-- 用法：/explain &lt;术语或概念&gt; --&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Explain $ARGUMENTS at three levels:
+</span></span><span class=line><span class=cl>...
+</span></span></code></pre></td></tr></table></div></div><p><strong>命令过长？</strong><br>→ 虽无硬性长度限制，但过长的 prompt 会挤占 Claude 的上下文空间。建议控制在 50 行以内。若需更多逻辑，说明你试图在一个命令中塞入过多职责——拆分为两个命令更合理。</p><p><strong>命令在 A 项目有效，在 B 项目失效？</strong><br>→ 检查是否硬编码了项目特有细节（如 <code>npm test</code>、<code>src/api/</code>）。解决方案：<br> ✓ 用通用表述替代（如 “见 <code>CLAUDE.md</code> 中的测试命令”）；<br> ✓ 或坦然接受：这就是一个项目专属命令。</p><h2 id=对话控制三个必背内置命令 class=heading-anchor>对话控制：三个必背内置命令<a href=#%e5%af%b9%e8%af%9d%e6%8e%a7%e5%88%b6%e4%b8%89%e4%b8%aa%e5%bf%85%e8%83%8c%e5%86%85%e7%bd%ae%e5%91%bd%e4%bb%a4 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>以下内置命令值得肌肉记忆：</p><p><strong><code>/compact</code></strong> —— 汇总当前对话。当模型响应变慢时使用，保留核心信息，剔除冗余细节。（详见第二篇详解）<br><strong><code>/clear</code></strong> —— 清空当前对话。保留记忆与设置，适用于切换任务场景。<br><strong><code>/init</code></strong> —— （详见第一篇）首次在新仓库中运行，用于自动生成 <code>CLAUDE.md</code>。</p><p>其余命令可通过 <code>/help</code> 查看全量列表，但这三个是日常高频组合。</p><h3 id=其他值得掌握的内置命令 class=heading-anchor>其他值得掌握的内置命令<a href=#%e5%85%b6%e4%bb%96%e5%80%bc%e5%be%97%e6%8e%8c%e6%8f%a1%e7%9a%84%e5%86%85%e7%bd%ae%e5%91%bd%e4%bb%a4 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>命令</th><th>功能</th><th>使用场景</th></tr></thead><tbody><tr><td><code>/help</code></td><td>列出所有可用命令</td><td>忘记命令名时</td></tr><tr><td><code>/compact</code></td><td>汇总并压缩上下文</td><td>长对话导致响应变慢</td></tr><tr><td><code>/clear</code></td><td>开启全新对话</td><td>切换任务主题</td></tr><tr><td><code>/init</code></td><td>生成 <code>CLAUDE.md</code></td><td>新仓库初始化</td></tr><tr><td><code>/config</code></td><td>打开设置面板</td><td>修改偏好设置</td></tr><tr><td><code>/cost</code></td><td>查看 token 消耗</td><td>监控使用成本</td></tr><tr><td><code>/doctor</code></td><td>诊断 Claude Code 异常</td><td>感觉功能异常时</td></tr><tr><td><code>/login</code></td><td>重新认证</td><td>token 过期</td></tr><tr><td><code>/logout</code></td><td>清除认证信息</td><td>切换账号</td></tr><tr><td><code>/permissions</code></td><td>查看当前权限</td><td>调试 “为何它向我索要权限？”</td></tr></tbody></table></div><h2 id=斜杠命令的适用边界 class=heading-anchor>斜杠命令的适用边界<a href=#%e6%96%9c%e6%9d%a0%e5%91%bd%e4%bb%a4%e7%9a%84%e9%80%82%e7%94%a8%e8%be%b9%e7%95%8c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>斜杠命令<strong>不适合</strong>以下场景：</p><ul><li><strong>需要复杂运行时参数</strong>：<code>$ARGUMENTS</code> 仅支持单字符串参数。无法实现 <code>/deploy --env staging --skip-tests</code> 这类命名参数。此时应写 Shell 脚本，由 Claude 调用。</li><li><strong>需跨多次调用维持状态</strong>：每次 <code>/command</code> 都在全新 prompt 上下文中执行，无法实现 <code>/step1</code> → <code>/step2</code> 的数据传递。多步有状态工作流，请用 SDK 或单个长 prompt。</li><li><strong>需要单元测试验证</strong>：无法为斜杠命令编写测试用例。若工作流需强保障，应封装为脚本，由 Claude 调用而非执行。</li><li><strong>需按环境差异化执行</strong>：命令文件对所有人相同。若 staging 与 production 步骤不同，请用 <code>$ARGUMENTS</code> 传入环境名，并在 prompt 中分支处理。</li></ul><p>这些场景，请转向 <strong>Claude Code SDK</strong>（第六篇）。斜杠命令的本质，是为那些<strong>不值得写代码的高频快捷操作</strong>而生。</p><h3 id=claude-code-自动化层级金字塔 class=heading-anchor>Claude Code 自动化层级金字塔<a href=#claude-code-%e8%87%aa%e5%8a%a8%e5%8c%96%e5%b1%82%e7%ba%a7%e9%87%91%e5%ad%97%e5%a1%94 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>由简至繁：
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>1. CLAUDE.md 约定    （被动）→ Claude 自动遵循  
+</span></span><span class=line><span class=cl>2. 斜杠命令          （单次）→ 输入 `/name`，立即获得结果  
+</span></span><span class=line><span class=cl>3. Shell 脚本 + Claude（混合）→ 脚本调用 Claude，或 Claude 调用脚本  
+</span></span><span class=line><span class=cl>4. Claude Code SDK   （编程）→ 全面可控、支持状态、可测试  
+</span></span></code></pre></td></tr></table></div></div><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/fig6.png alt="自动化层级金字塔：CLAUDE.md、斜杠命令、Shell 脚本、SDK，由简至繁" loading=lazy decoding=async class=content-image></figure><em>图：四级自动化体系。绝大多数团队终其一生只需停留在第 1、2 层。</em></p><p><strong>从第 1 层起步，仅当低层无法满足需求时，才向上跃迁。</strong><br>绝大多数团队终身无需第 4 层；几乎所有团队都能从第 1–2 层显著受益。</p><h2 id=真实命令库案例一个生产级-api-项目 class=heading-anchor>真实命令库案例：一个生产级 API 项目<a href=#%e7%9c%9f%e5%ae%9e%e5%91%bd%e4%bb%a4%e5%ba%93%e6%a1%88%e4%be%8b%e4%b8%80%e4%b8%aa%e7%94%9f%e4%ba%a7%e7%ba%a7-api-%e9%a1%b9%e7%9b%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>来看一个成熟 <code>.claude/commands/</code> 目录的实际结构：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>.claude/commands/
+</span></span><span class=line><span class=cl>├── audit.md          # 安全审计
+</span></span><span class=line><span class=cl>├── debug.md          # 结构化调试
+</span></span><span class=line><span class=cl>├── deploy.md         # 部署前检查
+</span></span><span class=line><span class=cl>├── deps.md           # 依赖分析
+</span></span><span class=line><span class=cl>├── document.md       # 生成文档注释
+</span></span><span class=line><span class=cl>├── explain.md        # 三层解释
+</span></span><span class=line><span class=cl>├── migration-check.md # 数据库迁移审查
+</span></span><span class=line><span class=cl>├── onboard.md        # 新人入职指南
+</span></span><span class=line><span class=cl>├── pre-pr.md         # PR 提交前检查
+</span></span><span class=line><span class=cl>├── review.md         # 代码评审
+</span></span><span class=line><span class=cl>└── test.md           # 测试运行与分析
+</span></span></code></pre></td></tr></table></div></div><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/fig7.png alt="成熟的 .claude/commands 目录按职责分组：质量门禁、知识沉淀、运维操作" loading=lazy decoding=async class=content-image></figure><em>图：11 条命令按意图分组。每个文件即一条工作流，共同构成团队的“AI 协作语言”。</em></p><p>共 11 个命令。每一个，都曾是：<br>✅ 手动执行的多步骤流程，或<br>❌ 因过于繁琐而被长期忽略的环节。</p><p>创建总投入：分散在两个月内的约 2 小时。<br>每周节省时间：保守估计每位开发者 30 分钟。<br>5 人团队 = 每周 2.5 小时 → <strong>首周即回本</strong>。</p><p>真正的价值远不止时间节省 —— <strong>是稳定性</strong>。<br>每一次代码评审，覆盖相同的维度；<br>每一次调试，遵循相同的路径；<br>每一次部署，走过相同的检查点。<br>这些命令，已将团队的最佳实践，固化为可重复、可传承的工作流。</p><p>下一篇：MCP —— 让 Claude Code 与万物对话的协议。</p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/claude-code-learn/02-shortcuts-and-modes/ data-next-url=https://www.chenk.top/zh/claude-code-learn/04-mcp-servers/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/claude-code-learn/>Claude Code 实战</a> <span class=count>10 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/claude-code-learn/02-shortcuts-and-modes/><span class=title>Claude Code 实战（二）：快捷键、四态切换与思考模式</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/claude-code-learn/04-mcp-servers/><span class=title>Claude Code 实战（四）：MCP 服务器连接万物</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/01-install-and-config/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Claude Code 实战（一）：安装、三层配置体系，以及 `#` `@` `/init` 三剑客</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/02-shortcuts-and-modes/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Claude Code 实战（二）：快捷键、四态切换与思考模式</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>03</span>
+<span class=series-nav-title>Claude Code 实战（三）：自定义斜杠命令与对话控制</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/04-mcp-servers/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Claude Code 实战（四）：MCP 服务器连接万物</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/05-hooks/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Claude Code 实战（五）：Hooks 与 Yolo 安全网</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/06-sdk-and-github/><span class=series-nav-num>06</span>
+<span class=series-nav-title>Claude Code 实战（六）：SDK 与 GitHub CI</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/07-hooks-deep-dive/><span class=series-nav-num>07</span>
+<span class=series-nav-title>Claude Code 实战（七）：十个实用 Hooks 配方</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/08-subagents-worktrees-plan/><span class=series-nav-num>08</span>
+<span class=series-nav-title>Claude Code 实战（八）：Sub-Agent 与计划模式</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/09-settings-and-permissions/><span class=series-nav-num>09</span>
+<span class=series-nav-title>Claude Code 实战（九）：权限模型与环境变量</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/10-skills-decision-tree/><span class=series-nav-num>10</span>
+<span class=series-nav-title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=Claude%2bCode%2b%25E5%25AE%259E%25E6%2588%2598%25EF%25BC%2588%25E4%25B8%2589%25EF%25BC%2589%25EF%25BC%259A%25E8%2587%25AA%25E5%25AE%259A%25E4%25B9%2589%25E6%2596%259C%25E6%259D%25A0%25E5%2591%25BD%25E4%25BB%25A4%25E4%25B8%258E%25E5%25AF%25B9%25E8%25AF%259D%25E6%258E%25A7%25E5%2588%25B6&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fclaude-code-learn%252F03-custom-commands%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fclaude-code-learn%252F03-custom-commands%252F&title=Claude%2bCode%2b%25E5%25AE%259E%25E6%2588%2598%25EF%25BC%2588%25E4%25B8%2589%25EF%25BC%2589%25EF%25BC%259A%25E8%2587%25AA%25E5%25AE%259A%25E4%25B9%2589%25E6%2596%259C%25E6%259D%25A0%25E5%2591%25BD%25E4%25BB%25A4%25E4%25B8%258E%25E5%25AF%25B9%25E8%25AF%259D%25E6%258E%25A7%25E5%2588%25B6" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/claude-code-learn/03-custom-commands/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2026-04-20>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#什么是斜杠命令>什么是斜杠命令？</a><ul><li><a href=#斜杠命令的内部工作机制>斜杠命令的内部工作机制</a></li></ul></li><li><a href=#目录结构规范>目录结构规范</a><ul><li><a href=#命名规范短直准>命名规范：短、直、准</a></li></ul></li><li><a href=#arguments让命令支持参数化><code>$ARGUMENTS</code>：让命令支持参数化</a><ul><li><a href=#arguments-的典型用法模式><code>$ARGUMENTS</code> 的典型用法模式</a></li></ul></li><li><a href=#我在每个项目中必配的核心命令集>我在每个项目中必配的核心命令集</a><ul><li><a href=#audit--安全审计><code>/audit</code> —— 安全审计</a></li><li><a href=#test--测试运行与分析><code>/test</code> —— 测试运行与分析</a></li><li><a href=#review--代码评审><code>/review</code> —— 代码评审</a></li><li><a href=#explain--三层解释法><code>/explain</code> —— 三层解释法</a></li><li><a href=#onboard--新工程师入职指南><code>/onboard</code> —— 新工程师入职指南</a></li><li><a href=#deploy--部署前检查清单><code>/deploy</code> —— 部署前检查清单</a></li><li><a href=#debug--结构化调试><code>/debug</code> —— 结构化调试</a></li><li><a href=#document--自动生成文档><code>/document</code> —— 自动生成文档</a></li></ul></li><li><a href=#构建团队级命令库>构建团队级命令库</a><ul><li><a href=#命令库的自然演化路径>命令库的自然演化路径</a></li><li><a href=#命令即文档隐性的团队知识库>命令即文档：隐性的团队知识库</a></li><li><a href=#个人命令-vs-团队命令边界必须清晰>个人命令 vs 团队命令：边界必须清晰</a></li></ul></li><li><a href=#高级命令模式>高级命令模式</a><ul><li><a href=#命令链式调用组合其他命令>命令链式调用（组合其他命令）</a></li><li><a href=#结构化输出命令>结构化输出命令</a></li><li><a href=#面向特定工作流的命令>面向特定工作流的命令</a></li></ul></li><li><a href=#命令调试指南>命令调试指南</a></li><li><a href=#对话控制三个必背内置命令>对话控制：三个必背内置命令</a><ul><li><a href=#其他值得掌握的内置命令>其他值得掌握的内置命令</a></li></ul></li><li><a href=#斜杠命令的适用边界>斜杠命令的适用边界</a><ul><li><a href=#claude-code-自动化层级金字塔>Claude Code 自动化层级金字塔</a></li></ul></li><li><a href=#真实命令库案例一个生产级-api-项目>真实命令库案例：一个生产级 API 项目</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/claude-code-learn/ class=series-name>Claude Code 实战</a>
+<span class=count>10</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/01-install-and-config/><span class=chapter-num>01</span>
+<span class=chapter-title>Claude Code 实战（一）：安装、三层配置体系，以及 `#` `@` `/init` 三剑客</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/02-shortcuts-and-modes/><span class=chapter-num>02</span>
+<span class=chapter-title>Claude Code 实战（二）：快捷键、四态切换与思考模式</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>03</span>
+<span class=chapter-title>Claude Code 实战（三）：自定义斜杠命令与对话控制</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/04-mcp-servers/><span class=chapter-num>04</span>
+<span class=chapter-title>Claude Code 实战（四）：MCP 服务器连接万物</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/05-hooks/><span class=chapter-num>05</span>
+<span class=chapter-title>Claude Code 实战（五）：Hooks 与 Yolo 安全网</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/06-sdk-and-github/><span class=chapter-num>06</span>
+<span class=chapter-title>Claude Code 实战（六）：SDK 与 GitHub CI</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/07-hooks-deep-dive/><span class=chapter-num>07</span>
+<span class=chapter-title>Claude Code 实战（七）：十个实用 Hooks 配方</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/08-subagents-worktrees-plan/><span class=chapter-num>08</span>
+<span class=chapter-title>Claude Code 实战（八）：Sub-Agent 与计划模式</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/09-settings-and-permissions/><span class=chapter-num>09</span>
+<span class=chapter-title>Claude Code 实战（九）：权限模型与环境变量</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/10-skills-decision-tree/><span class=chapter-num>10</span>
+<span class=chapter-title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>32 min</strong></div><div class=row><span>字数</span><strong>7674</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/product-thinking/>产品思维</a></li><li><a href=https://www.chenk.top/zh/series/personal-finance/>个人理财</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=关闭>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>在微信里搜索此 ID 即可添加我</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>复制微信号</button></div></div></div></footer></body></html>

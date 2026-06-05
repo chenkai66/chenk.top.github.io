@@ -1,0 +1,519 @@
+<!doctype html><html lang=zh data-translation=/en/kernel-methods/05-kernel-algorithms/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>核方法（五）：核 SVM、核 PCA 与核岭回归 · Chen Kai Blog</title>
+<meta name=description content="把经典算法核化——SVM 的对偶形式、核 PCA 在特征空间里的特征分解、核岭回归的闭式解。带 sklearn 代码与 worked example。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/kernel-methods/05-%E6%A0%B8svm%E6%A0%B8pca%E6%A0%B8%E5%B2%AD%E5%9B%9E%E5%BD%92/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/kernel-methods/05-kernel-algorithms/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/kernel-methods/05-%E6%A0%B8svm%E6%A0%B8pca%E6%A0%B8%E5%B2%AD%E5%9B%9E%E5%BD%92/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/kernel-methods/05-%E6%A0%B8svm%E6%A0%B8pca%E6%A0%B8%E5%B2%AD%E5%9B%9E%E5%BD%92/><meta property="og:type" content="article"><meta property="og:title" content="核方法（五）：核 SVM、核 PCA 与核岭回归"><meta property="og:description" content="把经典算法核化——SVM 的对偶形式、核 PCA 在特征空间里的特征分解、核岭回归的闭式解。带 sklearn 代码与 worked example。"><meta property="og:url" content="https://www.chenk.top/zh/kernel-methods/05-%E6%A0%B8svm%E6%A0%B8pca%E6%A0%B8%E5%B2%AD%E5%9B%9E%E5%BD%92/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/kernel-methods.jpg"><meta property="og:image:alt" content="核方法（五）：核 SVM、核 PCA 与核岭回归"><meta property="article:published_time" content="2021-12-14T09:00:00Z"><meta property="article:modified_time" content="2021-12-14T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="ML"><meta property="article:tag" content="核方法"><meta property="article:tag" content="SVM"><meta property="article:tag" content="PCA"><meta property="article:tag" content="数学"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="核方法（五）：核 SVM、核 PCA 与核岭回归"><meta name=twitter:description content="把经典算法核化——SVM 的对偶形式、核 PCA 在特征空间里的特征分解、核岭回归的闭式解。带 sklearn 代码与 worked example。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/kernel-methods.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"核方法（五）：核 SVM、核 PCA 与核岭回归","description":"把经典算法核化——SVM 的对偶形式、核 PCA 在特征空间里的特征分解、核岭回归的闭式解。带 sklearn 代码与 worked example。","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/kernel-methods.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2021-12-14T09:00:00Z","dateModified":"2021-12-14T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/zh/kernel-methods/05-%E6%A0%B8svm%E6%A0%B8pca%E6%A0%B8%E5%B2%AD%E5%9B%9E%E5%BD%92/"},"inLanguage":"zh"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js onload='document.querySelectorAll(".math-inline,.math-block").forEach(function(e){var t=e.textContent,n=e.classList.contains("math-block"),t=n?t.replace(/^\$\$/,"").replace(/\$\$$/,""):t.replace(/^\$/,"").replace(/\$$/,"");try{katex.render(t,e,{displayMode:n,throwOnError:!1})}catch{}})'></script><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/kernel-methods/05-%e6%a0%b8SVM%e6%a0%b8PCA%e6%a0%b8%e5%b2%ad%e5%9b%9e%e5%bd%92.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/kernel-methods/>核方法</a>
+· 第 5 篇</div><h1>核方法（五）：核 SVM、核 PCA 与核岭回归</h1><p class=deck>把经典算法核化——SVM 的对偶形式、核 PCA 在特征空间里的特征分解、核岭回归的闭式解。带 sklearn 代码与 worked example。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2021-12-14>December 14, 2021</time> · 76 分钟 · 18990 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/%E6%A0%B8%E6%96%B9%E6%B3%95/ class=tag>#核方法</a><a href=/zh/tags/svm/ class=tag>#SVM</a><a href=/zh/tags/pca/ class=tag>#PCA</a><a href=/zh/tags/%E6%95%B0%E5%AD%A6/ class=tag>#数学</a></div><a class="pill pill-outline" href=/en/kernel-methods/05-kernel-algorithms/>Read in English →</a></div></header><div class=prose><p>你的特征只有二维，数据明明是一个圆环套一个圆环，而 <code>LinearSVC</code> 在 50% 准确率上瞪着你——一副"我真心觉得直线就是答案"的天真神情。你盯着散点图，又盯着模型，脑子后台终于冒出"核 SVM"三个字。改成 <code>kernel='rbf'</code>，准确率瞬间跳到 0.98，整个下午你都在琢磨：刚才那一手到底是什么魔法？为什么同样的招数还能让核 PCA 把瑞士卷展平，让核岭回归三行代码拟合一个正弦波？</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/05-kernel-algorithms/cover.png alt=三个核化算法在同一份非线性数据上 loading=lazy decoding=async class=content-image></figure></p><p>前四篇把<em>机械</em>搭起来了：线性方法的天花板（<a href=/zh/kernel-methods/01-%e4%b8%ba%e4%bb%80%e4%b9%88%e9%9c%80%e8%a6%81%e6%a0%b8%e6%96%b9%e6%b3%95/>第 1 篇</a>
+）、什么是正定核（<a href=/zh/kernel-methods/02-%e6%a0%b8%e6%96%b9%e6%b3%95%e7%9a%84%e6%95%b0%e5%ad%a6%e5%9f%ba%e7%a1%80/>第 2 篇</a>
+）、RKHS 为什么让升维后的空间表现得像希尔伯特空间（<a href=/zh/kernel-methods/03-rkhs%e7%90%86%e8%ae%ba/>第 3 篇</a>
+）、货架上的那些常用核（<a href=/zh/kernel-methods/04-%e5%b8%b8%e8%a7%81%e6%a0%b8%e5%87%bd%e6%95%b0%e6%97%8f/>第 4 篇</a>
+）。</p><p>这一篇是<em>兑现</em>。我们拿三个教科书级别的线性算法——软间隔 SVM、PCA、岭回归——看它们如何用几乎相同的三步动作完成核化。最终它们都收敛到同一个形状的解：一个 <span class=math-inline>$n \times n$</span>
+的 Gram 矩阵替代了原本 <span class=math-inline>$d \times d$</span>
+的协方差矩阵，答案完全可以用内积表示。这不是巧合，是 representer theorem，读完这篇你应该<em>体感</em>到它。</p><p>你会带走三件东西。第一，SVM 对偶问题的完整推导——Lagrangian、KKT 分区每一步都讲清楚，包括为什么稀疏性是 KKT 互补松弛<em>自动</em>掉出来的，而不是人为加进去的。第二，核 PCA 作为中心化 Gram 矩阵的特征分解，附带那条没人愿意推、但人人偷偷查的中心化公式，以及为什么它在瑞士卷上能赢、在 t-SNE 想要的局部邻域结构上常常输。第三，核岭回归的闭式解，以及它与 GP 回归<em>完全相等</em>的事实——同一个公式两套语言。</p><p>三个算法套路完全一样：写出损失函数，搬出 representer theorem，把内积换成核求值，求解一个有限维线性代数问题。一个动作，三个算法，套路一旦看穿就再也忘不掉。</p><h2 id=核-svm从-primal-到-dual class=heading-anchor>核 SVM：从 primal 到 dual<a href=#%e6%a0%b8-svm%e4%bb%8e-primal-%e5%88%b0-dual class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$\min_{w, b, \xi}\ \tfrac{1}{2}\|w\|^2 + C\sum_{i=1}^n \xi_i \quad \text{s.t.}\quad y_i\bigl(\langle w, x_i\rangle + b\bigr) \geq 1 - \xi_i,\ \ \xi_i \geq 0.$$</span><p>真正起作用的有两个参数。<span class=math-inline>$\|w\|$</span>
+控制间隔宽度——<span class=math-inline>$\|w\|$</span>
+小意味着间隔宽，因为几何间隔正是 <span class=math-inline>$1/\|w\|$</span>
+；最大化间隔等价于最小化 <span class=math-inline>$\|w\|^2$</span>
+，所以原问题里那个看似纯正则化的 <span class=math-inline>$\tfrac{1}{2}\|w\|^2$</span>
+项其实正是 SVM 的<em>主目标</em>。</p><p><span class=math-inline>$C$</span>
+控制模型"买"多少松弛——<span class=math-inline>$C$</span>
+小则容忍很多越界点，得到一个胖而平滑的间隔；<span class=math-inline>$C$</span>
+大则强迫边界围着每个困难点拐弯。两个参数的物理意义截然不同：<span class=math-inline>$\|w\|$</span>
+是模型一旦训完就读得出的几何量，<span class=math-inline>$C$</span>
+是你在训练前注入的偏好。</p><p>在原问题里，数据是以原始坐标 <span class=math-inline>$x_i \in \mathbb{R}^d$</span>
+嵌在 <span class=math-inline>$w$</span>
+里的。<span class=math-inline>$d$</span>
+小没事；<span class=math-inline>$d$</span>
+是百万，更糟——是无穷（用核的话），那 <span class=math-inline>$w$</span>
+这个变量就根本没法存。</p><p>核技巧就是那个<strong>把 <span class=math-inline>$w$</span>
+扔掉</strong>的重写。我们一次都不存权重向量，连定义都不定义，全程只跟 <span class=math-inline>$n$</span>
+个对偶系数 <span class=math-inline>$\alpha_i$</span>
+打交道——它们挂在 <span class=math-inline>$n$</span>
+个训练点上。输入空间的维度从代价里掉出去了，被训练点数 <span class=math-inline>$n$</span>
+取代。这是核方法能算的根本原因，也是为什么对偶形式才是 SVM 的正典写法。</p><p>请注意这个 trade-off：当 <span class=math-inline>$d \gg n$</span>
+（文本、基因表达），对偶赢；当 <span class=math-inline>$n \gg d$</span>
+（百万级表格数据），原问题反而赢，这就是 <code>LinearSVC</code> 在 <span class=math-inline>$n > d$</span>
+时默认走原问题、<span class=math-inline>$n &lt; d$</span>
+时走对偶的原因。</p><p>下手前还有一个值得说的观察：原问题是<em>凸的</em>。目标 <span class=math-inline>$\tfrac{1}{2}\|w\|^2 + C\sum_i \xi_i$</span>
+关于 <span class=math-inline>$w$</span>
+是凸二次、关于 <span class=math-inline>$\xi$</span>
+是线性的，约束是仿射的。强对偶成立，KKT 条件既必要又充分，全局最优解唯一。</p><p>这些性质神经网络一条都没有——这就是为什么 SVM 在 2026 年仍然作为基线方法被尊重：当它有效时，你<em>确定</em>它有效，没有局部极小、没有初始化敏感的疑虑。一个跑出来 91% 准确率的 SVM 和另一个同样配置、跑十次的 SVM 都会落在同一个 91% 上；一个 91% 的 ResNet 跑十次可能在 89% 到 93% 之间浮动。这种确定性在论文复现、A/B 测试、统计显著性检验里值钱。</p><p>凸性还买到第二个性质：可以<em>证明</em>泛化界。Vapnik 1998 的统计学习理论里 SVM 的 VC 维和间隔界是定理，不是经验观察。神经网络的"为什么它能泛化"到 2026 年仍然是开放问题，要靠 NTK、双重下降、彩票假设这些半经验半理论的框架去拼凑解释。SVM 的故事在这点上简短得多——三十年前的定理今天仍然原样适用，没有被任何"反例"动摇过。稳定性在论文复现、A/B 测试、统计显著性检验里值钱。</p><span class=math-block>$$\mathcal{L}(w, b, \xi, \alpha, \mu) = \tfrac{1}{2}\|w\|^2 + C\sum_i \xi_i - \sum_i \alpha_i \bigl[y_i(\langle w, x_i\rangle + b) - 1 + \xi_i\bigr] - \sum_i \mu_i \xi_i.$$</span>
+<span class=math-block>$$\frac{\partial \mathcal{L}}{\partial w} = 0 \implies w = \sum_i \alpha_i y_i x_i,$$</span>
+<span class=math-block>$$\frac{\partial \mathcal{L}}{\partial b} = 0 \implies \sum_i \alpha_i y_i = 0,$$</span>
+<span class=math-block>$$\frac{\partial \mathcal{L}}{\partial \xi_i} = 0 \implies \alpha_i + \mu_i = C.$$</span><p>第一个等式值得反复看。它说最优权重向量是<em>训练点的线性组合</em>，权重为 <span class=math-inline>$\alpha_i y_i$</span>
+。这就是 representer theorem 从 SVM 推导里自然冒出来——我们没假设它，是推出来的。一旦有了它，剩下的机械就自动运转。</p><p>第二个等式（<span class=math-inline>$\sum_i \alpha_i y_i = 0$</span>
+）是"对偶解必须类别平衡"的代数表述：所有正类 SV 的 <span class=math-inline>$\alpha$</span>
+之和等于所有负类 SV 的 <span class=math-inline>$\alpha$</span>
+之和。当你拿到一个训完的 SVM 想"sanity check"它有没有跑歪，验证这条等式只要一行代码，不满足就说明求解器没收敛或数据预处理出了问题。</p><p>第三个等式提供了 <span class=math-inline>$C$</span>
+的另一个解读：它给单个点的 <span class=math-inline>$\alpha$</span>
+设了上界，所以<em>没有任何一个训练点能贡献超过 <span class=math-inline>$C$</span>
+那么多的影响</em>。把 <span class=math-inline>$C$</span>
+理解为"单点影响力的天花板"，比把它理解为"违反间隔的惩罚强度"更接近实操直觉。</p><p><strong>回代消元。</strong> 把 <span class=math-inline>$w = \sum_i \alpha_i y_i x_i$</span>
+代回 <span class=math-inline>$\mathcal{L}$</span>
+，用 <span class=math-inline>$\sum_i \alpha_i y_i = 0$</span>
+干掉 <span class=math-inline>$b$</span>
+项，用 <span class=math-inline>$\alpha_i + \mu_i = C$</span>
+消掉 <span class=math-inline>$\mu_i$</span>
+同时把 <span class=math-inline>$\alpha_i$</span>
+约束在 <span class=math-inline>$[0, C]$</span>
+区间内。</p><span class=math-block>$$\max_{\alpha}\ \sum_i \alpha_i - \tfrac{1}{2}\sum_{i, j} \alpha_i \alpha_j y_i y_j \langle x_i, x_j\rangle \quad \text{s.t.}\quad 0 \leq \alpha_i \leq C,\ \sum_i \alpha_i y_i = 0.$$</span><p>数据<em>只</em>通过内积 <span class=math-inline>$\langle x_i, x_j\rangle$</span>
+出现。把每个这样的内积换成 <span class=math-inline>$K(x_i, x_j)$</span>
+，优化问题的形状根本没变——同样 <span class=math-inline>$n$</span>
+个变量、同样的约束、同样的二次规划求解器。非线性藏在 <span class=math-inline>$K(x_i, x_j)$</span>
+里，求解器对此一无所知，它眼里只看到一个 PSD 矩阵和一些线性约束。</p><p>这一点是核方法的精髓：算法和核完全解耦。同一个 QP 求解器可以喂线性核、RBF 核、多项式核、字符串核、图核，得到的优化问题在形式上完全一致，只是 Gram 矩阵的具体数字不同。这种解耦带来巨大的工程价值——你可以独立于算法换核来探索假设空间，独立于核换算法来比较套路。libsvm 的代码库就是这样组织的：求解器只接受一个 <span class=math-inline>$K$</span>
+矩阵和标签向量 <span class=math-inline>$y$</span>
+，连"什么是 RBF" 都不知道。</p><p>这种解耦在科研代码里很难复现——大多数研究者会把核计算和算法逻辑紧紧绑在一起，结果换核就要改几十行代码。如果你正在搭一个核方法实验框架，先想清楚 &ldquo;Gram 矩阵作为算法的唯一输入&rdquo; 这一接口，剩下的扩展（新核、新算法、组合核）就基本自由了。这是把 libsvm 当架构参考、不只是当库的理由。</p><span class=math-block>$$f(x) = \sum_{i \in \text{SV}} \alpha_i y_i K(x_i, x) + b,$$</span><p>求和只跑<strong>支持向量</strong>——也就是 <span class=math-inline>$\alpha_i > 0$</span>
+的那些点。</p><p>KKT 互补松弛条件保证：只有恰好位于间隔上或间隔内的点才有非零 <span class=math-inline>$\alpha$</span>
+，其余全是稀疏的零。在一个干净的数据集上 RBF SVM 通常只保留 5%–20% 的训练点作为支持向量。这种稀疏性是核 SVM 在核化机制下仍能 scale 的根本原因：预测代价依赖 <span class=math-inline>$n_{\text{SV}}$</span>
+而不是 <span class=math-inline>$n$</span>
+。</p><p>把它跟核岭回归对比一下立刻就显眼了——核岭的解里每个 <span class=math-inline>$\alpha_i$</span>
+一般都非零，预测代价始终 <span class=math-inline>$\mathcal{O}(n)$</span>
+，没有稀疏化的奢侈。SVM 的稀疏性不是工程优化，是 KKT 互补松弛白送的几何事实。</p><p>值得明确的是：稀疏性的<em>程度</em>由 <span class=math-inline>$C$</span>
+和数据的可分性共同决定，不是固定常数。<span class=math-inline>$C \to \infty$</span>
+（硬间隔）极限下只有恰好落在间隔上的少数点是 SV，稀疏度极高；<span class=math-inline>$C \to 0$</span>
+极限下几乎所有点都成 SV 因为大家都"违反"了那个超宽间隔。数据噪声水平也影响：完全可分的干净数据上 SV 数极少（常常少于训练集大小的 5%），而高度重叠的数据上 SV 数可能逼近全集。看到训练完的 SVM 报告 <code>support_vectors_.shape[0]</code> 接近 <span class=math-inline>$n$</span>
+，几乎一定是噪声或可分性出了问题。</p><p><strong>KKT 一句话。</strong> 这个问题的 KKT 条件把训练点切成三个 regime：</p><ul><li><span class=math-inline>$\alpha_i = 0$</span>
+：点在间隔外，且在边界正确一侧。<em>忽略。</em></li><li><span class=math-inline>$0 &lt; \alpha_i &lt; C$</span>
+：点恰好在间隔上。<span class=math-inline>$\xi_i = 0$</span>
+。<em>在线支持向量。</em></li><li><span class=math-inline>$\alpha_i = C$</span>
+：点 <span class=math-inline>$\xi_i > 0$</span>
+——在间隔内或被误分。<em>违反间隔的支持向量。</em></li></ul><p>阈值 <span class=math-inline>$C$</span>
+充当任何单一点能拥有的最大影响力的上限。这正是软间隔 SVM 对异常点鲁棒、硬间隔不鲁棒的根本原因：一个标签噪声点最多只能对决策边界施加 <span class=math-inline>$C$</span>
+那么多影响。硬间隔 SVM（相当于 <span class=math-inline>$C = \infty$</span>
+）让一个异常点就能毁掉一切；软间隔优雅地吸收掉它。</p><p>值得 explicit 强调一下三 regime 的几何意义：第一类点是模型可以完全忘掉的"无信息样本"——丢掉它们重新训练得到同一个分类器；第二类是定义间隔的"边界样本"；第三类是模型不得不放弃的"难点"。这种"点的等级分化"在其它分类算法里几乎找不到——logistic 回归对每个点都一样关心，决策树是按特征分割不按样本分级，神经网络则把所有梯度均匀混合。SVM 的"哪些点重要"信号在调试和数据清洗里特别有用：去看那些 <span class=math-inline>$\alpha_i = C$</span>
+的点，常常就是标签错的或者真正困难的边缘案例。</p><p>一个具体场景：训练 1000 个干净点加 5 个反标签的对抗样本。硬间隔会绕着 5 个对抗点拐弯，决策面被它们拽得扭曲；软间隔以 <span class=math-inline>$C = 1$</span>
+设上限，那 5 个点最多贡献 <span class=math-inline>$5 \cdot 1 = 5$</span>
+单位的影响力，被剩下 995 个干净点的几何主流压倒。Bartlett & Mendelson 2002 的 Rademacher 复杂度界把这件事正式化了：泛化误差以 <span class=math-inline>$\|w\|/\sqrt{n}$</span>
+衰减，而 <span class=math-inline>$\|w\|$</span>
+在软间隔下被 <span class=math-inline>$C$</span>
+控制。</p><p>这条界对核 SVM 的一个不直观推论是：训练集规模 <span class=math-inline>$n$</span>
+翻 4 倍，期望泛化误差只衰减 2 倍——因为 <span class=math-inline>$\sqrt{n}$</span>
+是平方根。所以数据效率上 SVM 跟简单线性模型同阶，没有 KNN 那种 <span class=math-inline>$1/n^{2/(d+2)}$</span>
+的诅咒，也没有深度网络在大数据上观测到的更快经验衰减。这套统计保证在小数据 regime 下尤其珍贵——<span class=math-inline>$n &lt; 1000$</span>
+的实验里 SVM 经常比深度网络稳，原因就是这条界给的偏差—方差权衡是写死的。</p><span class=math-block>$$b = y_i - \sum_{j \in \text{SV}} \alpha_j y_j K(x_j, x_i).$$</span><p>实际中你对每个在线 SV 算一遍 <span class=math-inline>$b$</span>
+再求平均，得到数值稳定的估计。如果<em>没有</em>在线 SV（罕见，但在 <span class=math-inline>$C$</span>
+很大时可能发生），就退而求其次，在所有 SV 上加权平均。</p><p>这是 sklearn 内部就是这么做的，所以你几乎不会自己去算这一步——但理解它能解释一类报错：当你的训练集线性可分到完全没有点处于间隔上时，求解器会偶尔抛出"无在线 SV"的告警，对应模型的 <span class=math-inline>$b$</span>
+数值不稳定。</p><p>值得明确一下：训完的 SVM 决策函数 <span class=math-inline>$f(x) = \sum_i \alpha_i y_i K(x_i, x) + b$</span>
+中，<span class=math-inline>$b$</span>
+不会通过 <span class=math-inline>$\alpha$</span>
+自动出现，它是真正"额外"的一个标量参数。这是 SVM 跟核岭、GP 的一个微小差别——后两者的解里没有截距项，因为它们的正则项 <span class=math-inline>$\|w\|^2$</span>
+不惩罚常数偏移，等价于自动隐含一个零均值假设。SVM 的间隔约束 <span class=math-inline>$y_i(\langle w, x_i\rangle + b) \geq 1$</span>
+把 <span class=math-inline>$b$</span>
+显式拉了进来，需要单独求解。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/05-kernel-algorithms/fig1_kernel_svm_decision.png alt="不同 gamma 下 RBF 核 SVM 在 circles 数据上的决策边界" loading=lazy decoding=async class=content-image></figure></p><h2 id=核-svm-实战 class=heading-anchor>核 SVM 实战<a href=#%e6%a0%b8-svm-%e5%ae%9e%e6%88%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>对偶给你理论，sklearn 给你一行代码。核 SVM 的主力 API 是 <code>sklearn.svm.SVC</code>，90% 的调参精力都在两个旋钮上。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.svm</span> <span class=kn>import</span> <span class=n>SVC</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.datasets</span> <span class=kn>import</span> <span class=n>make_moons</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.model_selection</span> <span class=kn>import</span> <span class=n>GridSearchCV</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.preprocessing</span> <span class=kn>import</span> <span class=n>StandardScaler</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.pipeline</span> <span class=kn>import</span> <span class=n>make_pipeline</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>X</span><span class=p>,</span> <span class=n>y</span> <span class=o>=</span> <span class=n>make_moons</span><span class=p>(</span><span class=n>n_samples</span><span class=o>=</span><span class=mi>400</span><span class=p>,</span> <span class=n>noise</span><span class=o>=</span><span class=mf>0.25</span><span class=p>,</span> <span class=n>random_state</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>pipe</span> <span class=o>=</span> <span class=n>make_pipeline</span><span class=p>(</span><span class=n>StandardScaler</span><span class=p>(),</span> <span class=n>SVC</span><span class=p>(</span><span class=n>kernel</span><span class=o>=</span><span class=s2>&#34;rbf&#34;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>param_grid</span> <span class=o>=</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;svc__C&#34;</span><span class=p>:</span> <span class=p>[</span><span class=mf>0.1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>10</span><span class=p>,</span> <span class=mi>100</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;svc__gamma&#34;</span><span class=p>:</span> <span class=p>[</span><span class=mf>0.01</span><span class=p>,</span> <span class=mf>0.1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>10</span><span class=p>],</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=n>grid</span> <span class=o>=</span> <span class=n>GridSearchCV</span><span class=p>(</span><span class=n>pipe</span><span class=p>,</span> <span class=n>param_grid</span><span class=p>,</span> <span class=n>cv</span><span class=o>=</span><span class=mi>5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>grid</span><span class=o>.</span><span class=n>fit</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>grid</span><span class=o>.</span><span class=n>best_params_</span><span class=p>,</span> <span class=n>grid</span><span class=o>.</span><span class=n>best_score_</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong><span class=math-inline>$C$</span>
+这个旋钮。</strong> 如前所述，<span class=math-inline>$C$</span>
+是松弛的代价。<em>几何</em>解释比代数解释更有用。<span class=math-inline>$C$</span>
+小则间隔变宽到许多训练点都掉到里面——边界看上去糊糊的，几乎像 logistic 回归的结果，泛化好是因为单点影响力小。</p><p><span class=math-inline>$C$</span>
+大则间隔收紧到几乎没点在里面——边界绕着每个困难样本扭动，开始过拟合标签噪声。默认从 <span class=math-inline>$C=1$</span>
+开始，两边各乘除 10 试一试。</p><p>一个跟 logistic 回归的对比直觉：logistic 的 <span class=math-inline>$L_2$</span>
+正则化系数 <span class=math-inline>$1/(2C)$</span>
+跟 SVM 的 <span class=math-inline>$C$</span>
+在数学结构上是 dual 的——前者用 <span class=math-inline>$1/C$</span>
+惩罚权重大小，后者用 <span class=math-inline>$C$</span>
+加权 hinge 损失。结果是 logistic 的 <span class=math-inline>$C$</span>
+越大模型越复杂（弱正则化），SVM 的 <span class=math-inline>$C$</span>
+越大模型也越复杂（强拟合）。两边方向一致是好事，但量纲不同：logistic 的 <span class=math-inline>$C = 1$</span>
+跟 SVM 的 <span class=math-inline>$C = 1$</span>
+没有任何对应关系。如果你发现自己想要 <span class=math-inline>$C > 100$</span>
+，停一停问问：你是真要软间隔 SVM，还是该换个算法。</p><p>这背后是 SVM 适用场景的边界：<span class=math-inline>$C$</span>
+很大意味着你不愿意为噪声付任何代价，等价于在做硬间隔分类——而硬间隔分类在标签有噪声的现实数据上几乎总是错答案。&ldquo;想要 <span class=math-inline>$C > 100$</span>
+&rdquo; 的下一步通常是"数据有少量但严重的异常值"，正确的修法是清洗数据或换成 logistic 回归，而不是把 <span class=math-inline>$C$</span>
+拉得更大。</p><p>一个常见误诊：<span class=math-inline>$C$</span>
+越调越大、训练精度上去、CV 精度反而下降，说明你已经把模型推到了把噪声当信号的区间，继续加 <span class=math-inline>$C$</span>
+不会救你，加更平滑的核（更小 <span class=math-inline>$\gamma$</span>
+）或者更多数据才会。</p><p>工程上还有一个被忽略的细节：<code>SVC</code> 的 <span class=math-inline>$C$</span>
+跟 <code>LogisticRegression</code> 的 <span class=math-inline>$C$</span>
+在 sklearn 里量纲<em>不一样</em>。前者是 hinge 损失项的权重，后者是对数似然项的权重，单位不同；从 logistic 迁移过来的人常常把 logistic 的最优 <span class=math-inline>$C$</span>
+直接当 SVM 的初值，结果差一两个数量级。一直从 <span class=math-inline>$C = 1$</span>
+起步搜，别复用其他模型的 <span class=math-inline>$C$</span>
+。</p><p><strong><span class=math-inline>$\gamma$</span>
+这个旋钮。</strong> 用 RBF 核时，<span class=math-inline>$\gamma$</span>
+控制每个支持向量的"贡献锐度"。<span class=math-inline>$\gamma$</span>
+小则每个 SV 影响一大片邻域，决策边界平滑甚至呆板。<span class=math-inline>$\gamma$</span>
+大则每个 SV 只影响紧邻的一小片，边界变成围绕单个训练点的小岛集合，你就重新发明了 1-近邻。</p><p>把这两个极端连起来看，<span class=math-inline>$\gamma$</span>
+实际上是在 &ldquo;线性 SVM&rdquo; 和 &ldquo;1-NN&rdquo; 之间插值：<span class=math-inline>$\gamma \to 0$</span>
+时 RBF 核 <span class=math-inline>$K \to 1$</span>
+（任意两点都"等同"），决策函数被均值主导，等价于一个偏置的常数预测器；<span class=math-inline>$\gamma \to \infty$</span>
+时 <span class=math-inline>$K(x, y) \to \delta_{xy}$</span>
+（只有同一点相似），每个查询点只看最近的训练点投票，等价于 1-NN。中间的 <span class=math-inline>$\gamma$</span>
+就是在这条"复杂度梯度"上选位置。Schölkopf & Smola 2002 的第 7 章把这条等价讲得很彻底，能帮你从极限案例反推 <span class=math-inline>$\gamma$</span>
+应该往哪边调。</p><span class=math-block>$$\gamma_0 = \frac{1}{2 \cdot \mathrm{median}(\|x_i - x_j\|^2)}.$$</span><p>然后在它周围对数网格扫一扫。如果最优值落在网格边缘，说明你网格范围扫得太窄了，要拓宽。</p><p><strong><span class=math-inline>$C$</span>
+和 <span class=math-inline>$\gamma$</span>
+的相互作用。</strong> 这两个参数不是独立的。小 <span class=math-inline>$\gamma$</span>
+（平滑核）能容忍更大的 <span class=math-inline>$C$</span>
+而不过拟合，因为每个 SV 的"投票权"散得很开。大 <span class=math-inline>$\gamma$</span>
+（尖锐核）需要小 <span class=math-inline>$C$</span>
+来补偿，否则模型会把决策权重集中在最噪声的点上。</p><p>你做网格搜索时通常会看到验证表面上有一条<em>山脊</em>，好的 <span class=math-inline>$(C, \gamma)$</span>
+大致沿对角线排列——一端是小 <span class=math-inline>$\gamma$</span>
++ 大 <span class=math-inline>$C$</span>
+，另一端是大 <span class=math-inline>$\gamma$</span>
++ 小 <span class=math-inline>$C$</span>
+。那条山脊就是模型的<em>有效复杂度等高线</em>，网格搜索本质上就是把它定位出来。两维网格搜索对大多数场景够用了；只有两个超参，贝叶斯优化带不来多大收益。</p><p>更精明的做法是用 <span class=math-inline>$\log C - \log \gamma$</span>
+作为搜索坐标——验证表面上的山脊在这套对数坐标下基本是直线，扫一条 1D 切片就可以覆盖。Chang & Lin 在 libsvm guide 里推荐先做粗对数网格定位山脊位置，再做细网格精修，这套两步流程比一刀切的密网格快 4–8 倍并且不丢精度。Hsu, Chang & Lin 的 &ldquo;A Practical Guide to Support Vector Classification&rdquo; 把这套流程写得最清楚，可以当 SVM 调参的速查手册。</p><p>一个简短的数值例子：在 <code>make_moons(noise=0.25)</code> 上扫 <span class=math-inline>$C \in \{0.1, 1, 10, 100\}$</span>
+和 <span class=math-inline>$\gamma \in \{0.01, 0.1, 1, 10\}$</span>
+，五折 CV 通常给出三到四个并列最佳的格点 <span class=math-inline>$(C, \gamma) \in \{(1, 1), (10, 0.1), (10, 1), (100, 0.1)\}$</span>
+，CV 精度都在 0.95–0.96，差异在标准误内。这就是山脊。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/05-kernel-algorithms/fig2_svm_support_vectors.png alt="不同 C 下的支持向量与软间隔" loading=lazy decoding=async class=content-image></figure></p><p><strong>一个常见错误。</strong> 大家会记得给 <code>LogisticRegression</code> 标准化特征，却经常忘记给 <code>SVC</code> 标准化。RBF 核算的是原始特征空间里的 <span class=math-inline>$\|x - y\|^2$</span>
+——如果一个特征量纲 <span class=math-inline>$[0, 1]$</span>
+，另一个 <span class=math-inline>$[0, 10^6]$</span>
+，第二个就完全压住核，第一个等于不存在。</p><p>在拟合任何核 SVM 之前<em>务必</em>先标准化（<code>StandardScaler</code>）。前面说的中位数启发式 <span class=math-inline>$\gamma_0$</span>
+也是假设特征已标准化才有意义；在原始量纲上它会算出一个废值。</p><p>同样的警告适用于所有基于距离或核的方法——KNN、k-means、高斯过程——但 SVM 是最容易翻车的地方，因为 SVM 长得太"高大上"，人们反而忘了核眼里看到的只是原始坐标。</p><p><strong>多分类。</strong> SVM 本质上是二分类。sklearn 的 <code>SVC</code> 通过 one-vs-one 分解处理多分类（默认行为）——<span class=math-inline>$K$</span>
+类要训练 <span class=math-inline>$\binom{K}{2}$</span>
+个二分类 SVM。<span class=math-inline>$K$</span>
+大时这比 one-vs-rest 贵，但实际中 <span class=math-inline>$K$</span>
+极少大到让人在乎，而且 one-vs-one 通常精度更高。<span class=math-inline>$K > 20$</span>
+时考虑换 multinomial softmax 的 logistic 回归，或者树模型集成。</p><p>一个反直觉的事实：one-vs-one 训 <span class=math-inline>$\binom{K}{2}$</span>
+个分类器看起来吓人，但每个分类器只用两类的数据，所以总训练代价大约是 <span class=math-inline>$\binom{K}{2} \cdot \mathcal{O}((2n/K)^3) \approx \mathcal{O}(n^3 / K)$</span>
+，反而比 one-vs-rest 的 <span class=math-inline>$K \cdot \mathcal{O}(n^3)$</span>
+便宜。这是 libsvm 选 one-vs-one 当默认的隐藏原因。</p><p>但 one-vs-one 也有它的代价：预测时要查询 <span class=math-inline>$\binom{K}{2}$</span>
+个分类器再投票，预测延迟随 <span class=math-inline>$K^2$</span>
+增长；而 one-vs-rest 只要 <span class=math-inline>$K$</span>
+次。所以在实时系统上 <span class=math-inline>$K$</span>
+中等大（比如 30–50 类）时，one-vs-rest 反而更友好。这一类"训练 vs 推理"的不对称权衡贯穿整个 ML 工程，但在 SVM 多分类上尤其显眼，因为两个策略的精度差距小到经常可以接受任何一个，工程考虑就反而占主导。</p><p>另一个细节是投票策略：one-vs-one 默认用"赢票数"投票，但平局并不罕见。libsvm 用 Wu, Lin & Weng 2004 提出的成对耦合（pairwise coupling）从两两概率推全局概率，比简单投票更稳。<code>SVC(decision_function_shape='ovr')</code> 可以切到 one-vs-rest 形式的决策函数（注意不是训练形式），对下游需要单一分数排序的场景方便。</p><p><strong>概率输出。</strong> SVM 不原生输出概率。<code>SVC(probability=True)</code> 会在 SVM 得分上额外拟合一个 Platt 缩放的 logistic 回归，训练时多花一轮交叉验证，得到的概率通常校准良好，但分类精度稍有牺牲。如果你<em>需要</em>概率，干脆直接用 logistic 回归——SVM 的优势从来就是几何间隔，不是概率解释。</p><p>Platt 缩放本质是事后补救：先训 SVM 拿到 <span class=math-inline>$f(x) = \langle w, \phi(x)\rangle + b$</span>
+，再单独训一个 <span class=math-inline>$P(y = 1 \mid x) = \sigma(A f(x) + B)$</span>
+，两个标量参数 <span class=math-inline>$A, B$</span>
+用极大似然估计。当 SVM 得分的分布跟"反 sigmoid"假设差太远时（极端不平衡数据、或决策边界几何上很扭曲），Platt 缩放给出的概率会校准不良；这时 isotonic regression（<code>CalibratedClassifierCV(method='isotonic')</code>）通常更稳。</p><p><strong>计算现实。</strong> 核 SVM 的训练代价大致 <span class=math-inline>$\mathcal{O}(n^2)$</span>
+到 <span class=math-inline>$\mathcal{O}(n^3)$</span>
+，与训练点数 <span class=math-inline>$n$</span>
+相关——构造 Gram 矩阵 <span class=math-inline>$\mathcal{O}(n^2 d)$</span>
+，求解 QP 在二次和三次之间（取决于求解器）。预测代价 <span class=math-inline>$\mathcal{O}(n_{\text{SV}} \cdot d)$</span>
+每次查询。</p><p>所以核 SVM 在 <span class=math-inline>$n = 10^3$</span>
+上是享受，<span class=math-inline>$n = 10^4$</span>
+上是忍受，<span class=math-inline>$n = 10^6$</span>
+上是不可行。<a href=/zh/kernel-methods/07-%e5%a4%a7%e8%a7%84%e6%a8%a1%e6%a0%b8%e6%96%b9%e6%b3%95/>第 7 篇</a>
+会讲那些把天花板顶上去的近似——Nyström、随机傅里叶特征、基于 SGD 的线性化。</p><p>一个工程经验：libsvm 在 <span class=math-inline>$n = 5000$</span>
+上的训练时间大约几十秒，到 <span class=math-inline>$n = 20{,}000$</span>
+上往往就是十几分钟到一小时——QP 求解的复杂度跳跃比理论曲线还陡，因为内存层级的 cache miss 在大 Gram 矩阵上突然恶化。</p><p>还有一个内存细节常被忽略：libsvm 默认 cache 大小是 200 MB（<code>cache_size=200</code>），<span class=math-inline>$n$</span>
+大时这点远远不够，Gram 矩阵的列被反复重算。把 <code>cache_size</code> 调到机器空闲 RAM 的 50%–70%（比如 4 GB 或 8 GB），训练时间常常能掉一半。这是个一行参数的 free lunch，但 sklearn 默认值是为小数据集设的，大家普遍忘了。</p><h2 id=核-pca在特征空间里做特征分解 class=heading-anchor>核 PCA：在特征空间里做特征分解<a href=#%e6%a0%b8-pca%e5%9c%a8%e7%89%b9%e5%be%81%e7%a9%ba%e9%97%b4%e9%87%8c%e5%81%9a%e7%89%b9%e5%be%81%e5%88%86%e8%a7%a3 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>教科书 PCA 拿一个中心化数据矩阵 <span class=math-inline>$X \in \mathbb{R}^{n \times d}$</span>
+，对 <span class=math-inline>$d \times d$</span>
+协方差矩阵 <span class=math-inline>$C = \tfrac{1}{n} X^\top X$</span>
+做特征分解。前 <span class=math-inline>$k$</span>
+个特征向量就是主方向，任何新点投影上去得到一个 <span class=math-inline>$k$</span>
+维编码。</p><p>标准 PCA 的全部要点是：这些方向在输入空间里是<em>线性</em>的——有时这是好事（数据真的住在线性子空间附近），有时是灾难（数据住在一个卷起来的流形上）。</p><p>核 PCA 把"对 <span class=math-inline>$d \times d$</span>
+协方差做特征分解"换成"对 <span class=math-inline>$n \times n$</span>
+中心化 Gram 矩阵做特征分解"。结果是<em>特征映射 <span class=math-inline>$\phi(X)$</span>
+</em>的主成分，尽管我们从头到尾没把 <span class=math-inline>$\phi$</span>
+写出来。这跟 SVM 是同一招——用内积和 <span class=math-inline>$n \times n$</span>
+矩阵替代显式特征——只是用在了一个无监督问题上。</p><p>它最早由 Schölkopf, Smola & Müller 1998 提出，标志着核方法从纯监督场景扩张到无监督的开端，后续的核 ICA、核 CCA、核 LDA 都遵循同一个套路。</p><span class=math-block>$$C_\phi = \frac{1}{n}\sum_i \phi(x_i) \phi(x_i)^\top,$$</span><p>主方向 <span class=math-inline>$v_k$</span>
+满足 <span class=math-inline>$C_\phi v_k = \lambda_k v_k$</span>
+。</p><p>这是一个在 <span class=math-inline>$\mathcal{H}_K$</span>
+上的特征问题，潜在无穷维，看上去无望。诀窍在于：任何非零特征值对应的特征向量 <span class=math-inline>$v_k$</span>
+一定在 <span class=math-inline>$\{\phi(x_i)\}_{i=1}^n$</span>
+的张成里——如果 <span class=math-inline>$v_k$</span>
+有任何与该张成正交的分量，那么 <span class=math-inline>$C_\phi v_k$</span>
+在该方向上也是零，特征方程强制 <span class=math-inline>$\lambda_k = 0$</span>
+。</p><p>这条论证本质上是把无穷维特征值问题"压扁"到一个 <span class=math-inline>$n$</span>
+维子空间——所有有信息的方向都在 <span class=math-inline>$\{\phi(x_i)\}$</span>
+张成内，无穷维补空间只会贡献零特征值。这套塌缩论证在 RKHS 框架下出现过多次（<a href=/zh/kernel-methods/03-rkhs%e7%90%86%e8%ae%ba/>第 3 篇</a>
+的 representer theorem 是同一个机制的另一面），但每次都值得重新走一遍，因为它解释了"为什么核方法计算上可行" 的根本原因。</p><span class=math-block>$$v_k = \sum_i \alpha_i^{(k)} \phi(x_i).$$</span>
+<span class=math-block>$$K \alpha^{(k)} = n \lambda_k \alpha^{(k)},$$</span><p>其中 <span class=math-inline>$K$</span>
+是 <span class=math-inline>$n \times n$</span>
+的 Gram 矩阵，<span class=math-inline>$K_{ij} = \langle \phi(x_i), \phi(x_j)\rangle = K(x_i, x_j)$</span>
+。</p><p>无穷维协方差算子上的特征问题，被压缩成有限维 Gram 矩阵上的特征问题。这就是核 PCA 的全部内容。</p><p>注意这个 <span class=math-inline>$n$</span>
+因子：<span class=math-inline>$K$</span>
+的特征值是协方差算子特征值的 <span class=math-inline>$n$</span>
+倍，所以解释方差时要除回去。sklearn 的 <code>KernelPCA.eigenvalues_</code> 返回的是 <span class=math-inline>$K$</span>
+的特征值（已经按 <span class=math-inline>$1/n$</span>
+归一），但其它实现可能不一样——读源码看清楚再做"解释方差比"的可视化。</p><span class=math-block>$$\tilde{K} = K - \mathbf{1}_n K - K \mathbf{1}_n + \mathbf{1}_n K \mathbf{1}_n,$$</span><p>其中 <span class=math-inline>$\mathbf{1}_n$</span>
+是 <span class=math-inline>$n \times n$</span>
+全为 <span class=math-inline>$1/n$</span>
+的矩阵。</p><p>这是核方法里少有的几条建议你<em>背下来</em>的公式——每个核 PCA 实现都要走这一步，符号错了就一堆垃圾分量。推导只需展开 <span class=math-inline>$\tilde{K}_{ij} = \langle \tilde{\phi}(x_i), \tilde{\phi}(x_j)\rangle$</span>
+，利用双线性和 <span class=math-inline>$\tilde{\phi}$</span>
+的定义，四个项就掉出来了。</p><p>一种快速记忆法：把 <span class=math-inline>$\mathbf{1}_n K$</span>
+想成"每行减去该行均值"，<span class=math-inline>$K \mathbf{1}_n$</span>
+想成"每列减去该列均值"，<span class=math-inline>$\mathbf{1}_n K \mathbf{1}_n$</span>
+是"全局均值的两次校正"。中心化在欧氏空间就是减均值；在 RKHS 里减均值要通过 Gram 矩阵的代数表达，这四项是同一件事的核版本。理解了这层对应，你就不会把符号写反——错号意味着你不是在中心化，而是在"反中心化"，特征向量会指向相反方向但模长仍然正常，结果是图全反着画。</p><p>一个隐形坑：测试点也要用<em>训练集</em>的均值中心化——不能用测试集自己的均值，否则 train/test 不在同一个坐标系里。<code>KernelPCA.transform()</code> 内部会用训练时缓存的 <span class=math-inline>$\mathbf{1}_n K$</span>
+项补这个偏置，自己实现时要记得复用同一个偏置向量。</p><p><strong>归一化。</strong> <code>eig(K)</code> 解出的特征向量 <span class=math-inline>$\alpha^{(k)}$</span>
+在 <span class=math-inline>$\mathbb{R}^n$</span>
+上是单位范数，但对应的 <span class=math-inline>$v_k = \sum_i \alpha_i^{(k)} \phi(x_i)$</span>
+在 <span class=math-inline>$\mathcal{H}_K$</span>
+上一般<em>不是</em>单位范数。强加 <span class=math-inline>$\|v_k\|^2 = \alpha^{(k)\top} K \alpha^{(k)} = 1$</span>
+给出重新归一化 <span class=math-inline>$\alpha^{(k)} \to \alpha^{(k)} / \sqrt{n \lambda_k}$</span>
+。</p><p>sklearn 的 <code>KernelPCA</code> 会替你做，但你要是自己撸一遍，记得这一步；没有它，投影坐标的尺度就是错的，下游接 SVM 或 logistic 回归时还会被无声地搞砸——因为线性模型对特征尺度敏感，错的尺度等同于错的正则化。</p><span class=math-block>$$z_k(x) = \sum_i \alpha_i^{(k)} K(x_i, x).$$</span><p>注意它跟线性 PCA 的非对称性：这里投影系数 <span class=math-inline>$\alpha_i^{(k)}$</span>
+是<em>训练点</em>上的权重，不是输入空间里的方向。你不能从 <span class=math-inline>$z_k(x)$</span>
+反向重构 <span class=math-inline>$x$</span>
+，除非去解一个 <em>pre-image problem</em>——这是核 PCA 最大的局限之一，也是一整片小文献的主题（Mika 等人，1998）。</p><p>这条非对称性还有一个实际后果：核 PCA 没有"特征加载（loading）&ldquo;概念。线性 PCA 的第一个主成分有明确的特征系数，你能说"这个方向主要由特征 7 和特征 12 主导&rdquo;；核 PCA 的"方向"是 <span class=math-inline>$\sum_i \alpha_i^{(k)} \phi(x_i)$</span>
+，每个 <span class=math-inline>$\alpha_i^{(k)}$</span>
+是某个训练点的权重，跟原始特征没有直接对应。这让核 PCA 在"特征重要性解释"上几乎不可用——你能可视化嵌入但解释不了为什么这个嵌入合理。在需要可解释性的场景（医疗、金融）这是个硬约束。</p><p>可视化用途下 pre-image 通常不需要；但任何需要回到输入空间的任务（去噪、生成），它就是主要的拦路虎。sklearn 用 <code>fit_inverse_transform=True</code> 训一个从 <span class=math-inline>$z$</span>
+到 <span class=math-inline>$x$</span>
+的核岭回归来近似 pre-image，这套近似在 MNIST 去噪上效果不错，但本质上是另一个 ML 模型套在 PCA 之上，不是 PCA 自身的反演。</p><p><strong>为什么它能处理非线性流形。</strong> 如果你的数据是嵌在 3D 里的瑞士卷，数据其实住在一个二维流形上，线性 PCA 看不见——因为卷起来的薄片的主方向指向"错"的方向，PCA 只懂直线。</p><p>RBF 核的核 PCA 计算 <span class=math-inline>$\phi(X)$</span>
+的主成分——<span class=math-inline>$\phi$</span>
+隐式把每个点映射为它跟训练集的相似度概貌。在那个表示里，流形被"展开"，前几个特征向量正确恢复瑞士卷的两个内在维度。</p><p>一种几何直觉是：RBF 核把每个训练点视为一个"高斯凸包"，整个数据集变成这些凸包的并集；核 PCA 找的是这些凸包在 RKHS 里方差最大的方向。当数据沿一条曲线流形分布时，这些方向恰好沿流形展开，跟流形几何对齐。<span class=math-inline>$\gamma$</span>
+控制凸包的尺寸：太小则相邻凸包重叠覆盖整片空间、流形结构被抹平；太大则凸包退化成孤立点、邻接关系丢失。</p><p>这与谱嵌入方法 Isomap、Laplacian eigenmaps 关系密切——它们都可视为用特定数据相关核的核 PCA。Ham 等人 2004 给出了正式的统一框架：把 Isomap 的测地距离矩阵或 Laplacian eigenmaps 的归一化拉普拉斯矩阵当作"核"丢给核 PCA 算法，等价的结果就出来了。这是为什么这一整片"流形学习"算法实际上是同一台引擎换了不同的 Gram 矩阵。</p><p>反过来这也带来一个失败模式：用 RBF 核 PCA 看一个明显有"测地结构"的数据集（比如沿一条弯曲流形的传感器轨迹），结果常常不如 Isomap——因为 RBF 核度量的是欧几里得相似度，无视流形结构；而 Isomap 用图上的最短路距离构造核，<em>认得</em>流形上的"远"。判据：如果数据嵌在一个低维流形上、且流形本身有明显的几何（&ldquo;测地距离"跟"欧几里得距离"差很多），优先考虑 Isomap / Laplacian eigenmaps；若数据只是非线性但相似度在局部欧氏意义下可信，RBF 核 PCA 更稳。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/05-kernel-algorithms/fig3_kernel_pca_unfolding.png alt="核 PCA 把瑞士卷展开" loading=lazy decoding=async class=content-image></figure></p><h2 id=核-pca-实战 class=heading-anchor>核 PCA 实战<a href=#%e6%a0%b8-pca-%e5%ae%9e%e6%88%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>sklearn API 是 <code>sklearn.decomposition.KernelPCA</code>，几乎是 <code>PCA</code> 的即插即用替代品：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.decomposition</span> <span class=kn>import</span> <span class=n>KernelPCA</span><span class=p>,</span> <span class=n>PCA</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.datasets</span> <span class=kn>import</span> <span class=n>make_swiss_roll</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>X</span><span class=p>,</span> <span class=n>color</span> <span class=o>=</span> <span class=n>make_swiss_roll</span><span class=p>(</span><span class=n>n_samples</span><span class=o>=</span><span class=mi>1000</span><span class=p>,</span> <span class=n>noise</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span> <span class=n>random_state</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>pca</span> <span class=o>=</span> <span class=n>PCA</span><span class=p>(</span><span class=n>n_components</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>fit_transform</span><span class=p>(</span><span class=n>X</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>kpca</span> <span class=o>=</span> <span class=n>KernelPCA</span><span class=p>(</span><span class=n>n_components</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>kernel</span><span class=o>=</span><span class=s2>&#34;rbf&#34;</span><span class=p>,</span> <span class=n>gamma</span><span class=o>=</span><span class=mf>0.05</span><span class=p>)</span><span class=o>.</span><span class=n>fit_transform</span><span class=p>(</span><span class=n>X</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>怎么选 <span class=math-inline>$\gamma$</span>
+。</strong> 跟核 SVM 一样，<span class=math-inline>$\gamma$</span>
+控制带宽，是最重要的超参。不一样的地方在于：核 PCA 无监督，没有标签信号可拿来网格搜索。三个实用策略：</p><ul><li><strong>中位数启发式。</strong> 用对距离算 <span class=math-inline>$\gamma_0$</span>
+，再在它周围几个数量级目视检查。如果核 PCA 作为下游任务的预处理，可以直接拿下游任务表现当信号网格搜索 <span class=math-inline>$\gamma$</span>
+。</li><li><strong>重构误差。</strong> 投到 <span class=math-inline>$k$</span>
+个分量再用 <code>KernelPCA(fit_inverse_transform=True)</code> 重构，选最小化留出集平均重构误差的 <span class=math-inline>$\gamma$</span>
+。原理清晰但有局限，因为重构本身也依赖 <span class=math-inline>$\gamma$</span>
+和核。</li><li><strong>下游分类器精度。</strong> 如果核 PCA 是 SVM 或随机森林的预处理步骤，<span class=math-inline>$\gamma$</span>
+不过是另一个超参，并入下游模型的同一轮 CV。</li></ul><p>一个具体瑞士卷数字：1000 个点上扫 <span class=math-inline>$\gamma \in \{0.01, 0.05, 0.1, 0.5, 1\}$</span>
+，目视检查二维嵌入跟"卷出来的真色带"的对齐程度。</p><p><span class=math-inline>$\gamma = 0.05$</span>
+通常给出最干净的展开，<span class=math-inline>$\gamma = 0.5$</span>
+开始把卷压成一团，<span class=math-inline>$\gamma = 1$</span>
+完全失去结构。这种"目视判断"听起来很主观，但跟下游分类精度的 CV 结果高度一致——核 PCA 的好坏在 2D 散点图上肉眼可读，这本身是它相对深度自编码器的一个优势。</p><p>自编码器的潜在空间没有这种"看一眼就知道好不好"的可读性：你不知道 16 维瓶颈里前 2 维代表什么，常常要再套一个 t-SNE 才能可视化。核 PCA 的潜在空间天生是"按方差排序"的，第 1 个分量就是最重要的方向，第 2 个次之，依此类推。这条排序结构是 PCA 系算法独有的资产，自编码器和大多数神经降维方法都没有。</p><p>排序结构的另一个用途是<em>选 <span class=math-inline>$k$</span>
+</em>：累计解释方差比作为 <span class=math-inline>$k$</span>
+的函数会画出一条"碎石图&rdquo;（scree plot），肘部就是合理的 <span class=math-inline>$k$</span>
+值。自编码器要选潜在维度，要么靠 reconstruction loss 配 CV 网格搜索，要么靠下游任务表现——两者都比读一张 scree plot 麻烦。核 PCA 把"我应该保留多少维"这个问题降级成画一张图、找肘部，调试体验非常友好。</p><p><strong>什么时候值得用。</strong> 核 PCA 在以下场景最有用：(a) 数据有非线性结构；(b) 你想在 2D 或 3D 里<em>可视化</em>这个结构；(c) 结构最适合用平滑的、局部的相似度来刻画。</p><p>瑞士卷、S 形曲线、moons、同心圆——这些是"核 PCA 大显身手"的经典数据。在高维、稀疏或本来就线性的数据上，标准 PCA 几乎总是同等好甚至更好——而且<em>便宜得多</em>：标准 PCA 是 <span class=math-inline>$\mathcal{O}(d^2 n + d^3)$</span>
+，核 PCA 是 <span class=math-inline>$\mathcal{O}(n^3)$</span>
+。</p><p><strong>什么时候翻车。</strong> 核 PCA 在两类场景下<em>脆弱</em>。一是噪声数据上，Gram 矩阵的前几个特征向量可能被噪声模式主导而不是信号——小 <span class=math-inline>$\gamma$</span>
+会缓解但也会糊掉结构。</p><p>二是数据有多个不连通流形（比如两个分隔很开各有曲率的 blob）时，前几个成分常常捕捉的是<em>簇间</em>变化而非<em>簇内</em>结构——这到底是不是你想要的就难说了。如果你<em>偏要</em>簇内结构，t-SNE 或 UMAP 更合适——它们优化的是保留局部邻域的损失，不是最大化方差。</p><p>这是一个根本性的目标差异：PCA 系（包括核 PCA）最大化<em>全局</em>方差解释，t-SNE/UMAP 最小化<em>局部</em>邻域的 KL 散度。两套损失会给出截然不同的二维投影——同一份数据用核 PCA 看像两团相距很远的 blob，用 UMAP 看是两团内部展开了各自精细结构的子簇。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/05-kernel-algorithms/fig4_kernel_pca_vs_pca.png alt="标准 PCA vs 核 PCA 在同心圆上的对比" loading=lazy decoding=async class=content-image></figure></p><p><strong>计算注记。</strong> 对 Gram 矩阵做特征分解 <span class=math-inline>$\mathcal{O}(n^3)$</span>
+是约束。当 <span class=math-inline>$n > 5000$</span>
+时用 <code>eigen_solver='arpack'</code> 只算前 <span class=math-inline>$k$</span>
+个特征向量，复杂度降到约 <span class=math-inline>$\mathcal{O}(n^2 k)$</span>
+。当 <span class=math-inline>$n$</span>
+真的很大时，得上 Nyström 近似——<a href=/zh/kernel-methods/07-%e5%a4%a7%e8%a7%84%e6%a8%a1%e6%a0%b8%e6%96%b9%e6%b3%95/>第 7 篇</a>
+见。</p><p>内存代价是另一个隐形约束：双精度 <span class=math-inline>$n = 30{,}000$</span>
+的 Gram 矩阵就要 7.2 GB，光是把它放进 RAM 就在 16 GB 笔记本上挤；<span class=math-inline>$n = 50{,}000$</span>
+直接爆。所以核 PCA 的"<span class=math-inline>$\mathcal{O}(n^3)$</span>
+上限"在实操中常常先撞 RAM 墙，再撞 CPU 墙。</p><p>一个工程妥协是用 float32 而不是 float64，立刻把内存减半，对核 PCA 的精度影响微乎其微（因为前几个主成分的能量集中在大特征值上，对舍入误差不敏感）。sklearn 0.24 起 <code>KernelPCA</code> 支持 <code>eigen_solver='randomized'</code>，结合 float32 通常能把 <span class=math-inline>$n = 50{,}000$</span>
+拖进 16 GB 笔记本。再大就得换 incremental 或 streaming 算法，但那是另一篇文章的主题了。</p><p><strong>vs. t-SNE 和 UMAP。</strong> 现代实操中非线性可视化通常先想到 t-SNE 或 UMAP，而不是核 PCA。原因：(i) t-SNE/UMAP 明确优化保留局部邻域，正是你肉眼在 2D 图里关心的；(ii) 实际上它们 scale 到大 <span class=math-inline>$n$</span>
+好得多（UMAP 接近线性）；(iii) 不需要用户挑核。</p><p>核 PCA 相对 t-SNE/UMAP 的优势是：(i) 对新测试点有闭式、确定性的投影函数（t-SNE 没有，UMAP 有但近似）；(ii) 它忠于<em>方差</em>结构而非邻域结构——这正是你若想下游接一个线性分类器时想要的；(iii) 只有一个超参，不是三个。探索式可视化用 UMAP；下游模型的预处理步骤用核 PCA。</p><p>一个简单的判据：如果你要把降维结果传给后续的 ML 模型，几乎一定选核 PCA 或 PCA；如果你要把它放进幻灯片给人看，几乎一定选 UMAP 或 t-SNE。</p><p>另一个常被遗漏的对比维度是<em>超参敏感度</em>。t-SNE 的 <code>perplexity</code> 改 5 和改 50 给出的图可能根本看不出来是同一份数据；UMAP 对 <code>n_neighbors</code> 同样敏感。核 PCA 在中位数启发式 <span class=math-inline>$\gamma_0$</span>
+附近一两个数量级内的图大体一致——核 PCA 的"稳健性"换来了"漂亮度"的损失。如果你的目标是给老板演示一张"看起来惊艳"的图，t-SNE 几乎一定赢；如果你的目标是写一篇可复现的论文图，核 PCA 几乎一定赢。</p><h2 id=核岭回归闭式解的优雅 class=heading-anchor>核岭回归：闭式解的优雅<a href=#%e6%a0%b8%e5%b2%ad%e5%9b%9e%e5%bd%92%e9%97%ad%e5%bc%8f%e8%a7%a3%e7%9a%84%e4%bc%98%e9%9b%85 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$\min_w\ \tfrac{1}{2}\|y - Xw\|^2 + \tfrac{\lambda}{2}\|w\|^2,$$</span>
+<span class=math-block>$$\hat{w} = (X^\top X + \lambda I)^{-1} X^\top y.$$</span><p><span class=math-inline>$\lambda$</span>
+项正则化逆矩阵，即使 <span class=math-inline>$X^\top X$</span>
+秩亏也保持数值稳定。</p><p>这个闭式解就是大家把岭回归当回归万金油基线的原因：没有优化循环、除了 <span class=math-inline>$\lambda$</span>
+之外没其他超参、可微、良态。从贝叶斯视角看，它还是高斯先验 <span class=math-inline>$w \sim \mathcal{N}(0, (1/\lambda) I)$</span>
+加高斯似然下的 MAP 估计——这层等价让岭回归同时是频率派的"惩罚最小二乘"和贝叶斯派的"高斯先验下的回归"，后面要讲它跟 GP 的等价时正是这层贝叶斯解读在起作用。</p><p>从信息论视角看还有第三条解读：<span class=math-inline>$\lambda \|w\|^2$</span>
+项等价于在解空间上加最小描述长度（MDL）惩罚，鼓励模型用尽量少的"比特"描述自己。三种解读在数学上彼此完全等价但语言全不同——频率派说"惩罚"，贝叶斯说"先验"，信息论说"压缩"——这种"同一公式三套语言"的现象在 ML 里反复出现，理解任一一种解读都足以做对题，但同时持有三种解读会让你在跟不同背景的合作者讨论时方向感更稳。</p><p>这条等价对调试也有用：如果你的核岭模型预测崩盘，分三个角度自查——频率派问"<span class=math-inline>$\lambda$</span>
+是不是太小让模型过拟合？"，贝叶斯派问"先验是不是跟数据规模不匹配，方差设小了？"，信息论派问"模型描述长度有没有炸？"。三个角度问的是同一件事但触发的修法直觉不同，多一个角度多一份成功概率。</p><span class=math-block>$$\hat{f}(x) = \langle w, \phi(x)\rangle = \sum_i \alpha_i \langle \phi(x_i), \phi(x)\rangle = \sum_i \alpha_i K(x_i, x).$$</span>
+<span class=math-block>$$\min_\alpha\ \tfrac{1}{2}\|y - K\alpha\|^2 + \tfrac{\lambda}{2} \alpha^\top K \alpha.$$</span>
+<span class=math-block>$$\alpha = (K + \lambda I)^{-1} y.$$</span><p>整个推导能写在一张明信片上。</p><p>把这条推导拆成"三步配方"：先调 representer theorem 把 <span class=math-inline>$w$</span>
+写成训练点的线性组合，再把这个表达式回代到损失函数得到一个只关于 <span class=math-inline>$\alpha$</span>
+的凸二次目标，最后对 <span class=math-inline>$\alpha$</span>
+求梯度置零拿到闭式解。这三步在 SVM、核 PCA 上完全平行，只是损失换了；后面任何"核 X"算法都可以照搬这三步。</p><span class=math-block>$$\hat{f}(x) = \mathbf{k}(x)^\top \alpha = \mathbf{k}(x)^\top (K + \lambda I)^{-1} y,$$</span><p>其中 <span class=math-inline>$\mathbf{k}(x) \in \mathbb{R}^n$</span>
+的分量是 <span class=math-inline>$\mathbf{k}(x)_i = K(x_i, x)$</span>
+。</p><p>对比线性岭公式 <span class=math-inline>$\hat{f}(x) = x^\top (X^\top X + \lambda I)^{-1} X^\top y$</span>
+；结构<em>完全相同</em>，<span class=math-inline>$K$</span>
+换 <span class=math-inline>$X^\top X$</span>
+，<span class=math-inline>$\mathbf{k}(x)$</span>
+换 <span class=math-inline>$X^\top x$</span>
+。这是核技巧最纯粹的展现——把每个矩阵换成它的核化对应物，算法就直接通过了，不需要任何额外修改。</p><p>一个简单的数值核对：<span class=math-inline>$n = 5$</span>
+的 toy 例子，手算 <span class=math-inline>$K = X X^\top$</span>
+（即线性核 <span class=math-inline>$K(x, y) = \langle x, y\rangle$</span>
+），核化解 <span class=math-inline>$(K + \lambda I)^{-1} y$</span>
+跟原始岭解 <span class=math-inline>$(X^\top X + \lambda I)^{-1} X^\top y$</span>
+在预测上<em>完全相同</em>——内积视角和坐标视角是同一个矩阵分解的两种写法，对线性核而言这种等价性甚至是逐元素精确的，差别只在数值精度。</p><p><strong>没有迭代。</strong> 不像 SVM，没有 QP 要解。整个训练就是一次线性求解。<span class=math-inline>$n$</span>
+个训练点、<span class=math-inline>$\mathcal{O}(d)$</span>
+评估代价的核，总复杂度是 <span class=math-inline>$\mathcal{O}(n^2 d)$</span>
+构造 Gram 矩阵加 <span class=math-inline>$\mathcal{O}(n^3)$</span>
+求逆。预测每次 <span class=math-inline>$\mathcal{O}(n d)$</span>
+，是评估核与每个训练点的代价。</p><p>没有稀疏性——每个 <span class=math-inline>$\alpha_i$</span>
+一般都非零。这就是闭式解的代价：你用 SVM 那种稀疏支持向量结构换了"不用解 QP"。</p><p>从工程视角看，&ldquo;没有迭代"也意味着没有早停、没有学习率调度、没有收敛诊断——失败模式更狭窄、调参表面更平坦，这恰恰是为什么核岭常常作为"快速基线"在跨问题的论文里频繁出现：你几乎不会因为优化器问题而错怪算法。</p><p>不过"没稀疏性"在实际部署里是个真问题。一个 <span class=math-inline>$n = 10{,}000$</span>
+训完的核岭模型预测一次要算 1 万次核求值，而同样数据训出的 RBF SVM 可能只有几百个 SV，预测代价小两个数量级。当部署延迟要求严格（比如在线推理 &lt; 10 ms）时，核岭往往输给 SVM；当训练后预测频次少（离线分析）或预测延迟不敏感（批量打分）时，核岭的训练简洁性反过来占优。这条 trade-off 在论文里很少提，但在工程上反复出现。</p><p><strong><span class=math-inline>$\lambda$</span>
+的角色。</strong> 除了核自己的超参之外，<span class=math-inline>$\lambda$</span>
+是唯一旋钮。<span class=math-inline>$\lambda$</span>
+小意味着模型在训练数据上插值——<span class=math-inline>$\lambda = 0$</span>
+时任何训练点 <span class=math-inline>$x_i$</span>
+上的预测<em>精确等于</em> <span class=math-inline>$y_i$</span>
+，这在训练标签干净时很棒，标签有噪声时就糟。</p><p><span class=math-inline>$\lambda$</span>
+大则所有 <span class=math-inline>$\alpha_i$</span>
+被压向零，预测向均值回归，模型欠拟合。用交叉验证；对数网格 <span class=math-inline>$\lambda \in \{10^{-6}, \ldots, 10^{2}\}$</span>
+选留出 MSE 最小的。</p><p>一个反直觉的失败模式：<span class=math-inline>$\lambda$</span>
+选得"刚刚好"通过 5-fold CV 测试，但放到实际生产数据上残差骤增——往往是 train 和 test 的特征分布有 shift，CV 信号代表"对训练分布最优&rdquo;，对 shifted 分布反而过拟合。这种情形下要么把 <span class=math-inline>$\lambda$</span>
+调大一档（牺牲 CV 精度换对分布漂移的鲁棒性），要么换用更稳健的损失（比如 Huber）。核岭的平方损失对异常值和分布漂移都敏感，是它众所周知的弱点之一。</p><p>核岭回归的留一交叉验证特别便宜，因为它能从单次拟合用闭式技巧算出来（LOO 残差通过 <em>hat matrix</em> <span class=math-inline>$H = K(K + \lambda I)^{-1}$</span>
+的对角分量分解出来）。</p><p>具体地，LOO 残差 <span class=math-inline>$e_i^{\text{LOO}} = (y_i - \hat{y}_i) / (1 - H_{ii})$</span>
+——单次拟合，对角元 <span class=math-inline>$H_{ii}$</span>
+复用，就拿到全部 <span class=math-inline>$n$</span>
+个 LOO 残差，不用真做 <span class=math-inline>$n$</span>
+次重新拟合。这条捷径让 <span class=math-inline>$\lambda$</span>
+选择几乎免费，是核岭相对 SVM 在调参体验上的一个隐藏优势。</p><p>值得一提的一个数值实践：当 <span class=math-inline>$K + \lambda I$</span>
+已经用 Cholesky 分解 <span class=math-inline>$L L^\top$</span>
+算过一次以后，对任意新 <span class=math-inline>$\lambda'$</span>
+重算的代价并不是从头 <span class=math-inline>$\mathcal{O}(n^3)$</span>
+，而是 <span class=math-inline>$\mathcal{O}(n^3)$</span>
+的常数压低了一截——因为 <span class=math-inline>$K$</span>
+的特征分解只需做一次，之后对每个 <span class=math-inline>$\lambda$</span>
+只是 <span class=math-inline>$K + \lambda I$</span>
+的对角加法和回代。<code>KernelRidge</code> 没有显式暴露这一加速接口，但你自己拼 <code>eigh(K)</code> 加循环很容易实现，超参网格扫描快 <span class=math-inline>$5\times$</span>
+–<span class=math-inline>$10\times$</span>
+。</p><p>更彻底的做法：核岭的 LOO-CV 残差 <span class=math-inline>$e_i^{\text{LOO}} = (y_i - \hat{y}_i)/(1 - H_{ii})$</span>
+跟 <span class=math-inline>$\lambda$</span>
+是闭式可微的函数，可以直接用梯度优化器（L-BFGS）在 <span class=math-inline>$\log \lambda$</span>
+上最小化 LOO-MSE。这把整个超参选择降级成连续优化问题，不需要离散网格，调参体验直追 GP 的边际似然。GPML 工具箱（Rasmussen & Nickisch）里这套做法叫 &ldquo;generalized cross-validation&rdquo;，跟 LOO 在数值上几乎重合而更稳。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.kernel_ridge</span> <span class=kn>import</span> <span class=n>KernelRidge</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>X</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=o>-</span><span class=mi>3</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>80</span><span class=p>)</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>y</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>X</span><span class=p>)</span><span class=o>.</span><span class=n>ravel</span><span class=p>()</span> <span class=o>+</span> <span class=mf>0.1</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=mi>80</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>krr</span> <span class=o>=</span> <span class=n>KernelRidge</span><span class=p>(</span><span class=n>alpha</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span> <span class=n>kernel</span><span class=o>=</span><span class=s2>&#34;rbf&#34;</span><span class=p>,</span> <span class=n>gamma</span><span class=o>=</span><span class=mf>0.5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>krr</span><span class=o>.</span><span class=n>fit</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>y_pred</span> <span class=o>=</span> <span class=n>krr</span><span class=o>.</span><span class=n>predict</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=o>-</span><span class=mi>3</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>200</span><span class=p>)</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><p>注意 sklearn 把正则化参数叫 <code>alpha</code>（与标准岭回归对齐），不叫 <span class=math-inline>$\lambda$</span>
+，但它们是同一个东西。<code>kernel</code> 和 <code>gamma</code> 跟 <code>SVC</code> 里行为完全一样。核岭回归没有 <span class=math-inline>$C$</span>
+参数，因为它没有 hinge 损失——整个损失全是平方误差，<span class=math-inline>$\lambda$</span>
+一人独控正则化。</p><p>这个 API 一致性背后是一段历史小八卦：scikit-learn 早期为 <code>Ridge</code> 选了 <code>alpha</code>，后来 <code>KernelRidge</code> 上线时为了一致性沿用了同一个名字，结果数学社区里大家都习惯叫 <span class=math-inline>$\lambda$</span>
+，所以新手第一次读源码总要愣一下。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/05-kernel-algorithms/fig5_kernel_ridge_fit.png alt=核岭回归拟合带噪声的正弦波 loading=lazy decoding=async class=content-image></figure></p><p><strong>关于条件数的实用注记。</strong> <span class=math-inline>$K + \lambda I$</span>
+在 <span class=math-inline>$\lambda$</span>
+很小<em>且</em>核很尖（<span class=math-inline>$\gamma$</span>
+大）<em>且</em>你有近重复训练点时会数值奇异。症状是 <code>LinAlgError</code> 或预测狂震荡。</p><p>修法：加大 <span class=math-inline>$\lambda$</span>
+、标准化特征、去重训练点、或换数值稳定求解器（<span class=math-inline>$K + \lambda I$</span>
+的 Cholesky 分解，sklearn 内部就是这么做的）。Cholesky 之所以行得通，是因为 <span class=math-inline>$K$</span>
+半正定且 <span class=math-inline>$\lambda > 0$</span>
+时 <span class=math-inline>$K + \lambda I$</span>
+一定正定；如果哪一次它正定性失败，那是你的核实现有 bug。</p><p>一个具体诊断流程：先看 <code>np.linalg.cond(K + lambda*np.eye(n))</code>，超过 <span class=math-inline>$10^{12}$</span>
+说明已经病态；再看 Gram 矩阵的对角元方差，若 <span class=math-inline>$K_{ii}$</span>
+之间差异巨大（如某些点是 0 某些点是 1），说明特征没标准化；最后看是否有 <span class=math-inline>$K_{ij} \approx K_{ii}$</span>
+的近重复行——这是去重最直接的信号。</p><p>值得提一句"jitter"小技巧：GP 实现里常见的做法是给 <span class=math-inline>$K$</span>
+主对角线加一个极小常数 <span class=math-inline>$\epsilon \sim 10^{-6}$</span>
+，等价于一个额外的微小 <span class=math-inline>$\lambda$</span>
+，用来稳住 Cholesky。这条技巧从 GP 偷过来用在核岭上也完全合法，比改算法参数更轻量。如果你看到论文里写 &ldquo;we added jitter of <span class=math-inline>$10^{-6}$</span>
+to the diagonal&rdquo;，作者多半是在跟这条数值不稳定较劲。</p><h2 id=核岭回归-vs-高斯过程 class=heading-anchor>核岭回归 vs 高斯过程<a href=#%e6%a0%b8%e5%b2%ad%e5%9b%9e%e5%bd%92-vs-%e9%ab%98%e6%96%af%e8%bf%87%e7%a8%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$\hat{f}_{\text{KRR}}(x) = \mathbf{k}(x)^\top (K + \lambda I)^{-1} y = \mathbb{E}\bigl[f(x) \mid \mathcal{D}\bigr]_{\text{GP}}.$$</span><p>这不是比喻，也不是"差不多"——它们就是同一个公式。那么为什么被当成两个不同的算法？</p><p><strong>差别在概率解释。</strong> GP 回归不止给你点预测，还给你每个测试点上的完整后验分布——附带方差。核岭回归只给你点估计。那个额外的方差正是 GP 在贝叶斯优化、主动学习、不确定性量化里流行的原因——你知道在每个查询点<em>自己有多不知道</em>，方差在远离训练数据的输入区域会变大。核岭回归没有这一切。</p><p>这一点不可低估：在主动学习里，下一个标注样本的选择正是基于"哪个点的后验方差最大"；在贝叶斯优化里，acquisition function（EI、UCB）的核心成分就是后验方差。把核岭升级成 GP 几乎是零代价（同一个矩阵分解），换来的是一整套决策理论。</p><p>后验方差的几何也值得讲一下：<span class=math-inline>$\sigma_*^2(x) = K(x, x) - \mathbf{k}(x)^\top (K + \lambda I)^{-1} \mathbf{k}(x)$</span>
+。第一项是这个点处的先验方差（用 RBF 核就是 <span class=math-inline>$1$</span>
+），第二项是训练数据带来的"信息减量"。当 <span class=math-inline>$x$</span>
+离所有训练点都远时 <span class=math-inline>$\mathbf{k}(x) \approx 0$</span>
+，方差回到先验值；当 <span class=math-inline>$x$</span>
+落在某个训练点附近时方差被压到 <span class=math-inline>$\lambda$</span>
+左右——也就是噪声水平。这条公式把"远离数据 → 不确定性大"翻译成精确的矩阵代数，不需要任何假设或近似。</p><p><strong>代价一样。</strong> 两个算法都需要同一个 <span class=math-inline>$\mathcal{O}(n^3)$</span>
+的逆，所以没有计算上的理由偏好哪个。只需要点预测时用核岭回归；需要校准的不确定性时用 GP。<a href=/zh/kernel-methods/06-%e9%ab%98%e6%96%af%e8%bf%87%e7%a8%8b/>第 6 篇</a>
+会详细展开这一对偶，包括 GP 框架如何让你<em>学习</em>核超参（最大化边际似然）——这是核岭回归没有的奢侈品。</p><p>具体而言，给定数据 <span class=math-inline>$(X, y)$</span>
+，GP 的边际似然 <span class=math-inline>$p(y \mid X, \theta)$</span>
+是关于核超参 <span class=math-inline>$\theta$</span>
+（如 RBF 的 <span class=math-inline>$\gamma$</span>
+）和噪声方差 <span class=math-inline>$\sigma_n^2$</span>
+的可微函数，可以用 L-BFGS 直接最大化。结果是一组数据驱动的最优超参，不需要任何 train/val split。核岭则没有这个机制——它没有似然，只有平方损失，所以没办法对超参做极大似然估计。如果你要把核岭当成"统计模型"用，要么手动包一层 CV，要么直接换成 GP。</p><p>边际似然还有一个非平凡的性质叫"Occam 剃刀效应"：过复杂的核（比如长度尺度过短）虽然能在训练数据上拟合得很好，但边际似然会因为"先验质量被分散到太多无关函数上"而下降。这是贝叶斯框架自带的正则化，不需要额外加。频率派要做模型选择必须搬出 AIC/BIC/CV，贝叶斯派一个边际似然全干完——这条优势在小数据 regime 下特别明显，对应核岭加 CV 的体验差距能拉到一两个数量级。</p><p><strong>一个微妙的对应。</strong> 核岭超参 <span class=math-inline>$\lambda$</span>
+对应 GP 的噪声方差 <span class=math-inline>$\sigma_n^2$</span>
+。核的带宽 <span class=math-inline>$\gamma$</span>
+对应 GP 的长度尺度。GP 框架给你一条原则上的路<em>从数据学</em>这些参数（最大化边际似然），而不用交叉验证——这是贝叶斯框架的实操优势之一。</p><p>核岭交叉验证需要选 CV 方案、度量、网格；GP 边际似然这些选择都不用做。代价是低数据量时边际似然可能过拟合，留出 CV 不会。Rasmussen & Williams 2006 的第 5 章专门讨论了边际似然 vs 留出 CV 的偏差—方差权衡：经验上 <span class=math-inline>$n \gtrsim 200$</span>
+时边际似然几乎总赢，<span class=math-inline>$n &lt; 50$</span>
+时反过来更不稳。</p><h2 id=统一视角representer-theorem-三连发 class=heading-anchor>统一视角：representer theorem 三连发<a href=#%e7%bb%9f%e4%b8%80%e8%a7%86%e8%a7%92representer-theorem-%e4%b8%89%e8%bf%9e%e5%8f%91 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>退后看三个推导的形状。SVM 里 <span class=math-inline>$w = \sum_i \alpha_i y_i \phi(x_i)$</span>
+。核 PCA 里主方向 <span class=math-inline>$v_k = \sum_i \alpha_i^{(k)} \phi(x_i)$</span>
+。核岭里 <span class=math-inline>$w = \sum_i \alpha_i \phi(x_i)$</span>
+。每个算法的最优解都是特征空间里训练点的线性组合，由 <span class=math-inline>$n$</span>
+个系数加权。无穷维优化坍塌成 <span class=math-inline>$n$</span>
+维优化，从头到尾只有 Gram 矩阵 <span class=math-inline>$K$</span>
+这一个对象出场。</p><p>这种"无穷维问题变有限维"的现象在数学里被称作<em>塌缩</em>（collapse），是 RKHS 理论给应用数学最实在的礼物。物理学家会把它当成"自由度的有效约简"——理论上无穷自由度的系统在合适的约束下表现得只像有限自由度的系统；计算机科学家会把它当成"参数化的隐式 trick"——用有限的训练点编码了一个无穷维的假设类。两种视角都对，都指向同一个数学事实。</p><p>这不是巧合，是 <strong>representer theorem</strong>——<a href=/zh/kernel-methods/03-rkhs%e7%90%86%e8%ae%ba/>第 3 篇</a>
+里证过——它说：对任何只通过训练点处的取值 <span class=math-inline>$\{f(x_i)\}_{i=1}^n$</span>
+依赖 <span class=math-inline>$f$</span>
+的损失，加上 <span class=math-inline>$\|f\|_{\mathcal{H}_K}$</span>
+的单调递增函数，整个 RKHS 上的最优 <span class=math-inline>$f^*$</span>
+一定住在 <span class=math-inline>$\{K(x_i, \cdot)\}_{i=1}^n$</span>
+张成的有限维子空间里。</p><p>SVM、PCA、岭回归都符合这个模板，logistic 回归、Fisher 判别、分位数回归还有一大堆经典算法也都符合。一旦你看过一次核化，等于看过了所有。</p><p>ESL 第 5.8 节和 Schölkopf & Smola 2002 的第 4 章都把这条定理的若干变体证得很干净；推广版本（如 Schölkopf, Herbrich & Smola 2001 的"广义 representer theorem"）放松了正则项为 <span class=math-inline>$\|f\|$</span>
+单调函数的要求，覆盖更多正则项形状，但日常使用里前面的版本够了。</p><p><strong>复杂度速览：</strong></p><div class=table-wrap><table><thead><tr><th>算法</th><th>训练代价</th><th>预测代价</th><th>稀疏性</th><th>输出</th></tr></thead><tbody><tr><td>核 SVM</td><td><span class=math-inline>$\mathcal{O}(n^2)$</span>
+到 <span class=math-inline>$\mathcal{O}(n^3)$</span></td><td><span class=math-inline>$\mathcal{O}(n_{\text{SV}} d)$</span></td><td>是——仅 SV</td><td>类别标签</td></tr><tr><td>核 PCA</td><td><span class=math-inline>$\mathcal{O}(n^3)$</span>
+特征分解</td><td><span class=math-inline>$\mathcal{O}(n d)$</span>
+每分量</td><td>否</td><td><span class=math-inline>$k$</span>
+维编码</td></tr><tr><td>核岭</td><td><span class=math-inline>$\mathcal{O}(n^3)$</span>
+线性求解</td><td><span class=math-inline>$\mathcal{O}(n d)$</span></td><td>否</td><td>实值预测</td></tr></tbody></table></div><p>三个都被 <span class=math-inline>$\mathcal{O}(n^3)$</span>
+矩阵操作主导——这就是核方法在没有<a href=/zh/kernel-methods/07-%e5%a4%a7%e8%a7%84%e6%a8%a1%e6%a0%b8%e6%96%b9%e6%b3%95/>第 7 篇</a>
+那些近似时无法 scale 到 web 数据规模的结构性原因。差别在<em>哪种</em>矩阵操作（SVM 的 QP，PCA 的特征分解，岭的线性求解），以及输出是否稀疏——SVM 的 <span class=math-inline>$\alpha$</span>
+因 KKT 互补松弛而稀疏，PCA 和岭一般不稀疏。</p><p>三者的内存代价都是 Gram 矩阵的 <span class=math-inline>$\mathcal{O}(n^2)$</span>
+，在 16GB 机器上用 float64 大约 <span class=math-inline>$n = 30{,}000$</span>
+就成约束。</p><p>把这三行表读成一个共同模式：所有核方法在工程上都被"<span class=math-inline>$n^2$</span>
+内存 + <span class=math-inline>$n^3$</span>
+计算"两堵墙挡住，差别只在墙后头你拿走什么。SVM 给你最稀疏的输出和最快的预测；核 PCA 给你一个降维表示；核岭给你最简洁的训练循环和最丰富的概率推广（接 GP）。三个算法都不可能"通过更聪明地用 RAM" 突破 <span class=math-inline>$\mathcal{O}(n^2)$</span>
+——突破必须来自结构性近似，那是<a href=/zh/kernel-methods/07-%e5%a4%a7%e8%a7%84%e6%a8%a1%e6%a0%b8%e6%96%b9%e6%b3%95/>第 7 篇</a>
+的主题。</p><p>值得在表外补一句：表里的 <span class=math-inline>$n^3$</span>
+都是渐近常数，实际 wall-clock 时间还受 BLAS 实现、缓存命中、并行度等系统因素影响。同样的 <span class=math-inline>$n = 10{,}000$</span>
+在装了 Intel MKL 的机器上可能比 OpenBLAS 快 2–3 倍，比 reference BLAS 快 10 倍。所以"什么时候应该上 Nyström" 的临界 <span class=math-inline>$n$</span>
+不是固定数字，要结合你的 BLAS 实测——很多人在不该近似的规模上提早上了近似，损失了精度却没拿到速度收益。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/05-kernel-algorithms/fig6_three_algorithms_comparison.png alt=三个算法在同一份数据上对比 loading=lazy decoding=async class=content-image></figure></p><p><strong>一个元观察。</strong> 在野外遇到任何线性算法——Fisher LDA、典型相关分析、偏最小二乘、核 logistic 回归——你心里冒出"要是它能非线性就好了"，先看看损失是不是只通过内积依赖数据。如果是，representer theorem 适用，核化是机械的，一个下午能搞定。如果不是，得换个招（往往是神经网络风格的显式特征学习——<a href=/zh/kernel-methods/08-%e6%b7%b1%e5%ba%a6%e6%a0%b8%e5%ad%a6%e4%b9%a0/>第 8 篇</a>
+会对比）。</p><p>这条判据在实践中的命中率惊人地高：2000–2010 年那波"核 X"论文海啸（核 ICA、核 CCA、核 FDA、核 PLS……）基本上都遵循同一个三步配方——读原算法的损失函数、找出内积、换成 <span class=math-inline>$K$</span>
+。能写成一篇论文的工作量，本质上是确认 PSD 性质和给出实验。</p><p>这个"核 X"模式到 2010 年代中后期才开始式微，原因不是 representer theorem 失灵，而是数据规模冲破了 <span class=math-inline>$\mathcal{O}(n^3)$</span>
+的天花板，深度学习用 SGD + 显式特征学习把同一片应用空间收割了。但今天回头看，那批论文留下的最大遗产不是任何单个 &ldquo;核 X&rdquo; 算法本身——而是"任何线性算法都能机械核化"这条元认知，它至今仍是把新出现的损失函数搬上 RKHS 的标准入口。</p><p><strong>第二个元观察。</strong> 核不是给线性算法加非线性的唯一办法。其他路径有：(i) 显式基扩展（多项式特征、B 样条、傅里叶特征），本质是核技巧的显式版本，极限下能恢复它；(ii) 在输入空间分区上集成线性模型（决策树、随机森林、梯度提升）；(iii) 深度学习——把仿射层和逐元素非线性叠起来，从数据学习特征映射 <span class=math-inline>$\phi$</span>
+而不是预先固定它。</p><p>每条路径都有自己的优势 regime。核方法在低数据、平滑函数、需要校准不确定性的场景下赢。树模型在表格数据、类别特征、不规则交互下赢。深度学习在感知数据（视觉、音频、语言）下赢——那里特征层级要从几百万样本里学。<a href=/zh/kernel-methods/08-%e6%b7%b1%e5%ba%a6%e6%a0%b8%e5%ad%a6%e4%b9%a0/>第 8 篇</a>
+会做正面对比。</p><p>这套"非线性化的四条路"是机器学习四十年发展史的一个截面：从 1990 年代的核到 2000 年代的集成树到 2010 年代的深度学习，每一波都在原有基础上拓宽适用 regime，而不是替代上一波——2026 年的工程师工具箱里这四样都得有。</p><p>一个常见的初学者错觉是"既然深度学习这么强，其它三条路是不是该淘汰"。事实正好相反：深度学习赢的是<em>有大量数据 + 复杂感知模式</em>的窄场景，剩下的世界——表格预测、地统计、生物医学小样本、贝叶斯优化、需要不确定性的工业控制——核方法和树模型仍然是首选。Kaggle 表格比赛的金牌方案到 2026 年仍以 LightGBM/XGBoost 为主，深度学习方案的占比变化缓慢；学术 ML 期刊里 GP 论文数量逐年上升，因为不确定性量化是大模型时代越来越紧的需求。&ldquo;哪条路赢"取决于数据特性，不是发表年份。</p><h2 id=接下来 class=heading-anchor>接下来<a href=#%e6%8e%a5%e4%b8%8b%e6%9d%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><a href=/zh/kernel-methods/06-%e9%ab%98%e6%96%af%e8%bf%87%e7%a8%8b/>第 6 篇</a>
+会接住核岭与 GP 的对偶继续展开。我们正经搭高斯过程：函数上的先验、给定数据的后验、均值函数的选择、用最大边际似然学超参、后验方差到底告诉你什么。<a href=/zh/kernel-methods/06-%e9%ab%98%e6%96%af%e8%bf%87%e7%a8%8b/>第 6 篇</a>
+看完，你会把核岭看作一个更丰富概率框架的特例，并准备好做贝叶斯优化、主动学习、带不确定性的回归。</p><p>之后<a href=/zh/kernel-methods/07-%e5%a4%a7%e8%a7%84%e6%a8%a1%e6%a0%b8%e6%96%b9%e6%b3%95/>第 7 篇</a>
+处理我们这一篇反复提到的 <span class=math-inline>$\mathcal{O}(n^3)$</span>
+天花板——Nyström、随机傅里叶特征、inducing points 三套主流近似，每套各有 trade-off；<a href=/zh/kernel-methods/08-%e6%b7%b1%e5%ba%a6%e6%a0%b8%e5%ad%a6%e4%b9%a0/>第 8 篇</a>
+收尾，把核方法跟深度学习摆在同一张桌子上对比，包括 NTK、深度核学习、神经切线核流形这些把"老核"和"新深度"嫁接起来的工作。读完整个系列，你不仅会用核方法，还会清楚知道什么时候不该用它、什么时候它跟其他范式之间的桥可以走通。</p><p>如果你只读这一篇就停下，带走一句话也够：<strong>核 SVM 是稀疏的、核 PCA 是无监督的、核岭回归是闭式的；它们的解都长 <span class=math-inline>$\sum_i \alpha_i \phi(x_i)$</span>
+，因为 representer theorem 这条结构性事实把无穷维优化压成了 <span class=math-inline>$n$</span>
+维优化。</strong> 后面三篇是把这条事实的能量榨干。</p><hr><p><em>本文是 <a href=/zh/series/kernel-methods/>核方法</a>
+系列的第 5 篇，共 8 篇。
+上一篇: <a href=/zh/kernel-methods/04-%e5%b8%b8%e8%a7%81%e6%a0%b8%e5%87%bd%e6%95%b0%e6%97%8f/>第 4 篇 — 常见核函数族</a>
+·
+下一篇: <a href=/zh/kernel-methods/06-%e9%ab%98%e6%96%af%e8%bf%87%e7%a8%8b/>第 6 篇 — 高斯过程</a></em></p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/kernel-methods/04-%E5%B8%B8%E8%A7%81%E6%A0%B8%E5%87%BD%E6%95%B0%E6%97%8F/ data-next-url=https://www.chenk.top/zh/kernel-methods/06-%E9%AB%98%E6%96%AF%E8%BF%87%E7%A8%8B/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/kernel-methods/>核方法</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/kernel-methods/04-%E5%B8%B8%E8%A7%81%E6%A0%B8%E5%87%BD%E6%95%B0%E6%97%8F/><span class=title>核方法（四）：常见核函数族——RBF、Matern、多项式、周期与更多</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/kernel-methods/06-%E9%AB%98%E6%96%AF%E8%BF%87%E7%A8%8B/><span class=title>核方法（六）：高斯过程——当核方法遇到贝叶斯推断</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/kernel-methods/01-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E6%A0%B8%E6%96%B9%E6%B3%95/><span class=series-nav-num>01</span>
+<span class=series-nav-title>核方法（一）：为什么需要它——从线性算法的天花板说起</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/kernel-methods/02-%E6%A0%B8%E6%96%B9%E6%B3%95%E7%9A%84%E6%95%B0%E5%AD%A6%E5%9F%BA%E7%A1%80/><span class=series-nav-num>02</span>
+<span class=series-nav-title>核方法（二）：数学基础——正定核与 Mercer 定理</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/kernel-methods/03-rkhs%E7%90%86%E8%AE%BA/><span class=series-nav-num>03</span>
+<span class=series-nav-title>核方法（三）：RKHS——核方法的理论灵魂</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/kernel-methods/04-%E5%B8%B8%E8%A7%81%E6%A0%B8%E5%87%BD%E6%95%B0%E6%97%8F/><span class=series-nav-num>04</span>
+<span class=series-nav-title>核方法（四）：常见核函数族——RBF、Matern、多项式、周期与更多</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>05</span>
+<span class=series-nav-title>核方法（五）：核 SVM、核 PCA 与核岭回归</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/kernel-methods/06-%E9%AB%98%E6%96%AF%E8%BF%87%E7%A8%8B/><span class=series-nav-num>06</span>
+<span class=series-nav-title>核方法（六）：高斯过程——当核方法遇到贝叶斯推断</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/kernel-methods/07-%E5%A4%A7%E8%A7%84%E6%A8%A1%E6%A0%B8%E6%96%B9%E6%B3%95/><span class=series-nav-num>07</span>
+<span class=series-nav-title>核方法（七）：大规模核方法——Nystrom 近似与随机傅里叶特征</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/kernel-methods/08-%E6%B7%B1%E5%BA%A6%E6%A0%B8%E5%AD%A6%E4%B9%A0/><span class=series-nav-num>08</span>
+<span class=series-nav-title>核方法（八）：深度核学习 vs 深度学习——选择指南与故障排查</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E6%25A0%25B8%25E6%2596%25B9%25E6%25B3%2595%25EF%25BC%2588%25E4%25BA%2594%25EF%25BC%2589%25EF%25BC%259A%25E6%25A0%25B8%2bSVM%25E3%2580%2581%25E6%25A0%25B8%2bPCA%2b%25E4%25B8%258E%25E6%25A0%25B8%25E5%25B2%25AD%25E5%259B%259E%25E5%25BD%2592&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fkernel-methods%252F05-%2525E6%2525A0%2525B8svm%2525E6%2525A0%2525B8pca%2525E6%2525A0%2525B8%2525E5%2525B2%2525AD%2525E5%25259B%25259E%2525E5%2525BD%252592%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fkernel-methods%252F05-%2525E6%2525A0%2525B8svm%2525E6%2525A0%2525B8pca%2525E6%2525A0%2525B8%2525E5%2525B2%2525AD%2525E5%25259B%25259E%2525E5%2525BD%252592%252F&title=%25E6%25A0%25B8%25E6%2596%25B9%25E6%25B3%2595%25EF%25BC%2588%25E4%25BA%2594%25EF%25BC%2589%25EF%25BC%259A%25E6%25A0%25B8%2bSVM%25E3%2580%2581%25E6%25A0%25B8%2bPCA%2b%25E4%25B8%258E%25E6%25A0%25B8%25E5%25B2%25AD%25E5%259B%259E%25E5%25BD%2592" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/kernel-methods/05-%E6%A0%B8svm%E6%A0%B8pca%E6%A0%B8%E5%B2%AD%E5%9B%9E%E5%BD%92/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2021-12-14>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#核-svm从-primal-到-dual>核 SVM：从 primal 到 dual</a></li><li><a href=#核-svm-实战>核 SVM 实战</a></li><li><a href=#核-pca在特征空间里做特征分解>核 PCA：在特征空间里做特征分解</a></li><li><a href=#核-pca-实战>核 PCA 实战</a></li><li><a href=#核岭回归闭式解的优雅>核岭回归：闭式解的优雅</a></li><li><a href=#核岭回归-vs-高斯过程>核岭回归 vs 高斯过程</a></li><li><a href=#统一视角representer-theorem-三连发>统一视角：representer theorem 三连发</a></li><li><a href=#接下来>接下来</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/kernel-methods/ class=series-name>核方法</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/01-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E6%A0%B8%E6%96%B9%E6%B3%95/><span class=chapter-num>01</span>
+<span class=chapter-title>核方法（一）：为什么需要它——从线性算法的天花板说起</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/02-%E6%A0%B8%E6%96%B9%E6%B3%95%E7%9A%84%E6%95%B0%E5%AD%A6%E5%9F%BA%E7%A1%80/><span class=chapter-num>02</span>
+<span class=chapter-title>核方法（二）：数学基础——正定核与 Mercer 定理</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/03-rkhs%E7%90%86%E8%AE%BA/><span class=chapter-num>03</span>
+<span class=chapter-title>核方法（三）：RKHS——核方法的理论灵魂</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/04-%E5%B8%B8%E8%A7%81%E6%A0%B8%E5%87%BD%E6%95%B0%E6%97%8F/><span class=chapter-num>04</span>
+<span class=chapter-title>核方法（四）：常见核函数族——RBF、Matern、多项式、周期与更多</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>05</span>
+<span class=chapter-title>核方法（五）：核 SVM、核 PCA 与核岭回归</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/06-%E9%AB%98%E6%96%AF%E8%BF%87%E7%A8%8B/><span class=chapter-num>06</span>
+<span class=chapter-title>核方法（六）：高斯过程——当核方法遇到贝叶斯推断</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/07-%E5%A4%A7%E8%A7%84%E6%A8%A1%E6%A0%B8%E6%96%B9%E6%B3%95/><span class=chapter-num>07</span>
+<span class=chapter-title>核方法（七）：大规模核方法——Nystrom 近似与随机傅里叶特征</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/08-%E6%B7%B1%E5%BA%A6%E6%A0%B8%E5%AD%A6%E4%B9%A0/><span class=chapter-num>08</span>
+<span class=chapter-title>核方法（八）：深度核学习 vs 深度学习——选择指南与故障排查</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>76 min</strong></div><div class=row><span>字数</span><strong>18990</strong></div><div class=row><span>写于</span><strong>Dec 2021</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/product-thinking/>产品思维</a></li><li><a href=https://www.chenk.top/zh/series/personal-finance/>个人理财</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=关闭>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>在微信里搜索此 ID 即可添加我</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>复制微信号</button></div></div></div></footer></body></html>

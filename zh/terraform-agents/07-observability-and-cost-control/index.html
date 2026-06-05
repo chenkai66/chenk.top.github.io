@@ -1,0 +1,762 @@
+<!doctype html><html lang=zh data-translation=/en/terraform-agents/07-observability-and-cost-control/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Terraform 实战（七）：可观测与成本告警 · Chen Kai Blog</title>
+<meta name=description content="日志进 SLS、Trace 进 ARMS、指标进 CloudMonitor——全部用 HCL 配，新环境天生带观测。真实救过我项目的四条告警，再加上 SLS 驱动的成本看板，发薪日之前告诉你哪个 Agent 在烧预算。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/><meta property="og:type" content="article"><meta property="og:title" content="Terraform 实战（七）：可观测与成本告警"><meta property="og:description" content="日志进 SLS、Trace 进 ARMS、指标进 CloudMonitor——全部用 HCL 配，新环境天生带观测。真实救过我项目的四条告警，再加上 SLS 驱动的成本看板，发薪日之前告诉你哪个 Agent 在烧预算。"><meta property="og:url" content="https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/terraform-agents.jpg"><meta property="og:image:alt" content="Terraform 实战（七）：可观测与成本告警"><meta property="article:published_time" content="2026-03-24T09:00:00Z"><meta property="article:modified_time" content="2026-03-24T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Terraform"><meta property="article:tag" content="Alibaba Cloud"><meta property="article:tag" content="SLS"><meta property="article:tag" content="ARMS"><meta property="article:tag" content="CloudMonitor"><meta property="article:tag" content="AI Agents"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Terraform 实战（七）：可观测与成本告警"><meta name=twitter:description content="日志进 SLS、Trace 进 ARMS、指标进 CloudMonitor——全部用 HCL 配，新环境天生带观测。真实救过我项目的四条告警，再加上 SLS 驱动的成本看板，发薪日之前告诉你哪个 Agent 在烧预算。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/terraform-agents.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"Terraform 实战（七）：可观测与成本告警","description":"日志进 SLS、Trace 进 ARMS、指标进 CloudMonitor——全部用 HCL 配，新环境天生带观测。真实救过我项目的四条告警，再加上 SLS 驱动的成本看板，发薪日之前告诉你哪个 Agent 在烧预算。","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/terraform-agents.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2026-03-24T09:00:00Z","dateModified":"2026-03-24T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/"},"inLanguage":"zh"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/terraform-agents/07-observability-and-cost-control.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/terraform-agents/>Terraform 实战</a>
+· 第 7 篇</div><h1>Terraform 实战（七）：可观测与成本告警</h1><p class=deck>日志进 SLS、Trace 进 ARMS、指标进 CloudMonitor——全部用 HCL 配，新环境天生带观测。真实救过我项目的四条告警，再加上 SLS 驱动的成本看板，发薪日之前告诉你哪个 Agent 在烧预算。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-03-24>March 24, 2026</time> · 26 分钟 · 6216 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/terraform/ class=tag>#Terraform</a><a href=/zh/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/zh/tags/sls/ class=tag>#SLS</a><a href=/zh/tags/arms/ class=tag>#ARMS</a><a href=/zh/tags/cloudmonitor/ class=tag>#CloudMonitor</a><a href=/zh/tags/ai-agents/ class=tag>#AI Agents</a></div><a class="pill pill-outline" href=/en/terraform-agents/07-observability-and-cost-control/>Read in English →</a></div></header><div class=prose><p>Agent 具备非确定性、多步骤执行特性，并频繁调用高成本 API。这三者叠加意味着：若未在上线首日完成可观测性埋点，故障发生后将极难定位与调试。本文通过 Terraform 打通日志、链路追踪和指标三条管线，全部汇聚至统一仪表盘，并配套六个可直接用于排查真实故障的 SLS 查询，以及四个已在生产环境中成功拦截事故的钉钉告警。</p><p>配置完成后，你将拥有一个高信噪比的钉钉告警群——当账单异常激增、延迟持续飙升、错误率显著偏离基线，或 Agent 出现死循环迹象时，系统会即时通知；搭配 SLO 预算看板，还能将模糊的运维直觉转化为可度量的数据。</p><hr><h2 id=三条管线 class=heading-anchor>三条管线<a href=#%e4%b8%89%e6%9d%a1%e7%ae%a1%e7%ba%bf class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/fig1_obs_pipeline.png alt=三个信号，三个管道：日志、跟踪、指标 loading=lazy decoding=async class=content-image></figure></p><p>三种信号类型对应三个阿里云服务，最终都汇聚到 SLS，便于人类友好地查看：</p><ul><li><strong>Logs</strong> — Agent 的 stdout/stderr → ECS 上的 Logtail agent → SLS Logstore</li><li><strong>Traces</strong> — Agent 代码中的 OpenTelemetry SDK → ARMS APM（兼容 OpenTelemetry）</li><li><strong>Metrics</strong> — CloudMonitor agent 采集的主机指标 + Agent 代码上报的自定义指标 → CloudMonitor → 可选地导入 SLS</li></ul><p>不要只接日志或只接指标——三者缺一不可：</p><ul><li>日志回答“Agent 做了什么？”</li><li>链路追踪回答“时间花哪儿了？”</li><li>指标回答“这事是不是比平时更频繁？”</li></ul><p>最省钱的错误做法是仅靠 <code>print()</code> 输出到 stdout 就上线；而最昂贵的错误则是三者都上了，却直到第一次事故才打开仪表盘——结果发现因 SDK 未正确传递上下文，<code>agent</code> 字段有时为 <code>null</code>。务必在第一天就打通全部管线，并坚持每周验证其可用性。</p><h2 id=step-1-sls-project-和-logstores class=heading-anchor>Step 1: SLS Project 和 Logstores<a href=#step-1-sls-project-%e5%92%8c-logstores class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>所有可观测性工作都始于一个 SLS Project。每个环境配一个是对的，每个 Agent 配一个则过于细化。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/wanxiang_monitoring.png alt=带有实时指标仪表板的云监控指挥中心 loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_project&#34; &#34;agents&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  name</span>        <span class=o>=</span> <span class=s2>&#34;agents-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  description</span> <span class=o>=</span> <span class=s2>&#34;Logs and metrics for agents-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  tags</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    Environment</span> <span class=o>=</span> <span class=k>terraform</span><span class=p>.</span><span class=k>workspace</span>
+</span></span><span class=line><span class=cl><span class=n>    ManagedBy</span>   <span class=o>=</span> <span class=s2>&#34;terraform&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>locals</span> {
+</span></span><span class=line><span class=cl><span class=n>  logstores</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    &#34;agent-runs&#34;</span>        <span class=o>=</span><span class=n> { ttl</span> <span class=o>=</span><span class=n> 30,  shard_count</span> <span class=o>=</span> <span class=m>4</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;gateway-requests&#34;</span>  <span class=o>=</span><span class=n> { ttl</span> <span class=o>=</span><span class=n> 90,  shard_count</span> <span class=o>=</span> <span class=m>4</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;ecs-syslog&#34;</span>        <span class=o>=</span><span class=n> { ttl</span> <span class=o>=</span><span class=n> 14,  shard_count</span> <span class=o>=</span> <span class=m>2</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;ack-cluster&#34;</span>       <span class=o>=</span><span class=n> { ttl</span> <span class=o>=</span><span class=n> 30,  shard_count</span> <span class=o>=</span> <span class=m>4</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;audit&#34;</span>             <span class=o>=</span><span class=n> { ttl</span> <span class=o>=</span><span class=n> 365, shard_count</span> <span class=o>=</span> <span class=m>2</span> }
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_store&#34; &#34;this&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  for_each</span> <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>logstores</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  project</span>          <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  name</span>             <span class=o>=</span> <span class=k>each</span><span class=p>.</span><span class=k>key</span>
+</span></span><span class=line><span class=cl><span class=n>  shard_count</span>      <span class=o>=</span> <span class=k>each</span><span class=p>.</span><span class=k>value</span><span class=p>.</span><span class=k>shard_count</span>
+</span></span><span class=line><span class=cl><span class=n>  retention_period</span> <span class=o>=</span> <span class=k>each</span><span class=p>.</span><span class=k>value</span><span class=p>.</span><span class=k>ttl</span>
+</span></span><span class=line><span class=cl><span class=n>  auto_split</span>       <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl><span class=n>  max_split_shard_count</span> <span class=o>=</span> <span class=m>16</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>encrypt_conf</span> {
+</span></span><span class=line><span class=cl><span class=n>    enable</span>      <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl><span class=n>    encrypt_type</span> <span class=o>=</span> <span class=s2>&#34;default&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>user_cmk_info</span> {
+</span></span><span class=line><span class=cl><span class=n>      cmk_key_id</span> <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>kms_keys</span><span class=p>[</span><span class=s2>&#34;logs&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>      arn</span>        <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>kms_keys</span><span class=p>[</span><span class=s2>&#34;logs&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>      region_id</span>  <span class=o>=</span> <span class=s2>&#34;cn-shanghai&#34;</span>
+</span></span><span class=line><span class=cl>    }
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>五个 Logstore 足以覆盖实际需求：</p><ul><li><code>agent-runs</code> — 记录每个 Agent 每次运行的每一步（数据洪流）</li><li><code>gateway-requests</code> — 每次 LLM API 调用一行记录，包含 model、tokens、延迟、成本等字段</li><li><code>ecs-syslog</code> — ECS 实例底层的操作系统日志</li><li><code>ack-cluster</code> — Kubernetes 事件和 Pod 日志（仅在使用 ACK 时启用）</li><li><code>audit</code> — Terraform 所有变更记录，保留一年以满足合规要求</li></ul><p><code>audit</code> 存储一年是因为数据量小，且几年后当有人问“3 月 12 日谁改了 prod ALB”时你会急需它。<code>gateway-requests</code> 的 90 天保留窗口是我调整最频繁的——短到足以将存储成本控制在每天 5 GB、每月约 ¥30 以内，又长到无需 Hive 作业即可完成季度成本趋势分析。</p><h2 id=step-2-从-ecs-投递日志 class=heading-anchor>Step 2: 从 ECS 投递日志<a href=#step-2-%e4%bb%8e-ecs-%e6%8a%95%e9%80%92%e6%97%a5%e5%bf%97 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Logtail Agent 是阿里云官方的日志采集器，可通过 cloud-init 安装（添加到第 4 篇文章的 <code>cloud-init.sh</code> 中）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Install Logtail</span>
+</span></span><span class=line><span class=cl>wget http://logtail-release-cn-shanghai.oss-cn-shanghai.aliyuncs.com/linux64/logtail.sh
+</span></span><span class=line><span class=cl>chmod +x logtail.sh <span class=o>&amp;&amp;</span> ./logtail.sh install cn-shanghai
+</span></span><span class=line><span class=cl>service ilogtaild start
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Tag this machine for the SLS machine group</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;</span><span class=si>${</span><span class=nv>sls_user_id</span><span class=si>}</span><span class=s2>::</span><span class=si>${</span><span class=nv>sls_machine_group</span><span class=si>}</span><span class=s2>&#34;</span> &gt; /etc/ilogtail/user_log_config.json
+</span></span></code></pre></td></tr></table></div></div><p>Logtail 的配置——包括采集哪些文件及如何解析——是一个 Terraform 资源：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_machine_group&#34; &#34;agent&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project</span>       <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  name</span>          <span class=o>=</span> <span class=s2>&#34;agent-runtime-machines&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  identify_type</span> <span class=o>=</span> <span class=s2>&#34;userdefined&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  identify_list</span> <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;agent-runtime-${terraform.workspace}&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>  topic</span>         <span class=o>=</span> <span class=s2>&#34;agent-runs&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_logtail_config&#34; &#34;agent&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project</span>      <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  logstore</span>     <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;agent-runs&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  input_type</span>   <span class=o>=</span> <span class=s2>&#34;file&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  log_sample</span>   <span class=o>=</span> <span class=err>&lt;&lt;-</span><span class=k>SAMPLE</span>
+</span></span><span class=line><span class=cl>    {<span class=s2>&#34;ts&#34;:&#34;2026-03-24T09:15:23Z&#34;,&#34;agent&#34;:&#34;research&#34;,&#34;step&#34;:&#34;plan&#34;,&#34;tokens&#34;:420,&#34;latency_ms&#34;</span><span class=err>:</span><span class=m>1200</span>}
+</span></span><span class=line><span class=cl>  <span class=k>SAMPLE</span>
+</span></span><span class=line><span class=cl><span class=n>  name</span>         <span class=o>=</span> <span class=s2>&#34;agent-runs-collector&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  output_type</span>  <span class=o>=</span> <span class=s2>&#34;LogService&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  input_detail</span> <span class=o>=</span> <span class=k>jsonencode</span><span class=p>(</span>{
+</span></span><span class=line><span class=cl><span class=n>    logType</span>        <span class=o>=</span> <span class=s2>&#34;json_log&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    logPath</span>        <span class=o>=</span> <span class=s2>&#34;/var/log/agents&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    filePattern</span>    <span class=o>=</span> <span class=s2>&#34;*.log&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    localStorage</span>   <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl><span class=n>    enableRawLog</span>   <span class=o>=</span> <span class=kt>false</span>
+</span></span><span class=line><span class=cl><span class=n>    timeKey</span>        <span class=o>=</span> <span class=s2>&#34;ts&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    timeFormat</span>     <span class=o>=</span> <span class=s2>&#34;%Y-%m-%dT%H:%M:%S%z&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    discardUnmatch</span> <span class=o>=</span> <span class=kt>false</span>
+</span></span><span class=line><span class=cl><span class=n>    maxDepth</span>       <span class=o>=</span> <span class=m>10</span>
+</span></span><span class=line><span class=cl>  }<span class=p>)</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_logtail_attachment&#34; &#34;agent&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project</span>              <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  logtail_config_name</span>  <span class=o>=</span> <span class=k>alicloud_logtail_config</span><span class=p>.</span><span class=k>agent</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  machine_group_name</span>   <span class=o>=</span> <span class=k>alicloud_log_machine_group</span><span class=p>.</span><span class=k>agent</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>现在，任何带标签的机器上匹配 <code>/var/log/agents/*.log</code> 的文件都会以 JSON 格式自动流入 SLS，所有字段均可查询。Agent 代码只需执行 <code>logger.info(json.dumps({...}))</code>，其余流程全自动。关键在于对 schema 保持纪律：尽早确定字段如 <code>ts</code>、<code>agent</code>、<code>session_id</code>、<code>step</code>、<code>phase</code>、<code>tokens</code>、<code>latency_ms</code>、<code>cost_cny</code>、<code>status</code>、<code>error_message</code>，写好文档，并拒绝那些随意新增字段的 PR。每个未文档化的字段，都可能在凌晨三点阻碍你写出有效的诊断查询。</p><h2 id=step-3-通过-opentelemetry--arms-做链路追踪 class=heading-anchor>Step 3: 通过 OpenTelemetry → ARMS 做链路追踪<a href=#step-3-%e9%80%9a%e8%bf%87-opentelemetry--arms-%e5%81%9a%e9%93%be%e8%b7%af%e8%bf%bd%e8%b8%aa class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>ARMS APM 兼容 OpenTelemetry，Terraform 配置非常简洁——只需开通一个 ARMS 实例和环境：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_arms_environment&#34; &#34;agents&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  environment_name</span>      <span class=o>=</span> <span class=s2>&#34;agents-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  bind_resource_id</span>      <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>vpc_id</span>
+</span></span><span class=line><span class=cl><span class=n>  environment_type</span>      <span class=o>=</span> <span class=s2>&#34;CS&#34;</span><span class=c1>             # cloud service
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>  environment_sub_type</span>  <span class=o>=</span> <span class=s2>&#34;ECS&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  payment_type</span>          <span class=o>=</span> <span class=s2>&#34;POSTPAY&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>Agent 代码使用标准 OpenTelemetry，无需任何阿里云特有逻辑：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>opentelemetry</span> <span class=kn>import</span> <span class=n>trace</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>opentelemetry.exporter.otlp.proto.http.trace_exporter</span> <span class=kn>import</span> <span class=n>OTLPSpanExporter</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>opentelemetry.sdk.trace</span> <span class=kn>import</span> <span class=n>TracerProvider</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>opentelemetry.sdk.trace.export</span> <span class=kn>import</span> <span class=n>BatchSpanProcessor</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>trace</span><span class=o>.</span><span class=n>set_tracer_provider</span><span class=p>(</span><span class=n>TracerProvider</span><span class=p>())</span>
+</span></span><span class=line><span class=cl><span class=n>trace</span><span class=o>.</span><span class=n>get_tracer_provider</span><span class=p>()</span><span class=o>.</span><span class=n>add_span_processor</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>BatchSpanProcessor</span><span class=p>(</span><span class=n>OTLPSpanExporter</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>endpoint</span><span class=o>=</span><span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;ARMS_OTLP_ENDPOINT&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=n>headers</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;Authentication&#34;</span><span class=p>:</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;ARMS_LICENSE_KEY&#34;</span><span class=p>]},</span>
+</span></span><span class=line><span class=cl>    <span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>tracer</span> <span class=o>=</span> <span class=n>trace</span><span class=o>.</span><span class=n>get_tracer</span><span class=p>(</span><span class=s2>&#34;research-agent&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>tracer</span><span class=o>.</span><span class=n>start_as_current_span</span><span class=p>(</span><span class=s2>&#34;research_loop&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>span</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>span</span><span class=o>.</span><span class=n>set_attribute</span><span class=p>(</span><span class=s2>&#34;agent.name&#34;</span><span class=p>,</span> <span class=s2>&#34;research-agent&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>span</span><span class=o>.</span><span class=n>set_attribute</span><span class=p>(</span><span class=s2>&#34;session.id&#34;</span><span class=p>,</span> <span class=n>session_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=c1># ... agent work ...</span>
+</span></span></code></pre></td></tr></table></div></div><p>两个环境变量来自 ARMS：<code>ARMS_OTLP_ENDPOINT</code> 在 ARMS 控制台获取，<code>ARMS_LICENSE_KEY</code> 来自账号信息。通过 Terraform outputs 将二者注入 cloud-init 模板。</p><p>回报立竿见影：在 ARMS 中你能看到“本次 Agent 运行耗时 12 秒，其中 9 秒花在第三次调用 qwen-max 上”。这种可见性真正改变了我构建 Agent 的方式。首次在真实生产会话中看到 span 树后，我立即重构了 planner——对简短用户消息跳过检索环节，当周 p95 延迟因此下降约 30%。</p><h2 id=step-4-用-cloudmonitor-做指标 class=heading-anchor>Step 4: 用 CloudMonitor 做指标<a href=#step-4-%e7%94%a8-cloudmonitor-%e5%81%9a%e6%8c%87%e6%a0%87 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>CloudMonitor 在安装 cloud-monitor agent 后会自动捕获主机级指标（CPU、内存、网络）。ACK 节点池已通过 <code>install_cloud_monitor</code> 标志完成此操作；对于 ECS，则需加入 cloud-init：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>wget http://cms-agent-cn-shanghai.oss-cn-shanghai.aliyuncs.com/release/cms_go_agent_install.sh
+</span></span><span class=line><span class=cl>chmod +x cms_go_agent_install.sh <span class=o>&amp;&amp;</span> ./cms_go_agent_install.sh
+</span></span></code></pre></td></tr></table></div></div><p>对于自定义应用指标（如“research-agent 消耗的 tokens”），建议将其作为结构化字段写入 SLS 日志，再通过 SLS 查询触发告警。这是阿里云主推的“SLS-as-metrics”模式。虽然 CloudMonitor 也支持自定义指标，但从 Terraform 接入更笨重，且会导致告警分散在两个控制台。建议统一选择其一——我除主机 CPU/内存/磁盘外，其余指标均走 SLS。</p><h2 id=step-5-成本仪表盘 class=heading-anchor>Step 5: 成本仪表盘<a href=#step-5-%e6%88%90%e6%9c%ac%e4%bb%aa%e8%a1%a8%e7%9b%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>精彩部分来了：每个 LLM 请求都会经过 Gateway，而 Gateway 会向 <code>gateway-requests</code> 写入一行记录，包含如下字段：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/wanxiang_cost_optimization.png alt=云成本优化与资源合理调整 loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;ts&#34;</span><span class=p>:</span> <span class=s2>&#34;2026-03-24T09:15:23Z&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;agent&#34;</span><span class=p>:</span> <span class=s2>&#34;research-agent&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;model&#34;</span><span class=p>:</span> <span class=s2>&#34;qwen-max&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;input_tokens&#34;</span><span class=p>:</span> <span class=mi>1820</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;output_tokens&#34;</span><span class=p>:</span> <span class=mi>412</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;latency_ms&#34;</span><span class=p>:</span> <span class=mi>1230</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;cost_cny&#34;</span><span class=p>:</span> <span class=mf>0.087</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>SLS 支持对这些数据执行 SQL 查询，例如“各 Agent 的每日成本”：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>*</span><span class=w> </span><span class=o>|</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=n>date_trunc</span><span class=p>(</span><span class=s1>&#39;day&#39;</span><span class=p>,</span><span class=w> </span><span class=n>__time__</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=k>day</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=n>agent</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=k>SUM</span><span class=p>(</span><span class=n>cost_cny</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>daily_cost</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>FROM</span><span class=w> </span><span class=n>log</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>day</span><span class=p>,</span><span class=w> </span><span class=n>agent</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>day</span><span class=p>,</span><span class=w> </span><span class=n>daily_cost</span><span class=w> </span><span class=k>DESC</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>通过 Terraform 配置该仪表盘：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_dashboard&#34; &#34;cost&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project_name</span>   <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  dashboard_name</span> <span class=o>=</span> <span class=s2>&#34;agent-cost-overview&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  display_name</span>   <span class=o>=</span> <span class=s2>&#34;Agent cost overview&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  char_list</span> <span class=o>=</span> <span class=k>jsonencode</span><span class=p>([</span>
+</span></span><span class=line><span class=cl>    {
+</span></span><span class=line><span class=cl><span class=n>      title</span> <span class=o>=</span> <span class=s2>&#34;Daily cost by agent&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      type</span>  <span class=o>=</span> <span class=s2>&#34;line&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      query</span> <span class=o>=</span> <span class=s2>&#34;* | SELECT date_trunc(&#39;day&#39;, __time__) AS day, agent, SUM(cost_cny) AS cost FROM log GROUP BY day, agent ORDER BY day&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      logstore</span> <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;gateway-requests&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>      display</span> <span class=o>=</span><span class=n> { xAxis</span> <span class=o>=</span><span class=n> [&#34;day&#34;], yAxis</span> <span class=o>=</span><span class=n> [&#34;cost&#34;], yKey</span> <span class=o>=</span> <span class=s2>&#34;agent&#34;</span> }
+</span></span><span class=line><span class=cl>    }<span class=p>,</span>
+</span></span><span class=line><span class=cl>    {
+</span></span><span class=line><span class=cl><span class=n>      title</span> <span class=o>=</span> <span class=s2>&#34;Tokens by model (last 24h)&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      type</span>  <span class=o>=</span> <span class=s2>&#34;pie&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      query</span> <span class=o>=</span> <span class=s2>&#34;* | SELECT model, SUM(input_tokens + output_tokens) AS tokens FROM log WHERE __time__ &gt; now() - INTERVAL &#39;24&#39; HOUR GROUP BY model&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      logstore</span> <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;gateway-requests&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl>    }<span class=p>,</span>
+</span></span><span class=line><span class=cl>    {
+</span></span><span class=line><span class=cl><span class=n>      title</span> <span class=o>=</span> <span class=s2>&#34;p95 latency by agent&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      type</span>  <span class=o>=</span> <span class=s2>&#34;line&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      query</span> <span class=o>=</span> <span class=s2>&#34;* | SELECT date_trunc(&#39;hour&#39;, __time__) AS hour, agent, approx_percentile(latency_ms, 0.95) AS p95 FROM log GROUP BY hour, agent ORDER BY hour&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      logstore</span> <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;gateway-requests&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl>    }
+</span></span><span class=line><span class=cl>  <span class=p>])</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>打开 SLS 控制台，即可看到实时仪表盘：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/fig2_cost_dashboard.png alt=按类别堆叠的每日成本 loading=lazy decoding=async class=content-image></figure></p><p>这个仪表盘直接回答“哪个 Agent 在烧我的预算？”——这个问题每月都会被提出，提问者通常是不熟悉 Agent 架构的相关方（如财务或业务团队）。</p><h2 id=六个真正派得上用场的-sls-查询 class=heading-anchor>六个真正派得上用场的 SLS 查询<a href=#%e5%85%ad%e4%b8%aa%e7%9c%9f%e6%ad%a3%e6%b4%be%e5%be%97%e4%b8%8a%e7%94%a8%e5%9c%ba%e7%9a%84-sls-%e6%9f%a5%e8%af%a2 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>仪表盘适合回答长期趋势问题，而事故排查依赖即席查询。经过两年 Agent 生产运维实践，我在个人笔记中沉淀了约 12 条高频 SLS 查询。以下六条因其跨栈通用性值得分享。</p><h3 id=query-1-过去一小时最肇事的-agent class=heading-anchor>Query 1: 过去一小时最“肇事”的 Agent<a href=#query-1-%e8%bf%87%e5%8e%bb%e4%b8%80%e5%b0%8f%e6%97%b6%e6%9c%80%e8%82%87%e4%ba%8b%e7%9a%84-agent class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>*</span><span class=w> </span><span class=o>|</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=n>agent</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=k>COUNT</span><span class=p>(</span><span class=o>*</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>calls</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=k>SUM</span><span class=p>(</span><span class=n>input_tokens</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>output_tokens</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>tokens</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=k>SUM</span><span class=p>(</span><span class=n>cost_cny</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>cost</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=k>AVG</span><span class=p>(</span><span class=n>latency_ms</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>avg_ms</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=n>approx_percentile</span><span class=p>(</span><span class=n>latency_ms</span><span class=p>,</span><span class=w> </span><span class=mi>0</span><span class=p>.</span><span class=mi>95</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>p95_ms</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>FROM</span><span class=w> </span><span class=n>log</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>WHERE</span><span class=w> </span><span class=n>__time__</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=n>now</span><span class=p>()</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=nb>INTERVAL</span><span class=w> </span><span class=s1>&#39;1&#39;</span><span class=w> </span><span class=n>HOUR</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>agent</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>cost</span><span class=w> </span><span class=k>DESC</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>LIMIT</span><span class=w> </span><span class=mi>20</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>这是我的“谁在搞事情”快速看板。成本突增告警触发后，运行此查询，两秒内通常就能锁定罪魁祸首。</p><h3 id=query-2-按状态码追踪错误 class=heading-anchor>Query 2: 按状态码追踪错误<a href=#query-2-%e6%8c%89%e7%8a%b6%e6%80%81%e7%a0%81%e8%bf%bd%e8%b8%aa%e9%94%99%e8%af%af class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=n>status</span><span class=w> </span><span class=o>&gt;=</span><span class=w> </span><span class=mi>400</span><span class=w> </span><span class=o>|</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>SELECT</span><span class=w> </span><span class=n>date_trunc</span><span class=p>(</span><span class=s1>&#39;minute&#39;</span><span class=p>,</span><span class=w> </span><span class=n>__time__</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=k>minute</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>         </span><span class=n>status</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>         </span><span class=n>model</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>         </span><span class=k>COUNT</span><span class=p>(</span><span class=o>*</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>errors</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>         </span><span class=n>arbitrary</span><span class=p>(</span><span class=n>error_message</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>sample_msg</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>FROM</span><span class=w> </span><span class=n>log</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>WHERE</span><span class=w> </span><span class=n>__time__</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=n>now</span><span class=p>()</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=nb>INTERVAL</span><span class=w> </span><span class=s1>&#39;30&#39;</span><span class=w> </span><span class=k>MINUTE</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>minute</span><span class=p>,</span><span class=w> </span><span class=n>status</span><span class=p>,</span><span class=w> </span><span class=n>model</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>minute</span><span class=w> </span><span class=k>DESC</span><span class=p>,</span><span class=w> </span><span class=n>errors</span><span class=w> </span><span class=k>DESC</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>几秒内即可区分是“DashScope 返回 500”还是“Agent 发送了无效请求”。<code>arbitrary(error_message)</code> 随机提取一条错误示例，省去钻取日志的麻烦。</p><h3 id=query-3-单步-token-分布揪出死循环 class=heading-anchor>Query 3: 单步 Token 分布，揪出死循环<a href=#query-3-%e5%8d%95%e6%ad%a5-token-%e5%88%86%e5%b8%83%e6%8f%aa%e5%87%ba%e6%ad%bb%e5%be%aa%e7%8e%af class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>*</span><span class=w> </span><span class=o>|</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=n>session_id</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=n>agent</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=k>COUNT</span><span class=p>(</span><span class=o>*</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>step_count</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=k>SUM</span><span class=p>(</span><span class=n>input_tokens</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>output_tokens</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>total_tokens</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=k>MAX</span><span class=p>(</span><span class=n>step_index</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>final_step</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>FROM</span><span class=w> </span><span class=n>log</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>WHERE</span><span class=w> </span><span class=n>__time__</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=n>now</span><span class=p>()</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=nb>INTERVAL</span><span class=w> </span><span class=s1>&#39;1&#39;</span><span class=w> </span><span class=n>HOUR</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>session_id</span><span class=p>,</span><span class=w> </span><span class=n>agent</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>HAVING</span><span class=w> </span><span class=n>step_count</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=mi>50</span><span class=w> </span><span class=k>OR</span><span class=w> </span><span class=n>total_tokens</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=mi>500000</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>total_tokens</span><span class=w> </span><span class=k>DESC</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>步数超过 50 或 Token 超过 50 万的会话，基本就是死循环。Runaway 告警触发后，用此查询定位具体 session ID，SSH 登录后 <code>kill -9</code> 终止进程，再从容复盘。</p><h3 id=query-4-按阶段拆解延迟 class=heading-anchor>Query 4: 按阶段拆解延迟<a href=#query-4-%e6%8c%89%e9%98%b6%e6%ae%b5%e6%8b%86%e8%a7%a3%e5%bb%b6%e8%bf%9f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>如果你的 Agent 会记录各阶段的结构化耗时（planning、retrieval、LLM call、tool exec、reflection）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>*</span><span class=w> </span><span class=o>|</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=n>phase</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=n>agent</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=n>approx_percentile</span><span class=p>(</span><span class=n>phase_ms</span><span class=p>,</span><span class=w> </span><span class=mi>0</span><span class=p>.</span><span class=mi>5</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>p50</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=n>approx_percentile</span><span class=p>(</span><span class=n>phase_ms</span><span class=p>,</span><span class=w> </span><span class=mi>0</span><span class=p>.</span><span class=mi>95</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>p95</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=n>approx_percentile</span><span class=p>(</span><span class=n>phase_ms</span><span class=p>,</span><span class=w> </span><span class=mi>0</span><span class=p>.</span><span class=mi>99</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>p99</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=k>COUNT</span><span class=p>(</span><span class=o>*</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>samples</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>FROM</span><span class=w> </span><span class=n>log</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>WHERE</span><span class=w> </span><span class=n>__time__</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=n>now</span><span class=p>()</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=nb>INTERVAL</span><span class=w> </span><span class=s1>&#39;1&#39;</span><span class=w> </span><span class=n>HOUR</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=k>AND</span><span class=w> </span><span class=n>phase</span><span class=w> </span><span class=k>IS</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>phase</span><span class=p>,</span><span class=w> </span><span class=n>agent</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>p95</span><span class=w> </span><span class=k>DESC</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>这是我的“时间都去哪了”看板。能快速发现某个工具突然变慢三倍（通常因上游 API 性能下降），或检索阶段开始主导耗时（向量索引需重建）。</p><h3 id=query-5-单次会话成本排行榜 class=heading-anchor>Query 5: 单次会话成本排行榜<a href=#query-5-%e5%8d%95%e6%ac%a1%e4%bc%9a%e8%af%9d%e6%88%90%e6%9c%ac%e6%8e%92%e8%a1%8c%e6%a6%9c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>*</span><span class=w> </span><span class=o>|</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=n>session_id</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=n>agent</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=k>MIN</span><span class=p>(</span><span class=n>__time__</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>started</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=k>MAX</span><span class=p>(</span><span class=n>__time__</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>ended</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=k>SUM</span><span class=p>(</span><span class=n>cost_cny</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>session_cost</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>FROM</span><span class=w> </span><span class=n>log</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>WHERE</span><span class=w> </span><span class=n>__time__</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=n>now</span><span class=p>()</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=nb>INTERVAL</span><span class=w> </span><span class=s1>&#39;24&#39;</span><span class=w> </span><span class=n>HOUR</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>session_id</span><span class=p>,</span><span class=w> </span><span class=n>agent</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>HAVING</span><span class=w> </span><span class=n>session_cost</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=mi>5</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>session_cost</span><span class=w> </span><span class=k>DESC</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>LIMIT</span><span class=w> </span><span class=mi>50</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>“昂贵会话”看板。单次会话 ¥5 是一个实用阈值——高于此值要么是长对话（合理），要么是 Bug 循环（异常）。建议每周检查 Top 10，提前捕捉模式，避免演变为明日事故。</p><h3 id=query-6-多步-agent-的流失漏斗 class=heading-anchor>Query 6: 多步 Agent 的流失漏斗<a href=#query-6-%e5%a4%9a%e6%ad%a5-agent-%e7%9a%84%e6%b5%81%e5%a4%b1%e6%bc%8f%e6%96%97 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>*</span><span class=w> </span><span class=o>|</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=n>phase</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=k>COUNT</span><span class=p>(</span><span class=k>DISTINCT</span><span class=w> </span><span class=n>session_id</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>sessions</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>           </span><span class=k>COUNT</span><span class=p>(</span><span class=k>DISTINCT</span><span class=w> </span><span class=n>session_id</span><span class=p>)</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=mi>100</span><span class=p>.</span><span class=mi>0</span><span class=w> </span><span class=o>/</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>             </span><span class=n>FIRST_VALUE</span><span class=p>(</span><span class=k>COUNT</span><span class=p>(</span><span class=k>DISTINCT</span><span class=w> </span><span class=n>session_id</span><span class=p>))</span><span class=w> </span><span class=n>OVER</span><span class=w> </span><span class=p>(</span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>phase</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>pct_of_start</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>FROM</span><span class=w> </span><span class=n>log</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>WHERE</span><span class=w> </span><span class=n>__time__</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=n>now</span><span class=p>()</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=nb>INTERVAL</span><span class=w> </span><span class=s1>&#39;24&#39;</span><span class=w> </span><span class=n>HOUR</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>phase</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>phase</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>对于 <code>start → plan → tool_call → reflect → answer</code> 这类流程，该查询展示各阶段的会话留存率。若 <code>tool_call</code> 阶段突然大量流失，说明工具对多数用户失败——这与“LLM 故障”或“planner 低效”性质不同。</p><p>通过 <code>alicloud_log_savedsearch</code> 将这些查询保存为 SLS Saved Queries，即可在控制台搜索栏直接调用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_savedsearch&#34; &#34;top_offenders&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project_name</span>      <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  saved_search_name</span> <span class=o>=</span> <span class=s2>&#34;top_offending_agents_1h&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  search_query</span>      <span class=o>=</span> <span class=s2>&#34;* | SELECT agent, COUNT(*) AS calls, SUM(cost_cny) AS cost FROM log WHERE __time__ &gt; now() - INTERVAL &#39;1&#39; HOUR GROUP BY agent ORDER BY cost DESC LIMIT 20&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  logstore</span>          <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;gateway-requests&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  display_name</span>      <span class=o>=</span> <span class=s2>&#34;Top offending agents (1h)&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  topic</span>             <span class=o>=</span> <span class=s2>&#34;incident-response&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>凌晨三点被叫醒的你，定会感谢此刻认真配置的自己。其余五条同理：仅需一个晚上的 Terraform 编写，就能在首次生产告警时收回投入。</p><h2 id=step-6-四个必配告警 class=heading-anchor>Step 6: 四个必配告警<a href=#step-6-%e5%9b%9b%e4%b8%aa%e5%bf%85%e9%85%8d%e5%91%8a%e8%ad%a6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>查询回答 <em>what</em>，告警揭示 <em>when</em>。在我交付的多个 Agent 栈中，以下四个告警真正发挥了作用：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/fig3_alert_rules.png alt=第一天应配置的四个警报 loading=lazy decoding=async class=content-image></figure></p><h3 id=告警-1-成本封顶 class=heading-anchor>告警 1: 成本封顶<a href=#%e5%91%8a%e8%ad%a6-1-%e6%88%90%e6%9c%ac%e5%b0%81%e9%a1%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_alert&#34; &#34;cost_ceiling&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project_name</span>   <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  alert_name</span>     <span class=o>=</span> <span class=s2>&#34;daily-cost-ceiling&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  alert_displayname</span> <span class=o>=</span> <span class=s2>&#34;Daily LLM spend &gt; ¥800&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>query_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    chart_title</span> <span class=o>=</span> <span class=s2>&#34;today_cost&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    logstore</span>    <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;gateway-requests&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>    query</span>       <span class=o>=</span> <span class=s2>&#34;* | SELECT SUM(cost_cny) AS today FROM log WHERE __time__ &gt; to_unixtime(date_trunc(&#39;day&#39;, now()))&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    start</span>       <span class=o>=</span> <span class=s2>&#34;-1m&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    end</span>         <span class=o>=</span> <span class=s2>&#34;now&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    time_span_type</span> <span class=o>=</span> <span class=s2>&#34;Truncated&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  condition</span>  <span class=o>=</span> <span class=s2>&#34;today &gt; 800&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  schedule_interval</span> <span class=o>=</span> <span class=s2>&#34;5m&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  notify_threshold</span>  <span class=o>=</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=n>  throttling</span>        <span class=o>=</span> <span class=s2>&#34;30m&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>notification_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    type</span>           <span class=o>=</span> <span class=s2>&#34;DingTalk&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    service_uri</span>    <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>dingtalk_webhook</span>
+</span></span><span class=line><span class=cl><span class=n>    content</span>        <span class=o>=</span> <span class=s2>&#34;Daily LLM cost ¥${&#34;{{today}}&#34;} exceeds ¥800 budget. Check the SLS cost dashboard.&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>severity_configurations</span> {
+</span></span><span class=line><span class=cl><span class=n>    severity</span>      <span class=o>=</span> <span class=m>8</span>
+</span></span><span class=line><span class=cl><span class=n>    eval_condition</span> <span class=o>=</span><span class=n> { condition</span> <span class=o>=</span> <span class=s2>&#34;today &gt; 800&#34;</span> }
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>若当日 LLM 花费已超 ¥800，则每 30 分钟触发一次。阈值应根据实际预算调整。节流（throttling）至关重要——否则告警每 5 分钟刷屏一次，团队一周内就会静音频道。</p><h3 id=告警-2-延迟 class=heading-anchor>告警 2: 延迟<a href=#%e5%91%8a%e8%ad%a6-2-%e5%bb%b6%e8%bf%9f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_alert&#34; &#34;latency&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project_name</span>   <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  alert_name</span>     <span class=o>=</span> <span class=s2>&#34;agent-step-latency&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  alert_displayname</span> <span class=o>=</span> <span class=s2>&#34;p95 agent step &gt; 8s&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>query_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    chart_title</span> <span class=o>=</span> <span class=s2>&#34;p95_step&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    logstore</span>    <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;agent-runs&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>    query</span>       <span class=o>=</span> <span class=s2>&#34;* | SELECT approx_percentile(latency_ms, 0.95) / 1000.0 AS p95s FROM log WHERE __time__ &gt; now() - INTERVAL &#39;5&#39; MINUTE&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    start</span>       <span class=o>=</span> <span class=s2>&#34;-5m&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    end</span>         <span class=o>=</span> <span class=s2>&#34;now&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  condition</span>         <span class=o>=</span> <span class=s2>&#34;p95s &gt; 8&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  schedule_interval</span> <span class=o>=</span> <span class=s2>&#34;1m&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  notify_threshold</span>  <span class=o>=</span> <span class=m>3</span>
+</span></span><span class=line><span class=cl><span class=n>  throttling</span>        <span class=o>=</span> <span class=s2>&#34;15m&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>notification_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    type</span>        <span class=o>=</span> <span class=s2>&#34;DingTalk&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    service_uri</span> <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>dingtalk_webhook</span>
+</span></span><span class=line><span class=cl><span class=n>    content</span>     <span class=o>=</span> <span class=s2>&#34;Agent p95 step latency is ${&#34;{{p95s}}&#34;}s — investigate before users notice.&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p><code>notify_threshold = 3</code> 表示连续三分钟超标才告警，有效过滤偶发的 LLM 慢调用噪音。</p><h3 id=告警-3-错误率 class=heading-anchor>告警 3: 错误率<a href=#%e5%91%8a%e8%ad%a6-3-%e9%94%99%e8%af%af%e7%8e%87 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>查询逻辑为 <code>SUM(IF(status >= 500, 1, 0)) * 1.0 / COUNT(*) AS err_ratio</code>，条件为 <code>err_ratio > 0.02</code>。节流设为 5 分钟，因为错误通常是持续事件而非瞬时抖动。若 2% 请求返回 5xx 且持续五分钟，那就是事故，不是小故障。</p><h3 id=告警-4-token-泄漏死循环 class=heading-anchor>告警 4: Token 泄漏（死循环）<a href=#%e5%91%8a%e8%ad%a6-4-token-%e6%b3%84%e6%bc%8f%e6%ad%bb%e5%be%aa%e7%8e%af class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_alert&#34; &#34;token_spike&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project_name</span>   <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  alert_name</span>     <span class=o>=</span> <span class=s2>&#34;token-anomaly&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  alert_displayname</span> <span class=o>=</span> <span class=s2>&#34;Tokens/min &gt; 2x rolling 24h avg&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>query_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    chart_title</span> <span class=o>=</span> <span class=s2>&#34;current&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    logstore</span>    <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;gateway-requests&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>    query</span>       <span class=o>=</span> <span class=s2>&#34;* | SELECT SUM(input_tokens + output_tokens) AS now_tpm FROM log WHERE __time__ &gt; now() - INTERVAL &#39;1&#39; MINUTE&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    start</span>       <span class=o>=</span> <span class=s2>&#34;-1m&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    end</span>         <span class=o>=</span> <span class=s2>&#34;now&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>query_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    chart_title</span> <span class=o>=</span> <span class=s2>&#34;baseline&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    logstore</span>    <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;gateway-requests&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>    query</span>       <span class=o>=</span> <span class=s2>&#34;* | SELECT AVG(per_min) AS baseline FROM (SELECT date_trunc(&#39;minute&#39;, __time__) AS m, SUM(input_tokens + output_tokens) AS per_min FROM log WHERE __time__ &gt; now() - INTERVAL &#39;24&#39; HOUR GROUP BY m)&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    start</span>       <span class=o>=</span> <span class=s2>&#34;-24h&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    end</span>         <span class=o>=</span> <span class=s2>&#34;now&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  condition</span>         <span class=o>=</span> <span class=s2>&#34;now_tpm &gt; 2 * baseline&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  schedule_interval</span> <span class=o>=</span> <span class=s2>&#34;1m&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  notify_threshold</span>  <span class=o>=</span> <span class=m>2</span>
+</span></span><span class=line><span class=cl><span class=n>  throttling</span>        <span class=o>=</span> <span class=s2>&#34;10m&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>notification_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    type</span>        <span class=o>=</span> <span class=s2>&#34;DingTalk&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    service_uri</span> <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>dingtalk_webhook</span>
+</span></span><span class=line><span class=cl><span class=n>    content</span>     <span class=o>=</span> <span class=s2>&#34;Token consumption ${&#34;{{now_tpm}}&#34;} tpm vs 24h avg ${&#34;{{baseline}}&#34;}. Possible runaway agent.&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>该告警已两次回本。存在缺陷的停止条件可能导致 Agent 一夜烧掉 ¥10,000；此告警能在 2 分钟内捕获异常，为你争取终止进程的时间。首次在我生产环境触发时，大约节省了 ¥6,400——根源是一个格式错误的 JSON 工具响应，导致 planner 无限循环回到第一步。</p><h2 id=告警疲劳保持频道高信噪比的三条原则 class=heading-anchor>告警疲劳：保持频道高信噪比的三条原则<a href=#%e5%91%8a%e8%ad%a6%e7%96%b2%e5%8a%b3%e4%bf%9d%e6%8c%81%e9%a2%91%e9%81%93%e9%ab%98%e4%bf%a1%e5%99%aa%e6%af%94%e7%9a%84%e4%b8%89%e6%9d%a1%e5%8e%9f%e5%88%99 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>上述四类告警类型合理，但若不调优，很快会沦为噪音。依靠以下三条原则，我的钉钉频道多年来始终保持高价值。</p><h3 id=原则一始终节流与去重 class=heading-anchor>原则一：始终节流与去重<a href=#%e5%8e%9f%e5%88%99%e4%b8%80%e5%a7%8b%e7%bb%88%e8%8a%82%e6%b5%81%e4%b8%8e%e5%8e%bb%e9%87%8d class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>每个告警至少设置 <code>throttling = "30m"</code>。否则，一个持续 1 小时的问题会生成 12 条消息，工程师很快会静音频道，告警机制随之失效。</p><p>对于关键告警，还需设置 <code>notify_threshold</code>（连续触发次数）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=n>condition</span>         <span class=o>=</span> <span class=s2>&#34;p95s &gt; 8&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>notify_threshold</span>  <span class=o>=</span> <span class=m>3</span><span class=c1>   # 3 consecutive minute-windows
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>throttling</span>        <span class=o>=</span> <span class=s2>&#34;15m&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>这将“单分钟异常即告警”转变为“连续五分钟异常才通知”，避免因单次 LLM 调用延迟而误报，确保只有持续性问题才会打扰团队。</p><h3 id=原则二按严重性分级路由 class=heading-anchor>原则二：按严重性分级路由<a href=#%e5%8e%9f%e5%88%99%e4%ba%8c%e6%8c%89%e4%b8%a5%e9%87%8d%e6%80%a7%e5%88%86%e7%ba%a7%e8%b7%af%e7%94%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>不要将所有告警塞进同一频道。我的设置分为三级：</p><ul><li><code>#agent-incidents</code> — 触发人工响应，P0/P1 级别，含电话兜底</li><li><code>#agent-warnings</code> — 仅钉钉通知，P2 级别，工作时间处理即可</li><li><code>#agent-info</code> — 仅追加日志，无通知，用于趋势分析</li></ul><p>每个告警显式映射到对应频道：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>locals</span> {
+</span></span><span class=line><span class=cl><span class=n>  alert_routes</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    &#34;daily-cost-ceiling&#34;</span>  <span class=o>=</span><span class=n> { severity</span> <span class=o>=</span><span class=n> 8, channel</span> <span class=o>=</span> <span class=s2>&#34;incidents&#34;</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;token-anomaly&#34;</span>       <span class=o>=</span><span class=n> { severity</span> <span class=o>=</span><span class=n> 8, channel</span> <span class=o>=</span> <span class=s2>&#34;incidents&#34;</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;agent-step-latency&#34;</span>  <span class=o>=</span><span class=n> { severity</span> <span class=o>=</span><span class=n> 6, channel</span> <span class=o>=</span> <span class=s2>&#34;warnings&#34;</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;error-rate-2pct&#34;</span>     <span class=o>=</span><span class=n> { severity</span> <span class=o>=</span><span class=n> 6, channel</span> <span class=o>=</span> <span class=s2>&#34;warnings&#34;</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;drift-detected&#34;</span>      <span class=o>=</span><span class=n> { severity</span> <span class=o>=</span><span class=n> 4, channel</span> <span class=o>=</span> <span class=s2>&#34;info&#34;</span> }
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_alert&#34; &#34;this&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  for_each</span> <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>alert_routes</span><span class=c1>
+</span></span></span><span class=line><span class=cl><span class=c1>  # ... map severity into the notification block ...
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=k>notification_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    type</span>        <span class=o>=</span> <span class=s2>&#34;DingTalk&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    service_uri</span> <span class=o>=</span> <span class=k>lookup</span><span class=p>(</span>{
+</span></span><span class=line><span class=cl><span class=n>      &#34;incidents&#34;</span> <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>dingtalk_incidents_webhook</span>
+</span></span><span class=line><span class=cl><span class=n>      &#34;warnings&#34;</span>  <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>dingtalk_warnings_webhook</span>
+</span></span><span class=line><span class=cl><span class=n>      &#34;info&#34;</span>      <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>dingtalk_info_webhook</span>
+</span></span><span class=line><span class=cl>    }<span class=p>,</span> <span class=k>each</span><span class=p>.</span><span class=k>value</span><span class=p>.</span><span class=k>channel</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>如今，成本失控告警会直接呼叫我，而 p95 延迟告警可等到周一处理。为不同严重性配置独立 Webhook 是最经济的方案——远比自建路由服务划算。</p><h3 id=原则三每个告警必须附带-runbook-链接 class=heading-anchor>原则三：每个告警必须附带 Runbook 链接<a href=#%e5%8e%9f%e5%88%99%e4%b8%89%e6%af%8f%e4%b8%aa%e5%91%8a%e8%ad%a6%e5%bf%85%e9%a1%bb%e9%99%84%e5%b8%a6-runbook-%e9%93%be%e6%8e%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>钉钉消息中需包含 Wiki 页面链接，文档应涵盖：</p><ol><li>告警含义</li><li>前三条诊断查询（从上述六条中选取）</li><li>常见原因</li><li>若 30 分钟内无法解决，应联系谁升级</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=n>content</span> <span class=o>=</span> <span class=err>&lt;&lt;-</span><span class=k>MSG</span>
+</span></span><span class=line><span class=cl>  <span class=si>${</span><span class=err>each</span><span class=p>.</span><span class=err>key</span><span class=si>}</span> <span class=k>fired</span><span class=err>:</span> <span class=si>${</span><span class=s2>&#34;{{ severity }}&#34;</span><span class=si>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>Current</span> <span class=k>value</span><span class=err>:</span> <span class=si>${</span><span class=s2>&#34;{{ value }}&#34;</span><span class=si>}</span>
+</span></span><span class=line><span class=cl>  <span class=k>Threshold</span><span class=err>:</span> <span class=si>${</span><span class=err>each</span><span class=p>.</span><span class=err>value</span><span class=p>.</span><span class=err>threshold</span><span class=si>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>Runbook</span><span class=err>:</span> <span class=k>https</span><span class=err>://</span><span class=k>wiki</span><span class=p>.</span><span class=k>internal</span><span class=err>/</span><span class=k>agents</span><span class=err>/</span><span class=k>runbooks</span><span class=err>/</span><span class=si>${</span><span class=err>each</span><span class=p>.</span><span class=err>key</span><span class=si>}</span>
+</span></span><span class=line><span class=cl>  <span class=k>Dashboard</span><span class=err>:</span> <span class=k>https</span><span class=err>://</span><span class=k>sls</span><span class=p>.</span><span class=k>console</span><span class=p>.</span><span class=k>aliyun</span><span class=p>.</span><span class=k>com</span><span class=err>/</span><span class=p>...</span><span class=err>/</span><span class=k>dashboard</span><span class=err>/</span><span class=k>agent</span><span class=err>-</span><span class=k>cost</span><span class=err>-</span><span class=k>overview</span>
+</span></span><span class=line><span class=cl><span class=k>MSG</span>
+</span></span></code></pre></td></tr></table></div></div><p>Runbook 链接将“为何呼我”转化为“我知道该做什么”，平均修复时间（MTTR）可缩短约一半。应像管理代码一样维护 Runbook：告警规则变更时同步 Review，每季度清理过期内容。</p><h2 id=把-slo-作为告警之上的元层 class=heading-anchor>把 SLO 作为告警之上的元层<a href=#%e6%8a%8a-slo-%e4%bd%9c%e4%b8%ba%e5%91%8a%e8%ad%a6%e4%b9%8b%e4%b8%8a%e7%9a%84%e5%85%83%e5%b1%82 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>告警捕捉 <em>当下</em>，SLO（Service Level Objectives）则监控 <em>趋势</em>。我对任何生产 Agent 都跟踪以下三项：</p><ol><li><strong>Availability</strong>：30 秒内返回非 5xx 的请求占比，目标为滚动 30 天达 99.5%</li><li><strong>Latency</strong>：端到端 p95 响应时间，目标低于 6 秒</li><li><strong>Cost-per-session</strong>：会话成本中位数，支持型 Agent 目标低于 ¥0.30，研究型低于 ¥1.50</li></ol><p>每个 SLO 都有 <em>预算</em>——即容错空间。当月预算剩余 70% 以上时，可自由发布新功能；降至 30% 时，应暂停新功能，专注稳定性；若跌破 0%，即 SLO 违约——这属于季度复盘事项，而非“明日修复”范畴。</p><p>将 SLO 追踪配置为另一个 SLS Dashboard：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_dashboard&#34; &#34;slo&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project_name</span>   <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  dashboard_name</span> <span class=o>=</span> <span class=s2>&#34;agent-slo-tracking&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  char_list</span> <span class=o>=</span> <span class=k>jsonencode</span><span class=p>([</span>
+</span></span><span class=line><span class=cl>    {
+</span></span><span class=line><span class=cl><span class=n>      title</span> <span class=o>=</span> <span class=s2>&#34;Availability budget remaining (rolling 30d)&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      type</span>  <span class=o>=</span> <span class=s2>&#34;single&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      query</span> <span class=o>=</span> <span class=err>&lt;&lt;-</span><span class=k>Q</span>
+</span></span><span class=line><span class=cl><span class=n>        * | SELECT (1 - SUM(IF(status &gt;</span><span class=o>=</span> <span class=m>500</span><span class=p>,</span> <span class=m>1</span><span class=p>,</span> <span class=m>0</span><span class=p>))</span> <span class=err>*</span> <span class=m>1</span><span class=p>.</span><span class=m>0</span> <span class=err>/</span> <span class=k>COUNT</span><span class=p>(</span><span class=err>*</span><span class=p>))</span> <span class=err>-</span> <span class=m>0</span><span class=p>.</span><span class=m>995</span> <span class=k>AS</span> <span class=k>budget</span>
+</span></span><span class=line><span class=cl>            <span class=k>FROM</span> <span class=k>log</span> <span class=k>WHERE</span> <span class=k>__time__</span> <span class=err>&gt;</span> <span class=k>now</span><span class=p>()</span> <span class=err>-</span> <span class=k>INTERVAL</span> <span class=err>&#39;</span><span class=m>30</span><span class=err>&#39;</span> <span class=k>DAY</span>
+</span></span><span class=line><span class=cl>      <span class=k>Q</span>
+</span></span><span class=line><span class=cl><span class=n>      logstore</span> <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;gateway-requests&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl>    }<span class=p>,</span><span class=c1>
+</span></span></span><span class=line><span class=cl><span class=c1>    # ... latency budget, cost budget ...
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=p>])</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>团队周会应定期查看此看板。这是我所知最佳工具，能将“大概还行”转化为“本月错误预算已用 65%——优先修复重试逻辑”。将运维直觉转化为运维数据，正是工程团队与救火团队的本质区别。</p><h2 id=路由选择钉钉与-arms-侧告警 class=heading-anchor>路由选择：钉钉与 ARMS 侧告警<a href=#%e8%b7%af%e7%94%b1%e9%80%89%e6%8b%a9%e9%92%89%e9%92%89%e4%b8%8e-arms-%e4%be%a7%e5%91%8a%e8%ad%a6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>在中国，钉钉是多数工程团队的默认沟通工具，SLS 也原生支持钉钉 Webhook。你也可分发至邮件、短信，或通过 Webhook 接入 Slack/Teams/Lark。唯一标准是：选择团队凌晨 2 点仍会查看的渠道。</p><p>ARMS 自带告警适用于 Trace 级条件（如“任一 Trace 超过 30 个 Span”或“<code>llm.model = qwen-max</code> 且耗时 > 5s 的 Span”）。但对于前述四类告警，SLS 侧已足够，避免将告警逻辑分散到两个控制台。仅当 SLS 无法表达需求时（通常涉及 Span 树形结构条件）才使用 ARMS 告警。</p><h2 id=成本多少 class=heading-anchor>成本多少<a href=#%e6%88%90%e6%9c%ac%e5%a4%9a%e5%b0%91 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>可观测性确有成本——通常占其余账单的 10–15%：</p><ul><li><strong>SLS</strong>：摄入约 ¥0.35/GB + 存储 ¥0.15/GB。中等流量 Agent 栈日均摄入 5 GB → 摄入 ¥50/月，30 天存储 ¥20/月</li><li><strong>ARMS APM</strong>：约 ¥600/月（含 1 个环境，最多 1 亿 Spans）</li><li><strong>CloudMonitor</strong>：标准指标免费，自定义指标 ¥0.005/天/个</li></ul><p>真实生产 Agent 栈的全量可观测性预算约为 ¥1000–1500/月。相比漏掉一次成本失控事故，这非常划算——仅 Token 泄漏告警一项，在我的项目中就已省回两年 SLS 费用。</p><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>第 8 篇是端到端实战。我们将第 2 至 7 篇的所有模块——vpc-baseline、compute、storage、gateway、observability——组合成一个 <code>research-agent-stack</code> 项目，通过单次 <code>terraform apply</code> 一键拉起。包含真实 apply 输出、实际耗时及完整模块 DAG。文末的 starter repo 可供你自由 fork。</p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/ data-next-url=https://www.chenk.top/zh/terraform-agents/08-end-to-end-walkthrough/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/terraform-agents/>Terraform 实战</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/><span class=title>Terraform 实战（六）：LLM Gateway 与密钥管理</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/terraform-agents/08-end-to-end-walkthrough/><span class=title>Terraform 实战（八）：一条命令拉起全栈</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/01-why-terraform-for-agents/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Terraform 实战（一）：为何 IaC 是唯一出路</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/02-provider-and-state-setup/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Terraform 实战（二）：Provider 认证与 State</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/03-vpc-and-security-baseline/><span class=series-nav-num>03</span>
+<span class=series-nav-title>Terraform 实战（三）：复用 VPC 与安全基线</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/04-compute-for-agent-runtime/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Terraform 实战（四）：ECS、ACK 还是函数计算</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/05-storage-for-agent-memory/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Terraform 实战（五）：向量库、RDS 与对象存储</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/><span class=series-nav-num>06</span>
+<span class=series-nav-title>Terraform 实战（六）：LLM Gateway 与密钥管理</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>07</span>
+<span class=series-nav-title>Terraform 实战（七）：可观测与成本告警</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/08-end-to-end-walkthrough/><span class=series-nav-num>08</span>
+<span class=series-nav-title>Terraform 实战（八）：一条命令拉起全栈</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=Terraform%2b%25E5%25AE%259E%25E6%2588%2598%25EF%25BC%2588%25E4%25B8%2583%25EF%25BC%2589%25EF%25BC%259A%25E5%258F%25AF%25E8%25A7%2582%25E6%25B5%258B%25E4%25B8%258E%25E6%2588%2590%25E6%259C%25AC%25E5%2591%258A%25E8%25AD%25A6&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fterraform-agents%252F07-observability-and-cost-control%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fterraform-agents%252F07-observability-and-cost-control%252F&title=Terraform%2b%25E5%25AE%259E%25E6%2588%2598%25EF%25BC%2588%25E4%25B8%2583%25EF%25BC%2589%25EF%25BC%259A%25E5%258F%25AF%25E8%25A7%2582%25E6%25B5%258B%25E4%25B8%258E%25E6%2588%2590%25E6%259C%25AC%25E5%2591%258A%25E8%25AD%25A6" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2026-03-24>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#三条管线>三条管线</a></li><li><a href=#step-1-sls-project-和-logstores>Step 1: SLS Project 和 Logstores</a></li><li><a href=#step-2-从-ecs-投递日志>Step 2: 从 ECS 投递日志</a></li><li><a href=#step-3-通过-opentelemetry--arms-做链路追踪>Step 3: 通过 OpenTelemetry → ARMS 做链路追踪</a></li><li><a href=#step-4-用-cloudmonitor-做指标>Step 4: 用 CloudMonitor 做指标</a></li><li><a href=#step-5-成本仪表盘>Step 5: 成本仪表盘</a></li><li><a href=#六个真正派得上用场的-sls-查询>六个真正派得上用场的 SLS 查询</a><ul><li><a href=#query-1-过去一小时最肇事的-agent>Query 1: 过去一小时最“肇事”的 Agent</a></li><li><a href=#query-2-按状态码追踪错误>Query 2: 按状态码追踪错误</a></li><li><a href=#query-3-单步-token-分布揪出死循环>Query 3: 单步 Token 分布，揪出死循环</a></li><li><a href=#query-4-按阶段拆解延迟>Query 4: 按阶段拆解延迟</a></li><li><a href=#query-5-单次会话成本排行榜>Query 5: 单次会话成本排行榜</a></li><li><a href=#query-6-多步-agent-的流失漏斗>Query 6: 多步 Agent 的流失漏斗</a></li></ul></li><li><a href=#step-6-四个必配告警>Step 6: 四个必配告警</a><ul><li><a href=#告警-1-成本封顶>告警 1: 成本封顶</a></li><li><a href=#告警-2-延迟>告警 2: 延迟</a></li><li><a href=#告警-3-错误率>告警 3: 错误率</a></li><li><a href=#告警-4-token-泄漏死循环>告警 4: Token 泄漏（死循环）</a></li></ul></li><li><a href=#告警疲劳保持频道高信噪比的三条原则>告警疲劳：保持频道高信噪比的三条原则</a><ul><li><a href=#原则一始终节流与去重>原则一：始终节流与去重</a></li><li><a href=#原则二按严重性分级路由>原则二：按严重性分级路由</a></li><li><a href=#原则三每个告警必须附带-runbook-链接>原则三：每个告警必须附带 Runbook 链接</a></li></ul></li><li><a href=#把-slo-作为告警之上的元层>把 SLO 作为告警之上的元层</a></li><li><a href=#路由选择钉钉与-arms-侧告警>路由选择：钉钉与 ARMS 侧告警</a></li><li><a href=#成本多少>成本多少</a></li><li><a href=#下一步>下一步</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/terraform-agents/ class=series-name>Terraform 实战</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/01-why-terraform-for-agents/><span class=chapter-num>01</span>
+<span class=chapter-title>Terraform 实战（一）：为何 IaC 是唯一出路</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/02-provider-and-state-setup/><span class=chapter-num>02</span>
+<span class=chapter-title>Terraform 实战（二）：Provider 认证与 State</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/03-vpc-and-security-baseline/><span class=chapter-num>03</span>
+<span class=chapter-title>Terraform 实战（三）：复用 VPC 与安全基线</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/04-compute-for-agent-runtime/><span class=chapter-num>04</span>
+<span class=chapter-title>Terraform 实战（四）：ECS、ACK 还是函数计算</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/05-storage-for-agent-memory/><span class=chapter-num>05</span>
+<span class=chapter-title>Terraform 实战（五）：向量库、RDS 与对象存储</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/><span class=chapter-num>06</span>
+<span class=chapter-title>Terraform 实战（六）：LLM Gateway 与密钥管理</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
+<span class=chapter-title>Terraform 实战（七）：可观测与成本告警</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/08-end-to-end-walkthrough/><span class=chapter-num>08</span>
+<span class=chapter-title>Terraform 实战（八）：一条命令拉起全栈</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>26 min</strong></div><div class=row><span>字数</span><strong>6216</strong></div><div class=row><span>写于</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/product-thinking/>产品思维</a></li><li><a href=https://www.chenk.top/zh/series/personal-finance/>个人理财</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=关闭>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>在微信里搜索此 ID 即可添加我</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>复制微信号</button></div></div></div></footer></body></html>

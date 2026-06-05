@@ -1,0 +1,515 @@
+<!doctype html><html lang=zh data-translation=/en/nlp/rnn-sequence-modeling/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>自然语言处理（三）：RNN 与序列建模 · Chen Kai Blog</title>
+<meta name=description content="RNN、LSTM、GRU 如何通过记忆处理序列。从第一性原理推导梯度消失，用 PyTorch 实现字符级文本生成器和 Seq2Seq 翻译器。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/nlp/03-rnn%E4%B8%8E%E5%BA%8F%E5%88%97%E5%BB%BA%E6%A8%A1/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/nlp/rnn-sequence-modeling/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/nlp/03-rnn%E4%B8%8E%E5%BA%8F%E5%88%97%E5%BB%BA%E6%A8%A1/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/nlp/03-rnn%E4%B8%8E%E5%BA%8F%E5%88%97%E5%BB%BA%E6%A8%A1/><meta property="og:type" content="article"><meta property="og:title" content="自然语言处理（三）：RNN 与序列建模"><meta property="og:description" content="RNN、LSTM、GRU 如何通过记忆处理序列。从第一性原理推导梯度消失，用 PyTorch 实现字符级文本生成器和 Seq2Seq 翻译器。"><meta property="og:url" content="https://www.chenk.top/zh/nlp/03-rnn%E4%B8%8E%E5%BA%8F%E5%88%97%E5%BB%BA%E6%A8%A1/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg"><meta property="og:image:alt" content="自然语言处理（三）：RNN 与序列建模"><meta property="article:published_time" content="2025-10-11T09:00:00Z"><meta property="article:modified_time" content="2025-10-11T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="NLP"><meta property="article:tag" content="RNN"><meta property="article:tag" content="深度学习"><meta property="article:tag" content="LSTM"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="自然语言处理（三）：RNN 与序列建模"><meta name=twitter:description content="RNN、LSTM、GRU 如何通过记忆处理序列。从第一性原理推导梯度消失，用 PyTorch 实现字符级文本生成器和 Seq2Seq 翻译器。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"自然语言处理（三）：RNN 与序列建模","description":"RNN、LSTM、GRU 如何通过记忆处理序列。从第一性原理推导梯度消失，用 PyTorch 实现字符级文本生成器和 Seq2Seq 翻译器。","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2025-10-11T09:00:00Z","dateModified":"2025-10-11T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/zh/nlp/03-rnn%E4%B8%8E%E5%BA%8F%E5%88%97%E5%BB%BA%E6%A8%A1/"},"inLanguage":"zh"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js onload='document.querySelectorAll(".math-inline,.math-block").forEach(function(e){var t=e.textContent,n=e.classList.contains("math-block"),t=n?t.replace(/^\$\$/,"").replace(/\$\$$/,""):t.replace(/^\$/,"").replace(/\$$/,"");try{katex.render(t,e,{displayMode:n,throwOnError:!1})}catch{}})'></script><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/nlp/03-RNN%e4%b8%8e%e5%ba%8f%e5%88%97%e5%bb%ba%e6%a8%a1.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/nlp/>NLP 技术前沿</a>
+· 第 3 篇</div><h1>自然语言处理（三）：RNN 与序列建模</h1><p class=deck>RNN、LSTM、GRU 如何通过记忆处理序列。从第一性原理推导梯度消失，用 PyTorch 实现字符级文本生成器和 Seq2Seq 翻译器。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-10-11>October 11, 2025</time> · 24 分钟 · 5891 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/nlp/ class=tag>#NLP</a><a href=/zh/tags/rnn/ class=tag>#RNN</a><a href=/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/ class=tag>#深度学习</a><a href=/zh/tags/lstm/ class=tag>#LSTM</a></div><a class="pill pill-outline" href=/en/nlp/rnn-sequence-modeling/>Read in English →</a></div></header><div class=prose><p>打开 Google 翻译、用滑动输入法打字或对着手机录一段备忘——这些日常操作背后，都离不开一个核心任务：按顺序处理一串 token 并生成另一串符号。前馈神经网络将每个输入视为独立个体处理，但语言本质上是上下文关联的。例如，在句子“猫坐在垫子上”中，理解“垫子”的意思需要结合前面的词语。循环神经网络（RNN）通过维护隐藏状态来解决这个问题。每读入一个 token，隐藏状态都会更新，动态汇总过去的信息，可视为网络的“记忆”。</p><p>这篇文章将带你从头梳理循环神经网络家族的发展历程：从最基础的 RNN 开始，分析其为何无法记住超过十几个 token 的信息；接着探讨 LSTM 和 GRU 如何通过引入门控机制突破这一限制；最后用 PyTorch 实现一个英法翻译模型。读完本文，你将清晰理解 RNN 如何逐步演进为注意力机制（Attention）和 Transformer。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/rnn-sequence-modeling/illustration_1.png alt="自然语言处理（三）：RNN 与序列建模 — 章节概览图" loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>RNN 是如何通过循环连接和参数共享来维持记忆的</li><li>从第一性原理推导梯度消失和梯度爆炸的原因</li><li>LSTM 的三个门控机制（遗忘门、输入门、输出门）以及细胞状态如何解决长程依赖问题</li><li>GRU 作为比 LSTM 更轻量的选择，以及在不同场景下如何取舍</li><li>双向 RNN 和堆叠 RNN 如何增强每个 token 的表示能力</li><li>Seq2Seq 编码器-解码器架构的局限性，以及为什么注意力机制的引入是不可避免的</li><li>使用 PyTorch 实现文本生成和翻译的实际代码示例</li></ul><p><strong>前置知识</strong>：本系列第 1-2 部分（分词与词嵌入），以及基础 PyTorch 知识（张量操作、<code>nn.Module</code> 模块、训练循环）。</p><hr><h2 id=一核心思想循环与参数共享 class=heading-anchor>一、核心思想：循环与参数共享<a href=#%e4%b8%80%e6%a0%b8%e5%bf%83%e6%80%9d%e6%83%b3%e5%be%aa%e7%8e%af%e4%b8%8e%e5%8f%82%e6%95%b0%e5%85%b1%e4%ba%ab class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/rnn-sequence-modeling/illustration_2.png alt="NLP (3): RNN 和序列建模 —— 图示" loading=lazy decoding=async class=content-image></figure></p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/rnn-sequence-modeling/fig1_unrolled_rnn.png alt="基础 RNN 在五个时间步展开，展示循环权重共享" loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$h_t = \tanh(W_h h_{t-1} + W_x x_t + b), \qquad y_t = W_y h_t + b_y.$$</span><p>从图中可以看出，每一步的箭头都是一样的，这表明 <strong>矩阵 <span class=math-inline>$W_h$</span>
+、<span class=math-inline>$W_x$</span>
+、<span class=math-inline>$W_y$</span>
+在所有时间步上是共享的</strong>。正是这一巧妙的设计，让 RNN 同时具备了三个重要特性：</p><ul><li><strong>跨位置泛化能力</strong>：在第 3 个位置学到的模式可以直接应用到第 30 个位置，因为它们共享同一组权重。</li><li><strong>参数数量恒定</strong>：模型的大小与序列长度无关，处理 10 个 token 和 1 万个 token 的存储成本完全一致。</li><li><strong>支持变长输入和输出</strong>：公式中没有任何地方对序列长度 <span class=math-inline>$T$</span>
+做出限制，无论是 5 还是 500 都能轻松应对。</li></ul><p>可以想象， RNN 就像是一个逐词阅读的“理解机器”，每读入一个词，它都会更新对句子的整体理解。而第 <span class=math-inline>$t$</span>
+步的隐藏状态，则是对从第一个词到当前词 <span class=math-inline>$x_1, \dots, x_t$</span>
+的固定长度的可学习总结。</p><h2 id=二梯度消失问题 class=heading-anchor>二、梯度消失问题<a href=#%e4%ba%8c%e6%a2%af%e5%ba%a6%e6%b6%88%e5%a4%b1%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/03-RNN%e4%b8%8e%e5%ba%8f%e5%88%97%e5%bb%ba%e6%a8%a1/fig2_vanishing_gradient.png alt=梯度范数随距离衰减；右侧用一个示例句展示长距离依赖 loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$\frac{\partial h_T}{\partial h_t} \;=\; \prod_{k=t}^{T-1} \frac{\partial h_{k+1}}{\partial h_k}.$$</span>
+<span class=math-block>$$\left\| \frac{\partial h_T}{\partial h_t} \right\| \;\lesssim\; \lambda^{\,T-t}.$$</span><p>从这里可以看出两种典型情况，左图也清晰地展示了它们：</p><ul><li>如果 <span class=math-inline>$\lambda &lt; 1$</span>
+，梯度范数会以<strong>指数速度衰减</strong>。通常经过 10 到 20 步后，梯度数值上几乎归零。此时，优化器完全无法感知第 <span class=math-inline>$t$</span>
+个 token 对第 <span class=math-inline>$T$</span>
+步损失的影响，模型自然无法学习到这种长距离依赖关系。</li><li>如果 <span class=math-inline>$\lambda > 1$</span>
+，梯度则会<strong>爆炸</strong>——权重更新变得极其不稳定，训练可能在单步内就发散。</li></ul><p>右图给出了一个具体例子：“那只猫，它坐在垫子上、还大声呼噜，<strong>很</strong>开心。”主语“猫”和谓语“很”之间隔了十个词。普通的 RNN 根本无法将梯度传递这么远的距离，因此永远学不会这种主谓一致的关系。</p><p><strong>实际中的解决方案是什么？</strong> 梯度裁剪可以有效应对梯度爆炸问题——通过将全局梯度范数限制在某个阈值（比如 5.0）以内，避免更新失控。但裁剪对梯度消失无能为力。真正解决问题的关键在于重新设计循环结构，为梯度提供一条<strong>不会衰减</strong>的传播路径。 LSTM 和 GRU 正是通过引入这样的路径，成功缓解了这一问题。</p><h2 id=三长短期记忆网络lstm class=heading-anchor>三、长短期记忆网络（LSTM）<a href=#%e4%b8%89%e9%95%bf%e7%9f%ad%e6%9c%9f%e8%ae%b0%e5%bf%86%e7%bd%91%e7%bb%9clstm class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/03-RNN%e4%b8%8e%e5%ba%8f%e5%88%97%e5%bb%ba%e6%a8%a1/fig3_lstm_gates.png alt="LSTM 单元结构：遗忘门、输入门、输出门，以及加法式细胞状态高速公路" loading=lazy decoding=async class=content-image></figure></p><p>LSTM （Hochreiter & Schmidhuber, 1997）引入了一种带门控机制的单元，替换了传统循环神经网络中的简单循环单元。这种新单元不仅维护隐藏状态 <span class=math-inline>$h_t$</span>
+，还额外保留了一条显式的长期记忆 <span class=math-inline>$C_t$</span>
+，用于存储跨越长时间步的信息。</p><h3 id=三个关键门控机制 class=heading-anchor>三个关键门控机制<a href=#%e4%b8%89%e4%b8%aa%e5%85%b3%e9%94%ae%e9%97%a8%e6%8e%a7%e6%9c%ba%e5%88%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>假设 <span class=math-inline>$[h_{t-1}, x_t]$</span>
+表示上一时刻的隐藏状态和当前输入的拼接结果，所有门控机制都基于这一共享输入进行操作。</p><span class=math-block>$$f_t = \sigma(W_f [h_{t-1}, x_t] + b_f).$$</span>
+<span class=math-block>$$
+i_t = \sigma(W_i [h_{t-1}, x_t] + b_i), \qquad
+\tilde{C}_t = \tanh(W_C [h_{t-1}, x_t] + b_C).
+$$</span>
+<span class=math-block>$$C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t.$$</span>
+<span class=math-block>$$
+o_t = \sigma(W_o [h_{t-1}, x_t] + b_o), \qquad
+h_t = o_t \odot \tanh(C_t).
+$$</span><p>这里，<span class=math-inline>$\sigma$</span>
+是 sigmoid 函数（一种软性的 0–1 开关），<span class=math-inline>$\odot$</span>
+表示逐元素乘法。每个门的作用可以看作是一个可学习的位置相关决策：<em>忘掉这部分，写入那部分，露出这些内容</em>。</p><h3 id=为什么这解决了梯度消失问题 class=heading-anchor>为什么这解决了梯度消失问题？<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%bf%99%e8%a7%a3%e5%86%b3%e4%ba%86%e6%a2%af%e5%ba%a6%e6%b6%88%e5%a4%b1%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t.$$</span><p>对其求导后得到 <span class=math-inline>$\partial C_t / \partial C_{t-1} = f_t$</span>
+，这是一个逐元素的标量，取值范围在 <span class=math-inline>$[0,1]$</span>
+。当遗忘门的值接近 1 时，连乘项 <span class=math-inline>$\prod f_k$</span>
+也会保持接近 1——这意味着梯度可以通过细胞状态几乎无损地传递，即使跨越几百个时间步。相比之下，传统的 RNN 更新依赖于 <span class=math-inline>$W_h$</span>
+的<strong>乘法</strong>形式，容易导致梯度逐渐趋近于零。 LSTM 的关键改进在于用一个可学习且随时间变化的 <span class=math-inline>$f_t$</span>
+替代了全局共享的 <span class=math-inline>$W_h$</span>
+，仅此一点改动就让它能够有效建模长距离上下文。</p><h3 id=传送带的比喻 class=heading-anchor>传送带的比喻<a href=#%e4%bc%a0%e9%80%81%e5%b8%a6%e7%9a%84%e6%af%94%e5%96%bb class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>可以把细胞状态想象成一条贯穿整个序列的传送带。遗忘门像是一个工人，负责从传送带上移除不再需要的物品；输入门则是另一个工人，负责将新物品放到传送带上；输出门则像是一扇窗口，决定了外部世界（网络的其他部分）当前能看到哪些内容。第 3 步放上去的物品，可以一路平稳地传送到第 300 步，而不会受到干扰。</p><h2 id=四门控循环单元gru class=heading-anchor>四、门控循环单元（GRU）<a href=#%e5%9b%9b%e9%97%a8%e6%8e%a7%e5%be%aa%e7%8e%af%e5%8d%95%e5%85%83gru class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/03-RNN%e4%b8%8e%e5%ba%8f%e5%88%97%e5%bb%ba%e6%a8%a1/fig4_gru_cell.png alt="GRU 单元：重置门 + 更新门，结构比 LSTM 更简洁" loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$
+z_t = \sigma(W_z [h_{t-1}, x_t]), \qquad
+r_t = \sigma(W_r [h_{t-1}, x_t]),
+$$</span>
+<span class=math-block>$$
+\tilde{h}_t = \tanh(W [r_t \odot h_{t-1}, x_t]), \qquad
+h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t.
+$$</span><p>其中，<strong>重置门</strong> <span class=math-inline>$r_t$</span>
+控制过去信息对候选隐藏状态的影响程度；<strong>更新门</strong> <span class=math-inline>$z_t$</span>
+则在旧状态和新候选之间进行线性插值。当 <span class=math-inline>$z_t \approx 0$</span>
+时， GRU 会直接将上一时刻的状态 <span class=math-inline>$h_{t-1}$</span>
+复制到当前时刻，这种机制与 LSTM 中通过细胞状态保留梯度的“高速公路”效果完全一致。</p><h3 id=lstm-和-gru-的对比 class=heading-anchor>LSTM 和 GRU 的对比<a href=#lstm-%e5%92%8c-gru-%e7%9a%84%e5%af%b9%e6%af%94 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>对比维度</th><th>LSTM</th><th>GRU</th></tr></thead><tbody><tr><td>门的数量</td><td>3 个（遗忘门、输入门、输出门）</td><td>2 个（重置门、更新门）</td></tr><tr><td>是否有独立细胞状态</td><td>有（<span class=math-inline>$C_t$</span>
+）</td><td>无（仅使用 <span class=math-inline>$h_t$</span>
+）</td></tr><tr><td>参数量</td><td>约为基础 RNN 的 <span class=math-inline>$4\times$</span></td><td>约为基础 RNN 的 <span class=math-inline>$3\times$</span></td></tr><tr><td>长序列表现</td><td>在许多基准测试中略占优势</td><td>表现相当</td></tr><tr><td>训练速度</td><td>较慢</td><td>较快</td></tr></tbody></table></div><p><strong>经验法则</strong>：优先尝试 GRU。它的训练速度更快，超参数更少，且在大多数任务上与 LSTM 的精度差距微乎其微。如果处理的是特别长的序列，或者任务明确需要更大的模型容量（例如某些语音处理任务），可以考虑切换到 LSTM。</p><h2 id=五双向-rnn class=heading-anchor>五、双向 RNN<a href=#%e4%ba%94%e5%8f%8c%e5%90%91-rnn class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/03-RNN%e4%b8%8e%e5%ba%8f%e5%88%97%e5%bb%ba%e6%a8%a1/fig5_bidirectional_rnn.png alt="双向 RNN：每个位置正向与反向状态拼接" loading=lazy decoding=async class=content-image></figure></p><p>在许多任务中，未来的信息和过去的信息同样关键。举个例子：“他说这道菜<strong>不</strong>好吃”——如果模型只从左往右读，没看到“不”这个字，就可能错误地把“好吃”判定为正面情感。</p><span class=math-block>$$
+\overrightarrow{h}_t = \mathrm{RNN}_\text{fwd}(x_t, \overrightarrow{h}_{t-1}), \qquad
+\overleftarrow{h}_t = \mathrm{RNN}_\text{bwd}(x_t, \overleftarrow{h}_{t+1}),
+$$</span>
+<span class=math-block>$$
+h_t = \big[\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\big].
+$$</span><p>这样一来，每个位置的表示都能同时捕捉到前后的上下文信息。</p><p><strong>适合的应用场景</strong>：命名实体识别、词性标注、机器翻译中的编码器等任务。只要输入数据是完整的，就可以充分发挥双向 RNN 的优势。</p><p><strong>不适合的应用场景</strong>：流式处理或自回归生成任务。因为反向循环依赖未来的 token，而在逐个生成的过程中，这些 token 尚未出现。</p><h2 id=六堆叠-rnn class=heading-anchor>六、堆叠 RNN<a href=#%e5%85%ad%e5%a0%86%e5%8f%a0-rnn class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$
+h_t^{(1)} = \mathrm{RNN}^{(1)}(x_t,\, h_{t-1}^{(1)}), \qquad
+h_t^{(2)} = \mathrm{RNN}^{(2)}(h_t^{(1)},\, h_{t-1}^{(2)}).
+$$</span><p>在实际应用中，较低层通常会学习到一些局部模式，例如字符 n-gram、词边界以及形态学特征；而较高层则更倾向于捕捉句法结构和长距离的语义信息。对于大多数 NLP 任务来说， 2 到 4 层的堆叠已经能够达到很好的效果；如果继续增加层数，残差连接就显得尤为重要，否则优化过程可能会变得不稳定。</p><h2 id=七序列到序列模型 class=heading-anchor>七、序列到序列模型<a href=#%e4%b8%83%e5%ba%8f%e5%88%97%e5%88%b0%e5%ba%8f%e5%88%97%e6%a8%a1%e5%9e%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/03-RNN%e4%b8%8e%e5%ba%8f%e5%88%97%e5%bb%ba%e6%a8%a1/fig6_seq2seq.png alt="Seq2Seq 编码器-解码器架构中的固定大小上下文向量瓶颈" loading=lazy decoding=async class=content-image></figure></p><p>Seq2Seq 模型（Sutskever et al., 2014）是一种将输入序列转换为长度<em>不同</em>的输出序列的方法，最经典的例子就是机器翻译。它通过两个 RNN 来实现：</p><ul><li><strong>编码器</strong>负责读取整个输入序列，并将其压缩成一个单一的上下文向量 <span class=math-inline>$c = h_T^{\text{enc}}$</span>
+。</li><li><strong>解码器</strong>则根据这个上下文向量 <span class=math-inline>$c$</span>
+和已经生成的部分输出，逐步生成目标序列的每个 token：
+<span class=math-inline>$
+s_t = \mathrm{RNN}_\text{dec}(y_{t-1}, s_{t-1}), \qquad
+P(y_t \mid y_{&lt;t}, x) = \mathrm{softmax}(W_o s_t).
+$</span>
+<strong>瓶颈问题：</strong> 整个输入序列——可能包含多达 50 个词的信息——都必须被压缩进一个固定大小的向量 <span class=math-inline>$c$</span>
+中。对于短句子来说，这还能应付；但对于长句子，编码器就会显得力不从心。 Sutskever 等人在原论文中发现，当输入序列长度超过 30 个 token 时， BLEU 分数会显著下降。有趣的是，将源语言句子倒序输入反而能提升效果，这一现象实际上暗示了瓶颈问题是性能下降的主要原因。</li></ul><p>正是这个瓶颈问题直接推动了<strong>注意力机制</strong>的诞生，也就是<a href=/zh/nlp/04-%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6%e4%b8%8etransformer/>第 4 部分</a>
+的主题：与其让解码器依赖于单一的上下文向量 <span class=math-inline>$c$</span>
+，不如在每一步解码时，允许它动态地回顾编码器生成的<em>所有</em>隐藏状态。</p><h2 id=八-pytorch-实现字符级文本生成器 class=heading-anchor>八、 PyTorch 实现：字符级文本生成器<a href=#%e5%85%ab-pytorch-%e5%ae%9e%e7%8e%b0%e5%ad%97%e7%ac%a6%e7%ba%a7%e6%96%87%e6%9c%ac%e7%94%9f%e6%88%90%e5%99%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>接下来，我们训练一个小型 LSTM 模型，让它能够逐字符生成文本。</p><h3 id=数据准备 class=heading-anchor>数据准备<a href=#%e6%95%b0%e6%8d%ae%e5%87%86%e5%a4%87 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>text</span> <span class=o>=</span> <span class=s2>&#34;&#34;&#34;Deep learning is a subset of machine learning that uses neural
+</span></span></span><span class=line><span class=cl><span class=s2>networks with many layers. These networks can learn hierarchical
+</span></span></span><span class=line><span class=cl><span class=s2>representations of data, making them powerful for tasks like image
+</span></span></span><span class=line><span class=cl><span class=s2>recognition, natural language processing, and speech recognition.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>chars</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=nb>set</span><span class=p>(</span><span class=n>text</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>char_to_idx</span> <span class=o>=</span> <span class=p>{</span><span class=n>ch</span><span class=p>:</span> <span class=n>i</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>ch</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>chars</span><span class=p>)}</span>
+</span></span><span class=line><span class=cl><span class=n>idx_to_char</span> <span class=o>=</span> <span class=p>{</span><span class=n>i</span><span class=p>:</span> <span class=n>ch</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>ch</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>chars</span><span class=p>)}</span>
+</span></span><span class=line><span class=cl><span class=n>vocab_size</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>chars</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;词表大小: </span><span class=si>{</span><span class=n>vocab_size</span><span class=si>}</span><span class=s2> 个字符&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=模型设计 class=heading-anchor>模型设计<a href=#%e6%a8%a1%e5%9e%8b%e8%ae%be%e8%ae%a1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>CharRNN</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>vocab_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>,</span> <span class=n>num_layers</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>hidden_size</span> <span class=o>=</span> <span class=n>hidden_size</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>num_layers</span> <span class=o>=</span> <span class=n>num_layers</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>embedding</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>vocab_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>LSTM</span><span class=p>(</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>,</span> <span class=n>num_layers</span><span class=p>,</span> <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>fc</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>vocab_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>hidden</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>embedded</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>embedding</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span><span class=p>(</span><span class=n>embedded</span><span class=p>,</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>fc</span><span class=p>(</span><span class=n>out</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>hidden_size</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>out</span><span class=p>,</span> <span class=n>hidden</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>init_hidden</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>batch_size</span><span class=p>,</span> <span class=n>device</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>h0</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>num_layers</span><span class=p>,</span> <span class=n>batch_size</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>hidden_size</span><span class=p>)</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>c0</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>num_layers</span><span class=p>,</span> <span class=n>batch_size</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>hidden_size</span><span class=p>)</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>(</span><span class=n>h0</span><span class=p>,</span> <span class=n>c0</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=训练过程 class=heading-anchor>训练过程<a href=#%e8%ae%ad%e7%bb%83%e8%bf%87%e7%a8%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>train</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>text_data</span><span class=p>,</span> <span class=n>epochs</span><span class=o>=</span><span class=mi>100</span><span class=p>,</span> <span class=n>seq_length</span><span class=o>=</span><span class=mi>50</span><span class=p>,</span> <span class=n>batch_size</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>lr</span><span class=o>=</span><span class=mf>0.002</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>device</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>device</span><span class=p>(</span><span class=s1>&#39;cuda&#39;</span> <span class=k>if</span> <span class=n>torch</span><span class=o>.</span><span class=n>cuda</span><span class=o>.</span><span class=n>is_available</span><span class=p>()</span> <span class=k>else</span> <span class=s1>&#39;cpu&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>criterion</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>CrossEntropyLoss</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>optimizer</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=n>lr</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>data</span> <span class=o>=</span> <span class=p>[</span><span class=n>char_to_idx</span><span class=p>[</span><span class=n>ch</span><span class=p>]</span> <span class=k>for</span> <span class=n>ch</span> <span class=ow>in</span> <span class=n>text_data</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>epochs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>hidden</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>init_hidden</span><span class=p>(</span><span class=n>batch_size</span><span class=p>,</span> <span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>total_loss</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>        <span class=n>n_batches</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>data</span><span class=p>)</span> <span class=o>//</span> <span class=p>(</span><span class=n>seq_length</span> <span class=o>*</span> <span class=n>batch_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_batches</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>starts</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randint</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>data</span><span class=p>)</span> <span class=o>-</span> <span class=n>seq_length</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span> <span class=n>batch_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>inputs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([</span><span class=n>data</span><span class=p>[</span><span class=n>s</span><span class=p>:</span><span class=n>s</span><span class=o>+</span><span class=n>seq_length</span><span class=p>]</span> <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>starts</span><span class=p>])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>targets</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([</span><span class=n>data</span><span class=p>[</span><span class=n>s</span><span class=o>+</span><span class=mi>1</span><span class=p>:</span><span class=n>s</span><span class=o>+</span><span class=n>seq_length</span><span class=o>+</span><span class=mi>1</span><span class=p>]</span> <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>starts</span><span class=p>])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>hidden</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>h</span><span class=o>.</span><span class=n>detach</span><span class=p>()</span> <span class=k>for</span> <span class=n>h</span> <span class=ow>in</span> <span class=n>hidden</span><span class=p>)</span>  <span class=c1># 截断 BPTT，避免梯度回传到整个语料</span>
+</span></span><span class=line><span class=cl>            <span class=n>outputs</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>inputs</span><span class=p>,</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span> <span class=o>=</span> <span class=n>criterion</span><span class=p>(</span><span class=n>outputs</span><span class=p>,</span> <span class=n>targets</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>optimizer</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>clip_grad_norm_</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=mf>5.0</span><span class=p>)</span>  <span class=c1># 防止梯度爆炸</span>
+</span></span><span class=line><span class=cl>            <span class=n>optimizer</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>total_loss</span> <span class=o>+=</span> <span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>epoch</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>%</span> <span class=mi>20</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;第 </span><span class=si>{</span><span class=n>epoch</span><span class=o>+</span><span class=mi>1</span><span class=si>}</span><span class=s2>/</span><span class=si>{</span><span class=n>epochs</span><span class=si>}</span><span class=s2> 轮训练完成，当前损失: </span><span class=si>{</span><span class=n>total_loss</span><span class=o>/</span><span class=n>n_batches</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>在训练过程中，我们用到了两个 RNN 的常见技巧：<strong>在每个 batch 之间分离隐藏状态</strong>，以截断 BPTT （否则梯度会试图回传到整个训练数据）；以及<strong>梯度裁剪</strong>，防止梯度爆炸问题。</p><h3 id=文本生成温度控制创造性 class=heading-anchor>文本生成——温度控制创造性<a href=#%e6%96%87%e6%9c%ac%e7%94%9f%e6%88%90%e6%b8%a9%e5%ba%a6%e6%8e%a7%e5%88%b6%e5%88%9b%e9%80%a0%e6%80%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>generate</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>start_str</span><span class=p>,</span> <span class=n>length</span><span class=o>=</span><span class=mi>200</span><span class=p>,</span> <span class=n>temperature</span><span class=o>=</span><span class=mf>0.8</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>device</span> <span class=o>=</span> <span class=nb>next</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>())</span><span class=o>.</span><span class=n>device</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>hidden</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>init_hidden</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>input_seq</span> <span class=o>=</span> <span class=p>[</span><span class=n>char_to_idx</span><span class=p>[</span><span class=n>ch</span><span class=p>]</span> <span class=k>for</span> <span class=n>ch</span> <span class=ow>in</span> <span class=n>start_str</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>generated</span> <span class=o>=</span> <span class=n>start_str</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>idx</span> <span class=ow>in</span> <span class=n>input_seq</span><span class=p>[:</span><span class=o>-</span><span class=mi>1</span><span class=p>]:</span>  <span class=c1># 先通过初始字符串“预热”隐藏状态</span>
+</span></span><span class=line><span class=cl>            <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([[</span><span class=n>idx</span><span class=p>]])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>_</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([[</span><span class=n>input_seq</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]]])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>length</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>output</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>probs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>softmax</span><span class=p>(</span><span class=n>output</span><span class=o>.</span><span class=n>squeeze</span><span class=p>()</span> <span class=o>/</span> <span class=n>temperature</span><span class=p>,</span> <span class=n>dim</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>cpu</span><span class=p>()</span><span class=o>.</span><span class=n>numpy</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>char_idx</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>choice</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>probs</span><span class=p>),</span> <span class=n>p</span><span class=o>=</span><span class=n>probs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>generated</span> <span class=o>+=</span> <span class=n>idx_to_char</span><span class=p>[</span><span class=n>char_idx</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([[</span><span class=n>char_idx</span><span class=p>]])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>generated</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>CharRNN</span><span class=p>(</span><span class=n>vocab_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=o>=</span><span class=mi>128</span><span class=p>,</span> <span class=n>num_layers</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>train</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>text</span><span class=p>,</span> <span class=n>epochs</span><span class=o>=</span><span class=mi>100</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>generate</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=s2>&#34;Deep learning&#34;</span><span class=p>,</span> <span class=n>length</span><span class=o>=</span><span class=mi>200</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>温度参数</strong>用于调整 softmax 前的 logits 缩放比例：<span class=math-inline>$P(w) = \mathrm{softmax}(\text{logits}/T)$</span>
+。较低的温度（如 0.5 左右）会让概率分布更加尖锐，生成的文本趋于保守且重复性较高；而较高的温度（如 1.5 或更高）则会让分布更加平滑，生成的文本更具创造性但可能缺乏逻辑。通常情况下，<span class=math-inline>$T=0.8$</span>
+是一个不错的折中选择。</p><h2 id=九-pytorch-实现一个极简的-seq2seq-翻译器 class=heading-anchor>九、 PyTorch 实现：一个极简的 Seq2Seq 翻译器<a href=#%e4%b9%9d-pytorch-%e5%ae%9e%e7%8e%b0%e4%b8%80%e4%b8%aa%e6%9e%81%e7%ae%80%e7%9a%84-seq2seq-%e7%bf%bb%e8%af%91%e5%99%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>我们实现了一个最基础的英法翻译器，目的是在引入注意力机制（第四部分）之前，先帮助大家理解编码器-解码器架构的基本数据流。</p><h3 id=数据与词表 class=heading-anchor>数据与词表<a href=#%e6%95%b0%e6%8d%ae%e4%b8%8e%e8%af%8d%e8%a1%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>random</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>pairs</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=s2>&#34;hello&#34;</span><span class=p>,</span> <span class=s2>&#34;bonjour&#34;</span><span class=p>),</span> <span class=p>(</span><span class=s2>&#34;good morning&#34;</span><span class=p>,</span> <span class=s2>&#34;bon matin&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=s2>&#34;thank you&#34;</span><span class=p>,</span> <span class=s2>&#34;merci&#34;</span><span class=p>),</span> <span class=p>(</span><span class=s2>&#34;goodbye&#34;</span><span class=p>,</span> <span class=s2>&#34;au revoir&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=s2>&#34;how are you&#34;</span><span class=p>,</span> <span class=s2>&#34;comment allez vous&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=s2>&#34;i love you&#34;</span><span class=p>,</span> <span class=s2>&#34;je t aime&#34;</span><span class=p>),</span> <span class=p>(</span><span class=s2>&#34;welcome&#34;</span><span class=p>,</span> <span class=s2>&#34;bienvenue&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>SOS</span><span class=p>,</span> <span class=n>EOS</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>Vocab</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>word2idx</span> <span class=o>=</span> <span class=p>{</span><span class=s2>&#34;&lt;SOS&gt;&#34;</span><span class=p>:</span> <span class=n>SOS</span><span class=p>,</span> <span class=s2>&#34;&lt;EOS&gt;&#34;</span><span class=p>:</span> <span class=n>EOS</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>idx2word</span> <span class=o>=</span> <span class=p>{</span><span class=n>SOS</span><span class=p>:</span> <span class=s2>&#34;&lt;SOS&gt;&#34;</span><span class=p>,</span> <span class=n>EOS</span><span class=p>:</span> <span class=s2>&#34;&lt;EOS&gt;&#34;</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>n_words</span> <span class=o>=</span> <span class=mi>2</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>add_sentence</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>sentence</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>word</span> <span class=ow>in</span> <span class=n>sentence</span><span class=o>.</span><span class=n>split</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>word</span> <span class=ow>not</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>word2idx</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>word2idx</span><span class=p>[</span><span class=n>word</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>n_words</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>idx2word</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>n_words</span><span class=p>]</span> <span class=o>=</span> <span class=n>word</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>n_words</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>src_vocab</span><span class=p>,</span> <span class=n>tgt_vocab</span> <span class=o>=</span> <span class=n>Vocab</span><span class=p>(),</span> <span class=n>Vocab</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>en</span><span class=p>,</span> <span class=n>fr</span> <span class=ow>in</span> <span class=n>pairs</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>src_vocab</span><span class=o>.</span><span class=n>add_sentence</span><span class=p>(</span><span class=n>en</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>tgt_vocab</span><span class=o>.</span><span class=n>add_sentence</span><span class=p>(</span><span class=n>fr</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=编码器与解码器 class=heading-anchor>编码器与解码器<a href=#%e7%bc%96%e7%a0%81%e5%99%a8%e4%b8%8e%e8%a7%a3%e7%a0%81%e5%99%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>Encoder</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>vocab_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>embedding</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>vocab_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>LSTM</span><span class=p>(</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>,</span> <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>embedding</span><span class=p>(</span><span class=n>x</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>Decoder</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>,</span> <span class=n>vocab_size</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>embedding</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>vocab_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>LSTM</span><span class=p>(</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>,</span> <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>fc</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>vocab_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>hidden</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>embedding</span><span class=p>(</span><span class=n>x</span><span class=p>),</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>fc</span><span class=p>(</span><span class=n>out</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=mi>1</span><span class=p>)),</span> <span class=n>hidden</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=训练使用教师强制 class=heading-anchor>训练（使用教师强制）<a href=#%e8%ae%ad%e7%bb%83%e4%bd%bf%e7%94%a8%e6%95%99%e5%b8%88%e5%bc%ba%e5%88%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>train_seq2seq</span><span class=p>(</span><span class=n>encoder</span><span class=p>,</span> <span class=n>decoder</span><span class=p>,</span> <span class=n>pairs</span><span class=p>,</span> <span class=n>epochs</span><span class=o>=</span><span class=mi>500</span><span class=p>,</span> <span class=n>lr</span><span class=o>=</span><span class=mf>0.01</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>device</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>device</span><span class=p>(</span><span class=s1>&#39;cuda&#39;</span> <span class=k>if</span> <span class=n>torch</span><span class=o>.</span><span class=n>cuda</span><span class=o>.</span><span class=n>is_available</span><span class=p>()</span> <span class=k>else</span> <span class=s1>&#39;cpu&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>encoder</span><span class=p>,</span> <span class=n>decoder</span> <span class=o>=</span> <span class=n>encoder</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>decoder</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>enc_opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>encoder</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=n>lr</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>dec_opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>decoder</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=n>lr</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>criterion</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>CrossEntropyLoss</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>epochs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>total_loss</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>        <span class=n>random</span><span class=o>.</span><span class=n>shuffle</span><span class=p>(</span><span class=n>pairs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>src_sent</span><span class=p>,</span> <span class=n>tgt_sent</span> <span class=ow>in</span> <span class=n>pairs</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>src_ids</span> <span class=o>=</span> <span class=p>[</span><span class=n>src_vocab</span><span class=o>.</span><span class=n>word2idx</span><span class=p>[</span><span class=n>w</span><span class=p>]</span> <span class=k>for</span> <span class=n>w</span> <span class=ow>in</span> <span class=n>src_sent</span><span class=o>.</span><span class=n>split</span><span class=p>()]</span> <span class=o>+</span> <span class=p>[</span><span class=n>EOS</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>tgt_ids</span> <span class=o>=</span> <span class=p>[</span><span class=n>tgt_vocab</span><span class=o>.</span><span class=n>word2idx</span><span class=p>[</span><span class=n>w</span><span class=p>]</span> <span class=k>for</span> <span class=n>w</span> <span class=ow>in</span> <span class=n>tgt_sent</span><span class=o>.</span><span class=n>split</span><span class=p>()]</span> <span class=o>+</span> <span class=p>[</span><span class=n>EOS</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>src_t</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([</span><span class=n>src_ids</span><span class=p>])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>tgt_t</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>(</span><span class=n>tgt_ids</span><span class=p>)</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>enc_opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>();</span> <span class=n>dec_opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>_</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=n>encoder</span><span class=p>(</span><span class=n>src_t</span><span class=p>)</span>                     <span class=c1># 上下文向量</span>
+</span></span><span class=line><span class=cl>            <span class=n>dec_input</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([[</span><span class=n>SOS</span><span class=p>]])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>tgt_ids</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>                <span class=n>output</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=n>decoder</span><span class=p>(</span><span class=n>dec_input</span><span class=p>,</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>loss</span> <span class=o>+=</span> <span class=n>criterion</span><span class=p>(</span><span class=n>output</span><span class=p>,</span> <span class=n>tgt_t</span><span class=p>[</span><span class=n>i</span><span class=p>:</span><span class=n>i</span><span class=o>+</span><span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>                <span class=n>dec_input</span> <span class=o>=</span> <span class=n>tgt_t</span><span class=p>[</span><span class=n>i</span><span class=p>:</span><span class=n>i</span><span class=o>+</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>      <span class=c1># 教师强制</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>enc_opt</span><span class=o>.</span><span class=n>step</span><span class=p>();</span> <span class=n>dec_opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>total_loss</span> <span class=o>+=</span> <span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span> <span class=o>/</span> <span class=nb>len</span><span class=p>(</span><span class=n>tgt_ids</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>epoch</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>%</span> <span class=mi>100</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Epoch </span><span class=si>{</span><span class=n>epoch</span><span class=o>+</span><span class=mi>1</span><span class=si>}</span><span class=s2>/</span><span class=si>{</span><span class=n>epochs</span><span class=si>}</span><span class=s2>, Loss: </span><span class=si>{</span><span class=n>total_loss</span><span class=o>/</span><span class=nb>len</span><span class=p>(</span><span class=n>pairs</span><span class=p>)</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=推理 class=heading-anchor>推理<a href=#%e6%8e%a8%e7%90%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>translate</span><span class=p>(</span><span class=n>encoder</span><span class=p>,</span> <span class=n>decoder</span><span class=p>,</span> <span class=n>sentence</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>device</span> <span class=o>=</span> <span class=nb>next</span><span class=p>(</span><span class=n>encoder</span><span class=o>.</span><span class=n>parameters</span><span class=p>())</span><span class=o>.</span><span class=n>device</span>
+</span></span><span class=line><span class=cl>    <span class=n>encoder</span><span class=o>.</span><span class=n>eval</span><span class=p>();</span> <span class=n>decoder</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>        <span class=n>src_ids</span> <span class=o>=</span> <span class=p>[</span><span class=n>src_vocab</span><span class=o>.</span><span class=n>word2idx</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>w</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span> <span class=k>for</span> <span class=n>w</span> <span class=ow>in</span> <span class=n>sentence</span><span class=o>.</span><span class=n>split</span><span class=p>()]</span> <span class=o>+</span> <span class=p>[</span><span class=n>EOS</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>_</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=n>encoder</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([</span><span class=n>src_ids</span><span class=p>])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>dec_input</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([[</span><span class=n>SOS</span><span class=p>]])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>words</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>20</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>output</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=n>decoder</span><span class=p>(</span><span class=n>dec_input</span><span class=p>,</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>token</span> <span class=o>=</span> <span class=n>output</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>token</span> <span class=o>==</span> <span class=n>EOS</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>break</span>
+</span></span><span class=line><span class=cl>            <span class=n>words</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>tgt_vocab</span><span class=o>.</span><span class=n>idx2word</span><span class=p>[</span><span class=n>token</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>            <span class=n>dec_input</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([[</span><span class=n>token</span><span class=p>]])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s1>&#39; &#39;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>words</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>hidden_size</span> <span class=o>=</span> <span class=mi>256</span>
+</span></span><span class=line><span class=cl><span class=n>encoder</span> <span class=o>=</span> <span class=n>Encoder</span><span class=p>(</span><span class=n>src_vocab</span><span class=o>.</span><span class=n>n_words</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>decoder</span> <span class=o>=</span> <span class=n>Decoder</span><span class=p>(</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>tgt_vocab</span><span class=o>.</span><span class=n>n_words</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>train_seq2seq</span><span class=p>(</span><span class=n>encoder</span><span class=p>,</span> <span class=n>decoder</span><span class=p>,</span> <span class=n>pairs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=p>[</span><span class=s2>&#34;hello&#34;</span><span class=p>,</span> <span class=s2>&#34;thank you&#34;</span><span class=p>,</span> <span class=s2>&#34;good morning&#34;</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>s</span><span class=si>}</span><span class=s2> -&gt; </span><span class=si>{</span><span class=n>translate</span><span class=p>(</span><span class=n>encoder</span><span class=p>,</span> <span class=n>decoder</span><span class=p>,</span> <span class=n>s</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>注意事项：</strong> 这个实现非常简单，仅仅是为了演示编码器-解码器的数据流。它只能过拟合一个小短语表，使用的是贪婪解码，没有加入注意力机制或束搜索。如果要构建一个实用的翻译系统，还需要添加注意力机制（第四部分）、束搜索、子词（BPE）分词，以及用验证集实现早停功能。</p><h2 id=十它们的实际差距有多大 class=heading-anchor>十、它们的实际差距有多大<a href=#%e5%8d%81%e5%ae%83%e4%bb%ac%e7%9a%84%e5%ae%9e%e9%99%85%e5%b7%ae%e8%b7%9d%e6%9c%89%e5%a4%9a%e5%a4%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/03-RNN%e4%b8%8e%e5%ba%8f%e5%88%97%e5%bb%ba%e6%a8%a1/fig7_loss_curves.png alt="损失曲线与不同序列长度下的精度对比，比较 RNN、LSTM、GRU" loading=lazy decoding=async class=content-image></figure></p><p>上面两张图生动地展示了它们的差异。在处理长依赖任务时，普通的 RNN 训练到一定程度后损失值就会卡在一个较高的水平，再也降不下去；而 LSTM 和 GRU 则能持续优化——这说明“梯度高速公路”确实在发挥作用。随着序列长度增加， RNN 的预测精度迅速崩塌，而 LSTM 和 GRU 的性能下降则要平缓得多。此外，在大多数场景下， LSTM 和 GRU 的表现差距并不大，这也是为什么很多人会优先选择 GRU 作为默认模型的原因之一。</p><h2 id=注意力机制预告 class=heading-anchor>注意力机制预告<a href=#%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6%e9%a2%84%e5%91%8a class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$
+\alpha_{tj} = \frac{\exp(\mathrm{score}(s_t, h_j))}{\sum_k \exp(\mathrm{score}(s_t, h_k))}, \qquad
+c_t = \sum_j \alpha_{tj}\, h_j.
+$$</span><p>这样一来，上下文向量就变成了编码器状态的<em>动态加权和</em>，能够根据时间步的变化灵活调整。这一突破性思想为从 RNN 到 Transformer 的演进铺平了道路，我们将在<a href=/zh/nlp/04-%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6%e4%b8%8etransformer/>第 4 部分</a>
+深入探讨。</p><h2 id=常见问题 class=heading-anchor>常见问题<a href=#%e5%b8%b8%e8%a7%81%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=为什么基础-rnn-使用-tanh-而不是-relu class=heading-anchor>为什么基础 RNN 使用 tanh 而不是 ReLU？<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e5%9f%ba%e7%a1%80-rnn-%e4%bd%bf%e7%94%a8-tanh-%e8%80%8c%e4%b8%8d%e6%98%af-relu class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>tanh 的输出范围是 <span class=math-inline>$[-1, 1]$</span>
+，这使得隐藏状态在时间步之间能够保持在一个有限的范围内。而 ReLU 的正向输出没有上限，反复递归计算时很容易导致数值爆炸。 LSTM 则巧妙地结合了 sigmoid 和 tanh： sigmoid 用于门控（相当于一个软性的 0–1 开关），而 tanh 用于生成候选值（零中心分布，既能增加也能减少细胞状态的值）。</p><h3 id=什么是-teacher-forcing它有哪些弊端 class=heading-anchor>什么是 teacher forcing？它有哪些弊端？<a href=#%e4%bb%80%e4%b9%88%e6%98%af-teacher-forcing%e5%ae%83%e6%9c%89%e5%93%aa%e4%ba%9b%e5%bc%8a%e7%ab%af class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>在训练过程中，我们会将真实的上一个 token （即“正确答案”）直接作为解码器的输入，而不是使用模型自己预测的结果。这种方法在训练初期有助于稳定学习过程，但会导致训练和推理之间的不一致——推理阶段解码器必须依赖自身生成的（可能带噪声的）输出，而这些输出在训练中从未出现过。为了解决这个问题，常用的方法是 <strong>scheduled sampling</strong>：随着训练的推进，逐步提高使用模型自身预测结果的概率。</p><h3 id=温度对生成过程有什么影响 class=heading-anchor>温度对生成过程有什么影响？<a href=#%e6%b8%a9%e5%ba%a6%e5%af%b9%e7%94%9f%e6%88%90%e8%bf%87%e7%a8%8b%e6%9c%89%e4%bb%80%e4%b9%88%e5%bd%b1%e5%93%8d class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>温度的作用是对 logits 进行缩放，然后再输入 softmax 函数：<span class=math-inline>$P(w) = \mathrm{softmax}(\text{logits}/T)$</span>
+。当温度较低（例如 0.5）时，概率分布会更加尖锐，生成结果偏向保守；而当温度较高（例如 1.5）时，分布会变得更加平滑，生成结果更具创造性，但同时也更容易出错。贪婪解码可以看作是温度趋近于零（<span class=math-inline>$T \to 0$</span>
+）时的极限情况。</p><h3 id=transformer-出现后-rnn-是否还有存在的意义 class=heading-anchor>Transformer 出现后， RNN 是否还有存在的意义？<a href=#transformer-%e5%87%ba%e7%8e%b0%e5%90%8e-rnn-%e6%98%af%e5%90%a6%e8%bf%98%e6%9c%89%e5%ad%98%e5%9c%a8%e7%9a%84%e6%84%8f%e4%b9%89 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>虽然 Transformer 在离线 NLP 基准测试中已经占据主导地位，但在一些特定场景下， RNN 仍然有其独特的优势：(i) 参数量有限的场景；(ii) 需要真正的流式或在线推理（无需重新计算整个前缀的注意力）；(iii) 每一步的内存占用固定，与序列长度无关。此外， RNN 在时间序列预测和端侧语音模型中依然广泛应用。从机制上看，注意力可以被理解为“如果用一个可学习的历史状态回顾机制替代 LSTM 的遗忘门，会发生什么？”因此，深入理解 RNN 是掌握 Transformer 的最佳切入点。</p><h2 id=总结 class=heading-anchor>总结<a href=#%e6%80%bb%e7%bb%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li><strong>RNN 通过循环连接和参数共享来处理序列数据</strong>，每个时间步都使用相同的权重参数。</li><li><strong>普通的 RNN 在处理长序列时表现不佳</strong>，因为雅可比矩阵的连乘积 <span class=math-inline>$\prod \partial h_{k+1} / \partial h_k$</span>
+会呈指数级衰减或爆炸。</li><li><strong>LSTM 引入了一条细胞状态的“高速公路”</strong>，通过遗忘门、输入门和输出门进行控制，为梯度提供了一条不会消失的传播路径。</li><li><strong>GRU 对 LSTM 进行了简化</strong>，只保留两个门和一个状态，通常可以用比 LSTM 少约 25% 的参数达到相近的效果。</li><li><strong>双向结构和堆叠式变体</strong>分别扩展了单个位置的上下文范围，并增加了网络的深度。</li><li><strong>Seq2Seq 编码器-解码器架构</strong>可以实现序列到序列的映射，但受限于单一的上下文向量 <span class=math-inline>$c$</span>
+——这一瓶颈正是<a href=/zh/nlp/04-%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6%e4%b8%8etransformer/>第 4 部分</a>
+引入注意力机制的主要动机。</li></ul></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/nlp/02-%E8%AF%8D%E5%90%91%E9%87%8F%E4%B8%8E%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/ data-next-url=https://www.chenk.top/zh/nlp/04-%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E4%B8%8Etransformer/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/nlp/>NLP 技术前沿</a> <span class=count>12 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/nlp/02-%E8%AF%8D%E5%90%91%E9%87%8F%E4%B8%8E%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=title>自然语言处理（二）：词向量与语言模型</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/nlp/04-%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E4%B8%8Etransformer/><span class=title>自然语言处理（四）：注意力机制与 Transformer</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/01-nlp%E5%85%A5%E9%97%A8%E4%B8%8E%E6%96%87%E6%9C%AC%E9%A2%84%E5%A4%84%E7%90%86/><span class=series-nav-num>01</span>
+<span class=series-nav-title>自然语言处理（一）：NLP 入门与文本预处理</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/02-%E8%AF%8D%E5%90%91%E9%87%8F%E4%B8%8E%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>02</span>
+<span class=series-nav-title>自然语言处理（二）：词向量与语言模型</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>03</span>
+<span class=series-nav-title>自然语言处理（三）：RNN 与序列建模</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/04-%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E4%B8%8Etransformer/><span class=series-nav-num>04</span>
+<span class=series-nav-title>自然语言处理（四）：注意力机制与 Transformer</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>05</span>
+<span class=series-nav-title>自然语言处理（五）：BERT 与预训练模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/06-gpt%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>06</span>
+<span class=series-nav-title>自然语言处理（六）：GPT 与生成式语言模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8Ein-context-learning/><span class=series-nav-num>07</span>
+<span class=series-nav-title>自然语言处理（七）：提示工程与 In-Context Learning</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8Epeft/><span class=series-nav-num>08</span>
+<span class=series-nav-title>自然语言处理（八）：模型微调与 PEFT</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/><span class=series-nav-num>09</span>
+<span class=series-nav-title>自然语言处理（九）：大语言模型架构深度解析</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/10-rag%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/><span class=series-nav-num>10</span>
+<span class=series-nav-title>自然语言处理（十）：RAG 与知识增强系统</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/11-%E5%A4%9A%E6%A8%A1%E6%80%81%E5%A4%A7%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>11</span>
+<span class=series-nav-title>自然语言处理（十一）：多模态大模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/><span class=series-nav-num>12</span>
+<span class=series-nav-title>自然语言处理（十二）：前沿技术与实战应用</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E8%2587%25AA%25E7%2584%25B6%25E8%25AF%25AD%25E8%25A8%2580%25E5%25A4%2584%25E7%2590%2586%25EF%25BC%2588%25E4%25B8%2589%25EF%25BC%2589%25EF%25BC%259ARNN%2b%25E4%25B8%258E%25E5%25BA%258F%25E5%2588%2597%25E5%25BB%25BA%25E6%25A8%25A1&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fnlp%252F03-rnn%2525E4%2525B8%25258E%2525E5%2525BA%25258F%2525E5%252588%252597%2525E5%2525BB%2525BA%2525E6%2525A8%2525A1%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fnlp%252F03-rnn%2525E4%2525B8%25258E%2525E5%2525BA%25258F%2525E5%252588%252597%2525E5%2525BB%2525BA%2525E6%2525A8%2525A1%252F&title=%25E8%2587%25AA%25E7%2584%25B6%25E8%25AF%25AD%25E8%25A8%2580%25E5%25A4%2584%25E7%2590%2586%25EF%25BC%2588%25E4%25B8%2589%25EF%25BC%2589%25EF%25BC%259ARNN%2b%25E4%25B8%258E%25E5%25BA%258F%25E5%2588%2597%25E5%25BB%25BA%25E6%25A8%25A1" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/nlp/03-rnn%E4%B8%8E%E5%BA%8F%E5%88%97%E5%BB%BA%E6%A8%A1/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2025-10-11>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#一核心思想循环与参数共享>一、核心思想：循环与参数共享</a></li><li><a href=#二梯度消失问题>二、梯度消失问题</a></li><li><a href=#三长短期记忆网络lstm>三、长短期记忆网络（LSTM）</a><ul><li><a href=#三个关键门控机制>三个关键门控机制</a></li><li><a href=#为什么这解决了梯度消失问题>为什么这解决了梯度消失问题？</a></li><li><a href=#传送带的比喻>传送带的比喻</a></li></ul></li><li><a href=#四门控循环单元gru>四、门控循环单元（GRU）</a><ul><li><a href=#lstm-和-gru-的对比>LSTM 和 GRU 的对比</a></li></ul></li><li><a href=#五双向-rnn>五、双向 RNN</a></li><li><a href=#六堆叠-rnn>六、堆叠 RNN</a></li><li><a href=#七序列到序列模型>七、序列到序列模型</a></li><li><a href=#八-pytorch-实现字符级文本生成器>八、 PyTorch 实现：字符级文本生成器</a><ul><li><a href=#数据准备>数据准备</a></li><li><a href=#模型设计>模型设计</a></li><li><a href=#训练过程>训练过程</a></li><li><a href=#文本生成温度控制创造性>文本生成——温度控制创造性</a></li></ul></li><li><a href=#九-pytorch-实现一个极简的-seq2seq-翻译器>九、 PyTorch 实现：一个极简的 Seq2Seq 翻译器</a><ul><li><a href=#数据与词表>数据与词表</a></li><li><a href=#编码器与解码器>编码器与解码器</a></li><li><a href=#训练使用教师强制>训练（使用教师强制）</a></li><li><a href=#推理>推理</a></li></ul></li><li><a href=#十它们的实际差距有多大>十、它们的实际差距有多大</a></li><li><a href=#注意力机制预告>注意力机制预告</a></li><li><a href=#常见问题>常见问题</a><ul><li><a href=#为什么基础-rnn-使用-tanh-而不是-relu>为什么基础 RNN 使用 tanh 而不是 ReLU？</a></li><li><a href=#什么是-teacher-forcing它有哪些弊端>什么是 teacher forcing？它有哪些弊端？</a></li><li><a href=#温度对生成过程有什么影响>温度对生成过程有什么影响？</a></li><li><a href=#transformer-出现后-rnn-是否还有存在的意义>Transformer 出现后， RNN 是否还有存在的意义？</a></li></ul></li><li><a href=#总结>总结</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/nlp/ class=series-name>NLP 技术前沿</a>
+<span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/01-nlp%E5%85%A5%E9%97%A8%E4%B8%8E%E6%96%87%E6%9C%AC%E9%A2%84%E5%A4%84%E7%90%86/><span class=chapter-num>01</span>
+<span class=chapter-title>自然语言处理（一）：NLP 入门与文本预处理</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/02-%E8%AF%8D%E5%90%91%E9%87%8F%E4%B8%8E%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=chapter-num>02</span>
+<span class=chapter-title>自然语言处理（二）：词向量与语言模型</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>03</span>
+<span class=chapter-title>自然语言处理（三）：RNN 与序列建模</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/04-%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E4%B8%8Etransformer/><span class=chapter-num>04</span>
+<span class=chapter-title>自然语言处理（四）：注意力机制与 Transformer</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/><span class=chapter-num>05</span>
+<span class=chapter-title>自然语言处理（五）：BERT 与预训练模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/06-gpt%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=chapter-num>06</span>
+<span class=chapter-title>自然语言处理（六）：GPT 与生成式语言模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8Ein-context-learning/><span class=chapter-num>07</span>
+<span class=chapter-title>自然语言处理（七）：提示工程与 In-Context Learning</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8Epeft/><span class=chapter-num>08</span>
+<span class=chapter-title>自然语言处理（八）：模型微调与 PEFT</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/><span class=chapter-num>09</span>
+<span class=chapter-title>自然语言处理（九）：大语言模型架构深度解析</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/10-rag%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/><span class=chapter-num>10</span>
+<span class=chapter-title>自然语言处理（十）：RAG 与知识增强系统</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/11-%E5%A4%9A%E6%A8%A1%E6%80%81%E5%A4%A7%E6%A8%A1%E5%9E%8B/><span class=chapter-num>11</span>
+<span class=chapter-title>自然语言处理（十一）：多模态大模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/><span class=chapter-num>12</span>
+<span class=chapter-title>自然语言处理（十二）：前沿技术与实战应用</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>24 min</strong></div><div class=row><span>字数</span><strong>5891</strong></div><div class=row><span>写于</span><strong>Oct 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/product-thinking/>产品思维</a></li><li><a href=https://www.chenk.top/zh/series/personal-finance/>个人理财</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=关闭>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>在微信里搜索此 ID 即可添加我</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>复制微信号</button></div></div></div></footer></body></html>

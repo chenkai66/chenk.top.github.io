@@ -1,0 +1,479 @@
+<!doctype html><html lang=en data-translation=/zh/linux/%E6%96%87%E4%BB%B6%E6%93%8D%E4%BD%9C%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Linux (8): Pipelines and File Operations — Composing Tools into Data Flows · Chen Kai Blog</title>
+<meta name=description content="A deep walk-through of the Unix pipeline model: stdin/stdout/stderr and file descriptors, every common redirection form, the grep/awk/sed/cut/sort/uniq/xargs toolchain, named pipes, and process substitution -- with one-liners you can actually use on logs."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/linux/pipelines/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/linux/pipelines/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/linux/%E6%96%87%E4%BB%B6%E6%93%8D%E4%BD%9C%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/linux/pipelines/><meta property="og:type" content="article"><meta property="og:title" content="Linux (8): Pipelines and File Operations — Composing Tools into Data Flows"><meta property="og:description" content="A deep walk-through of the Unix pipeline model: stdin/stdout/stderr and file descriptors, every common redirection form, the grep/awk/sed/cut/sort/uniq/xargs toolchain, named pipes, and process substitution -- with one-liners you can actually use on logs."><meta property="og:url" content="https://www.chenk.top/en/linux/pipelines/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/linux.jpg"><meta property="og:image:alt" content="Linux (8): Pipelines and File Operations — Composing Tools into Data Flows"><meta property="article:published_time" content="2022-04-02T09:00:00Z"><meta property="article:modified_time" content="2022-04-02T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Linux"><meta property="article:tag" content="Cloud"><meta property="article:tag" content="System Administration"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Linux (8): Pipelines and File Operations — Composing Tools into Data Flows"><meta name=twitter:description content="A deep walk-through of the Unix pipeline model: stdin/stdout/stderr and file descriptors, every common redirection form, the grep/awk/sed/cut/sort/uniq/xargs toolchain, named pipes, and process substitution -- with one-liners you can actually use on logs."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/linux.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"Linux (8): Pipelines and File Operations — Composing Tools into Data Flows","description":"A deep walk-through of the Unix pipeline model: stdin/stdout/stderr and file descriptors, every common redirection form, the grep/awk/sed/cut/sort/uniq/xargs toolchain, named pipes, and process substitution -- with one-liners you can actually use on logs.","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/linux.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2022-04-02T09:00:00Z","dateModified":"2022-04-02T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/en/linux/pipelines/"},"inLanguage":"en"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js onload='document.querySelectorAll(".math-inline,.math-block").forEach(function(e){var t=e.textContent,n=e.classList.contains("math-block"),t=n?t.replace(/^\$\$/,"").replace(/\$\$$/,""):t.replace(/^\$/,"").replace(/\$$/,"");try{katex.render(t,e,{displayMode:n,throwOnError:!1})}catch{}})'></script><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/linux/pipelines.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/linux/>Linux</a>
+· Chapter 8</div><h1>Linux (8): Pipelines and File Operations — Composing Tools into Data Flows</h1><p class=deck>A deep walk-through of the Unix pipeline model: stdin/stdout/stderr and file descriptors, every common redirection form, the grep/awk/sed/cut/sort/uniq/xargs toolchain, named pipes, and process substitution -- with one-liners you can actually use on logs.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2022-04-02>April 2, 2022</time> · 42 min read · 4282 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/linux/ class=tag>#Linux</a><a href=/en/tags/cloud/ class=tag>#Cloud</a><a href=/en/tags/system-administration/ class=tag>#System Administration</a></div><a class="pill pill-outline" href=/zh/linux/%E6%96%87%E4%BB%B6%E6%93%8D%E4%BD%9C%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90/>阅读中文版 →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/pipelines/illustration_1.png alt="Linux (8): Pipelines and File Operations: Composing Tools into Data Flows — Chapter overview" loading=lazy decoding=async class=content-image></figure></p><p>The biggest productivity boost on Linux isn&rsquo;t memorizing more commands. It&rsquo;s learning to <strong>compose small tools</strong> into clean data flows. The pipe operator <code>|</code> is the embodiment of the Unix philosophy: each tool does one thing and does it well (<code>grep</code> only filters, <code>awk</code> only extracts fields, <code>sort</code> only sorts), and you chain them into a pipeline that is readable, debuggable, and obvious to maintain. This article starts from the data-flow model — <code>stdin</code>, <code>stdout</code>, <code>stderr</code> and the file descriptors behind them — then walks through every common redirection form (<code>></code>, <code>>></code>, <code>&lt;</code>, <code>2></code>, <code>2>&amp;1</code>, <code>&></code>), builds up the text-processing toolchain (<code>grep</code>, <code>awk</code>, <code>sed</code>, <code>cut</code>, <code>tr</code>, <code>sort</code>, <code>uniq</code>, <code>xargs</code>, <code>tee</code>), and ends with two patterns most introductions skip: named pipes (FIFOs) and process substitution. By the end you should be able to replace many &ldquo;I need to write a script&rdquo; tasks with one or two readable command lines, and read other people&rsquo;s one-liners without squinting.</p><hr><h2 id=the-data-flow-model-stdin-stdout-stderr class=heading-anchor>The Data-Flow Model: stdin, stdout, stderr<a href=#the-data-flow-model-stdin-stdout-stderr class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/pipelines/fig1_pipe_data_flow.png alt="Pipe data flow: stdin / stdout / stderr" loading=lazy decoding=async class=content-image></figure></p><p>Every Linux process starts with three open file descriptors. Understanding them is key to grasping the rest of this article.</p><div class=table-wrap><table><thead><tr><th>Stream</th><th>FD</th><th>Default destination</th><th>Typical use</th></tr></thead><tbody><tr><td><strong>stdin</strong></td><td>0</td><td>Terminal keyboard</td><td>Where the process reads input from</td></tr><tr><td><strong>stdout</strong></td><td>1</td><td>Terminal screen</td><td>Where normal results go</td></tr><tr><td><strong>stderr</strong></td><td>2</td><td>Terminal screen</td><td>Where diagnostics, warnings and errors go</td></tr></tbody></table></div><p>The non-obvious thing is the <strong>separation between stdout and stderr</strong>. Both default to the terminal, so when you run a command interactively they look interchangeable — but the kernel keeps them on two distinct file descriptors. That separation is what makes pipelines safe:</p><ul><li>The pipe operator <code>|</code> only carries fd 1 (stdout). Errors written to fd 2 do not pollute the data flowing into the next stage.</li><li>You can save normal output to a file while still seeing errors live on the terminal — or vice versa.</li><li>A script can succeed silently and only speak up via stderr when something goes wrong.</li></ul><p>A tiny demonstration:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>$ ls /etc /nonexistent
+</span></span><span class=line><span class=cl>ls: cannot access <span class=s1>&#39;/nonexistent&#39;</span>: No such file or directory   <span class=c1># stderr</span>
+</span></span><span class=line><span class=cl>/etc:                                                          <span class=c1># stdout</span>
+</span></span><span class=line><span class=cl>adduser.conf
+</span></span><span class=line><span class=cl>...
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>$ ls /etc /nonexistent &gt; out.txt
+</span></span><span class=line><span class=cl>ls: cannot access <span class=s1>&#39;/nonexistent&#39;</span>: No such file or directory   <span class=c1># stderr still on terminal</span>
+</span></span><span class=line><span class=cl>$ cat out.txt
+</span></span><span class=line><span class=cl>/etc:
+</span></span><span class=line><span class=cl>adduser.conf
+</span></span><span class=line><span class=cl>...
+</span></span></code></pre></td></tr></table></div></div><p>Only stdout was captured into <code>out.txt</code>; stderr went straight to the terminal because we did not redirect it.</p><h3 id=file-descriptors-are-just-integers class=heading-anchor>File descriptors are just integers<a href=#file-descriptors-are-just-integers class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>A file descriptor is the kernel&rsquo;s handle for an open file. In a process, fd 0/1/2 are reserved for the three standard streams; anything you <code>open()</code> after that gets fd 3, 4, 5 and so on. You can inspect a live process&rsquo;s open fds via <code>/proc</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>$ ls -l /proc/<span class=nv>$$</span>/fd          <span class=c1># $$ is the current shell&#39;s PID</span>
+</span></span><span class=line><span class=cl>lrwx------ <span class=m>1</span> kchen kchen <span class=m>64</span> ... <span class=m>0</span> -&gt; /dev/pts/0
+</span></span><span class=line><span class=cl>lrwx------ <span class=m>1</span> kchen kchen <span class=m>64</span> ... <span class=m>1</span> -&gt; /dev/pts/0
+</span></span><span class=line><span class=cl>lrwx------ <span class=m>1</span> kchen kchen <span class=m>64</span> ... <span class=m>2</span> -&gt; /dev/pts/0
+</span></span><span class=line><span class=cl>lr-x------ <span class=m>1</span> kchen kchen <span class=m>64</span> ... <span class=m>3</span> -&gt; /var/log/syslog
+</span></span></code></pre></td></tr></table></div></div><p>Every redirection and pipe you write in the shell ultimately boils down to <strong>rewiring those small integers</strong> before the program starts. <code>></code> means &ldquo;before exec, replace fd 1 with this file&rdquo;; <code>|</code> means &ldquo;before exec, replace the producer&rsquo;s fd 1 and the consumer&rsquo;s fd 0 with the two ends of an in-kernel pipe&rdquo;.</p><h2 id=redirection-wiring-the-file-descriptors class=heading-anchor>Redirection: Wiring the File Descriptors<a href=#redirection-wiring-the-file-descriptors class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/pipelines/fig2_redirection.png alt="Redirection: where each file descriptor goes" loading=lazy decoding=async class=content-image></figure></p><p>The figure summarises the six forms you will reach for daily. The full set is below.</p><h3 id=stdout--and- class=heading-anchor>stdout: <code>></code> and <code>>></code><a href=#stdout--and- class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;hello&#34;</span> &gt; out.txt        <span class=c1># truncate then write</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;world&#34;</span> &gt;&gt; out.txt       <span class=c1># append, keep existing content</span>
+</span></span><span class=line><span class=cl>ls -l &gt; filelist.txt          <span class=c1># save a directory listing</span>
+</span></span><span class=line><span class=cl>date &gt;&gt; deploy.log            <span class=c1># tag a log line with a timestamp</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>></code> is destructive — it truncates the target before the command starts running. If the command then fails, you have already lost the previous contents. When you are not sure, use <code>>></code> and clean up later, or save to a temporary path first.</p><h3 id=stderr-2-and-2 class=heading-anchor>stderr: <code>2></code> and <code>2>></code><a href=#stderr-2-and-2 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>make 2&gt; build-errors.log              <span class=c1># only errors to file, normal output on screen</span>
+</span></span><span class=line><span class=cl>./long-job 2&gt;&gt; errors.log             <span class=c1># append errors across multiple runs</span>
+</span></span></code></pre></td></tr></table></div></div><p>A common pattern is &ldquo;discard normal noise, keep only errors&rdquo;:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>./scan-disks &gt; /dev/null 2&gt;&gt; scan-errors.log
+</span></span></code></pre></td></tr></table></div></div><h3 id=both-streams-together class=heading-anchor>Both streams together<a href=#both-streams-together class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>There are two correct forms and one popular wrong one.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Modern, recommended (bash / zsh):</span>
+</span></span><span class=line><span class=cl>cmd <span class=p>&amp;</span>&gt; out.log
+</span></span><span class=line><span class=cl>cmd <span class=p>&amp;</span>&gt;&gt; out.log         <span class=c1># append both</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Traditional, portable to older shells:</span>
+</span></span><span class=line><span class=cl>cmd &gt; out.log 2&gt;<span class=p>&amp;</span><span class=m>1</span>
+</span></span></code></pre></td></tr></table></div></div><p>The traditional form has an order trap that bites everybody once:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># WRONG: stderr captured first (when fd 1 still points at the terminal),</span>
+</span></span><span class=line><span class=cl><span class=c1># then stdout is moved to the file. stderr ends up on the terminal,</span>
+</span></span><span class=line><span class=cl><span class=c1># stdout ends up in the file -- the opposite of what was intended.</span>
+</span></span><span class=line><span class=cl>cmd 2&gt;<span class=p>&amp;</span><span class=m>1</span> &gt; out.log
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># RIGHT: redirect fd 1 to the file first, then duplicate fd 2 to point</span>
+</span></span><span class=line><span class=cl><span class=c1># at the same place as fd 1.</span>
+</span></span><span class=line><span class=cl>cmd &gt; out.log 2&gt;<span class=p>&amp;</span><span class=m>1</span>
+</span></span></code></pre></td></tr></table></div></div><p>Read it left to right and remember that <code>2>&amp;1</code> means &ldquo;make fd 2 point wherever fd 1 currently points&rdquo; — not &ldquo;merge fd 2 into fd 1&rdquo;.</p><h3 id=discarding-output-devnull class=heading-anchor>Discarding output: <code>/dev/null</code><a href=#discarding-output-devnull class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><code>/dev/null</code> is the kernel&rsquo;s bit bucket. Anything written to it is discarded, and reads return EOF immediately.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>cmd &gt; /dev/null              <span class=c1># silence normal output</span>
+</span></span><span class=line><span class=cl>cmd 2&gt; /dev/null             <span class=c1># silence errors only</span>
+</span></span><span class=line><span class=cl>cmd <span class=p>&amp;</span>&gt; /dev/null              <span class=c1># silence everything</span>
+</span></span><span class=line><span class=cl>cmd &gt; /dev/null 2&gt;<span class=p>&amp;</span><span class=m>1</span> <span class=p>&amp;</span>        <span class=c1># run silently in the background</span>
+</span></span></code></pre></td></tr></table></div></div><p>Typical use cases: cron jobs (you only want mail when something fails), feature probes (<code>command -v jq > /dev/null</code>), and &ldquo;did this command exit zero?&rdquo; checks where you genuinely do not care about the output.</p><h3 id=stdin--here-doc-here-string class=heading-anchor>stdin: <code>&lt;</code>, here-doc, here-string<a href=#stdin--here-doc-here-string class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sort &lt; names.txt              <span class=c1># feed file as stdin</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Here-document: multi-line literal stdin</span>
+</span></span><span class=line><span class=cl>cat <span class=s>&lt;&lt;EOF &gt; /etc/motd
+</span></span></span><span class=line><span class=cl><span class=s>Welcome to $(hostname)
+</span></span></span><span class=line><span class=cl><span class=s>Today is $(date &#39;+%Y-%m-%d&#39;)
+</span></span></span><span class=line><span class=cl><span class=s>EOF</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Here-string: single-line literal stdin</span>
+</span></span><span class=line><span class=cl>grep -E <span class=s2>&#34;ERROR|WARN&#34;</span> <span class=o>&lt;&lt;&lt;</span> <span class=s2>&#34;</span><span class=nv>$line</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>Here-docs are how you embed configuration files inside scripts, send multi-line SQL into <code>psql</code>, or build small templates without a separate file. Variable expansion happens by default; quote the delimiter (<code>&lt;&lt;'EOF'</code>) if you want the body to be literal.</p><h2 id=the-pipe-operator-composition class=heading-anchor>The Pipe Operator: Composition<a href=#the-pipe-operator-composition class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>The pipe is the simplest IPC primitive in Unix and the reason the rest of this article works. <code>producer | consumer</code> does three things at once:</p><ol><li>Asks the kernel for an anonymous pipe — a small in-memory ring buffer with a read end and a write end.</li><li>Forks the producer and dup2&rsquo;s its fd 1 onto the write end.</li><li>Forks the consumer and dup2&rsquo;s its fd 0 onto the read end.</li></ol><p>The two processes then run <strong>concurrently</strong>: the producer writes, the consumer reads, and the kernel blocks one or the other when the buffer is full or empty. No temporary files are created on disk.</p><p>A canonical example:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>$ cat access.log <span class=p>|</span> grep <span class=s2>&#34;404&#34;</span> <span class=p>|</span> wc -l
+</span></span><span class=line><span class=cl><span class=m>137</span>
+</span></span></code></pre></td></tr></table></div></div><ul><li><code>cat access.log</code> — streams the log file to its stdout</li><li><code>grep "404"</code> — reads from stdin, keeps only matching lines</li><li><code>wc -l</code> — reads from stdin, prints a line count</li></ul><p>Three reasons this style wins:</p><ul><li><strong>No intermediate files.</strong> Data flows in memory; nothing to clean up.</li><li><strong>Streaming.</strong> Output starts appearing as soon as the producer writes its first line; you do not wait for the whole file.</li><li><strong>Composable.</strong> Each stage is independently testable and substitutable.</li></ul><h3 id=useless-use-of-cat-uuoc class=heading-anchor>Useless use of cat (UUOC)<a href=#useless-use-of-cat-uuoc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>The example above can be written more directly:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>grep <span class=s2>&#34;404&#34;</span> access.log <span class=p>|</span> wc -l
+</span></span></code></pre></td></tr></table></div></div><p>Most filtering tools accept a filename argument and will be slightly faster — and clearer — when you skip the <code>cat</code>. Use <code>cat file |</code> only when you genuinely need a stream (for example, to chain with multiple files or to make the pipeline read top-to-bottom for teaching).</p><h3 id=debugging-pipelines-with-tee class=heading-anchor>Debugging pipelines with <code>tee</code><a href=#debugging-pipelines-with-tee class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><code>tee</code> is a T-junction: it writes its input to one or more files <strong>and</strong> to stdout, so the next pipeline stage still sees the data.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>grep <span class=s2>&#34;404&#34;</span> access.log <span class=p>|</span> tee 404.log <span class=p>|</span> wc -l
+</span></span></code></pre></td></tr></table></div></div><p>You now have the matching lines saved to <code>404.log</code> for inspection while still getting the count. When a pipeline misbehaves, drop a <code>tee /tmp/stage-N.txt</code> between stages, run it, then <code>head /tmp/stage-N.txt</code> to see exactly what was flowing where.</p><p><code>tee -a</code> appends instead of truncating. <code>tee</code> also works as a way to write to a file as root from a user shell:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;127.0.0.1 example.local&#34;</span> <span class=p>|</span> sudo tee -a /etc/hosts
+</span></span></code></pre></td></tr></table></div></div><p>(Plain <code>sudo echo ... >> /etc/hosts</code> does not work, because the redirection is performed by your shell, which is not root.)</p><h2 id=the-text-processing-toolchain class=heading-anchor>The Text-Processing Toolchain<a href=#the-text-processing-toolchain class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Six tools cover the vast majority of log-and-text work. Learn what each one is <em>for</em> and you stop reaching for Python every time.</p><h3 id=grep--filter-lines class=heading-anchor>grep — filter lines<a href=#grep--filter-lines class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><code>grep</code> keeps lines that match a pattern. The flags worth knowing:</p><div class=table-wrap><table><thead><tr><th>Flag</th><th>Meaning</th></tr></thead><tbody><tr><td><code>-i</code></td><td>Case-insensitive</td></tr><tr><td><code>-v</code></td><td>Invert match (keep lines that do <strong>not</strong> match)</td></tr><tr><td><code>-n</code></td><td>Print line numbers</td></tr><tr><td><code>-E</code></td><td>Extended regex (`</td></tr><tr><td><code>-F</code></td><td>Fixed string (no regex — much faster for plain text)</td></tr><tr><td><code>-r</code> / <code>-R</code></td><td>Recurse into directories</td></tr><tr><td><code>-l</code></td><td>Only print filenames that contain a match</td></tr><tr><td><code>-c</code></td><td>Count matching lines</td></tr><tr><td><code>-A N</code> / <code>-B N</code> / <code>-C N</code></td><td>Show N lines after / before / around each hit</td></tr><tr><td><code>-o</code></td><td>Print only the matching part, one per line</td></tr></tbody></table></div><p>Real-world combinations:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Multiple keywords, case-insensitive, with three lines of context</span>
+</span></span><span class=line><span class=cl>grep -iEC <span class=m>3</span> <span class=s2>&#34;error|fail|timeout&#34;</span> /var/log/syslog
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Find every Python file that imports requests, project-wide</span>
+</span></span><span class=line><span class=cl>grep -rln --include<span class=o>=</span><span class=s1>&#39;*.py&#39;</span> <span class=s2>&#34;^import requests&#34;</span> .
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Lines that contain &#34;ERROR&#34; but not &#34;ERROR_HANDLED&#34;</span>
+</span></span><span class=line><span class=cl>grep <span class=s2>&#34;ERROR&#34;</span> app.log <span class=p>|</span> grep -v <span class=s2>&#34;ERROR_HANDLED&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Extract just the URLs from a log</span>
+</span></span><span class=line><span class=cl>grep -oE <span class=s1>&#39;https?://[^ &#34;]+&#39;</span> access.log <span class=p>|</span> sort -u
+</span></span></code></pre></td></tr></table></div></div><p><code>-F</code> is worth singling out: when you are searching for a literal string with regex metacharacters in it (a path, an IP address, a stack trace fragment), <code>grep -F</code> is both safer and faster than escaping.</p><h3 id=awk--columns-and-aggregation class=heading-anchor>awk — columns and aggregation<a href=#awk--columns-and-aggregation class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><code>awk</code> is a tiny programming language built around &ldquo;for each line, split into fields and run an action&rdquo;. It is the right tool whenever your data has <em>columns</em> and you want to project, filter on, or aggregate by them.</p><p>The mental model:</p><ul><li>Default field separator is &ldquo;any whitespace&rdquo;, configurable with <code>-F</code>.</li><li><code>$1</code>, <code>$2</code>, &mldr; are field references; <code>$0</code> is the whole line; <code>NF</code> is the number of fields, <code>NR</code> the line number.</li><li>A program is a sequence of <code>pattern { action }</code> blocks; either part is optional.</li><li><code>BEGIN { ... }</code> runs once before any input; <code>END { ... }</code> runs once after all input.</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Project: extract IP and status from an Nginx access log</span>
+</span></span><span class=line><span class=cl>awk <span class=s1>&#39;{ print $1, $9 }&#39;</span> access.log
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Filter on a numeric field: only show 5xx responses</span>
+</span></span><span class=line><span class=cl>awk <span class=s1>&#39;$9 &gt;= 500 { print }&#39;</span> access.log
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Aggregate: count requests per IP</span>
+</span></span><span class=line><span class=cl>awk <span class=s1>&#39;{ count[$1]++ } END { for (ip in count) print count[ip], ip }&#39;</span> access.log <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> sort -nr <span class=p>|</span> head
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Custom delimiter: parse /etc/passwd</span>
+</span></span><span class=line><span class=cl>awk -F: <span class=s1>&#39;{ print $1, $7 }&#39;</span> /etc/passwd
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Average a column (assume column 10 is response time in ms)</span>
+</span></span><span class=line><span class=cl>awk <span class=s1>&#39;{ sum += $10; n++ } END { if (n) print sum / n }&#39;</span> access.log
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Multi-condition: 5xx requests with response &gt; 1s</span>
+</span></span><span class=line><span class=cl>awk <span class=s1>&#39;$9 &gt;= 500 &amp;&amp; $10 &gt; 1000 { print $1, $7, $9, $10 }&#39;</span> access.log
+</span></span></code></pre></td></tr></table></div></div><p>The aggregation idiom <code>count[$key]++ ... END { for (k in count) print count[k], k }</code> is the workhorse: any time you are about to write a Python script to &ldquo;count things by some field&rdquo;, check whether one line of awk does it.</p><h3 id=sed--stream-editing class=heading-anchor>sed — stream editing<a href=#sed--stream-editing class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><code>sed</code> is a non-interactive editor. The two operations you will use 95% of the time are substitution and deletion.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Substitute (per line; default = first match only)</span>
+</span></span><span class=line><span class=cl>sed <span class=s1>&#39;s/foo/bar/&#39;</span>      file.txt    <span class=c1># first occurrence per line</span>
+</span></span><span class=line><span class=cl>sed <span class=s1>&#39;s/foo/bar/g&#39;</span>     file.txt    <span class=c1># every occurrence</span>
+</span></span><span class=line><span class=cl>sed -E <span class=s1>&#39;s|/old/path|/new/path|g&#39;</span>  file.txt   <span class=c1># use | to avoid backslashing slashes</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Delete lines</span>
+</span></span><span class=line><span class=cl>sed <span class=s1>&#39;/^$/d&#39;</span>           file.txt    <span class=c1># blank lines</span>
+</span></span><span class=line><span class=cl>sed <span class=s1>&#39;/^#/d&#39;</span>           file.txt    <span class=c1># comment lines</span>
+</span></span><span class=line><span class=cl>sed <span class=s1>&#39;1,10d&#39;</span>           file.txt    <span class=c1># first ten lines</span>
+</span></span><span class=line><span class=cl>sed <span class=s1>&#39;$d&#39;</span>              file.txt    <span class=c1># last line</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Print only a range (suppress default print with -n)</span>
+</span></span><span class=line><span class=cl>sed -n <span class=s1>&#39;10,20p&#39;</span> file.txt
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Insert / append by line address</span>
+</span></span><span class=line><span class=cl>sed <span class=s1>&#39;1i\#!/usr/bin/env bash&#39;</span>  script.sh
+</span></span><span class=line><span class=cl>sed <span class=s1>&#39;$a\# end of file&#39;</span>        script.sh
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># In-place edit, with a safety backup</span>
+</span></span><span class=line><span class=cl>sed -i.bak <span class=s1>&#39;s/listen 80;/listen 8080;/&#39;</span> /etc/nginx/nginx.conf
+</span></span></code></pre></td></tr></table></div></div><p>Two notes that save real time:</p><ul><li>The substitution delimiter does not have to be <code>/</code>. When the pattern contains slashes, <code>sed 's|a/b|c/d|'</code> reads much better than <code>sed 's/a\/b/c\/d/'</code>.</li><li><code>sed -i</code> differs between GNU sed and BSD sed (macOS). <code>sed -i.bak '...'</code> works on both — it always writes a backup with the given suffix and is a habit worth forming.</li></ul><h3 id=cut-tr--when-you-dont-need-awk-or-sed class=heading-anchor>cut, tr — when you don&rsquo;t need awk or sed<a href=#cut-tr--when-you-dont-need-awk-or-sed class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># cut: extract fields by delimiter</span>
+</span></span><span class=line><span class=cl>cut -d<span class=s1>&#39;,&#39;</span> -f1,3        data.csv         <span class=c1># 1st and 3rd CSV columns</span>
+</span></span><span class=line><span class=cl>cut -d<span class=s1>&#39;:&#39;</span> -f1,7        /etc/passwd      <span class=c1># username and shell</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># cut: extract by character position (fixed-width data)</span>
+</span></span><span class=line><span class=cl>cut -c1-8              file.txt         <span class=c1># first 8 chars of each line</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># tr: translate or delete characters</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;HELLO&#34;</span> <span class=p>|</span> tr <span class=s1>&#39;A-Z&#39;</span> <span class=s1>&#39;a-z&#39;</span>           <span class=c1># to lowercase</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;a b c&#34;</span> <span class=p>|</span> tr <span class=s1>&#39; &#39;</span> <span class=s1>&#39;\n&#39;</span>              <span class=c1># spaces to newlines</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;abc123&#34;</span> <span class=p>|</span> tr -d <span class=s1>&#39;0-9&#39;</span>             <span class=c1># delete digits</span>
+</span></span><span class=line><span class=cl>tr -s <span class=s1>&#39; &#39;</span> &lt; file                        <span class=c1># squeeze runs of spaces into one</span>
+</span></span></code></pre></td></tr></table></div></div><p>Reach for <code>cut</code> when the delimiter is fixed and you only need to project columns — it is faster to type than awk for the simple case. Reach for <code>tr</code> for character-level work (case folding, splitting on a delimiter, stripping a class).</p><h3 id=sort-uniq--ordering-and-grouping class=heading-anchor>sort, uniq — ordering and grouping<a href=#sort-uniq--ordering-and-grouping class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sort file.txt              <span class=c1># lexicographic</span>
+</span></span><span class=line><span class=cl>sort -n file.txt           <span class=c1># numeric (so &#34;10&#34; comes after &#34;9&#34;)</span>
+</span></span><span class=line><span class=cl>sort -h file.txt           <span class=c1># human-readable sizes (1K, 2M, 3G)</span>
+</span></span><span class=line><span class=cl>sort -r file.txt           <span class=c1># reverse</span>
+</span></span><span class=line><span class=cl>sort -k2,2 file.txt        <span class=c1># by column 2 (whitespace separated)</span>
+</span></span><span class=line><span class=cl>sort -t<span class=s1>&#39;,&#39;</span> -k3,3n data.csv <span class=c1># by 3rd CSV column, numerically</span>
+</span></span><span class=line><span class=cl>sort -u file.txt           <span class=c1># unique (sort + dedupe in one pass)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>uniq           file        <span class=c1># collapse adjacent duplicates</span>
+</span></span><span class=line><span class=cl>uniq -c        file        <span class=c1># count adjacent duplicates</span>
+</span></span><span class=line><span class=cl>uniq -d        file        <span class=c1># only show duplicated lines</span>
+</span></span><span class=line><span class=cl>uniq -u        file        <span class=c1># only show non-duplicated lines</span>
+</span></span></code></pre></td></tr></table></div></div><p>The single most important thing about <code>uniq</code>: <strong>it only collapses adjacent duplicates</strong>. Almost always you want <code>sort | uniq -c | sort -nr</code> to get a frequency-ranked report. The first <code>sort</code> makes duplicates adjacent; <code>uniq -c</code> counts them; the second <code>sort -nr</code> ranks the counts numerically and in reverse.</p><h2 id=worked-example-nginx-log-triage class=heading-anchor>Worked Example: Nginx Log Triage<a href=#worked-example-nginx-log-triage class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>A few lines that everybody on call should know by heart. Assume <code>access.log</code> is in the standard combined format (column 1 is client IP, 7 is path, 9 is status code).</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Top 10 client IPs</span>
+</span></span><span class=line><span class=cl>awk <span class=s1>&#39;{ print $1 }&#39;</span> access.log <span class=p>|</span> sort <span class=p>|</span> uniq -c <span class=p>|</span> sort -nr <span class=p>|</span> head
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Top 10 most-requested paths</span>
+</span></span><span class=line><span class=cl>awk <span class=s1>&#39;{ print $7 }&#39;</span> access.log <span class=p>|</span> sort <span class=p>|</span> uniq -c <span class=p>|</span> sort -nr <span class=p>|</span> head
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Status code distribution</span>
+</span></span><span class=line><span class=cl>awk <span class=s1>&#39;{ print $9 }&#39;</span> access.log <span class=p>|</span> sort <span class=p>|</span> uniq -c <span class=p>|</span> sort -nr
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># All 5xx errors in the last hour (assumes log timestamps are sortable)</span>
+</span></span><span class=line><span class=cl>grep <span class=s2>&#34;</span><span class=k>$(</span>date -d <span class=s1>&#39;1 hour ago&#39;</span> <span class=s1>&#39;+%d/%b/%Y:%H&#39;</span><span class=k>)</span><span class=s2>&#34;</span> access.log <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> awk <span class=s1>&#39;$9 &gt;= 500&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Which IPs are hitting which 4xx URLs?</span>
+</span></span><span class=line><span class=cl>awk <span class=s1>&#39;$9 &gt;= 400 &amp;&amp; $9 &lt; 500 { print $1, $9, $7 }&#39;</span> access.log <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> sort <span class=p>|</span> uniq -c <span class=p>|</span> sort -nr <span class=p>|</span> head -20
+</span></span></code></pre></td></tr></table></div></div><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/pipelines/fig3_grep_awk_sed_pipeline.png alt="grep | awk | sort | uniq pipeline" loading=lazy decoding=async class=content-image></figure></p><p>The figure traces the third example: each stage <strong>narrows or aggregates</strong> the data. By the time you reach the right-hand side you have ranked counts that fit on a screen, and at any point you can drop a <code>tee</code> to inspect the intermediate shape.</p><h2 id=xargs-when-the-next-tool-wants-arguments-not-stdin class=heading-anchor>xargs: When the Next Tool Wants Arguments, Not Stdin<a href=#xargs-when-the-next-tool-wants-arguments-not-stdin class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>The pipe carries data on stdin. But many of the tools you most want to chain with — <code>rm</code>, <code>cp</code>, <code>mv</code>, <code>chmod</code>, <code>git checkout</code> — take <strong>arguments</strong>, not stdin. <code>xargs</code> is the bridge.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>find . -name <span class=s2>&#34;*.tmp&#34;</span> <span class=p>|</span> xargs rm        <span class=c1># delete every *.tmp file under .</span>
+</span></span></code></pre></td></tr></table></div></div><p>Without <code>xargs</code>, <code>find ... | rm</code> does nothing useful: <code>rm</code> does not look at stdin.</p><h3 id=the-space-and-newline-trap class=heading-anchor>The space-and-newline trap<a href=#the-space-and-newline-trap class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Naive <code>find | xargs</code> breaks the moment a filename contains a space or a newline (yes, newlines in filenames are legal). <code>xargs</code> splits on whitespace by default, so <code>my file.txt</code> becomes two arguments. Always pair <code>find -print0</code> with <code>xargs -0</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>find . -name <span class=s2>&#34;*.tmp&#34;</span> -print0 <span class=p>|</span> xargs -0 rm
+</span></span></code></pre></td></tr></table></div></div><p><code>-print0</code> separates output with NUL bytes; <code>-0</code> tells <code>xargs</code> to split on NUL. NUL is the one byte that cannot appear in a filename, so this is robust.</p><p>The shorter alternative — often the cleanest — is to skip <code>xargs</code> entirely and let <code>find</code> invoke the command itself:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>find . -name <span class=s2>&#34;*.tmp&#34;</span> -exec rm <span class=o>{}</span> +     <span class=c1># batch invocation, equivalent to xargs -0</span>
+</span></span><span class=line><span class=cl>find . -name <span class=s2>&#34;*.tmp&#34;</span> -delete           <span class=c1># built-in for delete</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>-exec ... {} +</code> batches arguments into as few <code>rm</code> calls as the command line allows; <code>-exec ... {} \;</code> runs once per file (slower, but useful when each invocation should be independent).</p><h3 id=useful-flags class=heading-anchor>Useful flags<a href=#useful-flags class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Use a placeholder</span>
+</span></span><span class=line><span class=cl>find . -name <span class=s2>&#34;*.log&#34;</span> <span class=p>|</span> xargs -I<span class=o>{}</span> cp <span class=o>{}</span> <span class=o>{}</span>.bak
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Limit args per invocation (avoid arg-list overflow)</span>
+</span></span><span class=line><span class=cl>find . -name <span class=s2>&#34;*.json&#34;</span> -print0 <span class=p>|</span> xargs -0 -n <span class=m>100</span> jq -c .
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Run in parallel across N cores</span>
+</span></span><span class=line><span class=cl>find . -name <span class=s2>&#34;*.json&#34;</span> -print0 <span class=p>|</span> xargs -0 -P <span class=m>8</span> -n <span class=m>1</span> jq -c . &gt; /dev/null
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Confirm before each invocation (interactive sanity check)</span>
+</span></span><span class=line><span class=cl>find . -name <span class=s2>&#34;*.tmp&#34;</span> -print0 <span class=p>|</span> xargs -0 -p rm
+</span></span></code></pre></td></tr></table></div></div><p><code>-P</code> is the thing that turns &ldquo;find every JSON file and validate it&rdquo; from a 30-second wait into a 4-second one on an 8-core box. Combine with <code>-n 1</code> so each invocation gets one file (otherwise a single slow file blocks a whole batch).</p><h2 id=named-pipes-fifos class=heading-anchor>Named Pipes (FIFOs)<a href=#named-pipes-fifos class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/pipelines/fig4_named_pipes.png alt="Anonymous pipe vs named pipe (FIFO)" loading=lazy decoding=async class=content-image></figure></p><p>The pipes you create with <code>|</code> are <strong>anonymous</strong> — they exist in kernel memory, have no name on the filesystem, and disappear when the producer and consumer exit. Both ends have to be on the same shell command line.</p><p>A <strong>named pipe</strong> (FIFO) is a pipe with a name on the filesystem. You create one with <code>mkfifo</code>, and any two processes — on different terminals, started at different times — can connect to it.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>$ mkfifo /tmp/jobs
+</span></span><span class=line><span class=cl>$ ls -l /tmp/jobs
+</span></span><span class=line><span class=cl>prw-r--r-- <span class=m>1</span> kchen kchen <span class=m>0</span> ... /tmp/jobs    <span class=c1># the leading &#39;p&#39; marks it as a FIFO</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Consumer (terminal A): block on the FIFO, process each line</span>
+</span></span><span class=line><span class=cl><span class=k>while</span> <span class=nb>read</span> job<span class=p>;</span> <span class=k>do</span>
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span> <span class=s2>&#34;[worker] processing </span><span class=nv>$job</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>    sleep <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=k>done</span> &lt; /tmp/jobs
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Producer (terminal B): drop work onto the FIFO</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;task-1&#34;</span> &gt; /tmp/jobs
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;task-2&#34;</span> &gt; /tmp/jobs
+</span></span></code></pre></td></tr></table></div></div><p>Two semantic facts catch people out the first time:</p><ul><li>A <code>read</code> on a FIFO <strong>blocks</strong> until somebody writes. Likewise a <code>write</code> blocks until somebody reads (the kernel pipe buffer is small — usually 64 KiB).</li><li>Closing all readers while a writer is still active gives the writer <code>SIGPIPE</code>. Closing all writers makes the next read return EOF.</li></ul><p>That blocking behaviour is the <em>feature</em>: a FIFO is a tiny zero-config job queue or signalling channel. Real-world uses include simple inter-script signalling, decoupling a long-running consumer from a fast burst of producers, and writing logs from many short-lived processes into one rotator.</p><p>Clean up with <code>rm /tmp/jobs</code> when you are done — a FIFO is just a file.</p><h2 id=process-substitution-cmd-and-cmd class=heading-anchor>Process Substitution: <code>&lt;(cmd)</code> and <code>>(cmd)</code><a href=#process-substitution-cmd-and-cmd class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/pipelines/fig5_process_substitution.png alt="Process substitution: <(cmd) exposes a command&rsquo;s stdout as a filename" loading=lazy decoding=async class=content-image></figure></p><p>Process substitution is the answer to the question, &ldquo;what if I want to feed a command&rsquo;s output to a tool that only accepts filename arguments?&rdquo;</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>diff &lt;<span class=o>(</span>sort file1<span class=o>)</span> &lt;<span class=o>(</span>sort file2<span class=o>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Bash arranges things so that <code>&lt;(sort file1)</code> expands to a path — typically <code>/dev/fd/63</code> — that, when read, yields the stdout of the inner command. <code>diff</code> opens it like any other file; it has no idea a process is on the other end.</p><p>The mechanically equivalent rewrite using temp files makes the value clear:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sort file1 &gt; /tmp/a
+</span></span><span class=line><span class=cl>sort file2 &gt; /tmp/b
+</span></span><span class=line><span class=cl>diff /tmp/a /tmp/b
+</span></span><span class=line><span class=cl>rm /tmp/a /tmp/b
+</span></span></code></pre></td></tr></table></div></div><p>Bash does the bookkeeping for you, and the inner command runs concurrently rather than serially, so both producers and the consumer overlap.</p><p>The output form <code>>(cmd)</code> exists too — the path expands to something that, when written to, becomes stdin of the inner command. It is much rarer in practice, but it does enable patterns like:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># tee a stream into two simultaneous consumers</span>
+</span></span><span class=line><span class=cl>some_command <span class=p>|</span> tee &gt;<span class=o>(</span>gzip &gt; out.gz<span class=o>)</span> &gt;<span class=o>(</span>sha256sum &gt; out.sha256<span class=o>)</span> &gt; /dev/null
+</span></span></code></pre></td></tr></table></div></div><p>Process substitution is a bash/zsh/ksh feature — it does not exist in plain POSIX <code>sh</code>. If you need a portable script, fall back to a temp file and <code>trap "rm -f $tmp" EXIT</code>.</p><h2 id=worked-example-batch-file-operations class=heading-anchor>Worked Example: Batch File Operations<a href=#worked-example-batch-file-operations class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>A few patterns that come up constantly in ops work.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Recursively set web-tree perms: files 644, dirs 755</span>
+</span></span><span class=line><span class=cl>find /var/www/html -type f -exec chmod <span class=m>644</span> <span class=o>{}</span> +
+</span></span><span class=line><span class=cl>find /var/www/html -type d -exec chmod <span class=m>755</span> <span class=o>{}</span> +
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Compress every log older than seven days</span>
+</span></span><span class=line><span class=cl>find /var/log -name <span class=s2>&#34;*.log&#34;</span> -mtime +7 -exec gzip <span class=o>{}</span> +
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Delete empty files (often left behind by failed writes)</span>
+</span></span><span class=line><span class=cl>find /tmp -type f -empty -delete
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Bulk-rename img_*.jpg to photo_*.jpg using shell parameter expansion</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> f in img_*.jpg<span class=p>;</span> <span class=k>do</span>
+</span></span><span class=line><span class=cl>    mv -- <span class=s2>&#34;</span><span class=nv>$f</span><span class=s2>&#34;</span> <span class=s2>&#34;</span><span class=si>${</span><span class=nv>f</span><span class=p>/img_/photo_</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl><span class=k>done</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Same idea with the rename(1) tool (perl-rename on Debian/Ubuntu)</span>
+</span></span><span class=line><span class=cl>rename <span class=s1>&#39;s/^img_/photo_/&#39;</span> img_*.jpg
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Find files larger than 100 MB and list them sorted by size</span>
+</span></span><span class=line><span class=cl>find / -xdev -type f -size +100M -exec du -h <span class=o>{}</span> + 2&gt;/dev/null <span class=p>|</span> sort -hr <span class=p>|</span> head
+</span></span></code></pre></td></tr></table></div></div><p>The <code>--</code> after <code>mv</code> is a small habit worth forming: it tells the command &ldquo;no more options coming&rdquo;, so a filename that happens to start with <code>-</code> cannot be mistaken for a flag.</p><h2 id=safety-and-best-practices class=heading-anchor>Safety and Best Practices<a href=#safety-and-best-practices class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>A few rules that prevent the most common pipeline accidents.</p><p><strong>1. Never parse <code>ls</code> output.</strong> <code>ls</code> is for humans; its output is not a stable interchange format. Spaces, newlines, glob characters and locale-dependent date formats all break naive parsing.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># WRONG</span>
+</span></span><span class=line><span class=cl>ls *.log <span class=p>|</span> xargs rm
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># RIGHT</span>
+</span></span><span class=line><span class=cl>find . -maxdepth <span class=m>1</span> -name <span class=s2>&#34;*.log&#34;</span> -print0 <span class=p>|</span> xargs -0 rm
+</span></span><span class=line><span class=cl><span class=c1># or simply:</span>
+</span></span><span class=line><span class=cl>rm -- *.log
+</span></span></code></pre></td></tr></table></div></div><p><strong>2. Preview destructive commands.</strong> Replace <code>-delete</code> with <code>-print</code> (or <code>rm</code> with <code>echo rm</code>) until you are happy with the file list:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>find . -name <span class=s2>&#34;*.tmp&#34;</span> -print     <span class=c1># preview</span>
+</span></span><span class=line><span class=cl>find . -name <span class=s2>&#34;*.tmp&#34;</span> -delete    <span class=c1># commit</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>3. Quote all variable expansions.</strong> This is the single biggest source of &ldquo;the script worked on my machine&rdquo; bugs:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nv>dir</span><span class=o>=</span><span class=s2>&#34;my reports&#34;</span>
+</span></span><span class=line><span class=cl>rm -rf <span class=nv>$dir</span>       <span class=c1># WRONG: expands to &#34;rm -rf my reports&#34;, deletes both &#39;my&#39; and &#39;reports&#39;</span>
+</span></span><span class=line><span class=cl>rm -rf -- <span class=s2>&#34;</span><span class=nv>$dir</span><span class=s2>&#34;</span>  <span class=c1># RIGHT</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>4. Use <code>set -euo pipefail</code> in scripts.</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/usr/bin/env bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nb>set</span> -euo pipefail   <span class=c1># -e: stop on error; -u: stop on undefined var; -o pipefail: a failed pipe stage fails the whole pipe</span>
+</span></span></code></pre></td></tr></table></div></div><p>Without <code>pipefail</code>, a pipeline&rsquo;s exit code is the exit code of the <strong>last</strong> stage. A silent failure in the middle (<code>grep</code> finds nothing, <code>sort</code> runs out of disk) is invisible. With <code>pipefail</code>, the first non-zero exit propagates.</p><p><strong>5. Never <code>eval</code> or feed user input into a shell command unsanitised.</strong> If a value comes from outside the script, validate it (a regex like <code>[[ "$x" =~ ^[A-Za-z0-9._-]+$ ]]</code>) or pass it as an argument to a tool that does not invoke a shell.</p><h2 id=summary class=heading-anchor>Summary<a href=#summary class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>You should now have a coherent picture rather than a pile of commands:</p><ul><li><strong>The data-flow model.</strong> Three streams (stdin/stdout/stderr) on three file descriptors (0/1/2). Pipes carry stdout only.</li><li><strong>Redirection.</strong> <code>></code> <code>>></code> <code>&lt;</code> <code>2></code> <code>2>&amp;1</code> <code>&></code> <code>&lt;&lt;</code> <code>&lt;&lt;&lt;</code> — six forms cover everything, and you understand <em>why</em> <code>2>&amp;1 >file</code> is wrong.</li><li><strong>The toolchain.</strong> <code>grep</code> filters, <code>awk</code> projects and aggregates, <code>sed</code> edits, <code>cut</code>/<code>tr</code> do the simple cases, <code>sort | uniq -c | sort -nr</code> ranks frequencies.</li><li><strong>Argument plumbing.</strong> <code>xargs</code> (and <code>find -exec ... {} +</code>) bridge stdin-style and argv-style tools, with NUL-delimited handling for spaces in filenames.</li><li><strong>Two patterns most articles skip.</strong> Named pipes for cross-process rendezvous; process substitution for &ldquo;I need a filename, but I have a command&rdquo;.</li><li><strong>Safety.</strong> Quote variables, preview before delete, never parse <code>ls</code>, and put <code>set -euo pipefail</code> at the top of every script.</li></ul><p><strong>Further reading</strong></p><ul><li><a href=https://github.com/jlevy/the-art-of-command-line target=_blank rel="noopener noreferrer">The Art of Command Line <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+— a curated cheat sheet of the most useful idioms.</li><li><code>man bash</code>, especially the <strong>REDIRECTION</strong>, <strong>Pipelines</strong> and <strong>Process Substitution</strong> sections.</li><li><code>info coreutils</code> — the canonical reference for <code>grep</code>, <code>sort</code>, <code>cut</code>, <code>tr</code>, <code>uniq</code>, etc.</li></ul><p>This is the last article in the Linux series. With the previous seven posts you have the model — processes, files, permissions, disks, services, packages, users — and with this one you have the glue. Real ops work is mostly <strong>applying the glue</strong>: turning &ldquo;I need to know X&rdquo; into a one-liner, turning &ldquo;do this for every file in here&rdquo; into one safe <code>find ... -exec</code>, and treating the shell as the most general programmable tool you have.</p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/en/linux/process-resource-management/ data-next-url=https://www.chenk.top/en/linux/09-vim-essentials/ aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/linux/>Linux</a> <span class=count>9 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/linux/process-resource-management/><span class=title>Linux (7): Process and Resource Management: From `top` to cgroups</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/linux/09-vim-essentials/><span class=title>Linux (9): Vim Essentials</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/linux/basics/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Linux (1): Basics — Core Concepts and Essential Commands</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/linux/file-permissions/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Linux (2): File Permissions — rwx, chmod, chown, and Beyond</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/linux/disk-management/><span class=series-nav-num>03</span>
+<span class=series-nav-title>Linux (3): Disk Management — Partitions, Filesystems, LVM, and the Mount Stack</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/linux/package-management/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Linux (4): Package Management — apt, dnf, pacman, and Building from Source</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/linux/user-management/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Linux (5): User Management — Users, Groups, sudo, and Security</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/linux/service-management/><span class=series-nav-num>06</span>
+<span class=series-nav-title>Linux (6): Service Management — systemd, systemctl, and journald</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/linux/process-resource-management/><span class=series-nav-num>07</span>
+<span class=series-nav-title>Linux (7): Process and Resource Management: From `top` to cgroups</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>08</span>
+<span class=series-nav-title>Linux (8): Pipelines and File Operations — Composing Tools into Data Flows</span>
+<span class=series-nav-here>you are here</span></li><li class=series-nav-item><a href=https://www.chenk.top/en/linux/09-vim-essentials/><span class=series-nav-num>09</span>
+<span class=series-nav-title>Linux (9): Vim Essentials</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>Share</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=Linux%2b%25288%2529%253A%2bPipelines%2band%2bFile%2bOperations%2b%25E2%2580%2594%2bComposing%2bTools%2binto%2bData%2bFlows&url=https%253A%252F%252Fwww.chenk.top%252Fen%252Flinux%252Fpipelines%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fen%252Flinux%252Fpipelines%252F&title=Linux%2b%25288%2529%253A%2bPipelines%2band%2bFile%2bOperations%2b%25E2%2580%2594%2bComposing%2bTools%2binto%2bData%2bFlows" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/en/linux/pipelines/ aria-label="Copy article link" title="Copy link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2022-04-02>written <span class=days>…</span> days ago</span></div><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-data-flow-model-stdin-stdout-stderr>The Data-Flow Model: stdin, stdout, stderr</a><ul><li><a href=#file-descriptors-are-just-integers>File descriptors are just integers</a></li></ul></li><li><a href=#redirection-wiring-the-file-descriptors>Redirection: Wiring the File Descriptors</a><ul><li><a href=#stdout--and->stdout: <code>></code> and <code>>></code></a></li><li><a href=#stderr-2-and-2>stderr: <code>2></code> and <code>2>></code></a></li><li><a href=#both-streams-together>Both streams together</a></li><li><a href=#discarding-output-devnull>Discarding output: <code>/dev/null</code></a></li><li><a href=#stdin--here-doc-here-string>stdin: <code>&lt;</code>, here-doc, here-string</a></li></ul></li><li><a href=#the-pipe-operator-composition>The Pipe Operator: Composition</a><ul><li><a href=#useless-use-of-cat-uuoc>Useless use of cat (UUOC)</a></li><li><a href=#debugging-pipelines-with-tee>Debugging pipelines with <code>tee</code></a></li></ul></li><li><a href=#the-text-processing-toolchain>The Text-Processing Toolchain</a><ul><li><a href=#grep--filter-lines>grep — filter lines</a></li><li><a href=#awk--columns-and-aggregation>awk — columns and aggregation</a></li><li><a href=#sed--stream-editing>sed — stream editing</a></li><li><a href=#cut-tr--when-you-dont-need-awk-or-sed>cut, tr — when you don&rsquo;t need awk or sed</a></li><li><a href=#sort-uniq--ordering-and-grouping>sort, uniq — ordering and grouping</a></li></ul></li><li><a href=#worked-example-nginx-log-triage>Worked Example: Nginx Log Triage</a></li><li><a href=#xargs-when-the-next-tool-wants-arguments-not-stdin>xargs: When the Next Tool Wants Arguments, Not Stdin</a><ul><li><a href=#the-space-and-newline-trap>The space-and-newline trap</a></li><li><a href=#useful-flags>Useful flags</a></li></ul></li><li><a href=#named-pipes-fifos>Named Pipes (FIFOs)</a></li><li><a href=#process-substitution-cmd-and-cmd>Process Substitution: <code>&lt;(cmd)</code> and <code>>(cmd)</code></a></li><li><a href=#worked-example-batch-file-operations>Worked Example: Batch File Operations</a></li><li><a href=#safety-and-best-practices>Safety and Best Practices</a></li><li><a href=#summary>Summary</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/linux/ class=series-name>Linux</a>
+<span class=count>9</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/linux/basics/><span class=chapter-num>01</span>
+<span class=chapter-title>Linux (1): Basics — Core Concepts and Essential Commands</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/linux/file-permissions/><span class=chapter-num>02</span>
+<span class=chapter-title>Linux (2): File Permissions — rwx, chmod, chown, and Beyond</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/linux/disk-management/><span class=chapter-num>03</span>
+<span class=chapter-title>Linux (3): Disk Management — Partitions, Filesystems, LVM, and the Mount Stack</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/linux/package-management/><span class=chapter-num>04</span>
+<span class=chapter-title>Linux (4): Package Management — apt, dnf, pacman, and Building from Source</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/linux/user-management/><span class=chapter-num>05</span>
+<span class=chapter-title>Linux (5): User Management — Users, Groups, sudo, and Security</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/linux/service-management/><span class=chapter-num>06</span>
+<span class=chapter-title>Linux (6): Service Management — systemd, systemctl, and journald</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/linux/process-resource-management/><span class=chapter-num>07</span>
+<span class=chapter-title>Linux (7): Process and Resource Management: From `top` to cgroups</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>08</span>
+<span class=chapter-title>Linux (8): Pipelines and File Operations — Composing Tools into Data Flows</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/linux/09-vim-essentials/><span class=chapter-num>09</span>
+<span class=chapter-title>Linux (9): Vim Essentials</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>42 min</strong></div><div class=row><span>Word count</span><strong>4282</strong></div><div class=row><span>Published</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/product-thinking/>Product Thinking</a></li><li><a href=https://www.chenk.top/en/series/personal-finance/>Personal Finance</a></li><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label="Copy WeChat ID">WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=signature>Hangzhou.</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=Close>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>Search this ID inside WeChat to connect</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>Copy ID</button></div></div></div></footer></body></html>

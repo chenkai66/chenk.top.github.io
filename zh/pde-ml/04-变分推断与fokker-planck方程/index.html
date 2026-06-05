@@ -1,0 +1,542 @@
+<!doctype html><html lang=zh data-translation=/en/pde-ml/04-variational-inference/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>偏微分方程与机器学习（四）：变分推断与 Fokker-Planck 方程 · Chen Kai Blog</title>
+<meta name=description content="变分推断与 Langevin MCMC 在连续时间下是同一个 Fokker-Planck PDE：从 SDE 推导密度演化、KL 散度作为 Wasserstein 梯度流、SVGD 粒子方法、对数 Sobolev 不等式给出指数收敛、贝叶斯神经网络应用。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/pde-ml/04-%E5%8F%98%E5%88%86%E6%8E%A8%E6%96%AD%E4%B8%8Efokker-planck%E6%96%B9%E7%A8%8B/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/pde-ml/04-variational-inference/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/pde-ml/04-%E5%8F%98%E5%88%86%E6%8E%A8%E6%96%AD%E4%B8%8Efokker-planck%E6%96%B9%E7%A8%8B/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/pde-ml/04-%E5%8F%98%E5%88%86%E6%8E%A8%E6%96%AD%E4%B8%8Efokker-planck%E6%96%B9%E7%A8%8B/><meta property="og:type" content="article"><meta property="og:title" content="偏微分方程与机器学习（四）：变分推断与 Fokker-Planck 方程"><meta property="og:description" content="变分推断与 Langevin MCMC 在连续时间下是同一个 Fokker-Planck PDE：从 SDE 推导密度演化、KL 散度作为 Wasserstein 梯度流、SVGD 粒子方法、对数 Sobolev 不等式给出指数收敛、贝叶斯神经网络应用。"><meta property="og:url" content="https://www.chenk.top/zh/pde-ml/04-%E5%8F%98%E5%88%86%E6%8E%A8%E6%96%AD%E4%B8%8Efokker-planck%E6%96%B9%E7%A8%8B/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/pde-ml.jpg"><meta property="og:image:alt" content="偏微分方程与机器学习（四）：变分推断与 Fokker-Planck 方程"><meta property="article:published_time" content="2024-06-15T09:00:00Z"><meta property="article:modified_time" content="2024-06-15T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="PDE"><meta property="article:tag" content="Variational Inference"><meta property="article:tag" content="Fokker-Planck"><meta property="article:tag" content="ELBO"><meta property="article:tag" content="Langevin Dynamics"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="偏微分方程与机器学习（四）：变分推断与 Fokker-Planck 方程"><meta name=twitter:description content="变分推断与 Langevin MCMC 在连续时间下是同一个 Fokker-Planck PDE：从 SDE 推导密度演化、KL 散度作为 Wasserstein 梯度流、SVGD 粒子方法、对数 Sobolev 不等式给出指数收敛、贝叶斯神经网络应用。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/pde-ml.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"偏微分方程与机器学习（四）：变分推断与 Fokker-Planck 方程","description":"变分推断与 Langevin MCMC 在连续时间下是同一个 Fokker-Planck PDE：从 SDE 推导密度演化、KL 散度作为 Wasserstein 梯度流、SVGD 粒子方法、对数 Sobolev 不等式给出指数收敛、贝叶斯神经网络应用。","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/pde-ml.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2024-06-15T09:00:00Z","dateModified":"2024-06-15T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/zh/pde-ml/04-%E5%8F%98%E5%88%86%E6%8E%A8%E6%96%AD%E4%B8%8Efokker-planck%E6%96%B9%E7%A8%8B/"},"inLanguage":"zh"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js onload='document.querySelectorAll(".math-inline,.math-block").forEach(function(e){var t=e.textContent,n=e.classList.contains("math-block"),t=n?t.replace(/^\$\$/,"").replace(/\$\$$/,""):t.replace(/^\$/,"").replace(/\$$/,"");try{katex.render(t,e,{displayMode:n,throwOnError:!1})}catch{}})'></script><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/pde-ml/04-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/pde-ml/>PDE × 机器学习</a>
+· 第 4 篇</div><h1>偏微分方程与机器学习（四）：变分推断与 Fokker-Planck 方程</h1><p class=deck>变分推断与 Langevin MCMC 在连续时间下是同一个 Fokker-Planck PDE：从 SDE 推导密度演化、KL 散度作为 Wasserstein 梯度流、SVGD 粒子方法、对数 Sobolev 不等式给出指数收敛、贝叶斯神经网络应用。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-06-15>June 15, 2024</time> · 34 分钟 · 8115 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/pde/ class=tag>#PDE</a><a href=/zh/tags/variational-inference/ class=tag>#Variational Inference</a><a href=/zh/tags/fokker-planck/ class=tag>#Fokker-Planck</a><a href=/zh/tags/elbo/ class=tag>#ELBO</a><a href=/zh/tags/langevin-dynamics/ class=tag>#Langevin Dynamics</a></div><a class="pill pill-outline" href=/en/pde-ml/04-variational-inference/>Read in English →</a></div></header><div class=prose><p>为什么变分推断（一个看起来纯优化的方法）和 Langevin MCMC（一个看起来纯采样的方法）最后会汇到同一个偏微分方程？</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-Variational-Inference/illustration_1.png alt="偏微分方程与机器学习（四）：变分推断与 Fokker-Planck 方程 — 章节概览图" loading=lazy decoding=async class=content-image></figure></p><p>这一篇我想讲的就是这件事。它们在连续时间下其实是<strong>同一个 Fokker-Planck PDE 的两面</strong>：一边是密度的演化，一边是 KL 散度沿 Wasserstein 几何的梯度流。看清这一点之后，许多看起来不相关的工具——SVGD 的粒子算法、对数 Sobolev 不等式给出的指数收敛、贝叶斯神经网络的训练——会突然落到同一张图上。</p><p>如果你之前接触过变分推断或者 Langevin 采样，但总觉得它们是两个独立的世界，希望这篇文章能给你一个统一的看法。</p><h2 id=本文的七个维度 class=heading-anchor>本文的七个维度<a href=#%e6%9c%ac%e6%96%87%e7%9a%84%e4%b8%83%e4%b8%aa%e7%bb%b4%e5%ba%a6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ol><li><strong>动机</strong>：为什么 VI 和 MCMC 看似迥异，实则求解同一个 PDE。</li><li><strong>理论</strong>：从 SDE 推导出 Fokker-Planck 方程。</li><li><strong>几何</strong>：KL 散度作为 Wasserstein 梯度流。</li><li><strong>算法</strong>：Langevin Monte Carlo、平均场 VI 与 SVGD。</li><li><strong>收敛</strong>：对数 Sobolev 不等式与 KL 的指数衰减。</li><li><strong>数值实验</strong>：7 张可复现的图表，附完整代码。</li><li><strong>应用</strong>：通过后验采样实现贝叶斯神经网络。</li></ol><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>任意 Itô SDE 所诱导的概率密度演化均受 Fokker-Planck 方程支配。</li><li>Langevin 动力学是一种实用的采样算法，但其离散化会引入误差。</li><li>在 Wasserstein 空间中最小化 <span class=math-inline>$\mathrm{KL}(q \| p^\star)$</span>
+，本质上就是在求解 Fokker-Planck PDE。</li><li>在连续时间极限下，变分推断与 Langevin MCMC 具有深刻的等价性。</li><li>Stein 变分梯度下降（SVGD）：一种确定性的粒子方法，巧妙地融合了两种范式。</li><li>贝叶斯神经网络中的实际后验推断。</li></ul><h2 id=前置知识 class=heading-anchor>前置知识<a href=#%e5%89%8d%e7%bd%ae%e7%9f%a5%e8%af%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>概率论基础（贝叶斯定理、KL 散度、期望）。</li><li>第三篇中介绍的 Wasserstein 梯度流。</li><li>对随机微积分的初步直觉（布朗运动、Itô 积分）。</li><li>实验部分需熟悉 Python / PyTorch。</li></ul><hr><h2 id=推断问题 class=heading-anchor>推断问题<a href=#%e6%8e%a8%e6%96%ad%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$p(\theta \mid x) \;=\; \frac{p(x \mid \theta)\, p(\theta)}{\int p(x \mid \theta')\, p(\theta')\, d\theta'},$$</span><p>但分母中的边际似然在非平凡模型下通常不可积。为此，两大类近似算法应运而生：</p><ul><li><strong>变分推断（VI）</strong>：选取一个易处理的分布族 <span class=math-inline>$\{q_\phi\}$</span>
+，并最小化</li></ul><span class=math-block>$$
+\mathrm{KL}\bigl(q_\phi \,\|\, p(\cdot\mid x)\bigr) \;=\; \mathbb{E}_{q_\phi}\!\left[\log \tfrac{q_\phi(\theta)}{p(\theta\mid x)}\right],
+$$</span><p>等价于最大化 <strong>证据下界（ELBO）</strong> <span class=math-inline>$\mathrm{ELBO}(\phi) = \mathbb{E}_{q_\phi}[\log p(x\mid\theta)] - \mathrm{KL}(q_\phi \| p(\theta))$</span>
+。</p><ul><li><strong>马尔可夫链蒙特卡洛（MCMC）</strong>：构造一个平稳分布恰好为 <span class=math-inline>$p(\cdot\mid x)$</span>
+的马尔可夫链。<strong>Langevin 动力学</strong> 是其中基于梯度的经典代表。</li></ul><p>二者表面上截然不同：VI 是对有限维参数 <span class=math-inline>$\phi$</span>
+的优化，而 MCMC 是一个无限时间的随机过程。然而，从 PDE 的视角看，它们实则是<strong>同一概率测度演化过程</strong>的不同实现方式。</p><h2 id=从-sde-到-fokker-planck class=heading-anchor>从 SDE 到 Fokker-Planck<a href=#%e4%bb%8e-sde-%e5%88%b0-fokker-planck class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$dX_t = \mu(X_t, t)\, dt + \sigma(X_t, t)\, dW_t.$$</span>
+<span class=math-block>$$
+\boxed{\;\partial_t p \;=\; -\nabla\!\cdot\!(\mu\, p) \;+\; \tfrac{1}{2}\,\nabla\!\cdot\!\nabla\!\cdot\!(D\, p),\qquad D = \sigma\sigma^\top.\;}
+$$</span>
+<span class=math-block>$$\partial_t p \;=\; \nabla\!\cdot\!\bigl(p\,\nabla V\bigr) + \tau\, \Delta p,$$</span><p>在温和正则性条件下，其唯一稳态解即为 <strong>Gibbs 分布</strong> <span class=math-inline>$p_\infty \propto e^{-V/\tau}$</span>
+。若令 <span class=math-inline>$V = -\log p^\star$</span>
+且 <span class=math-inline>$\tau = 1$</span>
+，则稳态分布恰好等于目标分布 <span class=math-inline>$p^\star$</span>
+。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b/fig1_fokker_planck_evolution.png alt="双势阱中 Fokker-Planck 方程的密度演化。" loading=lazy decoding=async class=content-image></figure><em>图 1. 通过有限差分法求解 FP 方程。初始密度为左势阱中的窄高斯分布，随时间演化逐渐扩散、跨越势垒，最终收敛至对称的 Gibbs 密度 <span class=math-inline>$p_\infty \propto e^{-V/D}$</span>
+（右图）。</em></p><h3 id=哈密顿蒙特卡洛动量突破随机游走的瓶颈 class=heading-anchor>哈密顿蒙特卡洛：动量突破随机游走的瓶颈<a href=#%e5%93%88%e5%af%86%e9%a1%bf%e8%92%99%e7%89%b9%e5%8d%a1%e6%b4%9b%e5%8a%a8%e9%87%8f%e7%aa%81%e7%a0%b4%e9%9a%8f%e6%9c%ba%e6%b8%b8%e8%b5%b0%e7%9a%84%e7%93%b6%e9%a2%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>ULA（无调整朗之万算法）依靠随机扩散进行探索，在高维空间或跨越能量势垒时，其收敛速度极其缓慢。<strong>哈密顿蒙特卡洛（HMC）</strong> 引入辅助动量变量 <span class=math-inline>$v$</span>
+，并在联合能量函数 <span class=math-inline>$H(\theta, v) = V(\theta) + \frac{1}{2}\|v\|^2$</span>
+上模拟哈密顿动力学。动量使采样器能够像“滚动”一样滑过低概率密度的谷底，而无需被动等待噪声将其“推”过势垒。</p><p>其中，<strong>蛙跳积分器（leapfrog integrator）</strong> 具备体积守恒性（辛结构）和时间可逆性，结合后续的 Metropolis 接受-拒绝校正，即可严格满足细致平衡条件：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>hmc_sample</span><span class=p>(</span><span class=n>V</span><span class=p>,</span> <span class=n>grad_V</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span> <span class=n>step</span><span class=o>=</span><span class=mf>0.02</span><span class=p>,</span> <span class=n>L</span><span class=o>=</span><span class=mi>20</span><span class=p>,</span> <span class=n>n_samples</span><span class=o>=</span><span class=mi>2000</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 使用蛙跳积分的哈密顿蒙特卡洛采样器</span>
+</span></span><span class=line><span class=cl>    <span class=c1># grad_V: 势能 V(x) = -log p*(x) 的梯度函数</span>
+</span></span><span class=line><span class=cl>    <span class=c1># L: 每次提议所执行的蛙跳步数</span>
+</span></span><span class=line><span class=cl>    <span class=n>d</span> <span class=o>=</span> <span class=n>x0</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>x</span> <span class=o>=</span> <span class=n>x0</span><span class=o>.</span><span class=n>copy</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>samples</span> <span class=o>=</span> <span class=p>[</span><span class=n>x</span><span class=o>.</span><span class=n>copy</span><span class=p>()]</span>
+</span></span><span class=line><span class=cl>    <span class=n>accepted</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_samples</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>v</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>d</span><span class=p>)</span>  <span class=c1># 从标准正态分布采样动量</span>
+</span></span><span class=line><span class=cl>        <span class=n>x_prop</span><span class=p>,</span> <span class=n>v_prop</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>copy</span><span class=p>(),</span> <span class=n>v</span><span class=o>.</span><span class=n>copy</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 蛙跳积分（leapfrog integration）</span>
+</span></span><span class=line><span class=cl>        <span class=n>v_prop</span> <span class=o>=</span> <span class=n>v_prop</span> <span class=o>-</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>step</span> <span class=o>*</span> <span class=n>grad_V</span><span class=p>(</span><span class=n>x_prop</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>l_step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>L</span> <span class=o>-</span> <span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>x_prop</span> <span class=o>=</span> <span class=n>x_prop</span> <span class=o>+</span> <span class=n>step</span> <span class=o>*</span> <span class=n>v_prop</span>
+</span></span><span class=line><span class=cl>            <span class=n>v_prop</span> <span class=o>=</span> <span class=n>v_prop</span> <span class=o>-</span> <span class=n>step</span> <span class=o>*</span> <span class=n>grad_V</span><span class=p>(</span><span class=n>x_prop</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>x_prop</span> <span class=o>=</span> <span class=n>x_prop</span> <span class=o>+</span> <span class=n>step</span> <span class=o>*</span> <span class=n>v_prop</span>
+</span></span><span class=line><span class=cl>        <span class=n>v_prop</span> <span class=o>=</span> <span class=n>v_prop</span> <span class=o>-</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>step</span> <span class=o>*</span> <span class=n>grad_V</span><span class=p>(</span><span class=n>x_prop</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Metropolis 接受/拒绝步骤</span>
+</span></span><span class=line><span class=cl>        <span class=n>H_current</span> <span class=o>=</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>dot</span><span class=p>(</span><span class=n>v</span><span class=p>,</span> <span class=n>v</span><span class=p>)</span> <span class=o>+</span> <span class=n>V</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>      <span class=c1># 当前哈密顿量</span>
+</span></span><span class=line><span class=cl>        <span class=n>H_proposed</span> <span class=o>=</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>dot</span><span class=p>(</span><span class=n>v_prop</span><span class=p>,</span> <span class=n>v_prop</span><span class=p>)</span> <span class=o>+</span> <span class=n>V</span><span class=p>(</span><span class=n>x_prop</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>log_alpha</span> <span class=o>=</span> <span class=n>H_current</span> <span class=o>-</span> <span class=n>H_proposed</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>rand</span><span class=p>())</span> <span class=o>&lt;</span> <span class=n>log_alpha</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>x</span> <span class=o>=</span> <span class=n>x_prop</span>
+</span></span><span class=line><span class=cl>            <span class=n>accepted</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>samples</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>copy</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;HMC 接受率: </span><span class=si>{</span><span class=n>accepted</span> <span class=o>/</span> <span class=n>n_samples</span><span class=si>:</span><span class=s2>.2%</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>samples</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>为什么 HMC 显著优于 ULA？考虑一个具有高度为 <span class=math-inline>$B$</span>
+势垒的双阱势函数：ULA 穿越该势垒所需的步数约为 <span class=math-inline>$O(e^B / \eta)$</span>
+；而 HMC 只需初始动量提供足够动能——由于 <span class=math-inline>$v$</span>
+每次独立采样，获得足够能量的概率约为 <span class=math-inline>$\sim e^{-B}$</span>
+。随后，蛙跳轨迹将以弹道式（ballistic）运动在 <span class=math-inline>$L$</span>
+步内直接越过势垒。这使得混合时间从指数级依赖 <span class=math-inline>$B$</span>
+（扩散主导）大幅降低为多项式级（弹道输运主导）。</p><span class=math-block>$$
+d\theta = v\,dt,\quad dv = -\nabla V(\theta)\,dt - \gamma v\,dt + \sqrt{2\gamma}\,dW,
+$$</span><p>其对应的 Fokker–Planck 方程具有二阶结构，收敛速度明显快于过阻尼（纯位置更新）情形。</p><h2 id=langevin-动力学采样即-pde class=heading-anchor>Langevin 动力学：采样即 PDE<a href=#langevin-%e5%8a%a8%e5%8a%9b%e5%ad%a6%e9%87%87%e6%a0%b7%e5%8d%b3-pde class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b/anim_langevin_sampling.gif alt="Langevin动力学: 200个粒子在双势阱中采样并收敛至Gibbs平衡态" loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$dX_t = -\nabla V(X_t)\, dt + \sqrt{2\tau}\, dW_t.$$</span>
+<span class=math-block>$$X_{k+1} \;=\; X_k - \eta\, \nabla V(X_k) + \sqrt{2\eta\tau}\, \xi_k, \qquad \xi_k \sim \mathcal{N}(0, I).$$</span><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span><span class=o>,</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>langevin_sample</span><span class=p>(</span><span class=n>grad_log_p</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span> <span class=n>step</span><span class=o>=</span><span class=mf>0.01</span><span class=p>,</span> <span class=n>n_steps</span><span class=o>=</span><span class=mi>10_000</span><span class=p>,</span> <span class=n>tau</span><span class=o>=</span><span class=mf>1.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;过阻尼 Langevin 采样器（即 ULA）。
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    grad_log_p : 返回 grad(log p*(x)) 的函数
+</span></span></span><span class=line><span class=cl><span class=s2>    x0         : (n_particles, dim) 初始位置
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>x</span> <span class=o>=</span> <span class=n>x0</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>x</span> <span class=o>+</span> <span class=n>step</span> <span class=o>*</span> <span class=n>grad_log_p</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>step</span> <span class=o>*</span> <span class=n>tau</span><span class=p>)</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn_like</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>x</span>
+</span></span></code></pre></td></tr></table></div></div><p>ULA 存在 <span class=math-inline>$O(\eta)$</span>
+的偏差；<strong>MALA</strong>（Metropolis 校正 Langevin）通过接受-拒绝步骤恢复无偏性。<strong>HMC</strong>（哈密顿蒙特卡洛）则是其自然的欠阻尼动量版本。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b/fig2_langevin_sde_to_density.png alt="Langevin SDE 轨迹与经验密度。" loading=lazy decoding=async class=content-image></figure><em>图 2. 左：25 条代表性粒子在双势阱中运动，许多在有限时间内无法跨越势垒。右：400 个粒子的直方图随时间增长逐渐收敛至 Gibbs 目标分布——这正是图 1 中 FP 方程的随机实现。</em></p><h3 id=随机梯度朗之万动力学sgld class=heading-anchor>随机梯度朗之万动力学（SGLD）<a href=#%e9%9a%8f%e6%9c%ba%e6%a2%af%e5%ba%a6%e6%9c%97%e4%b9%8b%e4%b8%87%e5%8a%a8%e5%8a%9b%e5%ad%a6sgld class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>全批量朗之万采样要求每一步都基于整个数据集计算梯度 <span class=math-inline>$\nabla V(\theta) = -\sum_{i=1}^N \nabla \log p(x_i \mid \theta) - \nabla \log p(\theta)$</span>
+。当数据量 <span class=math-inline>$N = 10^6$</span>
+时，这种计算开销显然难以承受。<strong>随机梯度朗之万动力学（SGLD）</strong>（Welling 和 Teh，2011）用小批量梯度估计替代全梯度，并巧妙地让注入的噪声身兼二职：既作为随机微分方程（SDE）中的扩散项，又起到正则化作用：</p><span class=math-block>$$\theta_{k+1} = \theta_k + \frac{\eta_k}{2}\left(\nabla \log p(\theta_k) + \frac{N}{B}\sum_{i \in \mathcal{B}_k} \nabla \log p(x_i \mid \theta_k)\right) + \sqrt{\eta_k}\,\xi_k$$</span><p>其中 <span class=math-inline>$\mathcal{B}_k$</span>
+是大小为 <span class=math-inline>$B$</span>
+的随机小批量，<span class=math-inline>$\xi_k \sim \mathcal{N}(0, I)$</span>
+。核心洞见在于：若步长 <span class=math-inline>$\eta_k$</span>
+按照衰减策略趋于零，则小批量引入的梯度噪声（量级为 <span class=math-inline>$O(\eta_k)$</span>
+）将逐渐主导人为注入的噪声（量级为 <span class=math-inline>$O(\sqrt{\eta_k})$</span>
+），从而使算法平滑地从 SGD（以优化为目标）过渡到朗之万采样（以近似后验分布为目标）。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>sgld</span><span class=p>(</span><span class=n>grad_log_prior</span><span class=p>,</span> <span class=n>grad_log_likelihood</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span> <span class=n>data</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>         <span class=n>batch_size</span><span class=o>=</span><span class=mi>64</span><span class=p>,</span> <span class=n>n_steps</span><span class=o>=</span><span class=mi>50000</span><span class=p>,</span> <span class=n>eta0</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>,</span> <span class=n>decay</span><span class=o>=</span><span class=mf>0.9999</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 随机梯度朗之万动力学（SGLD）</span>
+</span></span><span class=line><span class=cl>    <span class=c1># grad_log_prior: log p(theta) 关于 theta 的梯度</span>
+</span></span><span class=line><span class=cl>    <span class=c1># grad_log_likelihood: 单个数据点 x_i 对应的 log p(x_i | theta) 关于 theta 的梯度</span>
+</span></span><span class=line><span class=cl>    <span class=n>N</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>d</span> <span class=o>=</span> <span class=n>x0</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>x</span> <span class=o>=</span> <span class=n>x0</span><span class=o>.</span><span class=n>copy</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>samples</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>eta</span> <span class=o>=</span> <span class=n>eta0</span> <span class=o>*</span> <span class=p>(</span><span class=n>decay</span> <span class=o>**</span> <span class=n>k</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 小批量梯度估计</span>
+</span></span><span class=line><span class=cl>        <span class=n>batch_idx</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>choice</span><span class=p>(</span><span class=n>N</span><span class=p>,</span> <span class=n>batch_size</span><span class=p>,</span> <span class=n>replace</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>grad_lik</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>d</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>batch_idx</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>grad_lik</span> <span class=o>+=</span> <span class=n>grad_log_likelihood</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>data</span><span class=p>[</span><span class=n>i</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=n>grad_lik</span> <span class=o>*=</span> <span class=p>(</span><span class=n>N</span> <span class=o>/</span> <span class=n>batch_size</span><span class=p>)</span>  <span class=c1># 缩放至全量数据集对应的梯度尺度</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>grad_total</span> <span class=o>=</span> <span class=n>grad_log_prior</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> <span class=o>+</span> <span class=n>grad_lik</span>
+</span></span><span class=line><span class=cl>        <span class=n>noise</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>eta</span><span class=p>)</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>d</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>x</span> <span class=o>+</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>eta</span> <span class=o>*</span> <span class=n>grad_total</span> <span class=o>+</span> <span class=n>noise</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>k</span> <span class=o>%</span> <span class=mi>100</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>samples</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>copy</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>samples</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>在实践中，SGLD 已成为“大规模贝叶斯深度学习”的核心引擎——它复用了与标准 SGD 完全相同的底层小批量训练基础设施。每一步的计算开销与常规训练完全一致；唯一新增的操作就是注入噪声项 <span class=math-inline>$\sqrt{\eta_k}\,\xi_k$</span>
+。当然，这也带来权衡：有限的步长会引入渐近偏差；而判断采样是否收敛，则需持续监控梯度估计器中“噪声”与“信号”的比值。</p><h2 id=kl-散度是-wasserstein-梯度流 class=heading-anchor>KL 散度是 Wasserstein 梯度流<a href=#kl-%e6%95%a3%e5%ba%a6%e6%98%af-wasserstein-%e6%a2%af%e5%ba%a6%e6%b5%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$\mathcal{F}[p] \;=\; \mathrm{KL}(p\,\|\,p^\star) \;=\; \underbrace{\int p\log p\,dx}_{\text{负熵 }\mathcal{H}[p]} \;+\; \underbrace{\int p\, V\,dx}_{\text{势能}} \;+\; \text{常数}.$$</span>
+<span class=math-block>$$\partial_t p \;=\; \nabla\!\cdot\!\bigl(p \nabla V\bigr) + \Delta p,$$</span><p>恰好对应 <span class=math-inline>$\tau = 1$</span>
+时 Langevin 的 FP 方程。因此：</p><blockquote><p><strong>等价性</strong>。在 Wasserstein 空间中最小化 <span class=math-inline>$\mathrm{KL}(\cdot \| p^\star)$</span>
+与运行目标为 <span class=math-inline>$p^\star$</span>
+的 Langevin 动力学，本质上是<strong>同一个 PDE</strong>。VI 与 Langevin MCMC 只是这一连续时间梯度流的两种算法离散化方式。</p></blockquote><div class=table-wrap><table><thead><tr><th>维度</th><th>变分推断</th><th>Langevin MCMC</th></tr></thead><tbody><tr><td>目标</td><td>最小化 <span class=math-inline>$\mathrm{KL}(q_\phi \mid p^\star)$</span></td><td>从 <span class=math-inline>$p^\star$</span>
+采样</td></tr><tr><td>状态</td><td>参数 <span class=math-inline>$\phi$</span></td><td>粒子 <span class=math-inline>$\{X^{(i)}\}$</span></td></tr><tr><td>更新步</td><td>ELBO 上的梯度步</td><td>SDE 的 Euler-Maruyama 步</td></tr><tr><td>连续极限</td><td>KL 的 Wasserstein 梯度流</td><td>Fokker-Planck 方程</td></tr><tr><td>稳态</td><td>若分布族足够表达，则 <span class=math-inline>$q^\star = p^\star$</span></td><td><span class=math-inline>$p_\infty = p^\star$</span></td></tr><tr><td>偏差来源</td><td>分布族受限 + 优化器噪声</td><td>离散化误差 <span class=math-inline>$O(\eta)$</span></td></tr></tbody></table></div><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b/fig3_kl_gradient_flow.png alt="KL 散度作为 Wasserstein 梯度流。" loading=lazy decoding=async class=content-image></figure><em>图 3. 两种初始密度（集中型与弥散型）在 FP 方程驱动下向双峰目标演化。右图显示它们到 <span class=math-inline>$p^\star$</span>
+的 KL 散度单调递减——这正是梯度流理论所保证的行为。</em></p><h3 id=采样器对比ula-vs-mala-vs-hmc-vs-sgld class=heading-anchor>采样器对比：ULA vs MALA vs HMC vs SGLD<a href=#%e9%87%87%e6%a0%b7%e5%99%a8%e5%af%b9%e6%af%94ula-vs-mala-vs-hmc-vs-sgld class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>下表总结了我们此前讨论的四种基于梯度的 MCMC 算法。所有算法均以目标分布 <span class=math-inline>$p^\star \propto e^{-V}$</span>
+为采样目标，该分布在 <span class=math-inline>$d$</span>
+维空间中具有条件数 <span class=math-inline>$\kappa = L/m$</span>
+（即光滑性常数 <span class=math-inline>$L$</span>
+与强凸性常数 <span class=math-inline>$m$</span>
+的比值）。</p><div class=table-wrap><table><thead><tr><th>算法</th><th>每步计算开销</th><th>偏差</th><th>收敛速度（总变差距离降至 <span class=math-inline>$\varepsilon$</span>
+所需步数）</th><th>最适用场景</th></tr></thead><tbody><tr><td><strong>ULA</strong>（无调整 Langevin 算法）</td><td>1 次梯度计算</td><td>渐近偏差为 <span class=math-inline>$O(\eta d)$</span></td><td><span class=math-inline>$\tilde{O}(\kappa^2 d / \varepsilon^2)$</span>
+步</td><td>低维（<span class=math-inline>$d$</span>
+较小）、梯度计算极快、可容忍一定偏差</td></tr><tr><td><strong>MALA</strong>（Metropolis 调整版 Langevin 算法）</td><td>1 次梯度计算 + 1 次密度函数求值</td><td>无偏差（精确抽样）</td><td><span class=math-inline>$\tilde{O}(\kappa d^{1/3} / \varepsilon^{2/3})$</span>
+步</td><td>中等维度、需要无偏样本</td></tr><tr><td><strong>HMC</strong>（Hamiltonian Monte Carlo）</td><td><span class=math-inline>$L$</span>
+次梯度计算（<span class=math-inline>$L$</span>
+为 Leapfrog 步数）</td><td>无偏差（精确抽样）</td><td><span class=math-inline>$\tilde{O}(\kappa^{1/2} d^{1/4})$</span>
+步</td><td>高维（<span class=math-inline>$d$</span>
+较大）、目标函数光滑、主流工具如 Stan / PyMC 默认采用</td></tr><tr><td><strong>SGLD</strong>（随机梯度 Langevin 动力学）</td><td>1 个 mini-batch 的梯度计算</td><td><span class=math-inline>$O(\eta + \sigma^2_B \eta)$</span>
+（<span class=math-inline>$\sigma^2_B$</span>
+为 mini-batch 梯度方差）</td><td>无简洁收敛界（过程非平稳）</td><td>样本量 <span class=math-inline>$N$</span>
+极大时的贝叶斯深度学习等场景</td></tr></tbody></table></div><p>关键观察：</p><ul><li><strong>HMC 是中等维度（<span class=math-inline>$d &lt; 10^4$</span>
+）下的黄金标准</strong>：当全梯度计算可行时，其 <span class=math-inline>$d^{1/4}$</span>
+的维度依赖性远优于 ULA 的线性依赖 <span class=math-inline>$d$</span>
+。</li><li><strong>SGLD 在墙钟时间（wall-clock time）上更具优势</strong>：当数据集规模 <span class=math-inline>$N$</span>
+极大时，每步仅需 <span class=math-inline>$O(B)$</span>
+计算（<span class=math-inline>$B$</span>
+为 mini-batch 大小），而非 <span class=math-inline>$O(N)$</span>
+；但若步长 <span class=math-inline>$\eta$</span>
+固定，其渐近偏差无法完全消除。</li><li><strong>MALA 是对 ULA 偏差的自然修正方案</strong>，但在高维情形下，其性能提升远不如 HMC 显著。</li><li>这四种算法本质上都对应同一 Fokker-Planck 动力学流，差异仅在于离散化策略（如 Euler 或 Leapfrog）以及是否引入动量变量。</li></ul><h2 id=vi-与-mcmc-的实践差异 class=heading-anchor>VI 与 MCMC 的实践差异<a href=#vi-%e4%b8%8e-mcmc-%e7%9a%84%e5%ae%9e%e8%b7%b5%e5%b7%ae%e5%bc%82 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>尽管在连续极限下等价，二者在有限时间内的表现却大相径庭：</p><ul><li><strong>最小化反向 KL 的 VI 是“模式寻求”型</strong>：当 <span class=math-inline>$q$</span>
+被限制在简单分布族（如高斯）时，最优解倾向于塌缩到单一众数，从而严重低估不确定性。</li><li><strong>MCMC 是“质量覆盖”型</strong>：只要链足够长，它会按真实质量比例访问所有众数，但在高势垒之间混合可能呈指数级缓慢。</li></ul><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b/fig4_vi_vs_mcmc.png alt="VI 与 MCMC 对比。" loading=lazy decoding=async class=content-image></figure><em>图 4. 左：在双峰后验下，最优的平均场高斯分布（以反向 KL 衡量）仅能拟合其中一个峰。右：4000 个 Langevin 样本正确覆盖了两个峰——但这仅因该一维示例中的势垒较低。</em></p><h2 id=stein-变分梯度下降 class=heading-anchor>Stein 变分梯度下降<a href=#stein-%e5%8f%98%e5%88%86%e6%a2%af%e5%ba%a6%e4%b8%8b%e9%99%8d class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$x_i \;\leftarrow\; x_i + \eta\, \hat\phi^*(x_i),\qquad \hat\phi^*(x) = \tfrac{1}{n}\sum_{j=1}^n \Bigl[\,k(x_j, x)\,\nabla_{x_j}\log p^\star(x_j) \;+\; \nabla_{x_j} k(x_j, x)\,\Bigr],$$</span><p>其中 RBF 核 <span class=math-inline>$k(x, y) = \exp(-\|x-y\|^2 / 2h^2)$</span>
+的带宽 <span class=math-inline>$h$</span>
+通常用中位数启发式选取。该更新包含两个作用相反的项：</p><ul><li><strong>漂移项</strong> <span class=math-inline>$k\,\nabla\log p^\star$</span>
+将粒子推向高概率区域；</li><li><strong>排斥项</strong> <span class=math-inline>$\nabla k$</span>
+则推开粒子，防止其塌缩至单一众数。</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>scipy.spatial.distance</span> <span class=kn>import</span> <span class=n>cdist</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>svgd_step</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>score</span><span class=p>,</span> <span class=n>eta</span><span class=o>=</span><span class=mf>0.05</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>n</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>sq</span> <span class=o>=</span> <span class=n>cdist</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>**</span> <span class=mi>2</span>
+</span></span><span class=line><span class=cl>    <span class=n>h</span>  <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=mf>0.5</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>median</span><span class=p>(</span><span class=n>sq</span><span class=p>)</span> <span class=o>/</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=n>n</span> <span class=o>+</span> <span class=mi>1</span><span class=p>))</span> <span class=o>+</span> <span class=mf>1e-6</span>
+</span></span><span class=line><span class=cl>    <span class=n>K</span>  <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=o>-</span><span class=n>sq</span> <span class=o>/</span> <span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>h</span><span class=o>**</span><span class=mi>2</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=n>grad_K</span> <span class=o>=</span> <span class=o>-</span><span class=p>(</span><span class=n>x</span><span class=p>[:,</span> <span class=kc>None</span><span class=p>]</span> <span class=o>-</span> <span class=n>x</span><span class=p>[</span><span class=kc>None</span><span class=p>,</span> <span class=p>:])</span> <span class=o>/</span> <span class=n>h</span><span class=o>**</span><span class=mi>2</span> <span class=o>*</span> <span class=n>K</span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=kc>None</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>phi</span> <span class=o>=</span> <span class=p>(</span><span class=n>K</span> <span class=o>@</span> <span class=n>score</span> <span class=o>-</span> <span class=n>grad_K</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=mi>0</span><span class=p>))</span> <span class=o>/</span> <span class=n>n</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>x</span> <span class=o>+</span> <span class=n>eta</span> <span class=o>*</span> <span class=n>phi</span>
+</span></span></code></pre></td></tr></table></div></div><span class=math-block>$$\partial_t p \;=\; -\nabla\!\cdot\!\bigl(p\, v[p]\bigr),\qquad v[p](x) = \mathbb{E}_{y \sim p}\!\bigl[k(y,x)\nabla\log p^\star(y) + \nabla_y k(y,x)\bigr],$$</span><p>且当带宽 <span class=math-inline>$h \to 0$</span>
+时，该 PDE 退化为标准的 Fokker-Planck 方程。因此，SVGD 本质上是一种<strong>核平滑的 FP 方程求解器</strong>。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b/fig5_svgd_particles.png alt="SVGD 在双峰目标上的粒子演化。" loading=lazy decoding=async class=content-image></figure><em>图 5. 左：80 个 SVGD 粒子从原点出发，在数百次迭代内分裂并填充两个众数。右：完整轨迹显示，核排斥力有效防止了塌缩，而漂移项则将粒子稳定在 <span class=math-inline>$\pm 2$</span>
+附近。</em></p><h3 id=自适应带宽与非高斯后验分布 class=heading-anchor>自适应带宽与非高斯后验分布<a href=#%e8%87%aa%e9%80%82%e5%ba%94%e5%b8%a6%e5%ae%bd%e4%b8%8e%e9%9d%9e%e9%ab%98%e6%96%af%e5%90%8e%e9%aa%8c%e5%88%86%e5%b8%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>中位数启发式法（median heuristic）<span class=math-inline>$h = \text{med}(\|x_i - x_j\|^2) / \log n$</span>
+实现简单，但鲁棒性较差。它在以下两种常见场景中会失效：</p><ol><li><strong>尺度不均的多峰目标分布</strong>：若一个峰紧致、另一个峰弥散，则单一全局带宽无法同时满足——在紧致簇内提供足够的粒子排斥力，又在两峰之间的间隙中维持必要的吸引力。</li><li><strong>香蕉形（强相关）后验分布</strong>：此时成对距离主要由长轴方向主导，导致计算出的 <span class=math-inline>$h$</span>
+在窄方向上过大；粒子只能沿香蕉曲线滑动，却始终无法填满其横向宽度。</li></ol><p>一种实用的改进方案是 <strong>逐粒子自适应带宽（per-particle adaptive bandwidth）</strong>：为每个粒子 <span class=math-inline>$i$</span>
+单独计算其局部带宽 <span class=math-inline>$h_i$</span>
+，依据其 <span class=math-inline>$k$</span>
+近邻距离确定。由此生成的空间变核（spatially-varying kernel）可自然适配局部几何结构：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>scipy.spatial.distance</span> <span class=kn>import</span> <span class=n>cdist</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>svgd_adaptive</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>score_fn</span><span class=p>,</span> <span class=n>eta</span><span class=o>=</span><span class=mf>0.05</span><span class=p>,</span> <span class=n>k_neighbors</span><span class=o>=</span><span class=mi>5</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 使用逐粒子自适应带宽的 SVGD</span>
+</span></span><span class=line><span class=cl>    <span class=n>n</span><span class=p>,</span> <span class=n>d</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>shape</span>
+</span></span><span class=line><span class=cl>    <span class=n>score</span> <span class=o>=</span> <span class=n>score_fn</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>  <span class=c1># 形状为 (n, d)</span>
+</span></span><span class=line><span class=cl>    <span class=n>dists</span> <span class=o>=</span> <span class=n>cdist</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>  <span class=c1># 形状为 (n, n)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 基于 k 近邻距离计算每个粒子的局部带宽</span>
+</span></span><span class=line><span class=cl>    <span class=n>sorted_dists</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sort</span><span class=p>(</span><span class=n>dists</span><span class=p>,</span> <span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>h_local</span> <span class=o>=</span> <span class=n>sorted_dists</span><span class=p>[:,</span> <span class=n>k_neighbors</span><span class=p>]</span>  <span class=c1># 到第 k 个近邻的距离</span>
+</span></span><span class=line><span class=cl>    <span class=n>h_local</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>maximum</span><span class=p>(</span><span class=n>h_local</span><span class=p>,</span> <span class=mf>1e-6</span><span class=p>)</span>     <span class=c1># 防止带宽过小导致数值不稳定</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 使用带宽的几何平均构造核矩阵</span>
+</span></span><span class=line><span class=cl>    <span class=n>h_matrix</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>outer</span><span class=p>(</span><span class=n>h_local</span><span class=p>,</span> <span class=n>h_local</span><span class=p>))</span>  <span class=c1># 形状为 (n, n)</span>
+</span></span><span class=line><span class=cl>    <span class=n>K</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=o>-</span><span class=n>dists</span><span class=o>**</span><span class=mi>2</span> <span class=o>/</span> <span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>h_matrix</span><span class=o>**</span><span class=mi>2</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 计算核函数关于第二变量的梯度：d/dx_j k(x_j, x_i)</span>
+</span></span><span class=line><span class=cl>    <span class=n>diff</span> <span class=o>=</span> <span class=n>x</span><span class=p>[:,</span> <span class=kc>None</span><span class=p>,</span> <span class=p>:]</span> <span class=o>-</span> <span class=n>x</span><span class=p>[</span><span class=kc>None</span><span class=p>,</span> <span class=p>:,</span> <span class=p>:]</span>  <span class=c1># 形状为 (n, n, d)</span>
+</span></span><span class=line><span class=cl>    <span class=n>grad_K</span> <span class=o>=</span> <span class=o>-</span><span class=n>diff</span> <span class=o>/</span> <span class=p>(</span><span class=n>h_matrix</span><span class=p>[:,</span> <span class=p>:,</span> <span class=kc>None</span><span class=p>]</span><span class=o>**</span><span class=mi>2</span><span class=p>)</span> <span class=o>*</span> <span class=n>K</span><span class=p>[:,</span> <span class=p>:,</span> <span class=kc>None</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># SVGD 更新步</span>
+</span></span><span class=line><span class=cl>    <span class=n>phi</span> <span class=o>=</span> <span class=p>(</span><span class=n>K</span> <span class=o>@</span> <span class=n>score</span> <span class=o>+</span> <span class=n>grad_K</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=mi>0</span><span class=p>))</span> <span class=o>/</span> <span class=n>n</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>x</span> <span class=o>+</span> <span class=n>eta</span> <span class=o>*</span> <span class=n>phi</span>
+</span></span></code></pre></td></tr></table></div></div><span class=math-block>$$p^\star(x_1, x_2) \propto \exp\bigl(-\frac{1}{2}(x_1^2/s_1^2 + (x_2 - x_1^2)^2/s_2^2)\bigr)$$</span><p><br>其中 <span class=math-inline>$s_1 = 2,\, s_2 = 0.5$</span>
+。该分布形成一条狭窄而弯曲的脊线，全局固定带宽的 SVGD 很难充分覆盖其整个结构。采用自适应带宽后，仅需 500 次迭代，粒子即可沿整条“香蕉”均匀铺开；而基于中位数启发式的 SVGD 则迅速坍缩至原点附近的弯曲处。</p><p>这一现象具有普适意义：在真实的贝叶斯后验分布中（它们极少是高斯分布），局部几何自适应并非锦上添花——而是决定算法能否实现<strong>全局覆盖</strong>还是陷入<strong>模式坍缩（mode collapse）</strong> 的关键分水岭。更进一步，矩阵值核（matrix-valued kernels，Wang 等，2019）通过为每个粒子配备完整的 <span class=math-inline>$d \times d$</span>
+度量张量，将这种几何感知能力提升到了更高维度。</p><h2 id=收敛理论 class=heading-anchor>收敛理论<a href=#%e6%94%b6%e6%95%9b%e7%90%86%e8%ae%ba class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$\mathrm{KL}(p \,\|\, p^\star) \;\leq\; \frac{1}{2\lambda}\, I(p \,\|\, p^\star),\qquad I(p\|p^\star) = \int p\, \bigl\|\nabla \log \tfrac{p}{p^\star}\bigr\|^2 dx.$$</span>
+<span class=math-block>$$\frac{d}{dt}\,\mathrm{KL}(p_t\,\|\,p^\star) \;=\; -\, I(p_t\,\|\,p^\star).$$</span>
+<span class=math-block>$$
+\boxed{\;\mathrm{KL}(p_t\,\|\,p^\star) \;\leq\; e^{-2\lambda t}\, \mathrm{KL}(p_0\,\|\,p^\star).\;}
+$$</span><p>强对数凹目标（即 <span class=math-inline>$\nabla^2 V \succeq mI$</span>
+）自动满足 LSI，且 <span class=math-inline>$\lambda \geq m$</span>
+（Bakry-Émery 理论）。而多峰目标通常具有极小的 <span class=math-inline>$\lambda$</span>
+，这解释了实践中观察到的指数级慢混合现象。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b/fig6_convergence_analysis.png alt=收敛速率分析。 loading=lazy decoding=async class=content-image></figure><em>图 6. 左：三种不同 log-Sobolev 常数下的理论 KL 衰减曲线 <span class=math-inline>$e^{-2\lambda t}$</span>
+。右：在光滑高斯目标上，VI、Langevin MCMC 与 SVGD 的实测 KL 轨迹——三者均收敛，但速率与噪声特性各异。</em></p><h2 id=应用贝叶斯神经网络 class=heading-anchor>应用：贝叶斯神经网络<a href=#%e5%ba%94%e7%94%a8%e8%b4%9d%e5%8f%b6%e6%96%af%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$
+\nabla_w \log p(w \mid \mathcal{D}) \;=\; \nabla_w \log p(\mathcal{D} \mid w) + \nabla_w \log p(w),
+$$</span><p>这恰好就是反向传播中计算的梯度，再加上高斯先验项。<strong>随机梯度 Langevin 动力学（SGLD）</strong>（Welling and Teh, 2011）进一步用小批量梯度估计替代全数据梯度，使其适用于现代大规模场景。</p><p>下图使用 24 个随机傅里叶特征构建一个可处理的“贝叶斯 NN”，使得权重后验明确定义，并通过全批量 Langevin 进行采样。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b/fig7_bayesian_nn.png alt=贝叶斯神经网络后验带。 loading=lazy decoding=async class=content-image></figure><em>图 7. 左：在训练数据存在缺口的回归任务中，90% 的 Langevin 后验预测带在缺失区域显著加宽。右：预测标准差在数据缺口处达到峰值——这正是点估计网络所缺乏的 <strong>认知不确定性</strong>。</em></p><h3 id=完整实验贝叶斯神经网络在-1d-回归任务上的不确定性建模 class=heading-anchor>完整实验：贝叶斯神经网络在 1D 回归任务上的不确定性建模<a href=#%e5%ae%8c%e6%95%b4%e5%ae%9e%e9%aa%8c%e8%b4%9d%e5%8f%b6%e6%96%af%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c%e5%9c%a8-1d-%e5%9b%9e%e5%bd%92%e4%bb%bb%e5%8a%a1%e4%b8%8a%e7%9a%84%e4%b8%8d%e7%a1%ae%e5%ae%9a%e6%80%a7%e5%bb%ba%e6%a8%a1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>为了让贝叶斯不确定性变得直观可感，我们使用一组带人为空缺（gap）的合成数据训练一个小型神经网络，并通过随机梯度朗之万动力学（SGLD）对后验分布进行采样。理想情况下，预测置信带应在数据缺失区域（即空缺处）显著变宽。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>seed</span><span class=p>(</span><span class=mi>42</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>x_left</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=o>-</span><span class=mi>2</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>40</span><span class=p>)</span>   <span class=c1># 左侧数据点（x ∈ [-2, 1)）</span>
+</span></span><span class=line><span class=cl><span class=n>x_right</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=mi>6</span><span class=p>,</span> <span class=mi>40</span><span class=p>)</span>   <span class=c1># 右侧数据点（x ∈ (3, 6]）</span>
+</span></span><span class=line><span class=cl><span class=n>x_train</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>concatenate</span><span class=p>([</span><span class=n>x_left</span><span class=p>,</span> <span class=n>x_right</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=n>y_train</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>x_train</span><span class=p>)</span> <span class=o>+</span> <span class=mf>0.1</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>x_train</span><span class=p>))</span>  <span class=c1># 添加高斯噪声</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>init_weights</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>W1</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=mi>20</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=mf>0.5</span>   <span class=c1># 输入到隐层权重（20×1）</span>
+</span></span><span class=line><span class=cl>    <span class=n>b1</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=mi>20</span><span class=p>)</span>                    <span class=c1># 隐层偏置（20 维）</span>
+</span></span><span class=line><span class=cl>    <span class=n>W2</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>20</span><span class=p>)</span> <span class=o>*</span> <span class=mf>0.5</span>    <span class=c1># 隐层到输出权重（1×20）</span>
+</span></span><span class=line><span class=cl>    <span class=n>b2</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span>                     <span class=c1># 输出偏置（1 维）</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>concatenate</span><span class=p>([</span><span class=n>W1</span><span class=o>.</span><span class=n>ravel</span><span class=p>(),</span> <span class=n>b1</span><span class=p>,</span> <span class=n>W2</span><span class=o>.</span><span class=n>ravel</span><span class=p>(),</span> <span class=n>b2</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=n>params</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>W1</span> <span class=o>=</span> <span class=n>params</span><span class=p>[:</span><span class=mi>20</span><span class=p>]</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=mi>20</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>b1</span> <span class=o>=</span> <span class=n>params</span><span class=p>[</span><span class=mi>20</span><span class=p>:</span><span class=mi>40</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>W2</span> <span class=o>=</span> <span class=n>params</span><span class=p>[</span><span class=mi>40</span><span class=p>:</span><span class=mi>60</span><span class=p>]</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>20</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>b2</span> <span class=o>=</span> <span class=n>params</span><span class=p>[</span><span class=mi>60</span><span class=p>:</span><span class=mi>61</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>h</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>tanh</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span> <span class=o>@</span> <span class=n>W1</span><span class=o>.</span><span class=n>T</span> <span class=o>+</span> <span class=n>b1</span><span class=p>)</span>  <span class=c1># 隐层激活：(N, 20)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>(</span><span class=n>h</span> <span class=o>@</span> <span class=n>W2</span><span class=o>.</span><span class=n>T</span> <span class=o>+</span> <span class=n>b2</span><span class=p>)</span><span class=o>.</span><span class=n>ravel</span><span class=p>()</span>  <span class=c1># 输出：(N,)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>grad_log_posterior</span><span class=p>(</span><span class=n>params</span><span class=p>,</span> <span class=n>x_batch</span><span class=p>,</span> <span class=n>y_batch</span><span class=p>,</span> <span class=n>N</span><span class=p>,</span> <span class=n>sigma_y</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span> <span class=n>sigma_w</span><span class=o>=</span><span class=mf>1.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 使用有限差分法计算 log p(params | data) 的梯度</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 实际应用中应使用自动微分；此处为清晰起见采用显式实现</span>
+</span></span><span class=line><span class=cl>    <span class=n>B</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x_batch</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>pred</span> <span class=o>=</span> <span class=n>forward</span><span class=p>(</span><span class=n>params</span><span class=p>,</span> <span class=n>x_batch</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>residual</span> <span class=o>=</span> <span class=n>y_batch</span> <span class=o>-</span> <span class=n>pred</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 对数似然梯度（假设观测噪声服从高斯分布）</span>
+</span></span><span class=line><span class=cl>    <span class=n>eps</span> <span class=o>=</span> <span class=mf>1e-5</span>
+</span></span><span class=line><span class=cl>    <span class=n>grad</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros_like</span><span class=p>(</span><span class=n>params</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>params</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>        <span class=n>params_plus</span> <span class=o>=</span> <span class=n>params</span><span class=o>.</span><span class=n>copy</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>params_plus</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>+=</span> <span class=n>eps</span>
+</span></span><span class=line><span class=cl>        <span class=n>pred_plus</span> <span class=o>=</span> <span class=n>forward</span><span class=p>(</span><span class=n>params_plus</span><span class=p>,</span> <span class=n>x_batch</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>dll_di</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>residual</span> <span class=o>*</span> <span class=p>(</span><span class=n>pred_plus</span> <span class=o>-</span> <span class=n>pred</span><span class=p>)</span> <span class=o>/</span> <span class=n>eps</span><span class=p>)</span> <span class=o>/</span> <span class=n>sigma_y</span><span class=o>**</span><span class=mi>2</span>
+</span></span><span class=line><span class=cl>        <span class=n>grad</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>dll_di</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 将小批量梯度缩放到全量数据尺度，并加入高斯先验项</span>
+</span></span><span class=line><span class=cl>    <span class=n>grad</span> <span class=o>=</span> <span class=p>(</span><span class=n>N</span> <span class=o>/</span> <span class=n>B</span><span class=p>)</span> <span class=o>*</span> <span class=n>grad</span> <span class=o>-</span> <span class=n>params</span> <span class=o>/</span> <span class=n>sigma_w</span><span class=o>**</span><span class=mi>2</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>grad</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>sgld_bnn</span><span class=p>(</span><span class=n>x_train</span><span class=p>,</span> <span class=n>y_train</span><span class=p>,</span> <span class=n>n_steps</span><span class=o>=</span><span class=mi>20000</span><span class=p>,</span> <span class=n>batch_size</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>eta</span><span class=o>=</span><span class=mf>1e-4</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>N</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x_train</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>params</span> <span class=o>=</span> <span class=n>init_weights</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>posterior_samples</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>idx</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>choice</span><span class=p>(</span><span class=n>N</span><span class=p>,</span> <span class=n>batch_size</span><span class=p>,</span> <span class=n>replace</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>grad</span> <span class=o>=</span> <span class=n>grad_log_posterior</span><span class=p>(</span><span class=n>params</span><span class=p>,</span> <span class=n>x_train</span><span class=p>[</span><span class=n>idx</span><span class=p>],</span> <span class=n>y_train</span><span class=p>[</span><span class=n>idx</span><span class=p>],</span> <span class=n>N</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>noise</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>eta</span><span class=p>)</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>params</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>params</span> <span class=o>=</span> <span class=n>params</span> <span class=o>+</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>eta</span> <span class=o>*</span> <span class=n>grad</span> <span class=o>+</span> <span class=n>noise</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 烧入期（burn-in）后开始收集样本，每 50 步保存一次</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>k</span> <span class=o>&gt;</span> <span class=mi>10000</span> <span class=ow>and</span> <span class=n>k</span> <span class=o>%</span> <span class=mi>50</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>posterior_samples</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>params</span><span class=o>.</span><span class=n>copy</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>posterior_samples</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>samples</span> <span class=o>=</span> <span class=n>sgld_bnn</span><span class=p>(</span><span class=n>x_train</span><span class=p>,</span> <span class=n>y_train</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>x_test</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=o>-</span><span class=mi>3</span><span class=p>,</span> <span class=mi>7</span><span class=p>,</span> <span class=mi>200</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>predictions</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=n>forward</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=n>x_test</span><span class=p>)</span> <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>samples</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>mean_pred</span> <span class=o>=</span> <span class=n>predictions</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>      <span class=c1># 预测均值</span>
+</span></span><span class=line><span class=cl><span class=n>std_pred</span> <span class=o>=</span> <span class=n>predictions</span><span class=o>.</span><span class=n>std</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>        <span class=c1># 预测标准差（即后验预测不确定性）</span>
+</span></span></code></pre></td></tr></table></div></div><p>该结果展现了贝叶斯推断的核心优势：<strong>校准良好的不确定性估计</strong>。在空缺区域 <span class=math-inline>$x \in [1, 3]$</span>
+中，后验预测标准差比数据密集区高出 3–5 倍。相比之下，使用标准 SGD 训练的点估计网络（point-estimate network）会自信地、但毫无依据地在空缺处进行插值，且完全无法提示用户其预测结果并不可靠。</p><p>这绝非仅具教学意义的玩具性质特性——它正是以下关键方向的理论基石：</p><ul><li><strong>主动学习</strong>（Active Learning）：优先查询不确定性最高的样本；</li><li><strong>安全强化学习</strong>（Safe Reinforcement Learning）：规避认知不确定性过高的状态；</li><li><strong>模型选择</strong>（Model Selection）：在验证集上更倾向选择预测置信带更紧凑的模型。</li></ul><h2 id=数值实现真正能跑起来的-sde-模拟 class=heading-anchor>数值实现：真正能跑起来的 SDE 模拟<a href=#%e6%95%b0%e5%80%bc%e5%ae%9e%e7%8e%b0%e7%9c%9f%e6%ad%a3%e8%83%bd%e8%b7%91%e8%b5%b7%e6%9d%a5%e7%9a%84-sde-%e6%a8%a1%e6%8b%9f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$ X_{k+1} = X_k - \eta\,\nabla U(X_k) + \sqrt{2\eta}\,\xi_k,\quad \xi_k \sim \mathcal{N}(0, I). $$</span><p>这就是 <strong>Euler-Maruyama（EM）</strong> 方法，也是整个算法的核心。Python 实现如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>langevin</span><span class=p>(</span><span class=n>grad_U</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span> <span class=n>eta</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>,</span> <span class=n>n_steps</span><span class=o>=</span><span class=mi>10000</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>x</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>x0</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=nb>float</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>samples</span> <span class=o>=</span> <span class=p>[</span><span class=n>x</span><span class=o>.</span><span class=n>copy</span><span class=p>()]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>x</span> <span class=o>-</span> <span class=n>eta</span><span class=o>*</span><span class=n>grad_U</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=mi>2</span><span class=o>*</span><span class=n>eta</span><span class=p>)</span><span class=o>*</span><span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=o>*</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>samples</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>copy</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>samples</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>实践中会遇到三个典型问题：</p><ol><li><strong>步长偏差</strong>。EM 采样的稳态分布与真实 SDE 略有不同，偏差为 <span class=math-inline>$O(\eta)$</span>
+。要么让 <span class=math-inline>$\eta \to 0$</span>
+（牺牲混合速度），要么在其外层包裹 Metropolis-Hastings 接受-拒绝步骤——这就得到了 MALA（Metropolis 校正 Langevin），虽无偏但每步需额外一次对数密度计算。</li><li><strong>重尾分布导致发散</strong>。若势能 <span class=math-inline>$U$</span>
+的增长慢于二次，EM 在尾部会爆炸。此时应改用高阶格式（如 Milstein）或对梯度进行裁剪。对于神经网络的对数密度，这一步通常是必需的。</li><li><strong>多模态目标下的困局</strong>。朴素 Langevin 一旦陷入某个势阱就难以逃逸。<strong>副本交换（Replica Exchange）</strong>（又称并行退火）通过同时运行 <span class=math-inline>$K$</span>
+条温度为 <span class=math-inline>$T_1 &lt; \dots &lt; T_K$</span>
+的链并定期交换状态来缓解此问题。虽然计算成本增加 <span class=math-inline>$K$</span>
+倍，但在双峰后验等场景下，混合速度可提升一个数量级。</li></ol><p>凡是你看到“我们用 Langevin 采样”的地方，背后几乎必然涉及上述三个问题之一。可惜论文通常对此避而不谈。</p><h2 id=svgd-的实践理论背后藏着三个陷阱 class=heading-anchor>SVGD 的实践：理论背后藏着三个陷阱<a href=#svgd-%e7%9a%84%e5%ae%9e%e8%b7%b5%e7%90%86%e8%ae%ba%e8%83%8c%e5%90%8e%e8%97%8f%e7%9d%80%e4%b8%89%e4%b8%aa%e9%99%b7%e9%98%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$ \dot x_i = \frac{1}{n}\sum_j \bigl[k(x_j, x_i)\nabla\log p(x_j) + \nabla_{x_j}k(x_j, x_i)\bigr] $$</span><p>看似优雅，但正确实现并不容易。</p><p><strong>陷阱 1：带宽选择不当</strong>。RBF 核 <span class=math-inline>$k(x, y) = \exp(-\|x-y\|^2/h)$</span>
+对带宽 <span class=math-inline>$h$</span>
+极其敏感。标准做法是中位数技巧：<span class=math-inline>$h = \text{med}(\{\|x_i-x_j\|^2\})/\log n$</span>
+。若不这么做，在 <span class=math-inline>$d > 20$</span>
+的高维空间中，核值对几乎所有粒子对都接近零，排斥力随之消失，粒子最终全部塌缩至众数。</p><p><strong>陷阱 2：梯度符号错误</strong>。<span class=math-inline>$\nabla_{x_j}k(x_j, x_i) = -\frac{2}{h}(x_j - x_i)k(x_j, x_i)$</span>
+。负号一旦弄反，排斥力就变成了吸引力，导致粒子聚集而非覆盖。这种错误在深夜推导时极易发生。</p><p><strong>陷阱 3：高维下粒子数不足</strong>。SVGD 需要粒子数 <span class=math-inline>$n \gtrsim d$</span>
+才能有效张成空间。例如，原始论文（Liu & Zhu, 2018）在 <span class=math-inline>$d = 200$</span>
+的贝叶斯神经网络上仅用 <span class=math-inline>$n = 50$</span>
+个粒子，导致所恢复后验的协方差矩阵秩至多为 50，远非真实情况。后续工作（如 Chen & Ghattas, 2020）通过随机投影或矩阵值核来缓解此问题。</p><p>若只记住一点：<strong>定期监测平均成对核值</strong>。一旦低于 0.01，就意味着排斥相互作用已失效，结果不可信。</p><h2 id=基于-score-的扩散模型同一个-fokker-planck时间反转 class=heading-anchor>基于 Score 的扩散模型：同一个 Fokker-Planck，时间反转<a href=#%e5%9f%ba%e4%ba%8e-score-%e7%9a%84%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e5%90%8c%e4%b8%80%e4%b8%aa-fokker-planck%e6%97%b6%e9%97%b4%e5%8f%8d%e8%bd%ac class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><span class=math-block>$$ dX = \bigl[-\nabla U(X) - 2\nabla\log p_t(X)\bigr]\,dt + \sqrt{2}\,d\bar W. $$</span><p>整个流程本质上仍是 Fokker-Planck 的故事：</p><ul><li><strong>前向过程</strong>：纯加噪。密度从数据分布 <span class=math-inline>$p_0$</span>
+演化至高斯分布 <span class=math-inline>$p_T$</span>
+，遵循标准 FP 方程，其中 <span class=math-inline>$\sigma$</span>
+的选择确保 <span class=math-inline>$T$</span>
+足够大。</li><li><strong>Score 匹配</strong>：通过去噪 score 匹配（Vincent, 2011）训练 <span class=math-inline>$s_\theta(x, t) \approx \nabla\log p_t(x)$</span>
+。其核心技巧在于：对于条件高斯 <span class=math-inline>$q(x|x_0)$</span>
+，有 <span class=math-inline>$\nabla_x \log p_t(x) = \mathbb{E}[\nabla_x \log q(x|x_0)\,|\,x]$</span>
+，可直接计算。</li><li><strong>逆向过程</strong>：利用 Anderson（1982）提出的逆时间 SDE 和学到的 score 进行采样。每一步本质上是一次带有学习漂移修正的 Langevin 更新。</li></ul><p>鲜少有人明确指出：<strong>扩散模型其实就是 SVGD，只不过将核函数替换为了从数据中学到的 score 场</strong>。SVGD 手动平衡“排斥 vs 吸引”，而扩散模型则从数据中学习这一平衡。正因如此，二者同属“密度上的梯度流”这一框架，而<a href=#kl-%e6%95%a3%e5%ba%a6%e6%98%af-wasserstein-%e6%a2%af%e5%ba%a6%e6%b5%81>第四节</a>
+所述的 Wasserstein 几何正是描述它们的恰当语言。</p><p>PDE-ML 系列<a href=/zh/pde-ml/07-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8escore-matching/>第七章</a>
+将专门深入探讨扩散模型；此处仅旨在点明其与 Fokker-Planck 方程的深刻联系。</p><h2 id=总结 class=heading-anchor>总结<a href=#%e6%80%bb%e7%bb%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>任意 Itô SDE 都对应一个 Fokker-Planck PDE，描述其概率密度的演化。</li><li>Langevin 动力学用于从 <span class=math-inline>$p^\star \propto e^{-V}$</span>
+采样；ULA / MALA / HMC 是其实用的离散实现。</li><li><span class=math-inline>$\mathrm{KL}(\cdot \,\|\, p^\star)$</span>
+是 Wasserstein 梯度流的能量泛函；其流方程正是 Langevin 的 FP 方程。因此，VI 与 MCMC 在连续时间下完全等价。</li><li>SVGD 是一种核平滑的、确定性的粒子近似方法，避免了 MCMC 的随机游走低效问题。</li><li>收敛速率呈指数级，速率为 <span class=math-inline>$2\lambda$</span>
+，其中 <span class=math-inline>$\lambda$</span>
+是 <span class=math-inline>$p^\star$</span>
+的 log-Sobolev 常数；实践中，穿越高势垒的混合速度是主要瓶颈。</li><li>贝叶斯神经网络的后验采样可归结为在损失景观上运行 Langevin 或 SVGD。</li></ul><p><strong>系列结语</strong>。在四篇文章中，我们借助 PDE 统一了科学计算与机器学习：从用神经网络求解 PDE（PINNs），到学习解算子（FNO/DeepONet），再到将训练视为梯度流，最后将概率推断理解为 Fokker-Planck 动力学。贯穿始终的主题是：<strong>机器学习中的离散算法，通常最好被理解为某个连续 PDE 的时间离散化</strong>，而 PDE 理论正是证明其收敛性的通用语言。</p><h2 id=参考文献 class=heading-anchor>参考文献<a href=#%e5%8f%82%e8%80%83%e6%96%87%e7%8c%ae class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>Q. Liu and D. Wang. &ldquo;Stein Variational Gradient Descent: A General Purpose Bayesian Inference Algorithm.&rdquo; <em>NeurIPS</em>, 2016. <a href=https://arxiv.org/abs/1608.04471 target=_blank rel="noopener noreferrer">arXiv:1608.04471 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>M. Welling and Y. W. Teh. &ldquo;Bayesian Learning via Stochastic Gradient Langevin Dynamics.&rdquo; <em>ICML</em>, 2011.</li><li>R. Jordan, D. Kinderlehrer, and F. Otto. &ldquo;The variational formulation of the Fokker-Planck equation.&rdquo; <em>SIAM J. Math. Anal.</em>, 1998.</li><li>D. M. Blei, A. Kucukelbir, and J. D. McAuliffe. &ldquo;Variational inference: A review for statisticians.&rdquo; <em>JASA</em>, 2017.</li><li>L. Ambrosio, N. Gigli, and G. Savaré. <em>Gradient Flows in Metric Spaces and in the Space of Probability Measures.</em> Birkhäuser, 2008.</li><li>A. Vempala and A. Wibisono. &ldquo;Rapid convergence of the Unadjusted Langevin Algorithm: isoperimetry suffices.&rdquo; <em>NeurIPS</em>, 2019.</li></ul></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/ data-next-url=https://www.chenk.top/zh/pde-ml/05-%E8%BE%9B%E5%87%A0%E4%BD%95%E4%B8%8E%E4%BF%9D%E7%BB%93%E6%9E%84%E7%BD%91%E7%BB%9C/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/pde-ml/>PDE × 机器学习</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/><span class=title>偏微分方程与机器学习（三）：变分原理与优化</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/pde-ml/05-%E8%BE%9B%E5%87%A0%E4%BD%95%E4%B8%8E%E4%BF%9D%E7%BB%93%E6%9E%84%E7%BD%91%E7%BB%9C/><span class=title>偏微分方程与机器学习（五）：辛几何与保结构网络</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/pde-ml/01-%E7%89%A9%E7%90%86%E4%BF%A1%E6%81%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/><span class=series-nav-num>01</span>
+<span class=series-nav-title>偏微分方程与机器学习（一）：物理信息神经网络</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/pde-ml/02-%E7%A5%9E%E7%BB%8F%E7%AE%97%E5%AD%90%E7%90%86%E8%AE%BA/><span class=series-nav-num>02</span>
+<span class=series-nav-title>偏微分方程与机器学习（二）：神经算子理论</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/><span class=series-nav-num>03</span>
+<span class=series-nav-title>偏微分方程与机器学习（三）：变分原理与优化</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>04</span>
+<span class=series-nav-title>偏微分方程与机器学习（四）：变分推断与 Fokker-Planck 方程</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/pde-ml/05-%E8%BE%9B%E5%87%A0%E4%BD%95%E4%B8%8E%E4%BF%9D%E7%BB%93%E6%9E%84%E7%BD%91%E7%BB%9C/><span class=series-nav-num>05</span>
+<span class=series-nav-title>偏微分方程与机器学习（五）：辛几何与保结构网络</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/><span class=series-nav-num>06</span>
+<span class=series-nav-title>偏微分方程与机器学习（六）：连续归一化流与 Neural ODE</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/pde-ml/07-%E6%89%A9%E6%95%A3%E6%A8%A1%E5%9E%8B%E4%B8%8Escore-matching/><span class=series-nav-num>07</span>
+<span class=series-nav-title>偏微分方程与机器学习（七）：扩散模型与 Score Matching</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/><span class=series-nav-num>08</span>
+<span class=series-nav-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E5%2581%258F%25E5%25BE%25AE%25E5%2588%2586%25E6%2596%25B9%25E7%25A8%258B%25E4%25B8%258E%25E6%259C%25BA%25E5%2599%25A8%25E5%25AD%25A6%25E4%25B9%25A0%25EF%25BC%2588%25E5%259B%259B%25EF%25BC%2589%25EF%25BC%259A%25E5%258F%2598%25E5%2588%2586%25E6%258E%25A8%25E6%2596%25AD%25E4%25B8%258E%2bFokker-Planck%2b%25E6%2596%25B9%25E7%25A8%258B&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpde-ml%252F04-%2525E5%25258F%252598%2525E5%252588%252586%2525E6%25258E%2525A8%2525E6%252596%2525AD%2525E4%2525B8%25258Efokker-planck%2525E6%252596%2525B9%2525E7%2525A8%25258B%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Fpde-ml%252F04-%2525E5%25258F%252598%2525E5%252588%252586%2525E6%25258E%2525A8%2525E6%252596%2525AD%2525E4%2525B8%25258Efokker-planck%2525E6%252596%2525B9%2525E7%2525A8%25258B%252F&title=%25E5%2581%258F%25E5%25BE%25AE%25E5%2588%2586%25E6%2596%25B9%25E7%25A8%258B%25E4%25B8%258E%25E6%259C%25BA%25E5%2599%25A8%25E5%25AD%25A6%25E4%25B9%25A0%25EF%25BC%2588%25E5%259B%259B%25EF%25BC%2589%25EF%25BC%259A%25E5%258F%2598%25E5%2588%2586%25E6%258E%25A8%25E6%2596%25AD%25E4%25B8%258E%2bFokker-Planck%2b%25E6%2596%25B9%25E7%25A8%258B" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/pde-ml/04-%E5%8F%98%E5%88%86%E6%8E%A8%E6%96%AD%E4%B8%8Efokker-planck%E6%96%B9%E7%A8%8B/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2024-06-15>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#本文的七个维度>本文的七个维度</a></li><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#推断问题>推断问题</a></li><li><a href=#从-sde-到-fokker-planck>从 SDE 到 Fokker-Planck</a><ul><li><a href=#哈密顿蒙特卡洛动量突破随机游走的瓶颈>哈密顿蒙特卡洛：动量突破随机游走的瓶颈</a></li></ul></li><li><a href=#langevin-动力学采样即-pde>Langevin 动力学：采样即 PDE</a><ul><li><a href=#随机梯度朗之万动力学sgld>随机梯度朗之万动力学（SGLD）</a></li></ul></li><li><a href=#kl-散度是-wasserstein-梯度流>KL 散度是 Wasserstein 梯度流</a><ul><li><a href=#采样器对比ula-vs-mala-vs-hmc-vs-sgld>采样器对比：ULA vs MALA vs HMC vs SGLD</a></li></ul></li><li><a href=#vi-与-mcmc-的实践差异>VI 与 MCMC 的实践差异</a></li><li><a href=#stein-变分梯度下降>Stein 变分梯度下降</a><ul><li><a href=#自适应带宽与非高斯后验分布>自适应带宽与非高斯后验分布</a></li></ul></li><li><a href=#收敛理论>收敛理论</a></li><li><a href=#应用贝叶斯神经网络>应用：贝叶斯神经网络</a><ul><li><a href=#完整实验贝叶斯神经网络在-1d-回归任务上的不确定性建模>完整实验：贝叶斯神经网络在 1D 回归任务上的不确定性建模</a></li></ul></li><li><a href=#数值实现真正能跑起来的-sde-模拟>数值实现：真正能跑起来的 SDE 模拟</a></li><li><a href=#svgd-的实践理论背后藏着三个陷阱>SVGD 的实践：理论背后藏着三个陷阱</a></li><li><a href=#基于-score-的扩散模型同一个-fokker-planck时间反转>基于 Score 的扩散模型：同一个 Fokker-Planck，时间反转</a></li><li><a href=#总结>总结</a></li><li><a href=#参考文献>参考文献</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/pde-ml/ class=series-name>PDE × 机器学习</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/01-%E7%89%A9%E7%90%86%E4%BF%A1%E6%81%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/><span class=chapter-num>01</span>
+<span class=chapter-title>偏微分方程与机器学习（一）：物理信息神经网络</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/02-%E7%A5%9E%E7%BB%8F%E7%AE%97%E5%AD%90%E7%90%86%E8%AE%BA/><span class=chapter-num>02</span>
+<span class=chapter-title>偏微分方程与机器学习（二）：神经算子理论</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/><span class=chapter-num>03</span>
+<span class=chapter-title>偏微分方程与机器学习（三）：变分原理与优化</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>04</span>
+<span class=chapter-title>偏微分方程与机器学习（四）：变分推断与 Fokker-Planck 方程</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/05-%E8%BE%9B%E5%87%A0%E4%BD%95%E4%B8%8E%E4%BF%9D%E7%BB%93%E6%9E%84%E7%BD%91%E7%BB%9C/><span class=chapter-num>05</span>
+<span class=chapter-title>偏微分方程与机器学习（五）：辛几何与保结构网络</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/><span class=chapter-num>06</span>
+<span class=chapter-title>偏微分方程与机器学习（六）：连续归一化流与 Neural ODE</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/07-%E6%89%A9%E6%95%A3%E6%A8%A1%E5%9E%8B%E4%B8%8Escore-matching/><span class=chapter-num>07</span>
+<span class=chapter-title>偏微分方程与机器学习（七）：扩散模型与 Score Matching</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/><span class=chapter-num>08</span>
+<span class=chapter-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>34 min</strong></div><div class=row><span>字数</span><strong>8115</strong></div><div class=row><span>写于</span><strong>Jun 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/product-thinking/>产品思维</a></li><li><a href=https://www.chenk.top/zh/series/personal-finance/>个人理财</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=关闭>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>在微信里搜索此 ID 即可添加我</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>复制微信号</button></div></div></div></footer></body></html>

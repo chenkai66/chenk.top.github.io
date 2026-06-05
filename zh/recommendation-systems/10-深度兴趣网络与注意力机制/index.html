@@ -1,0 +1,540 @@
+<!doctype html><html lang=zh data-translation=/en/recommendation-systems/10-deep-interest-networks/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>推荐系统（十）—— 深度兴趣网络与注意力机制 · Chen Kai Blog</title>
+<meta name=description content="从 DIN 的目标注意力到 DIEN 的 AUGRU、再到 BST 的 Transformer——阿里巴巴是怎样让 CTR 模型像主厨读懂客人那样读懂用户行为的。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/recommendation-systems/10-%E6%B7%B1%E5%BA%A6%E5%85%B4%E8%B6%A3%E7%BD%91%E7%BB%9C%E4%B8%8E%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/recommendation-systems/10-deep-interest-networks/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/recommendation-systems/10-%E6%B7%B1%E5%BA%A6%E5%85%B4%E8%B6%A3%E7%BD%91%E7%BB%9C%E4%B8%8E%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/recommendation-systems/10-%E6%B7%B1%E5%BA%A6%E5%85%B4%E8%B6%A3%E7%BD%91%E7%BB%9C%E4%B8%8E%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6/><meta property="og:type" content="article"><meta property="og:title" content="推荐系统（十）—— 深度兴趣网络与注意力机制"><meta property="og:description" content="从 DIN 的目标注意力到 DIEN 的 AUGRU、再到 BST 的 Transformer——阿里巴巴是怎样让 CTR 模型像主厨读懂客人那样读懂用户行为的。"><meta property="og:url" content="https://www.chenk.top/zh/recommendation-systems/10-%E6%B7%B1%E5%BA%A6%E5%85%B4%E8%B6%A3%E7%BD%91%E7%BB%9C%E4%B8%8E%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/recommendation-systems.jpg"><meta property="og:image:alt" content="推荐系统（十）—— 深度兴趣网络与注意力机制"><meta property="article:published_time" content="2025-12-28T09:00:00Z"><meta property="article:modified_time" content="2025-12-28T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Recommendation Systems"><meta property="article:tag" content="DIN"><meta property="article:tag" content="Attention Mechanism"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="推荐系统（十）—— 深度兴趣网络与注意力机制"><meta name=twitter:description content="从 DIN 的目标注意力到 DIEN 的 AUGRU、再到 BST 的 Transformer——阿里巴巴是怎样让 CTR 模型像主厨读懂客人那样读懂用户行为的。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/recommendation-systems.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"推荐系统（十）—— 深度兴趣网络与注意力机制","description":"从 DIN 的目标注意力到 DIEN 的 AUGRU、再到 BST 的 Transformer——阿里巴巴是怎样让 CTR 模型像主厨读懂客人那样读懂用户行为的。","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/recommendation-systems.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2025-12-28T09:00:00Z","dateModified":"2025-12-28T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/zh/recommendation-systems/10-%E6%B7%B1%E5%BA%A6%E5%85%B4%E8%B6%A3%E7%BD%91%E7%BB%9C%E4%B8%8E%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6/"},"inLanguage":"zh"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js onload='document.querySelectorAll(".math-inline,.math-block").forEach(function(e){var t=e.textContent,n=e.classList.contains("math-block"),t=n?t.replace(/^\$\$/,"").replace(/\$\$$/,""):t.replace(/^\$/,"").replace(/\$$/,"");try{katex.render(t,e,{displayMode:n,throwOnError:!1})}catch{}})'></script><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/recommendation-systems/10-%e6%b7%b1%e5%ba%a6%e5%85%b4%e8%b6%a3%e7%bd%91%e7%bb%9c%e4%b8%8e%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/recommendation-systems/>推荐系统</a>
+· 第 10 篇</div><h1>推荐系统（十）—— 深度兴趣网络与注意力机制</h1><p class=deck>从 DIN 的目标注意力到 DIEN 的 AUGRU、再到 BST 的 Transformer——阿里巴巴是怎样让 CTR 模型像主厨读懂客人那样读懂用户行为的。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-12-28>December 28, 2025</time> · 24 分钟 · 5773 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/recommendation-systems/ class=tag>#Recommendation Systems</a><a href=/zh/tags/din/ class=tag>#DIN</a><a href=/zh/tags/attention-mechanism/ class=tag>#Attention Mechanism</a></div><a class="pill pill-outline" href=/en/recommendation-systems/10-deep-interest-networks/>Read in English →</a></div></header><div class=prose><p>好厨师不会给每位客人做同一道菜。她会观察你进门时的状态，留意你点的酒，再瞥一眼你盯着黑板菜单的眼神，然后才决定今晚的招牌菜该是牛排还是烩饭——过去的到访记录固然重要，但只有契合当下心情的那部分才会被真正考虑。</p><p>早期的推荐模型却像个蹩脚的厨师：它把用户点击过的所有内容简单平均成一个向量，然后给所有人端上同一道菜。上周浏览的复古皮衣和半年前随手点过的手机充电器被赋予同等权重，完全无视你此刻正在看什么。</p><p><strong>深度兴趣网络（Deep Interest Network, DIN）</strong> 让模型学会了“看人下菜碟”。它的核心思想出奇地简单：在为候选商品打分时，根据每个历史行为与 <em>该</em> 候选商品的相关性动态加权。同一个用户，面对不同商品会生成不同的表征——正如主厨会根据不同心情烹制不同菜肴。</p><p>本文将带你梳理从这一洞见衍生出的注意力机制 CTR 模型家族：DIN（目标注意力）、DIEN（基于 GRU + AUGRU 的兴趣演化建模）、DSIN（会话感知）和 BST（在行为序列上应用 Transformer）。我们将确保数学推导严谨、代码可运行、直觉清晰。</p><hr><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>为什么对用户历史取平均会丢失关键信息，以及注意力机制如何解决这一问题</li><li><strong>DIN</strong> —— 使用 Local Activation Unit 实现目标注意力</li><li><strong>DIEN</strong> —— 结合 GRU + AUGRU 与辅助损失建模兴趣演化</li><li><strong>DSIN</strong> —— 捕捉会话级别的浏览模式</li><li><strong>BST</strong> —— 在行为序列与候选商品上应用 Transformer</li><li>工程实践技巧：Dice 激活函数、小批量感知正则化、序列截断</li></ul><h2 id=前置知识 class=heading-anchor>前置知识<a href=#%e5%89%8d%e7%bd%ae%e7%9f%a5%e8%af%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>掌握 PyTorch 基础（模块定义、前向传播、损失计算）</li><li>熟悉 Embedding 技术（<a href=/zh/recommendation-systems/05-embedding%e8%a1%a8%e7%a4%ba%e5%ad%a6%e4%b9%a0>第 5 篇</a>
+）</li><li>了解 RNN/GRU 概念（非必需，但有帮助）</li></ul><hr><h2 id=从平均池化到注意力机制 class=heading-anchor>从平均池化到注意力机制<a href=#%e4%bb%8e%e5%b9%b3%e5%9d%87%e6%b1%a0%e5%8c%96%e5%88%b0%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=平均池化的问题在哪里 class=heading-anchor>平均池化的问题在哪里？<a href=#%e5%b9%b3%e5%9d%87%e6%b1%a0%e5%8c%96%e7%9a%84%e9%97%ae%e9%a2%98%e5%9c%a8%e5%93%aa%e9%87%8c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>假设一位用户点击了 5 部动作片、3 部爱情喜剧、2 部纪录片和 1 部恐怖片。当为一部新动作片打分时，那 5 次动作片点击理应占主导地位。但简单平均会将全部 11 次点击一视同仁——那个恐怖片离群点会把用户表征拉离推荐目标。</p><span class=math-block>$$
+\mathbf{v}_u = \frac{1}{T} \sum_{j=1}^{T} \mathbf{e}_{b_j}
+$$</span><p>其中 <span class=math-inline>$\mathbf{e}_{b_j}$</span>
+是行为 <span class=math-inline>$b_j$</span>
+的嵌入向量。该向量完全忽略候选商品：无论你是在评估动作片还是纪录片，用户的表征都一模一样。</p><h3 id=注意力机制如何解决这个问题 class=heading-anchor>注意力机制如何解决这个问题？<a href=#%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6%e5%a6%82%e4%bd%95%e8%a7%a3%e5%86%b3%e8%bf%99%e4%b8%aa%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/10-%e6%b7%b1%e5%ba%a6%e5%85%b4%e8%b6%a3%e7%bd%91%e7%bb%9c%e4%b8%8e%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6/fig1_attention_weights.png alt="DIN 注意力权重——同一个用户，不同候选商品的注意力分布完全不同" loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$
+\alpha_j = \text{score}(\mathbf{e}_{b_j}, \mathbf{e}_i)
+$$</span>
+<span class=math-block>$$
+\mathbf{v}_u(i) = \sum_{j=1}^{T} \alpha_j \, \mathbf{e}_{b_j}
+$$</span><p>现在 <span class=math-inline>$\mathbf{v}_u(i)$</span>
+依赖于 <span class=math-inline>$i$</span>
+：推荐动作片时，动作类点击被突出；推荐爱情喜剧时，爱情类点击占主导。同样的历史，不同的解读。上图清晰展示了这一点：同一位用户的 10 次点击，面对两个候选商品，产生了两套截然不同的注意力分布。模型没变，问题变了。</p><h3 id=如何选择打分函数 class=heading-anchor>如何选择打分函数？<a href=#%e5%a6%82%e4%bd%95%e9%80%89%e6%8b%a9%e6%89%93%e5%88%86%e5%87%bd%e6%95%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>按表达能力由弱到强，有三种常见选择：</p><ul><li><strong>点积</strong> —— <span class=math-inline>$\text{score}(\mathbf{q}, \mathbf{k}) = \mathbf{q}^\top \mathbf{k}$</span>
+。计算廉价，但表达能力有限。</li><li><strong>缩放点积</strong> —— 除以 <span class=math-inline>$\sqrt{d}$</span>
+以稳定数值范围，Transformer 即采用此法。</li><li><strong>加性 MLP</strong> —— <span class=math-inline>$\mathbf{v}^\top \tanh(\mathbf{W}_q \mathbf{q} + \mathbf{W}_k \mathbf{k} + \mathbf{b})$</span>
+。表达能力最强，<strong>DIN 正是选择了这一方案</strong>。</li></ul><p>DIN 更进一步：它不仅拼接 <span class=math-inline>$\mathbf{q}$</span>
+和 <span class=math-inline>$\mathbf{k}$</span>
+，而是将四组信息一同输入 MLP：query、key、query−key 和 query⊙key。相减捕捉 <em>差异</em>，逐元素相乘捕捉 <em>交互</em>，MLP 在此基础上学习一个非线性的兼容性函数。</p><h2 id=深度兴趣网络-din class=heading-anchor>深度兴趣网络 (DIN)<a href=#%e6%b7%b1%e5%ba%a6%e5%85%b4%e8%b6%a3%e7%bd%91%e7%bb%9c-din class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>DIN 由阿里巴巴于 2018 年提出（Zhou et al., KDD'18），至今仍是基于注意力机制的 CTR 模型的奠基之作。其核心是 <strong>Local Activation Unit</strong> —— 一个小型 MLP，用于为每个历史行为与候选商品的相关性打分。</p><h3 id=din-的工作原理 class=heading-anchor>DIN 的工作原理<a href=#din-%e7%9a%84%e5%b7%a5%e4%bd%9c%e5%8e%9f%e7%90%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>给定用户行为序列 <span class=math-inline>$[b_1, b_2, \ldots, b_T]$</span>
+和候选商品 <span class=math-inline>$i$</span>
+：</p><ol><li><strong>嵌入</strong> 行为、候选商品、用户特征及上下文。</li><li>通过激活单元 <strong>打分</strong> 每个历史行为与候选商品的相关性。</li><li>对行为嵌入进行 <strong>加权求和</strong>，得到“激活后”的用户表征。</li><li>将该表征与其他特征 <strong>拼接</strong>，并通过 MLP 进行 CTR 预测。</li></ol><span class=math-block>$$
+\text{score}(\mathbf{e}_{b_j}, \mathbf{e}_i) = \text{MLP}\big([\,\mathbf{e}_{b_j};\ \mathbf{e}_i;\ \mathbf{e}_{b_j} - \mathbf{e}_i;\ \mathbf{e}_{b_j} \odot \mathbf{e}_i\,]\big)
+$$</span><p>一个微妙但关键的细节：<strong>DIN 原论文并未使用 softmax</strong>。作者发现，允许权重之和不为 1 能保留兴趣的 <em>强度</em> —— 拥有多个强相关行为的用户应生成更大的用户向量，而非与仅有弱相关行为的用户归一化到相同尺度。代码中我们将同时展示两种形式。</p><h3 id=实现 class=heading-anchor>实现<a href=#%e5%ae%9e%e7%8e%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span><span class=lnt>71
+</span><span class=lnt>72
+</span><span class=lnt>73
+</span><span class=lnt>74
+</span><span class=lnt>75
+</span><span class=lnt>76
+</span><span class=lnt>77
+</span><span class=lnt>78
+</span><span class=lnt>79
+</span><span class=lnt>80
+</span><span class=lnt>81
+</span><span class=lnt>82
+</span><span class=lnt>83
+</span><span class=lnt>84
+</span><span class=lnt>85
+</span><span class=lnt>86
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>LocalActivationUnit</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;DIN 的 Local Activation Unit。
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    使用一个小 MLP 消化四种交互视角：行为本身、候选本身、二者之差、
+</span></span></span><span class=line><span class=cl><span class=s2>    二者逐元素乘积，从而为每个历史行为与候选商品的匹配度打分。
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=p>,</span> <span class=n>hidden_dims</span><span class=o>=</span><span class=p>(</span><span class=mi>80</span><span class=p>,</span> <span class=mi>40</span><span class=p>),</span> <span class=n>use_softmax</span><span class=o>=</span><span class=kc>False</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 输入 = [行为; 候选; 行为-候选; 行为*候选]</span>
+</span></span><span class=line><span class=cl>        <span class=n>in_dim</span> <span class=o>=</span> <span class=n>embedding_dim</span> <span class=o>*</span> <span class=mi>4</span>
+</span></span><span class=line><span class=cl>        <span class=n>layers</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>h</span> <span class=ow>in</span> <span class=n>hidden_dims</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>layers</span> <span class=o>+=</span> <span class=p>[</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>in_dim</span><span class=p>,</span> <span class=n>h</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>PReLU</span><span class=p>()]</span>
+</span></span><span class=line><span class=cl>            <span class=n>in_dim</span> <span class=o>=</span> <span class=n>h</span>
+</span></span><span class=line><span class=cl>        <span class=n>layers</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>in_dim</span><span class=p>,</span> <span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>mlp</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span><span class=o>*</span><span class=n>layers</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>use_softmax</span> <span class=o>=</span> <span class=n>use_softmax</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>behaviors</span><span class=p>,</span> <span class=n>candidate</span><span class=p>,</span> <span class=n>mask</span><span class=o>=</span><span class=kc>None</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>        behaviors: (B, T, D)   历史行为嵌入
+</span></span></span><span class=line><span class=cl><span class=s2>        candidate: (B, D)      候选商品嵌入
+</span></span></span><span class=line><span class=cl><span class=s2>        mask:      (B, T)      真实位置为 1，填充位置为 0
+</span></span></span><span class=line><span class=cl><span class=s2>        Returns:
+</span></span></span><span class=line><span class=cl><span class=s2>            user_repr: (B, D)
+</span></span></span><span class=line><span class=cl><span class=s2>            weights:   (B, T)
+</span></span></span><span class=line><span class=cl><span class=s2>        &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>B</span><span class=p>,</span> <span class=n>T</span><span class=p>,</span> <span class=n>D</span> <span class=o>=</span> <span class=n>behaviors</span><span class=o>.</span><span class=n>shape</span>
+</span></span><span class=line><span class=cl>        <span class=n>cand</span> <span class=o>=</span> <span class=n>candidate</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>expand</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=n>T</span><span class=p>,</span> <span class=n>D</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 四种交互视角</span>
+</span></span><span class=line><span class=cl>        <span class=n>feats</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>behaviors</span><span class=p>,</span> <span class=n>cand</span><span class=p>,</span> <span class=n>behaviors</span> <span class=o>-</span> <span class=n>cand</span><span class=p>,</span> <span class=n>behaviors</span> <span class=o>*</span> <span class=n>cand</span><span class=p>],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>scores</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>mlp</span><span class=p>(</span><span class=n>feats</span><span class=p>)</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>              <span class=c1># (B, T)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>mask</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>scores</span> <span class=o>=</span> <span class=n>scores</span><span class=o>.</span><span class=n>masked_fill</span><span class=p>(</span><span class=n>mask</span> <span class=o>==</span> <span class=mi>0</span><span class=p>,</span> <span class=o>-</span><span class=mf>1e9</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>use_softmax</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>weights</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>softmax</span><span class=p>(</span><span class=n>scores</span><span class=p>,</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=c1># DIN 默认：保留原始权重，不做归一化</span>
+</span></span><span class=line><span class=cl>            <span class=n>weights</span> <span class=o>=</span> <span class=n>scores</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>mask</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>weights</span> <span class=o>=</span> <span class=n>weights</span> <span class=o>*</span> <span class=n>mask</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>user_repr</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>bmm</span><span class=p>(</span><span class=n>weights</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>1</span><span class=p>),</span> <span class=n>behaviors</span><span class=p>)</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>user_repr</span><span class=p>,</span> <span class=n>weights</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>DIN</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;用于 CTR 预估的 Deep Interest Network。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>item_dim</span><span class=o>=</span><span class=mi>64</span><span class=p>,</span> <span class=n>user_dim</span><span class=o>=</span><span class=mi>32</span><span class=p>,</span> <span class=n>ctx_dim</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>mlp_hidden</span><span class=o>=</span><span class=p>(</span><span class=mi>200</span><span class=p>,</span> <span class=mi>80</span><span class=p>),</span> <span class=n>dropout</span><span class=o>=</span><span class=mf>0.5</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>activation</span> <span class=o>=</span> <span class=n>LocalActivationUnit</span><span class=p>(</span><span class=n>item_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>in_dim</span> <span class=o>=</span> <span class=n>item_dim</span> <span class=o>+</span> <span class=n>item_dim</span> <span class=o>+</span> <span class=n>user_dim</span> <span class=o>+</span> <span class=n>ctx_dim</span>
+</span></span><span class=line><span class=cl>        <span class=n>layers</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>h</span> <span class=ow>in</span> <span class=n>mlp_hidden</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>layers</span> <span class=o>+=</span> <span class=p>[</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>in_dim</span><span class=p>,</span> <span class=n>h</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>PReLU</span><span class=p>(),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>            <span class=n>in_dim</span> <span class=o>=</span> <span class=n>h</span>
+</span></span><span class=line><span class=cl>        <span class=n>layers</span> <span class=o>+=</span> <span class=p>[</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>in_dim</span><span class=p>,</span> <span class=mi>1</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>mlp</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span><span class=o>*</span><span class=n>layers</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_feats</span><span class=p>,</span> <span class=n>behaviors</span><span class=p>,</span> <span class=n>candidate</span><span class=p>,</span> <span class=n>ctx_feats</span><span class=p>,</span> <span class=n>mask</span><span class=o>=</span><span class=kc>None</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>user_repr</span><span class=p>,</span> <span class=n>attn</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>activation</span><span class=p>(</span><span class=n>behaviors</span><span class=p>,</span> <span class=n>candidate</span><span class=p>,</span> <span class=n>mask</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>user_repr</span><span class=p>,</span> <span class=n>candidate</span><span class=p>,</span> <span class=n>user_feats</span><span class=p>,</span> <span class=n>ctx_feats</span><span class=p>],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>logit</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>mlp</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>logit</span><span class=p>,</span> <span class=n>attn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 跑通性测试</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>DIN</span><span class=p>(</span><span class=n>item_dim</span><span class=o>=</span><span class=mi>64</span><span class=p>,</span> <span class=n>user_dim</span><span class=o>=</span><span class=mi>32</span><span class=p>,</span> <span class=n>ctx_dim</span><span class=o>=</span><span class=mi>16</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>B</span><span class=p>,</span> <span class=n>T</span> <span class=o>=</span> <span class=mi>32</span><span class=p>,</span> <span class=mi>20</span>
+</span></span><span class=line><span class=cl><span class=n>logits</span><span class=p>,</span> <span class=n>attn</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>user_feats</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=mi>32</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=n>behaviors</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=n>T</span><span class=p>,</span> <span class=mi>64</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=n>candidate</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=mi>64</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=n>ctx_feats</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=mi>16</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=n>mask</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>ones</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=n>T</span><span class=p>),</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>logits</span><span class=o>.</span><span class=n>shape</span><span class=p>,</span> <span class=n>attn</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span>   <span class=c1># torch.Size([32]) torch.Size([32, 20])</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=训练目标与阿里的工业化技巧 class=heading-anchor>训练目标与阿里的工业化技巧<a href=#%e8%ae%ad%e7%bb%83%e7%9b%ae%e6%a0%87%e4%b8%8e%e9%98%bf%e9%87%8c%e7%9a%84%e5%b7%a5%e4%b8%9a%e5%8c%96%e6%8a%80%e5%b7%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\mathcal{L} = -\frac{1}{N} \sum_{i=1}^{N} \big[ y_i \log \sigma(\hat{y}_i) + (1 - y_i) \log(1 - \sigma(\hat{y}_i)) \big]
+$$</span><p>论文将大部分性能提升归功于以下三个技巧：</p><ul><li><strong>Dice 激活函数</strong> —— 一种数据自适应的 PReLU，其拐点随 batch 分布动态调整（见<a href=#%e7%9c%9f%e6%ad%a3%e8%83%bd%e6%8f%90%e5%8d%87%e6%95%88%e6%9e%9c%e7%9a%84%e5%b7%a5%e4%b8%9a%e5%8c%96%e6%8a%80%e5%b7%a7>工业化技巧一节</a>
+）。</li><li><strong>小批量感知正则化</strong> —— 不对全部 embedding（数千万商品，本 batch 中绝大多数未出现）做 L2 正则，而仅正则当前 batch 中出现的 embedding，并按其频次加权。效果相近，计算成本却大幅降低。</li><li><strong>梯度裁剪</strong> —— 长行为序列在训练初期易导致梯度爆炸，裁剪可有效缓解。</li></ul><hr><h2 id=深度兴趣演化网络-dien class=heading-anchor>深度兴趣演化网络 (DIEN)<a href=#%e6%b7%b1%e5%ba%a6%e5%85%b4%e8%b6%a3%e6%bc%94%e5%8c%96%e7%bd%91%e7%bb%9c-dien class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>DIN 将历史视为无序行为集合，忽略了时间维度。但兴趣是流动的：上个月你在研究笔记本电脑，这周追逐配件，下周可能转向人体工学椅。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/10-%e6%b7%b1%e5%ba%a6%e5%85%b4%e8%b6%a3%e7%bd%91%e7%bb%9c%e4%b8%8e%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6/fig5_interest_evolution.png alt="用户兴趣随时间的变化轨迹——DIEN 能捕捉这种动态，DIN 做不到" loading=lazy decoding=async class=content-image></figure></p><p>上图揭示了 DIN 无法捕捉的动态：用户“兴趣”并非单一向量，而是一条时序信号，各兴趣峰值按可预测顺序此起彼伏。DIN 只看到所有峰值的并集，而 DIEN（Zhou et al., AAAI'19）通过两层结构显式建模这一轨迹。</p><h3 id=一张图看懂架构 class=heading-anchor>一张图看懂架构<a href=#%e4%b8%80%e5%bc%a0%e5%9b%be%e7%9c%8b%e6%87%82%e6%9e%b6%e6%9e%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/10-%e6%b7%b1%e5%ba%a6%e5%85%b4%e8%b6%a3%e7%bd%91%e7%bb%9c%e4%b8%8e%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6/fig2_dien_architecture.png alt="DIEN：GRU 提取每个时间步的兴趣，AUGRU 让兴趣朝候选商品演化" loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$
+\mathbf{h}_t = \text{GRU}(\mathbf{e}_{b_t}, \mathbf{h}_{t-1})
+$$</span><p>每个隐藏状态 <span class=math-inline>$\mathbf{h}_t$</span>
+表示用户在时刻 <span class=math-inline>$t$</span>
+的兴趣。</p><span class=math-block>$$
+\tilde{u}_t = a_t \cdot u_t \qquad \mathbf{h}'_t = (1 - \tilde{u}_t) \odot \mathbf{h}'_{t-1} + \tilde{u}_t \odot \tilde{\mathbf{h}}_t
+$$</span><p>可理解为：当过去兴趣高度相关时，让它驱动演化；无关时则冻结状态，避免噪声冲淡信号。图中箭头粗细正比于 <span class=math-inline>$a_t$</span>
+：粗箭头推动信息前移，细箭头则基本保留前一状态。</p><h3 id=辅助损失技巧 class=heading-anchor>辅助损失技巧<a href=#%e8%be%85%e5%8a%a9%e6%8d%9f%e5%a4%b1%e6%8a%80%e5%b7%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\mathcal{L}_{\text{aux}} = -\frac{1}{T-1}\sum_{t=1}^{T-1} \Big[ \log \sigma(\mathbf{h}_t^\top \mathbf{e}_{b_{t+1}}^+) + \log\big(1 - \sigma(\mathbf{h}_t^\top \mathbf{e}_{b_{t+1}}^-)\big)\Big]
+$$</span><p>通俗地说：若时刻 <span class=math-inline>$t$</span>
+的隐藏状态能预测 <span class=math-inline>$t+1$</span>
+时刻的真实点击（正样本），且无法预测随机负样本，则说明它捕捉到了真实兴趣。</p><p>总目标为 <span class=math-inline>$\mathcal{L} = \mathcal{L}_{\text{ctr}} + \lambda \cdot \mathcal{L}_{\text{aux}}$</span>
+，其中 <span class=math-inline>$\lambda$</span>
+通常取 <span class=math-inline>$[0.1, 1.0]$</span>
+。</p><h3 id=augru-实现 class=heading-anchor>AUGRU 实现<a href=#augru-%e5%ae%9e%e7%8e%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>AUGRUCell</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;更新门被注意力加权的 GRU 单元。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>input_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>W_ir</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>input_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>W_hr</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>W_iz</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>input_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>W_hz</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>W_in</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>input_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>W_hn</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x_t</span><span class=p>,</span> <span class=n>h_prev</span><span class=p>,</span> <span class=n>a_t</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>        x_t:    (B, input_dim)   t 时刻的兴趣（来自 GRU 层）
+</span></span></span><span class=line><span class=cl><span class=s2>        h_prev: (B, hidden_dim)  上一步演化后的状态
+</span></span></span><span class=line><span class=cl><span class=s2>        a_t:    (B, 1)           相对候选商品的注意力权重
+</span></span></span><span class=line><span class=cl><span class=s2>        &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>r</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>sigmoid</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>W_ir</span><span class=p>(</span><span class=n>x_t</span><span class=p>)</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>W_hr</span><span class=p>(</span><span class=n>h_prev</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>z</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>sigmoid</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>W_iz</span><span class=p>(</span><span class=n>x_t</span><span class=p>)</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>W_hz</span><span class=p>(</span><span class=n>h_prev</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>n</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>tanh</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>W_in</span><span class=p>(</span><span class=n>x_t</span><span class=p>)</span> <span class=o>+</span> <span class=n>r</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>W_hn</span><span class=p>(</span><span class=n>h_prev</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>z_tilde</span> <span class=o>=</span> <span class=n>a_t</span> <span class=o>*</span> <span class=n>z</span>                       <span class=c1># ← AUGRU 的关键改动</span>
+</span></span><span class=line><span class=cl>        <span class=n>h_t</span> <span class=o>=</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>z_tilde</span><span class=p>)</span> <span class=o>*</span> <span class=n>h_prev</span> <span class=o>+</span> <span class=n>z_tilde</span> <span class=o>*</span> <span class=n>n</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>h_t</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>DIEN</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>item_dim</span><span class=o>=</span><span class=mi>64</span><span class=p>,</span> <span class=n>user_dim</span><span class=o>=</span><span class=mi>32</span><span class=p>,</span> <span class=n>ctx_dim</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>hidden_dim</span><span class=o>=</span><span class=mi>64</span><span class=p>,</span> <span class=n>mlp_hidden</span><span class=o>=</span><span class=p>(</span><span class=mi>200</span><span class=p>,</span> <span class=mi>80</span><span class=p>),</span> <span class=n>dropout</span><span class=o>=</span><span class=mf>0.5</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>gru</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>GRU</span><span class=p>(</span><span class=n>item_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>,</span> <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>attn</span> <span class=o>=</span> <span class=n>LocalActivationUnit</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>use_softmax</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>augru</span> <span class=o>=</span> <span class=n>AUGRUCell</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>in_dim</span> <span class=o>=</span> <span class=n>hidden_dim</span> <span class=o>+</span> <span class=n>item_dim</span> <span class=o>+</span> <span class=n>user_dim</span> <span class=o>+</span> <span class=n>ctx_dim</span>
+</span></span><span class=line><span class=cl>        <span class=n>layers</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>h</span> <span class=ow>in</span> <span class=n>mlp_hidden</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>layers</span> <span class=o>+=</span> <span class=p>[</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>in_dim</span><span class=p>,</span> <span class=n>h</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>PReLU</span><span class=p>(),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>            <span class=n>in_dim</span> <span class=o>=</span> <span class=n>h</span>
+</span></span><span class=line><span class=cl>        <span class=n>layers</span> <span class=o>+=</span> <span class=p>[</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>in_dim</span><span class=p>,</span> <span class=mi>1</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>mlp</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span><span class=o>*</span><span class=n>layers</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_feats</span><span class=p>,</span> <span class=n>behaviors</span><span class=p>,</span> <span class=n>candidate</span><span class=p>,</span> <span class=n>ctx_feats</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 第 1 层：兴趣提取</span>
+</span></span><span class=line><span class=cl>        <span class=n>interest</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>gru</span><span class=p>(</span><span class=n>behaviors</span><span class=p>)</span>               <span class=c1># (B, T, H)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 计算与候选商品的注意力权重</span>
+</span></span><span class=line><span class=cl>        <span class=n>_</span><span class=p>,</span> <span class=n>attn</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>attn</span><span class=p>(</span><span class=n>interest</span><span class=p>,</span> <span class=n>candidate</span><span class=p>)</span>        <span class=c1># (B, T)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 第 2 层：用 AUGRU 演化兴趣</span>
+</span></span><span class=line><span class=cl>        <span class=n>B</span><span class=p>,</span> <span class=n>T</span><span class=p>,</span> <span class=n>H</span> <span class=o>=</span> <span class=n>interest</span><span class=o>.</span><span class=n>shape</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=n>H</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=n>behaviors</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>T</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>h</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>augru</span><span class=p>(</span><span class=n>interest</span><span class=p>[:,</span> <span class=n>t</span><span class=p>,</span> <span class=p>:],</span> <span class=n>h</span><span class=p>,</span> <span class=n>attn</span><span class=p>[:,</span> <span class=n>t</span><span class=p>:</span><span class=n>t</span><span class=o>+</span><span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=n>final_interest</span> <span class=o>=</span> <span class=n>h</span>                              <span class=c1># (B, H)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>final_interest</span><span class=p>,</span> <span class=n>candidate</span><span class=p>,</span> <span class=n>user_feats</span><span class=p>,</span> <span class=n>ctx_feats</span><span class=p>],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>mlp</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>),</span> <span class=n>interest</span>        <span class=c1># interest 用于辅助损失</span>
+</span></span></code></pre></td></tr></table></div></div><p>实际部署中，逐时间步的 Python 循环会被自定义 CUDA kernel 替代，但概念上正是如此。</p><h2 id=深度会话兴趣网络-dsin class=heading-anchor>深度会话兴趣网络 (DSIN)<a href=#%e6%b7%b1%e5%ba%a6%e4%bc%9a%e8%af%9d%e5%85%b4%e8%b6%a3%e7%bd%91%e7%bb%9c-dsin class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>用户行为常呈爆发式：午饭时花十五分钟浏览笔记本，晚上回来扫一眼耳机，次日早晨又看跑鞋。每个爆发内部主题连贯，而爆发间的间隔往往标志着心境切换。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/10-%e6%b7%b1%e5%ba%a6%e5%85%b4%e8%b6%a3%e7%bd%91%e7%bb%9c%e4%b8%8e%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6/fig3_dsin_sessions.png alt="DSIN：行为按 30 分钟间隔切分为会话，会话内自注意力，会话间 Bi-LSTM" loading=lazy decoding=async class=content-image></figure></p><p>DSIN（Feng et al., IJCAI'19）显式建模这一结构。上图展示了将九次行为划分为三个会话的完整流程：</p><ol><li><strong>会话切分</strong> —— 当行为间隔超过 30 分钟（原论文阈值）时切分会话。</li><li><strong>会话内自注意力</strong> —— 在每个会话内，多头自注意力捕捉局部模式（本次爆发中哪些物品相互关联）。</li><li><strong>会话间 Bi-LSTM</strong> —— 跨会话使用双向 LSTM 建模兴趣漂移。</li><li><strong>目标注意力</strong> —— 最后，基于候选商品对会话向量加权。</li></ol><p>直觉在于：会话是模型的“思维单元”。将三十次点击视为无差别整体，会丢失其分属三个连贯片段的事实；而将每次点击视为独立时间步，又忽略了同会话内点击的主题一致性。会话恰是居中的合适粒度。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>DSINSessionLayer</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;会话内自注意力 → 平均池化 → 会话向量。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>embed_dim</span><span class=p>,</span> <span class=n>num_heads</span><span class=o>=</span><span class=mi>4</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>attn</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>MultiheadAttention</span><span class=p>(</span><span class=n>embed_dim</span><span class=p>,</span> <span class=n>num_heads</span><span class=p>,</span> <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>session_behaviors</span><span class=p>,</span> <span class=n>mask</span><span class=o>=</span><span class=kc>None</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># session_behaviors: (B, S, D)</span>
+</span></span><span class=line><span class=cl>        <span class=n>attended</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>attn</span><span class=p>(</span><span class=n>session_behaviors</span><span class=p>,</span> <span class=n>session_behaviors</span><span class=p>,</span> <span class=n>session_behaviors</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                                <span class=n>key_padding_mask</span><span class=o>=</span><span class=n>mask</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>attended</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>                      <span class=c1># (B, D)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>split_sessions</span><span class=p>(</span><span class=n>timestamps</span><span class=p>,</span> <span class=n>gap_seconds</span><span class=o>=</span><span class=mi>1800</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;按时间间隔将行为序列切分为多个会话区间。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>sessions</span><span class=p>,</span> <span class=n>start</span> <span class=o>=</span> <span class=p>[],</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>timestamps</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>timestamps</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>-</span> <span class=n>timestamps</span><span class=p>[</span><span class=n>i</span> <span class=o>-</span> <span class=mi>1</span><span class=p>]</span> <span class=o>&gt;</span> <span class=n>gap_seconds</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>sessions</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=n>start</span><span class=p>,</span> <span class=n>i</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=n>start</span> <span class=o>=</span> <span class=n>i</span>
+</span></span><span class=line><span class=cl>    <span class=n>sessions</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=n>start</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>timestamps</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>sessions</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=何时选用哪个模型 class=heading-anchor>何时选用哪个模型<a href=#%e4%bd%95%e6%97%b6%e9%80%89%e7%94%a8%e5%93%aa%e4%b8%aa%e6%a8%a1%e5%9e%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>模型</th><th>关键创新</th><th>最佳适用场景</th></tr></thead><tbody><tr><td><strong>DIN</strong></td><td>在扁平行为列表上应用目标注意力</td><td>历史较短、无明显时序结构</td></tr><tr><td><strong>DIEN</strong></td><td>GRU + AUGRU + 辅助损失</td><td>历史较长、兴趣平滑演化</td></tr><tr><td><strong>DSIN</strong></td><td>会话内自注意力 + 会话间 Bi-LSTM</td><td>浏览模式具有清晰会话边界</td></tr><tr><td><strong>BST</strong></td><td>在行为序列与候选上应用 Transformer</td><td>历史较长、需并行化推理</td></tr></tbody></table></div><hr><h2 id=行为序列变换器-bst class=heading-anchor>行为序列变换器 (BST)<a href=#%e8%a1%8c%e4%b8%ba%e5%ba%8f%e5%88%97%e5%8f%98%e6%8d%a2%e5%99%a8-bst class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>到 2019 年，Transformer 已席卷 NLP。阿里淘宝团队提出：何不直接将其用于行为序列？</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/10-%e6%b7%b1%e5%ba%a6%e5%85%b4%e8%b6%a3%e7%bd%91%e7%bb%9c%e4%b8%8e%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6/fig4_bst_architecture.png alt="BST：在行为序列+候选商品上跑 Transformer，再通过 MLP 输出 CTR" loading=lazy decoding=async class=content-image></figure></p><p><strong>BST</strong>（Chen et al., DLP-KDD'19）将行为序列与候选商品视为单一 token 序列，并在其上运行 Transformer 编码器。多头自注意力使每个行为既能关注其他行为，也能关注候选商品，位置嵌入则编码时间顺序。</p><span class=math-block>$$
+\mathbf{Z} = \text{TransformerBlock}\big(\,[\mathbf{e}_{b_1} + \mathbf{p}_1,\, \ldots,\, \mathbf{e}_{b_T} + \mathbf{p}_T,\, \mathbf{e}_i + \mathbf{p}_{T+1}]\,\big)
+$$</span><p>随后将 <span class=math-inline>$\mathbf{Z}$</span>
+与侧特征拼接并送入 MLP。在淘宝日志上，BST 相比 WDL 基线带来约 7.5% 的 AUC 提升。值得注意的是，BST <strong>并未显式设计“目标注意力”步骤</strong>——它不需要，因为 <code>[历史, 候选]</code> 的自注意力已让候选直接访问所有行为，同时也让行为间相互关联，这是 DIN 从未建模的能力。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>BST</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>item_dim</span><span class=o>=</span><span class=mi>64</span><span class=p>,</span> <span class=n>max_len</span><span class=o>=</span><span class=mi>50</span><span class=p>,</span> <span class=n>num_heads</span><span class=o>=</span><span class=mi>8</span><span class=p>,</span> <span class=n>num_layers</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>user_dim</span><span class=o>=</span><span class=mi>32</span><span class=p>,</span> <span class=n>ctx_dim</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>mlp_hidden</span><span class=o>=</span><span class=p>(</span><span class=mi>1024</span><span class=p>,</span> <span class=mi>512</span><span class=p>,</span> <span class=mi>256</span><span class=p>),</span> <span class=n>dropout</span><span class=o>=</span><span class=mf>0.2</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>pos_embed</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>max_len</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>item_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>encoder_layer</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>TransformerEncoderLayer</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>d_model</span><span class=o>=</span><span class=n>item_dim</span><span class=p>,</span> <span class=n>nhead</span><span class=o>=</span><span class=n>num_heads</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>dim_feedforward</span><span class=o>=</span><span class=n>item_dim</span> <span class=o>*</span> <span class=mi>4</span><span class=p>,</span> <span class=n>dropout</span><span class=o>=</span><span class=n>dropout</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>activation</span><span class=o>=</span><span class=s1>&#39;relu&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>transformer</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>TransformerEncoder</span><span class=p>(</span><span class=n>encoder_layer</span><span class=p>,</span> <span class=n>num_layers</span><span class=o>=</span><span class=n>num_layers</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>in_dim</span> <span class=o>=</span> <span class=n>item_dim</span> <span class=o>*</span> <span class=p>(</span><span class=n>max_len</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>+</span> <span class=n>user_dim</span> <span class=o>+</span> <span class=n>ctx_dim</span>
+</span></span><span class=line><span class=cl>        <span class=n>layers</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>h</span> <span class=ow>in</span> <span class=n>mlp_hidden</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>layers</span> <span class=o>+=</span> <span class=p>[</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>in_dim</span><span class=p>,</span> <span class=n>h</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>PReLU</span><span class=p>(),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>            <span class=n>in_dim</span> <span class=o>=</span> <span class=n>h</span>
+</span></span><span class=line><span class=cl>        <span class=n>layers</span> <span class=o>+=</span> <span class=p>[</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>in_dim</span><span class=p>,</span> <span class=mi>1</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>mlp</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span><span class=o>*</span><span class=n>layers</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_feats</span><span class=p>,</span> <span class=n>behaviors</span><span class=p>,</span> <span class=n>candidate</span><span class=p>,</span> <span class=n>ctx_feats</span><span class=p>,</span> <span class=n>mask</span><span class=o>=</span><span class=kc>None</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 将候选拼接到行为序列末尾</span>
+</span></span><span class=line><span class=cl>        <span class=n>seq</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>behaviors</span><span class=p>,</span> <span class=n>candidate</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>1</span><span class=p>)],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>   <span class=c1># (B, T+1, D)</span>
+</span></span><span class=line><span class=cl>        <span class=n>pos</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=n>seq</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>1</span><span class=p>),</span> <span class=n>device</span><span class=o>=</span><span class=n>seq</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>seq</span> <span class=o>=</span> <span class=n>seq</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>pos_embed</span><span class=p>(</span><span class=n>pos</span><span class=p>)</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>z</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>transformer</span><span class=p>(</span><span class=n>seq</span><span class=p>,</span> <span class=n>src_key_padding_mask</span><span class=o>=</span><span class=n>mask</span><span class=p>)</span>          <span class=c1># (B, T+1, D)</span>
+</span></span><span class=line><span class=cl>        <span class=n>flat</span> <span class=o>=</span> <span class=n>z</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=n>z</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>0</span><span class=p>),</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>flat</span><span class=p>,</span> <span class=n>user_feats</span><span class=p>,</span> <span class=n>ctx_feats</span><span class=p>],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>mlp</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=这些技巧到底能带来多少收益 class=heading-anchor>这些技巧到底能带来多少收益？<a href=#%e8%bf%99%e4%ba%9b%e6%8a%80%e5%b7%a7%e5%88%b0%e5%ba%95%e8%83%bd%e5%b8%a6%e6%9d%a5%e5%a4%9a%e5%b0%91%e6%94%b6%e7%9b%8a class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/10-%e6%b7%b1%e5%ba%a6%e5%85%b4%e8%b6%a3%e7%bd%91%e7%bb%9c%e4%b8%8e%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6/fig6_performance_comparison.png alt="Amazon Books CTR 基准上的 AUC 进展" loading=lazy decoding=async class=content-image></figure></p><p>数据源自 DIN/DIEN/DSIN/BST 原论文在 Amazon Books CTR 基准上的结果（经归一化处理）。两点值得关注：</p><ul><li><strong>从 sum/avg pooling 到 DIN 的跃升最大</strong>。引入注意力是单次改动中效果最显著的优化。后续改进均为渐进式：DIEN 在 DIN 基础上提升零点几个百分点，DSIN 略高，BST 则视数据集而定，大致与 DSIN 持平或略优。</li><li><strong>AUC 提升看似微小，但在大规模场景下意义重大</strong>。淘宝上 0.005 的 AUC 提升可转化为数个百分点的 CTR 增长及数亿美元的 GMV 增量。这正是团队持续优化“噪声级”指标的原因。</li></ul><p>除精度外，各模型成本特性各异：DIN 推理成本最低（注意力仅为每个行为增加一个 MLP）；DIEN 的序列化 AUGRU 最慢；BST 在 GPU 上快但显存占用高；DSIN 的实时会话切分则是运维难点。</p><p>实用建议：<strong>从 DIN 开始</strong>。它以 20% 的工程投入捕获 80% 的收益。当行为序列长且话题顺序重要（如订阅产品、有明确演进路径的兴趣）时，考虑 DIEN；当会话边界清晰频繁（如短视频、电商浏览）时，DSIN 更优；若希望统一模型且服务栈已适配 Transformer，则选 BST。</p><hr><h2 id=真正能提升效果的工业化技巧 class=heading-anchor>真正能提升效果的工业化技巧<a href=#%e7%9c%9f%e6%ad%a3%e8%83%bd%e6%8f%90%e5%8d%87%e6%95%88%e6%9e%9c%e7%9a%84%e5%b7%a5%e4%b8%9a%e5%8c%96%e6%8a%80%e5%b7%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=dice--数据自适应激活函数 class=heading-anchor>Dice —— 数据自适应激活函数<a href=#dice--%e6%95%b0%e6%8d%ae%e8%87%aa%e9%80%82%e5%ba%94%e6%bf%80%e6%b4%bb%e5%87%bd%e6%95%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/10-%e6%b7%b1%e5%ba%a6%e5%85%b4%e8%b6%a3%e7%bd%91%e7%bb%9c%e4%b8%8e%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6/fig7_activation_functions.png alt="PReLU 与 Dice 对比：Dice 的拐点随 batch 分布动态调整" loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$
+\text{Dice}(x) = p(x) \cdot x + (1 - p(x)) \cdot \alpha x, \qquad p(x) = \sigma\!\left(\frac{x - \mathbb{E}[x]}{\sqrt{\text{Var}[x] + \epsilon}}\right)
+$$</span><p>拐点随数据分布动态调整。右图展示了三个均值不同的 batch：Dice 的拐点随之漂移，而 PReLU 的始终钉在零点。不同层、不同分布、不同有效激活——免费获得。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>Dice</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>dim</span><span class=p>,</span> <span class=n>eps</span><span class=o>=</span><span class=mf>1e-8</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>dim</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>bn</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>BatchNorm1d</span><span class=p>(</span><span class=n>dim</span><span class=p>,</span> <span class=n>eps</span><span class=o>=</span><span class=n>eps</span><span class=p>,</span> <span class=n>affine</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>x_norm</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>bn</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>p</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>sigmoid</span><span class=p>(</span><span class=n>x_norm</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>p</span> <span class=o>*</span> <span class=n>x</span> <span class=o>+</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>p</span><span class=p>)</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>*</span> <span class=n>x</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=小批量感知正则化 class=heading-anchor>小批量感知正则化<a href=#%e5%b0%8f%e6%89%b9%e9%87%8f%e6%84%9f%e7%9f%a5%e6%ad%a3%e5%88%99%e5%8c%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\mathcal{L}_{\text{reg}} = \frac{\lambda}{2} \sum_{j \in \mathcal{B}} \frac{n_{j,\mathcal{B}}}{n_j} \|\mathbf{e}_j\|^2
+$$</span><p>其中 <span class=math-inline>$n_{j,\mathcal{B}}$</span>
+是 item <span class=math-inline>$j$</span>
+在 batch <span class=math-inline>$\mathcal{B}$</span>
+中的计数，<span class=math-inline>$n_j$</span>
+是其全局计数。效果相当，成本却低数个数量级。</p><h3 id=变长序列处理 class=heading-anchor>变长序列处理<a href=#%e5%8f%98%e9%95%bf%e5%ba%8f%e5%88%97%e5%a4%84%e7%90%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>真实用户历史长度差异巨大。我们 pad 至固定最大长度，并用 mask 标记有效部分：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>pad_and_mask</span><span class=p>(</span><span class=n>sequences</span><span class=p>,</span> <span class=n>max_len</span><span class=p>,</span> <span class=n>pad_value</span><span class=o>=</span><span class=mi>0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>padded</span><span class=p>,</span> <span class=n>masks</span> <span class=o>=</span> <span class=p>[],</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>seq</span> <span class=ow>in</span> <span class=n>sequences</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>seq</span> <span class=o>=</span> <span class=n>seq</span><span class=p>[</span><span class=o>-</span><span class=n>max_len</span><span class=p>:]</span>                                    <span class=c1># 只保留最近的行为</span>
+</span></span><span class=line><span class=cl>        <span class=n>pad_len</span> <span class=o>=</span> <span class=n>max_len</span> <span class=o>-</span> <span class=nb>len</span><span class=p>(</span><span class=n>seq</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>padded</span><span class=o>.</span><span class=n>append</span><span class=p>([</span><span class=n>pad_value</span><span class=p>]</span> <span class=o>*</span> <span class=n>pad_len</span> <span class=o>+</span> <span class=nb>list</span><span class=p>(</span><span class=n>seq</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>masks</span><span class=o>.</span><span class=n>append</span><span class=p>([</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=n>pad_len</span> <span class=o>+</span> <span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>*</span> <span class=nb>len</span><span class=p>(</span><span class=n>seq</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>(</span><span class=n>padded</span><span class=p>),</span> <span class=n>torch</span><span class=o>.</span><span class=n>FloatTensor</span><span class=p>(</span><span class=n>masks</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>在注意力中，将 masked 位置设为 <span class=math-inline>$-10^9$</span>
+再做 softmax，即可将其权重压至零。</p><h3 id=大规模服务优化 class=heading-anchor>大规模服务优化<a href=#%e5%a4%a7%e8%a7%84%e6%a8%a1%e6%9c%8d%e5%8a%a1%e4%bc%98%e5%8c%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>面对百万 QPS：</p><ul><li><strong>离线预计算并缓存 item embedding</strong>。item 表相对静态，每晚重算即可。</li><li><strong>截断至最近 N 条行为</strong>。N = 50–100 通常已捕获大部分信号，成本大降。</li><li><strong>量化</strong>。FP16 或 INT8 可将模型体积压缩 2–4 倍，AUC 几乎无损。</li><li><strong>批量推理</strong>。GPU 在 batch size ≥ 64 时效率最高。</li><li><strong>用自定义 CUDA 算子替换 AUGRU 的 Python 循环</strong>。若 DIEN 必须上线，此步关键。</li></ul><hr><h2 id=常见问题 class=heading-anchor>常见问题<a href=#%e5%b8%b8%e8%a7%81%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>为何 DIN 用目标注意力而非自注意力？</strong><br>目标注意力回答“哪些历史行为与 <em>当前</em> 候选相关？”，而自注意力仅关注历史内部关系（如“笔记本和手机同属电子产品”）——虽有用，却不依赖候选，而这恰是推荐的核心。BST 后来证明，Transformer 可同时兼顾两者。</p><p><strong>为何 DIN 不用 softmax？</strong><br>作者发现 softmax 会抹去兴趣 <em>强度</em>。拥有多个强匹配的用户与仅有一个弱匹配的用户，归一化后向量可能相同。去掉 softmax 后，用户向量的模长本身即反映兴趣强度。</p><p><strong>辅助损失真有用吗？</strong><br>确实有用，尤其在长序列上。无辅助损失时，GRU 易退化为平凡状态——虽能降低 CTR 损失，却未表征兴趣。DIEN 论文称，仅辅助损失在 Amazon 数据集上就带来约 0.3% AUC 提升。</p><p><strong>计算成本如何？</strong><br>注意力复杂度为 <span class=math-inline>$O(T^2 \cdot d)$</span>
+——<span class=math-inline>$T \le 100$</span>
+时尚可接受，更长则难处理。长历史常用策略包括：截断（最常见）、稀疏/线性注意力、两阶段检索（如 SIM 硬搜索 → DIN）。</p><p><strong>如何处理冷启动用户？</strong><br>回退至用户画像（人口统计、地理位置、设备）和品类先验。基于内容的 item embedding（来自标题、图片）在行为稀疏时亦有帮助。</p><p><strong>注意力权重是否可解释？</strong><br>基本可解释，但有前提。它能显示模型在某次推荐中依赖哪些历史行为，利于调试与建立信任。但 softmax 归一化后的权重是 <em>相对值</em>——高权重仅表示相对序列中其他行为更高，并非绝对相关性强。</p><hr><h2 id=总结 class=heading-anchor>总结<a href=#%e6%80%bb%e7%bb%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>深度兴趣网络为推荐系统带来了一个持久理念：<strong>并非所有历史行为同等重要，模型应在每次推荐时动态判断哪些行为真正关键</strong>。</p><p>后续工作皆围绕此展开：</p><ol><li><strong>DIN</strong> —— 按候选相关性加权行为。</li><li><strong>DIEN</strong> —— 建模兴趣如何随时间演化。</li><li><strong>DSIN</strong> —— 将行为分组为会话并尊重其结构。</li><li><strong>BST</strong> —— 交由 Transformer 自行挖掘一切模式。</li></ol><p>好厨师不会给每位客人做同一道菜。有了 DIN，好的推荐系统亦不再如此。</p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/recommendation-systems/09-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%9A%E7%9B%AE%E6%A0%87%E4%BC%98%E5%8C%96/ data-next-url=https://www.chenk.top/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/recommendation-systems/>推荐系统</a> <span class=count>16 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/recommendation-systems/09-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%9A%E7%9B%AE%E6%A0%87%E4%BC%98%E5%8C%96/><span class=title>推荐系统（九）—— 多任务学习与多目标优化</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/><span class=title>推荐系统（十一）—— 对比学习与自监督学习</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/01-%E5%85%A5%E9%97%A8%E4%B8%8E%E5%9F%BA%E7%A1%80%E6%A6%82%E5%BF%B5/><span class=series-nav-num>01</span>
+<span class=series-nav-title>推荐系统（一）—— 入门与基础概念</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/02-%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4%E4%B8%8E%E7%9F%A9%E9%98%B5%E5%88%86%E8%A7%A3/><span class=series-nav-num>02</span>
+<span class=series-nav-title>推荐系统（二）—— 协同过滤与矩阵分解</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>03</span>
+<span class=series-nav-title>推荐系统（三）—— 深度学习基础模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/04-ctr%E9%A2%84%E4%BC%B0%E4%B8%8E%E7%82%B9%E5%87%BB%E7%8E%87%E5%BB%BA%E6%A8%A1/><span class=series-nav-num>04</span>
+<span class=series-nav-title>推荐系统（四）—— CTR 预估与点击率建模</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/05-embedding%E8%A1%A8%E7%A4%BA%E5%AD%A6%E4%B9%A0/><span class=series-nav-num>05</span>
+<span class=series-nav-title>推荐系统（五）—— Embedding 表示学习</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/06-%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90%E4%B8%8E%E4%BC%9A%E8%AF%9D%E5%BB%BA%E6%A8%A1/><span class=series-nav-num>06</span>
+<span class=series-nav-title>推荐系统（六）—— 序列推荐与会话建模</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/07-%E5%9B%BE%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E7%A4%BE%E4%BA%A4%E6%8E%A8%E8%8D%90/><span class=series-nav-num>07</span>
+<span class=series-nav-title>推荐系统（七）—— 图神经网络与社交推荐</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/08-%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/><span class=series-nav-num>08</span>
+<span class=series-nav-title>推荐系统（八）—— 知识图谱增强推荐系统</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/09-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%9A%E7%9B%AE%E6%A0%87%E4%BC%98%E5%8C%96/><span class=series-nav-num>09</span>
+<span class=series-nav-title>推荐系统（九）—— 多任务学习与多目标优化</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>10</span>
+<span class=series-nav-title>推荐系统（十）—— 深度兴趣网络与注意力机制</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/><span class=series-nav-num>11</span>
+<span class=series-nav-title>推荐系统（十一）—— 对比学习与自监督学习</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/><span class=series-nav-num>12</span>
+<span class=series-nav-title>推荐系统（十二）—— 大语言模型与推荐系统</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/13-%E5%85%AC%E5%B9%B3%E6%80%A7-%E5%8E%BB%E5%81%8F%E4%B8%8E%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/><span class=series-nav-num>13</span>
+<span class=series-nav-title>推荐系统（十三）—— 公平性、去偏与可解释性</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/14-%E8%B7%A8%E5%9F%9F%E6%8E%A8%E8%8D%90%E4%B8%8E%E5%86%B7%E5%90%AF%E5%8A%A8%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/><span class=series-nav-num>14</span>
+<span class=series-nav-title>推荐系统（十四）—— 跨域推荐与冷启动解决方案</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/15-%E5%AE%9E%E6%97%B6%E6%8E%A8%E8%8D%90%E4%B8%8E%E5%9C%A8%E7%BA%BF%E5%AD%A6%E4%B9%A0/><span class=series-nav-num>15</span>
+<span class=series-nav-title>推荐系统（十五）—— 实时推荐与在线学习</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/><span class=series-nav-num>16</span>
+<span class=series-nav-title>推荐系统（十六）—— 工业级架构与最佳实践</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E6%258E%25A8%25E8%258D%2590%25E7%25B3%25BB%25E7%25BB%259F%25EF%25BC%2588%25E5%258D%2581%25EF%25BC%2589%25E2%2580%2594%25E2%2580%2594%2b%25E6%25B7%25B1%25E5%25BA%25A6%25E5%2585%25B4%25E8%25B6%25A3%25E7%25BD%2591%25E7%25BB%259C%25E4%25B8%258E%25E6%25B3%25A8%25E6%2584%258F%25E5%258A%259B%25E6%259C%25BA%25E5%2588%25B6&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Frecommendation-systems%252F10-%2525E6%2525B7%2525B1%2525E5%2525BA%2525A6%2525E5%252585%2525B4%2525E8%2525B6%2525A3%2525E7%2525BD%252591%2525E7%2525BB%25259C%2525E4%2525B8%25258E%2525E6%2525B3%2525A8%2525E6%252584%25258F%2525E5%25258A%25259B%2525E6%25259C%2525BA%2525E5%252588%2525B6%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Frecommendation-systems%252F10-%2525E6%2525B7%2525B1%2525E5%2525BA%2525A6%2525E5%252585%2525B4%2525E8%2525B6%2525A3%2525E7%2525BD%252591%2525E7%2525BB%25259C%2525E4%2525B8%25258E%2525E6%2525B3%2525A8%2525E6%252584%25258F%2525E5%25258A%25259B%2525E6%25259C%2525BA%2525E5%252588%2525B6%252F&title=%25E6%258E%25A8%25E8%258D%2590%25E7%25B3%25BB%25E7%25BB%259F%25EF%25BC%2588%25E5%258D%2581%25EF%25BC%2589%25E2%2580%2594%25E2%2580%2594%2b%25E6%25B7%25B1%25E5%25BA%25A6%25E5%2585%25B4%25E8%25B6%25A3%25E7%25BD%2591%25E7%25BB%259C%25E4%25B8%258E%25E6%25B3%25A8%25E6%2584%258F%25E5%258A%259B%25E6%259C%25BA%25E5%2588%25B6" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/recommendation-systems/10-%E6%B7%B1%E5%BA%A6%E5%85%B4%E8%B6%A3%E7%BD%91%E7%BB%9C%E4%B8%8E%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2025-12-28>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#从平均池化到注意力机制>从平均池化到注意力机制</a><ul><li><a href=#平均池化的问题在哪里>平均池化的问题在哪里？</a></li><li><a href=#注意力机制如何解决这个问题>注意力机制如何解决这个问题？</a></li><li><a href=#如何选择打分函数>如何选择打分函数？</a></li></ul></li><li><a href=#深度兴趣网络-din>深度兴趣网络 (DIN)</a><ul><li><a href=#din-的工作原理>DIN 的工作原理</a></li><li><a href=#实现>实现</a></li><li><a href=#训练目标与阿里的工业化技巧>训练目标与阿里的工业化技巧</a></li></ul></li><li><a href=#深度兴趣演化网络-dien>深度兴趣演化网络 (DIEN)</a><ul><li><a href=#一张图看懂架构>一张图看懂架构</a></li><li><a href=#辅助损失技巧>辅助损失技巧</a></li><li><a href=#augru-实现>AUGRU 实现</a></li></ul></li><li><a href=#深度会话兴趣网络-dsin>深度会话兴趣网络 (DSIN)</a><ul><li><a href=#何时选用哪个模型>何时选用哪个模型</a></li></ul></li><li><a href=#行为序列变换器-bst>行为序列变换器 (BST)</a></li><li><a href=#这些技巧到底能带来多少收益>这些技巧到底能带来多少收益？</a></li><li><a href=#真正能提升效果的工业化技巧>真正能提升效果的工业化技巧</a><ul><li><a href=#dice--数据自适应激活函数>Dice —— 数据自适应激活函数</a></li><li><a href=#小批量感知正则化>小批量感知正则化</a></li><li><a href=#变长序列处理>变长序列处理</a></li><li><a href=#大规模服务优化>大规模服务优化</a></li></ul></li><li><a href=#常见问题>常见问题</a></li><li><a href=#总结>总结</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/recommendation-systems/ class=series-name>推荐系统</a>
+<span class=count>16</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/01-%E5%85%A5%E9%97%A8%E4%B8%8E%E5%9F%BA%E7%A1%80%E6%A6%82%E5%BF%B5/><span class=chapter-num>01</span>
+<span class=chapter-title>推荐系统（一）—— 入门与基础概念</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/02-%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4%E4%B8%8E%E7%9F%A9%E9%98%B5%E5%88%86%E8%A7%A3/><span class=chapter-num>02</span>
+<span class=chapter-title>推荐系统（二）—— 协同过滤与矩阵分解</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/><span class=chapter-num>03</span>
+<span class=chapter-title>推荐系统（三）—— 深度学习基础模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/04-ctr%E9%A2%84%E4%BC%B0%E4%B8%8E%E7%82%B9%E5%87%BB%E7%8E%87%E5%BB%BA%E6%A8%A1/><span class=chapter-num>04</span>
+<span class=chapter-title>推荐系统（四）—— CTR 预估与点击率建模</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/05-embedding%E8%A1%A8%E7%A4%BA%E5%AD%A6%E4%B9%A0/><span class=chapter-num>05</span>
+<span class=chapter-title>推荐系统（五）—— Embedding 表示学习</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/06-%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90%E4%B8%8E%E4%BC%9A%E8%AF%9D%E5%BB%BA%E6%A8%A1/><span class=chapter-num>06</span>
+<span class=chapter-title>推荐系统（六）—— 序列推荐与会话建模</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/07-%E5%9B%BE%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E7%A4%BE%E4%BA%A4%E6%8E%A8%E8%8D%90/><span class=chapter-num>07</span>
+<span class=chapter-title>推荐系统（七）—— 图神经网络与社交推荐</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/08-%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/><span class=chapter-num>08</span>
+<span class=chapter-title>推荐系统（八）—— 知识图谱增强推荐系统</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/09-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%9A%E7%9B%AE%E6%A0%87%E4%BC%98%E5%8C%96/><span class=chapter-num>09</span>
+<span class=chapter-title>推荐系统（九）—— 多任务学习与多目标优化</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>10</span>
+<span class=chapter-title>推荐系统（十）—— 深度兴趣网络与注意力机制</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/><span class=chapter-num>11</span>
+<span class=chapter-title>推荐系统（十一）—— 对比学习与自监督学习</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/><span class=chapter-num>12</span>
+<span class=chapter-title>推荐系统（十二）—— 大语言模型与推荐系统</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/13-%E5%85%AC%E5%B9%B3%E6%80%A7-%E5%8E%BB%E5%81%8F%E4%B8%8E%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/><span class=chapter-num>13</span>
+<span class=chapter-title>推荐系统（十三）—— 公平性、去偏与可解释性</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/14-%E8%B7%A8%E5%9F%9F%E6%8E%A8%E8%8D%90%E4%B8%8E%E5%86%B7%E5%90%AF%E5%8A%A8%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/><span class=chapter-num>14</span>
+<span class=chapter-title>推荐系统（十四）—— 跨域推荐与冷启动解决方案</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/15-%E5%AE%9E%E6%97%B6%E6%8E%A8%E8%8D%90%E4%B8%8E%E5%9C%A8%E7%BA%BF%E5%AD%A6%E4%B9%A0/><span class=chapter-num>15</span>
+<span class=chapter-title>推荐系统（十五）—— 实时推荐与在线学习</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/><span class=chapter-num>16</span>
+<span class=chapter-title>推荐系统（十六）—— 工业级架构与最佳实践</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>24 min</strong></div><div class=row><span>字数</span><strong>5773</strong></div><div class=row><span>写于</span><strong>Dec 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/product-thinking/>产品思维</a></li><li><a href=https://www.chenk.top/zh/series/personal-finance/>个人理财</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=关闭>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>在微信里搜索此 ID 即可添加我</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>复制微信号</button></div></div></div></footer></body></html>

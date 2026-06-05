@@ -1,0 +1,562 @@
+<!doctype html><html lang=zh data-translation=/en/recommendation-systems/15-real-time-online/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>推荐系统（十五）—— 实时推荐与在线学习 · Chen Kai Blog</title>
+<meta name=description content="实时推荐的工程师视角：流式管道（Kafka + Flink）、在线学习（SGD、FTRL、AdaGrad）、Bandit（UCB、Thompson Sampling、LinUCB）、延迟预算、特征新鲜度、概念漂移检测，以及生产环境真正在调的缓存与计算权衡。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/recommendation-systems/15-%E5%AE%9E%E6%97%B6%E6%8E%A8%E8%8D%90%E4%B8%8E%E5%9C%A8%E7%BA%BF%E5%AD%A6%E4%B9%A0/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/recommendation-systems/15-real-time-online/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/recommendation-systems/15-%E5%AE%9E%E6%97%B6%E6%8E%A8%E8%8D%90%E4%B8%8E%E5%9C%A8%E7%BA%BF%E5%AD%A6%E4%B9%A0/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/recommendation-systems/15-%E5%AE%9E%E6%97%B6%E6%8E%A8%E8%8D%90%E4%B8%8E%E5%9C%A8%E7%BA%BF%E5%AD%A6%E4%B9%A0/><meta property="og:type" content="article"><meta property="og:title" content="推荐系统（十五）—— 实时推荐与在线学习"><meta property="og:description" content="实时推荐的工程师视角：流式管道（Kafka + Flink）、在线学习（SGD、FTRL、AdaGrad）、Bandit（UCB、Thompson Sampling、LinUCB）、延迟预算、特征新鲜度、概念漂移检测，以及生产环境真正在调的缓存与计算权衡。"><meta property="og:url" content="https://www.chenk.top/zh/recommendation-systems/15-%E5%AE%9E%E6%97%B6%E6%8E%A8%E8%8D%90%E4%B8%8E%E5%9C%A8%E7%BA%BF%E5%AD%A6%E4%B9%A0/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/recommendation-systems.jpg"><meta property="og:image:alt" content="推荐系统（十五）—— 实时推荐与在线学习"><meta property="article:published_time" content="2026-01-12T09:00:00Z"><meta property="article:modified_time" content="2026-01-12T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Recommendation Systems"><meta property="article:tag" content="Real-Time"><meta property="article:tag" content="Online Learning"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="推荐系统（十五）—— 实时推荐与在线学习"><meta name=twitter:description content="实时推荐的工程师视角：流式管道（Kafka + Flink）、在线学习（SGD、FTRL、AdaGrad）、Bandit（UCB、Thompson Sampling、LinUCB）、延迟预算、特征新鲜度、概念漂移检测，以及生产环境真正在调的缓存与计算权衡。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/recommendation-systems.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"推荐系统（十五）—— 实时推荐与在线学习","description":"实时推荐的工程师视角：流式管道（Kafka + Flink）、在线学习（SGD、FTRL、AdaGrad）、Bandit（UCB、Thompson Sampling、LinUCB）、延迟预算、特征新鲜度、概念漂移检测，以及生产环境真正在调的缓存与计算权衡。","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/recommendation-systems.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2026-01-12T09:00:00Z","dateModified":"2026-01-12T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/zh/recommendation-systems/15-%E5%AE%9E%E6%97%B6%E6%8E%A8%E8%8D%90%E4%B8%8E%E5%9C%A8%E7%BA%BF%E5%AD%A6%E4%B9%A0/"},"inLanguage":"zh"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js onload='document.querySelectorAll(".math-inline,.math-block").forEach(function(e){var t=e.textContent,n=e.classList.contains("math-block"),t=n?t.replace(/^\$\$/,"").replace(/\$\$$/,""):t.replace(/^\$/,"").replace(/\$$/,"");try{katex.render(t,e,{displayMode:n,throwOnError:!1})}catch{}})'></script><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/recommendation-systems/15-%e5%ae%9e%e6%97%b6%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%9c%a8%e7%ba%bf%e5%ad%a6%e4%b9%a0.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/recommendation-systems/>推荐系统</a>
+· 第 15 篇</div><h1>推荐系统（十五）—— 实时推荐与在线学习</h1><p class=deck>实时推荐的工程师视角：流式管道（Kafka + Flink）、在线学习（SGD、FTRL、AdaGrad）、Bandit（UCB、Thompson Sampling、LinUCB）、延迟预算、特征新鲜度、概念漂移检测，以及生产环境真正在调的缓存与计算权衡。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-01-12>January 12, 2026</time> · 32 分钟 · 7518 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/recommendation-systems/ class=tag>#Recommendation Systems</a><a href=/zh/tags/real-time/ class=tag>#Real-Time</a><a href=/zh/tags/online-learning/ class=tag>#Online Learning</a></div><a class="pill pill-outline" href=/en/recommendation-systems/15-real-time-online/>Read in English →</a></div></header><div class=prose><p>用户在 14:02 打开 App 搜索「越野跑鞋」，到了 15:30 已经开始浏览厨房用品的评测；如果模型还在使用昨晚训练的离线快照，16:00 推给他的很可能仍是萨洛蒙广告——这个时间差正是实时系统要解决的核心问题。真正关键的并非「让所有东西都变快」，而是「到底哪些东西值得变快」：许多特征即使做到实时，对 AUC 的提升也微乎其微，选错方向只会白白浪费资源。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/15-%e5%ae%9e%e6%97%b6%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%9c%a8%e7%ba%bf%e5%ad%a6%e4%b9%a0/illustration_1.png alt="推荐系统（十五）—— 实时推荐与在线学习 — 章节概览图" loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li><strong>两条路径</strong>：实时推荐系统本质上是两条管道拼接而成——异步的<em>写路径</em>（事件 → 状态 → 模型）和同步的<em>读路径</em>（请求 → 召回 → 排序 → 返回）。</li><li><strong>毫秒花在哪了</strong>：延迟不能只看平均值，用户实际感知的是 p99 尾部延迟。我们会按阶段、按分位数拆解 100 ms 的预算。</li><li><strong>在线学习的实际应用</strong>：SGD、AdaGrad，以及生产环境中广泛使用的 FTRL-Proximal——这正是 Google 广告点击率预测系统所采用的算法。</li><li><strong>Bandit 算法</strong>：UCB1、Thompson Sampling 和上下文版 LinUCB，以及它们的 regret 界在物品每日更替的现实场景中究竟意味着什么。</li><li><strong>流式架构</strong>：一个具体的 Kafka + Flink + KV 存储方案，支持 checkpoint 和 exactly-once 语义。</li><li><strong>概念漂移</strong>：如何检测（ADWIN、DDM、Page-Hinkley），以及检测到之后该如何应对。</li><li><strong>缓存 vs 计算</strong>：生产环境中真正需要调优的权衡点——答案几乎总是「混合策略」。</li></ul><h2 id=前置知识 class=heading-anchor>前置知识<a href=#%e5%89%8d%e7%bd%ae%e7%9f%a5%e8%af%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>Python 和 NumPy（第 1–2 篇）</li><li>SGD 和损失函数（第 7 篇）</li><li>推荐系统流程概览（第 11 篇）</li></ul><hr><h2 id=为什么需要实时以及实时到底是什么 class=heading-anchor>为什么需要实时，以及“实时”到底是什么<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e9%9c%80%e8%a6%81%e5%ae%9e%e6%97%b6%e4%bb%a5%e5%8f%8a%e5%ae%9e%e6%97%b6%e5%88%b0%e5%ba%95%e6%98%af%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>三个现实因素推动我们走向实时：</p><ol><li><strong>会话很短</strong>：Feed 类应用的中位会话时长仅为 3–7 分钟。每天更新一次的模型，在大多数会话结束前根本来不及看到它们。</li><li><strong>热点转瞬即逝</strong>：一个爆款视频可能在发布后 6 小时内就完成了 80% 的总互动量。昨天训练的离线模型对此完全无能为力。</li><li><strong>反馈闭环即模型本身</strong>：一旦你推送了一条推荐，用户的点击行为就成为下一条训练样本。将这个闭环从“天级”缩短到“秒级”，是区分一个持续学习系统与一个停滞系统的根本所在。</li></ol><p>但“实时”并非单一概念，而是一个光谱：</p><div class=table-wrap><table><thead><tr><th>层级</th><th>更新频率</th><th>典型用途</th></tr></thead><tbody><tr><td>实时</td><td>&lt; 1 秒</td><td>会话意图、Feed 内去重、风控信号</td></tr><tr><td>准实时</td><td>1 秒 – 1 小时</td><td>近期点击序列、单创作者 CTR</td></tr><tr><td>小时级</td><td>1 – 24 小时</td><td>热门话题、物品热度衰减</td></tr><tr><td>离线</td><td>1 天以上</td><td>用户人口属性、物品 Embedding、召回索引</td></tr></tbody></table></div><p>常见的误区是试图让所有特征都实时化。如图 4 所示，人口属性和物品元数据在实时管道中几乎无法带来 AUC 提升，而近期点击序列却能带来 2–3 个 AUC 百分点的收益。<strong>实时是一种有限资源，应精准投放在真正能推动指标的特征上。</strong></p><hr><h2 id=双路径架构 class=heading-anchor>双路径架构<a href=#%e5%8f%8c%e8%b7%af%e5%be%84%e6%9e%b6%e6%9e%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/15-%e5%ae%9e%e6%97%b6%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%9c%a8%e7%ba%bf%e5%ad%a6%e4%b9%a0/fig1_pipeline.png alt="实时推荐系统：异步写路径不停刷新状态，同步读路径在硬性 SLO 下提供服务" loading=lazy decoding=async class=content-image></figure></p><p>实时推荐系统可清晰拆分为两条路径：</p><p><strong>写路径（异步，吞吐优先）</strong>：用户行为事件从客户端发出，进入按 <code>user_id</code> 分区的 Kafka Topic。Flink 作业对这些事件进行聚合，生成滚动窗口特征（如最近 N 次点击、过去 10 分钟的 CTR 等），并将结果写入两个地方：一是供读路径消费的<em>特征存储</em>（如 Redis 或 RocksDB），二是用于更新模型权重的<em>在线学习器</em>。每隔几分钟，新的模型快照会被推送到模型注册中心。</p><p><strong>读路径（同步，延迟敏感）</strong>：当推荐请求到达时，系统先执行召回（基于 Embedding 的 ANN 搜索，辅以倒排索引覆盖新鲜物品），然后通过<em>单次往返</em>从特征存储中拉取所需特征，接着进行排序，并在重排阶段加入多样性控制和业务规则，最终返回结果。整个过程必须控制在 100 毫秒以内。</p><p>工程上的核心原则是保持两条路径解耦：读路径<strong>绝不</strong>参与模型训练、权重更新或流处理阻塞操作。即使流处理侧出现延迟，读路径仍能使用稍显陈旧的特征继续服务——性能可能略有下降，但系统不会中断。</p><h2 id=延迟预算--每一毫秒花在哪 class=heading-anchor>延迟预算 —— 每一毫秒花在哪<a href=#%e5%bb%b6%e8%bf%9f%e9%a2%84%e7%ae%97--%e6%af%8f%e4%b8%80%e6%af%ab%e7%a7%92%e8%8a%b1%e5%9c%a8%e5%93%aa class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/15-%e5%ae%9e%e6%97%b6%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%9c%a8%e7%ba%bf%e5%ad%a6%e4%b9%a0/fig2_latency_budget.png alt="延迟预算按阶段、按分位拆解，展示召回、特征拉取、排序、重排各自在 p50/p95/p99 上的占比" loading=lazy decoding=async class=content-image></figure></p><p>对于 Feed 类产品，100 ms 的端到端 SLO 是行业标准（人因研究表明，视觉更新“感觉即时”的阈值约为 100–200 ms）。在这 100 ms 预算内，各阶段耗时大致如下：</p><div class=table-wrap><table><thead><tr><th>阶段</th><th>p50</th><th>p95</th><th>p99</th><th>备注</th></tr></thead><tbody><tr><td>入向网络</td><td>4</td><td>7</td><td>12</td><td>长连接摊薄 TLS 握手开销</td></tr><tr><td>召回（ANN）</td><td>10</td><td>18</td><td>28</td><td>HNSW 或 ScaNN 在亿级物品上的查询</td></tr><tr><td>特征拉取</td><td>6</td><td>14</td><td>30</td><td>Redis pipeline；尾部延迟主要来自 GC 或网络抖动</td></tr><tr><td>排序（DNN）</td><td>18</td><td>32</td><td>55</td><td>对约 500 个候选进行批量打分</td></tr><tr><td>重排 + 日志</td><td>4</td><td>9</td><td>18</td><td>多样性调整、业务规则过滤、异步日志记录</td></tr><tr><td>出向网络</td><td>3</td><td>6</td><td>11</td><td></td></tr><tr><td><strong>端到端</strong></td><td><strong>45</strong></td><td><strong>86</strong></td><td><strong>154</strong></td><td>p99 超出 SLO —— 这是常态</td></tr></tbody></table></div><p>两条实用经验：</p><ol><li><strong>平均延迟具有欺骗性</strong>：p50 为 45 ms 看似宽裕，但 p99 达 154 ms 意味着 1% 的请求超时。在日均十亿请求的平台上，这相当于每天数百万次失败体验。</li><li><strong>排序是延迟大头</strong>：候选批处理、模型蒸馏、TensorRT/ONNX-Runtime 量化等优化带来的收益远超其他环节。Pinterest 曾报告，将 6 层 DNN 蒸馏为 2 层学生模型并引入特征交叉后，p99 延迟降低了 30%。</li></ol><hr><h2 id=流式架构生产环境中的-kafka--flink class=heading-anchor>流式架构：生产环境中的 Kafka + Flink<a href=#%e6%b5%81%e5%bc%8f%e6%9e%b6%e6%9e%84%e7%94%9f%e4%ba%a7%e7%8e%af%e5%a2%83%e4%b8%ad%e7%9a%84-kafka--flink class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/15-%e5%ae%9e%e6%97%b6%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%9c%a8%e7%ba%bf%e5%ad%a6%e4%b9%a0/fig5_streaming_arch.png alt="流式参考架构：客户端写入 Kafka 主题，Flink 执行有状态聚合与在线学习，输出分发到特征存储、模型注册中心和指标系统" loading=lazy decoding=async class=content-image></figure></p><h3 id=kafka--可靠的传输层 class=heading-anchor>Kafka —— 可靠的传输层<a href=#kafka--%e5%8f%af%e9%9d%a0%e7%9a%84%e4%bc%a0%e8%be%93%e5%b1%82 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Kafka 的角色明确而关键：提供持久化、分区化且可重放的日志。三个核心特性至关重要：</p><ul><li><strong>按 <code>user_id</code> 分区</strong>：确保同一用户的所有事件落在同一分区，从而保留因果顺序——这对“点击是否发生在曝光之后”这类有状态关联至关重要。</li><li><strong>副本机制</strong>（通常 <code>replication-factor=3</code>）：即使某个 Broker 宕机，也不会丢失数据。</li><li><strong>数据保留策略</strong>：支持回放最近 7 天的数据，便于新模型回填——线上服务与故障恢复共用同一套代码路径。</li></ul><p>Kafka <strong>不负责</strong>聚合、Join 或机器学习。它本质上是一个高可靠的消息邮局。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>kafka</span> <span class=kn>import</span> <span class=n>KafkaProducer</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>json</span><span class=o>,</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>producer</span> <span class=o>=</span> <span class=n>KafkaProducer</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>bootstrap_servers</span><span class=o>=</span><span class=p>[</span><span class=s2>&#34;kafka-1:9092&#34;</span><span class=p>,</span> <span class=s2>&#34;kafka-2:9092&#34;</span><span class=p>,</span> <span class=s2>&#34;kafka-3:9092&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=n>value_serializer</span><span class=o>=</span><span class=k>lambda</span> <span class=n>v</span><span class=p>:</span> <span class=n>json</span><span class=o>.</span><span class=n>dumps</span><span class=p>(</span><span class=n>v</span><span class=p>)</span><span class=o>.</span><span class=n>encode</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>    <span class=n>key_serializer</span><span class=o>=</span><span class=k>lambda</span> <span class=n>k</span><span class=p>:</span> <span class=n>k</span><span class=o>.</span><span class=n>encode</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>    <span class=n>acks</span><span class=o>=</span><span class=s2>&#34;all&#34;</span><span class=p>,</span>        <span class=c1># 等待所有 ISR 副本确认</span>
+</span></span><span class=line><span class=cl>    <span class=n>enable_idempotence</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>  <span class=c1># 生产者端 exactly-once 语义</span>
+</span></span><span class=line><span class=cl>    <span class=n>compression_type</span><span class=o>=</span><span class=s2>&#34;lz4&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>linger_ms</span><span class=o>=</span><span class=mi>5</span><span class=p>,</span>       <span class=c1># 5 毫秒微批处理，用 5ms 延迟换取 10 倍吞吐</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>emit_click</span><span class=p>(</span><span class=n>user_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>item_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>position</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;发送一次点击事件，同一用户始终落同一个分区。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>producer</span><span class=o>.</span><span class=n>send</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>topic</span><span class=o>=</span><span class=s2>&#34;clicks&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>key</span><span class=o>=</span><span class=n>user_id</span><span class=p>,</span>                <span class=c1># 分区键</span>
+</span></span><span class=line><span class=cl>        <span class=n>value</span><span class=o>=</span><span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;user_id&#34;</span><span class=p>:</span> <span class=n>user_id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;item_id&#34;</span><span class=p>:</span> <span class=n>item_id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;position&#34;</span><span class=p>:</span> <span class=n>position</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;ts&#34;</span><span class=p>:</span> <span class=nb>int</span><span class=p>(</span><span class=n>time</span><span class=o>.</span><span class=n>time</span><span class=p>()</span> <span class=o>*</span> <span class=mi>1000</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=flink--有状态的流处理引擎 class=heading-anchor>Flink —— 有状态的流处理引擎<a href=#flink--%e6%9c%89%e7%8a%b6%e6%80%81%e7%9a%84%e6%b5%81%e5%a4%84%e7%90%86%e5%bc%95%e6%93%8e class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>如果说 Kafka 是传输层，Flink 则是有状态的流处理器。其杀手锏是<strong>故障下的 exactly-once 语义</strong>，通过 Chandy-Lamport 风格的分布式快照实现：每 60 秒（默认 checkpoint 间隔），Flink 会原子性地捕获所有算子的状态并持久化到 S3。发生故障时，系统将 Kafka offset 回退至上一个 checkpoint 并重放事件——对外表现如同从未发生过故障。</p><p>一个典型的 Flink 点击归因任务如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Flink SQL —— 每用户最近 10 分钟点击数，写入特征存储</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pyflink.table</span> <span class=kn>import</span> <span class=n>EnvironmentSettings</span><span class=p>,</span> <span class=n>StreamTableEnvironment</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>t_env</span> <span class=o>=</span> <span class=n>StreamTableEnvironment</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>environment_settings</span><span class=o>=</span><span class=n>EnvironmentSettings</span><span class=o>.</span><span class=n>in_streaming_mode</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>t_env</span><span class=o>.</span><span class=n>execute_sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>CREATE TABLE clicks (
+</span></span></span><span class=line><span class=cl><span class=s2>    user_id STRING,
+</span></span></span><span class=line><span class=cl><span class=s2>    item_id STRING,
+</span></span></span><span class=line><span class=cl><span class=s2>    ts BIGINT,
+</span></span></span><span class=line><span class=cl><span class=s2>    event_time AS TO_TIMESTAMP_LTZ(ts, 3),
+</span></span></span><span class=line><span class=cl><span class=s2>    WATERMARK FOR event_time AS event_time - INTERVAL &#39;5&#39; SECOND
+</span></span></span><span class=line><span class=cl><span class=s2>) WITH (
+</span></span></span><span class=line><span class=cl><span class=s2>    &#39;connector&#39; = &#39;kafka&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>    &#39;topic&#39; = &#39;clicks&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>    &#39;properties.bootstrap.servers&#39; = &#39;kafka-1:9092&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>    &#39;format&#39; = &#39;json&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>    &#39;scan.startup.mode&#39; = &#39;latest-offset&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>)
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>t_env</span><span class=o>.</span><span class=n>execute_sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>CREATE TABLE user_features (
+</span></span></span><span class=line><span class=cl><span class=s2>    user_id STRING,
+</span></span></span><span class=line><span class=cl><span class=s2>    window_end TIMESTAMP(3),
+</span></span></span><span class=line><span class=cl><span class=s2>    clicks_10m BIGINT,
+</span></span></span><span class=line><span class=cl><span class=s2>    PRIMARY KEY (user_id) NOT ENFORCED
+</span></span></span><span class=line><span class=cl><span class=s2>) WITH (
+</span></span></span><span class=line><span class=cl><span class=s2>    &#39;connector&#39; = &#39;redis&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>    &#39;host&#39; = &#39;redis.prod&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>    &#39;ttl-sec&#39; = &#39;900&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>)
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 10 分钟滑动窗口，步长 1 分钟 —— 每分钟输出一次最新的 CTR</span>
+</span></span><span class=line><span class=cl><span class=n>t_env</span><span class=o>.</span><span class=n>execute_sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>INSERT INTO user_features
+</span></span></span><span class=line><span class=cl><span class=s2>SELECT
+</span></span></span><span class=line><span class=cl><span class=s2>    user_id,
+</span></span></span><span class=line><span class=cl><span class=s2>    HOP_END(event_time, INTERVAL &#39;1&#39; MINUTE, INTERVAL &#39;10&#39; MINUTE) AS window_end,
+</span></span></span><span class=line><span class=cl><span class=s2>    COUNT(*) AS clicks_10m
+</span></span></span><span class=line><span class=cl><span class=s2>FROM clicks
+</span></span></span><span class=line><span class=cl><span class=s2>GROUP BY
+</span></span></span><span class=line><span class=cl><span class=s2>    user_id,
+</span></span></span><span class=line><span class=cl><span class=s2>    HOP(event_time, INTERVAL &#39;1&#39; MINUTE, INTERVAL &#39;10&#39; MINUTE)
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Watermark 是最容易出错的部分。它声明：“我不会再收到 <code>event_time &lt; watermark</code> 的事件。”这授权 Flink 关闭窗口并输出结果。若设置过紧，会丢弃晚到事件；若设置过松，特征更新将系统性延迟。</p><h2 id=在线学习从-sgd-到-ftrl class=heading-anchor>在线学习：从 SGD 到 FTRL<a href=#%e5%9c%a8%e7%ba%bf%e5%ad%a6%e4%b9%a0%e4%bb%8e-sgd-%e5%88%b0-ftrl class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/15-%e5%ae%9e%e6%97%b6%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%9c%a8%e7%ba%bf%e5%ad%a6%e4%b9%a0/illustration_2.png alt="推荐系统（十五）—— 实时推荐与在线学习 — 章节小结图" loading=lazy decoding=async class=content-image></figure></p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/15-%e5%ae%9e%e6%97%b6%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%9c%a8%e7%ba%bf%e5%ad%a6%e4%b9%a0/fig3_online_vs_batch.png alt="在线学习 vs 离线重训。左：稳态任务的收敛过程；右：概念漂移下的表现" loading=lazy decoding=async class=content-image></figure></p><h3 id=核心更新公式 class=heading-anchor>核心更新公式<a href=#%e6%a0%b8%e5%bf%83%e6%9b%b4%e6%96%b0%e5%85%ac%e5%bc%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\theta_{t+1} = \theta_t - \eta_t \, \nabla_\theta \mathcal{L}(\sigma(\theta_t^\top x_t), y_t)
+$$</span><p>这是标准的 SGD。但在 Web 规模 CTR 数据上——特征数以百万计，每个特征仅在极小比例样本中出现——它存在两大问题：</p><ol><li><strong>缺乏按特征的学习率</strong>：一个每 1 万条样本才出现一次的特征，显然需要比高频特征更大的更新步长。</li><li><strong>缺乏稀疏性</strong>：权重会在噪声中漂移，无法真正归零。一个拥有 <span class=math-inline>$10^9$</span>
+参数且永不归零的模型，根本无法上线服务。</li></ol><h3 id=adagrad--自适应按特征步长 class=heading-anchor>AdaGrad —— 自适应按特征步长<a href=#adagrad--%e8%87%aa%e9%80%82%e5%ba%94%e6%8c%89%e7%89%b9%e5%be%81%e6%ad%a5%e9%95%bf class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\theta_{t+1, i} = \theta_{t, i} - \frac{\eta}{\sqrt{G_{t, i} + \varepsilon}} g_{t, i}, \quad G_{t, i} = \sum_{s=1}^{t} g_{s, i}^2
+$$</span><p>罕见特征的 <span class=math-inline>$G$</span>
+较小，因此在少数几次出现时可迈出大步；高频特征的 <span class=math-inline>$G$</span>
+较大，更新更为谨慎。</p><h3 id=ftrl-proximal--生产环境的主力算法 class=heading-anchor>FTRL-Proximal —— 生产环境的主力算法<a href=#ftrl-proximal--%e7%94%9f%e4%ba%a7%e7%8e%af%e5%a2%83%e7%9a%84%e4%b8%bb%e5%8a%9b%e7%ae%97%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+z_{t,i} \leftarrow z_{t-1,i} + g_{t,i} - \frac{\sigma_{t,i}}{\eta} \theta_{t-1,i},
+\qquad
+\theta_{t,i} =
+\begin{cases}
+0 & \text{若 } |z_{t,i}| \le \lambda_1 \\
+-\frac{1}{\eta_{t,i}} \big(z_{t,i} - \mathrm{sign}(z_{t,i}) \lambda_1\big) & \text{否则}
+\end{cases}
+$$</span><p>其中 <span class=math-inline>$\sigma_{t,i} = \frac{1}{\eta_{t,i}} - \frac{1}{\eta_{t-1,i}}$</span>
+，<span class=math-inline>$\eta_{t,i} = \alpha / (\beta + \sqrt{\sum_s g_{s,i}^2})$</span>
+。</p><p>关键优势在于：模型真正稀疏。Google 报告称，相比带 <span class=math-inline>$L_2$</span>
+正则化的朴素 SGD，FTRL-Proximal 在相同 AUC 下将模型体积压缩了一个数量级。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>FTRLProximal</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;FTRL-Proximal 在线逻辑回归。
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    参考文献：McMahan 等，&#34;Ad Click Prediction: a View from the
+</span></span></span><span class=line><span class=cl><span class=s2>    Trenches&#34;，KDD 2013。Google 当时广告系统真正运行的算法。
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n_features</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>alpha</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span> <span class=n>beta</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>l1</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>l2</span><span class=o>=</span><span class=mf>1.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>n</span> <span class=o>=</span> <span class=n>n_features</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>beta</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>l1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>l2</span> <span class=o>=</span> <span class=n>alpha</span><span class=p>,</span> <span class=n>beta</span><span class=p>,</span> <span class=n>l1</span><span class=p>,</span> <span class=n>l2</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 只持久化 z 和 n，权重 w 按需懒计算</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>z</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>n_features</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>n_sq</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>n_features</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_weight</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>i</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>float</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;从 (z_i, n_sq_i) 懒计算 w_i。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>z</span><span class=p>,</span> <span class=n>n_sq</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>z</span><span class=p>[</span><span class=n>i</span><span class=p>],</span> <span class=bp>self</span><span class=o>.</span><span class=n>n_sq</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=nb>abs</span><span class=p>(</span><span class=n>z</span><span class=p>)</span> <span class=o>&lt;=</span> <span class=bp>self</span><span class=o>.</span><span class=n>l1</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=n>sign</span> <span class=o>=</span> <span class=mf>1.0</span> <span class=k>if</span> <span class=n>z</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=k>else</span> <span class=o>-</span><span class=mf>1.0</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=o>-</span><span class=p>(</span><span class=n>z</span> <span class=o>-</span> <span class=n>sign</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>l1</span><span class=p>)</span> <span class=o>/</span> <span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>beta</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>n_sq</span><span class=p>))</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>l2</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>predict_proba</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x_indices</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>x_values</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>float</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;稀疏预测，只在非零特征上累加。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>s</span> <span class=o>=</span> <span class=nb>sum</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_weight</span><span class=p>(</span><span class=n>i</span><span class=p>)</span> <span class=o>*</span> <span class=n>v</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>v</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>x_indices</span><span class=p>,</span> <span class=n>x_values</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=mf>1.0</span> <span class=o>/</span> <span class=p>(</span><span class=mf>1.0</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=o>-</span><span class=nb>max</span><span class=p>(</span><span class=nb>min</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=mf>35.0</span><span class=p>),</span> <span class=o>-</span><span class=mf>35.0</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>update</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x_indices</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>x_values</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>y</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>float</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;单样本更新，返回更新前的预测概率。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>p</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>predict_proba</span><span class=p>(</span><span class=n>x_indices</span><span class=p>,</span> <span class=n>x_values</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>v</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>x_indices</span><span class=p>,</span> <span class=n>x_values</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>g</span> <span class=o>=</span> <span class=p>(</span><span class=n>p</span> <span class=o>-</span> <span class=n>y</span><span class=p>)</span> <span class=o>*</span> <span class=n>v</span>                       <span class=c1># 该特征上的梯度</span>
+</span></span><span class=line><span class=cl>            <span class=n>sigma</span> <span class=o>=</span> <span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>n_sq</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>+</span> <span class=n>g</span> <span class=o>*</span> <span class=n>g</span><span class=p>)</span> <span class=o>-</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>n_sq</span><span class=p>[</span><span class=n>i</span><span class=p>]))</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>z</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>   <span class=o>+=</span> <span class=n>g</span> <span class=o>-</span> <span class=n>sigma</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>_weight</span><span class=p>(</span><span class=n>i</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>n_sq</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>+=</span> <span class=n>g</span> <span class=o>*</span> <span class=n>g</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>p</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=在线-vs-离线--全景对比 class=heading-anchor>在线 vs 离线 —— 全景对比<a href=#%e5%9c%a8%e7%ba%bf-vs-%e7%a6%bb%e7%ba%bf--%e5%85%a8%e6%99%af%e5%af%b9%e6%af%94 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>图 3 左侧展示了稳态场景：在线学习平滑收敛，而离线重训呈现阶梯状——每 200 条事件生成一个新快照，中间则停滞不前。在静态任务上，两者长期表现趋同，但从时间积分角度看，在线学习更优。</p><p>右侧才是关键：突发分布漂移（如爆款事件、新品上线或节日效应）。离线模型对训练窗口外的变化完全“失明”，需等待完整窗口才能恢复；而在线学习从第一条新样本就开始调整，约 100 条事件后即可恢复至接近峰值 AUC。<strong>在生产环境中，漂移是常态而非例外</strong>——这正是在线学习成为工程利器的根本原因，而非仅是学术偏好。</p><hr><h2 id=特征新鲜度--真的那么重要吗 class=heading-anchor>特征新鲜度 —— 真的那么重要吗？<a href=#%e7%89%b9%e5%be%81%e6%96%b0%e9%b2%9c%e5%ba%a6--%e7%9c%9f%e7%9a%84%e9%82%a3%e4%b9%88%e9%87%8d%e8%a6%81%e5%90%97 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/15-%e5%ae%9e%e6%97%b6%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%9c%a8%e7%ba%bf%e5%ad%a6%e4%b9%a0/fig4_freshness_auc.png alt="特征陈旧度 vs AUC：AUC 在 log 陈旧度上近似线性下降，几乎所有损失都集中在行为类特征" loading=lazy decoding=async class=content-image></figure></p><p>特征新鲜度是认真做推荐的团队必争之地，因为实时化成本高昂。公开报告（如 Meta 的深度学习推荐模型、Pinterest 的 PinnerSAGE、字节的 Monolith）呈现出一致的经验规律：</p><ul><li><strong>AUC 随 log 陈旧度近似线性下降</strong>：从 1 秒延迟到 1 分钟，损失微乎其微；从 1 分钟到 1 小时，AUC 损失约 0.005，已具实际意义；从 1 小时到 1 天，损失显著，达 0.015–0.020 AUC。</li><li><strong>损失集中在行为特征</strong>：近期点击序列和会话意图贡献了约 80% 的新鲜度溢价；而人口属性和物品元数据几乎不受影响——即使每周更新一次，也难以观测到显著差异。</li></ul><p>这直接塑造了系统架构：<strong>不要为无法带来收益的特征支付流式处理成本</strong>。典型 Feed 系统通常并行三条流水线——行为特征走实时更新，热度类聚合按小时级更新，Embedding 和人口属性则按天级更新。</p><h2 id=bandit--探索与利用的理论故事 class=heading-anchor>Bandit —— 探索与利用的理论故事<a href=#bandit--%e6%8e%a2%e7%b4%a2%e4%b8%8e%e5%88%a9%e7%94%a8%e7%9a%84%e7%90%86%e8%ae%ba%e6%95%85%e4%ba%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=一句话讲清问题 class=heading-anchor>一句话讲清问题<a href=#%e4%b8%80%e5%8f%a5%e8%af%9d%e8%ae%b2%e6%b8%85%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+R_T = T \mu^* - \mathbb{E}\!\left[\sum_{t=1}^T \mu_{a_t}\right]
+$$</span><p>好的算法应具备<em>次线性遗憾</em>：<span class=math-inline>$R_T = o(T)$</span>
+，即平均每轮损失趋于零。</p><h3 id=ucb1--不确定时保持乐观 class=heading-anchor>UCB1 —— 不确定时保持乐观<a href=#ucb1--%e4%b8%8d%e7%a1%ae%e5%ae%9a%e6%97%b6%e4%bf%9d%e6%8c%81%e4%b9%90%e8%a7%82 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+a_t = \arg\max_i \left( \hat\mu_i + \sqrt{\frac{2 \ln t}{n_i}} \right)
+$$</span><p>其中 <span class=math-inline>$n_i$</span>
+是臂 <span class=math-inline>$i$</span>
+被选择的次数。探索奖励随 <span class=math-inline>$n_i$</span>
+增大而衰减——先探索，后利用。UCB1 实现 <span class=math-inline>$O(\log T)$</span>
+遗憾，对稳态 Bandit 而言，这在理论上是最优的（Lai-Robbins 下界）。</p><h3 id=thompson-sampling--贝叶斯之道 class=heading-anchor>Thompson Sampling —— 贝叶斯之道<a href=#thompson-sampling--%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b9%8b%e9%81%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\theta_i \sim \text{Beta}(\alpha_i, \beta_i), \quad \text{更新：} (\alpha_i, \beta_i) \leftarrow (\alpha_i + r, \beta_i + 1 - r)
+$$</span><p>每轮从各臂后验中采样 <span class=math-inline>$\theta_i$</span>
+，选择最高者。后验宽的臂因采样噪声大而被更多探索；后验窄的臂则被稳定利用。Thompson Sampling 渐近达到与 UCB1 相同的 <span class=math-inline>$O(\log T)$</span>
+遗憾（Agrawal & Goyal, 2012），且在多数基准测试中表现更优，同时更易扩展至延迟反馈、批量更新和复杂奖励模型。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>ThompsonSampling</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;伯努利 Thompson Sampling。生产环境实现基本就是这样——
+</span></span></span><span class=line><span class=cl><span class=s2>    唯一需要加的是衰减（每天 alpha, beta *= 0.99），
+</span></span></span><span class=line><span class=cl><span class=s2>    用来应对非稳态的物品池。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n_arms</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>ones</span><span class=p>(</span><span class=n>n_arms</span><span class=p>)</span>   <span class=c1># 成功次数 + 1</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>beta</span>  <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>ones</span><span class=p>(</span><span class=n>n_arms</span><span class=p>)</span>   <span class=c1># 失败次数 + 1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>select</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>beta</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>alpha</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>beta</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>update</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>arm</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>reward</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>reward</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span><span class=p>[</span><span class=n>arm</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>beta</span><span class=p>[</span><span class=n>arm</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=linucb--上下文驱动的个性化 class=heading-anchor>LinUCB —— 上下文驱动的个性化<a href=#linucb--%e4%b8%8a%e4%b8%8b%e6%96%87%e9%a9%b1%e5%8a%a8%e7%9a%84%e4%b8%aa%e6%80%a7%e5%8c%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\mathbb{E}[r_a \mid x_t] = x_t^\top \theta_a
+$$</span>
+<span class=math-block>$$
+a_t = \arg\max_a \left( x_t^\top \hat\theta_a + \alpha \sqrt{x_t^\top A_a^{-1} x_t} \right), \quad \hat\theta_a = A_a^{-1} b_a
+$$</span><p>奖金项 <span class=math-inline>$\sqrt{x_t^\top A_a^{-1} x_t}$</span>
+即岭回归在当前上下文下的预测标准差——当上下文与该臂历史样本差异大时，奖金更高。遗憾界为 <span class=math-inline>$\tilde O(\sqrt{d T})$</span>
+，<span class=math-inline>$d$</span>
+为上下文维度。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>LinUCB</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;LinUCB —— disjoint 模型版本。
+</span></span></span><span class=line><span class=cl><span class=s2>    参考文献：Li, Chu, Langford, Schapire，WWW 2010。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n_arms</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>n_features</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>alpha</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>1.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>=</span> <span class=n>alpha</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>A</span> <span class=o>=</span> <span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>eye</span><span class=p>(</span><span class=n>n_features</span><span class=p>)</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_arms</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>b</span> <span class=o>=</span> <span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>n_features</span><span class=p>)</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_arms</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>select</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>ucbs</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>A_a</span><span class=p>,</span> <span class=n>b_a</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>A</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>b</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>A_inv</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>inv</span><span class=p>(</span><span class=n>A_a</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>theta</span> <span class=o>=</span> <span class=n>A_inv</span> <span class=o>@</span> <span class=n>b_a</span>
+</span></span><span class=line><span class=cl>            <span class=n>ucbs</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>x</span> <span class=o>@</span> <span class=n>theta</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>x</span> <span class=o>@</span> <span class=n>A_inv</span> <span class=o>@</span> <span class=n>x</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>ucbs</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>update</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>arm</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>reward</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>A</span><span class=p>[</span><span class=n>arm</span><span class=p>]</span> <span class=o>+=</span> <span class=n>np</span><span class=o>.</span><span class=n>outer</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>b</span><span class=p>[</span><span class=n>arm</span><span class=p>]</span> <span class=o>+=</span> <span class=n>reward</span> <span class=o>*</span> <span class=n>x</span>
+</span></span></code></pre></td></tr></table></div></div><p>实践中几乎从不使用“纯” LinUCB。线上服务运行深度排序模型，Bandit 位于其上一层，决定<em>为当前请求分配哪种策略</em>（如创作者助推、新物品助推或纯利用）。此时，臂是策略，而非具体物品。</p><h2 id=概念漂移--检测它别装看不见 class=heading-anchor>概念漂移 —— 检测它，别装看不见<a href=#%e6%a6%82%e5%bf%b5%e6%bc%82%e7%a7%bb--%e6%a3%80%e6%b5%8b%e5%ae%83%e5%88%ab%e8%a3%85%e7%9c%8b%e4%b8%8d%e8%a7%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/15-%e5%ae%9e%e6%97%b6%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%9c%a8%e7%ba%bf%e5%ad%a6%e4%b9%a0/fig6_drift_detection.png alt="概念漂移检测：上图是观测 CTR 加滚动均值与参考窗口；下图是在渐进与突发漂移上触发的 z-score 检测器" loading=lazy decoding=async class=content-image></figure></p><p>在线学习仅在学习器<em>能</em>适应时才有效。若学习率已衰减至零，模型便无法响应漂移。生产系统会主动检测漂移并作出反应。</p><h3 id=三种经典检测器 class=heading-anchor>三种经典检测器<a href=#%e4%b8%89%e7%a7%8d%e7%bb%8f%e5%85%b8%e6%a3%80%e6%b5%8b%e5%99%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><ul><li><strong>Page-Hinkley 检验</strong>：累积偏离均值的偏差，CUSUM 超阈值即报警。适用于单调漂移。</li><li><strong>DDM（Drift Detection Method, Gama et al. 2004）</strong>：跟踪二项错误率 <span class=math-inline>$p_t$</span>
+及其标准差 <span class=math-inline>$s_t$</span>
+。当 <span class=math-inline>$p_t + s_t \ge p_{\min} + 2 s_{\min}$</span>
+时预警，<span class=math-inline>$\ge p_{\min} + 3 s_{\min}$</span>
+时报警。</li><li><strong>ADWIN（Bifet & Gavaldà 2007）</strong>：维护自适应窗口，当两子窗口均值差异超 Hoeffding 界时，丢弃较旧一半。误报率有理论保证。</li></ul><p>图 6 中的简化 z-score 检测器才是 v1 实际部署的选择：保留“已知良好”参考窗口，计算近期滚动均值 CTR 相对该窗口的 z-score，当 <span class=math-inline>$|z| > 3$</span>
+时触发报警。</p><h3 id=应对漂移的策略 class=heading-anchor>应对漂移的策略<a href=#%e5%ba%94%e5%af%b9%e6%bc%82%e7%a7%bb%e7%9a%84%e7%ad%96%e7%95%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>仅有检测而无响应只是告警。实用响应策略按成本由低到高：</p><ol><li><strong>提高学习率</strong>（低成本、可逆）：在固定窗口内将 <span class=math-inline>$\eta$</span>
+放大 2–5 倍。</li><li><strong>重置 Bandit 后验</strong>（中等成本）：将受影响臂的 <span class=math-inline>$\alpha, \beta$</span>
+减半——保留先验形状，但加倍不确定性。</li><li><strong>强制回滚 checkpoint</strong>（高成本）：回退至上一个已知良好快照，从 Kafka 重放事件，在漂移后窗口重新训练。</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>DriftAdaptiveLearner</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>base_learner</span><span class=p>,</span> <span class=n>base_lr</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span> <span class=n>window</span><span class=o>=</span><span class=mi>200</span><span class=p>,</span> <span class=n>z_thresh</span><span class=o>=</span><span class=mf>3.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>learner</span> <span class=o>=</span> <span class=n>base_learner</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>base_lr</span> <span class=o>=</span> <span class=n>base_lr</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>window</span> <span class=o>=</span> <span class=n>window</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>z_thresh</span> <span class=o>=</span> <span class=n>z_thresh</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>recent</span> <span class=o>=</span> <span class=p>[]</span>        <span class=c1># 滚动误差</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>ref_mean</span> <span class=o>=</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>ref_std</span> <span class=o>=</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>update</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>pred</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>learner</span><span class=o>.</span><span class=n>predict</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>err</span> <span class=o>=</span> <span class=nb>abs</span><span class=p>(</span><span class=n>pred</span> <span class=o>-</span> <span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>recent</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>err</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>recent</span><span class=p>)</span> <span class=o>&gt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>window</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>recent</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 第一个窗口稳定后建立参考</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>ref_mean</span> <span class=ow>is</span> <span class=kc>None</span> <span class=ow>and</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>recent</span><span class=p>)</span> <span class=o>==</span> <span class=bp>self</span><span class=o>.</span><span class=n>window</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>ref_mean</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>recent</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>ref_std</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>std</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>recent</span><span class=p>)</span> <span class=o>+</span> <span class=mf>1e-6</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 检测漂移</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>ref_mean</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>z</span> <span class=o>=</span> <span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>recent</span><span class=p>[</span><span class=o>-</span><span class=mi>50</span><span class=p>:])</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>ref_mean</span><span class=p>)</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>ref_std</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=nb>abs</span><span class=p>(</span><span class=n>z</span><span class=p>)</span> <span class=o>&gt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>z_thresh</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>learner</span><span class=o>.</span><span class=n>learning_rate</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>base_lr</span> <span class=o>*</span> <span class=mi>4</span>   <span class=c1># 提高学习率</span>
+</span></span><span class=line><span class=cl>                <span class=c1># 处理后重置参考，避免长期处于过激状态</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>recent</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>ref_mean</span> <span class=o>=</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>learner</span><span class=o>.</span><span class=n>update</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=缓存与计算--真正需要调优的权衡 class=heading-anchor>缓存与计算 —— 真正需要调优的权衡<a href=#%e7%bc%93%e5%ad%98%e4%b8%8e%e8%ae%a1%e7%ae%97--%e7%9c%9f%e6%ad%a3%e9%9c%80%e8%a6%81%e8%b0%83%e4%bc%98%e7%9a%84%e6%9d%83%e8%a1%a1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/15-%e5%ae%9e%e6%97%b6%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%9c%a8%e7%ba%bf%e5%ad%a6%e4%b9%a0/fig7_cache_vs_compute.png alt="缓存 vs 计算：左图是延迟、新鲜度、成本随缓存 TTL 的变化；右图是各策略的 Pareto 前沿，混合策略胜出" loading=lazy decoding=async class=content-image></figure></p><p>读路径的每个决策都落在缓存与计算的权衡曲线上：</p><ul><li><strong>总是重算</strong>：结果最准，但代价高昂——每次请求都实时计算所有特征。</li><li><strong>激进缓存</strong>：速度快、成本低，但数据陈旧——用户意图刚变，拿到的仍是几分钟前的特征。</li><li><strong>混合模式</strong>：生产系统普遍采用此方案：<ul><li><strong>热路径</strong>（头部用户 / 活跃会话 / 新物品）：实时计算，不缓存。</li><li><strong>冷路径</strong>（其余流量）：从缓存返回，TTL 设为 30–60 秒。</li><li><strong>负缓存</strong>：显式缓存“无变化”响应，避免对静默用户重复计算。</li></ul></li></ul><p>图 7 右侧说明原因：60 秒 TTL 能捕获大部分延迟优化收益，新鲜度损失却极小；纯重算耗费 5 倍计算资源，仅提升约 0.005 AUC。“总是重算”虽在 Pareto 前沿，但极少值得投入。</p><hr><h2 id=拼到一起--一个最小但接近真实的系统 class=heading-anchor>拼到一起 —— 一个最小但接近真实的系统<a href=#%e6%8b%bc%e5%88%b0%e4%b8%80%e8%b5%b7--%e4%b8%80%e4%b8%aa%e6%9c%80%e5%b0%8f%e4%bd%86%e6%8e%a5%e8%bf%91%e7%9c%9f%e5%ae%9e%e7%9a%84%e7%b3%bb%e7%bb%9f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>RealtimeRanker</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;端到端实时排序器。整合：
+</span></span></span><span class=line><span class=cl><span class=s2>      - 特征存储（Flink 提供的新鲜特征）
+</span></span></span><span class=line><span class=cl><span class=s2>      - FTRL-Proximal 在线学习器（按事件更新权重）
+</span></span></span><span class=line><span class=cl><span class=s2>      - LinUCB 探索层（基于学习器得分）
+</span></span></span><span class=line><span class=cl><span class=s2>      - 漂移检测器（在分布变化时提升学习率）
+</span></span></span><span class=line><span class=cl><span class=s2>      - 快照回滚机制（保障生产安全）
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n_features</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>n_strategies</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>4</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>scorer</span> <span class=o>=</span> <span class=n>FTRLProximal</span><span class=p>(</span><span class=n>n_features</span><span class=o>=</span><span class=n>n_features</span><span class=p>,</span> <span class=n>alpha</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                                    <span class=n>beta</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>l1</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>l2</span><span class=o>=</span><span class=mf>1.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Bandit 选择的是排序策略，不是物品</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>bandit</span> <span class=o>=</span> <span class=n>LinUCB</span><span class=p>(</span><span class=n>n_arms</span><span class=o>=</span><span class=n>n_strategies</span><span class=p>,</span> <span class=n>n_features</span><span class=o>=</span><span class=n>n_features</span><span class=p>,</span> <span class=n>alpha</span><span class=o>=</span><span class=mf>0.5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>drift</span>  <span class=o>=</span> <span class=n>DriftDetector</span><span class=p>(</span><span class=n>z_thresh</span><span class=o>=</span><span class=mf>3.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>snapshots</span> <span class=o>=</span> <span class=p>[]</span>  <span class=c1># 环形缓冲区，存 (时间戳, 学习器状态)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>rank</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>ctx</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>candidates</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>dict</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 1. Bandit 选择策略</span>
+</span></span><span class=line><span class=cl>        <span class=n>strategy</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>bandit</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=n>ctx</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 2. FTRL 给每个候选打分——稀疏向量</span>
+</span></span><span class=line><span class=cl>        <span class=n>scored</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>            <span class=p>(</span><span class=n>c</span><span class=p>[</span><span class=s2>&#34;id&#34;</span><span class=p>],</span> <span class=bp>self</span><span class=o>.</span><span class=n>scorer</span><span class=o>.</span><span class=n>predict_proba</span><span class=p>(</span><span class=n>c</span><span class=p>[</span><span class=s2>&#34;idx&#34;</span><span class=p>],</span> <span class=n>c</span><span class=p>[</span><span class=s2>&#34;val&#34;</span><span class=p>]),</span> <span class=n>c</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>candidates</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 3. 策略调整得分（比如新品助推、创作者助推）</span>
+</span></span><span class=line><span class=cl>        <span class=n>scored</span> <span class=o>=</span> <span class=n>apply_strategy</span><span class=p>(</span><span class=n>strategy</span><span class=p>,</span> <span class=n>scored</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>scored</span><span class=o>.</span><span class=n>sort</span><span class=p>(</span><span class=n>key</span><span class=o>=</span><span class=k>lambda</span> <span class=n>r</span><span class=p>:</span> <span class=o>-</span><span class=n>r</span><span class=p>[</span><span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>[</span><span class=n>r</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=n>scored</span><span class=p>[:</span><span class=mi>20</span><span class=p>]]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>observe</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>ctx</span><span class=p>,</span> <span class=n>x_idx</span><span class=p>,</span> <span class=n>x_val</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>strategy</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;一次反馈循环。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 更新在线学习器</span>
+</span></span><span class=line><span class=cl>        <span class=n>p</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>scorer</span><span class=o>.</span><span class=n>update</span><span class=p>(</span><span class=n>x_idx</span><span class=p>,</span> <span class=n>x_val</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 更新 Bandit，针对实际使用的策略</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>bandit</span><span class=o>.</span><span class=n>update</span><span class=p>(</span><span class=n>strategy</span><span class=p>,</span> <span class=n>ctx</span><span class=p>,</span> <span class=n>reward</span><span class=o>=</span><span class=nb>float</span><span class=p>(</span><span class=n>y</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 将校准误差喂给漂移检测器</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>drift</span><span class=o>.</span><span class=n>update</span><span class=p>(</span><span class=nb>abs</span><span class=p>(</span><span class=n>p</span> <span class=o>-</span> <span class=n>y</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>scorer</span><span class=o>.</span><span class=n>alpha</span> <span class=o>*=</span> <span class=mi>4</span>  <span class=c1># 提升学习率</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 周期性保存快照</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>snapshots</span><span class=p>)</span> <span class=o>==</span> <span class=mi>0</span> <span class=ow>or</span> <span class=n>time</span><span class=o>.</span><span class=n>time</span><span class=p>()</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>snapshots</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span> <span class=o>&gt;</span> <span class=mi>600</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>snapshots</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=n>time</span><span class=o>.</span><span class=n>time</span><span class=p>(),</span> <span class=n>copy</span><span class=o>.</span><span class=n>deepcopy</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>scorer</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>snapshots</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>snapshots</span><span class=p>[</span><span class=o>-</span><span class=mi>12</span><span class=p>:]</span>  <span class=c1># 保留最近 2 小时</span>
+</span></span></code></pre></td></tr></table></div></div><p>几个看似琐碎却至关重要的生产细节：</p><ul><li>Bandit 作用于<em>策略</em>而非物品。“从 1 亿物品中选一”动作空间过大，任何上下文 Bandit 都难以收敛；但“从 4 个排序策略中选一”恰是其强项。</li><li>快照保存的是<em>在线学习器状态</em>，而非预测结果。若坏数据污染权重，可回滚状态并从 Kafka 重放干净事件流恢复。</li><li><code>DriftDetector</code> 监控校准误差 <code>|p - y|</code>，而非原始 CTR。校准漂移能捕捉比单纯点击率漂移更多的失效模式。</li></ul><hr><h2 id=q--a class=heading-anchor>Q & A<a href=#q--a class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>Q：如何对在线学习系统进行 A/B 测试？</strong><br>标准 A/B 测试假设观测独立，但在线学习会从实验组持续学习。解决方案：(1) 使用 <strong>interleaved comparisons</strong>（Chapelle et al., 2012）；(2) 一组用“冻结模型”，另一组用实时在线模型，比较<em>累积奖励</em>而非单次 CTR。</p><p><strong>Q：Flink 和 Spark Streaming 的本质区别是什么？</strong><br>Flink 逐事件处理，延迟毫秒级；Spark Streaming 微批处理，延迟秒级。对推荐系统而言，Flink 的低延迟和更成熟的 exactly-once 状态管理都至关重要——几乎所有近年大规模 Feed 系统都选用 Flink（或 Twitter Heron、字节 Aiops 等内部方案）。</p><p><strong>Q：在线学习是否不稳定？</strong><br>确实可能，而这正是需工程防护的失效模式。三大措施：(1) 限制学习率；(2) 梯度裁剪；(3) 保留快照与回滚路径。Google 的 FTRL 论文专设一节讲“tricks of the trade”——饱和保护、按坐标的学习率下限、校准损失监控——全为保障生产稳定性。</p><p><strong>Q：Bandit 如何处理延迟反馈？</strong><br>两种模式：(1) <strong>批量更新</strong>：收集 <span class=math-inline>$k$</span>
+条观测后统一更新，理论证明最多使 regret 增加 <span class=math-inline>$\log k$</span>
+倍；(2) <strong>乐观计数</strong>：拉臂时立即增加 <span class=math-inline>$n_i$</span>
+并假设奖励为均值（或 0），待真实奖励到达后再修正。生产系统多用后者，避免在延迟窗口内过度采样单一臂。</p><p><strong>Q：何时不该用实时管道？</strong><br>当特征变化缓慢（如人口属性、长期口味 Embedding）、陈旧推荐成本低（如仓库搜索、分类浏览），或收益难衡量（如低流量场景中 1 小时→1 秒的新鲜度提升淹没在噪声中）。实时管道成本约为日批的 10–100 倍——务必确保收益足够再投入。</p><h2 id=总结 class=heading-anchor>总结<a href=#%e6%80%bb%e7%bb%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>实时推荐系统是 <strong>两条管道通过特征存储和模型注册中心拼接而成</strong>：异步写路径持续更新状态，同步读路径在严格 SLO 下提供服务。</li><li><strong>延迟是长尾问题</strong>：优化 p99 而非 p50——排序模块占主导，蒸馏与量化在此处回报最高。</li><li><strong>生产在线学习 = FTRL-Proximal</strong>：这是 Google 广告 CTR 预测所用算法，SGD/AdaGrad 仅为铺垫。</li><li><strong>流处理 = Kafka + Flink</strong>：Kafka 负责可靠传输，Flink 借助分布式快照实现有状态计算与 exactly-once 语义。</li><li><strong>新鲜度有成本曲线</strong>：行为特征值得实时投入，人口属性与物品元数据则不值得。</li><li><strong>Bandit 位于排序器之上</strong>：其动作空间是“选择哪种策略”，而非“推荐哪个物品”。</li><li><strong>漂移不可避免</strong>：检测它（z-score、ADWIN、DDM），低成本应对（调高 <span class=math-inline>$\eta$</span>
+），并保留回滚路径。</li><li><strong>缓存与计算非二元选择</strong>：生产答案是混合模式——热路径实时计算，冷路径缓存结果，30–60 秒 TTL 以极低成本覆盖 95% 流量。</li></ul><p>我在所有见过的大规模系统中都验证过一条经验法则：<em>只把能提升 AUC 的部分做成实时，其余按实际变化频率分配预算</em>。</p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/recommendation-systems/14-%E8%B7%A8%E5%9F%9F%E6%8E%A8%E8%8D%90%E4%B8%8E%E5%86%B7%E5%90%AF%E5%8A%A8%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/ data-next-url=https://www.chenk.top/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/recommendation-systems/>推荐系统</a> <span class=count>16 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/recommendation-systems/14-%E8%B7%A8%E5%9F%9F%E6%8E%A8%E8%8D%90%E4%B8%8E%E5%86%B7%E5%90%AF%E5%8A%A8%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/><span class=title>推荐系统（十四）—— 跨域推荐与冷启动解决方案</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/><span class=title>推荐系统（十六）—— 工业级架构与最佳实践</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/01-%E5%85%A5%E9%97%A8%E4%B8%8E%E5%9F%BA%E7%A1%80%E6%A6%82%E5%BF%B5/><span class=series-nav-num>01</span>
+<span class=series-nav-title>推荐系统（一）—— 入门与基础概念</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/02-%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4%E4%B8%8E%E7%9F%A9%E9%98%B5%E5%88%86%E8%A7%A3/><span class=series-nav-num>02</span>
+<span class=series-nav-title>推荐系统（二）—— 协同过滤与矩阵分解</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>03</span>
+<span class=series-nav-title>推荐系统（三）—— 深度学习基础模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/04-ctr%E9%A2%84%E4%BC%B0%E4%B8%8E%E7%82%B9%E5%87%BB%E7%8E%87%E5%BB%BA%E6%A8%A1/><span class=series-nav-num>04</span>
+<span class=series-nav-title>推荐系统（四）—— CTR 预估与点击率建模</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/05-embedding%E8%A1%A8%E7%A4%BA%E5%AD%A6%E4%B9%A0/><span class=series-nav-num>05</span>
+<span class=series-nav-title>推荐系统（五）—— Embedding 表示学习</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/06-%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90%E4%B8%8E%E4%BC%9A%E8%AF%9D%E5%BB%BA%E6%A8%A1/><span class=series-nav-num>06</span>
+<span class=series-nav-title>推荐系统（六）—— 序列推荐与会话建模</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/07-%E5%9B%BE%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E7%A4%BE%E4%BA%A4%E6%8E%A8%E8%8D%90/><span class=series-nav-num>07</span>
+<span class=series-nav-title>推荐系统（七）—— 图神经网络与社交推荐</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/08-%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/><span class=series-nav-num>08</span>
+<span class=series-nav-title>推荐系统（八）—— 知识图谱增强推荐系统</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/09-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%9A%E7%9B%AE%E6%A0%87%E4%BC%98%E5%8C%96/><span class=series-nav-num>09</span>
+<span class=series-nav-title>推荐系统（九）—— 多任务学习与多目标优化</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/10-%E6%B7%B1%E5%BA%A6%E5%85%B4%E8%B6%A3%E7%BD%91%E7%BB%9C%E4%B8%8E%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6/><span class=series-nav-num>10</span>
+<span class=series-nav-title>推荐系统（十）—— 深度兴趣网络与注意力机制</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/><span class=series-nav-num>11</span>
+<span class=series-nav-title>推荐系统（十一）—— 对比学习与自监督学习</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/><span class=series-nav-num>12</span>
+<span class=series-nav-title>推荐系统（十二）—— 大语言模型与推荐系统</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/13-%E5%85%AC%E5%B9%B3%E6%80%A7-%E5%8E%BB%E5%81%8F%E4%B8%8E%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/><span class=series-nav-num>13</span>
+<span class=series-nav-title>推荐系统（十三）—— 公平性、去偏与可解释性</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/14-%E8%B7%A8%E5%9F%9F%E6%8E%A8%E8%8D%90%E4%B8%8E%E5%86%B7%E5%90%AF%E5%8A%A8%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/><span class=series-nav-num>14</span>
+<span class=series-nav-title>推荐系统（十四）—— 跨域推荐与冷启动解决方案</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>15</span>
+<span class=series-nav-title>推荐系统（十五）—— 实时推荐与在线学习</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/><span class=series-nav-num>16</span>
+<span class=series-nav-title>推荐系统（十六）—— 工业级架构与最佳实践</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>分享</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=%25E6%258E%25A8%25E8%258D%2590%25E7%25B3%25BB%25E7%25BB%259F%25EF%25BC%2588%25E5%258D%2581%25E4%25BA%2594%25EF%25BC%2589%25E2%2580%2594%25E2%2580%2594%2b%25E5%25AE%259E%25E6%2597%25B6%25E6%258E%25A8%25E8%258D%2590%25E4%25B8%258E%25E5%259C%25A8%25E7%25BA%25BF%25E5%25AD%25A6%25E4%25B9%25A0&url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Frecommendation-systems%252F15-%2525E5%2525AE%25259E%2525E6%252597%2525B6%2525E6%25258E%2525A8%2525E8%25258D%252590%2525E4%2525B8%25258E%2525E5%25259C%2525A8%2525E7%2525BA%2525BF%2525E5%2525AD%2525A6%2525E4%2525B9%2525A0%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fzh%252Frecommendation-systems%252F15-%2525E5%2525AE%25259E%2525E6%252597%2525B6%2525E6%25258E%2525A8%2525E8%25258D%252590%2525E4%2525B8%25258E%2525E5%25259C%2525A8%2525E7%2525BA%2525BF%2525E5%2525AD%2525A6%2525E4%2525B9%2525A0%252F&title=%25E6%258E%25A8%25E8%258D%2590%25E7%25B3%25BB%25E7%25BB%259F%25EF%25BC%2588%25E5%258D%2581%25E4%25BA%2594%25EF%25BC%2589%25E2%2580%2594%25E2%2580%2594%2b%25E5%25AE%259E%25E6%2597%25B6%25E6%258E%25A8%25E8%258D%2590%25E4%25B8%258E%25E5%259C%25A8%25E7%25BA%25BF%25E5%25AD%25A6%25E4%25B9%25A0" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/zh/recommendation-systems/15-%E5%AE%9E%E6%97%B6%E6%8E%A8%E8%8D%90%E4%B8%8E%E5%9C%A8%E7%BA%BF%E5%AD%A6%E4%B9%A0/ aria-label=复制文章链接 title=复制链接><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2026-01-12>写于 <span class=days>…</span> 天前</span></div><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#为什么需要实时以及实时到底是什么>为什么需要实时，以及“实时”到底是什么</a></li><li><a href=#双路径架构>双路径架构</a></li><li><a href=#延迟预算--每一毫秒花在哪>延迟预算 —— 每一毫秒花在哪</a></li><li><a href=#流式架构生产环境中的-kafka--flink>流式架构：生产环境中的 Kafka + Flink</a><ul><li><a href=#kafka--可靠的传输层>Kafka —— 可靠的传输层</a></li><li><a href=#flink--有状态的流处理引擎>Flink —— 有状态的流处理引擎</a></li></ul></li><li><a href=#在线学习从-sgd-到-ftrl>在线学习：从 SGD 到 FTRL</a><ul><li><a href=#核心更新公式>核心更新公式</a></li><li><a href=#adagrad--自适应按特征步长>AdaGrad —— 自适应按特征步长</a></li><li><a href=#ftrl-proximal--生产环境的主力算法>FTRL-Proximal —— 生产环境的主力算法</a></li><li><a href=#在线-vs-离线--全景对比>在线 vs 离线 —— 全景对比</a></li></ul></li><li><a href=#特征新鲜度--真的那么重要吗>特征新鲜度 —— 真的那么重要吗？</a></li><li><a href=#bandit--探索与利用的理论故事>Bandit —— 探索与利用的理论故事</a><ul><li><a href=#一句话讲清问题>一句话讲清问题</a></li><li><a href=#ucb1--不确定时保持乐观>UCB1 —— 不确定时保持乐观</a></li><li><a href=#thompson-sampling--贝叶斯之道>Thompson Sampling —— 贝叶斯之道</a></li><li><a href=#linucb--上下文驱动的个性化>LinUCB —— 上下文驱动的个性化</a></li></ul></li><li><a href=#概念漂移--检测它别装看不见>概念漂移 —— 检测它，别装看不见</a><ul><li><a href=#三种经典检测器>三种经典检测器</a></li><li><a href=#应对漂移的策略>应对漂移的策略</a></li></ul></li><li><a href=#缓存与计算--真正需要调优的权衡>缓存与计算 —— 真正需要调优的权衡</a></li><li><a href=#拼到一起--一个最小但接近真实的系统>拼到一起 —— 一个最小但接近真实的系统</a></li><li><a href=#q--a>Q & A</a></li><li><a href=#总结>总结</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/recommendation-systems/ class=series-name>推荐系统</a>
+<span class=count>16</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/01-%E5%85%A5%E9%97%A8%E4%B8%8E%E5%9F%BA%E7%A1%80%E6%A6%82%E5%BF%B5/><span class=chapter-num>01</span>
+<span class=chapter-title>推荐系统（一）—— 入门与基础概念</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/02-%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4%E4%B8%8E%E7%9F%A9%E9%98%B5%E5%88%86%E8%A7%A3/><span class=chapter-num>02</span>
+<span class=chapter-title>推荐系统（二）—— 协同过滤与矩阵分解</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/><span class=chapter-num>03</span>
+<span class=chapter-title>推荐系统（三）—— 深度学习基础模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/04-ctr%E9%A2%84%E4%BC%B0%E4%B8%8E%E7%82%B9%E5%87%BB%E7%8E%87%E5%BB%BA%E6%A8%A1/><span class=chapter-num>04</span>
+<span class=chapter-title>推荐系统（四）—— CTR 预估与点击率建模</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/05-embedding%E8%A1%A8%E7%A4%BA%E5%AD%A6%E4%B9%A0/><span class=chapter-num>05</span>
+<span class=chapter-title>推荐系统（五）—— Embedding 表示学习</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/06-%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90%E4%B8%8E%E4%BC%9A%E8%AF%9D%E5%BB%BA%E6%A8%A1/><span class=chapter-num>06</span>
+<span class=chapter-title>推荐系统（六）—— 序列推荐与会话建模</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/07-%E5%9B%BE%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E7%A4%BE%E4%BA%A4%E6%8E%A8%E8%8D%90/><span class=chapter-num>07</span>
+<span class=chapter-title>推荐系统（七）—— 图神经网络与社交推荐</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/08-%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/><span class=chapter-num>08</span>
+<span class=chapter-title>推荐系统（八）—— 知识图谱增强推荐系统</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/09-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%9A%E7%9B%AE%E6%A0%87%E4%BC%98%E5%8C%96/><span class=chapter-num>09</span>
+<span class=chapter-title>推荐系统（九）—— 多任务学习与多目标优化</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/10-%E6%B7%B1%E5%BA%A6%E5%85%B4%E8%B6%A3%E7%BD%91%E7%BB%9C%E4%B8%8E%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6/><span class=chapter-num>10</span>
+<span class=chapter-title>推荐系统（十）—— 深度兴趣网络与注意力机制</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/><span class=chapter-num>11</span>
+<span class=chapter-title>推荐系统（十一）—— 对比学习与自监督学习</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/><span class=chapter-num>12</span>
+<span class=chapter-title>推荐系统（十二）—— 大语言模型与推荐系统</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/13-%E5%85%AC%E5%B9%B3%E6%80%A7-%E5%8E%BB%E5%81%8F%E4%B8%8E%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/><span class=chapter-num>13</span>
+<span class=chapter-title>推荐系统（十三）—— 公平性、去偏与可解释性</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/14-%E8%B7%A8%E5%9F%9F%E6%8E%A8%E8%8D%90%E4%B8%8E%E5%86%B7%E5%90%AF%E5%8A%A8%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/><span class=chapter-num>14</span>
+<span class=chapter-title>推荐系统（十四）—— 跨域推荐与冷启动解决方案</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>15</span>
+<span class=chapter-title>推荐系统（十五）—— 实时推荐与在线学习</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/><span class=chapter-num>16</span>
+<span class=chapter-title>推荐系统（十六）—— 工业级架构与最佳实践</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>32 min</strong></div><div class=row><span>字数</span><strong>7518</strong></div><div class=row><span>写于</span><strong>Jan 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/product-thinking/>产品思维</a></li><li><a href=https://www.chenk.top/zh/series/personal-finance/>个人理财</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label=复制微信号>WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=关闭>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>在微信里搜索此 ID 即可添加我</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>复制微信号</button></div></div></div></footer></body></html>

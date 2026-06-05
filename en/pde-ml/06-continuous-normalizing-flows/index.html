@@ -1,0 +1,572 @@
+<!doctype html><html lang=en data-translation=/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/><head><meta charset=utf-8><meta name=referrer content="strict-origin-when-cross-origin"><meta http-equiv=X-Content-Type-Options content="nosniff"><meta http-equiv=Content-Security-Policy content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giscus.app; frame-src https://giscus.app; connect-src 'self' https://api.github.com https://giscus.app; base-uri 'self'; form-action 'self'"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>PDE and ML (6): Continuous Normalizing Flows and Neural ODE · Chen Kai Blog</title>
+<meta name=description content="How do you turn a Gaussian into a complex data distribution? This article derives Neural ODEs, the adjoint method, continuous normalizing flows (FFJORD), and Flow Matching from the underlying ODE/PDE theory, and shows the seven core mechanisms in pictures."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/pde-ml/06-continuous-normalizing-flows/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel="shortcut icon" href=/favicon.ico><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=manifest href=/site.webmanifest><link rel=alternate hreflang=en href=https://www.chenk.top/en/pde-ml/06-continuous-normalizing-flows/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/pde-ml/06-continuous-normalizing-flows/><meta property="og:type" content="article"><meta property="og:title" content="PDE and ML (6): Continuous Normalizing Flows and Neural ODE"><meta property="og:description" content="How do you turn a Gaussian into a complex data distribution? This article derives Neural ODEs, the adjoint method, continuous normalizing flows (FFJORD), and Flow Matching from the underlying ODE/PDE theory, and shows the seven core mechanisms in pictures."><meta property="og:url" content="https://www.chenk.top/en/pde-ml/06-continuous-normalizing-flows/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/pde-ml.jpg"><meta property="og:image:alt" content="PDE and ML (6): Continuous Normalizing Flows and Neural ODE"><meta property="article:published_time" content="2024-07-15T09:00:00Z"><meta property="article:modified_time" content="2024-07-15T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="PDE"><meta property="article:tag" content="Machine Learning"><meta property="article:tag" content="Neural ODE"><meta property="article:tag" content="Normalizing Flows"><meta property="article:tag" content="CNF"><meta property="article:tag" content="Optimal Transport"><meta property="article:tag" content="Flow Matching"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="PDE and ML (6): Continuous Normalizing Flows and Neural ODE"><meta name=twitter:description content="How do you turn a Gaussian into a complex data distribution? This article derives Neural ODEs, the adjoint method, continuous normalizing flows (FFJORD), and Flow Matching from the underlying ODE/PDE theory, and shows the seven core mechanisms in pictures."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/pde-ml.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"PDE and ML (6): Continuous Normalizing Flows and Neural ODE","description":"How do you turn a Gaussian into a complex data distribution? This article derives Neural ODEs, the adjoint method, continuous normalizing flows (FFJORD), and Flow Matching from the underlying ODE/PDE theory, and shows the seven core mechanisms in pictures.","image":["https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/pde-ml.jpg"],"author":{"@type":"Person","name":"Chen Kai","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"Chen Kai Blog","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"2024-07-15T09:00:00Z","dateModified":"2024-07-15T09:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.chenk.top/en/pde-ml/06-continuous-normalizing-flows/"},"inLanguage":"en"}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preconnect href=https://cdn.jsdelivr.net crossorigin><link rel=dns-prefetch href=https://cdn.jsdelivr.net><link rel=preconnect href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=dns-prefetch href=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js onload='document.querySelectorAll(".math-inline,.math-block").forEach(function(e){var t=e.textContent,n=e.classList.contains("math-block"),t=n?t.replace(/^\$\$/,"").replace(/\$\$$/,""):t.replace(/^\$/,"").replace(/\$$/,"");try{katex.render(t,e,{displayMode:n,throwOnError:!1})}catch{}})'></script><link rel=preload href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css as=style><link rel=stylesheet href=/css/site.min.dd28e5bbcf40fbd6b1b7f456f1ee134f52bee7e9b63a478fc33fa13536a0acc6.css><script defer src=/js/site.min.4d6a8e5ba32db6506a66067e38258b8ae661e8008ce680b8a07dfeae2fa48fd4.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K) · press ? for all shortcuts" title="Cmd+K · press ? for all shortcuts">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=article-cover><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/pde-ml/06-Continuous-Normalizing-Flows.jpg alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/pde-ml/>PDE and Machine Learning</a>
+· Chapter 6</div><h1>PDE and ML (6): Continuous Normalizing Flows and Neural ODE</h1><p class=deck>How do you turn a Gaussian into a complex data distribution? This article derives Neural ODEs, the adjoint method, continuous normalizing flows (FFJORD), and Flow Matching from the underlying ODE/PDE theory, and shows the seven core mechanisms in pictures.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-07-15>July 15, 2024</time> · 38 min read · 3914 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/pde/ class=tag>#PDE</a><a href=/en/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/en/tags/neural-ode/ class=tag>#Neural ODE</a><a href=/en/tags/normalizing-flows/ class=tag>#Normalizing Flows</a><a href=/en/tags/cnf/ class=tag>#CNF</a><a href=/en/tags/optimal-transport/ class=tag>#Optimal Transport</a><a href=/en/tags/flow-matching/ class=tag>#Flow Matching</a></div><a class="pill pill-outline" href=/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/>阅读中文版 →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png alt="PDE and ML (6): Continuous Normalizing Flows and Neural ODE — Chapter overview" loading=lazy decoding=async class=content-image></figure></p><hr><p>How do you turn an isotropic Gaussian into a photograph of a cat?</p><p>Normalizing flows give the most direct answer: stack a sequence of invertible transformations and let them push the simple distribution into the complex one. This article&rsquo;s continuous version (CNF) takes that idea to the limit — let the step size go to zero and the discrete chain becomes an ODE. Invertibility is automatic, and the change of density is governed by the instantaneous change of variables formula.</p><p>When the right-hand side of that ODE is a neural network, the whole thing is called a <strong>Neural ODE</strong>, and a few of its properties are genuinely elegant: memory cost decoupled from the number of integration steps (the adjoint method), continuous-time interpolation, a direct connection to optimal transport.</p><p>This article walks Neural ODEs, the adjoint method, continuous normalizing flows (FFJORD), and finally the post-2023 method that has largely replaced them in large-scale generative modeling — Flow Matching. Seven figures clarify the core mechanics.</p><h2 id=what-you-will-learn class=heading-anchor>What You Will Learn<a href=#what-you-will-learn class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Generative modeling reduces to one geometric question: <strong>how do you transform a simple distribution (a Gaussian) into a complex one (faces, molecules, motion)?</strong> Discrete normalizing flows stack invertible blocks, but each block needs a Jacobian determinant at <span class=math-inline>$O(d^3)$</span>
+cost. <strong>Neural ODEs</strong> replace discrete depth with a continuous ODE; <strong>Continuous Normalizing Flows (CNF)</strong> then push densities through that ODE using the <em>instantaneous</em> change-of-variables formula, dropping density computation to <span class=math-inline>$O(d)$</span>
+. <strong>Flow Matching</strong> removes the divergence integral altogether and turns training into plain regression on a target velocity field.</p><p>Three threads are braided together throughout the chapter:</p><ol><li><strong>PDE side</strong> — the continuity equation <span class=math-inline>$\partial_t\rho+\nabla\!\cdot(\rho v)=0$</span>
+governs how a velocity field <span class=math-inline>$v$</span>
+transports a density <span class=math-inline>$\rho$</span>
+.</li><li><strong>ODE side</strong> — Picard-Lindelof guarantees existence/uniqueness; Liouville&rsquo;s theorem links volume change to <span class=math-inline>$\nabla\!\cdot v$</span>
+; the adjoint equation makes backprop <span class=math-inline>$O(1)$</span>
+in memory.</li><li><strong>ML side</strong> — Neural ODEs, FFJORD and Flow Matching parameterise <span class=math-inline>$v$</span>
+with a network and learn it from data.</li></ol><p><strong>Prerequisites:</strong> ODE basics (existence/uniqueness), probability change of variables, autograd.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/fig1_density_transformation.png alt="Continuous flow reshaping a Gaussian into a two-moons target distribution." loading=lazy decoding=async class=content-image></figure><em>Figure 1. A continuous-time flow transports a Gaussian base into a two-moons target. Each panel is the density <span class=math-inline>$\rho_t$</span>
+obtained by KDE on <span class=math-inline>$\sim$</span>
+4000 particles after solving the ODE up to time <span class=math-inline>$t$</span>
+. The same network <span class=math-inline>$v_\theta$</span>
+acts at every <span class=math-inline>$t$</span>
+; only the integration horizon changes.</em></p><hr><h2 id=ode-foundations-existence-uniqueness-volume class=heading-anchor>ODE Foundations: Existence, Uniqueness, Volume<a href=#ode-foundations-existence-uniqueness-volume class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=picard-lindelof-when-do-odes-have-unique-solutions class=heading-anchor>Picard-Lindelof: when do ODEs have unique solutions?<a href=#picard-lindelof-when-do-odes-have-unique-solutions class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\|f(\mathbf{z}_1,t)-f(\mathbf{z}_2,t)\|\le L\,\|\mathbf{z}_1-\mathbf{z}_2\|,
+$$</span><p>then a unique solution exists on some interval <span class=math-inline>$[0,T]$</span>
+.</p><p><em>Why this matters for ML.</em> If <span class=math-inline>$f_\theta$</span>
+is a neural network with Lipschitz activations (ReLU, tanh, GELU) and bounded weights, the Lipschitz condition holds locally. So a Neural ODE is well-posed as long as the network is well-behaved — which is almost always true in practice and which is why Neural ODEs are robust enough to backprop through.</p><h3 id=liouvilles-theorem-how-flows-change-volume class=heading-anchor>Liouville&rsquo;s theorem: how flows change volume<a href=#liouvilles-theorem-how-flows-change-volume class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\frac{d}{dt}\,\mathrm{vol}(\phi_t(\Omega))=\int_{\phi_t(\Omega)}\nabla\!\cdot f\,d\mathbf{z}.
+$$</span><p>Therefore <span class=math-inline>$\nabla\!\cdot f=0$</span>
+preserves volume, <span class=math-inline>$\nabla\!\cdot f&lt;0$</span>
+contracts, <span class=math-inline>$\nabla\!\cdot f>0$</span>
+expands. In normalizing flows we <em>want</em> a non-zero divergence: that is exactly the lever that lets us reshape probability mass.</p><p><em>Mental picture.</em> A divergence-free <span class=math-inline>$f$</span>
+behaves like an incompressible fluid (Hamiltonian / symplectic — <a href=/en/pde-ml/05-symplectic-geometry/>Part 5</a>
+). A divergence-rich <span class=math-inline>$f$</span>
+behaves like a compressible flow that can squeeze probability mass into thin filaments and then re-inflate it elsewhere — which is what generative modelling needs.</p><h3 id=instantaneous-change-of-variables class=heading-anchor>Instantaneous change of variables<a href=#instantaneous-change-of-variables class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\boxed{\;\frac{d}{dt}\log\rho_t(\mathbf{z}(t))=-\nabla\!\cdot f(\mathbf{z}(t),t).\;}\tag{1}
+$$</span><p><em>Proof sketch.</em> The continuity equation <span class=math-inline>$\partial_t\rho+\nabla\!\cdot(\rho f)=0$</span>
+expands to <span class=math-inline>$\partial_t\rho+f\!\cdot\!\nabla\rho=-\rho\,\nabla\!\cdot f$</span>
+. The left-hand side is the material derivative <span class=math-inline>$D\rho/Dt$</span>
+along <span class=math-inline>$\mathbf{z}(t)$</span>
+. Dividing by <span class=math-inline>$\rho$</span>
+gives (1).</p><p><strong>Why this single equation matters.</strong> Discrete normalizing flows pay <span class=math-inline>$O(d^3)$</span>
+for <span class=math-inline>$\log|\det\partial\phi/\partial\mathbf{z}|$</span>
+. Equation (1) only ever needs the <strong>trace</strong> of the Jacobian (i.e. the divergence), which costs <span class=math-inline>$O(d)$</span>
+with a vector-Jacobian product (<a href=#ffjord-scalable-trace-via-hutchinson>Section 3.2</a>
+below). This is the central computational reason CNFs exist.</p><hr><h2 id=neural-odes-from-discrete-to-continuous-depth class=heading-anchor>Neural ODEs: From Discrete to Continuous Depth<a href=#neural-odes-from-discrete-to-continuous-depth class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=residual-networks-as-forward-euler class=heading-anchor>Residual networks as forward Euler<a href=#residual-networks-as-forward-euler class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\frac{d\mathbf{h}}{dt}=f_\theta(\mathbf{h}(t),t),\qquad \mathbf{h}(T)=\mathbf{h}(0)+\int_0^T f_\theta(\mathbf{h}(t),t)\,dt. \tag{2}
+$$</span><p>Three immediate wins:</p><ul><li><strong>Parameter efficiency.</strong> One network <span class=math-inline>$f_\theta$</span>
+replaces a different <span class=math-inline>$f_l$</span>
+at every depth.</li><li><strong>Adaptive depth.</strong> Solvers like dopri5 (adaptive Runge-Kutta) automatically take small steps where dynamics are stiff and large steps where they are smooth.</li><li><strong>Memory.</strong> The adjoint method drops backprop memory from <span class=math-inline>$O(L)$</span>
+to <span class=math-inline>$O(1)$</span>
+— the only resource that scales with depth is <em>time</em>, not memory.</li></ul><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/fig2_neural_ode_vs_resnet.png alt="ResNet (discrete depth, fixed step) versus Neural ODE (continuous depth, adaptive solver)." loading=lazy decoding=async class=content-image></figure><em>Figure 2. Left: a ResNet is a stack of <span class=math-inline>$h_{l+1}=h_l+f_l(h_l)$</span>
+Euler steps with one parameter set per layer; activations at every layer must be stored for backprop. Right: a Neural ODE is one ODE driven by a single <span class=math-inline>$f_\theta$</span>
+; the adaptive solver chooses where to evaluate, and the adjoint method recovers gradients with <span class=math-inline>$O(1)$</span>
+memory.</em></p><p><strong>Implementation: a minimal Neural ODE.</strong> The core idea is to replace a ResNet&rsquo;s forward pass with an ODE solver call. Here is a complete, runnable implementation:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>scipy.integrate</span> <span class=kn>import</span> <span class=n>solve_ivp</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>ODEFunc</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># The vector field f_theta(h, t) that defines the dynamics</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>dim</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>hidden</span><span class=o>=</span><span class=mi>64</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>net</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>dim</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Tanh</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Tanh</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>t</span><span class=p>,</span> <span class=n>h</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>t_vec</span> <span class=o>=</span> <span class=n>t</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>ones</span><span class=p>(</span><span class=n>h</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>net</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>h</span><span class=p>,</span> <span class=n>t_vec</span><span class=p>],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>neural_ode_forward</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>h0</span><span class=p>,</span> <span class=n>t_span</span><span class=o>=</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=n>steps</span><span class=o>=</span><span class=mi>100</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Simple fixed-step Euler integration (for clarity)</span>
+</span></span><span class=line><span class=cl>    <span class=n>dt</span> <span class=o>=</span> <span class=p>(</span><span class=n>t_span</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>t_span</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span> <span class=o>/</span> <span class=n>steps</span>
+</span></span><span class=line><span class=cl>    <span class=n>h</span> <span class=o>=</span> <span class=n>h0</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span> <span class=o>=</span> <span class=n>t_span</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=n>h</span> <span class=o>+</span> <span class=n>dt</span> <span class=o>*</span> <span class=n>func</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>tensor</span><span class=p>(</span><span class=n>t</span><span class=p>),</span> <span class=n>h</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>t</span> <span class=o>+=</span> <span class=n>dt</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>h</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>func</span> <span class=o>=</span> <span class=n>ODEFunc</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>hidden</span><span class=o>=</span><span class=mi>64</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>func</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>t_true</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>50</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>theta</span> <span class=o>=</span> <span class=mi>4</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>pi</span> <span class=o>*</span> <span class=n>t_true</span>
+</span></span><span class=line><span class=cl><span class=n>r</span> <span class=o>=</span> <span class=mi>2</span> <span class=o>*</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>t_true</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>target</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>stack</span><span class=p>([</span><span class=n>r</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=n>theta</span><span class=p>),</span> <span class=n>r</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>theta</span><span class=p>)],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>2000</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>h0</span> <span class=o>=</span> <span class=n>target</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=mi>1</span><span class=p>]</span>  <span class=c1># start point</span>
+</span></span><span class=line><span class=cl>    <span class=n>h_pred</span> <span class=o>=</span> <span class=n>neural_ode_forward</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>h0</span><span class=o>.</span><span class=n>repeat</span><span class=p>(</span><span class=mi>50</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=n>steps</span><span class=o>=</span><span class=mi>50</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>loss</span> <span class=o>=</span> <span class=p>((</span><span class=n>h_pred</span> <span class=o>-</span> <span class=n>target</span><span class=p>)</span><span class=o>**</span><span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>();</span> <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>();</span> <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>step</span> <span class=o>%</span> <span class=mi>500</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Step </span><span class=si>{</span><span class=n>step</span><span class=si>}</span><span class=s2>: loss=</span><span class=si>{</span><span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span><span class=si>:</span><span class=s2>.5f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>The Neural ODE learns a smooth vector field that pushes any starting point along the spiral. Unlike a ResNet, the integration depth (number of Euler steps) is a <em>hyperparameter</em>, not a fixed architectural choice — and can be made adaptive.</p><h3 id=the-adjoint-sensitivity-method class=heading-anchor>The adjoint sensitivity method<a href=#the-adjoint-sensitivity-method class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>A standard backprop through the ODE solver stores every intermediate state, which is <span class=math-inline>$O(L)$</span>
+in the number of solver steps — and adaptive solvers can take hundreds of them. The adjoint method avoids that completely.</p><span class=math-block>$$
+\frac{d\mathbf{a}}{dt}=-\,\mathbf{a}(t)^\top\frac{\partial f_\theta}{\partial\mathbf{h}}, \tag{3}
+$$</span>
+<span class=math-block>$$
+\frac{d\mathcal{L}}{d\theta}=-\int_T^0 \mathbf{a}(t)^\top\frac{\partial f_\theta}{\partial\theta}\,dt. \tag{4}
+$$</span><p><strong>Algorithm.</strong></p><ol><li><em>Forward.</em> Solve (2) from <span class=math-inline>$0\to T$</span>
+. Store only <span class=math-inline>$\mathbf{h}(T)$</span>
+.</li><li><em>Initialise.</em> <span class=math-inline>$\mathbf{a}(T)=\partial\mathcal{L}/\partial\mathbf{h}(T)$</span>
+.</li><li><em>Backward.</em> Solve <span class=math-inline>$\mathbf{h}$</span>
+and <span class=math-inline>$\mathbf{a}$</span>
+together backwards <span class=math-inline>$T\to 0$</span>
+, accumulating (4).</li></ol><p>Memory is <span class=math-inline>$O(1)$</span>
+, independent of solver steps. The price is one extra ODE solve in the backward pass — roughly 2x compute for <span class=math-inline>$L\to\infty$</span>
+memory savings.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/fig3_adjoint_method.png alt="Adjoint sensitivity: forward + reverse trajectories on a 2D vector field, and memory cost vs depth." loading=lazy decoding=async class=content-image></figure><em>Figure 3. Left: the same spiral ODE is integrated forward (blue) to obtain <span class=math-inline>$h(T)$</span>
+, then re-integrated backward together with the adjoint (red dashed) to recover gradients. Right: memory cost as the number of solver steps <span class=math-inline>$L$</span>
+grows. Standard backprop is <span class=math-inline>$O(L)$</span>
+; the adjoint stays at <span class=math-inline>$O(1)$</span>
+— a 1000x saving at <span class=math-inline>$L{=}1000$</span>
+.</em></p><p><strong>Implementation: adjoint sensitivity in practice.</strong> The adjoint method avoids storing intermediate states by re-computing them during the backward pass. Here is the key idea implemented:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>adjoint_backward</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>h_T</span><span class=p>,</span> <span class=n>loss_grad</span><span class=p>,</span> <span class=n>theta</span><span class=p>,</span> <span class=n>T</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>steps</span><span class=o>=</span><span class=mi>100</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Backward ODE: re-derive h(t) and compute param gradients</span>
+</span></span><span class=line><span class=cl>    <span class=c1># h_T: final state, loss_grad: dL/dh(T), theta: model params</span>
+</span></span><span class=line><span class=cl>    <span class=n>dt</span> <span class=o>=</span> <span class=n>T</span> <span class=o>/</span> <span class=n>steps</span>
+</span></span><span class=line><span class=cl>    <span class=n>h</span> <span class=o>=</span> <span class=n>h_T</span><span class=o>.</span><span class=n>detach</span><span class=p>()</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span><span class=o>.</span><span class=n>requires_grad_</span><span class=p>(</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>a</span> <span class=o>=</span> <span class=n>loss_grad</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span>  <span class=c1># adjoint state</span>
+</span></span><span class=line><span class=cl>    <span class=n>param_grad</span> <span class=o>=</span> <span class=p>[</span><span class=n>torch</span><span class=o>.</span><span class=n>zeros_like</span><span class=p>(</span><span class=n>p</span><span class=p>)</span> <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>theta</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>t</span> <span class=o>=</span> <span class=n>T</span> <span class=o>-</span> <span class=n>step</span> <span class=o>*</span> <span class=n>dt</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Recompute f(h, t)</span>
+</span></span><span class=line><span class=cl>        <span class=n>f</span> <span class=o>=</span> <span class=n>func</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>tensor</span><span class=p>(</span><span class=n>t</span><span class=p>),</span> <span class=n>h</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Adjoint dynamics: da/dt = -a^T df/dh</span>
+</span></span><span class=line><span class=cl>        <span class=n>vjp</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>autograd</span><span class=o>.</span><span class=n>grad</span><span class=p>(</span><span class=n>f</span><span class=p>,</span> <span class=n>h</span><span class=p>,</span> <span class=o>-</span><span class=n>a</span><span class=p>,</span> <span class=n>retain_graph</span><span class=o>=</span><span class=kc>True</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>a</span> <span class=o>=</span> <span class=n>a</span> <span class=o>+</span> <span class=n>dt</span> <span class=o>*</span> <span class=n>vjp</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Accumulate parameter gradients: dL/dtheta += -a^T df/dtheta</span>
+</span></span><span class=line><span class=cl>        <span class=n>grads</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>autograd</span><span class=o>.</span><span class=n>grad</span><span class=p>(</span><span class=n>f</span><span class=p>,</span> <span class=n>theta</span><span class=p>,</span> <span class=o>-</span><span class=n>a</span> <span class=o>*</span> <span class=n>dt</span><span class=p>,</span> <span class=n>retain_graph</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>pg</span><span class=p>,</span> <span class=n>g</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>param_grad</span><span class=p>,</span> <span class=n>grads</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>pg</span> <span class=o>+=</span> <span class=n>g</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Reverse Euler step on h</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=p>(</span><span class=n>h</span> <span class=o>-</span> <span class=n>dt</span> <span class=o>*</span> <span class=n>f</span><span class=p>)</span><span class=o>.</span><span class=n>detach</span><span class=p>()</span><span class=o>.</span><span class=n>requires_grad_</span><span class=p>(</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>param_grad</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;Standard backprop: O(L * d) memory (stores all intermediate h)&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;Adjoint method:    O(d) memory (re-derives h on the fly)&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;Cost:              ~2x compute (one extra ODE solve)&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><div class=table-wrap><table><thead><tr><th>Method</th><th>Memory</th><th>Compute</th><th>Gradient accuracy</th></tr></thead><tbody><tr><td>Standard backprop</td><td><span class=math-inline>$O(L \cdot d)$</span></td><td><span class=math-inline>$1\times$</span></td><td>Exact</td></tr><tr><td>Adjoint (fixed step)</td><td><span class=math-inline>$O(d)$</span></td><td><span class=math-inline>$2\times$</span></td><td>Exact</td></tr><tr><td>Adjoint (adaptive)</td><td><span class=math-inline>$O(d)$</span></td><td><span class=math-inline>$2\text{--}3\times$</span></td><td>Approximate (tolerance-dependent)</td></tr><tr><td>Checkpointing</td><td><span class=math-inline>$O(\sqrt{L} \cdot d)$</span></td><td><span class=math-inline>$1.5\times$</span></td><td>Exact</td></tr></tbody></table></div><p>For deep networks (<span class=math-inline>$L > 100$</span>
+) or high-dimensional states (<span class=math-inline>$d > 1000$</span>
+), the adjoint method&rsquo;s memory savings are decisive. In practice, <code>torchdiffeq</code> implements this automatically.</p><h3 id=universality class=heading-anchor>Universality<a href=#universality class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Neural ODEs are dense in the space of homeomorphisms of <span class=math-inline>$\mathbb{R}^d$</span>
+(Zhang et al. 2020). They cannot, however, change <em>topology</em> — a single Neural ODE on <span class=math-inline>$\mathbb{R}^d$</span>
+cannot un-link two linked rings. This motivates <strong>augmented</strong> Neural ODEs that lift to <span class=math-inline>$\mathbb{R}^{d+k}$</span>
+, where extra coordinates give the flow room to untangle.</p><hr><h2 id=continuous-normalizing-flows-cnf class=heading-anchor>Continuous Normalizing Flows (CNF)<a href=#continuous-normalizing-flows-cnf class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=from-discrete-flows-to-continuous class=heading-anchor>From discrete flows to continuous<a href=#from-discrete-flows-to-continuous class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\mathbf{z}_K=f_K\circ\cdots\circ f_1(\mathbf{z}_0),\qquad \log p_K=\log p_0-\sum_{k=1}^K\log\!\bigl|\det\partial f_k/\partial\mathbf{z}_{k-1}\bigr|.
+$$</span><p>Each <span class=math-inline>$\det$</span>
+is <span class=math-inline>$O(d^3)$</span>
+unless the architecture is engineered (coupling layers, autoregressive, etc.) — which restricts expressivity.</p><span class=math-block>$$
+\frac{d\mathbf{z}}{dt}=f_\theta(\mathbf{z}(t),t),\qquad \frac{d\log p}{dt}=-\nabla\!\cdot f_\theta(\mathbf{z}(t),t). \tag{5}
+$$</span><p><strong>No invertibility constraint on the architecture</strong> — the ODE is invertible by integrating backwards. <strong>No determinant</strong> — only a trace.</p><h3 id=ffjord-scalable-trace-via-hutchinson class=heading-anchor>FFJORD: scalable trace via Hutchinson<a href=#ffjord-scalable-trace-via-hutchinson class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\nabla\!\cdot f=\mathbb{E}_{\boldsymbol\epsilon}\!\left[\boldsymbol\epsilon^\top\!\frac{\partial f}{\partial\mathbf{z}}\,\boldsymbol\epsilon\right],\qquad \boldsymbol\epsilon\sim\mathcal{N}(0,\mathbf{I}). \tag{6}
+$$</span><p>This is <strong>Hutchinson&rsquo;s trace estimator</strong> and it costs <em>one</em> vector-Jacobian product per sample — independent of <span class=math-inline>$d$</span>
+.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/fig4_ffjord_trace.png alt="Hutchinson trace estimator: variance shrinks as 1/sqrt(K), and the per-step cost is O(d) instead of O(d^2)." loading=lazy decoding=async class=content-image></figure><em>Figure 4. Left: variance of the Hutchinson estimator over 400 trials for <span class=math-inline>$d{=}64$</span>
+, vs the number of probe vectors <span class=math-inline>$K$</span>
+; the dotted envelope shows the textbook <span class=math-inline>$1/\sqrt{K}$</span>
+rate. Right: per-step divergence cost as <span class=math-inline>$d$</span>
+grows. A full Jacobian is <span class=math-inline>$O(d^2)$</span>
+AD calls; Hutchinson with <span class=math-inline>$K{=}4$</span>
+is <span class=math-inline>$O(Kd)$</span>
+— three orders of magnitude cheaper at <span class=math-inline>$d{=}1024$</span>
+.</em></p><h3 id=training-and-sampling class=heading-anchor>Training and sampling<a href=#training-and-sampling class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\log p_1(\mathbf{x})=\log p_0(\mathbf{z}_0)+\int_0^1 \nabla\!\cdot f_\theta(\mathbf{z}(t),t)\,dt,
+$$</span><p>where <span class=math-inline>$\mathbf{z}_0$</span>
+is obtained by solving (5) backwards from <span class=math-inline>$\mathbf{x}$</span>
+. Maximise the log-likelihood with the adjoint method. To <strong>sample</strong>, draw <span class=math-inline>$\mathbf{z}_0\sim p_0$</span>
+and integrate forward.</p><p><strong>Trade-offs.</strong> CNFs give exact-likelihood density estimation, but each forward/backward pass requires solving an ODE — that&rsquo;s typically tens to hundreds of network evaluations. Training is also somewhat fragile: solver tolerance, regularisation of <span class=math-inline>$f_\theta$</span>
+, and Hutchinson variance all interact.</p><hr><p><strong>Implementation: FFJORD density estimation.</strong> Combining the Neural ODE with Hutchinson trace estimation, we get a complete density estimator:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>FFJORD</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>dim</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>hidden</span><span class=o>=</span><span class=mi>128</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>net</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>dim</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Softplus</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Softplus</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>t</span><span class=p>,</span> <span class=n>z</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>t_vec</span> <span class=o>=</span> <span class=n>t</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>ones</span><span class=p>(</span><span class=n>z</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>net</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>z</span><span class=p>,</span> <span class=n>t_vec</span><span class=p>],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>log_prob</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>steps</span><span class=o>=</span><span class=mi>100</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Integrate backward: x at t=1 -&gt; z0 at t=0</span>
+</span></span><span class=line><span class=cl>        <span class=n>dt</span> <span class=o>=</span> <span class=mf>1.0</span> <span class=o>/</span> <span class=n>steps</span>
+</span></span><span class=line><span class=cl>        <span class=n>z</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span><span class=o>.</span><span class=n>requires_grad_</span><span class=p>(</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>log_det</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>t</span> <span class=o>=</span> <span class=mf>1.0</span> <span class=o>-</span> <span class=n>step</span> <span class=o>*</span> <span class=n>dt</span>
+</span></span><span class=line><span class=cl>            <span class=n>f</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>forward</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>tensor</span><span class=p>(</span><span class=n>t</span><span class=p>),</span> <span class=n>z</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=c1># Hutchinson trace estimator</span>
+</span></span><span class=line><span class=cl>            <span class=n>eps</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn_like</span><span class=p>(</span><span class=n>z</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>jvp</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>autograd</span><span class=o>.</span><span class=n>grad</span><span class=p>(</span><span class=n>f</span><span class=p>,</span> <span class=n>z</span><span class=p>,</span> <span class=n>eps</span><span class=p>,</span> <span class=n>create_graph</span><span class=o>=</span><span class=kc>True</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>div</span> <span class=o>=</span> <span class=p>(</span><span class=n>jvp</span> <span class=o>*</span> <span class=n>eps</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>  <span class=c1># trace estimate</span>
+</span></span><span class=line><span class=cl>            <span class=n>log_det</span> <span class=o>=</span> <span class=n>log_det</span> <span class=o>-</span> <span class=n>dt</span> <span class=o>*</span> <span class=n>div</span>
+</span></span><span class=line><span class=cl>            <span class=n>z</span> <span class=o>=</span> <span class=n>z</span> <span class=o>-</span> <span class=n>dt</span> <span class=o>*</span> <span class=n>f</span>
+</span></span><span class=line><span class=cl>            <span class=n>z</span> <span class=o>=</span> <span class=n>z</span><span class=o>.</span><span class=n>detach</span><span class=p>()</span><span class=o>.</span><span class=n>requires_grad_</span><span class=p>(</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Base distribution: standard Gaussian</span>
+</span></span><span class=line><span class=cl>        <span class=n>log_p0</span> <span class=o>=</span> <span class=o>-</span><span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>z</span><span class=o>**</span><span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span> <span class=o>-</span> <span class=n>z</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>*</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>tensor</span><span class=p>(</span><span class=mi>2</span><span class=o>*</span><span class=n>torch</span><span class=o>.</span><span class=n>pi</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>log_p0</span> <span class=o>+</span> <span class=n>log_det</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>FFJORD</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>5000</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>log_px</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>log_prob</span><span class=p>(</span><span class=n>x_data</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>loss</span> <span class=o>=</span> <span class=o>-</span><span class=n>log_px</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>  <span class=c1># negative log-likelihood</span>
+</span></span><span class=line><span class=cl>    <span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>();</span> <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>();</span> <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>step</span> <span class=o>%</span> <span class=mi>1000</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Step </span><span class=si>{</span><span class=n>step</span><span class=si>}</span><span class=s2>: NLL=</span><span class=si>{</span><span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>The <code>log_prob</code> method integrates the ODE backwards while accumulating the log-density change via Hutchinson&rsquo;s estimator. The base log-probability <span class=math-inline>$\log p_0(\mathbf{z}_0)$</span>
+plus the accumulated divergence integral gives the data log-likelihood — all without computing a single determinant.</p><h2 id=optimal-transport-and-flow-matching class=heading-anchor>Optimal Transport and Flow Matching<a href=#optimal-transport-and-flow-matching class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_2.png alt="PDE and ML (6): Continuous Normalizing Flows and Neural ODE — Chapter summary" loading=lazy decoding=async class=content-image></figure></p><h3 id=the-benamou-brenier-connection class=heading-anchor>The Benamou-Brenier connection<a href=#the-benamou-brenier-connection class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+\min_{v_t}\,\int_0^1\!\!\int \|v_t(\mathbf{z})\|^2\,\rho_t(\mathbf{z})\,d\mathbf{z}\,dt
+\quad\text{s.t.}\quad \partial_t\rho+\nabla\!\cdot(\rho v)=0,\;\rho_0,\rho_1\text{ given}.
+$$</span><p>The minimiser <span class=math-inline>$v_t^\star$</span>
+is exactly the velocity field of a CNF — and one whose <strong>trajectories are straight lines</strong> (in the Euclidean OT case). This is the cleanest geometric reason to combine CNFs with OT.</p><h3 id=flow-matching class=heading-anchor>Flow Matching<a href=#flow-matching class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>Flow Matching</strong> (Lipman et al. 2022) is the killer-app simplification. Instead of optimising NLL through an ODE solver — and instead of solving an OT problem — it picks a <em>conditional probability path</em> and regresses on the corresponding velocity.</p><span class=math-block>$$
+u_t^\star(\mathbf{z}_t\mid\mathbf{z}_0,\mathbf{z}_1)=\mathbf{z}_1-\mathbf{z}_0. \tag{7}
+$$</span>
+<span class=math-block>$$
+\mathcal{L}_{\text{FM}}=\mathbb{E}_{t,\,\mathbf{z}_0,\,\mathbf{z}_1}\Bigl[\,\|v_\theta(\mathbf{z}_t,t)-(\mathbf{z}_1-\mathbf{z}_0)\|^2\,\Bigr]. \tag{8}
+$$</span><p><strong>Key theorem (Lipman et al.).</strong> The <em>marginal</em> velocity <span class=math-inline>$\mathbb{E}[u_t^\star\mid\mathbf{z}_t]$</span>
+satisfies the continuity equation transporting <span class=math-inline>$p_0\to p_1$</span>
+. So minimising (8) over a flexible <span class=math-inline>$v_\theta$</span>
+recovers a valid CNF — without ever computing a divergence at training time.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/fig5_flow_matching.png alt="Flow Matching: pairs of samples and the linear conditional paths between them; loss curves vs CNF." loading=lazy decoding=async class=content-image></figure><em>Figure 5. Left: random pairs <span class=math-inline>$(\mathbf{z}_0,\mathbf{z}_1)$</span>
+joined by the conditional linear path. The target velocity at any <span class=math-inline>$\mathbf{z}_t$</span>
+is just <span class=math-inline>$\mathbf{z}_1-\mathbf{z}_0$</span>
+— no divergence, no ODE solve at training time. Right: illustrative loss curves; FM converges roughly an order of magnitude faster and to a lower stable plateau than direct CNF maximum-likelihood.</em></p><h3 id=what-you-actually-use-in-2024 class=heading-anchor>What you actually use in 2024<a href=#what-you-actually-use-in-2024 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>Method</th><th>Training cost</th><th>Strengths</th><th>Weaknesses</th></tr></thead><tbody><tr><td>Discrete NF (RealNVP/Glow)</td><td>Cheap, no ODE</td><td>Fast sampling and likelihood</td><td>Constrained architecture</td></tr><tr><td>CNF / FFJORD</td><td>ODE + Hutchinson</td><td>Free-form <span class=math-inline>$f_\theta$</span>
+, exact NLL</td><td>Slow, tuning-sensitive</td></tr><tr><td>OT-Flow</td><td>OT cost + matching</td><td>Straight, optimal paths</td><td>Two losses to balance</td></tr><tr><td><strong>Flow Matching</strong></td><td>Pure regression</td><td>Stable, fast, scales to images</td><td>Need a conditional path design</td></tr><tr><td>Rectified Flow / consistency</td><td>Iterative straightening</td><td>Few-step sampling</td><td>Multi-stage training</td></tr></tbody></table></div><p>In 2024 most production-scale continuous-flow systems (image, audio, molecule generation) are some flavour of Flow Matching or Rectified Flow.</p><hr><p><strong>Implementation: Flow Matching — the modern standard.</strong> Flow Matching replaces the entire FFJORD machinery with simple regression. The training loop is remarkably short:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>VelocityNet</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Time-conditioned velocity field v_theta(z, t)</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>dim</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>hidden</span><span class=o>=</span><span class=mi>256</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>net</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>dim</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>SiLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>SiLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>SiLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>z</span><span class=p>,</span> <span class=n>t</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>t_vec</span> <span class=o>=</span> <span class=n>t</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span> <span class=k>if</span> <span class=n>t</span><span class=o>.</span><span class=n>dim</span><span class=p>()</span> <span class=o>==</span> <span class=mi>1</span> <span class=k>else</span> <span class=n>t</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>net</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>z</span><span class=p>,</span> <span class=n>t_vec</span><span class=p>],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>flow_matching_loss</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>x1</span><span class=p>,</span> <span class=n>sigma_min</span><span class=o>=</span><span class=mf>1e-4</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># x1: data samples</span>
+</span></span><span class=line><span class=cl>    <span class=n>batch</span> <span class=o>=</span> <span class=n>x1</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>rand</span><span class=p>(</span><span class=n>batch</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>  <span class=c1># uniform t in [0, 1]</span>
+</span></span><span class=line><span class=cl>    <span class=n>x0</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn_like</span><span class=p>(</span><span class=n>x1</span><span class=p>)</span>  <span class=c1># noise samples</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Conditional path: z_t = (1 - t) * x0 + t * x1</span>
+</span></span><span class=line><span class=cl>    <span class=n>zt</span> <span class=o>=</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>t</span><span class=p>)</span> <span class=o>*</span> <span class=n>x0</span> <span class=o>+</span> <span class=n>t</span> <span class=o>*</span> <span class=n>x1</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Target velocity: dx/dt = x1 - x0</span>
+</span></span><span class=line><span class=cl>    <span class=n>target</span> <span class=o>=</span> <span class=n>x1</span> <span class=o>-</span> <span class=n>x0</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Predict and regress</span>
+</span></span><span class=line><span class=cl>    <span class=n>pred</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>zt</span><span class=p>,</span> <span class=n>t</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>((</span><span class=n>pred</span> <span class=o>-</span> <span class=n>target</span><span class=p>)</span><span class=o>**</span><span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>VelocityNet</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>5000</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>loss</span> <span class=o>=</span> <span class=n>flow_matching_loss</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>x_data</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>();</span> <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>();</span> <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>step</span> <span class=o>%</span> <span class=mi>1000</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Step </span><span class=si>{</span><span class=n>step</span><span class=si>}</span><span class=s2>: FM loss=</span><span class=si>{</span><span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>sample_flow_matching</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>n</span><span class=o>=</span><span class=mi>2000</span><span class=p>,</span> <span class=n>steps</span><span class=o>=</span><span class=mi>100</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Generate samples by integrating the learned velocity forward</span>
+</span></span><span class=line><span class=cl>    <span class=n>z</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>dt</span> <span class=o>=</span> <span class=mf>1.0</span> <span class=o>/</span> <span class=n>steps</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>t</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>full</span><span class=p>((</span><span class=n>n</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=n>i</span> <span class=o>*</span> <span class=n>dt</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>z</span> <span class=o>=</span> <span class=n>z</span> <span class=o>+</span> <span class=n>dt</span> <span class=o>*</span> <span class=n>model</span><span class=p>(</span><span class=n>z</span><span class=p>,</span> <span class=n>t</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>z</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>samples</span> <span class=o>=</span> <span class=n>sample_flow_matching</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>n</span><span class=o>=</span><span class=mi>3000</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Generated </span><span class=si>{</span><span class=n>samples</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=s2> samples, mean=</span><span class=si>{</span><span class=n>samples</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>numpy</span><span class=p>()</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=mi>3</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Compare the simplicity: FFJORD needs an ODE solver in training, Hutchinson trace estimation, careful tolerance tuning. Flow Matching is <em>just regression</em> — sample noise, sample data, interpolate, predict velocity. The ODE solver is only needed at inference time, and even then a simple Euler with 50-100 steps works well.</p><div class=table-wrap><table><thead><tr><th>Aspect</th><th>FFJORD (CNF)</th><th>Flow Matching</th></tr></thead><tbody><tr><td>Training objective</td><td>Max likelihood via ODE</td><td>Regression on velocity</td></tr><tr><td>Training cost per step</td><td>ODE solve + Hutchinson</td><td>One forward pass</td></tr><tr><td>Requires ODE solver at training?</td><td>Yes</td><td>No</td></tr><tr><td>Requires ODE solver at inference?</td><td>Yes</td><td>Yes (but simpler)</td></tr><tr><td>Convergence speed</td><td>Slow (8000+ iters)</td><td>Fast (3000 iters)</td></tr><tr><td>Stability</td><td>Sensitive to tolerances</td><td>Robust</td></tr></tbody></table></div><h2 id=continuous-depth-in-pictures class=heading-anchor>Continuous Depth in Pictures<a href=#continuous-depth-in-pictures class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>The &ldquo;continuous depth&rdquo; idea is what unifies everything in this chapter — a Neural ODE <em>is</em> the continuous limit of a deep network, and CNFs are the continuous limit of a normalizing flow. The picture is the same in both cases.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/fig6_continuous_depth.png alt="A continuous trajectory h(t) approximated by ResNets of fixed depth and by an adaptive ODE solver." loading=lazy decoding=async class=content-image></figure><em>Figure 6. Blue: the true continuous trajectory <span class=math-inline>$h(t)$</span>
+produced by an underlying Neural ODE. Red dashed: a fixed-depth <span class=math-inline>$L{=}4$</span>
+ResNet undershoots the dynamics where <span class=math-inline>$|\dot h|$</span>
+is large (red error patches). Orange: an <span class=math-inline>$L{=}8$</span>
+ResNet still misses the high-frequency oscillation. Purple diamonds: an adaptive solver places <strong>more steps where the dynamics are stiff and fewer where they are smooth</strong>, achieving the same accuracy with fewer total evaluations and zero hand-tuning of &ldquo;depth&rdquo;.</em></p><p>This is also why one ODE function <span class=math-inline>$f_\theta$</span>
+&ldquo;replaces&rdquo; hundreds of layers in a deep ResNet: the <em>time variable</em> takes over the role of layer index, and the solver decides discretisation.</p><hr><h3 id=augmented-neural-odes class=heading-anchor>Augmented Neural ODEs<a href=#augmented-neural-odes class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Standard Neural ODEs on <span class=math-inline>$\mathbb{R}^d$</span>
+cannot change topology — a connected component stays connected, two separate clusters cannot be merged. This is because the ODE flow is a homeomorphism (continuous bijection). In practice this means that a 2D Neural ODE <em>cannot</em> transform a single Gaussian into two separated clusters — the trajectories would have to cross, violating uniqueness.</p><p><strong>The fix: augmentation.</strong> Lift the state from <span class=math-inline>$\mathbb{R}^d$</span>
+to <span class=math-inline>$\mathbb{R}^{d+k}$</span>
+by appending <span class=math-inline>$k$</span>
+extra coordinates initialised to zero:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>augmented_neural_ode</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>steps</span><span class=o>=</span><span class=mi>100</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Augment: append k zeros</span>
+</span></span><span class=line><span class=cl>    <span class=n>aug</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>k</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>h</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>x</span><span class=p>,</span> <span class=n>aug</span><span class=p>],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>  <span class=c1># (batch, d+k)</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Integrate in augmented space</span>
+</span></span><span class=line><span class=cl>    <span class=n>dt</span> <span class=o>=</span> <span class=mf>1.0</span> <span class=o>/</span> <span class=n>steps</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>t</span> <span class=o>=</span> <span class=n>step</span> <span class=o>*</span> <span class=n>dt</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=n>h</span> <span class=o>+</span> <span class=n>dt</span> <span class=o>*</span> <span class=n>func</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>tensor</span><span class=p>(</span><span class=n>t</span><span class=p>),</span> <span class=n>h</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Project back to original d dimensions</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>h</span><span class=p>[:,</span> <span class=p>:</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]]</span>
+</span></span></code></pre></td></tr></table></div></div><p>In <span class=math-inline>$\mathbb{R}^{d+k}$</span>
+, the flow has room to &ldquo;lift&rdquo; one cluster up, slide it over the other, and bring it back down — like an overpass on a highway. This costs <span class=math-inline>$k$</span>
+extra dimensions but removes the topological limitation entirely. Dupont et al. (2019) showed that <span class=math-inline>$k=1$</span>
+suffices for most 2D problems; for general <span class=math-inline>$d$</span>
+-dimensional data, <span class=math-inline>$k = d$</span>
+gives maximal flexibility.</p><h2 id=putting-it-together-2d-density-estimation class=heading-anchor>Putting It Together: 2D Density Estimation<a href=#putting-it-together-2d-density-estimation class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>To make the whole pipeline concrete, here is what density estimation actually looks like end-to-end on the canonical two-moons toy.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/fig7_density_estimation.png alt="Density estimation on 2D toy data: target samples, empirical KDE, CNF density, and generated samples with ODE trajectories." loading=lazy decoding=async class=content-image></figure><em>Figure 7. (a) 4000 samples from the two-moons target. (b) Empirical density via KDE. (c) Density learned by the continuous flow — captured by transporting a Gaussian forward along the trained <span class=math-inline>$v_\theta$</span>
+. (d) Generated samples (purple) plus a handful of ODE trajectories (green) showing how each base point flows from the unit Gaussian (green dots) to a target moon. The same network <span class=math-inline>$v_\theta$</span>
+is used for <em>both</em> density evaluation (run the ODE backwards from <span class=math-inline>$\mathbf{x}$</span>
+) and sampling (run it forward from noise).</em></p><p>This dual nature — exact-likelihood density estimation <strong>and</strong> sampling, through one network <span class=math-inline>$v_\theta$</span>
+and the ODE <span class=math-inline>$\dot{\mathbf{z}}=v_\theta(\mathbf{z},t)$</span>
+— is what makes continuous flows so attractive theoretically.</p><hr><h2 id=experiments class=heading-anchor>Experiments<a href=#experiments class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/fig8_spiral_ode_fit.png alt="Neural ODE spiral trajectory fitting with learned vector field" loading=lazy decoding=async class=content-image></figure></p><h3 id=spiral-ode-fitting class=heading-anchor>Spiral ODE fitting<a href=#spiral-ode-fitting class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>A 3-layer MLP (hidden dim 64, tanh) parameterises <span class=math-inline>$f_\theta$</span>
+. Trained with the adjoint method on a 2D damped spiral target via dopri5 (rtol <span class=math-inline>$=10^{-5}$</span>
+). After 1000 steps the average trajectory error falls below <span class=math-inline>$10^{-3}$</span>
+, with peak GPU memory ~40 MB regardless of the ~80 internal solver steps.</p><h3 id=gaussian---two-moons-cnf class=heading-anchor>Gaussian -> two moons CNF<a href=#gaussian---two-moons-cnf class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>A 4-layer MLP (hidden dim 128, softplus) trained as FFJORD with Hutchinson trace estimation, dopri5 solver, 5000 steps. Generated samples cover both moons and capture their crescent thickness; KDE comparison gives Wasserstein-2 <span class=math-inline>$\approx 0.07$</span>
+versus the reference target.</p><h3 id=adjoint-vs-standard-backprop-illustrative-numbers-from-the-original-neural-ode-paper-scaled-to-1024-dim-hidden-state class=heading-anchor>Adjoint vs standard backprop (illustrative; numbers from the original Neural ODE paper, scaled to 1024-dim hidden state)<a href=#adjoint-vs-standard-backprop-illustrative-numbers-from-the-original-neural-ode-paper-scaled-to-1024-dim-hidden-state class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>Method</th><th>Memory (MB)</th><th>Time (s)</th><th>Test acc.</th></tr></thead><tbody><tr><td>Standard backprop, fixed <span class=math-inline>$L=100$</span></td><td>2450</td><td>2.3</td><td>85.2%</td></tr><tr><td>Adjoint, fixed <span class=math-inline>$L=100$</span></td><td>320</td><td>3.1</td><td>85.1%</td></tr><tr><td>Adjoint, adaptive (dopri5)</td><td>310</td><td>2.8</td><td>85.3%</td></tr></tbody></table></div><p>Memory drops by ~87%; wall-clock cost increases by ~20-30%.</p><h3 id=flow-matching-vs-cnf-on-2d-moons class=heading-anchor>Flow Matching vs CNF on 2D moons<a href=#flow-matching-vs-cnf-on-2d-moons class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=table-wrap><table><thead><tr><th>Method</th><th>Sample quality (lower = better)</th><th>Training iters to plateau</th><th>Sampling time</th></tr></thead><tbody><tr><td>CNF (FFJORD)</td><td>12.3</td><td>8000</td><td>2.1 s / 1k samples</td></tr><tr><td>Flow Matching</td><td>8.7</td><td>3000</td><td>1.8 s / 1k samples</td></tr></tbody></table></div><p>Flow Matching converges <span class=math-inline>$\sim 2.7\times$</span>
+faster and produces qualitatively cleaner moons. On real image data the gap is even larger (one to two orders of magnitude in both training time and sampling NFE).</p><hr><h2 id=exercises class=heading-anchor>Exercises<a href=#exercises class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>Exercise 1.</strong> Derive the instantaneous change-of-variables formula (1) directly from the continuity equation.</p><blockquote><p><em>Solution.</em> Continuity: <span class=math-inline>$\partial_t\rho+\nabla\!\cdot(\rho f)=0$</span>
+, i.e. <span class=math-inline>$\partial_t\rho+f\!\cdot\!\nabla\rho+\rho\,\nabla\!\cdot f=0$</span>
+. Along <span class=math-inline>$\mathbf{z}(t)$</span>
+, <span class=math-inline>$\frac{d}{dt}\rho(\mathbf{z}(t),t)=\partial_t\rho+f\!\cdot\!\nabla\rho=-\rho\,\nabla\!\cdot f$</span>
+. Divide by <span class=math-inline>$\rho$</span>
+.</p></blockquote><p><strong>Exercise 2.</strong> Why is the adjoint method <span class=math-inline>$O(1)$</span>
+in memory?</p><blockquote><p><em>Solution.</em> It only stores the current <span class=math-inline>$\mathbf{h}(t)$</span>
+, <span class=math-inline>$\mathbf{a}(t)$</span>
+, and the running parameter-gradient accumulator. Whenever the backward solver needs an old <span class=math-inline>$\mathbf{h}(s)$</span>
+, it re-derives it by integrating the forward ODE in reverse — so no internal solver states are stored. The <span class=math-inline>$O(1)$</span>
+refers to depth-independence; spatial dim still costs <span class=math-inline>$d$</span>
+.</p></blockquote><p><strong>Exercise 3.</strong> Hutchinson&rsquo;s estimator: prove (6) is unbiased.</p><blockquote><p><em>Solution.</em> For any matrix <span class=math-inline>$A$</span>
+and <span class=math-inline>$\boldsymbol\epsilon$</span>
+with <span class=math-inline>$\mathbb{E}[\boldsymbol\epsilon]=0$</span>
+, <span class=math-inline>$\mathrm{Cov}[\boldsymbol\epsilon]=\mathbf{I}$</span>
+, <span class=math-inline>$\mathbb{E}[\boldsymbol\epsilon^\top A\,\boldsymbol\epsilon]=\sum_{i,j}A_{ij}\,\mathbb{E}[\epsilon_i\epsilon_j]=\sum_i A_{ii}=\mathrm{tr}\,A$</span>
+.</p></blockquote><p><strong>Exercise 4.</strong> Compare Flow Matching and DDPM at a high level.</p><blockquote><p><em>Solution.</em> Both transport noise <span class=math-inline>$\to$</span>
+data. DDPM learns a denoiser via score matching on a stochastic forward (SDE) noising process; sampling solves a reverse SDE or its probability-flow ODE. Flow Matching learns a velocity field <span class=math-inline>$v_\theta$</span>
+on a deterministic ODE matching a chosen conditional path; sampling integrates that ODE. Flow Matching&rsquo;s training loss is plain regression with no time-varying noise schedule.</p></blockquote><p><strong>Exercise 5.</strong> Show that for the linear conditional path <span class=math-inline>$\mathbf{z}_t=(1-t)\mathbf{z}_0+t\mathbf{z}_1$</span>
+, the marginal velocity <span class=math-inline>$\mathbb{E}[\mathbf{z}_1-\mathbf{z}_0\mid\mathbf{z}_t]$</span>
+pushes <span class=math-inline>$p_0$</span>
+to <span class=math-inline>$p_1$</span>
+via the continuity equation.</p><blockquote><p><em>Solution sketch.</em> Write <span class=math-inline>$\rho_t(\mathbf{z})=\int q(\mathbf{z}_0,\mathbf{z}_1)\,\delta(\mathbf{z}-(1-t)\mathbf{z}_0-t\mathbf{z}_1)\,d\mathbf{z}_0\,d\mathbf{z}_1$</span>
+. Differentiate <span class=math-inline>$\rho_t$</span>
+in <span class=math-inline>$t$</span>
+and use the identity <span class=math-inline>$\partial_t\delta=-\nabla\!\cdot[(\mathbf{z}_1-\mathbf{z}_0)\delta]$</span>
+. Marginalising over <span class=math-inline>$\mathbf{z}_0,\mathbf{z}_1$</span>
+given <span class=math-inline>$\mathbf{z}_t$</span>
+yields <span class=math-inline>$\partial_t\rho_t+\nabla\!\cdot(\rho_t\,\bar v_t)=0$</span>
+with <span class=math-inline>$\bar v_t(\mathbf{z})=\mathbb{E}[\mathbf{z}_1-\mathbf{z}_0\mid\mathbf{z}_t=\mathbf{z}]$</span>
+.</p></blockquote><hr><h2 id=whats-next class=heading-anchor>What&rsquo;s next<a href=#whats-next class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>The handful of core ideas in this chapter (PDE residual as loss, operators on function spaces, Wasserstein geometry, symplectic structure, scores, diffusion) recur throughout the rest of the series. If a section stalls you, jot the question down and keep reading — the next chapter usually re-explains it from a different angle.</p><p>The fastest sanity check on your own understanding is to run this chapter&rsquo;s equation on a minimal example: a 1-D heat equation, a single pendulum, a 2-D Gaussian mixture. The code is short, but it converts &ldquo;looks right&rdquo; into &ldquo;it&rsquo;s right on my machine.&rdquo;</p><h2 id=references class=heading-anchor>References<a href=#references class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>[1] Chen, R. T. Q., Rubanova, Y., Bettencourt, J., & Duvenaud, D. (2018). Neural ordinary differential equations. <em>NeurIPS</em>.</p><p>[2] Grathwohl, W., Chen, R. T. Q., Bettencourt, J., Sutskever, I., & Duvenaud, D. (2018). FFJORD: Free-form continuous dynamics for scalable reversible generative models. <em>ICLR</em>.</p><p>[3] Onken, D., Fung, S. W., Li, X., & Ruthotto, L. (2021). OT-Flow: Fast and accurate continuous normalizing flows via optimal transport. <em>AAAI</em>.</p><p>[4] Lipman, Y., Chen, R. T. Q., Ben-Hamu, H., Nickel, M., & Le, M. (2022). Flow matching for generative modeling. <em>ICLR</em>.</p><p>[5] Liu, X., Gong, C., & Liu, Q. (2022). Flow straight and fast: Learning to generate and transfer data with rectified flow. <em>ICLR</em>.</p><p>[6] Tzen, B., & Raginsky, M. (2019). Theoretical guarantees for sampling and inference in generative models with latent diffusions. <em>COLT</em>.</p><p>[7] Zhang, H., Gao, X., Unterman, J., & Arodz, T. (2020). Approximation capabilities of neural ODEs and invertible residual networks. <em>ICML</em>.</p><hr><p><em>This is Part 6 of the <a href=/en/categories/pde-and-machine-learning/>PDE and Machine Learning</a>
+series. Next: <a href=/en/pde-ml/07-diffusion-models>Part 7 — Diffusion Models</a>
+. Previous: <a href=/en/pde-ml/05-symplectic-geometry>Part 5 — Symplectic Geometry</a>
+.</em></p></div><section class=series-nav-block data-prev-url=https://www.chenk.top/en/pde-ml/05-symplectic-geometry/ data-next-url=https://www.chenk.top/en/pde-ml/07-diffusion-models/ aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/pde-ml/>PDE and Machine Learning</a> <span class=count>8 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/pde-ml/05-symplectic-geometry/><span class=title>PDE and ML (5): Symplectic Geometry and Structure-Preserving Networks</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/pde-ml/07-diffusion-models/><span class=title>PDE and ML (7): Diffusion Models and Score Matching</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/pde-ml/01-physics-informed-neural-networks/><span class=series-nav-num>01</span>
+<span class=series-nav-title>PDE and ML (1): Physics-Informed Neural Networks</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/pde-ml/02-neural-operator-theory/><span class=series-nav-num>02</span>
+<span class=series-nav-title>PDE and ML (2): Neural Operator Theory</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/pde-ml/03-variational-principles/><span class=series-nav-num>03</span>
+<span class=series-nav-title>PDE and ML (3): Variational Principles and Optimization</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/pde-ml/04-variational-inference/><span class=series-nav-num>04</span>
+<span class=series-nav-title>PDE and ML (4): Variational Inference and the Fokker-Planck Equation</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/pde-ml/05-symplectic-geometry/><span class=series-nav-num>05</span>
+<span class=series-nav-title>PDE and ML (5): Symplectic Geometry and Structure-Preserving Networks</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>06</span>
+<span class=series-nav-title>PDE and ML (6): Continuous Normalizing Flows and Neural ODE</span>
+<span class=series-nav-here>you are here</span></li><li class=series-nav-item><a href=https://www.chenk.top/en/pde-ml/07-diffusion-models/><span class=series-nav-num>07</span>
+<span class=series-nav-title>PDE and ML (7): Diffusion Models and Score Matching</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/pde-ml/08-reaction-diffusion-systems/><span class=series-nav-num>08</span>
+<span class=series-nav-title>PDE and ML (8): Reaction-Diffusion Systems and Graph Neural Networks</span></a></li></ol></section><div class=article-share aria-label="Share this article"><span class=share-label>Share</span>
+<a class="share-btn share-twitter" target=_blank rel=noopener href="https://twitter.com/intent/tweet?text=PDE%2band%2bML%2b%25286%2529%253A%2bContinuous%2bNormalizing%2bFlows%2band%2bNeural%2bODE&url=https%253A%252F%252Fwww.chenk.top%252Fen%252Fpde-ml%252F06-continuous-normalizing-flows%252F" aria-label="Share on Twitter" title="Twitter / X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+</a><a class="share-btn share-weibo" target=_blank rel=noopener href="https://service.weibo.com/share/share.php?url=https%253A%252F%252Fwww.chenk.top%252Fen%252Fpde-ml%252F06-continuous-normalizing-flows%252F&title=PDE%2band%2bML%2b%25286%2529%253A%2bContinuous%2bNormalizing%2bFlows%2band%2bNeural%2bODE" aria-label="Share on Weibo" title=微博><svg width="16" height="16" viewBox="0 0 24 24" fill="currentcolor" aria-hidden="true"><path d="M9.5 6.7C5.9 6.7 3 9.6 3 13.2s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5-2.9-6.5-6.5-6.5zm-1 11c-2.8.0-5-1.7-5-4 0-2.2 2.2-4 5-4s5 1.7 5 4-2.2 4-5 4zm1.5-3.6c-.7.0-1.3-.5-1.3-1.2s.6-1.2 1.3-1.2 1.3.5 1.3 1.2-.6 1.2-1.3 1.2zm-2.7-.6c-.3.5-.9.7-1.3.4-.5-.3-.6-.9-.3-1.4s.9-.7 1.3-.4c.4.3.5.9.3 1.4zm10.4-7.7c-.3-.4-.8-.6-1.3-.4-.5.2-.8.7-.6 1.2.4 1 .3 2.1-.3 3S14 11.1 13 11.3c-.5.1-.9.6-.8 1.1s.6.8 1.1.7c1.6-.3 2.9-1.2 3.8-2.5.9-1.4 1.1-3.1.6-4.6v-.2zm-2.6-3.2c-.4-.4-1-.5-1.5-.4-.4.1-.7.5-.6.9s.5.6.9.5c.5-.1 1 0 1.4.4s.5.9.4 1.4c-.1.4.2.8.5.9.5.1.9-.2 1-.6.2-1 0-2.1-.7-2.8-.5-.4-1-.5-1.4-.3z"/></svg>
+</a><button class="share-btn share-copy" type=button data-share-url=https://www.chenk.top/en/pde-ml/06-continuous-normalizing-flows/ aria-label="Copy article link" title="Copy link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></div><div class=article-end><div class=article-end-sig aria-hidden=true><span class=sig-mark>— ck —</span>
+<span class=sig-meta data-days-since=2024-07-15>written <span class=days>…</span> days ago</span></div><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What You Will Learn</a></li><li><a href=#ode-foundations-existence-uniqueness-volume>ODE Foundations: Existence, Uniqueness, Volume</a><ul><li><a href=#picard-lindelof-when-do-odes-have-unique-solutions>Picard-Lindelof: when do ODEs have unique solutions?</a></li><li><a href=#liouvilles-theorem-how-flows-change-volume>Liouville&rsquo;s theorem: how flows change volume</a></li><li><a href=#instantaneous-change-of-variables>Instantaneous change of variables</a></li></ul></li><li><a href=#neural-odes-from-discrete-to-continuous-depth>Neural ODEs: From Discrete to Continuous Depth</a><ul><li><a href=#residual-networks-as-forward-euler>Residual networks as forward Euler</a></li><li><a href=#the-adjoint-sensitivity-method>The adjoint sensitivity method</a></li><li><a href=#universality>Universality</a></li></ul></li><li><a href=#continuous-normalizing-flows-cnf>Continuous Normalizing Flows (CNF)</a><ul><li><a href=#from-discrete-flows-to-continuous>From discrete flows to continuous</a></li><li><a href=#ffjord-scalable-trace-via-hutchinson>FFJORD: scalable trace via Hutchinson</a></li><li><a href=#training-and-sampling>Training and sampling</a></li></ul></li><li><a href=#optimal-transport-and-flow-matching>Optimal Transport and Flow Matching</a><ul><li><a href=#the-benamou-brenier-connection>The Benamou-Brenier connection</a></li><li><a href=#flow-matching>Flow Matching</a></li><li><a href=#what-you-actually-use-in-2024>What you actually use in 2024</a></li></ul></li><li><a href=#continuous-depth-in-pictures>Continuous Depth in Pictures</a><ul><li><a href=#augmented-neural-odes>Augmented Neural ODEs</a></li></ul></li><li><a href=#putting-it-together-2d-density-estimation>Putting It Together: 2D Density Estimation</a></li><li><a href=#experiments>Experiments</a><ul><li><a href=#spiral-ode-fitting>Spiral ODE fitting</a></li><li><a href=#gaussian---two-moons-cnf>Gaussian -> two moons CNF</a></li><li><a href=#adjoint-vs-standard-backprop-illustrative-numbers-from-the-original-neural-ode-paper-scaled-to-1024-dim-hidden-state>Adjoint vs standard backprop (illustrative; numbers from the original Neural ODE paper, scaled to 1024-dim hidden state)</a></li><li><a href=#flow-matching-vs-cnf-on-2d-moons>Flow Matching vs CNF on 2D moons</a></li></ul></li><li><a href=#exercises>Exercises</a></li><li><a href=#whats-next>What&rsquo;s next</a></li><li><a href=#references>References</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/pde-ml/ class=series-name>PDE and Machine Learning</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/pde-ml/01-physics-informed-neural-networks/><span class=chapter-num>01</span>
+<span class=chapter-title>PDE and ML (1): Physics-Informed Neural Networks</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/pde-ml/02-neural-operator-theory/><span class=chapter-num>02</span>
+<span class=chapter-title>PDE and ML (2): Neural Operator Theory</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/pde-ml/03-variational-principles/><span class=chapter-num>03</span>
+<span class=chapter-title>PDE and ML (3): Variational Principles and Optimization</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/pde-ml/04-variational-inference/><span class=chapter-num>04</span>
+<span class=chapter-title>PDE and ML (4): Variational Inference and the Fokker-Planck Equation</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/pde-ml/05-symplectic-geometry/><span class=chapter-num>05</span>
+<span class=chapter-title>PDE and ML (5): Symplectic Geometry and Structure-Preserving Networks</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>06</span>
+<span class=chapter-title>PDE and ML (6): Continuous Normalizing Flows and Neural ODE</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/pde-ml/07-diffusion-models/><span class=chapter-num>07</span>
+<span class=chapter-title>PDE and ML (7): Diffusion Models and Score Matching</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/pde-ml/08-reaction-diffusion-systems/><span class=chapter-num>08</span>
+<span class=chapter-title>PDE and ML (8): Reaction-Diffusion Systems and Graph Neural Networks</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>38 min</strong></div><div class=row><span>Word count</span><strong>3914</strong></div><div class=row><span>Published</span><strong>Jul 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/product-thinking/>Product Thinking</a></li><li><a href=https://www.chenk.top/en/series/personal-finance/>Personal Finance</a></li><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li><li><a href=https://llm4marketing.asia target=_blank rel=noopener>MiniGameForge</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><button type=button class=footer-wechat data-wechat=ck1640234528 aria-label="Copy WeChat ID">WeChat</button></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=signature>Hangzhou.</span></div></div><div class=wx-modal hidden role=dialog aria-modal=true aria-labelledby=wx-modal-title><div class=wx-modal-backdrop data-wx-close></div><div class=wx-modal-card><button class=wx-modal-close type=button data-wx-close aria-label=Close>×</button><div class=wx-modal-eyebrow>WeChat</div><div class=wx-modal-id id=wx-modal-title>ck1640234528</div><div class=wx-modal-hint>Search this ID inside WeChat to connect</div><div class=wx-modal-actions><button class="wx-modal-copy pp-btn pp-btn--primary" type=button data-wx-copy=ck1640234528>Copy ID</button></div></div></div></footer></body></html>
