@@ -24,7 +24,7 @@
 · 第 7 篇</div><h1>核方法（七）：大规模核方法——Nystrom 近似与随机傅里叶特征</h1><p class=deck>核方法是 $O(n^3)$。Nystrom 近似和随机傅里叶特征把它拉回线性时间，同时保留核技巧的表达能力。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
 <span class=meta-line><time datetime=2021-12-24>December 24, 2021</time> · 88 分钟 · 21691 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/%E6%A0%B8%E6%96%B9%E6%B3%95/ class=tag>#核方法</a><a href=/zh/tags/%E5%8F%AF%E6%89%A9%E5%B1%95%E6%80%A7/ class=tag>#可扩展性</a><a href=/zh/tags/%E9%9A%8F%E6%9C%BA%E7%89%B9%E5%BE%81/ class=tag>#随机特征</a><a href=/zh/tags/%E6%95%B0%E5%AD%A6/ class=tag>#数学</a></div><a class="pill pill-outline" href=/en/kernel-methods/07-large-scale-kernels/>Read in English →</a></div></header><div class=prose><p>你想拿 RBF SVM 去跑一个百万规模的图像分类任务。Gram 矩阵是 <span class=math-inline>$10^6 \times 10^6$</span>
 的 double 数组，整整 <strong>8 TB</strong>。光是这一个数字——八个 TB 的内存，仅仅为了<em>存</em>那个核矩阵——就解释了为什么大部分在统计课上学过核方法的工程师，在真实生产环境里都默默不再碰它。核技巧用一次内积就送你一个无穷维特征空间；账单是在你有 <span class=math-inline>$n^2$</span>
-对数据时寄到。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/cover.png alt="Nystrom 和随机傅里叶特征：从 O(n^3) 到线性时间的两条路" loading=lazy decoding=async class=content-image></figure></p><p>本系列前六篇把核方法的故事从头讲到尾，但都没碰到扩展性这个问题：把数据抬进 RKHS（第 <a href=/zh/kernel-methods/01-%e4%b8%ba%e4%bb%80%e4%b9%88%e9%9c%80%e8%a6%81%e6%a0%b8%e6%96%b9%e6%b3%95/>1</a>
+对数据时寄到。</p><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/cover.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt="Nystrom 和随机傅里叶特征：从 O(n^3) 到线性时间的两条路" loading=lazy decoding=async class=content-image></figure></p><p>本系列前六篇把核方法的故事从头讲到尾，但都没碰到扩展性这个问题：把数据抬进 RKHS（第 <a href=/zh/kernel-methods/01-%e4%b8%ba%e4%bb%80%e4%b9%88%e9%9c%80%e8%a6%81%e6%a0%b8%e6%96%b9%e6%b3%95/>1</a>
 -<a href=/zh/kernel-methods/03-rkhs%e7%90%86%e8%ae%ba/>3</a>
 篇）、按你的先验挑核（<a href=/zh/kernel-methods/04-%e5%b8%b8%e8%a7%81%e6%a0%b8%e5%87%bd%e6%95%b0%e6%97%8f/>第 4 篇</a>
 ）、解凸优化跑 SVM（<a href=/zh/kernel-methods/05-%e6%a0%b8svm%e6%a0%b8pca%e6%a0%b8%e5%b2%ad%e5%9b%9e%e5%bd%92/>第 5 篇</a>
@@ -46,7 +46,7 @@
 稀疏或者结构化（核就是低秩、Kronecker、Toeplitz），那 <span class=math-inline>$O(n^3)$</span>
 可以压到 <span class=math-inline>$O(n^2)$</span>
 甚至更低。但在 ML 实际场景里这些结构很罕见——除非你<em>专门</em>选了一个会产生这种结构的核（比如周期核 + 单维网格化输入）。&ldquo;任意 PD 核 + 任意输入"在没近似的前提下就是 <span class=math-inline>$O(n^3)$</span>
-，不能绕。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig1_complexity_curse.png alt=四种样本量下的内存与训练时间爆炸 loading=lazy decoding=async class=content-image></figure></p><p>把数字铺开看：在 <span class=math-inline>$n = 10^4$</span>
+，不能绕。</p><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig1_complexity_curse.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt=四种样本量下的内存与训练时间爆炸 loading=lazy decoding=async class=content-image></figure></p><p>把数字铺开看：在 <span class=math-inline>$n = 10^4$</span>
 时，Gram 矩阵 800 MB，<span class=math-inline>$K^{-1}$</span>
 几秒搞定。<span class=math-inline>$n = 10^5$</span>
 时变成 80 GB——已经超过大多数工作站内存——求逆得算几个小时。<span class=math-inline>$n = 10^6$</span>
@@ -131,7 +131,7 @@ approximation），你拿到的是 <span class=math-inline>$\|K - K_m\|_F$</span
 行做近似 <span class=math-inline>$A \approx CUR$</span>
 。Nystrom 是 CUR 在对称半正定矩阵上的特例：<span class=math-inline>$C = K_{nm} = R^T$</span>
 ，<span class=math-inline>$U = K_{mm}^{-1}$</span>
-。所以核方法的可扩展化和数值代数的稀疏化共享一套数学骨架；2018 年后的 randomised numerical linear algebra（RandNLA）综述里，Nystrom 几乎是标准入门例子。这条联系一旦看清，你就能从 NLA 文献里直接借用很多 sharp 的分析结果——比如 Cohen et al. 的"近似 leverage score 算法 + Nystrom"组合给出当前的紧界。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig2_nystrom_inducing_points.png alt="挑 inducing points 的三种策略" loading=lazy decoding=async class=content-image></figure></p><h2 id=nystrom-数学推导 class=heading-anchor>Nystrom 数学推导<a href=#nystrom-%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>我把<em>为什么</em> <span class=math-inline>$\hat K = K_{nm} K_{mm}^{-1} K_{mn}$</span>
+。所以核方法的可扩展化和数值代数的稀疏化共享一套数学骨架；2018 年后的 randomised numerical linear algebra（RandNLA）综述里，Nystrom 几乎是标准入门例子。这条联系一旦看清，你就能从 NLA 文献里直接借用很多 sharp 的分析结果——比如 Cohen et al. 的"近似 leverage score 算法 + Nystrom"组合给出当前的紧界。</p><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig2_nystrom_inducing_points.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt="挑 inducing points 的三种策略" loading=lazy decoding=async class=content-image></figure></p><h2 id=nystrom-数学推导 class=heading-anchor>Nystrom 数学推导<a href=#nystrom-%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>我把<em>为什么</em> <span class=math-inline>$\hat K = K_{nm} K_{mm}^{-1} K_{mn}$</span>
 是正确的近似（而不是其他低秩猜测）讲清楚。两个推导：一个走 Nystrom 继承的积分方程，一个走特征分解。</p><span class=math-block>$$K_{mm} = U_m \Lambda_m U_m^T,$$</span>
 <span class=math-block>$$\Phi_n = K_{nm}\, U_m\, \Lambda_m^{-1/2} \in \mathbb{R}^{n \times m}.$$</span>
 <span class=math-block>$$\Phi_n \Phi_n^T = K_{nm}\, U_m\, \Lambda_m^{-1}\, U_m^T\, K_{mn} = K_{nm}\, K_{mm}^{-1}\, K_{mn} = \hat K.$$</span><p>所以 Nystrom 近似<em>等价于</em>用一个 <span class=math-inline>$m$</span>
@@ -166,7 +166,7 @@ FLOP，差六个数量级。</p><p><strong><span class=math-inline>$\Phi_n$</spa
 的特征值，看第 <span class=math-inline>$m$</span>
 个是不是已经远小于第一个的千分之一；是，就说明 <span class=math-inline>$m$</span>
 选大了，可以砍半再试；否，就把 <span class=math-inline>$m$</span>
-翻倍。一两次迭代基本就能定位到合适的预算。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig3_nystrom_low_rank.png alt="Gram 矩阵的谱衰减与 Nystrom 秩 m 近似" loading=lazy decoding=async class=content-image></figure></p><p><strong>数值陷阱。</strong> 当 landmark 之间靠得太近时，<span class=math-inline>$K_{mm}$</span>
+翻倍。一两次迭代基本就能定位到合适的预算。</p><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig3_nystrom_low_rank.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt="Gram 矩阵的谱衰减与 Nystrom 秩 m 近似" loading=lazy decoding=async class=content-image></figure></p><p><strong>数值陷阱。</strong> 当 landmark 之间靠得太近时，<span class=math-inline>$K_{mm}$</span>
 接近奇异，<span class=math-inline>$K_{mm}^{-1}$</span>
 就危险。实践中你用伪逆 <span class=math-inline>$K_{mm}^+,$</span>
 或者带正则的逆 <span class=math-inline>$(K_{mm} + \mu I)^{-1}$</span>
@@ -321,7 +321,7 @@ FLOP，差六个数量级。</p><p><strong><span class=math-inline>$\Phi_n$</spa
 &ldquo;这个特殊的被积函数上——它让单次抽样就给出 <span class=math-inline>$\phi(x)^T \phi(y)$</span>
 形式的"二次型分解&rdquo;。其余都是标准的蒙特卡洛理论：<span class=math-inline>$D$</span>
 个样本，方差 <span class=math-inline>$\sigma^2 / D$</span>
-。RFF 不神秘，只是把数值积分套在了正确的对象上。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig4_rff_concept.png alt="RFF 概念图：谱密度 → 频率样本 → 余弦特征" loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$\hat\phi(x) = \sqrt{\frac{2}{D}} \big[ \cos(\omega_1^T x + b_1), \dots, \cos(\omega_D^T x + b_D) \big].$$</span><p><code>sklearn.kernel_approximation.RBFSampler</code> 实现的就是这个。为什么 work？因为 <span class=math-inline>$\mathbb{E}_b[\cos(\omega^T x + b)\cos(\omega^T y + b)] = \tfrac{1}{2}\cos(\omega^T (x - y))$</span>
+。RFF 不神秘，只是把数值积分套在了正确的对象上。</p><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig4_rff_concept.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt="RFF 概念图：谱密度 → 频率样本 → 余弦特征" loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$\hat\phi(x) = \sqrt{\frac{2}{D}} \big[ \cos(\omega_1^T x + b_1), \dots, \cos(\omega_D^T x + b_D) \big].$$</span><p><code>sklearn.kernel_approximation.RBFSampler</code> 实现的就是这个。为什么 work？因为 <span class=math-inline>$\mathbb{E}_b[\cos(\omega^T x + b)\cos(\omega^T y + b)] = \tfrac{1}{2}\cos(\omega^T (x - y))$</span>
 （对均匀相位求期望把交叉项杀掉），重新得到 Bochner（差一个常数）。代价是同样的 <span class=math-inline>$D$</span>
 维度下方差略大（约 1.5 倍），换来内存折半和实现简单。Rahimi 自己后来的代码也用这版。</p><h2 id=rff-算法-step-by-step class=heading-anchor>RFF 算法 step-by-step<a href=#rff-%e7%ae%97%e6%b3%95-step-by-step class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>对 RBF 核 <span class=math-inline>$k(\delta) = \exp(-\gamma \|\delta\|^2),$</span>
 谱密度是 <span class=math-inline>$p(\omega) = \mathcal{N}(0, 2\gamma I_d).$</span>
@@ -395,7 +395,7 @@ FLOP，单卡几十秒。</li><li><strong>为什么是 <span class=math-inline>$
 通常够，回归任务 <span class=math-inline>$D \sim O(n^{1/3})$</span>
 通常够，生成式任务才需要 sup 界那种 <span class=math-inline>$O(n)$</span>
 。</p><p><strong>方差与偏差的分解。</strong> RFF 是无偏的，所以所有近似误差都是方差；而 Nystrom 是有偏的（偏差由谱尾决定），方差由 landmark 选取的随机性决定。这给出一条经验：当你的核谱衰减极快（光滑数据上的 RBF），Nystrom 的偏差几乎可以忽略，它就是无偏估计的事实标准；当谱衰减慢（高频信号、Matern-1/2、Laplacian），RFF 的无偏性反而成了麻烦——它把那些尾部能量也试图近似，但 <span class=math-inline>$D$</span>
-不够时方差爆炸。所以"谱集中→Nystrom，谱分散→RFF"是一个粗略但有用的启发。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig5_rff_vs_exact.png alt="RFF 近似核 vs 真实 RBF 核，随 D 增加误差衰减" loading=lazy decoding=async class=content-image></figure></p><p><strong>什么时候 RFF 失败得很惨。</strong> 三类情况要警惕。(1) <strong>核非常尖锐</strong>（<span class=math-inline>$\gamma$</span>
+不够时方差爆炸。所以"谱集中→Nystrom，谱分散→RFF"是一个粗略但有用的启发。</p><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig5_rff_vs_exact.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt="RFF 近似核 vs 真实 RBF 核，随 D 增加误差衰减" loading=lazy decoding=async class=content-image></figure></p><p><strong>什么时候 RFF 失败得很惨。</strong> 三类情况要警惕。(1) <strong>核非常尖锐</strong>（<span class=math-inline>$\gamma$</span>
 很大）：谱密度方差大，Monte Carlo 几乎不收敛，<span class=math-inline>$D = 10^4$</span>
 都可能近似得一塌糊涂。(2) <strong><span class=math-inline>$d$</span>
 极高且数据不在低维流形上</strong>（很罕见，但确实出现在某些科学场景）：误差界里的对数因子开始咬人，<span class=math-inline>$D$</span>
@@ -513,7 +513,7 @@ Nystrom 有两个（<span class=math-inline>$m$</span>
 ，做完一次后倒也能做矩阵乘，但前置开销让它在频繁重训时不如 RFF。</li><li>你需要<em>可解释的方差边界</em>。RFF 的 <span class=math-inline>$1/\sqrt{D}$</span>
 收敛是分布无关的，你给一个 <span class=math-inline>$D$</span>
 就能写出 ε-confidence；Nystrom 的误差依赖谱衰减，事前很难给出非平凡的界。</li><li>你打算在多设备上分布式训练。RFF 的 <span class=math-inline>$W$</span>
-一次广播到所有 worker，剩下全是 embarrassingly parallel；Nystrom 要么所有 worker 用同一组 landmark（瓶颈在主节点），要么每个 worker 自己采 landmark 再合并（统计上更复杂）。</li></ul><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig6_nystrom_vs_rff.png alt="不同近似预算下 Nystrom 与 RFF 的 trade-off" loading=lazy decoding=async class=content-image></figure></p><p><strong>和层次方法的对比。</strong> H-matrix / HODLR 这一族做法把 <span class=math-inline>$K$</span>
+一次广播到所有 worker，剩下全是 embarrassingly parallel；Nystrom 要么所有 worker 用同一组 landmark（瓶颈在主节点），要么每个 worker 自己采 landmark 再合并（统计上更复杂）。</li></ul><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig6_nystrom_vs_rff.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt="不同近似预算下 Nystrom 与 RFF 的 trade-off" loading=lazy decoding=async class=content-image></figure></p><p><strong>和层次方法的对比。</strong> H-matrix / HODLR 这一族做法把 <span class=math-inline>$K$</span>
 看成一棵层次树，远场块用低秩近似，近场块保持稠密，给出 <span class=math-inline>$O(n \log n)$</span>
 的矩阵-向量乘。理论上比 Nystrom 和 RFF 更紧——它能逼近的不只是低秩而是层次低秩——但工程实现复杂（KeOps、HODLRlib 是几千行 C++），且对核必须光滑、低维。我的经验是：低维（<span class=math-inline>$d \leq 5$</span>
 ）几何数据（地球物理、流体仿真）上 H-matrix 是赢家；中高维数据（图像、文本嵌入）Nystrom 和 RFF 简单到无脑用就行。</p><p><strong>三者复杂度速查：</strong></p><div class=table-wrap><table><thead><tr><th>方法</th><th>内存</th><th>训练时间</th><th>偏差</th><th>方差</th><th>平移不变要求</th></tr></thead><tbody><tr><td>Nystrom (<span class=math-inline>$m$</span>
