@@ -15,9 +15,23 @@
     var desEl = root.querySelector('.proj-designation');
     var quoteEl = root.querySelector('.proj-quote');
     var visitEl = root.querySelector('.proj-visit');
-    var active = 0, timer = null;
+    var dotsWrap = root.querySelector('.proj-dots');
+    var active = 0, timer = null, hovered = false;
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     var autoplay = root.dataset.autoplay === 'true' && !reduce;
+
+    var dots = [];
+    if (dotsWrap) {
+      for (var d = 0; d < n; d++) {
+        (function (idx) {
+          var b = document.createElement('button');
+          b.type = 'button'; b.className = 'proj-dot';
+          b.setAttribute('aria-label', 'Show project ' + (idx + 1));
+          b.addEventListener('click', function () { go(idx); restart(); });
+          dotsWrap.appendChild(b); dots.push(b);
+        })(d);
+      }
+    }
 
     function place(i) {
       var w = wrap.clientWidth || 480, gap = calcGap(w), up = gap * 0.6;
@@ -33,13 +47,15 @@
       if (nameEl) nameEl.textContent = a.dataset.name || '';
       if (desEl) desEl.textContent = a.dataset.designation || '';
       if (visitEl) visitEl.href = a.dataset.href || '#';
+      for (var k = 0; k < dots.length; k++) dots[k].classList.toggle('is-active', k === active);
       if (quoteEl) {
         quoteEl.style.opacity = 0; quoteEl.style.transform = 'translateY(8px)';
         setTimeout(function () { quoteEl.textContent = a.dataset.quote || ''; quoteEl.style.opacity = 1; quoteEl.style.transform = 'none'; }, 170);
       }
     }
     function go(i) { active = (i + n) % n; render(); }
-    function restart() { if (timer) clearInterval(timer); if (autoplay) timer = setInterval(function () { go(active + 1); }, 5200); }
+    function tick() { if (!hovered) go(active + 1); }
+    function restart() { if (timer) clearInterval(timer); if (autoplay) timer = setInterval(tick, 5200); }
 
     root.querySelectorAll('.proj-arrow').forEach(function (btn) {
       btn.addEventListener('click', function () { go(active + (btn.dataset.dir === 'next' ? 1 : -1)); restart(); });
@@ -50,6 +66,8 @@
         else { go(i); restart(); }
       });
     });
+    root.addEventListener('mouseenter', function () { hovered = true; });
+    root.addEventListener('mouseleave', function () { hovered = false; });
     window.addEventListener('keydown', function (e) {
       if (e.key === 'ArrowLeft') { go(active - 1); restart(); }
       else if (e.key === 'ArrowRight') { go(active + 1); restart(); }
