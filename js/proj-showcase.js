@@ -60,8 +60,21 @@
     root.querySelectorAll('.proj-arrow').forEach(function (btn) {
       btn.addEventListener('click', function () { go(active + (btn.dataset.dir === 'next' ? 1 : -1)); restart(); });
     });
+
+    // swipe (touch / pointer) on the image stack
+    var sx = 0, sy = 0, down = false, moved = false;
+    wrap.addEventListener('pointerdown', function (e) { down = true; moved = false; sx = e.clientX; sy = e.clientY; });
+    wrap.addEventListener('pointermove', function (e) { if (down && Math.abs(e.clientX - sx) > 8) moved = true; });
+    wrap.addEventListener('pointerup', function (e) {
+      if (!down) return; down = false;
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { go(active + (dx < 0 ? 1 : -1)); restart(); }
+    });
+    wrap.addEventListener('pointercancel', function () { down = false; });
+
     imgs.forEach(function (img, i) {
       img.addEventListener('click', function () {
+        if (moved) { moved = false; return; }      // ignore clicks that were swipes
         if (i === active) { if (img.dataset.href) window.open(img.dataset.href, '_blank', 'noopener'); }
         else { go(i); restart(); }
       });
