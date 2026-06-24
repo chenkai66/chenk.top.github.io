@@ -22,19 +22,19 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main id=main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=article-cover><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/kernel-methods/07-%e5%a4%a7%e8%a7%84%e6%a8%a1%e6%a0%b8%e6%96%b9%e6%b3%95.jpg?x-oss-process=image/resize,w_1200/format,webp/quality,q_82" alt loading=eager decoding=async onerror=this.parentNode.remove()></div><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/kernel-methods/>核方法</a>
 · 第 7 篇</div><h1>核方法（七）：大规模核方法——Nystrom 近似与随机傅里叶特征</h1><p class=deck>核方法是 $O(n^3)$。Nystrom 近似和随机傅里叶特征把它拉回线性时间，同时保留核技巧的表达能力。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2021-12-24>December 24, 2021</time> · 88 分钟 · 21691 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/%E6%A0%B8%E6%96%B9%E6%B3%95/ class=tag>#核方法</a><a href=/zh/tags/%E5%8F%AF%E6%89%A9%E5%B1%95%E6%80%A7/ class=tag>#可扩展性</a><a href=/zh/tags/%E9%9A%8F%E6%9C%BA%E7%89%B9%E5%BE%81/ class=tag>#随机特征</a><a href=/zh/tags/%E6%95%B0%E5%AD%A6/ class=tag>#数学</a></div><a class="pill pill-outline" href=/en/kernel-methods/07-large-scale-kernels/>Read in English →</a></div></header><div class=prose><p>你想拿 RBF SVM 去跑一个百万规模的图像分类任务。Gram 矩阵是 <span class=math-inline>$10^6 \times 10^6$</span>
-的 double 数组，整整 <strong>8 TB</strong>。光是这一个数字——八个 TB 的内存，仅仅为了<em>存</em>那个核矩阵——就解释了为什么大部分在统计课上学过核方法的工程师，在真实生产环境里都默默不再碰它。核技巧用一次内积就送你一个无穷维特征空间；账单是在你有 <span class=math-inline>$n^2$</span>
+<span class=meta-line><time datetime=2021-12-24>December 24, 2021</time> · 84 分钟 · 20777 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/%E6%A0%B8%E6%96%B9%E6%B3%95/ class=tag>#核方法</a><a href=/zh/tags/%E5%8F%AF%E6%89%A9%E5%B1%95%E6%80%A7/ class=tag>#可扩展性</a><a href=/zh/tags/%E9%9A%8F%E6%9C%BA%E7%89%B9%E5%BE%81/ class=tag>#随机特征</a><a href=/zh/tags/%E6%95%B0%E5%AD%A6/ class=tag>#数学</a></div><a class="pill pill-outline" href=/en/kernel-methods/07-large-scale-kernels/>Read in English →</a></div></header><div class=prose><p>你想拿 RBF SVM 去跑一个百万规模的图像分类任务。Gram 矩阵是 <span class=math-inline>$10^6 \times 10^6$</span>
+的 double 数组，整整 <strong>8 TB</strong>。光是这一个数字，八个 TB 的内存，仅仅为了<em>存</em>那个核矩阵，就解释了为什么大部分在统计课上学过核方法的工程师，在真实生产环境里都默默不再碰它。核技巧用一次内积就送你一个无穷维特征空间；账单是在你有 <span class=math-inline>$n^2$</span>
 对数据时寄到。</p><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/cover.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt="Nystrom 和随机傅里叶特征：从 O(n^3) 到线性时间的两条路" loading=lazy decoding=async class=content-image></figure></p><p>本系列前六篇把核方法的故事从头讲到尾，但都没碰到扩展性这个问题：把数据抬进 RKHS（第 <a href=/zh/kernel-methods/01-%e4%b8%ba%e4%bb%80%e4%b9%88%e9%9c%80%e8%a6%81%e6%a0%b8%e6%96%b9%e6%b3%95/>1</a>
 -<a href=/zh/kernel-methods/03-rkhs%e7%90%86%e8%ae%ba/>3</a>
 篇）、按你的先验挑核（<a href=/zh/kernel-methods/04-%e5%b8%b8%e8%a7%81%e6%a0%b8%e5%87%bd%e6%95%b0%e6%97%8f/>第 4 篇</a>
 ）、解凸优化跑 SVM（<a href=/zh/kernel-methods/05-%e6%a0%b8svm%e6%a0%b8pca%e6%a0%b8%e5%b2%ad%e5%9b%9e%e5%bd%92/>第 5 篇</a>
 ），或者用 GP 做精确贝叶斯推断（<a href=/zh/kernel-methods/06-%e9%ab%98%e6%96%af%e8%bf%87%e7%a8%8b/>第 6 篇</a>
 ）。这一篇要介绍把核方法从 <span class=math-inline>$n \lesssim 10^4$</span>
-的小作坊里解放出来的两个工业级技巧：<strong>Nystrom 近似</strong>（Williams & Seeger 2001）和<strong>随机傅里叶特征 RFF</strong>（Rahimi & Recht 2007）。它们都把核方法降维成了在一个显式的低维特征映射上的<em>线性</em>方法，代价是用精度换内存——换那块能装进 16 GB 的内存。</p><p><strong>为什么这两个想法这么晚才出现。</strong> 核 SVM 在 1995 年就有了，但近似算法等到 2001（Nystrom）、2007（RFF）才被认真做。原因是 2000 年前后数据规模才开始超过精确核能扛的红线——之前 <span class=math-inline>$n &lt; 10^4$</span>
-没人觉得有问题。这两个工作的精彩之处不在数学本身（Bochner 1933、Nystrom 1928，都是上世纪上半叶的经典定理），而在"该用什么经典工具解决这个新问题"的眼力。后面会反复看到这个模式：可扩展核方法的每一步突破都是"把一个老的数学工具搬到一个新的工程瓶颈上"。</p><h2 id=计算瓶颈核方法的诅咒 class=heading-anchor>计算瓶颈：核方法的诅咒<a href=#%e8%ae%a1%e7%ae%97%e7%93%b6%e9%a2%88%e6%a0%b8%e6%96%b9%e6%b3%95%e7%9a%84%e8%af%85%e5%92%92 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>三个数字就讲完了核方法在 <span class=math-inline>$n$</span>
+的小作坊里解放出来的两个工业级技巧：<strong>Nystrom 近似</strong>（Williams & Seeger 2001）和<strong>随机傅里叶特征 RFF</strong>（Rahimi & Recht 2007）。它们都把核方法降维成了在一个显式的低维特征映射上的<em>线性</em>方法，代价是用精度换内存，换那块能装进 16 GB 的内存。</p><p><strong>为什么这两个想法这么晚才出现。</strong> 核 SVM 在 1995 年就有了，但近似算法等到 2001（Nystrom）、2007（RFF）才被认真做。原因是 2000 年前后数据规模才开始超过精确核能扛的红线，在那之前 <span class=math-inline>$n &lt; 10^4$</span>
+，没人觉得有问题。这两个工作的精彩之处不在数学本身（Bochner 1933、Nystrom 1928，都是上世纪上半叶的经典定理），而在"该用什么经典工具解决这个新问题"的眼力。后面会反复看到这个模式：可扩展核方法的每一步突破，都是把一个老的数学工具搬到一个新的工程瓶颈上。</p><h2 id=计算瓶颈核方法的诅咒 class=heading-anchor>计算瓶颈：核方法的诅咒<a href=#%e8%ae%a1%e7%ae%97%e7%93%b6%e9%a2%88%e6%a0%b8%e6%96%b9%e6%b3%95%e7%9a%84%e8%af%85%e5%92%92 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>三个数字就讲完了核方法在 <span class=math-inline>$n$</span>
 个训练点上的故事。</p><ol><li><strong>内存：<span class=math-inline>$O(n^2).$</span>
 </strong>你得把 Gram 矩阵 <span class=math-inline>$K \in \mathbb{R}^{n \times n}$</span>
-存下来——要么求逆（GP、核岭回归），要么分解（SVM 对偶），哪怕只是计算它作用在一个向量上。</li><li><strong>训练时间：<span class=math-inline>$O(n^3).$</span>
+存下来，要么求逆（GP、核岭回归），要么分解（SVM 对偶），哪怕只是计算它作用在一个向量上。</li><li><strong>训练时间：<span class=math-inline>$O(n^3).$</span>
 </strong>对一个 <span class=math-inline>$n \times n$</span>
 稠密矩阵做求逆或 Cholesky 分解是三次复杂度。SVM 对偶用 SMO 这类算法每个 epoch 名义上是 <span class=math-inline>$O(n^2),$</span>
 但常数和 epoch 数加起来在难题上会把你拽回近似三次。</li><li><strong>每条查询的预测时间：<span class=math-inline>$O(n \cdot d).$</span>
@@ -45,19 +45,19 @@
 。如果你有任何结构能让 <span class=math-inline>$K$</span>
 稀疏或者结构化（核就是低秩、Kronecker、Toeplitz），那 <span class=math-inline>$O(n^3)$</span>
 可以压到 <span class=math-inline>$O(n^2)$</span>
-甚至更低。但在 ML 实际场景里这些结构很罕见——除非你<em>专门</em>选了一个会产生这种结构的核（比如周期核 + 单维网格化输入）。&ldquo;任意 PD 核 + 任意输入"在没近似的前提下就是 <span class=math-inline>$O(n^3)$</span>
+甚至更低。但在 ML 实际场景里这些结构很罕见，除非你<em>专门</em>选了一个会产生这种结构的核（比如周期核 + 单维网格化输入）。&ldquo;任意 PD 核 + 任意输入"在没近似的前提下就是 <span class=math-inline>$O(n^3)$</span>
 ，不能绕。</p><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig1_complexity_curse.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt=四种样本量下的内存与训练时间爆炸 loading=lazy decoding=async class=content-image></figure></p><p>把数字铺开看：在 <span class=math-inline>$n = 10^4$</span>
 时，Gram 矩阵 800 MB，<span class=math-inline>$K^{-1}$</span>
 几秒搞定。<span class=math-inline>$n = 10^5$</span>
-时变成 80 GB——已经超过大多数工作站内存——求逆得算几个小时。<span class=math-inline>$n = 10^6$</span>
-时就是开头那个 8 TB，哪怕用顶级 GPU 也要<em>几周</em>；更现实的是你在某个 Cholesky 半路 OOM，连一次失败的尝试都跑不完。同时一个线性模型在同份数据上几分钟就能跑完，深度网络几个小时。所以一个不太愉快的事实是：在 2026 年，<em>精确</em>的核方法是个 <span class=math-inline>$10^3$</span>
+时变成 80 GB，已经超过大多数工作站内存，求逆得算几个小时。<span class=math-inline>$n = 10^6$</span>
+时就是开头那个 8 TB，哪怕用顶级 GPU 也要<em>几周</em>，更现实的情况是你在某个 Cholesky 半路 OOM，连一次失败的尝试都跑不完。同时一个线性模型在同份数据上几分钟就能跑完，深度网络几个小时。所以一个不太愉快的事实是：在 2026 年，<em>精确</em>的核方法是个 <span class=math-inline>$10^3$</span>
 –<span class=math-inline>$10^4$</span>
 量级的技术，再往上一切都是某种近似。</p><p><strong>一个常被引用的对照表，把 <span class=math-inline>$n$</span>
 翻十倍带来的代价摊开：</strong></p><div class=table-wrap><table><thead><tr><th><span class=math-inline>$n$</span></th><th>Gram 内存</th><th>训练时间（精确 SVM）</th><th>训练时间（RFF + SGD, <span class=math-inline>$D = 2000$</span>
 ）</th></tr></thead><tbody><tr><td><span class=math-inline>$10^3$</span></td><td>8 MB</td><td>&lt; 1 s</td><td>&lt; 1 s</td></tr><tr><td><span class=math-inline>$10^4$</span></td><td>800 MB</td><td>~10 s</td><td>~3 s</td></tr><tr><td><span class=math-inline>$10^5$</span></td><td>80 GB</td><td>~3 h</td><td>~30 s</td></tr><tr><td><span class=math-inline>$10^6$</span></td><td>8 TB</td><td>几周</td><td>~5 min</td></tr><tr><td><span class=math-inline>$10^7$</span></td><td>800 TB</td><td>不可能</td><td>~1 h</td></tr></tbody></table></div><p>读法：精确核每行 <span class=math-inline>$n$</span>
 翻 10 倍训练时间约翻 1000 倍（三次方），RFF 翻 10 倍（线性）。两条曲线在 <span class=math-inline>$n \approx 10^4$</span>
 交叉，越往右近似的回报越夸张。这就是过去十年随机特征/Nystrom 取代精确核成为默认的根本原因。</p><p><strong>预测端同样窒息。</strong> <span class=math-inline>$n = 10^5$</span>
-时 SVM 拍下来一半样本是支持向量并不少见；每来一条新输入要算 <span class=math-inline>$5 \times 10^4$</span>
+时 SVM 拍下来一半样本是支持向量并不少见，每来一条新输入要算 <span class=math-inline>$5 \times 10^4$</span>
 次 RBF 内积，单点延迟在毫秒级就已经躺在了在线系统的边缘。GP 更过分：预测均值要 <span class=math-inline>$O(n)$</span>
 评估再加一次 <span class=math-inline>$K^{-1} y$</span>
 预乘（一次性 <span class=math-inline>$O(n^3)$</span>
@@ -67,27 +67,27 @@
 ，对常见数据集和合理的 <span class=math-inline>$\lambda$</span>
 它通常在 100 到 1000 之间。这就是为什么 <span class=math-inline>$m = 500$</span>
 的 Nystrom 或 <span class=math-inline>$D = 1000$</span>
-的 RFF 几乎总够用：你要近似的不是"无穷维特征空间&rdquo;，而是一个有效维度只有几百的有效子空间。这条观察是 2010 年后整个"sketching for ML"理论的基础。</p><p><strong>一个数字感受：</strong> 一台 8 卡 H100（约 80 GB HBM × 8 = 640 GB 显存）的工作站，能放下的最大稠密 RBF Gram 矩阵也就 <span class=math-inline>$n \approx 2.8 \times 10^5$</span>
-——这还没算优化器状态、梯度、损失函数中间值。对比同样硬件能训练 70B 参数的稠密 Transformer，这就是核方法 vs 神经网络在 2026 年的核心代差：参数线性扩展，核矩阵二次扩展。</p><p><strong>两条路。</strong> 攻克 <span class=math-inline>$O(n^2)$</span>
+的 RFF 几乎总够用：你要近似的不是无穷维特征空间，而是一个有效维度只有几百的有效子空间。这条观察是 2010 年后整个"sketching for ML"理论的基础。</p><p><strong>一个数字感受：</strong> 一台 8 卡 H100（约 80 GB HBM × 8 = 640 GB 显存）的工作站，能放下的最大稠密 RBF Gram 矩阵也就 <span class=math-inline>$n \approx 2.8 \times 10^5$</span>
+，这还没算优化器状态、梯度、损失函数中间值。对比同样硬件能训练 70B 参数的稠密 Transformer，这就是核方法 vs 神经网络在 2026 年的核心代差：参数线性扩展，核矩阵二次扩展。</p><p><strong>两条路。</strong> 攻克 <span class=math-inline>$O(n^2)$</span>
 内存墙的策略本质上只有两条：</p><ul><li><strong>近似核矩阵。</strong> 把 <span class=math-inline>$K$</span>
-换成一个能廉价存储、廉价求逆的低秩或块结构矩阵。这就是 <strong>Nystrom 近似</strong>以及它的一大堆亲戚（随机采样、leverage score、带预条件子的共轭梯度、KISS-GP 这类结构化插值）。直觉：你信 <span class=math-inline>$K$</span>
+换成一个能廉价存储、廉价求逆的低秩或块结构矩阵。这就是 <strong>Nystrom 近似</strong>以及它的一大堆亲戚（随机采样、leverage score、带预条件子的共轭梯度、KISS-GP 这类结构化插值）。直觉是：你信 <span class=math-inline>$K$</span>
 大部分能量集中在前几百个特征值，所以用一个秩 <span class=math-inline>$m$</span>
 的代理就行。</li><li><strong>近似特征映射。</strong> 构造一个显式、有限维的 <span class=math-inline>$\hat\phi(x) \in \mathbb{R}^D$</span>
 ，使得 <span class=math-inline>$\hat\phi(x)^T \hat\phi(y) \approx K(x, y),$</span>
 然后在 <span class=math-inline>$\hat\phi(X)$</span>
-上跑<em>线性</em>模型。这就是<strong>随机傅里叶特征</strong>（以及 Quasi-Random/Orthogonal RFF、Fastfood 等一打变种）。直觉：你不再用核技巧"隐式"工作，而是显式把数据抬进 <span class=math-inline>$\mathbb{R}^D$</span>
+上跑<em>线性</em>模型。这就是<strong>随机傅里叶特征</strong>（以及 Quasi-Random/Orthogonal RFF、Fastfood 等一打变种）。直觉是：你不再用核技巧隐式工作，而是显式把数据抬进 <span class=math-inline>$\mathbb{R}^D$</span>
 ，下游什么线性方法都能跑。</li></ul><p>第一条是<em>数据相关的</em>：它看你的 <span class=math-inline>$X$</span>
 ，挑出一组聪明的低秩基，所以能利用聚类结构和谱集中。第二条是<em>数据无关的</em>：它从核特有的分布里抽随机频率，作为一个通用的显式基，所以能流式处理、能塞进 SGD。两者都把核 SVM 或核岭回归压成 <span class=math-inline>$D \ll n$</span>
 的 <span class=math-inline>$D$</span>
 维线性问题，整场比赛就这个；剩下的全是数学和实操细节。第三类思路是<strong>多分辨率 / 层次方法</strong>（H-matrix、HODLR、KeOps），把 <span class=math-inline>$K$</span>
-当稀疏块矩阵处理；它们工程更重、理论更弱，目前仍是小众，本文不深入。</p><p><strong>一个常被问的问题：为什么这两条路都是"线性方法"？</strong> 因为正定核都可以写成 <span class=math-inline>$K(x, y) = \langle \phi(x), \phi(y) \rangle_{\mathcal H}$</span>
+当稀疏块矩阵处理。它们工程更重、理论更弱，目前仍是小众，本文不深入。</p><p><strong>一个常被问的问题：为什么这两条路都是"线性方法&rdquo;？</strong> 因为正定核都可以写成 <span class=math-inline>$K(x, y) = \langle \phi(x), \phi(y) \rangle_{\mathcal H}$</span>
 （Mercer / RKHS 那一套，见 <a href=/zh/kernel-methods/03-rkhs%e7%90%86%e8%ae%ba/>第 3 篇</a>
 ）。Nystrom 用 <span class=math-inline>$K_{mm}$</span>
 的特征向量给出 <span class=math-inline>$\phi$</span>
 的一个 <span class=math-inline>$m$</span>
 维投影，RFF 用 Monte Carlo 给出 <span class=math-inline>$\phi$</span>
 的一个 <span class=math-inline>$D$</span>
-维采样近似——但两者本质上都是在算 <span class=math-inline>$\phi$</span>
+维采样近似，但两者本质上都是在算 <span class=math-inline>$\phi$</span>
 ，然后在 <span class=math-inline>$\phi(X)$</span>
 上做线性模型。所谓"核方法的可扩展化"，几乎全是在变着花样估 <span class=math-inline>$\phi$</span>
 。</p><h2 id=nystrom-近似的核心思想 class=heading-anchor>Nystrom 近似的核心思想<a href=#nystrom-%e8%bf%91%e4%bc%bc%e7%9a%84%e6%a0%b8%e5%bf%83%e6%80%9d%e6%83%b3 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Nystrom 方法（19 世纪用于积分方程数值求解的求积分技巧，2001 年 Williams 和 Seeger 把它搬进 ML）从一个观察出发：<strong>RBF 或 Matern 核的 Gram 矩阵在几乎所有真实数据上特征值都衰减得很快</strong>。RBF 核"无穷维特征空间"的说法没错，但在任何<em>有限</em>样本上，谱都是指数衰减的。通常前几百个特征值就吃掉 99% 的迹。一组具体数字：CIFAR-10 子集 <span class=math-inline>$n = 10^4$</span>
@@ -122,16 +122,16 @@ MB，完全是零头。一千倍的内存压缩，是这条路最直接的回报
 做秩 <span class=math-inline>$m$</span>
 截断 SVD（俗称 best rank-<span class=math-inline>$m$</span>
 approximation），你拿到的是 <span class=math-inline>$\|K - K_m\|_F$</span>
-最小的近似——但代价是 <span class=math-inline>$O(n^2 m)$</span>
+最小的近似，但代价是 <span class=math-inline>$O(n^2 m)$</span>
 。Nystrom 只看 <span class=math-inline>$K_{nm}$</span>
 ，开销降到 <span class=math-inline>$O(nm \cdot d)$</span>
 ，代价是误差比 SVD 多一个谱尾项 <span class=math-inline>$\|K - K_r\|_F$</span>
-。所以：&ldquo;Nystrom = 廉价随机化的截断 SVD"是一个相当准确的心智模型。</p><p><strong>和 CUR / 列采样的关系。</strong> 数值线性代数里有一个更老的"CUR 分解"族——选 <span class=math-inline>$m$</span>
+。所以：&ldquo;Nystrom = 廉价随机化的截断 SVD"是一个相当准确的心智模型。</p><p><strong>和 CUR / 列采样的关系。</strong> 数值线性代数里有一个更老的 CUR 分解族：选 <span class=math-inline>$m$</span>
 列、<span class=math-inline>$m$</span>
 行做近似 <span class=math-inline>$A \approx CUR$</span>
 。Nystrom 是 CUR 在对称半正定矩阵上的特例：<span class=math-inline>$C = K_{nm} = R^T$</span>
 ，<span class=math-inline>$U = K_{mm}^{-1}$</span>
-。所以核方法的可扩展化和数值代数的稀疏化共享一套数学骨架；2018 年后的 randomised numerical linear algebra（RandNLA）综述里，Nystrom 几乎是标准入门例子。这条联系一旦看清，你就能从 NLA 文献里直接借用很多 sharp 的分析结果——比如 Cohen et al. 的"近似 leverage score 算法 + Nystrom"组合给出当前的紧界。</p><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig2_nystrom_inducing_points.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt="挑 inducing points 的三种策略" loading=lazy decoding=async class=content-image></figure></p><h2 id=nystrom-数学推导 class=heading-anchor>Nystrom 数学推导<a href=#nystrom-%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>我把<em>为什么</em> <span class=math-inline>$\hat K = K_{nm} K_{mm}^{-1} K_{mn}$</span>
+。所以核方法的可扩展化和数值代数的稀疏化共享一套数学骨架；2018 年后的 randomised numerical linear algebra（RandNLA）综述里，Nystrom 几乎是标准入门例子。这条联系一旦看清，你就能从 NLA 文献里直接借用很多 sharp 的分析结果，比如 Cohen et al. 的近似 leverage score 算法配 Nystrom，给出当前的紧界。</p><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig2_nystrom_inducing_points.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt="挑 inducing points 的三种策略" loading=lazy decoding=async class=content-image></figure></p><h2 id=nystrom-数学推导 class=heading-anchor>Nystrom 数学推导<a href=#nystrom-%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>我把<em>为什么</em> <span class=math-inline>$\hat K = K_{nm} K_{mm}^{-1} K_{mn}$</span>
 是正确的近似（而不是其他低秩猜测）讲清楚。两个推导：一个走 Nystrom 继承的积分方程，一个走特征分解。</p><span class=math-block>$$K_{mm} = U_m \Lambda_m U_m^T,$$</span>
 <span class=math-block>$$\Phi_n = K_{nm}\, U_m\, \Lambda_m^{-1/2} \in \mathbb{R}^{n \times m}.$$</span>
 <span class=math-block>$$\Phi_n \Phi_n^T = K_{nm}\, U_m\, \Lambda_m^{-1}\, U_m^T\, K_{mn} = K_{nm}\, K_{mm}^{-1}\, K_{mn} = \hat K.$$</span><p>所以 Nystrom 近似<em>等价于</em>用一个 <span class=math-inline>$m$</span>
@@ -148,17 +148,17 @@ approximation），你拿到的是 <span class=math-inline>$\|K - K_m\|_F$</span
 FLOP，单卡 GPU 几分钟跑完；同样数据精确核要 <span class=math-inline>$10^{18}$</span>
 FLOP，差六个数量级。</p><p><strong><span class=math-inline>$\Phi_n$</span>
 也能用作下游模型的"通用嵌入&rdquo;。</strong> 一次算好的 <span class=math-inline>$\Phi_n$</span>
-可以喂进任何下游线性算法——SVM、LR、岭回归、感知机、甚至 t-SNE 当输入。这一点是 Nystrom 相对精确核 SVM 的一个被低估的优势：精确 SVM 算出的 <span class=math-inline>$\alpha_i$</span>
+可以喂进任何下游线性算法：SVM、LR、岭回归、感知机，甚至 t-SNE 当输入。这一点是 Nystrom 相对精确核 SVM 的一个被低估的优势：精确 SVM 算出的 <span class=math-inline>$\alpha_i$</span>
 只能给那一个 SVM 用，换个下游模型要重训；Nystrom 的 <span class=math-inline>$\Phi_n$</span>
-是模型无关的"显式核特征"，存一份就够。MLOps 角度看，这把"训一次模型"变成了"训一次嵌入再多次接 head"，工程友好度大幅提升。</p><span class=math-block>$$\hat\psi_k(x) \approx \frac{1}{\sqrt{\lambda_k}} \cdot \frac{1}{\sqrt{m}} \sum_{j=1}^m u_{j,k} K(x, x_{i_j}).$$</span><p><strong>1928 年原版 Nystrom 用的是均匀求积；现代 ML 版本改用随机采样，因为经验测度长那样</strong>——一句话：用经验分布替换 Lebesgue 测度，把积分变成 Monte Carlo 和。这个翻译看似平凡，但它解释了一个常见的迷思：&ldquo;Nystrom 为什么没有保证收敛到真核积分？&ldquo;答案是：经验测度本身就只能弱收敛到真分布，所以你能拿到的最好结果就是"在经验分布下精确，在真分布下偏一点&rdquo;。这跟所有的经验风险最小化共享同一个统计学瓶颈。</p><span class=math-block>$$\|K - \hat K\|_F^2 \;\leq\; \|K - K_r\|_F^2 + \epsilon \cdot \mathrm{tr}(K),$$</span><p>只要 <span class=math-inline>$m \gtrsim r \log r / \epsilon^2.$</span>
+是模型无关的显式核特征，存一份就够。MLOps 角度看，这把"训一次模型"变成了"训一次嵌入再多次接 head"，工程友好度大幅提升。</p><span class=math-block>$$\hat\psi_k(x) \approx \frac{1}{\sqrt{\lambda_k}} \cdot \frac{1}{\sqrt{m}} \sum_{j=1}^m u_{j,k} K(x, x_{i_j}).$$</span><p><strong>1928 年原版 Nystrom 用的是均匀求积，现代 ML 版本改用随机采样，因为经验测度长那样</strong>：一句话，用经验分布替换 Lebesgue 测度，把积分变成 Monte Carlo 和。这个翻译看似平凡，但它解释了一个常见的迷思：&ldquo;Nystrom 为什么没有保证收敛到真核积分？&ldquo;答案是：经验测度本身就只能弱收敛到真分布，所以你能拿到的最好结果就是在经验分布下精确、在真分布下偏一点。这跟所有的经验风险最小化共享同一个统计学瓶颈。</p><span class=math-block>$$\|K - \hat K\|_F^2 \;\leq\; \|K - K_r\|_F^2 + \epsilon \cdot \mathrm{tr}(K),$$</span><p>只要 <span class=math-inline>$m \gtrsim r \log r / \epsilon^2.$</span>
 核心结论：<strong>误差被谱尾 <span class=math-inline>$\|K - K_r\|_F$</span>
 主导。</strong> 如果你的核谱衰减快（光滑数据上的 RBF：是的），小 <span class=math-inline>$m$</span>
 就够；如果衰减慢（噪声大的高维数据上的 RBF：也许），你需要更大的 <span class=math-inline>$m.$</span>
 经验上对图像 / 文本嵌入 <span class=math-inline>$m = 500$</span>
-就能把测试精度做到精确解的 0.5% 以内，再翻倍换来的常常是统计意义不显著的小数点后两位。</p><p><strong>这个界的两个潜台词。</strong> 第一，&ldquo;高概率"是关于 landmark 采样的随机性而言；同一份数据不同 landmark 采样，单次实现的误差可能比平均值高几倍。所以小 <span class=math-inline>$m$</span>
+就能把测试精度做到精确解的 0.5% 以内，再翻倍换来的常常是统计意义不显著的小数点后两位。</p><p><strong>这个界的两个潜台词。</strong> 第一，这里的高概率是关于 landmark 采样的随机性而言；同一份数据不同 landmark 采样，单次实现的误差可能比平均值高几倍。所以小 <span class=math-inline>$m$</span>
 时多跑几个种子取最好的，这是免费的精度提升。第二，<span class=math-inline>$\epsilon \cdot \mathrm{tr}(K)$</span>
-这一项告诉你"绝对误差大致正比于 <span class=math-inline>$\mathrm{tr}(K)$</span>
-"——如果你的核没归一化（<span class=math-inline>$K(x, x) \neq 1$</span>
+这一项告诉你绝对误差大致正比于 <span class=math-inline>$\mathrm{tr}(K)$</span>
+：如果你的核没归一化（<span class=math-inline>$K(x, x) \neq 1$</span>
 ），这个项会和你期待的精度差量级出入很大。一个常见的修正：把核改成 <span class=math-inline>$K(x, y) / \sqrt{K(x, x) K(y, y)}$</span>
 （即 cosine 归一化的核），让 <span class=math-inline>$\mathrm{tr}(K) = n$</span>
 是一个干净的数，绝对误差跟着 <span class=math-inline>$\epsilon$</span>
@@ -178,7 +178,7 @@ FLOP，差六个数量级。</p><p><strong><span class=math-inline>$\Phi_n$</spa
 就该加正则或减 <span class=math-inline>$m$</span>
 。</p><p><strong>误差的几何直觉。</strong> Nystrom 误差 <span class=math-inline>$K - \hat K$</span>
 是一个秩至少 <span class=math-inline>$n - m$</span>
-的半正定矩阵——所有"丢失的"信息都集中在与 landmark 子空间正交的那部分函数空间里。这意味着两类预测会被系统性地搞坏：(a) 测试点 <span class=math-inline>$x^*$</span>
+的半正定矩阵，所有丢失的信息都集中在与 landmark 子空间正交的那部分函数空间里。这意味着两类预测会被系统性地搞坏：(a) 测试点 <span class=math-inline>$x^*$</span>
 离所有 landmark 都很远（外推），核近似把它压向零；(b) 决策边界正好穿过 landmark 之间的"裂缝&rdquo;，模型在那一片几何区域的分辨率就比该有的低。对策：要么加 landmark，要么换 K-means / leverage 让 landmark 更均匀覆盖支撑集。</p><h2 id=nystrom-实战scikit-learn-配方 class=heading-anchor>Nystrom 实战：scikit-learn 配方<a href=#nystrom-%e5%ae%9e%e6%88%98scikit-learn-%e9%85%8d%e6%96%b9 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>用户侧的食谱简单到惊人。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
@@ -204,14 +204,14 @@ FLOP，差六个数量级。</p><p><strong><span class=math-inline>$\Phi_n$</spa
 下游全是普通线性模型机制。三个旋钮要心里有数：</p><ul><li><strong><code>n_components</code>（也就是 <span class=math-inline>$m$</span>
 ）。</strong> 最重要的超参，一个就好。更大 <span class=math-inline>$m$</span>
 = 更好的近似 = 更慢的训练。原型阶段从 <span class=math-inline>$m = 256$</span>
-开始；生产推到 500-2000；<span class=math-inline>$m > 5000$</span>
-边际精度提升通常不值得那个时间。把它和 <span class=math-inline>$n$</span>
+开始，生产推到 500-2000，<span class=math-inline>$m > 5000$</span>
+时边际精度提升通常不值得那个时间。把它和 <span class=math-inline>$n$</span>
 的比例钉一下：<span class=math-inline>$m / n \approx 10^{-3}$</span>
 到 <span class=math-inline>$10^{-2}$</span>
 是健康区间，再小近似垮，再大不划算。</li><li><strong><code>kernel</code> 及其参数。</strong> 语法和 <code>sklearn.metrics.pairwise.PAIRWISE_KERNEL_FUNCTIONS</code> 一致：<code>"rbf"</code>、<code>"polynomial"</code>、<code>"sigmoid"</code>、<code>"laplacian"</code>，或者一个 callable。RBF / Laplacian 的 <code>gamma</code> 跟 <code>SVC(kernel='rbf')</code> 一样调。</li><li><strong><code>random_state</code>。</strong> <code>Nystroem</code> 默认<em>均匀随机</em>挑 landmark。类别大致平衡时没问题；不平衡数据上你可能想要分层采样（手动挑 landmark），否则少数类的几何信息会被丢掉，下游分类器再怎么调也补不回来。</li></ul><p><strong>性能与 <span class=math-inline>$m$</span>
 的 sigmoid 形状。</strong> 把 Nystrom 在固定数据上跑一遍，<span class=math-inline>$m$</span>
 从 50 扫到 5000，画一条"测试精度 vs <span class=math-inline>$m$</span>
-&ldquo;曲线：你几乎总是看到经典的 sigmoid——前半段 <span class=math-inline>$m$</span>
+&ldquo;曲线：你几乎总是看到经典的 sigmoid 形状：前半段 <span class=math-inline>$m$</span>
 翻倍精度大涨，超过某个 <span class=math-inline>$m^*$</span>
 之后曲线趋平。<span class=math-inline>$m^*$</span>
 大致对应 <span class=math-inline>$K$</span>
@@ -231,23 +231,23 @@ FLOP，差六个数量级。</p><p><strong><span class=math-inline>$\Phi_n$</spa
 -means 聚类的几何结构镜像数据流形的几何结构，所以你把更多 landmark 花在数据密集的地方。这也意味着对噪声敏感：少数远离主流形的离群点很容易吃掉一个 landmark 配额。</li><li><strong>Leverage score 采样。</strong> 以正比于 <span class=math-inline>$\ell_i = [K K^{-1}]_{ii}$</span>
 （点 <span class=math-inline>$i$</span>
 的<em>leverage score</em>）的概率抽 landmark <span class=math-inline>$i.$</span>
-理论上这是任何基于采样的近似的最优分布（Alaoui & Mahoney 2014）；实践中精确计算很贵——你需要 <span class=math-inline>$K^{-1}$</span>
+理论上这是任何基于采样的近似的最优分布（Alaoui & Mahoney 2014）；实践中精确计算很贵，你需要 <span class=math-inline>$K^{-1}$</span>
 ，但 <span class=math-inline>$K^{-1}$</span>
-正是你想避开的东西——存在用一次低秩近似来估 leverage 的递归算法。</li><li><strong>贪心 / 行列式点过程（DPP）。</strong> 在 <span class=math-inline>$m$</span>
+正是你想避开的东西，好在存在用一次低秩近似来估 leverage 的递归算法。</li><li><strong>贪心 / 行列式点过程（DPP）。</strong> 在 <span class=math-inline>$m$</span>
 个 landmark 的选择上最大化 <span class=math-inline>$\det(K_{mm}).$</span>
 给你最"散开"的 landmark 集合。贪心 <span class=math-inline>$O(nm^2);$</span>
-精确 DPP 是指数级。</li></ol><p><strong>一个我反复推荐的"懒人组合&rdquo;：</strong> K-means 选 <span class=math-inline>$0.8 m$</span>
+精确 DPP 是指数级。</li></ol><p><strong>一个我反复推荐的懒人组合：</strong> K-means 选 <span class=math-inline>$0.8 m$</span>
 个 landmark，再均匀随机抽 <span class=math-inline>$0.2 m$</span>
 个补上。前者保证主流形覆盖，后者保证尾部和离群区域不被完全忽略。开销基本和纯 K-means 一样，但 <span class=math-inline>$m \in [200, 2000]$</span>
-区间里我从没见过它输给纯策略。</p><p>按我的经验，<strong>K-means landmark</strong> 是合理的默认——多写两行代码，几秒跑完，<span class=math-inline>$m \leq 1000$</span>
+区间里我从没见过它输给纯策略。</p><p>按我的经验，<strong>K-means landmark</strong> 是合理的默认：多写两行代码，几秒跑完，<span class=math-inline>$m \leq 1000$</span>
 时对近似精度有实质提升。<span class=math-inline>$m > 5000$</span>
 时均匀随机会追上，因为谱尾本身已经主导误差。一个混合策略也常用：先 K-means 拿 80% 的 landmark，再均匀随机补 20%，对抗 K-means 在稀疏区域采样不足的弱点。</p><p><strong>Nystrom vs RFF 的方差对比。</strong> 同样 <span class=math-inline>$m = D = 500$</span>
-的预算下，Nystrom 单次运行误差小但运行之间方差大（不同随机 landmark 集差异显著）；RFF 反过来，单次误差大但方差更可控。原因是 Nystrom 的误差由"landmark 是否能张成谱主子空间"这个离散事件主导，要么命中要么打偏；RFF 是连续的 Monte Carlo，集中不等式给的是 <span class=math-inline>$1/\sqrt{D}$</span>
-的稳态行为。实际部署时如果你要"一次跑成"，Nystrom 更可能给出最好结果；如果你要"反复部署都稳定"，RFF 安全感更强。</p><p><strong>这条对比落到 A/B 测试上是怎样的。</strong> 团队 A 跑 Nystrom <span class=math-inline>$m = 500$</span>
+的预算下，Nystrom 单次运行误差小但运行之间方差大（不同随机 landmark 集差异显著）；RFF 反过来，单次误差大但方差更可控。原因是 Nystrom 的误差由 landmark 能否张成谱主子空间这个离散事件主导，要么命中要么打偏；RFF 是连续的 Monte Carlo，集中不等式给的是 <span class=math-inline>$1/\sqrt{D}$</span>
+的稳态行为。实际部署时如果你要"一次跑成&rdquo;，Nystrom 更可能给出最好结果；如果你要"反复部署都稳定"，RFF 安全感更强。</p><p><strong>这条对比落到 A/B 测试上是怎样的。</strong> 团队 A 跑 Nystrom <span class=math-inline>$m = 500$</span>
 + LR 拿到 98.7% 测试精度；团队 B 跑 RFF <span class=math-inline>$D = 500$</span>
-+ LR 拿到 98.5%。看起来 A 赢了。但 A 换种子重跑十次，精度区间是 [97.8%, 99.0%]；B 同样实验区间是 [98.3%, 98.7%]。这时谁赢就不明显了——B 更可预测，A 平均更好但下限更低。生产里我倾向 B（运维负担小），研究里我倾向 A（追求 best case）。这不是技术问题，是组织问题。</p><p><strong>少有人提的"种子稳定性即模型稳定性"。</strong> 部署一个对种子敏感的模型意味着每次重训（哪怕数据没变）业务指标都会抖；下游的算法迭代、A/B 实验、监控告警的基线全部受影响。所以"种子方差 ≤ 0.3%&ldquo;应该是上线门槛之一，不该到事后才补。具体做法很简单：固定数据，扫 5 个种子，看测试指标 std；超 0.3% 就把 <span class=math-inline>$m$</span>
++ LR 拿到 98.5%。看起来 A 赢了。但 A 换种子重跑十次，精度区间是 [97.8%, 99.0%]；B 同样实验区间是 [98.3%, 98.7%]。这时谁赢就不明显了：B 更可预测，A 平均更好但下限更低。生产里我倾向 B（运维负担小），研究里我倾向 A（追求 best case）。这不是技术问题，是组织问题。</p><p><strong>少有人提的"种子稳定性即模型稳定性"。</strong> 部署一个对种子敏感的模型，意味着每次重训（哪怕数据没变）业务指标都会抖，下游的算法迭代、A/B 实验、监控告警的基线全部受影响。所以种子方差 ≤ 0.3% 应该是上线门槛之一，不该到事后才补。具体做法很简单：固定数据，扫 5 个种子，看测试指标 std；超 0.3% 就把 <span class=math-inline>$m$</span>
 或 <span class=math-inline>$D$</span>
-翻倍直到达标。这条规则在过去三年我亲历过两次"模型上线一个月发现指标周期性抖动 ±2%&ldquo;的事故，根因都是种子方差被忽视。</p><p><strong>Nystrom 适用场景速写。</strong> <span class=math-inline>$n$</span>
+翻倍直到达标。这条规则在过去三年我亲历过两次事故：模型上线一个月，发现指标周期性抖动 ±2%，根因都是种子方差被忽视。</p><p><strong>Nystrom 适用场景速写。</strong> <span class=math-inline>$n$</span>
 在 <span class=math-inline>$10^4$</span>
 到 <span class=math-inline>$10^6$</span>
 之间；数据有清晰的几何结构（所以 K-means landmark 讲得通）；你想要<em>一个</em>模型，而不是在子样本上重复训练很多次；下游是标准线性模型任务（SVM、逻辑回归、岭回归、核 PCA 可视化）。明确不适用：数据是流式的、核非平稳、或者 <span class=math-inline>$n > 10^7$</span>
@@ -259,11 +259,11 @@ FLOP，差六个数量级。</p><p><strong><span class=math-inline>$\Phi_n$</spa
 特征分解；Nystrom 只看 <span class=math-inline>$K_{mm}$</span>
 的特征向量再投影回去，开销是 <span class=math-inline>$O(nm \cdot d + m^3)$</span>
 。两者收敛到同一极限（都是秩 <span class=math-inline>$m$</span>
-近似），但路径不同：Kernel PCA 是"先看全再降维&rdquo;，Nystrom 是"先采样再做线性代数&rdquo;。可扩展性的差距就是这两条路的差距。</p><p><strong>和 random projection / Johnson-Lindenstrauss 的关系。</strong> JL 引理说：把 <span class=math-inline>$n$</span>
+近似），但路径不同：Kernel PCA 是先看全再降维，Nystrom 是先采样再做线性代数。可扩展性的差距就是这两条路的差距。</p><p><strong>和 random projection / Johnson-Lindenstrauss 的关系。</strong> JL 引理说：把 <span class=math-inline>$n$</span>
 个点用一个随机线性映射压到 <span class=math-inline>$O(\log n / \epsilon^2)$</span>
 维，成对距离能保到 <span class=math-inline>$1 \pm \epsilon$</span>
 。这跟 RFF 看起来很像（都是"随机降维"），但本质不同：JL 保的是欧氏距离，RFF 保的是核值；JL 的目标函数是 <span class=math-inline>$L^2$</span>
-几何，RFF 的目标函数是 RKHS 内积。两者在线性核上重合，在非线性核上分道扬镳。理解了这一点，&ldquo;为什么 JL 没有取代 RFF"就有了干净答案——它们解决的根本不是同一个问题。</p><p><strong>一个完整的 Nystrom + 核 PCA 例子。</strong> 把 Nystrom 当通用的"非线性嵌入器"也常用，下游接 t-SNE 或可视化：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+几何，RFF 的目标函数是 RKHS 内积。两者在线性核上重合，在非线性核上分道扬镳。理解了这一点，为什么 JL 没有取代 RFF 就有了干净答案：它们解决的根本不是同一个问题。</p><p><strong>一个完整的 Nystrom + 核 PCA 例子。</strong> 把 Nystrom 当通用的"非线性嵌入器"也常用，下游接 t-SNE 或可视化：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -280,14 +280,14 @@ FLOP，差六个数量级。</p><p><strong><span class=math-inline>$\Phi_n$</spa
 </span></span><span class=line><span class=cl><span class=n>Phi</span> <span class=o>=</span> <span class=n>nys</span><span class=o>.</span><span class=n>fit_transform</span><span class=p>(</span><span class=n>X</span><span class=p>)</span>              <span class=c1># (50000, 300) 显式核特征</span>
 </span></span><span class=line><span class=cl><span class=n>Z</span> <span class=o>=</span> <span class=n>PCA</span><span class=p>(</span><span class=n>n_components</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>fit_transform</span><span class=p>(</span><span class=n>Phi</span><span class=p>)</span>   <span class=c1># 在显式空间里做线性 PCA = 核 PCA</span>
 </span></span></code></pre></td></tr></table></div></div><p>这就是 Nystrom 给可视化流水线带来的好处：精确核 PCA 在 <span class=math-inline>$n = 5 \times 10^4$</span>
-上 OOM，Nystrom 版几秒搞定。同样的套路换成 <code>Nystroem + UMAP / t-SNE</code> 也成立，事实上 RAPIDS 的 cuML 库里 <code>UMAP</code> 实现就内部用了一个 Nystrom-like 的核近似来加速。这告诉你一件事：你以为是"可视化算法"的工具，背后往往也躺着 Nystrom 的影子。</p><p><strong>这段例子里的一个细节。</strong> <code>n_components=300</code> 不是随便选的——这个数据 50k 点的 RBF 谱，前 300 个特征值大致占 99% 的迹（用 <code>np.linalg.eigvalsh(K[:1000, :1000])</code> 在子样上看）。如果你跳过这个谱检查直接拍 <span class=math-inline>$m = 100$</span>
+上 OOM，Nystrom 版几秒搞定。同样的套路换成 <code>Nystroem + UMAP / t-SNE</code> 也成立，事实上 RAPIDS 的 cuML 库里 <code>UMAP</code> 实现就内部用了一个 Nystrom-like 的核近似来加速。这告诉你一件事：你以为是可视化算法的工具，背后往往也躺着 Nystrom 的影子。</p><p><strong>这段例子里的一个细节。</strong> <code>n_components=300</code> 不是随便选的：这个数据 50k 点的 RBF 谱，前 300 个特征值大致占 99% 的迹（用 <code>np.linalg.eigvalsh(K[:1000, :1000])</code> 在子样上看）。如果你跳过这个谱检查直接拍 <span class=math-inline>$m = 100$</span>
 ，可视化结果可能丢失大量的类别分离信息；拍 <span class=math-inline>$m = 3000$</span>
-又是浪费。&ldquo;先看谱再选 <span class=math-inline>$m$</span>
-&ldquo;是从这条小例子能带走的最有价值的习惯。</p><h2 id=随机傅里叶特征用-bochner-定理拿入场券 class=heading-anchor>随机傅里叶特征：用 Bochner 定理拿入场券<a href=#%e9%9a%8f%e6%9c%ba%e5%82%85%e9%87%8c%e5%8f%b6%e7%89%b9%e5%be%81%e7%94%a8-bochner-%e5%ae%9a%e7%90%86%e6%8b%bf%e5%85%a5%e5%9c%ba%e5%88%b8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Nystrom 方法是<em>数据相关</em>的：它要先看你的训练集再挑 landmark。<strong>随机傅里叶特征（RFF）</strong>，Rahimi 和 Recht 2007 年在 NeurIPS 拿了 test-of-time 奖的工作，走的是相反路线——一个<em>数据无关</em>的随机特征映射，对任何平移不变核都 work。它的革命性在于：你不需要知道任何关于 <span class=math-inline>$X$</span>
+又是浪费。先看谱再选 <span class=math-inline>$m$</span>
+，是从这条小例子能带走的最有价值的习惯。</p><h2 id=随机傅里叶特征用-bochner-定理拿入场券 class=heading-anchor>随机傅里叶特征：用 Bochner 定理拿入场券<a href=#%e9%9a%8f%e6%9c%ba%e5%82%85%e9%87%8c%e5%8f%b6%e7%89%b9%e5%be%81%e7%94%a8-bochner-%e5%ae%9a%e7%90%86%e6%8b%bf%e5%85%a5%e5%9c%ba%e5%88%b8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Nystrom 方法是<em>数据相关</em>的：它要先看你的训练集再挑 landmark。<strong>随机傅里叶特征（RFF）</strong>，Rahimi 和 Recht 2007 年在 NeurIPS 拿了 test-of-time 奖的工作，走的是相反路线：一个<em>数据无关</em>的随机特征映射，对任何平移不变核都 work。它的革命性在于：你不需要知道任何关于 <span class=math-inline>$X$</span>
 的事，就能写出一个固定维度的嵌入，使得标准线性 SVM 在嵌入上的解就近似等于 RBF 核 SVM 的解。</p><p>数学底层是调和分析里最漂亮的定理之一。</p><span class=math-block>$$k(x - y) = \int_{\mathbb{R}^d} p(\omega)\, e^{i \omega^T (x - y)}\, d\omega.$$</span><p>换句话说，每个平移不变 PD 核都是某个概率分布的<em>特征函数</em>（把 <span class=math-inline>$p$</span>
 归一化到积分为 1 之后）。核就是它<strong>谱密度</strong>的逆傅里叶变换。这一句话联通了两个看起来无关的领域：核方法（统计学习）和谐分析（数学物理），告诉你"什么核合法"和"什么分布合法"是同一个问题。</p><p><strong>这定理为什么这么深。</strong> 正定性是核方法的入场券（<a href=/zh/kernel-methods/02-%e6%a0%b8%e6%96%b9%e6%b3%95%e7%9a%84%e6%95%b0%e5%ad%a6%e5%9f%ba%e7%a1%80/>第 2 篇</a>
 ），但直接验证一个候选 <span class=math-inline>$k$</span>
-是不是 PD 通常很难——你得对所有有限点集证 <span class=math-inline>$K \succeq 0$</span>
+是不是 PD 通常很难，你得对所有有限点集证 <span class=math-inline>$K \succeq 0$</span>
 。Bochner 把这个难题翻译成一个分析问题：检查 <span class=math-inline>$k$</span>
 的傅里叶变换是不是非负。对像 RBF、Laplacian 这种闭式核，这一步只需一行验算；对自定义的核（比如你想拼一个"周期 + 局部 + 长程"的复合核），Bochner 也给你一个干净的合法性检查器。核工程的整个上层建筑都站在它上面。</p><p><strong>常见核的谱密度。</strong></p><ul><li><strong>RBF / 高斯</strong> <span class=math-inline>$k(\delta) = \exp(-\gamma \|\delta\|^2):$</span>
 谱密度是高斯，<span class=math-inline>$p(\omega) = (4\pi\gamma)^{-d/2} \exp(-\|\omega\|^2 / (4\gamma)).$</span>
@@ -306,7 +306,7 @@ FLOP，差六个数量级。</p><p><strong><span class=math-inline>$\Phi_n$</spa
 的 RFF 预算下，光滑核被近似得比尖锐核好，因为大部分 Monte Carlo 样本都落在能量集中的低频带；想用 RFF 近似 <span class=math-inline>$\gamma = 10$</span>
 的 RBF，<span class=math-inline>$D$</span>
 至少要比 <span class=math-inline>$\gamma = 0.1$</span>
-的情况大一个数量级。</p><p><strong>这个不等式给出的实操建议。</strong> 如果你被迫用极尖锐的核（数据有非常局部的结构，比如自然语言里的字符级匹配），不要硬上 RFF——它的 Monte Carlo 误差会被高频尾巴拖垮。换 Nystrom（数据相关，能跟着尖锐区域走）或者换一组结构化随机特征（Orthogonal RFF 能把同 <span class=math-inline>$D$</span>
+的情况大一个数量级。</p><p><strong>这个不等式给出的实操建议。</strong> 如果你被迫用极尖锐的核（数据有非常局部的结构，比如自然语言里的字符级匹配），不要硬上 RFF，它的 Monte Carlo 误差会被高频尾巴拖垮。换 Nystrom（数据相关，能跟着尖锐区域走），或者换一组结构化随机特征（Orthogonal RFF 能把同 <span class=math-inline>$D$</span>
 下的方差再压一半）。反过来，光滑核（<span class=math-inline>$\gamma$</span>
 接近中位数启发）配 RFF 是真正的甜蜜区，<span class=math-inline>$D = 1000$</span>
 通常就足够把测试精度打到精确解的 0.3% 以内。</p><span class=math-block>$$k(x - y) = \int p(\omega) \cos(\omega^T (x - y))\, d\omega = \mathbb{E}_{\omega \sim p}\big[ \cos(\omega^T x - \omega^T y) \big].$$</span>
@@ -315,11 +315,11 @@ FLOP，差六个数量级。</p><p><strong><span class=math-inline>$\Phi_n$</spa
 当 <span class=math-inline>$D \to \infty,$</span>
 在每个点上方差是 <span class=math-inline>$O(1/D).$</span>
 这个方差是均匀的，跟 <span class=math-inline>$x, y$</span>
-离不离原点无关——这跟 Nystrom 形成对比，后者在 landmark 附近精度高、远处精度低。</p><p><strong>一个让人豁然开朗的类比。</strong> 想象你想算 <span class=math-inline>$\int f(\omega) d\omega$</span>
-，最朴素的办法是蒙特卡洛——从 <span class=math-inline>$p(\omega)$</span>
-抽样、平均。Bochner 告诉你<em>核就是一个积分</em>，所以核估计也能蒙特卡洛。RFF 的全部新颖性就在&rdquo;<span class=math-inline>$f(\omega) = \cos(\omega^T (x - y))$</span>
-&ldquo;这个特殊的被积函数上——它让单次抽样就给出 <span class=math-inline>$\phi(x)^T \phi(y)$</span>
-形式的"二次型分解&rdquo;。其余都是标准的蒙特卡洛理论：<span class=math-inline>$D$</span>
+离不离原点无关，这跟 Nystrom 形成对比：后者在 landmark 附近精度高、远处精度低。</p><p><strong>一个让人豁然开朗的类比。</strong> 想象你想算 <span class=math-inline>$\int f(\omega) d\omega$</span>
+，最朴素的办法是蒙特卡洛：从 <span class=math-inline>$p(\omega)$</span>
+抽样、平均。Bochner 告诉你<em>核就是一个积分</em>，所以核估计也能蒙特卡洛。RFF 的全部新颖性就在 <span class=math-inline>$f(\omega) = \cos(\omega^T (x - y))$</span>
+这个特殊的被积函数上：它让单次抽样就给出 <span class=math-inline>$\phi(x)^T \phi(y)$</span>
+形式的二次型分解。其余都是标准的蒙特卡洛理论：<span class=math-inline>$D$</span>
 个样本，方差 <span class=math-inline>$\sigma^2 / D$</span>
 。RFF 不神秘，只是把数值积分套在了正确的对象上。</p><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig4_rff_concept.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt="RFF 概念图：谱密度 → 频率样本 → 余弦特征" loading=lazy decoding=async class=content-image></figure></p><span class=math-block>$$\hat\phi(x) = \sqrt{\frac{2}{D}} \big[ \cos(\omega_1^T x + b_1), \dots, \cos(\omega_D^T x + b_D) \big].$$</span><p><code>sklearn.kernel_approximation.RBFSampler</code> 实现的就是这个。为什么 work？因为 <span class=math-inline>$\mathbb{E}_b[\cos(\omega^T x + b)\cos(\omega^T y + b)] = \tfrac{1}{2}\cos(\omega^T (x - y))$</span>
 （对均匀相位求期望把交叉项杀掉），重新得到 Bochner（差一个常数）。代价是同样的 <span class=math-inline>$D$</span>
@@ -364,7 +364,7 @@ FLOP，差六个数量级。</p><p><strong><span class=math-inline>$\Phi_n$</spa
 </span></span><span class=line><span class=cl><span class=n>W</span><span class=p>,</span> <span class=n>b</span> <span class=o>=</span> <span class=n>params</span>
 </span></span><span class=line><span class=cl><span class=n>Phi_test</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=mf>2.0</span> <span class=o>/</span> <span class=mi>1024</span><span class=p>)</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=n>X_test</span> <span class=o>@</span> <span class=n>W</span> <span class=o>+</span> <span class=n>b</span><span class=p>)</span>
 </span></span></code></pre></td></tr></table></div></div><p>三件事要刻在脑子里：</p><ol><li><strong>频率 <span class=math-inline>$W$</span>
-在训练时采样一次，存起来。</strong> 转换测试数据时必须用<em>同一组</em>频率；否则内积不近似核。生产里这就意味着你需要把 <span class=math-inline>$(W, b)$</span>
+在训练时采样一次，存起来。</strong> 转换测试数据时必须用<em>同一组</em>频率，否则内积不近似核。生产里这意味着你需要把 <span class=math-inline>$(W, b)$</span>
 一起 pickle 进模型工件，而不是只存下游线性分类器的权重。</li><li><strong>每个点的开销：<span class=math-inline>$O(D \cdot d).$</span>
 </strong>跟一次线性模型评估一样。任何地方都没有 <span class=math-inline>$n$</span>
 的平方依赖。<span class=math-inline>$n = 10^6, d = 784, D = 1024,$</span>
@@ -372,11 +372,11 @@ FLOP，差六个数量级。</p><p><strong><span class=math-inline>$\Phi_n$</spa
 FLOP，单卡几十秒。</li><li><strong>为什么是 <span class=math-inline>$\sqrt{2/D}.$</span>
 </strong>这是让 <span class=math-inline>$\hat\phi^T \hat\phi$</span>
 成为 <span class=math-inline>$k$</span>
-的<em>无偏</em>估计的归一化常数。少了这个你拿到的曲线形状对，但尺度错了，下游正则系数 <span class=math-inline>$C$</span>
+的<em>无偏</em>估计的归一化常数。少了这个，你拿到的曲线形状对、但尺度错了，下游正则系数 <span class=math-inline>$C$</span>
 全要重新搜一遍。</li></ol><p><strong>第三件不那么显眼的事：数据要 standardize。</strong> RFF 假设你的 <span class=math-inline>$\gamma$</span>
 选取和数据的<em>典型距离尺度</em>匹配。如果某一维特征的尺度比其他维大十倍，<span class=math-inline>$\omega^T x$</span>
 项被那一维支配，<span class=math-inline>$\cos$</span>
-在该维变化几个像素就绕完一周，整个核近似退化成噪声。<code>StandardScaler</code> 一行的事，但是几乎所有 RFF 初学者的第一次失败都源于忘了它。同理，类别变量必须 one-hot 编码到合理尺度，不能直接当 1, 2, 3 输入。</p><p><strong>RFF + 神经网络的混合 trick。</strong> 在深度学习时代 RFF 还有一种用法：把它作为神经网络的第一层（学习 Fourier 特征），下游接全连接 / 卷积。NeRF（Mildenhall et al. 2020）就是用这招把 3D 坐标抬到高频空间，让网络学会高频细节而非全局光滑。这是"随机特征 → 学得的特征"的过渡形态，证明 Bochner 这套 1933 年的数学在 2020 年的神经渲染里仍然是核心引擎。和这条路平行的还有 Tancik et al. 2020 &ldquo;Fourier Features Let Networks Learn High Frequency Functions in Low Dimensional Domains&rdquo;——明确指出固定 <span class=math-inline>$\gamma$</span>
+在该维变化几个像素就绕完一周，整个核近似退化成噪声。<code>StandardScaler</code> 一行的事，但几乎所有 RFF 初学者的第一次失败都源于忘了它。同理，类别变量必须 one-hot 编码到合理尺度，不能直接当 1, 2, 3 输入。</p><p><strong>RFF + 神经网络的混合 trick。</strong> 在深度学习时代 RFF 还有一种用法：把它作为神经网络的第一层（学习 Fourier 特征），下游接全连接 / 卷积。NeRF（Mildenhall et al. 2020）就是用这招把 3D 坐标抬到高频空间，让网络学会高频细节而非全局光滑。这是从随机特征到学得的特征的过渡形态，证明 Bochner 这套 1933 年的数学在 2020 年的神经渲染里仍然是核心引擎。和这条路平行的还有 Tancik et al. 2020 &ldquo;Fourier Features Let Networks Learn High Frequency Functions in Low Dimensional Domains&rdquo;，它明确指出固定 <span class=math-inline>$\gamma$</span>
 的 RFF 嵌入是 NeRF 等坐标 MLP 成功的关键，去掉就退回到糊状结果。这条经验后来被无数 implicit neural representation 工作引用。</p><span class=math-block>$$\Pr\!\left[\sup_{x, y \in X} |\hat\phi(x)^T \hat\phi(y) - k(x - y)| \geq \epsilon \right] \leq 2^8 (r \sigma_p / \epsilon)^2 \exp\!\left(-\frac{D \epsilon^2}{4(d+2)}\right),$$</span><p>其中 <span class=math-inline>$\sigma_p^2 = \mathbb{E}_{\omega \sim p}[\|\omega\|^2].$</span>
 眯眼看一下：<strong>均匀误差大约 <span class=math-inline>$1/\sqrt{D}$</span>
 </strong>，对 <span class=math-inline>$r$</span>
@@ -385,35 +385,35 @@ FLOP，单卡几十秒。</li><li><strong>为什么是 <span class=math-inline>$
 翻倍，标准差减半。把数字带进去：想要 <span class=math-inline>$\epsilon = 0.01$</span>
 的均匀误差，<span class=math-inline>$d = 100$</span>
 的中等维度数据需要 <span class=math-inline>$D \approx 10^5,$</span>
-比"舒服"的 <span class=math-inline>$D = 10^3$</span>
-大整整两个数量级——这是 RFF 的一个常见盲区，论文里报的精度数字往往是在 <span class=math-inline>$\epsilon \approx 0.1$</span>
+比舒服的 <span class=math-inline>$D = 10^3$</span>
+大整整两个数量级。这是 RFF 的一个常见盲区，论文里报的精度数字往往是在 <span class=math-inline>$\epsilon \approx 0.1$</span>
 的宽松约束下拿到的。</p><p><strong>这个界是悲观的。</strong> 它给的是 <span class=math-inline>$\sup_{x,y}$</span>
-——最坏点对的误差。下游分类器只关心决策边界附近的几个关键点，那里实际误差通常比 sup 界小一个数量级。所以"理论上 <span class=math-inline>$D$</span>
+，最坏点对的误差。下游分类器只关心决策边界附近的几个关键点，那里实际误差通常比 sup 界小一个数量级。所以理论上 <span class=math-inline>$D$</span>
 要 <span class=math-inline>$10^5$</span>
-&ldquo;和"实践中 <span class=math-inline>$D = 10^3$</span>
-就够"并不矛盾：前者保证最坏情况，后者只需平均情况。这条经验在 Sutherland & Schneider (2015) 里有更紧的"任务相关"误差界，结论是：分类任务 <span class=math-inline>$D \sim O(\sqrt{n})$</span>
+、实践中 <span class=math-inline>$D = 10^3$</span>
+就够，二者并不矛盾：前者保证最坏情况，后者只需平均情况。这条经验在 Sutherland & Schneider (2015) 里有更紧的"任务相关"误差界，结论是：分类任务 <span class=math-inline>$D \sim O(\sqrt{n})$</span>
 通常够，回归任务 <span class=math-inline>$D \sim O(n^{1/3})$</span>
 通常够，生成式任务才需要 sup 界那种 <span class=math-inline>$O(n)$</span>
-。</p><p><strong>方差与偏差的分解。</strong> RFF 是无偏的，所以所有近似误差都是方差；而 Nystrom 是有偏的（偏差由谱尾决定），方差由 landmark 选取的随机性决定。这给出一条经验：当你的核谱衰减极快（光滑数据上的 RBF），Nystrom 的偏差几乎可以忽略，它就是无偏估计的事实标准；当谱衰减慢（高频信号、Matern-1/2、Laplacian），RFF 的无偏性反而成了麻烦——它把那些尾部能量也试图近似，但 <span class=math-inline>$D$</span>
-不够时方差爆炸。所以"谱集中→Nystrom，谱分散→RFF"是一个粗略但有用的启发。</p><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig5_rff_vs_exact.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt="RFF 近似核 vs 真实 RBF 核，随 D 增加误差衰减" loading=lazy decoding=async class=content-image></figure></p><p><strong>什么时候 RFF 失败得很惨。</strong> 三类情况要警惕。(1) <strong>核非常尖锐</strong>（<span class=math-inline>$\gamma$</span>
+。</p><p><strong>方差与偏差的分解。</strong> RFF 是无偏的，所以所有近似误差都是方差；而 Nystrom 是有偏的（偏差由谱尾决定），方差由 landmark 选取的随机性决定。这给出一条经验：当你的核谱衰减极快（光滑数据上的 RBF），Nystrom 的偏差几乎可以忽略，它就是无偏估计的事实标准；当谱衰减慢（高频信号、Matern-1/2、Laplacian），RFF 的无偏性反而成了麻烦：它把那些尾部能量也试图近似，但 <span class=math-inline>$D$</span>
+不够时方差爆炸。所以谱集中就用 Nystrom、谱分散就用 RFF，是一个粗略但有用的启发。</p><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig5_rff_vs_exact.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt="RFF 近似核 vs 真实 RBF 核，随 D 增加误差衰减" loading=lazy decoding=async class=content-image></figure></p><p><strong>什么时候 RFF 失败得很惨。</strong> 三类情况要警惕。(1) <strong>核非常尖锐</strong>（<span class=math-inline>$\gamma$</span>
 很大）：谱密度方差大，Monte Carlo 几乎不收敛，<span class=math-inline>$D = 10^4$</span>
 都可能近似得一塌糊涂。(2) <strong><span class=math-inline>$d$</span>
 极高且数据不在低维流形上</strong>（很罕见，但确实出现在某些科学场景）：误差界里的对数因子开始咬人，<span class=math-inline>$D$</span>
-需求飙升。(3) <strong>核不是平移不变的</strong>：Bochner 直接不适用，RFF 没办法套——这时只能 Nystrom，或者构造核特异的随机特征（如 polynomial 核的 TensorSketch）。</p><p><strong>一个常被忽视的隐性偏差：</strong> RFF 是无偏的<em>核</em>估计，但它给出的不是无偏的<em>函数</em>估计。把 RFF 特征送进岭回归后，估出的函数 <span class=math-inline>$\hat f$</span>
+需求飙升。(3) <strong>核不是平移不变的</strong>：Bochner 直接不适用，RFF 没办法套，这时只能 Nystrom，或者构造核特异的随机特征（如 polynomial 核的 TensorSketch）。</p><p><strong>一个常被忽视的隐性偏差：</strong> RFF 是无偏的<em>核</em>估计，但它给出的不是无偏的<em>函数</em>估计。把 RFF 特征送进岭回归后，估出的函数 <span class=math-inline>$\hat f$</span>
 和精确核岭回归的 <span class=math-inline>$f^*$</span>
 之间存在依赖 <span class=math-inline>$D$</span>
 的偏差，这个偏差衰减比核近似的 <span class=math-inline>$1/\sqrt{D}$</span>
-慢——通常是 <span class=math-inline>$1/D^{1/4}$</span>
-量级。后果就是：核估得很准不代表下游模型估得很准；你想要"端到端无偏&rdquo;，需要更激进地把 <span class=math-inline>$D$</span>
+慢，通常是 <span class=math-inline>$1/D^{1/4}$</span>
+量级。后果就是：核估得很准不代表下游模型估得很准；你想要端到端无偏，需要更激进地把 <span class=math-inline>$D$</span>
 推高。这个差距在最近的 RFF 理论里（Liu, Huang, et al. 2022 综述）被反复讨论。</p><h2 id=rff-实战50k-样本的对比示例 class=heading-anchor>RFF 实战：50k 样本的对比示例<a href=#rff-%e5%ae%9e%e6%88%9850k-%e6%a0%b7%e6%9c%ac%e7%9a%84%e5%af%b9%e6%af%94%e7%a4%ba%e4%be%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>让我具体一点。MNIST 风格的题：50,000 张训练图、每张 784 像素（28 × 28）、二分类（数字 3 对数字 8）。三条流水线对比：</p><ol><li><strong>精确 RBF SVM。</strong> <code>SVC(kernel='rbf', gamma=0.05)</code>。精度的金标准；运行时间的灾难。</li><li><strong>Nystrom + 逻辑回归。</strong> <code>Nystroem(n_components=500) + LogisticRegression</code>。数据相关的低秩。</li><li><strong>RFF + 逻辑回归。</strong> <code>RBFSampler(n_components=1000) + LogisticRegression</code>。数据无关的随机特征。</li></ol><p><strong>这个题为什么选 3 vs 8。</strong> MNIST 是十类分类问题，但精确 RBF SVM 默认走 OvO，要训 <span class=math-inline>$\binom{10}{2} = 45$</span>
-个二分类器；50k 数据上这就是个无法忍受的实验，做对比阐释问题不友好。挑 3 vs 8 是因为这是 MNIST 里最容易混淆的两个数字（笔画结构相近，决策边界非线性极强），所以核方法相对线性的优势最明显——线性 SVM 大约 96%，RBF 上到 99.2%，3.2% 的 gap 全是非线性带来的。</p><p><strong><code>gamma=0.05</code> 是怎么来的。</strong> 中位数启发对 MNIST 像素值的 <span class=math-inline>$L^2$</span>
+个二分类器；50k 数据上这就是个无法忍受的实验，做对比阐释问题不友好。挑 3 vs 8 是因为这是 MNIST 里最容易混淆的两个数字（笔画结构相近，决策边界非线性极强），所以核方法相对线性的优势最明显：线性 SVM 大约 96%，RBF 上到 99.2%，3.2% 的 gap 全是非线性带来的。</p><p><strong><code>gamma=0.05</code> 是怎么来的。</strong> 中位数启发对 MNIST 像素值的 <span class=math-inline>$L^2$</span>
 距离算出来 <span class=math-inline>$\sigma \approx 3.2$</span>
 ，对应 <span class=math-inline>$\gamma = 1 / (2 \sigma^2) \approx 0.05$</span>
 。这是个能用、但不一定最优的起点；真做生产你会在 <span class=math-inline>$\gamma \in [0.01, 0.2]$</span>
 之间做对数网格搜，最优常落在 0.04-0.08 之间。值得提的是：三条流水线必须用<em>同一个</em> <span class=math-inline>$\gamma$</span>
 才公平；不少 benchmark 报告里精确 SVM 用调优后的 <span class=math-inline>$\gamma$</span>
 ，近似版用默认 <span class=math-inline>$\gamma$</span>
-，结论自然偏向精确，这是常见的"无意但糟糕"的实验设计。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+，结论自然偏向精确，这是常见的无意但糟糕的实验设计。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -471,10 +471,10 @@ FLOP，单卡几十秒。</li><li><strong>为什么是 <span class=math-inline>$
 </span></span><span class=line><span class=cl><span class=p>)</span>
 </span></span></code></pre></td></tr></table></div></div><p>2026 年代笔记本（8 核，32 GB RAM）上的参考墙钟时间：</p><div class=table-wrap><table><thead><tr><th>流水线</th><th>训练时间</th><th>测试精度</th></tr></thead><tbody><tr><td>精确 RBF SVM</td><td>约 17 分钟</td><td>0.992</td></tr><tr><td>Nystrom (m=500) + 逻辑回归</td><td>约 12 秒</td><td>0.989</td></tr><tr><td>RFF (D=1000) + 逻辑回归</td><td>约 8 秒</td><td>0.987</td></tr></tbody></table></div><p>你拿不到的精度可能就那么半个百分点，但训练快了大约 100 倍。在 50 万点上，精确 SVM 在普通硬件上根本跑不动，而两种近似都还停在分钟级别。这就是 2010 年代初整个领域集体决定接受的 trade-off；核方法没死，靠的是这个。把视角再拉远，<span class=math-inline>$n = 10^7$</span>
 时精确 SVM 的训练时间外推大约是 470 天（单机），而 RFF + SGD 配 <span class=math-inline>$D = 2000$</span>
-在同样硬件上是几个小时——这不是加速，这是从"不可能"到"工程问题"的相变。</p><p><strong>为什么差距没有变成"近似比精确还好&rdquo;？</strong> 一个反直觉的事实：在中等噪声（label noise > 5%）的真实数据上，精确 SVM 和近似版本的<em>泛化</em>精度差距经常缩到统计意义不显著的程度，因为泛化误差被噪声主导，而非近似误差。换句话说：你担心 RFF 把核近似坏，但你的数据本身比近似引入的偏差脏得多。这条经验也解释了为什么深度学习配粗糙的近似（dropout、量化）还能横扫各种 benchmark——只要近似误差小于数据噪声，精度就不掉。</p><p><strong>一个更激进的观察。</strong> Belkin et al. 2018 注意到一个反例：当 <span class=math-inline>$D$</span>
+在同样硬件上是几个小时。这不是加速，这是从不可能到工程问题的相变。</p><p><strong>为什么差距没有变成近似比精确还好？</strong> 一个反直觉的事实：在中等噪声（label noise > 5%）的真实数据上，精确 SVM 和近似版本的<em>泛化</em>精度差距经常缩到统计意义不显著的程度，因为泛化误差被噪声主导，而非近似误差。换句话说：你担心 RFF 把核近似坏，但你的数据本身比近似引入的偏差脏得多。这条经验也解释了为什么深度学习配粗糙的近似（dropout、量化）还能横扫各种 benchmark：只要近似误差小于数据噪声，精度就不掉。</p><p><strong>一个更激进的观察。</strong> Belkin et al. 2018 注意到一个反例：当 <span class=math-inline>$D$</span>
 <em>大于</em> <span class=math-inline>$n$</span>
-时（&ldquo;过参数化的 RFF&rdquo;），模型常常比经典核方法还要好——这是双下降现象在核方法里的一个早期端倪。背后的直觉是：在过参数化区间，模型有足够自由度同时拟合数据并保持平滑解，等价于一个隐式的零成本正则。这条线后来被 NTK 理论吸收，成为理解深度学习泛化的核心拼图之一。所以&rdquo;<span class=math-inline>$D$</span>
-越大越好"不只是工程经验，也有理论支撑——前提是下游正则配得当。</p><p><strong>几个 sklearn 实战注意。</strong></p><ul><li><strong><code>RBFSampler</code> 用的是带相位 cos 形式。</strong> 所以输出是 <span class=math-inline>$D$</span>
+时（过参数化的 RFF），模型常常比经典核方法还要好，这是双下降现象在核方法里的一个早期端倪。背后的直觉是：在过参数化区间，模型有足够自由度同时拟合数据并保持平滑解，等价于一个隐式的零成本正则。这条线后来被 NTK 理论吸收，成为理解深度学习泛化的核心拼图之一。所以 <span class=math-inline>$D$</span>
+越大越好不只是工程经验，也有理论支撑，前提是下游正则配得当。</p><p><strong>几个 sklearn 实战注意。</strong></p><ul><li><strong><code>RBFSampler</code> 用的是带相位 cos 形式。</strong> 所以输出是 <span class=math-inline>$D$</span>
 维而非 <span class=math-inline>$2D$</span>
 维。你想要显式 sin/cos 对的版本，自己写一遍（10 行就够）。两种形式精度可比，但显式 sin/cos 在小 <span class=math-inline>$D$</span>
 （<span class=math-inline>$\leq 200$</span>
@@ -489,22 +489,22 @@ FLOP，单卡几十秒。</li><li><strong>为什么是 <span class=math-inline>$
 是为特定 <span class=math-inline>$\gamma$</span>
 服务的；想换 <span class=math-inline>$\gamma$</span>
 就重抽。这条规则在做 grid search <span class=math-inline>$\gamma$</span>
-时尤其重要——很多人会无意识地用同一个 <code>random_state</code> 覆盖所有 <span class=math-inline>$\gamma$</span>
+时尤其重要：很多人会无意识地用同一个 <code>random_state</code> 覆盖所有 <span class=math-inline>$\gamma$</span>
 ，得到的不是公平比较。</li><li><strong>GPU 上 RFF 比 sklearn 实现快得多。</strong> PyTorch / JAX 两三行就能写一个 GPU 版 RFF：<code>torch.cos(X @ W + b)</code>，A100 上单层 <span class=math-inline>$D = 4096$</span>
 处理 <span class=math-inline>$10^7$</span>
-点约 100 毫秒；sklearn 的 CPU 实现同等数据要分钟级。所以如果你已经在 GPU 上做下游，不要把数据搬到 CPU 跑 RFF 再搬回来——重写那十行代码。</li></ul><h2 id=nystrom-vs-rff什么时候选哪个 class=heading-anchor>Nystrom vs RFF：什么时候选哪个<a href=#nystrom-vs-rff%e4%bb%80%e4%b9%88%e6%97%b6%e5%80%99%e9%80%89%e5%93%aa%e4%b8%aa class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>现在你手上有两件工具，都能把 <span class=math-inline>$O(n^3)$</span>
+点约 100 毫秒；sklearn 的 CPU 实现同等数据要分钟级。所以如果你已经在 GPU 上做下游，不要把数据搬到 CPU 跑 RFF 再搬回来，重写那十行代码就好。</li></ul><h2 id=nystrom-vs-rff什么时候选哪个 class=heading-anchor>Nystrom vs RFF：什么时候选哪个<a href=#nystrom-vs-rff%e4%bb%80%e4%b9%88%e6%97%b6%e5%80%99%e9%80%89%e5%93%aa%e4%b8%aa class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>现在你手上有两件工具，都能把 <span class=math-inline>$O(n^3)$</span>
 的核方法压成 <span class=math-inline>$O(n)$</span>
 的线性方法。该选哪个？老实说就一句"两个都试"，但下面是先验。</p><p><strong>用 Nystrom 当：</strong></p><ul><li>你的核<em>不是平移不变</em>。RFF 需要 Bochner 定理，需要 <span class=math-inline>$k(x, y) = k(x - y).$</span>
 多项式核、字符串核、大部分图核都不是平移不变；Nystrom 对任何 PD 核都 work。</li><li>数据有<em>清晰的聚类结构</em>，K-means landmark 讲得通。Nystrom 是数据相关的，能利用这一点；RFF 不能。</li><li>你想要<em>确定性的</em>近似。固定 landmark 集，Nystrom 映射是确定的；固定 <span class=math-inline>$W, b,$</span>
 RFF 也是确定的，但"好随机种子"效应在小 <span class=math-inline>$D$</span>
 时对 RFF 影响明显大得多。</li><li>你需要在中等 <span class=math-inline>$m \approx 100$</span>
 -<span class=math-inline>$500$</span>
-下拿到很高精度。经验上 Nystrom 在这个区间压制 RFF，因为谱截断误差界比蒙特卡洛误差界更紧——前者是 <span class=math-inline>$O(\lambda_{m+1})$</span>
+下拿到很高精度。经验上 Nystrom 在这个区间压制 RFF，因为谱截断误差界比蒙特卡洛误差界更紧：前者是 <span class=math-inline>$O(\lambda_{m+1})$</span>
 谱依赖的速率，后者是 <span class=math-inline>$O(1/\sqrt{m})$</span>
 的统计速率。</li><li>你能花一次性的开销换长期收益。Nystrom 的 landmark 一旦选定就反复使用；如果你的核超参不变、数据不变，那个 <span class=math-inline>$\Phi_n$</span>
 可以缓存，比 RFF 每次都要重算 <span class=math-inline>$\cos(XW + b)$</span>
 更优。</li><li>你做<em>多任务学习</em>共享底层核。同一组 landmark 给多个下游任务用，每个任务只学 <span class=math-inline>$m$</span>
-维线性头，下游可以是分类、回归、排序——共享 <span class=math-inline>$\Phi_n$</span>
+维线性头，下游可以是分类、回归、排序，共享 <span class=math-inline>$\Phi_n$</span>
 是非常自然的多任务底座。</li></ul><p><strong>用 RFF 当：</strong></p><ul><li>核是平移不变的（RBF、Laplacian、Matern、Cauchy）。这种场景下 RFF 是教科书选择。</li><li>你想做<em>流式</em>训练。RFF 的特征只取决于一次性抽的 <span class=math-inline>$W, b,$</span>
 你可以让 <span class=math-inline>$X$</span>
 流过它们，送进 SGD 分类器。Nystrom 需要预先有 landmark 集。</li><li>你想要<em>超参最少</em>。RFF 实质就一个旋钮 <span class=math-inline>$D;$</span>
@@ -515,50 +515,50 @@ Nystrom 有两个（<span class=math-inline>$m$</span>
 就能写出 ε-confidence；Nystrom 的误差依赖谱衰减，事前很难给出非平凡的界。</li><li>你打算在多设备上分布式训练。RFF 的 <span class=math-inline>$W$</span>
 一次广播到所有 worker，剩下全是 embarrassingly parallel；Nystrom 要么所有 worker 用同一组 landmark（瓶颈在主节点），要么每个 worker 自己采 landmark 再合并（统计上更复杂）。</li></ul><p><figure class=article-figure><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/kernel-methods/07-large-scale-kernels/fig6_nystrom_vs_rff.png?x-oss-process=image/resize,w_1200/format,webp/quality,q_88" alt="不同近似预算下 Nystrom 与 RFF 的 trade-off" loading=lazy decoding=async class=content-image></figure></p><p><strong>和层次方法的对比。</strong> H-matrix / HODLR 这一族做法把 <span class=math-inline>$K$</span>
 看成一棵层次树，远场块用低秩近似，近场块保持稠密，给出 <span class=math-inline>$O(n \log n)$</span>
-的矩阵-向量乘。理论上比 Nystrom 和 RFF 更紧——它能逼近的不只是低秩而是层次低秩——但工程实现复杂（KeOps、HODLRlib 是几千行 C++），且对核必须光滑、低维。我的经验是：低维（<span class=math-inline>$d \leq 5$</span>
+的矩阵-向量乘。理论上比 Nystrom 和 RFF 更紧（它能逼近的不只是低秩而是层次低秩），但工程实现复杂（KeOps、HODLRlib 是几千行 C++），且对核必须光滑、低维。我的经验是：低维（<span class=math-inline>$d \leq 5$</span>
 ）几何数据（地球物理、流体仿真）上 H-matrix 是赢家；中高维数据（图像、文本嵌入）Nystrom 和 RFF 简单到无脑用就行。</p><p><strong>三者复杂度速查：</strong></p><div class=table-wrap><table><thead><tr><th>方法</th><th>内存</th><th>训练时间</th><th>偏差</th><th>方差</th><th>平移不变要求</th></tr></thead><tbody><tr><td>Nystrom (<span class=math-inline>$m$</span>
 )</td><td><span class=math-inline>$O(nm)$</span></td><td><span class=math-inline>$O(nm^2 + m^3)$</span></td><td><span class=math-inline>$O(\lambda_{m+1})$</span></td><td>中（随机 landmark）</td><td>否</td></tr><tr><td>RFF (<span class=math-inline>$D$</span>
 )</td><td><span class=math-inline>$O(nD)$</span></td><td><span class=math-inline>$O(nDd)$</span></td><td><span class=math-inline>$0$</span></td><td><span class=math-inline>$O(1/\sqrt{D})$</span></td><td>是</td></tr><tr><td>H-matrix</td><td><span class=math-inline>$O(n \log n)$</span></td><td><span class=math-inline>$O(n \log^2 n)$</span></td><td><span class=math-inline>$\epsilon$</span>
-可调</td><td>几乎为零</td><td>否，但要光滑</td></tr></tbody></table></div><p>读法：Nystrom 用偏差换内存，RFF 用方差换简洁，H-matrix 用工程复杂度换理论紧度。三者没有 dominating 关系，选哪个取决于你最不能放弃哪个维度。</p><p><strong>一条元规则。</strong> 2026 年监督学习配平移不变核，<strong>RFF + SGD</strong> 是阻力最小的路径。非平移不变核或者你打算反复重调核超参（你想让 landmark 结构携带信息），<strong>Nystrom + L-BFGS</strong> 是对的。贝叶斯 / 概率模型上这两个都不太对——见下一节。</p><p><strong>一个常被问的问题：能不能同时用 Nystrom 和 RFF？</strong> 能，叫 <em>双重随机特征</em>（doubly stochastic）。思路是先用 Nystrom 把 <span class=math-inline>$K$</span>
+可调</td><td>几乎为零</td><td>否，但要光滑</td></tr></tbody></table></div><p>读法：Nystrom 用偏差换内存，RFF 用方差换简洁，H-matrix 用工程复杂度换理论紧度。三者没有 dominating 关系，选哪个取决于你最不能放弃哪个维度。</p><p><strong>一条元规则。</strong> 2026 年监督学习配平移不变核，<strong>RFF + SGD</strong> 是阻力最小的路径。非平移不变核或者你打算反复重调核超参（你想让 landmark 结构携带信息），<strong>Nystrom + L-BFGS</strong> 是对的。贝叶斯 / 概率模型上这两个都不太对，见下一节。</p><p><strong>一个常被问的问题：能不能同时用 Nystrom 和 RFF？</strong> 能，叫 <em>双重随机特征</em>（doubly stochastic）。思路是先用 Nystrom 把 <span class=math-inline>$K$</span>
 压成 <span class=math-inline>$\hat K = K_{nm} K_{mm}^{-1} K_{mn}$</span>
 ，然后对 <span class=math-inline>$K_{mm}^{-1}$</span>
-也用一组 RFF 近似——本质是嵌套两层近似。理论上更紧（两层误差可控），实践中调参噩梦（两个 <span class=math-inline>$m, D$</span>
-同时调）。我没见过谁在生产里用，更多是论文示意；除非你在做 sketching 理论研究，否则跳过。</p><h2 id=大规模-gp稀疏近似一瞥 class=heading-anchor>大规模 GP：稀疏近似一瞥<a href=#%e5%a4%a7%e8%a7%84%e6%a8%a1-gp%e7%a8%80%e7%96%8f%e8%bf%91%e4%bc%bc%e4%b8%80%e7%9e%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Nystrom 和 RFF 最初是给<em>频率派</em>核方法设计的——SVM、核岭回归、核 PCA。GP 回归同样掉进相同的扩展性悬崖：GP 推断要做 <span class=math-inline>$K + \sigma^2 I$</span>
+也用一组 RFF 近似，本质是嵌套两层近似。理论上更紧（两层误差可控），实践中调参噩梦（两个 <span class=math-inline>$m, D$</span>
+同时调）。我没见过谁在生产里用，更多是论文示意；除非你在做 sketching 理论研究，否则跳过。</p><h2 id=大规模-gp稀疏近似一瞥 class=heading-anchor>大规模 GP：稀疏近似一瞥<a href=#%e5%a4%a7%e8%a7%84%e6%a8%a1-gp%e7%a8%80%e7%96%8f%e8%bf%91%e4%bc%bc%e4%b8%80%e7%9e%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Nystrom 和 RFF 最初是给<em>频率派</em>核方法设计的：SVM、核岭回归、核 PCA。GP 回归同样掉进相同的扩展性悬崖：GP 推断要做 <span class=math-inline>$K + \sigma^2 I$</span>
 的 Cholesky，<span class=math-inline>$O(n^3).$</span>
 围绕把 GP 扩展到大 <span class=math-inline>$n,$</span>
-长出了一整个子领域，主流家族是<strong>稀疏 / 诱导点 GP</strong>。鸟瞰：</p><p><strong>FITC（Fully Independent Training Conditional，Snelson 和 Ghahramani 2005）。</strong> 最早。定义 <span class=math-inline>$m$</span>
+长出了一整个子领域，主流家族是<strong>稀疏 / 诱导点 GP</strong>。鸟瞰一下：</p><p><strong>FITC（Fully Independent Training Conditional，Snelson 和 Ghahramani 2005）。</strong> 最早。定义 <span class=math-inline>$m$</span>
 个诱导输入 <span class=math-inline>$Z \in \mathbb{R}^{m \times d},$</span>
 把训练集先验 <span class=math-inline>$K_{nn}$</span>
 换成 Nystrom 近似 <span class=math-inline>$K_{nm} K_{mm}^{-1} K_{mn}$</span>
-——和经典 Nystrom 一样的矩阵——<em>再加</em>一个对角修正修正边际方差。推断变成 <span class=math-inline>$O(nm^2),$</span>
-复杂度和 Nystrom + 线性一样。容易在没见过的区域<em>低估</em>不确定性——这个失败模式很危险，因为 GP 卖的就是不确定性。</p><p><strong>为什么 FITC 会低估外推不确定性。</strong> Nystrom 近似在远离 landmark 的地方把 <span class=math-inline>$K$</span>
-压向零，FITC 直接把这个事实信成"真实先验方差"，于是远处的方差比真 GP 算出来的小。在主动学习 / 贝叶斯优化里这是致命的：算法会因为"这里方差小所以不需要采样"而错过整片未探索区域。VFE 和 SVGP 因为额外有变分校正项，这个问题缓解很多，但完全消除要等到 <em>deep kernel</em> 或 <em>Bayesian neural network</em> 给出真正的"外推时膨胀"的不确定性建模。</p><span class=math-block>$$\mathcal{L}_{\text{VFE}} = \log \mathcal{N}(y; 0, Q_{nn} + \sigma^2 I) - \frac{1}{2\sigma^2}\, \mathrm{tr}(K_{nn} - Q_{nn}),$$</span><p>其中 <span class=math-inline>$Q_{nn} = K_{nm} K_{mm}^{-1} K_{mn}.$</span>
-第一项是低秩 GP 的常规边际似然；第二项是正则项，把诱导输入往 Nystrom 近似精确的位置拽。VFE 是 <code>gpytorch</code> 和 <code>GPflow</code> 现在的默认。</p><p><strong>FITC vs VFE 的一句话区别。</strong> FITC 是"先近似先验再做精确推断"，VFE 是"对精确模型做变分推断"。两者的预测均值往往相似，但 VFE 的预测方差校准得多——后者直接由"<span class=math-inline>$\mathrm{tr}(K_{nn} - Q_{nn})$</span>
-该惩罚多少"这一项控制，前者只能靠对角修正补救。如果你只看 MSE，FITC 和 VFE 差不多；如果你看负对数似然或者 calibration curve，VFE 几乎总是赢。我的默认是任何新项目都从 VFE 起步，除非有具体理由切别的。</p><p><strong>一个更深的对比：FITC 是退化的 VFE。</strong> Bauer, van der Wilk, Rasmussen 2016 证明，当你把 VFE 的迹惩罚项乘以 0，恰好还原 FITC 的目标函数。所以 FITC = VFE - 校准项。这把"FITC 为何不可靠"的非正式经验变成了精确陈述：它丢了校准。理论上，VFE 几乎没有理由比 FITC 差，所以 FITC 在 2020 年后基本被弃用，gpytorch 默认 VFE / SVGP 一族。</p><span class=math-block>$$\mathcal{L}_{\text{SVGP}} = \sum_{i=1}^n \mathbb{E}_{q(f_i)}[\log p(y_i | f_i)] - \mathrm{KL}[q(u) \| p(u)],$$</span><p>其中 <span class=math-inline>$q(u) = \mathcal{N}(u; \mu, \Sigma)$</span>
+（和经典 Nystrom 一样的矩阵），<em>再加</em>一个对角修正修正边际方差。推断变成 <span class=math-inline>$O(nm^2),$</span>
+复杂度和 Nystrom + 线性一样。它容易在没见过的区域<em>低估</em>不确定性，这个失败模式很危险，因为 GP 卖的就是不确定性。</p><p><strong>为什么 FITC 会低估外推不确定性。</strong> Nystrom 近似在远离 landmark 的地方把 <span class=math-inline>$K$</span>
+压向零，FITC 直接把这个事实信成真实先验方差，于是远处的方差比真 GP 算出来的小。在主动学习 / 贝叶斯优化里这是致命的：算法会因为这里方差小、所以不需要采样，而错过整片未探索区域。VFE 和 SVGP 因为额外有变分校正项，这个问题缓解很多，但完全消除要等到 <em>deep kernel</em> 或 <em>Bayesian neural network</em> 给出真正在外推时膨胀的不确定性建模。</p><span class=math-block>$$\mathcal{L}_{\text{VFE}} = \log \mathcal{N}(y; 0, Q_{nn} + \sigma^2 I) - \frac{1}{2\sigma^2}\, \mathrm{tr}(K_{nn} - Q_{nn}),$$</span><p>其中 <span class=math-inline>$Q_{nn} = K_{nm} K_{mm}^{-1} K_{mn}.$</span>
+第一项是低秩 GP 的常规边际似然；第二项是正则项，把诱导输入往 Nystrom 近似精确的位置拽。VFE 是 <code>gpytorch</code> 和 <code>GPflow</code> 现在的默认。</p><p><strong>FITC vs VFE 的一句话区别。</strong> FITC 是先近似先验再做精确推断，VFE 是对精确模型做变分推断。两者的预测均值往往相似，但 VFE 的预测方差校准得多：后者直接由 <span class=math-inline>$\mathrm{tr}(K_{nn} - Q_{nn})$</span>
+该惩罚多少这一项控制，前者只能靠对角修正补救。如果你只看 MSE，FITC 和 VFE 差不多；如果你看负对数似然或者 calibration curve，VFE 几乎总是赢。我的默认是任何新项目都从 VFE 起步，除非有具体理由切别的。</p><p><strong>一个更深的对比：FITC 是退化的 VFE。</strong> Bauer, van der Wilk, Rasmussen 2016 证明，当你把 VFE 的迹惩罚项乘以 0，恰好还原 FITC 的目标函数。所以 FITC = VFE - 校准项。这把 FITC 为何不可靠的非正式经验变成了精确陈述：它丢了校准。理论上，VFE 几乎没有理由比 FITC 差，所以 FITC 在 2020 年后基本被弃用，gpytorch 默认 VFE / SVGP 一族。</p><span class=math-block>$$\mathcal{L}_{\text{SVGP}} = \sum_{i=1}^n \mathbb{E}_{q(f_i)}[\log p(y_i | f_i)] - \mathrm{KL}[q(u) \| p(u)],$$</span><p>其中 <span class=math-inline>$q(u) = \mathcal{N}(u; \mu, \Sigma)$</span>
 是诱导值上的多元高斯变分分布，<span class=math-inline>$q(f_i) = \int p(f_i | u) q(u)\, du$</span>
 是隐含的第 <span class=math-inline>$i$</span>
 个函数值边际。第一项的和按数据点分解，允许 minibatch；KL 项是两个 <span class=math-inline>$m$</span>
 维高斯之间的 KL，每次梯度步算一次。</p><p><strong>SVGP 给出了什么 FITC/VFE 给不出的东西？</strong> 三件事。(a) <strong>真正的 mini-batch 训练</strong>，让 <span class=math-inline>$n$</span>
 突破 <span class=math-inline>$10^6$</span>
-；FITC/VFE 必须一次看全数据。(b) <strong>变分参数 <span class=math-inline>$\mu, \Sigma$</span>
+，而 FITC/VFE 必须一次看全数据。(b) <strong>变分参数 <span class=math-inline>$\mu, \Sigma$</span>
 可学</strong>，让诱导值的后验形状不再被 Nystrom 形式强行限定；这在似然非高斯时尤其重要（比如 GP 分类）。(c) <strong>任意似然</strong>：泊松、Bernoulli、Student-t 都能套进去，只要把 <span class=math-inline>$\mathbb{E}_{q(f_i)}[\log p(y_i | f_i)]$</span>
 算得出来（必要时用一维高斯求积）。FITC 几乎只能做高斯回归。这三件事加起来让 SVGP 成了 gpytorch / GPflow / Pyro 里"大规模 GP"的事实标准接口。</p><p>实践上的分界大致是：</p><ul><li><strong><span class=math-inline>$n \leq 10^4$</span>
 ：</strong> 精确 GP。用 <code>gpytorch.models.ExactGP</code>。不需要近似。</li><li><strong><span class=math-inline>$10^4 \leq n \leq 10^5$</span>
 ：</strong> FITC 或 VFE，<span class=math-inline>$m = 100$</span>
 -<span class=math-inline>$500$</span>
-诱导点。两者都是"单批"的——每步梯度用全部数据。</li><li><strong><span class=math-inline>$10^5 \leq n \leq 10^7$</span>
+诱导点。两者都是单批的，每步梯度用全部数据。</li><li><strong><span class=math-inline>$10^5 \leq n \leq 10^7$</span>
 ：</strong> SVGP，<span class=math-inline>$m = 500$</span>
 -<span class=math-inline>$2000$</span>
 诱导点，mini-batch 约 1024 点。2026 年大规模 GP 的主力。</li><li><strong><span class=math-inline>$n > 10^7$</span>
 ：</strong> 抉择时刻。要么进一步近似（KISS-GP、结构化核插值），要么彻底切到深度学习（Part 8 会聊）。</li></ul><p><strong>一个 SVGP 的常见陷阱：诱导点初始化。</strong> 把 <span class=math-inline>$Z$</span>
 初始化成 K-means 中心几乎总比随机抽样好；初始化成均匀网格在低维（<span class=math-inline>$d \leq 3$</span>
 ）也 work，但 <span class=math-inline>$d \geq 5$</span>
-网格点数指数爆炸，没法用。VAE 风格的"用 encoder 网络生成诱导点"在最近几年被提出（latent SVGP），效果不错但额外引入一组神经网络参数，超出了"经典 GP"的范畴。</p><p><strong>SVGP 调参快速清单。</strong> 三件事按重要性排序：(1) <strong>诱导点数量 <span class=math-inline>$m$</span>
+网格点数指数爆炸，没法用。VAE 风格的"用 encoder 网络生成诱导点"在最近几年被提出（latent SVGP），效果不错，但额外引入一组神经网络参数，超出了经典 GP 的范畴。</p><p><strong>SVGP 调参快速清单。</strong> 三件事按重要性排序：(1) <strong>诱导点数量 <span class=math-inline>$m$</span>
 </strong>：从 <span class=math-inline>$m = 500$</span>
 起步，看 ELBO 是否还在涨，没涨就够了；涨着就翻倍。(2) <strong>学习率</strong>：诱导值变分参数 <span class=math-inline>$(\mu, \Sigma)$</span>
-学习率通常要比核超参的学习率大 5-10 倍——前者是无约束的高维参数空间，后者只是几个标量。直接给两组优化器，gpytorch 支持。(3) <strong>mini-batch 大小</strong>：太小（&lt; 256）梯度噪声大、ELBO 抖动剧烈；太大（> 8192）每步开销重、收敛慢。1024 是个安全的默认。这三个调好后 SVGP 在大多数任务上离 SOTA 就一两个百分点。</p><p><strong>和频率派近似的关系。</strong> FITC 的预测均值公式等价于 Nystrom + 岭回归（取一致的正则参数），只是 GP 多了一层概率封装；SVGP 的均值公式则等价于 RFF + 岭回归在 <span class=math-inline>$D \to \infty$</span>
-的极限。这不是巧合：所有可扩展核方法的核心数学骨架都是一样的，只是统计学派把它包成贝叶斯、机器学习派包成 ERM。理解了这一点，你在不同库（gpytorch、sklearn、JAX）之间迁移时就不会觉得在学新概念。</p><p>老实说，<em>精确</em> GP 比 <em>精确</em> SVM 还要受限——它必须做完整 Gram-加-噪声矩阵的 Cholesky，没法像 SVM 那样接受同样的偷懒技巧。所以稀疏 GP 是比"Nystrom-for-SVM"更关键的研究领域。2026 年如果你在真实数据上用 GP，你用的不管知不知道都是 SVGP。一个有时被忽视的点：诱导点 <span class=math-inline>$Z$</span>
-是可学习的连续参数，反向传播会把它们推到对似然贡献最大的位置——这就让 SVGP 在统计上严格优于"先随机选 landmark，再求逆"的固定 Nystrom，代价是优化更难（landmark 优化是非凸的）。</p><h2 id=统一图景 class=heading-anchor>统一图景<a href=#%e7%bb%9f%e4%b8%80%e5%9b%be%e6%99%af class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>回头看看我们走到了哪里。Nystrom 和 RFF 都把核方法压成 <span class=math-inline>$D \ll n$</span>
+学习率通常要比核超参的学习率大 5-10 倍：前者是无约束的高维参数空间，后者只是几个标量。直接给两组优化器，gpytorch 支持。(3) <strong>mini-batch 大小</strong>：太小（&lt; 256）梯度噪声大、ELBO 抖动剧烈；太大（> 8192）每步开销重、收敛慢。1024 是个安全的默认。这三个调好后 SVGP 在大多数任务上离 SOTA 就一两个百分点。</p><p><strong>和频率派近似的关系。</strong> FITC 的预测均值公式等价于 Nystrom + 岭回归（取一致的正则参数），只是 GP 多了一层概率封装；SVGP 的均值公式则等价于 RFF + 岭回归在 <span class=math-inline>$D \to \infty$</span>
+的极限。这不是巧合：所有可扩展核方法的核心数学骨架都是一样的，只是统计学派把它包成贝叶斯、机器学习派包成 ERM。理解了这一点，你在不同库（gpytorch、sklearn、JAX）之间迁移时就不会觉得在学新概念。</p><p>老实说，<em>精确</em> GP 比 <em>精确</em> SVM 还要受限：它必须做完整 Gram-加-噪声矩阵的 Cholesky，没法像 SVM 那样接受同样的偷懒技巧。所以稀疏 GP 是比 Nystrom-for-SVM 更关键的研究领域。2026 年如果你在真实数据上用 GP，不管知不知道，用的都是 SVGP。一个有时被忽视的点：诱导点 <span class=math-inline>$Z$</span>
+是可学习的连续参数，反向传播会把它们推到对似然贡献最大的位置，这就让 SVGP 在统计上严格优于先随机选 landmark 再求逆的固定 Nystrom，代价是优化更难（landmark 优化是非凸的）。</p><h2 id=统一图景 class=heading-anchor>统一图景<a href=#%e7%bb%9f%e4%b8%80%e5%9b%be%e6%99%af class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>回头看看走到了哪里。Nystrom 和 RFF 都把核方法压成 <span class=math-inline>$D \ll n$</span>
 的 <span class=math-inline>$\mathbb{R}^D$</span>
 特征映射上的<em>线性</em>方法。两者误差率类似：RFF 是 <span class=math-inline>$1/\sqrt{D}$</span>
 （蒙特卡洛），Nystrom 是 <span class=math-inline>$K$</span>
@@ -570,37 +570,37 @@ Nystrom 有两个（<span class=math-inline>$m$</span>
 换成低差异（Sobol、Halton）序列。误差在有利区间里以 <span class=math-inline>$1/D$</span>
 而非 <span class=math-inline>$1/\sqrt{D}$</span>
 衰减。</li><li><strong>Orthogonal Random Features（Yu et al. 2016）。</strong> 强制 <span class=math-inline>$W$</span>
-的行正交。严格优于原版 RFF，无额外成本——这是少见的"免费午餐"。</li><li><strong>结构化 Spinner 和 Hadamard 技巧。</strong> 各种让 <span class=math-inline>$W$</span>
+的行正交。严格优于原版 RFF，无额外成本，这是少见的免费午餐。</li><li><strong>结构化 Spinner 和 Hadamard 技巧。</strong> 各种让 <span class=math-inline>$W$</span>
 拥有低存储 / 快乘法结构的办法。</li><li><strong>Nystrom + leverage scores（Alaoui 和 Mahoney 2014）。</strong> 按岭 leverage score 概率抽 landmark；匹配任何基于采样的近似的下界。</li><li><strong>Doubly stochastic kernel methods（Dai et al. 2014）。</strong> 同时在数据和特征上做随机化，把 RFF 推到 <span class=math-inline>$n = 10^9$</span>
 量级。这条线的核心 trick 是把 RFF 的 <span class=math-inline>$W$</span>
-也按 mini-batch 抽——每次只看一小部分频率，配合下游 SGD，让单步开销从 <span class=math-inline>$O(D d)$</span>
+也按 mini-batch 抽：每次只看一小部分频率，配合下游 SGD，让单步开销从 <span class=math-inline>$O(D d)$</span>
 降到 <span class=math-inline>$O(b d)$</span>
 （<span class=math-inline>$b \ll D$</span>
 是频率 batch）。理论上仍然收敛到精确核解，工程上可扩到 <span class=math-inline>$10^9$</span>
 数据点 + <span class=math-inline>$10^5$</span>
 频率。这是 RFF 这条路能走到的极限工程化。</li><li><strong>EigenPro（Ma & Belkin 2017）。</strong> 用预条件 SGD 直接求解核岭回归，绕过显式低秩近似，在 GPU 上能跑到 <span class=math-inline>$n \approx 10^7$</span>
-。它和 Nystrom 不互斥：先 Nystrom 算预条件子再 SGD 求解，是当前最快的 KRR 配方之一。这条思路有时被称为"GPU-native kernel methods"，强调把所有运算限制在矩阵乘和元素 wise 操作上，最大化 GPU 利用率。</li><li><strong>Falkon（Rudi, Carratino, Rosasco 2017）。</strong> Nystrom 配共轭梯度配预条件子的工程化集大成，目前是大规模 KRR 的 SOTA 库。它的关键技术是 <span class=math-inline>$K_{mm}^{-1/2}$</span>
-当预条件子做 CG——避免显式求逆同时保证收敛快，单机 GPU 上能跑到 <span class=math-inline>$n = 10^7, m = 5 \times 10^4$</span>
-的核岭回归在几小时内完成。这是 Nystrom 这条路能走到的极限工程化。如果你的项目本质上就是个核岭回归，直接用 Falkon 库，比自己拼 sklearn 强出几个量级。</li></ul><p>2026 年从业者共识栈：<strong>RFF 当核平移不变且想要简单时，Nystrom 当非平移不变或想手调 landmark，SVGP 当模型是概率的，深度学习当数据形态太复杂以至于没有固定核能抓住。</strong> 系列<a href=/zh/kernel-methods/08-%e6%b7%b1%e5%ba%a6%e6%a0%b8%e5%ad%a6%e4%b9%a0/>第 8 篇</a>
-就是最后这个点——为什么深度学习吃了核方法的午饭，以及在哪些地方核视角又回头反噬现代深度网络（想想：NTK）。</p><p><strong>最后一个观察：随机特征的回归。</strong> 2020 年后随机特征思想在 Transformer 里复活了——Performers（Choromanski et al. 2021）用 FAVOR+ 把 softmax 注意力的 <span class=math-inline>$O(n^2)$</span>
+。它和 Nystrom 不互斥：先 Nystrom 算预条件子再 SGD 求解，是当前最快的 KRR 配方之一。这条思路有时被称为 GPU-native kernel methods，强调把所有运算限制在矩阵乘和元素 wise 操作上，最大化 GPU 利用率。</li><li><strong>Falkon（Rudi, Carratino, Rosasco 2017）。</strong> Nystrom 配共轭梯度配预条件子的工程化集大成，目前是大规模 KRR 的 SOTA 库。它的关键技术是拿 <span class=math-inline>$K_{mm}^{-1/2}$</span>
+当预条件子做 CG：避免显式求逆同时保证收敛快，单机 GPU 上能在几小时内跑完 <span class=math-inline>$n = 10^7, m = 5 \times 10^4$</span>
+的核岭回归。这是 Nystrom 这条路能走到的极限工程化。如果你的项目本质上就是个核岭回归，直接用 Falkon 库，比自己拼 sklearn 强出几个量级。</li></ul><p>2026 年从业者共识栈：<strong>RFF 当核平移不变且想要简单时，Nystrom 当非平移不变或想手调 landmark，SVGP 当模型是概率的，深度学习当数据形态太复杂以至于没有固定核能抓住。</strong> 系列<a href=/zh/kernel-methods/08-%e6%b7%b1%e5%ba%a6%e6%a0%b8%e5%ad%a6%e4%b9%a0/>第 8 篇</a>
+就是最后这个点：为什么深度学习吃了核方法的午饭，以及在哪些地方核视角又回头反噬现代深度网络（想想 NTK）。</p><p><strong>最后一个观察：随机特征的回归。</strong> 2020 年后随机特征思想在 Transformer 里复活了。Performers（Choromanski et al. 2021）用 FAVOR+ 把 softmax 注意力的 <span class=math-inline>$O(n^2)$</span>
 压成 <span class=math-inline>$O(n)$</span>
 ，核心就是把 <span class=math-inline>$\exp(q^T k / \sqrt d)$</span>
-写成 RFF 形式。这是核方法理论回头喂养深度学习的一个干净例子：Bochner 1933 → Rahimi-Recht 2007 → Performers 2021，一脉相承。下一篇会更系统地谈这条线。</p><p><strong>类似的复活清单。</strong> Linformer、Linear Attention、Reformer、Nyströmformer——名字里直接带 Nyström——这一组工作都是 2020-2022 年间用核近似把 attention 从平方降到线性。每一个都本质上是把 attention 矩阵当成一个 PD 核矩阵来近似。这意味着 Transformer 的"长上下文革命"本质上是核方法可扩展性研究的应用——一个 2007 年的统计学工具，十几年后变成大模型架构的核心。这条传承链如果你只看深度学习论文是不会感觉到的，但如果你从核方法的视角往后看，整个故事就连贯了。</p><p><strong>收尾的一条心智模型。</strong> 把整个核方法系列压缩成一句话：核技巧让你用一个内积（<span class=math-inline>$K(x, y)$</span>
+写成 RFF 形式。这是核方法理论回头喂养深度学习的一个干净例子：Bochner 1933 → Rahimi-Recht 2007 → Performers 2021，一脉相承。下一篇会更系统地谈这条线。</p><p><strong>类似的复活清单。</strong> Linformer、Linear Attention、Reformer、Nyströmformer（名字里直接带 Nyström），这一组工作都是 2020-2022 年间用核近似把 attention 从平方降到线性。每一个都本质上是把 attention 矩阵当成一个 PD 核矩阵来近似。这意味着 Transformer 的长上下文革命本质上是核方法可扩展性研究的应用：一个 2007 年的统计学工具，十几年后变成大模型架构的核心。这条传承链如果你只看深度学习论文是不会感觉到的，但如果你从核方法的视角往后看，整个故事就连贯了。</p><p><strong>收尾的一条心智模型。</strong> 把整个核方法系列压缩成一句话：核技巧让你用一个内积（<span class=math-inline>$K(x, y)$</span>
 ）在无穷维空间里做线性方法；但天下没有免费的内积，账单是 <span class=math-inline>$O(n^2)$</span>
-的 Gram 矩阵。Nystrom 用"看一部分"省钱（数据相关），RFF 用"抽样"省钱（数据无关），SVGP 用"变分分解"省钱（概率视角）。三种省钱方式背后是同一个事实：核方法在大数据时代必须近似，且近似的代价远小于精度损失。理解了这一点，你就理解了"为什么 2007 年到 2015 年那么多论文都是 Nystrom 和 RFF 的变种"——它们都在回答同一个问题，只是从不同方向回答。</p><p><strong>给从业者的两条简短建议。</strong> 第一，<em>先选对家族再调参</em>：核非平移不变→Nystrom，平移不变 + 流式→RFF，需要不确定性→SVGP。任何把这三件事搞错的工程都救不回来，无论后面 grid search 多狠。第二，<em>总是和线性基线比</em>：在 <span class=math-inline>$n > 10^5$</span>
-的数据上，一个调好的 logistic regression 加一组手工特征往往离 RFF + logistic 只差一两个百分点，而前者训练快十倍、解释性强十倍。核方法值得用，但不要因为"它高级"就用——只在线性模型实在做不到时用。这条规则适用 2007 年，也适用 2026 年。</p><p><strong>第三条加在这里：先用上述近似版做原型，再决定要不要花钱跑精确。</strong> 工业项目里有个常见反模式是"先花一周训精确 SVM 看是不是有救，发现没救再扔掉"。正确顺序反过来：先 30 秒跑 RFF + LR 看精度天花板大致在哪，再决定是不是值得花一周。近似版几乎不会比精确版差超过 1-2 个百分点，所以它是个非常便宜的可行性探针。这条流程能省下大量的"理论上能 work 但实际上 ROI 太低"的项目时间。</p><p><strong>两条容易被遗忘的工程实践。</strong> 第一，<em>近似版的超参不能直接搬精确版的</em>。精确 RBF SVM 调好的 <span class=math-inline>$C, \gamma$</span>
-给到 Nystrom + LR 上往往不是最优——下游线性头的容量和正则尺度都变了，必须重新 grid search。第二，<em>近似带来的方差要进 CV 报告</em>：固定 <span class=math-inline>$m$</span>
+的 Gram 矩阵。Nystrom 用"看一部分"省钱（数据相关），RFF 用"抽样"省钱（数据无关），SVGP 用"变分分解"省钱（概率视角）。三种省钱方式背后是同一个事实：核方法在大数据时代必须近似，且近似的代价远小于精度损失。理解了这一点，你就明白了为什么 2007 年到 2015 年那么多论文都是 Nystrom 和 RFF 的变种：它们都在回答同一个问题，只是从不同方向回答。</p><p><strong>给从业者的两条简短建议。</strong> 第一，<em>先选对家族再调参</em>：核非平移不变就用 Nystrom，平移不变加流式就用 RFF，需要不确定性就用 SVGP。任何把这三件事搞错的工程都救不回来，无论后面 grid search 多狠。第二，<em>总是和线性基线比</em>：在 <span class=math-inline>$n > 10^5$</span>
+的数据上，一个调好的 logistic regression 加一组手工特征往往离 RFF + logistic 只差一两个百分点，而前者训练快十倍、解释性强十倍。核方法值得用，但不要因为它高级就用，只在线性模型实在做不到时才用。这条规则适用 2007 年，也适用 2026 年。</p><p><strong>第三条加在这里：先用上述近似版做原型，再决定要不要花钱跑精确。</strong> 工业项目里有个常见反模式：先花一周训精确 SVM 看是不是有救，发现没救再扔掉。正确顺序反过来，先 30 秒跑 RFF + LR 看精度天花板大致在哪，再决定是不是值得花一周。近似版几乎不会比精确版差超过 1-2 个百分点，所以它是个非常便宜的可行性探针。这条流程能省下大量理论上能 work、但实际 ROI 太低的项目时间。</p><p><strong>两条容易被遗忘的工程实践。</strong> 第一，<em>近似版的超参不能直接搬精确版的</em>。精确 RBF SVM 调好的 <span class=math-inline>$C, \gamma$</span>
+给到 Nystrom + LR 上往往不是最优：下游线性头的容量和正则尺度都变了，必须重新 grid search。第二，<em>近似带来的方差要进 CV 报告</em>：固定 <span class=math-inline>$m$</span>
 跑 5 个不同 <code>random_state</code> 报均值±标准差，而不是只跑一个。在小 <span class=math-inline>$m$</span>
-区间这个标准差经常是 0.5%-1.5%，比你下游算法版本之间的差距还大；不报方差，你的 ablation 全是噪声。</p><p><strong>第三条常忘的实践：留一组 holdout 给"近似 vs 精确"对比，不要全用 CV。</strong> 标准做法是用 train/val 调超参、test 看泛化；引入近似后还需要一个"sanity"holdout——在小子集（<span class=math-inline>$n_{\text{sanity}} = 5000$</span>
+区间这个标准差经常是 0.5%-1.5%，比你下游算法版本之间的差距还大；不报方差，你的 ablation 全是噪声。</p><p><strong>第三条常忘的实践：留一组 holdout 给"近似 vs 精确"对比，不要全用 CV。</strong> 标准做法是用 train/val 调超参、test 看泛化；引入近似后还需要一个 sanity holdout：在小子集（<span class=math-inline>$n_{\text{sanity}} = 5000$</span>
 ）上跑精确核作为 oracle，比较近似版的预测和它有多接近。如果近似版在 sanity 上偏差超过 1%，说明 <span class=math-inline>$m / D$</span>
-不够，不要直接上大规模。这条流程在做新数据集时能省下大量"上线后发现模型废了"的事故。</p><p><strong>最后一个工程细节：增量学习。</strong> Nystrom 严格说不支持在线学习——新数据来了，landmark 还是旧的，特征映射 <span class=math-inline>$\Phi_n$</span>
+不够，不要直接上大规模。这条流程在做新数据集时能省下大量上线后才发现模型废了的事故。</p><p><strong>最后一个工程细节：增量学习。</strong> Nystrom 严格说不支持在线学习：新数据来了，landmark 还是旧的，特征映射 <span class=math-inline>$\Phi_n$</span>
 部分能复用但下游模型要重训。RFF 支持，因为 <span class=math-inline>$W, b$</span>
 一次抽完后就不动，新数据流过 <span class=math-inline>$\cos(X W + b)$</span>
-即可。所以"模型每天滚动更新"的场景，RFF 是几乎唯一选择；想要 Nystrom 在这种场景下也好用，要走 streaming Nystrom 这条更新的、还在迭代的研究方向。</p><p><strong>写在跳到第 8 篇之前。</strong> 这一篇的核心是 <em>scale</em>：当 <span class=math-inline>$n$</span>
-大到核方法的精确解算不动时，怎么办。下一篇换一个轴：当 <em>函数空间</em> 本身复杂到没有任何固定核能描述时，怎么办。前者答案是"近似核"，后者答案是"学习核"——也就是深度核学习、神经网络与核的双向桥接。两个问题看似无关，其实是一个连续谱的两端：固定核 + 大数据（本篇）vs 学得的核 + 大模型（下篇）。中间所有的混合形态——固定底层核 + 学得的上层组合、固定上层 head + 学得的底层嵌入——都是这个谱上的中间点。</p><p><strong>两个问题之间的桥。</strong> 一个有趣的桥梁：Nystrom 的诱导点 <span class=math-inline>$Z$</span>
-可以变成可学习参数（这就是 SVGP 在做的），那么再进一步——能不能让"诱导特征映射"也变成可学习的神经网络？答案是肯定的，那就是 deep kernel learning（Wilson et al. 2016）：神经网络当作 <span class=math-inline>$\phi(x)$</span>
-，外面套一个 RBF 核，再用 SVGP 做推断。这条路把"近似核"和"学习核"接上了，是下一篇的核心母题之一。所以本篇结束的地方正是下一篇开始的地方——可扩展性的最后一公里通向学习性的第一公里。</p><p>这条桥也解释了为什么 NTK / NNGP 这套"无穷宽神经网络等价于 GP"的理论在 2018 年突然爆发：当宽度趋无穷时，神经网络的输出协方差收敛到一个解析可写的核——这个核就是 NTK。深度学习被翻译成核方法之后，所有 30 年的核理论工具（表示定理、收敛分析、谱分解）都重新可用。下一篇会拆开这个桥的每一根钢梁。</p><p><strong>对核方法这个学科的整体看法。</strong> Nystrom 和 RFF 标志着一个时代的结束：1995-2010 是"精确核+小数据"的黄金期，2010 之后核方法没有消失，但它退化成了一种"风格"——它的思想（特征空间、表示定理、谱视角）渗透进神经网络（NTK、attention 作为核）、生成模型（MMD、kernel score）、强化学习（kernel Bellman 算子）和因果推断（kernel conditional independence）。下一篇会专门聊这条路——但要点先抛在这里：核方法没有输给深度学习，它<em>变成了</em>深度学习的一部分。</p><p><strong>一个偏私人的小结。</strong> 我在这一系列写到第七篇时，发现自己对"近似"这个词的态度变了。十年前我觉得近似是退而求其次，是不得已；现在我觉得近似才是正路，<em>精确</em>反而是个奢侈品——只有当数据小到精确还划算时，精确才该是默认。Nystrom 和 RFF 教会的是：与其追问"我能不能精确地解这个问题"，不如问"我能不能在我关心的精度下廉价地解这个问题"。这个问句的转换是机器学习从学术到工程的一次根本成熟。</p><p><strong>一个常被引用的反思。</strong> Rahimi 自己在 2017 年 NeurIPS 拿 test-of-time 奖时讲过一段话：他担心"alchemy"——很多深度学习的工程进展跑得太快，理论解释跟不上。RFF 是一个反例：它在 2007 年提出时数学就完全清楚（Bochner 1933 + Monte Carlo），所以才能十年不衰、被无数后续工作引用。这条路的教训是：你能把一个想法的数学骨架讲到三页纸，它就有十年的生命；你只能说"实验上 work"，它就只有两年。本系列从头到尾偏数学叙事而非工程叙事，部分原因就在这里——核方法的价值就在它的数学骨架，把骨架理解清楚，剩下的工程都是水到渠成。</p><h2 id=接下来 class=heading-anchor>接下来<a href=#%e6%8e%a5%e4%b8%8b%e6%9d%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><a href=/zh/kernel-methods/08-%e6%b7%b1%e5%ba%a6%e6%a0%b8%e5%ad%a6%e4%b9%a0/>第 8 篇</a>
-（系列终章）讨论<strong>深度核学习 vs 深度学习</strong>：为什么 2012 年起神经网络在经验上赢了，<em>深度学习的核视角</em>（NTK、NNGP、无限宽度下等价于 GP）揭示了网络真正在做什么，以及把核重新塞进神经流水线的混合方法（深度核、高斯过程层、kernel 化注意力）。我们用一个诚实的问题收尾：2026 年，到底什么时候应该用核方法而不是深度模型？</p><hr><p><em>本文是 <a href=/zh/series/kernel-methods/>核方法</a>
+即可。所以模型每天滚动更新的场景，RFF 几乎是唯一选择；想要 Nystrom 在这种场景下也好用，要走 streaming Nystrom 这条更新的、还在迭代的研究方向。</p><p><strong>写在跳到第 8 篇之前。</strong> 这一篇的核心是 <em>scale</em>：当 <span class=math-inline>$n$</span>
+大到核方法的精确解算不动时，怎么办。下一篇换一个轴：当 <em>函数空间</em> 本身复杂到没有任何固定核能描述时，怎么办。前者答案是近似核，后者答案是学习核，也就是深度核学习、神经网络与核的双向桥接。两个问题看似无关，其实是一个连续谱的两端：固定核 + 大数据（本篇）vs 学得的核 + 大模型（下篇）。中间所有的混合形态，固定底层核加学得的上层组合、固定上层 head 加学得的底层嵌入，都是这个谱上的中间点。</p><p><strong>两个问题之间的桥。</strong> 一个有趣的桥梁：Nystrom 的诱导点 <span class=math-inline>$Z$</span>
+可以变成可学习参数（这就是 SVGP 在做的），那么再进一步：能不能让诱导特征映射也变成可学习的神经网络？答案是肯定的，那就是 deep kernel learning（Wilson et al. 2016）：神经网络当作 <span class=math-inline>$\phi(x)$</span>
+，外面套一个 RBF 核，再用 SVGP 做推断。这条路把近似核和学习核接上了，是下一篇的核心母题之一。所以本篇结束的地方正是下一篇开始的地方：可扩展性的最后一公里通向学习性的第一公里。</p><p>这条桥也解释了为什么 NTK / NNGP 这套"无穷宽神经网络等价于 GP"的理论在 2018 年突然爆发：当宽度趋无穷时，神经网络的输出协方差收敛到一个解析可写的核，这个核就是 NTK。深度学习被翻译成核方法之后，30 年的核理论工具（表示定理、收敛分析、谱分解）都重新可用。下一篇会拆开这个桥的每一根钢梁。</p><p><strong>对核方法这个学科的整体看法。</strong> Nystrom 和 RFF 标志着一个时代的结束：1995-2010 是精确核加小数据的黄金期，2010 之后核方法没有消失，但退化成了一种风格：它的思想（特征空间、表示定理、谱视角）渗透进神经网络（NTK、attention 作为核）、生成模型（MMD、kernel score）、强化学习（kernel Bellman 算子）和因果推断（kernel conditional independence）。下一篇会专门聊这条路，但要点先抛在这里：核方法没有输给深度学习，它<em>变成了</em>深度学习的一部分。</p><p><strong>一个偏私人的小结。</strong> 我在这一系列写到第七篇时，发现自己对"近似"这个词的态度变了。十年前我觉得近似是退而求其次，是不得已；现在我觉得近似才是正路，<em>精确</em>反而是个奢侈品：只有当数据小到精确还划算时，精确才该是默认。Nystrom 和 RFF 教会的是：与其追问"我能不能精确地解这个问题"，不如问"我能不能在我关心的精度下廉价地解这个问题"。这个问句的转换是机器学习从学术到工程的一次根本成熟。</p><p><strong>一个常被引用的反思。</strong> Rahimi 自己在 2017 年 NeurIPS 拿 test-of-time 奖时讲过一段话：他担心 alchemy，很多深度学习的工程进展跑得太快，理论解释跟不上。RFF 是一个反例：它在 2007 年提出时数学就完全清楚（Bochner 1933 + Monte Carlo），所以才能十年不衰、被无数后续工作引用。这条路的教训是：你能把一个想法的数学骨架讲到三页纸，它就有十年的生命；你只能说实验上 work，它就只有两年。本系列从头到尾偏数学叙事而非工程叙事，部分原因就在这里：核方法的价值就在它的数学骨架，把骨架理解清楚，剩下的工程都是水到渠成。</p><h2 id=接下来 class=heading-anchor>接下来<a href=#%e6%8e%a5%e4%b8%8b%e6%9d%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><a href=/zh/kernel-methods/08-%e6%b7%b1%e5%ba%a6%e6%a0%b8%e5%ad%a6%e4%b9%a0/>第 8 篇</a>
+（系列终章）讨论<strong>深度核学习 vs 深度学习</strong>：为什么 2012 年起神经网络在经验上赢了，<em>深度学习的核视角</em>（NTK、NNGP、无限宽度下等价于 GP）揭示了网络真正在做什么，以及把核重新塞进神经流水线的混合方法（深度核、高斯过程层、kernel 化注意力）。最后用一个诚实的问题收尾：2026 年，到底什么时候应该用核方法而不是深度模型？</p><hr><p><em>本文是 <a href=/zh/series/kernel-methods/>核方法</a>
 系列的第 7 篇，共 8 篇。
 上一篇: <a href=/zh/kernel-methods/06-%e9%ab%98%e6%96%af%e8%bf%87%e7%a8%8b/>第 6 篇 — 高斯过程</a>
 ·
@@ -626,7 +626,7 @@ Nystrom 有两个（<span class=math-inline>$m$</span>
 <span class=chapter-title>核方法（五）：核 SVM、核 PCA 与核岭回归</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/06-%E9%AB%98%E6%96%AF%E8%BF%87%E7%A8%8B/><span class=chapter-num>06</span>
 <span class=chapter-title>核方法（六）：高斯过程——当核方法遇到贝叶斯推断</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
 <span class=chapter-title>核方法（七）：大规模核方法——Nystrom 近似与随机傅里叶特征</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/kernel-methods/08-%E6%B7%B1%E5%BA%A6%E6%A0%B8%E5%AD%A6%E4%B9%A0/><span class=chapter-num>08</span>
-<span class=chapter-title>核方法（八）：深度核学习 vs 深度学习——选择指南与故障排查</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>88 min</strong></div><div class=row><span>字数</span><strong>21691</strong></div><div class=row><span>写于</span><strong>Dec 2021</strong></div></div></div></aside></article><section class=related-section aria-label=相关文章><div class=related-head><h2>继续阅读</h2><p>与本文主题相关的文章</p></div><div class=related-grid><article class=post-card style=--card-color:var(--hue-2);--card-grad:var(--grad-2)><a class="thumb has-cover" href=https://www.chenk.top/zh/differential-geometry/11-%E6%B5%81%E5%BD%A2%E4%B8%8A%E7%9A%84%E6%9B%B2%E7%8E%87/ data-letter=微 aria-hidden=true><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/differential-geometry/11-%e6%b5%81%e5%bd%a2%e4%b8%8a%e7%9a%84%e6%9b%b2%e7%8e%87.jpg?x-oss-process=image/resize,w_600/format,webp/quality,q_82" alt loading=lazy decoding=async data-fallback="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/differential-geometry.jpg?x-oss-process=image/resize,w_600/format,webp/quality,q_82" onerror='this.src!==this.dataset.fallback?this.src=this.dataset.fallback:(this.parentNode.classList.remove("has-cover"),this.remove())'>
+<span class=chapter-title>核方法（八）：深度核学习 vs 深度学习——选择指南与故障排查</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>84 min</strong></div><div class=row><span>字数</span><strong>20777</strong></div><div class=row><span>写于</span><strong>Dec 2021</strong></div></div></div></aside></article><section class=related-section aria-label=相关文章><div class=related-head><h2>继续阅读</h2><p>与本文主题相关的文章</p></div><div class=related-grid><article class=post-card style=--card-color:var(--hue-2);--card-grad:var(--grad-2)><a class="thumb has-cover" href=https://www.chenk.top/zh/differential-geometry/11-%E6%B5%81%E5%BD%A2%E4%B8%8A%E7%9A%84%E6%9B%B2%E7%8E%87/ data-letter=微 aria-hidden=true><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/differential-geometry/11-%e6%b5%81%e5%bd%a2%e4%b8%8a%e7%9a%84%e6%9b%b2%e7%8e%87.jpg?x-oss-process=image/resize,w_600/format,webp/quality,q_82" alt loading=lazy decoding=async data-fallback="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/differential-geometry.jpg?x-oss-process=image/resize,w_600/format,webp/quality,q_82" onerror='this.src!==this.dataset.fallback?this.src=this.dataset.fallback:(this.parentNode.classList.remove("has-cover"),this.remove())'>
 <span class=cover-go aria-hidden=true>→</span></a><div class=post-meta><span class=series-tag>微分几何</span>
 <span class=dot></span>
 <time datetime=2021-11-21>Nov 21, 2021</time></div><h3><a href=https://www.chenk.top/zh/differential-geometry/11-%E6%B5%81%E5%BD%A2%E4%B8%8A%E7%9A%84%E6%9B%B2%E7%8E%87/>微分几何（十一）：黎曼几何中的曲率 —— 黎曼、里奇和标量</a></h3><p class=excerpt>黎曼曲率张量捕捉了所有内蕴曲率信息 —— 其收缩（里奇和标量曲率）控制体积增长、测地线偏离和爱因斯坦方程。</p><span class=read-time>34 分钟 · 8373 字</span></article><article class=post-card style=--card-color:var(--hue-2);--card-grad:var(--grad-2)><a class="thumb has-cover" href=https://www.chenk.top/zh/differential-geometry/09-%E6%B5%81%E5%BD%A2%E4%B8%8A%E7%9A%84%E7%A7%AF%E5%88%86%E4%B8%8Estokes%E5%AE%9A%E7%90%86/ data-letter=微 aria-hidden=true><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/differential-geometry/09-%e6%b5%81%e5%bd%a2%e4%b8%8a%e7%9a%84%e7%a7%af%e5%88%86%e4%b8%8eStokes%e5%ae%9a%e7%90%86.jpg?x-oss-process=image/resize,w_600/format,webp/quality,q_82" alt loading=lazy decoding=async data-fallback="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/differential-geometry.jpg?x-oss-process=image/resize,w_600/format,webp/quality,q_82" onerror='this.src!==this.dataset.fallback?this.src=this.dataset.fallback:(this.parentNode.classList.remove("has-cover"),this.remove())'>
