@@ -9,6 +9,7 @@
       'nav.home': 'Home',
       'nav.series': 'Series',
       'nav.projects': 'Projects',
+      'nav.ecosystem': 'Ecosystem',
       'nav.archives': 'Archives',
       'nav.about': 'About',
 
@@ -80,6 +81,7 @@
       'nav.home': '首页',
       'nav.series': '系列',
       'nav.projects': '项目',
+      'nav.ecosystem': '生态',
       'nav.archives': '归档',
       'nav.about': '关于',
 
