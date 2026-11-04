@@ -10,6 +10,7 @@
   var user = null;
   var lang = "zh";
   var pendingRoute = "";
+  var homeCache = {};
   var main = document.getElementById("main");
   var mermaidPromise = null;
 
@@ -42,6 +43,7 @@
       refresh: "刷新状态", signout: "退出登录", signedOut: "已退出。",
       toc: "本节目录", prev: "上一节", next: "下一节", minutes: "分钟",
       backHome: "全部章节", chapter: "第 {n} 章",
+      searchPlaceholder: "搜索章节、主题…", searchHint: "输入关键词，搜索 57 个章节", searchNoResult: "没有匹配的章节", searchLogin: "登录后才能搜索全部章节",
       account: "账号", accountLede: "修改密码后，其他设备会自动退出。",
       currentPw: "当前密码", newPw: "新密码（至少 10 位）", changePw: "修改密码",
       pwChanged: "密码已更新。", signoutAll: "退出登录",
@@ -77,6 +79,7 @@
       refresh: "Check status", signout: "Sign out", signedOut: "Signed out.",
       toc: "On this page", prev: "Previous", next: "Next", minutes: "min",
       backHome: "All chapters", chapter: "Chapter {n}",
+      searchPlaceholder: "Search chapters and topics…", searchHint: "Type to search across 57 sections", searchNoResult: "No matching sections", searchLogin: "Sign in to search the library",
       account: "Account", accountLede: "Changing your password signs out your other devices.",
       currentPw: "Current password", newPw: "New password (min 10 chars)", changePw: "Change password",
       pwChanged: "Password updated.", signoutAll: "Sign out",
@@ -142,8 +145,11 @@
     document.getElementById("kb-nav").innerHTML = navMarkup();
     document.getElementById("kb-drawer-nav").innerHTML = navMarkup();
     var langBtn = document.getElementById("kb-lang");
-    langBtn.textContent = T().langSwitch;
-    langBtn.href = "#" + currentPath() + "?lang=" + (lang === "en" ? "zh" : "en");
+    if (langBtn) {
+      langBtn.textContent = T().langSwitch;
+      langBtn.href = "#" + currentPath() + "?lang=" + (lang === "en" ? "zh" : "en");
+    }
+    if (searchInput) searchInput.placeholder = T().searchPlaceholder;
     document.title = T().docTitle + " · chenk.top";
   }
 
@@ -168,6 +174,93 @@
   });
   document.getElementById("kb-drawer-close").addEventListener("click", closeDrawer);
   backdrop.addEventListener("click", closeDrawer);
+
+  /* ---------- search ---------- */
+  var searchOverlay = document.getElementById("kb-search-overlay");
+  var searchInput = document.getElementById("kb-search-input");
+  var searchResults = document.getElementById("kb-search-results");
+
+  function markText(text, q) {
+    var safe = esc(text);
+    if (!q) return safe;
+    var needle = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return safe.replace(new RegExp("(" + needle + ")", "ig"), "<mark>$1</mark>");
+  }
+  function allSections(d) {
+    var out = [];
+    (d.chapters || []).forEach(function (ch) {
+      (ch.sections || []).forEach(function (sec) { out.push({ ch: ch, sec: sec }); });
+    });
+    return out;
+  }
+  function paintResults(d, q) {
+    var t = T();
+    if (!d) {
+      searchResults.innerHTML = '<div class="search-empty">' + esc(t.searchLogin) + "</div>";
+      return;
+    }
+    var ql = q.toLowerCase();
+    var hits = allSections(d).filter(function (row) {
+      var s = row.sec;
+      var hay = (s.title + " " + (s.tags || []).join(" ") + " " + row.ch.title + " " + s.slug).toLowerCase();
+      return hay.indexOf(ql) >= 0;
+    });
+    if (!hits.length) {
+      searchResults.innerHTML = '<div class="search-empty">' + esc(t.searchNoResult) + "</div>";
+      return;
+    }
+    searchResults.innerHTML = hits.slice(0, 30).map(function (row) {
+      var s = row.sec;
+      return '<a class="result" href="' + routeHash("/a/" + s.slug) + '">' +
+        '<span class="r-meta"><span class="r-series">' + esc(row.ch.title) + '</span><span class="r-date">' + esc(fmtDate(s.date)) + "</span></span>" +
+        '<span class="title">' + markText(s.title, q) + "</span>" +
+        (s.tags && s.tags.length ? '<span class="excerpt">' + esc(s.tags.join(" · ")) + "</span>" : "") +
+      "</a>";
+    }).join("");
+  }
+  function renderSearchResults(q) {
+    var t = T();
+    if (!q) {
+      searchResults.innerHTML = '<div class="search-empty">' + esc(t.searchHint) + "</div>";
+      return;
+    }
+    if (homeCache[lang]) return paintResults(homeCache[lang], q);
+    searchResults.innerHTML = '<div class="search-empty">' + esc(t.loading) + "</div>";
+    api("/api/home?lang=" + lang).then(function (res) {
+      if (res.ok) homeCache[lang] = res.data;
+      paintResults(res.ok ? res.data : null, q);
+    });
+  }
+  function openSearch() {
+    searchOverlay.classList.add("open");
+    searchOverlay.setAttribute("aria-hidden", "false");
+    searchInput.placeholder = T().searchPlaceholder;
+    searchInput.value = "";
+    renderSearchResults("");
+    setTimeout(function () { searchInput.focus(); }, 30);
+  }
+  function closeSearch() {
+    searchOverlay.classList.remove("open");
+    searchOverlay.setAttribute("aria-hidden", "true");
+  }
+  document.getElementById("kb-search").addEventListener("click", openSearch);
+  searchInput.addEventListener("input", function () { renderSearchResults(searchInput.value.trim()); });
+  searchResults.addEventListener("click", function (ev) { if (ev.target.closest("a.result")) closeSearch(); });
+  searchOverlay.addEventListener("click", function (ev) { if (ev.target === searchOverlay) closeSearch(); });
+  document.addEventListener("keydown", function (ev) {
+    var open = searchOverlay.classList.contains("open");
+    if ((ev.metaKey || ev.ctrlKey) && (ev.key === "k" || ev.key === "K")) {
+      ev.preventDefault();
+      if (open) closeSearch(); else openSearch();
+      return;
+    }
+    if (!open) return;
+    if (ev.key === "Escape") { ev.preventDefault(); closeSearch(); }
+    if (ev.key === "Enter") {
+      var first = searchResults.querySelector("a.result");
+      if (first) { ev.preventDefault(); first.click(); }
+    }
+  });
 
   /* ---------- api ---------- */
   function api(path, opts) {
@@ -244,6 +337,7 @@
     var r = parseHash();
     paintChrome();
     closeDrawer();
+    closeSearch();
     window.scrollTo(0, 0);
     var p = r.parts;
     if (p[0] === "a" && p[1]) return requireAuth(function () { return renderArticle(decodeURIComponent(p[1])); }, r.path);
@@ -416,6 +510,7 @@
       if (res.status === 401) { clearToken(); return renderLogin(); }
       if (!res.ok) return renderError(errText(res.data.error));
       var d = res.data;
+      homeCache[lang] = d;
       var sections = d.chapters.reduce(function (n, ch) { return n + ch.sections.length; }, 0);
       var first = d.chapters[0] && d.chapters[0].sections[0] ? d.chapters[0].sections[0].date : "";
       var t = T();
