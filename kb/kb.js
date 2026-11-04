@@ -3,7 +3,7 @@
   "use strict";
 
   var LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
-  var API = LOCAL ? "http://127.0.0.1:8090" : "https://learn.chenk.top";
+  var API = LOCAL ? "http://127.0.0.1:8080" : "https://learn.chenk.top";
   var TOKEN_KEY = "kb_token";
   var LANG_KEY = "kb_lang";
   var token = null;
@@ -134,14 +134,67 @@
       return '<a href="' + it[1] + '"' + cls + ">" + esc(t.nav[it[0]]) + "</a>";
     }).join("");
   }
+  function footerMarkup() {
+    var en = lang === "en";
+    var p = "/" + lang + "/";
+    var series = [
+      ["产品思维", "Product Thinking", "https://www.chenk.top" + p + "series/product-thinking/"],
+      ["个人理财", "Personal Finance", "https://www.chenk.top" + p + "series/personal-finance/"],
+      ["阿里云全栈实战", "Alibaba Cloud Full Stack", "https://www.chenk.top" + p + "series/aliyun-fullstack/"],
+      ["Claude Code 实战", "Claude Code Hands-On", "https://www.chenk.top" + p + "series/claude-code-learn/"],
+      [en ? "All series →" : "全部系列 →", "", p + "series/"]
+    ];
+    var explore = [
+      [en ? "All Posts" : "全部文章", "", p + "archives/"],
+      [en ? "Tags" : "标签", "", p + "tags/"],
+      [en ? "Categories" : "分类", "", p + "categories/"],
+      [en ? "Library" : "知识库", "", "/kb/" + (en ? "?lang=en" : "")],
+      [en ? "About" : "关于", "", p + "about/"]
+    ];
+    var projects = [
+      ["AI4Marketing", "", "https://llm4marketing.com"],
+      ["AI4Science", "", "https://llm4science.top"],
+      ["DaaS", "", "https://company-skill.com"],
+      ["MiniGameForge", "", "https://forge.llm4marketing.asia"],
+      ["llm-elevator", "", "https://llm4marketing.asia"],
+      ["NodeMind", "", "https://askgraph.online"],
+      ["Meeting Copilot", "", "https://meeting.company-skill.com"],
+      ["agent-pet", "", "https://pet.llm4marketing.asia"],
+      [en ? "All projects →" : "全部项目 →", "", p + "projects/"]
+    ];
+    var elsewhere = [
+      ["GitHub", "", "https://github.com/chenkai66"],
+      ["Email", "", "mailto:chenkai.nb.666@gmail.com"],
+      ["WeChat", "wechat", ""]
+    ];
+    function item(it) {
+      if (it[1] === "wechat") {
+        return '<li><button type="button" class="footer-wechat" data-wechat="ck1640234528" aria-label="' + (en ? "Copy WeChat ID" : "复制微信号") + '">WeChat</button></li>';
+      }
+      var external = /^https?:/.test(it[2]);
+      return '<li><a href="' + it[2] + '"' + (external ? ' target="_blank" rel="noopener"' : "") + ">" + esc(it[0]) + "</a></li>";
+    }
+    function col(title, items) {
+      return '<div class="footer-col"><h3>' + esc(title) + '</h3><ul>' + items.map(item).join("") + "</ul></div>";
+    }
+    return col(en ? "Series" : "系列", series) + col(en ? "Explore" : "探索", explore) + col(en ? "Projects" : "项目", projects) + col(en ? "Elsewhere" : "其他", elsewhere);
+  }
   function paintChrome() {
     document.documentElement.lang = lang === "en" ? "en" : "zh-CN";
     var brand = document.getElementById("kb-brand");
     if (brand) brand.href = "/" + lang + "/";
-    var fHome = document.getElementById("kb-footer-home");
-    var fArchive = document.getElementById("kb-footer-archive");
-    if (fHome) fHome.href = "/" + lang + "/";
-    if (fArchive) fArchive.href = "/" + lang + "/archives/";
+    var fGrid = document.getElementById("kb-footer-grid");
+    if (fGrid) fGrid.innerHTML = footerMarkup();
+    var fCopy = document.getElementById("kb-footer-copy");
+    if (fCopy) fCopy.textContent = lang === "en" ? "© 2026 Chen Kai" : "© 2026 陈锴";
+    var fSign = document.getElementById("kb-footer-sign");
+    if (fSign) fSign.textContent = lang === "en" ? "Hangzhou." : "杭州";
+    var wxHint = document.getElementById("kb-wx-hint");
+    if (wxHint) wxHint.textContent = lang === "en" ? "Search this ID inside WeChat to connect" : "在微信里搜索此 ID 即可添加我";
+    var wxCopy = document.getElementById("kb-wx-copy");
+    if (wxCopy && !wxCopy.dataset.copied) wxCopy.textContent = lang === "en" ? "Copy ID" : "复制微信号";
+    var wxClose = document.querySelector("#kb-wx-modal .wx-modal-close");
+    if (wxClose) wxClose.setAttribute("aria-label", lang === "en" ? "Close" : "关闭");
     document.getElementById("kb-nav").innerHTML = navMarkup();
     document.getElementById("kb-drawer-nav").innerHTML = navMarkup();
     var langBtn = document.getElementById("kb-lang");
@@ -174,6 +227,52 @@
   });
   document.getElementById("kb-drawer-close").addEventListener("click", closeDrawer);
   backdrop.addEventListener("click", closeDrawer);
+
+  /* ---------- wechat ---------- */
+  var wxModal = document.getElementById("kb-wx-modal");
+  function openWx() {
+    wxModal.hidden = false;
+    requestAnimationFrame(function () { wxModal.classList.add("is-open"); });
+  }
+  function closeWx() {
+    wxModal.classList.remove("is-open");
+    setTimeout(function () { wxModal.hidden = true; }, 220);
+  }
+  function copyWx(btn) {
+    var id = btn.getAttribute("data-wx-copy") || "ck1640234528";
+    function done() {
+      btn.dataset.copied = "1";
+      btn.classList.add("is-done");
+      btn.textContent = lang === "en" ? "Copied" : "已复制";
+      setTimeout(function () {
+        delete btn.dataset.copied;
+        btn.classList.remove("is-done");
+        btn.textContent = lang === "en" ? "Copy ID" : "复制微信号";
+      }, 1800);
+    }
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = id;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta);
+      done();
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(id).then(done, fallback);
+    else fallback();
+  }
+  document.addEventListener("click", function (e) {
+    if (e.target.closest(".footer-wechat")) { openWx(); return; }
+    if (e.target.closest("[data-wx-close]")) { closeWx(); return; }
+    var copyBtn = e.target.closest("[data-wx-copy]");
+    if (copyBtn) copyWx(copyBtn);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !wxModal.hidden) closeWx();
+  });
 
   /* ---------- search ---------- */
   var searchOverlay = document.getElementById("kb-search-overlay");
