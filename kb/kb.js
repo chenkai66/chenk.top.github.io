@@ -746,7 +746,7 @@
     if (mermaidPromise) return mermaidPromise;
     mermaidPromise = new Promise(function (resolve) {
       var s = document.createElement("script");
-      s.src = "/kb/vendor/mermaid.min.js";
+      s.src = API + "/static/mermaid.min.js";
       s.async = true;
       s.onload = function () { resolve(window.mermaid || null); };
       s.onerror = function () { resolve(null); };
