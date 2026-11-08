@@ -25,7 +25,7 @@
 
   var TXT = {
     zh: {
-      nav: { home: "首页", series: "系列", projects: "项目", eco: "生态", archive: "归档", data: "数据", kb: "知识库", about: "关于" },
+      nav: { home: "首页", series: "系列", projects: "项目", archive: "归档", data: "数据", kb: "知识库", about: "关于" },
       docTitle: "知识库",
       eyebrow: "私有知识库",
       title: "外投开发教程",
@@ -61,7 +61,7 @@
       notFound: "没有找到这一节。", empty: "暂无内容。", langSwitch: "EN"
     },
     en: {
-      nav: { home: "Home", series: "Series", projects: "Projects", eco: "Ecosystem", archive: "Archive", data: "Data", kb: "Library", about: "About" },
+      nav: { home: "Home", series: "Series", projects: "Projects", archive: "Archive", data: "Data", kb: "Library", about: "About" },
       docTitle: "Library",
       eyebrow: "Private library",
       title: "External Ads Engineering Guide",
@@ -123,8 +123,7 @@
       ["home", "/" + lang + "/"],
       ["series", "/" + lang + "/series/"],
       ["projects", "/" + lang + "/projects/"],
-      ["eco", "/ecosystem.html?lang=" + lang],
-      ["archive", "/" + lang + "/archives/"],
+            ["archive", "/" + lang + "/archives/"],
       ["data", "/" + lang + "/data/"],
       ["kb", "/kb/" + (lang === "en" ? "?lang=en" : "")],
       ["about", "/" + lang + "/about/"]
