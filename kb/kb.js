@@ -745,12 +745,12 @@
     if (window.mermaid) return Promise.resolve(window.mermaid);
     if (mermaidPromise) return mermaidPromise;
     mermaidPromise = new Promise(function (resolve) {
-      var tries = 0;
-      var timer = setInterval(function () {
-        tries += 1;
-        if (window.mermaid) { clearInterval(timer); resolve(window.mermaid); }
-        else if (tries > 50) { clearInterval(timer); resolve(null); }
-      }, 100);
+      var s = document.createElement("script");
+      s.src = "/kb/vendor/mermaid.min.js";
+      s.async = true;
+      s.onload = function () { resolve(window.mermaid || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
     });
     return mermaidPromise;
   }
